@@ -1,0 +1,50 @@
+
+table.hi-pvtTable {
+    font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-size: 11px;
+    text-align: center;
+    border-collapse: collapse;
+}
+table.hi-pvtTable tr th, table.hi-pvtTable tr th {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-size: 11px;
+    padding: 5px;
+	color: #333;
+}
+
+table.hi-pvtTable .hi-pvtColLabel {text-align: center;}
+table.hi-pvtTable .hi-pvtTotalLabel {text-align: center;}
+
+table.hi-pvtTable tr td {
+	font-family: Helvetica Neue,Helvetica,Arial,sans-serif;
+    font-size: 11px;
+    color: #3D3D3D;
+    padding: 5px;
+    background-color: #FFF;
+    border: 1px solid #ddd;
+    vertical-align: top;
+    text-align: Center;
+}
+
+.hi-pvtTotal, .hi-pvtGrandTotal { font-weight: bold; }
+
+.hi-pvtVals { text-align: center;}
+.hi-pvtAggregator { margin-bottom: 5px ;}
+
+.hi-pvtAxisContainer, .hi-pvtVals {
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    padding: 5px;
+    min-width: 20px;
+    min-height: 20px;
+}
+.hi-pvtAxisContainer li {
+    padding: 8px 6px;
+    list-style-type: none;
+}
+
+/*.hi-pvtHorizList li { display: inline; }*/
+
+.hi-hide{display: none;}

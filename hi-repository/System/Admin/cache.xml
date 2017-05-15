@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cache>
+    <enableCache>true</enableCache>
+    <enableJsonCache>true</enableJsonCache>
+    <enableThread>true</enableThread>
+    <cacheExtension>cache</cacheExtension>
+    <cacheExpireDuration>24</cacheExpireDuration>
+    <durationUnit>hours</durationUnit>
+    <refreshUrl>
+        <url>/getEFWSolution.html</url>
+        <url>/hi.html</url>
+    </refreshUrl>
+    <cacheManager>
+        <url bean="efwdCacheManager" pattern="/executeDatasource.html"/>
+        <url bean="efwvfCacheManager" pattern="/visualizeData.html"/>
+        <url bean="downloadCacheManager" pattern="/exportData.html"/>
+    </cacheManager>
+    <downloadManager>
+        <contentType bean="CSVFormatDownload" type="csv"/>
+        <contentType bean="XLSFormatDownload" type="xls"/>
+    </downloadManager>
+</cache>

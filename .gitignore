@@ -1,0 +1,9 @@
+*/.svn/*
+.svn
+
+\.svn\
+\.svn
+.classpath
+.project
+.settings/
+target/

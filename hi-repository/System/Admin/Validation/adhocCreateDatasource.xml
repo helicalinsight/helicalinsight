@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<driverName type="text"/>
+	<userName type="text"/>
+	<!-- <jdbcUrl type="jdbcUrl"/> -->
+	<dataSourceProvider type="text"/>
+	<classifier required="true" type="text"/>
+	<name maxLength="60" type="text"/>
+	<directory condition="=" requiredIf="classifier" type="directory" value="efwd"/>
+	<type condition="=" requiredIf="classifier" type="text" value="efwd"/>
+</formData>

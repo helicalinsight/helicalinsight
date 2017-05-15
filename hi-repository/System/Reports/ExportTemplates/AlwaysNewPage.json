@@ -1,0 +1,15 @@
+{
+    "head": {
+        "title": "Always New Page",
+        "description": "This will render the dashboard each chart in new page",
+        "image-name": "Image Path"
+    },
+    "body": {
+        "viewPortWidth": 600,
+        "viewPortHeight": 768,
+        "layout": "portrait",
+        "paperWidth": 1024,
+        "paperHeight": 768,
+        "hasScript": "true"
+    }
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<services>
+    <!-- Without the mandatory attribute the json library is missing the first child node. So, any type should always have the mandatory attribute. -->
+    <!-- There should be only one node for each feature type in a single xml file. -->
+    <!-- The type(core) represents a feature-->
+    <description>Configurable services of HI</description>
+    <core mandatory="true">
+        <!-- Acutal serviceType -->
+        <dataSource>
+            <!-- The service implementation -->
+            <read class="com.helicalinsight.efw.serviceframework.ServiceImplementation"/>
+            <write class="com.helicalinsight.efw.serviceframework.ServiceImplementation"/>
+            <test class="com.helicalinsight.efw.serviceframework.ServiceImplementation"/>
+            <update class="com.helicalinsight.efw.serviceframework.ServiceImplementation"/>
+            <quickTest class="com.helicalinsight.datasource.QuickConnectionTest"/>
+            <shutdown class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <cachedDS class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+        </dataSource>
+        <!-- To update any resource that has security and share feature -->
+        <share mandatory="true">
+            <update class="com.helicalinsight.resourcesecurity.ShareService"/>
+            <fetchInfo class="com.helicalinsight.resourcesecurity.ShareService"/>
+            <retrieveSharedInfo class="com.helicalinsight.resourcesecurity.ShareService"/>
+        </share>
+    </core>
+    <!-- A -->
+    <adhoc mandatory="true">
+        <query mandatory="true">
+            <cancelQuery class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <queryDetails class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+        </query>
+    </adhoc>
+    <print mandatory="true">
+        <export mandatory="true">
+            <getTemplateList class="com.helicalinsight.export.ExportService"/>
+            <getExportSettings class="com.helicalinsight.export.ExportService"/>
+            <getTemplate class="com.helicalinsight.export.ExportService"/>
+            <deleteTemplate class="com.helicalinsight.export.ExportService"/>
+            <saveTemplate class="com.helicalinsight.export.ExportService"/>
+            <getContents class="com.helicalinsight.export.ExportService"/>
+            <xls class="com.helicalinsight.export.ExportService"/>
+        </export>
+    </print>
+    <monitor mandatory="true">
+        <scheduling mandatory="true">
+            <schedule class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+        </scheduling>
+        <cache mandatory="true">
+            <updateConfiguration class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <size class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <delete class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <dump class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <clean class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <refresh class="com.helicalinsight.admin.management.ResourceManagerService"/>
+        </cache>
+        <system mandatory="true">
+            <systemInfo class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <tempFile class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <log class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <readWrite class="com.helicalinsight.admin.management.ResourceManagerService"/>
+            <closePlugin class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <availablePlugins class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <loadedPlugins class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <reportStats class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <datasourceCount class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <diskSpace class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+        </system>
+    </monitor>
+    <util mandatory="true">
+        <io mandatory="true">
+            <getExtensions class="com.helicalinsight.admin.management.FileExtensionService"/>
+        </io>
+    </util>
+    <!-- <import>
+        <xml name="exampleImportServices.xml"/>
+    </import> -->
+</services>

@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <mapping class="com.helicalinsight.admin.model.User"/>
+        <mapping class="com.helicalinsight.admin.model.Role"/>
+        <mapping class="com.helicalinsight.admin.model.Profile"/>
+        <mapping class="com.helicalinsight.cache.model.Cache"/>
+        <mapping class="com.helicalinsight.cache.model.CacheReport"/>
+    </session-factory>
+</hibernate-configuration>

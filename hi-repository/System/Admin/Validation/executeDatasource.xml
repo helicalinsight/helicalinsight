@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<data>
+		<dir required="true" type="directory"/>
+		<map_id required="true" type="number"/>
+	</data>
+	<notapplicable type="text"/>
+</formData>

@@ -1,0 +1,536 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <name>parent</name>
+    <groupId>com.helicalinsight</groupId>
+    <artifactId>parent</artifactId>
+    <version>${parent.version}</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <!--War module-->
+        <module>hi-ce</module>
+        <!--War module-->
+
+        <!--Core module-->
+        <module>core</module>
+        <!--Core module-->
+
+        <!--Child modules-->
+        <module>cache</module>
+        <module>externalauth</module>
+        <module>export</module><!--Depends on cache, validation-->
+        <module>hwf</module><!--Depends on cache-->
+        <module>scheduling</module><!--Depends on export, hwf-->
+        <module>validation</module>
+        <!--Child modules-->
+    </modules>
+
+
+    <properties>
+        <parent.version>2.0.0.0-CE</parent.version>
+        <inceptionYear>2013</inceptionYear>
+        <copyrightOwner>Helical IT Solutions (http://www.helicalinsight.com)</copyrightOwner>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <license.licenseName>apache_v2</license.licenseName>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- All properties are placed here to manage the versions-->
+        <jdk.version>1.7</jdk.version>
+
+        <javax.servlet-api.version>3.0.1</javax.servlet-api.version>
+        <jsp-api.version>2.2</jsp-api.version>
+        <jstl.version>1.2</jstl.version>
+        <el.api>3.0.0</el.api>
+        <javax.inject.version>1</javax.inject.version>
+        <tiles-jsp.version>3.0.7</tiles-jsp.version>
+
+        <spring.version>4.3.6.RELEASE</spring.version>
+        <hibernate-core.version>4.3.11.Final</hibernate-core.version>
+
+        <junit.version>4.12</junit.version>
+        <mockito-all.version>1.10.19</mockito-all.version>
+        <json-path.version>2.2.0</json-path.version>
+
+        <hsqldb.version>2.3.4</hsqldb.version>
+
+        <log4j.version>1.2.17</log4j.version>
+        <org.slf4j-version>1.7.21</org.slf4j-version>
+
+        <java7.hikaricp.version>2.4.7-hi</java7.hikaricp.version>
+        <tomcat.jdbc.version>7.0.65</tomcat.jdbc.version>
+
+        <maven-compiler-plugin.version>3.6.1</maven-compiler-plugin.version>
+        <spring-security-web.version>3.1.3.RELEASE</spring-security-web.version>
+
+        <joda-time.version>2.9.7</joda-time.version>
+        <guava.version>18.0</guava.version>
+        <mail.version>1.4.7</mail.version>
+        <mysql-connector-java.version>5.1.40</mysql-connector-java.version>
+
+        <zip4j.version>1.3.2</zip4j.version>
+        <commons-fileupload.version>1.3.2</commons-fileupload.version>
+        <poi-ooxml.version>3.15</poi-ooxml.version>
+        <quartz.version>2.2.3</quartz.version>
+        <gson.version>2.8.0</gson.version>
+        <json.version>20090211</json.version>
+        <json.lib.version>2.4</json.lib.version>
+        <opencsv.version>2.3</opencsv.version>
+        <xom.version>1.2.5</xom.version>
+        
+        <rhino.version>1.7.7.1</rhino.version>
+
+        <calcite.version>1.11.0</calcite.version>
+        <mongo.java.driver>3.4.1</mongo.java.driver>
+
+        <groovy.version>2.4.7</groovy.version>
+        <cas.client.version>3.3.3</cas.client.version>
+        <cas.server.ldap>4.0.1</cas.server.ldap>
+
+        <opennlp.version>1.6.0</opennlp.version>
+        <commons-collections.version>3.2.2</commons-collections.version>
+        <commons-dbutils.version>1.6</commons-dbutils.version>
+        <commons-lang3.version>3.5</commons-lang3.version>
+        <commons-codec.version>1.10</commons-codec.version>
+        <commons-io.version>2.5</commons-io.version>
+        <commons-digester.version>2.1</commons-digester.version>
+        <commons-configuration.version>1.10</commons-configuration.version>
+        <hibernate-validator.version>5.2.4.Final</hibernate-validator.version>
+        <jersey-server.version>1.19</jersey-server.version>
+        <jsr250-api.version>1.0</jsr250-api.version>
+    </properties>
+
+    <dependencies>
+
+        <!-- Servlet -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>${javax.servlet-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet.jsp</groupId>
+            <artifactId>jsp-api</artifactId>
+            <version>${jsp-api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>jstl</artifactId>
+            <version>${jstl.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.el</groupId>
+            <artifactId>javax.el-api</artifactId>
+            <version>${el.api}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Unit Testing-->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>${mockito-all.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!--Required for testing-->
+        <dependency>
+            <groupId>javax.annotation</groupId>
+            <artifactId>jsr250-api</artifactId>
+            <version>${jsr250-api.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+			<groupId>com.jayway.jsonpath</groupId>
+			<artifactId>json-path</artifactId>
+			<version>${json-path.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+        <!-- For Dependency Injection -->
+        <dependency>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
+            <version>${javax.inject.version}</version>
+        </dependency>
+
+        <!-- The spring-webmvc module (also known as the Web-Servlet module) contains
+            Spring’s model-view-controller (MVC) and REST Web Services implementation
+            for web applications. Depends on spring-context, spring-core, spring-web, spring-aop,
+            spring beans, spring-expression-->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>${spring.version}</version>
+
+            <!-- No need of commons logging. Simple Logging Facade is used. -->
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- The spring-orm module supports integration with Hibernate, Java Persistence API (JPA)
+        and Java Data Objects (JDO) for resource management, data access object (DAO) implementations,
+        and transaction strategies. Requires spring-jdbc, spring-tx. -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>${spring.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <version>${spring-security-web.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-taglibs</artifactId>
+            <version>${spring-security-web.version}</version>
+        </dependency>
+
+        <!-- Hibernate. Pulls all related hibernate jars. -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>${hibernate-core.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>${hibernate-validator.version}</version>
+        </dependency>
+
+
+        <!-- Logging. Logging using facade api -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${org.slf4j-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${org.slf4j-version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+
+        <!-- Connection Pooling -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${java7.hikaricp.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+            <version>${tomcat.jdbc.version}</version>
+        </dependency>
+
+        <!--Apache tiles support for JSP templates-->
+        <dependency>
+            <groupId>org.apache.tiles</groupId>
+            <artifactId>tiles-jsp</artifactId>
+            <version>${tiles-jsp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>${joda-time.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>javax.mail</groupId>
+            <artifactId>mail</artifactId>
+            <version>${mail.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql-connector-java.version}</version>
+        </dependency>
+
+        <!--File uploading and zipping, unzipping related libraries-->
+        <!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+        <dependency>
+            <groupId>commons-fileupload</groupId>
+            <artifactId>commons-fileupload</artifactId>
+            <version>${commons-fileupload.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>${zip4j.version}</version>
+        </dependency>
+        <!--File uploading and zipping, unzipping related libraries-->
+
+        <!--Pulls poi as well-->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi-ooxml.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>stax</groupId>
+                    <artifactId>stax-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Quartz library -->
+        <dependency>
+            <groupId>org.quartz-scheduler</groupId>
+            <artifactId>quartz</artifactId>
+            <version>${quartz.version}</version>
+        </dependency>
+        <!-- Quartz library -->
+
+        <!--Json Libraries -->
+        <!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.json-lib</groupId>
+            <artifactId>json-lib</artifactId>
+            <version>${json.lib.version}</version>
+            <classifier>jdk15</classifier>
+        </dependency>
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>${json.version}</version>
+        </dependency>
+        <!--Json Libraries -->
+
+        <dependency>
+            <groupId>net.sf.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>${opencsv.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>xom</groupId>
+            <artifactId>xom</artifactId>
+            <version>${xom.version}</version>
+        </dependency>
+
+        
+        <dependency>
+            <groupId>org.mozilla</groupId>
+            <artifactId>rhino</artifactId>
+            <version>${rhino.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-core</artifactId>
+            <version>${calcite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-linq4j</artifactId>
+            <version>${calcite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-mongodb</artifactId>
+            <version>${calcite.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-example-csv</artifactId>
+            <version>${calcite.version}</version>
+        </dependency>
+
+        <!--Mongodb adapter for java-->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>${mongo.java.driver}</version>
+        </dependency>
+        <!--Mongodb adapter for java-->
+
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-all</artifactId>
+            <version>${groovy.version}</version>
+        </dependency>
+
+        <!--dependency for single-sing-on cas-->
+        <dependency>
+            <groupId>org.jasig.cas.client</groupId>
+            <artifactId>cas-client-core</artifactId>
+            <version>${cas.client.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-cas</artifactId>
+            <version>${spring-security-web.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jasig.cas</groupId>
+            <artifactId>cas-server-support-ldap</artifactId>
+            <version>${cas.server.ldap}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.validation</groupId>
+                    <artifactId>validation-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!--dependency for single-sing-on cas-->
+
+        <dependency>
+            <groupId>org.apache.opennlp</groupId>
+            <artifactId>opennlp-tools</artifactId>
+            <version>${opennlp.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-collections</groupId>
+            <artifactId>commons-collections</artifactId>
+            <version>${commons-collections.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-dbutils</groupId>
+            <artifactId>commons-dbutils</artifactId>
+            <version>${commons-dbutils.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${commons-lang3.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>${commons-codec.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>${commons-io.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-digester</groupId>
+            <artifactId>commons-digester</artifactId>
+            <version>${commons-digester.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-configuration</groupId>
+            <artifactId>commons-configuration</artifactId>
+            <version>${commons-configuration.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-server</artifactId>
+            <version>${jersey-server.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>${project.artifactId}</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <source>${jdk.version}</source>
+                        <target>${jdk.version}</target>
+                    </configuration>
+                </plugin>
+
+
+                <!-- Adding header to file -->
+                <plugin>
+                    <groupId>com.mycila.maven-license-plugin</groupId>
+                    <artifactId>maven-license-plugin</artifactId>
+                    <version>1.8.0</version>
+                    <configuration>
+                        <!-- Template location -->
+                        <header>src/main/resources/header.txt</header>
+                        <properties>
+                            <!-- Values to be substituted in template -->
+                            <h_inceptionYear>${inceptionYear}</h_inceptionYear>
+                            <h_currentYear>2017</h_currentYear>
+                            <h_copyrightOwner>${copyrightOwner}</h_copyrightOwner>
+                        </properties>
+                        <strictCheck>true</strictCheck>
+                        <excludes>
+                            <exclude>**/*.html</exclude>
+                            <exclude>**/*.xml</exclude>
+                            <exclude>**/*.txt</exclude>
+                            <exclude>**/*.ec</exclude>
+                            <exclude>**/*.log</exclude>
+                            <exclude>**/*.css</exclude>
+                            <exclude>**/*.js</exclude>
+                            <exclude>**/*.jsp</exclude>
+                            <exclude>**/*.md</exclude>
+                            <exclude>**/*.properties</exclude>
+                        </excludes>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <phase>validate</phase>
+                            <goals>
+                                <goal>format</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

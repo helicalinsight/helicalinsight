@@ -1,0 +1,20 @@
+{
+    "layout": ["Portrait", "Landscape"],
+    "paperSize": ["A3", "A4", "A5", "Legal", "Letter", "Tabloid"],
+    "scaling": ["Automatic", "25%", "50%", "60%", "75%", "80%", "90%", "100%", "200%", "400%", "At most 1 page high", "At most 2 pages high", "At most 1 page wide", "At most 2 pages wide"],
+    "footer": {
+        "text": "Report Footer",
+        "fontSize": "12px",
+        "fontColor": "skyblue",
+        "fontStyle": ["Italic", "Bold"],
+        "textAlign": ["rignt", "left", "center"]
+    },
+    "header": {
+        "text": "Report Header",
+        "fontSize": "12px",
+        "fontColor": "skyblue",
+        "fontStyle": ["Italic", "Bold"],
+        "textAlign": ["Rignt", "Left", "Center"]
+    },
+    "margin": "2px"
+}

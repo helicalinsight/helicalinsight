@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<action type="text"/>
+	<name condition="=" maxLength="60" minLength="3" requiredIf="action" type="roleName" value="add"/>
+	<limit type="number"/>
+	<offset type="number"/>
+	<!--searchPhrase type="searchPhrase"/-->
+	<searchOn type="searchOn"/>
+	<id condition="=" requiredIf="action" type="number" value="delete"/>
+</formData>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<action required="true" type="text"/>
+	<!--destination requiredIf="action" condition="=" value="move" type="directory"/-->
+	<folderName condition="=" maxLength="60" requiredIf="action" type="fileName" value="newFolder"/>
+</formData>

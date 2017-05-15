@@ -1,0 +1,306 @@
+<beans:beans xmlns:beans="http://www.springframework.org/schema/beans"
+             xmlns:security="http://www.springframework.org/schema/security"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns="http://www.springframework.org/schema/security"
+             xsi:schemaLocation="http://www.springframework.org/schema/beans
+                    http://www.springframework.org/schema/beans/spring-beans.xsd
+                    http://www.springframework.org/schema/security
+                    http://www.springframework.org/schema/security/spring-security-3.1.xsd">
+
+    <beans:bean id="accessDeniedHandler" class="org.springframework.security.web.access.AccessDeniedHandlerImpl">
+        <beans:property name="errorPage" value="/WEB-INF/pages/accessdenied.jsp"/>
+    </beans:bean>
+
+    <beans:bean id="authenticationProcessingFilter" class="com.helicalinsight.admin.filter.PreAuthenticationFilter">
+        <beans:property name="postOnly" value="false"/>
+        <beans:property name="authenticationManager" ref="authenticationManager"/>
+        <beans:property name="authenticationFailureHandler" ref="failureHandler"/>
+        <beans:property name="authenticationSuccessHandler" ref="successHandler"/>
+    </beans:bean>
+
+    <beans:bean id="requestParameterAuthenticationFilter"
+                class="com.helicalinsight.admin.filter.RequestParameterAuthenticationFilter">
+        <beans:property name="authenticationManager" ref="authenticationManager">
+            <!-- ref="authenticationManager"(use this when no cas)-->
+        </beans:property>
+        <beans:property name="authenticationFailureUrl" value="/login.html?error=1"/>
+        <beans:property name="excludeUrls">
+            <beans:list>
+                <beans:value>/j_spring_switch_user</beans:value>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+
+    <beans:bean id="successHandler"
+                class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler">
+        <beans:property name="defaultTargetUrl" value="/welcome.html"/>
+        <beans:property name="alwaysUseDefaultTargetUrl" value="false"/>
+    </beans:bean>
+
+    <beans:bean id="failureHandler"
+                class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+        <beans:property name="defaultFailureUrl" value="/loginFailed.html"/>
+    </beans:bean>
+
+    <beans:bean id="loginUrlAuthenticationEntryPoint"
+                class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+        <beans:property name="loginFormUrl" value="/login.html"/>
+        <beans:property name="forceHttps" value="false"/>
+    </beans:bean>
+
+
+    <authentication-manager alias="authenticationManager" erase-credentials="false">
+        <authentication-provider user-service-ref="userDetailsService"/>
+        <authentication-provider ref="casAuthenticationProvider"/>
+        <authentication-provider ref="internalAuthenticationProvider"/>
+    </authentication-manager>
+
+    <!--htpp configuration for rest api starts-->
+    <http pattern="/rest/login" use-expressions="true"
+          create-session="stateless"
+          entry-point-ref="unauthorizedEntryPoint"
+          authentication-manager-ref="authenticationManager">
+
+        <custom-filter ref="restAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
+    </http>
+    <!--htpp configuration for rest api ends-->
+
+    <http access-denied-page="/WEB-INF/pages/accessdenied.jsp"
+          use-expressions="true" auto-config="false"
+          entry-point-ref="loginUrlAuthenticationEntryPoint">
+        <!--entry-point-ref="loginUrlAuthenticationEntryPoint"(use this when no cas)-->
+        <!--entry-point-ref="casEntryPoint"(to enable cas)-->
+
+        <logout invalidate-session="true" logout-success-url="/login.html"
+                delete-cookies="JSESSIONID"/>
+
+        <intercept-url pattern="/admin.html" access="hasRole('ROLE_ADMIN')"/>
+        <intercept-url pattern="/report.html" access="hasAnyRole('ROLE_ADMIN','ROLE_USER')"/>
+
+        <intercept-url pattern="/favicon.ico" access="permitAll"/>
+
+        <intercept-url pattern="/admin/home.html" access="hasRole('ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/admin/home*" access="denyAll"/>
+
+        <intercept-url pattern="/customscript" access="isAuthenticated()"/>
+
+        <intercept-url pattern="/login.html" access="permitAll"/>
+
+        <intercept-url pattern="/Print" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/DisplayChart" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/GetChart" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/loginfailed.html" access="permitAll"/>
+
+        <intercept-url pattern="/login*" access="denyAll"/>
+
+        <intercept-url pattern="/welcome.html" access="isAuthenticated()"/>
+
+        <intercept-url pattern="/welcome/" access="denyAll"/>
+
+        <intercept-url pattern="/welcome*" access="denyAll"/>
+
+        <intercept-url pattern="/hi.html" access="isAuthenticated()"/>
+
+        <intercept-url pattern="/hi/" access="denyAll"/>
+
+        <intercept-url pattern="/hi*" access="denyAll"/>
+
+        <intercept-url pattern="/admin/users" access="hasRole('ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/admin/roles/**" access="hasRole('ROLE_ADMIN')"/>
+
+
+
+
+
+
+        <intercept-url pattern="/admin/profiles" access="hasRole('ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/admin" access="denyAll"/>
+
+        <intercept-url pattern="/admin/*" access="denyAll"/>
+
+        <intercept-url pattern="/admin*" access="denyAll"/>
+
+        <intercept-url pattern="/mock/**" access="hasRole('ROLE_PHANTOM') or hasRole('ROLE_PREVIOUS_ADMINISTRATOR')"/>
+
+        <intercept-url pattern="/user*" access="hasRole('ROLE_USER')"/>
+
+        <intercept-url pattern="/services*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/services/**" access="isAuthenticated()"/>
+
+        <intercept-url pattern="/rest/logout.html" access="isAuthenticated()"/>
+
+        <intercept-url pattern="/getSolutionResources*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/getEFWSolution*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/executeDatasource*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/datasource-*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/visualizeData*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/exportData*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/downloadReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/updateEFWTemplate*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/getExternalResource*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/createDataSource*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/getResources*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/listDataSources*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/executeSavedReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/sendMail*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/downloadEnableSavedReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/fileSystemOperations*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/importFile*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/workflow*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/saveReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/executeFavourite*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/getScheduleData*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/updateScheduleData*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/sync*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <intercept-url pattern="/getProductInformation*" access="permitAll"/>
+
+        <intercept-url pattern="/jasperReports*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+
+        <!--Filter order changed for integration of CAS_FILTER starts-->
+        <custom-filter before="CAS_FILTER" ref="authenticationProcessingFilter"/>
+        <custom-filter position="FORM_LOGIN_FILTER" ref="requestParameterAuthenticationFilter"/>
+        <custom-filter position="CAS_FILTER" ref="casFilter"/>
+        <custom-filter position="SWITCH_USER_FILTER" ref="switchUserProcessingFilter"/>
+        <!--Filter order changed for integration of CAS_FILTER ends-->
+    </http>
+
+
+    <!--Beans configuration related to CAS integration starts -->
+    <beans:bean id="internalAuthenticationProvider"
+                class="com.helicalinsight.externalauth.InternalDaoAuthenticationProvider">
+        <beans:property name="userDetailsService" ref="userDetailsService"/>
+    </beans:bean>
+
+    <beans:bean id="casUserDetailsService"
+                class="com.helicalinsight.externalauth.cas.CasUserDetailService">
+    </beans:bean>
+
+    <beans:bean id="casFilter" class="org.springframework.security.cas.web.CasAuthenticationFilter">
+        <beans:property name="authenticationManager" ref="authenticationManager"/>
+        <beans:property name="authenticationSuccessHandler" ref="externalAuthSuccessHandler"/>
+    </beans:bean>
+
+    <beans:bean id="casEntryPoint" class="org.springframework.security.cas.web.CasAuthenticationEntryPoint">
+        <beans:property name="loginUrl" value="http://192.168.2.18:8080/cas/login"/>
+        <beans:property name="serviceProperties" ref="serviceProperties"/>
+    </beans:bean>
+
+    <beans:bean id="casAuthenticationProvider"
+                class="org.springframework.security.cas.authentication.CasAuthenticationProvider">
+        <beans:property name="authenticationUserDetailsService">
+            <beans:bean class="org.springframework.security.core.userdetails.UserDetailsByNameServiceWrapper">
+                <beans:constructor-arg ref="casUserDetailsService"/>
+            </beans:bean>
+        </beans:property>
+        <beans:property name="serviceProperties" ref="serviceProperties"/>
+        <beans:property name="ticketValidator">
+            <beans:bean class="org.jasig.cas.client.validation.Cas20ServiceTicketValidator">
+                <beans:constructor-arg index="0" value="http://192.168.2.18:8080/cas"/>
+            </beans:bean>
+        </beans:property>
+        <beans:property name="key" value="an_id_for_this_auth_provider_only"/>
+    </beans:bean>
+    <beans:bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <beans:property name="targetClass" value="org.springframework.security.core.context.SecurityContextHolder"/>
+        <beans:property name="targetMethod" value="setStrategyName"/>
+        <beans:property name="arguments">
+            <beans:list>
+                <beans:value>MODE_INHERITABLETHREADLOCAL</beans:value>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+
+    <beans:bean name="casSingleSignOutFilter" class="org.jasig.cas.client.session.SingleSignOutFilter">
+        <beans:property name="artifactParameterName" value="ticket"/>
+        <beans:property name="sessionMappingStorage" ref="casSessionMappingStorage"/>
+    </beans:bean>
+
+    <beans:bean id="proxyAuthenticationProcessingFilter" class="com.helicalinsight.externalauth.cas.HiCasFilter">
+        <beans:property name="authenticationManager" ref="authenticationManager"/>
+        <beans:property name="authenticationFailureHandler" ref="failureHandler"/>
+        <beans:property name="filterProcessesUrl" value="/j_spring_security_check"/>
+        <beans:property name="allowSessionCreation" value="true"/>
+        <beans:property name="sessionAuthenticationStrategy" ref="casSessionAuthStrategy"/>
+        <!--Used the same deprecated class. Need to fix this by writing a custom impl of
+        AuthenticationDetailsSource-->
+        <beans:property name="authenticationDetailsSource">
+            <beans:bean class="com.helicalinsight.externalauth.cas.AuthenticationDetailsSourceImpl">
+                <beans:property name="clazz"
+                                value="org.springframework.security.web.authentication.WebAuthenticationDetails"/>
+            </beans:bean>
+        </beans:property>
+    </beans:bean>
+
+    <beans:bean id="externalAuthSuccessHandler"
+                class="com.helicalinsight.externalauth.cas.CasSuccessHandler">
+        <beans:property name="defaultTargetUrl" value="/welcome.html"/>
+        <beans:property name="alwaysUseDefaultTargetUrl" value="false"/>
+    </beans:bean>
+
+    <beans:bean id="casSessionAuthStrategy"
+                class="com.helicalinsight.externalauth.cas.CasSessionFixationProtectionStrategy">
+        <beans:property name="migrateSessionAttributes" value="true"/>
+        <beans:property name="sessionMappingStorage" ref="casSessionMappingStorage"/>
+        <beans:property name="artifactParameterName" value="ticket"/>
+        <!-- MUST BE THE SAME AS artifactParameterName in casSingleSignOutFilter bean -->
+    </beans:bean>
+
+    <beans:bean id="casSessionMappingStorage" class="org.jasig.cas.client.session.HashMapBackedSessionMappingStorage"/>
+
+    <beans:bean name="externalAdminUsers" class="com.helicalinsight.externalauth.cas.ExternalAdminUsers">
+        <beans:property name="adminUsers">
+            <beans:list>
+                <beans:value>casuser</beans:value>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+    <!--Beans configuration related to CAS integration ends -->
+
+    <!--Beans configuration for rest api starts-->
+    <beans:bean id="unauthorizedEntryPoint" class="com.helicalinsight.externalauth.security.RestUnauthorizedEntryPoint"/>
+    <beans:bean id="tokenManager" class="com.helicalinsight.externalauth.security.impl.TokenManagerSingle"/>
+    <beans:bean id="switchUserProcessingFilter"
+                class="org.springframework.security.web.authentication.switchuser.SwitchUserFilter">
+        <beans:property name="userDetailsService" ref="userDetailsService"/>
+        <beans:property name="switchUserUrl" value="/mock/impersonate"/>
+        <beans:property name="targetUrl" value="/welcome.html"/>
+        <beans:property name="switchFailureUrl" value="/mock/switchUser"/>
+        <beans:property name="exitUserUrl" value="/j_spring_security_exit_user"/>
+        <beans:property name="usernameParameter" value="username"/>
+    </beans:bean>
+
+    <!--Beans configuration for rest api ends-->
+    <security:global-method-security secured-annotations="enabled" jsr250-annotations="enabled"
+                                     pre-post-annotations="enabled">
+    </security:global-method-security>
+</beans:beans>

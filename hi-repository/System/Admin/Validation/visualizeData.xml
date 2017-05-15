@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<data>
+		<dir required="true" type="directory"/>
+		<vf_file required="true" type="fileName"/>
+		<vf_id required="true" type="number"/>
+	</data>
+	<notapplicable type="text"/>
+</formData>

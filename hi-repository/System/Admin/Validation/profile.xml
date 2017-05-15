@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<action minLength="3" type="text"/>
+	<name type="text"/>
+	<value type="text"/>
+</formData>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<efw>
+    <title>Sample EFW Dashboard</title>
+    <author>Helical</author>
+    <description>This is a sample on how to create a dashboard</description>
+    <icon>images/image.ico</icon>
+    <template>sample_dashboard.html</template>
+    <visible>true</visible> 
+    <style>clean</style>
+</efw>

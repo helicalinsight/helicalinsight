@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<efwProject>
+    <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
+    -->
+    <!--<efwSolution>E:\CommunityEdition\presentation\src\test\resources\solution</efwSolution>-->
+    <efwSolution>E:\Backup\All EFW folders\EFW</efwSolution>
+    <BaseUrl>http://localhost:8084/hi-ce/hi.html</BaseUrl>
+    <!-- The framework related files with extensions and configurable rules -->
+    <Extentions>
+        <!-- Only efw, efwsr, efwfav, efwresult files are shown in the file browser -->
+        <efw rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWRule" visible="true">efw</efw>
+        <!-- Existing rdf files wont work. Using same extension as key -->
+        <efwsr rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">efwsr</efwsr>
+        <efwd>efwd</efwd>
+        <efwvf>efwvf</efwvf>
+        <efwfav rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">fav</efwfav>
+        <folder visible="true">
+            <efwFolder rule="com.helicalinsight.efw.resourceloader.rules.impl.IndexFileRule">efwfolder</efwFolder>
+        </folder>
+        <efwExport>crt</efwExport>
+        <efwresult rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">result</efwresult>
+        <hwf>HWF</hwf>
+    </Extentions>
+    <!-- Additional xml configurations required for configurable services and global jdbc configurations
+    present in the System/Admin directory -->
+
+    <recursiveLoading>true</recursiveLoading>
+    <readPluginsBootTime>true</readPluginsBootTime>
+
+    <!-- To restrict the view to shown both html & server or only server side options-->
+    <provideExportViaHtml>false</provideExportViaHtml>
+    <!-- If the default email resource type is 'url', then server side printing is used to get
+    the report and then email the same. If it is 'adhoc' then the html source is expected.-->
+    <defaultEmailResourceType>url</defaultEmailResourceType>
+    <defaultDriverClassName>org.postgresql.Driver</defaultDriverClassName>
+    <!-- Query cancellation time in seconds -->
+    <jdbcQueryCancellationTime>3000</jdbcQueryCancellationTime>
+    <import>
+        <xml name="services.xml" type="services"/>
+        <xml name="components.xml" type="components"/>
+        <xml name="globalConnections.xml" type="globalConnections"/>
+    </import>
+    <!-- The following tag is read as string and should be without any attributes-->
+    <enableSavedResult>false</enableSavedResult>
+    <createNewBackupFile>true</createNewBackupFile>
+
+    <!-- Options for resource security related settings. HI versions 1.2 and before don't need these properties-->
+    <security mandatory="true">
+        <!-- Support for older resources of type efw. True enables the application to work with old efw resources(resources created for use by HDI version 1.2 or earlier)-->
+        <supportOldVersions>true</supportOldVersions>
+        <!-- The resourceSecurityRule tag is not mandatory. But if provided, should have a class configured available in the classpath. -->
+        <resourceSecurityRule class="com.helicalinsight.resourcesecurity.ResourceSecurityRule" mandatory="false"/>
+        <!-- Resource security based on user/role/organization based -->
+        <!-- This section of configurable rules will be applied by some or all the resources. If the name of the tag is rule, then those rules behaviour will be applied at run time. An array of rules are supported.-->
+        <rules mandatory="false" mode="and">
+            <!-- mode if not provided is considered as and -->
+            <rule class="com.helicalinsight.resourcesecurity.ShareRule"/>
+        </rules>
+    </security>
+    <createSeparateDirectoryForEachReportSource>true</createSeparateDirectoryForEachReportSource>
+    <!-- Settings for various operations with rule classes. The following tag has many nodes with some attributes "mandatory='true'". Adding any node to the operations tag should have this attribute.-->
+    <operations>
+        <efw mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWDeleteRule"/>
+        </efw>
+        <efwsr mandatory="true">
+            <delete class="com.helicalinsight.scheduling.EFWSRDeleteRule"/>
+            <import class="com.helicalinsight.efw.io.EFWSRImportRule"/>
+        </efwsr>
+        <efwfav mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWFavouriteDeleteRule"/>
+        </efwfav>
+        <efwresult mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWSavedResultDeleteRule"/>
+        </efwresult>
+        <efwdd mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
+        </efwdd>
+    </operations>
+    <!-- To serve the external resources like css, js, and images from the configured solution directory -->
+    <contents>
+        <type class="com.helicalinsight.efw.externalresources.ExternalResourceReader" name="content.generic">
+            <content name="js" pattern="*.js" responseContent="text/javascript"/>
+            <content name="css" pattern="*.css" responseContent="text/css"/>
+            <content name="html" pattern="*.html" responseContent="text/html"/>
+            <content name="tsv" pattern="*.tsv" responseContent="text/tab-separated-values"/>
+            <content name="json" pattern="*.json" responseContent="application/json"/>
+        </type>
+        <type class="com.helicalinsight.efw.externalresources.ImageReader" name="content.image">
+            <content name="jpg" pattern="*.jpg"/>
+            <content name="jpg" pattern="*.jpeg"/>
+            <content name="gif" pattern="*.gif"/>
+            <content name="png" pattern="*.png"/>
+            <content name="svg" pattern="*.svg"/>
+        </type>
+    </contents>
+    <resourcereader class="com.helicalinsight.efw.resourcereader.XMLResourceReader" type="xml"/>
+    <!-- To provide datasource related connections -->
+    <DataSources>
+        <DataSource class="com.helicalinsight.datasource.GlobalJdbcDataSource" classifier="global"
+                    name="Managed DataSource" type="global.jdbc"/>
+        <DataSource class="com.helicalinsight.datasource.JDBCDriver" classifier="efwd" name="Plain Jdbc DataSource"
+                    type="sql.jdbc"/>
+        <DataSource class="com.helicalinsight.datasource.calcite.CalciteAdapter" classifier="efwd"
+                    name="Virtual DataSource" type="sql.calcite"/>
+    </DataSources>
+    <!-- To render the custom charts -->
+    <Charts>
+        <Chart class="com.helicalinsight.efw.vf.Custom" type="Custom"/>
+    </Charts>
+    <!-- Hwf related configuration-->
+    <HwfSources>
+        <HwfSource class="com.helicalinsight.hwf.component.input.InputProcess" type="helical.String"/>
+        <HwfSource class="com.helicalinsight.hwf.component.output.OutputProcess" type="com.helicalinsight.print"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ExecuteDbQuery" type="job.executeDbQuery"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ExecuteGroovy" type="job.executeGroovy"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ConditionalComponent" type="job.conditional"/>
+        <HwfSource class="com.helicalinsight.hwf.component.IterativeComponent" type="com.helicalinsight.loop.for"/>
+    </HwfSources>
+
+    <!-- Default permission for files and folders. If this setting is not available, then
+    an integer value of 4 will be used.-->
+    <permissions>
+        <noAccessLevel>0</noAccessLevel>
+        <executeAccessLevel>1</executeAccessLevel>
+        <readAccessLevel>2</readAccessLevel>
+        <readWriteAccessLevel>3</readWriteAccessLevel>
+        <readWriteDeleteAccessLevel>4</readWriteDeleteAccessLevel>
+        <!-- Read, Write, Delete, Share -->
+        <ownerAccessLevel>5</ownerAccessLevel>
+    </permissions>
+    <defaultPermissions mandatory="true">
+        <publicResourceAccessLevel>2</publicResourceAccessLevel>
+    </defaultPermissions>
+    <!-- The following configuration is read only once during application reload. -->
+    <jaxbClasses>
+        <efw>com.helicalinsight.resourcesecurity.jaxb.Efw</efw>
+        <efwsr>com.helicalinsight.resourcesecurity.jaxb.Efwsr</efwsr>
+        <efwFolder>com.helicalinsight.resourcesecurity.jaxb.EfwFolder</efwFolder>
+        <efwfav>com.helicalinsight.resourcesecurity.jaxb.Efwfav</efwfav>
+        <efwresult>com.helicalinsight.resourcesecurity.jaxb.EfwResult</efwresult>
+    </jaxbClasses>
+    <!-- Default roles created when an organization is created. Super organization user and admin
+    are configured here. -->
+    <defaultRoleNames>
+        <roleUser email="user@helicalinsight.com" name="hiuser">ROLE_USER</roleUser>
+        <roleAdmin email="admin@helicalinsight.com" name="hiadmin">ROLE_ADMIN</roleAdmin>
+        <rolePhantom email="phantom@helicalinsight.com" name="phantom">ROLE_PHANTOM</rolePhantom>
+    </defaultRoleNames>
+    <efwdDataSourceHandlers>
+        <handler class="com.helicalinsight.efw.components.SqlJdbcHandler" classifier="sql.jdbc"/>
+        <handler class="com.helicalinsight.efw.components.SqlCalciteHandler" classifier="sql.calcite"/>
+    </efwdDataSourceHandlers>
+    <viewHandler>
+        <efw>
+            <redirectLink>/getEFWSolution.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </efw>
+        <efwsr>
+            <redirectLink>/executeSavedReport.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </efwsr>
+    </viewHandler>
+</efwProject>

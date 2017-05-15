@@ -1,0 +1,355 @@
+<link rel="stylesheet" type="text/css" href="css/c3.css"></link> 
+<link rel="stylesheet" type="text/css" href="getExternalResource.html?path=Sample Reports/Sample EFW Dashboard/classic.css"></link> 
+
+<script src="js/vendors/c3.js"></script>
+<script src="getExternalResource.html?path=Sample Reports/Sample EFW Dashboard/jQDateRangeSlider-withRuler-min.js"></script>
+
+
+<style type="text/css">
+@media print{
+	#runButton{
+		display: none;
+	}
+	
+	.ui-ruler-tick-label{
+		font-size: 10px;
+	}
+
+	
+	.ui-ruler-tick-inner{
+		padding-top: 2px;
+	}
+}
+
+
+.heading{
+	
+}
+
+.gaugeTitle{
+	text-align: center;
+	margin-top: 7px;
+	font-size: 12px;
+}
+
+#paramLabel{
+	font-size: 12px;
+	font-weight: bold;
+	margin-top: 8px;
+	padding-right: 0px !important;
+}
+
+#pieChart{
+	background-repeat:no-repeat;
+	background-position:50% 50% !important;
+	background-size: 100% 100%;
+	padding-bottom: 49px;
+}
+
+#pieHeading, .gaugeHeading{
+	text-align: center;
+}
+
+#pie, #gauge{
+	border: 1px solid black;
+}
+
+
+.ui-ruler-tick-inner{
+	text-align: center;
+	padding-top: 0.01vw;
+
+}
+
+.ui-ruler-tick-label{
+	font-size: 1.1vw;
+}
+
+.ui-rangeSlider-bar{
+	height: 1.8vw;
+}
+</style>
+
+	<div class="col-sm-12">
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 style="text-align: center;" id="heading" class="heading">Travel Expense Dashboard</h1>
+			</div>
+		</div>
+
+		<div class="row" style="margin-top: 25px; margin-left: 3%;">
+			<div class="col-sm-1" id="paramLabel">Select Month:</div>
+			<div class="col-sm-9" id="monthSelector"></div>
+			<div class="col-sm-1" id="runButton"></div>
+		</div>
+		
+		<br>
+		
+		<div class="row">
+			<div class="col-sm-6">
+				<div class="row" id="pie">
+					<div class="col-sm-12" id="pieHeading"><h3>Client Expenditure on Travel</h3></div>
+					<div class="col-sm-12" id="pieChart"></div>
+				</div>
+			</div>
+		
+			<div class="col-sm-6" id="gauge">
+				<div class="row">
+					<div class="col-sm-12 gaugeHeading"><h3>Top 5 Spenders on Travel</h3></div>
+				</div>
+				
+				<div class="row">
+					<div class="col-sm-4">
+						<div class="row">
+							<div class="col-sm-12">
+								<div id="firstGauge"></div>
+								<div id="firstGaugeHeading" class="gaugeTitle"></div>
+							</div>
+							<div class="col-sm-12">
+								<div id="secondGauge"></div>
+								<div id="secondGaugeHeading" class="gaugeTitle"></div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-sm-4">
+						<div class="row">
+							<div class="col-sm-12" style="margin-top:45%;">
+								<div id="thirdGauge"></div>
+								<div id="thirdGaugeHeading" class="gaugeTitle"></div>
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-sm-4">
+						<div class="row">
+							<div class="col-sm-12">
+								<div id="fourthGauge"></div>
+								<div id="fourthGaugeHeading" class="gaugeTitle"></div>
+							</div>
+							<div class="col-sm-12">
+								<div id="fifthGauge"></div>
+								<div id="fifthGaugeHeading" class="gaugeTitle"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<br>
+		<br>
+		<div class="row" id="footer">
+			<div class="form-group">
+				<label class="col-xs-4">CONFIDENTIAL</label>
+				<label class="col-xs-7 text-right">Run Date:</label>
+				<label class="col-xs-1" id="runDate"></label>
+			</div>
+		</div>
+		
+		<div id="dummy"></div> 
+	</div>
+	
+<script>
+
+var dashboard = Dashboard;
+
+dashboard.resetAll();
+dashboard.setVariable('start_date', '2015-01-01 12:00:00');
+dashboard.setVariable('end_date', '2015-02-01 12:00:00');
+
+dashboard.setVariable('firstGaugeCost', '');
+dashboard.setVariable('secondGaugeCost', '');
+dashboard.setVariable('thirdGaugeCost', '');
+dashboard.setVariable('fourthGaugeCost', '');
+dashboard.setVariable('fifthGaugeCost', '');
+
+dashboard.setVariable('firstGaugeHeading', '');
+dashboard.setVariable('secondGaugeHeading', '');
+dashboard.setVariable('thirdGaugeHeading', '');
+dashboard.setVariable('fourthGaugeHeading', '');
+dashboard.setVariable('fifthGaugeHeading', '');
+
+var runButton = {
+    name: "runButton",
+	triggers:["pieChart", "dummy"],
+    type:  "button",
+	options:{
+			display: "Generate Chart"
+		},
+    htmlElementId : "#runButton",
+    executeAtStart: false    
+};
+
+var dummy = {
+    name: "dummy",
+	type:  "chart",
+	vf : {
+		id : 1,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#dummy",
+    executeAtStart: true
+};
+
+var pieChart = {
+    name: "pieChart",
+	type:  "chart",
+	vf : {
+		id : 2,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#pieChart",
+    executeAtStart: true
+};
+
+var firstGauge = {
+    name: "firstGauge",
+	type:  "chart",
+	vf : {
+		id : 3,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#firstGauge",
+    executeAtStart: false
+};
+
+var secondGauge = {
+    name: "secondGauge",
+	type:  "chart",
+	vf : {
+		id : 4,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#secondGauge",
+    executeAtStart: false
+};
+
+var thirdGauge = {
+    name: "thirdGauge",
+	type:  "chart",
+	vf : {
+		id : 5,
+		file : "sample_dashboard.efwvf"
+	},
+    requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+	htmlElementId : "#thirdGauge",
+    executeAtStart: false
+};
+
+var fourthGauge = {
+    name: "fourthGauge",
+	type:  "chart",
+	vf : {
+		id : 6,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#fourthGauge",
+    executeAtStart: false
+};
+
+var fifthGauge = {
+    name: "fifthGauge",
+	type:  "chart",
+	vf : {
+		id : 7,
+		file : "sample_dashboard.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#fifthGauge",
+    executeAtStart: false
+};
+
+var getResource = "url('"+window.DashboardGlobals.baseUrl+"getExternalResource.html?path=Sample Reports/Sample EFW Dashboard/travel_expense.jpg'"+")";
+					
+$("#pieChart").css('background-image',getResource);
+
+$('#runDate').text(moment().format("MM-DD-YYYY"));
+
+var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+
+$('#monthSelector').dateRangeSlider({
+    bounds:{
+    min: new Date(2015, 0, 1),
+    max: new Date(2016, 0, 1)
+  },
+    defaultValues:{
+    min: new Date(2015, 0, 1),
+    max: new Date(2015, 1, 1)
+  },
+  arrows: false,
+  valueLabels: "hide",
+  symmetricPositionning: true,
+  step:{
+    months: 1
+  },
+    range:{
+    min: {months: 1},
+    max: {months: 12}
+  },
+  scales: [{
+      first: function(value){ return value; },
+      end: function(value) {return value; },
+      next: function(value){
+		var next = new Date(value);
+        return new Date(next.setMonth(value.getMonth() + 1));
+      },
+      label: function(value){
+		//console.log(value.getYear()-100);
+        return months[value.getMonth()]+"-"+(value.getYear()-100);
+      }
+  }],
+    formatter:function(val){
+		var map = {
+			"1": 'Jan',
+			"2": 'Feb',
+			"3": 'Mar',
+			"4": 'Apr',
+			"5": 'May',
+			"6": 'Jun',
+			"7": 'Jul',
+			"8": 'Aug',
+			"9": 'Sep',
+			"10": 'Oct',
+			"11": 'Nov',
+			"12": 'Dec'
+		};
+        var month = val.getMonth() + 1;
+        return map[month];
+      }
+  });
+  
+ $('#monthSelector').bind("valuesChanged", function(e, data){
+	dashboard.setVariable('start_date', moment(data.values.min).format("YYYY-MM-DD hh:mm:ss"));
+	dashboard.setVariable('end_date', moment(data.values.max).format("YYYY-MM-DD hh:mm:ss"));
+ });
+
+var components = [runButton, dummy, pieChart, firstGauge, secondGauge, thirdGauge, fourthGauge, fifthGauge];
+dashboard.init(components);
+</script>

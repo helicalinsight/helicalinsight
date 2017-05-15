@@ -1,0 +1,314 @@
+<Charts>
+	<Chart id="1">
+        <prop>
+            <name>dummy</name>
+            <type>Custom</type>
+            <DataSource>1</DataSource>
+            <script>
+                <![CDATA[
+					
+					
+					if(data.length == 0){
+						dashboard.setVariable('firstGaugeCost', 0);
+						dashboard.setVariable('secondGaugeCost', 0);
+						dashboard.setVariable('thirdGaugeCost', 0);
+						dashboard.setVariable('fourthGaugeCost', 0);
+						dashboard.setVariable('fifthGaugeCost', 0);
+						
+						dashboard.setVariable('maxValue', 1000);
+						
+						$('#firstGaugeHeading').text("No Travel");
+						$('#secondGaugeHeading').text("No Travel");
+						$('#thirdGaugeHeading').text("No Travel");
+						$('#fourthGaugeHeading').text("No Travel");
+						$('#fifthGaugeHeading').text("No Travel");
+					}
+					else{
+						var max = data[0].cost + (data[0].cost * 0.1);
+						
+						dashboard.setVariable('firstGaugeCost', data[0].cost);
+						dashboard.setVariable('secondGaugeCost', data[1].cost);
+						dashboard.setVariable('thirdGaugeCost', data[2].cost);
+						dashboard.setVariable('fourthGaugeCost', data[3].cost);
+						dashboard.setVariable('fifthGaugeCost', data[4].cost);
+						
+						dashboard.setVariable('firstGaugeHeading', data[0].client);
+						dashboard.setVariable('secondGaugeHeading', data[1].client);
+						dashboard.setVariable('thirdGaugeHeading', data[2].client);
+						dashboard.setVariable('fourthGaugeHeading', data[3].client);
+						dashboard.setVariable('fifthGaugeHeading', data[4].client);
+						
+						dashboard.setVariable('maxValue', Math.round(max));
+						
+						$('#firstGaugeHeading').text(data[0].client);
+						$('#secondGaugeHeading').text(data[1].client);
+						$('#thirdGaugeHeading').text(data[2].client);
+						$('#fourthGaugeHeading').text(data[3].client);
+						$('#fifthGaugeHeading').text(data[4].client);
+						
+						dashboard.updateComponent('firstGauge');
+						dashboard.updateComponent('secondGauge');
+						dashboard.updateComponent('thirdGauge');
+						dashboard.updateComponent('fourthGauge');
+						dashboard.updateComponent('fifthGauge');
+						
+					}
+			
+				]]>
+            </script>
+        </prop>
+    </Chart>
+	
+	<Chart id="2">
+        <prop>
+            <name>dummy</name>
+            <type>Custom</type>
+            <DataSource>2</DataSource>
+            <script>
+                <![CDATA[
+					 if (data.length == 0) {
+                        $('#chart_2').html("<div><h2 style='text-align:CENTER;color:#927333;'>No Data To Display</h2></div>");
+                    } else {
+						var array1=[];
+						for (var i = 0; i < data.length; i++) {
+							var array2=[];	
+							for (var prop in data[i]) {	
+									array2.push(data[i][prop]);
+								}
+							array1[i] = array2;
+						}
+							
+							var chart = c3.generate({
+								bindto: '#chart_2',
+								data: {
+									columns: array1,
+									type: 'pie'
+								},
+								legend: {
+									show: true
+								},
+								tooltip: {
+								  show: true
+								}
+							});	
+					}
+				]]>
+            </script>
+        </prop>
+    </Chart>
+	
+    <Chart id="3">
+        <prop>
+            <name>First Gauge</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script>
+                <![CDATA[
+
+					var maxVal = dashboard.getVariable('maxValue');
+					var val = dashboard.getVariable('firstGaugeCost');
+					var name = dashboard.getVariable('firstGaugeHeading');
+					
+					var chart = c3.generate({
+						bindto: "#chart_3", 
+						data: {
+							columns: [
+								[name, val]
+							],
+							type: 'gauge',
+							onclick: function (d, i) {  },
+						},
+						gauge: {
+							label: {
+								format: function(value, ratio) {
+									return value;
+								},
+								show: true // to turn off the min/max labels.
+							},
+							min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+							max: maxVal, // 100 is default
+							units: '$',
+							width: 20 // for adjusting arc thickness
+						},
+						color: {
+							pattern: ['#1f77b4'],
+						}
+					});
+
+                ]]>
+            </script>    
+        </prop>
+    </Chart>
+
+    <Chart id="4">
+        <prop>
+            <name>Second Gauge</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script>
+                <![CDATA[
+
+					var maxVal = dashboard.getVariable('maxValue');
+					var val = dashboard.getVariable('secondGaugeCost');
+					var name = dashboard.getVariable('secondGaugeHeading');
+					
+					var chart = c3.generate({
+						bindto: "#chart_4", 
+						data: {
+							columns: [
+								[name, val]
+							],
+							type: 'gauge',
+							onclick: function (d, i) {  },
+						},
+						gauge: {
+							label: {
+								format: function(value, ratio) {
+									return value;
+								},
+								show: true // to turn off the min/max labels.
+							},
+							min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+							max: maxVal, // 100 is default
+							units: '$',
+							width: 20 // for adjusting arc thickness
+						},
+						color: {
+							pattern: ['#ff7f0e']
+						}
+					});
+
+                ]]>
+            </script>    
+        </prop>
+    </Chart>
+	
+	<Chart id="5">
+        <prop>
+            <name>Third Gauge</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script>
+                <![CDATA[
+
+					var maxVal = dashboard.getVariable('maxValue');
+					var val = dashboard.getVariable('thirdGaugeCost');
+					var name = dashboard.getVariable('thirdGaugeHeading');
+					
+					var chart = c3.generate({
+						bindto: "#chart_5", 
+						data: {
+							columns: [
+								[name, val]
+							],
+							type: 'gauge',
+							onclick: function (d, i) {  },
+						},
+						gauge: {
+							label: {
+								format: function(value, ratio) {
+									return value;
+								},
+								show: true // to turn off the min/max labels.
+							},
+							min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+							max: maxVal, // 100 is default
+							units: '$',
+							width: 20 // for adjusting arc thickness
+						},
+						color: {
+							pattern: ['#2ca02c']
+						}
+					});
+
+                ]]>
+            </script>    
+        </prop>
+    </Chart>
+	
+	<Chart id="6">
+        <prop>
+            <name>Fourth Gauge</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script>
+                <![CDATA[
+
+					var maxVal = dashboard.getVariable('maxValue');
+					var val = dashboard.getVariable('fourthGaugeCost');
+					var name = dashboard.getVariable('fourthGaugeHeading');
+					
+					var chart = c3.generate({
+						bindto: "#chart_6", 
+						data: {
+							columns: [
+								[name, val]
+							],
+							type: 'gauge',
+							onclick: function (d, i) {  },
+						},
+						gauge: {
+							label: {
+								format: function(value, ratio) {
+									return value;
+								},
+								show: true // to turn off the min/max labels.
+							},
+							min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+							max: maxVal, // 100 is default
+							units: '$',
+							width: 20 // for adjusting arc thickness
+						},
+						color: {
+							pattern: ['#d62728']
+						}
+					});
+
+                ]]>
+            </script>    
+        </prop>
+    </Chart>
+	
+	<Chart id="7">
+        <prop>
+            <name>Fifth Gauge</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script>
+                <![CDATA[
+
+					var maxVal = dashboard.getVariable('maxValue');
+					var val = dashboard.getVariable('fifthGaugeCost');
+					var name = dashboard.getVariable('fifthGaugeHeading');
+					
+					var chart = c3.generate({
+						bindto: "#chart_7", 
+						data: {
+							columns: [
+								[name, val]
+							],
+							type: 'gauge',
+							onclick: function (d, i) { },
+						},
+						gauge: {
+							label: {
+								format: function(value, ratio) {
+									return value;
+								},
+								show: true // to turn off the min/max labels.
+							},
+							min: 0, // 0 is default, //can handle negative min e.g. vacuum / voltage / current flow / rate of change
+							max: maxVal, // 100 is default
+							units: '$',
+							width: 20 // for adjusting arc thickness
+						},
+						color: {
+							pattern: ['#9467bd']
+						}
+					});
+
+                ]]>
+            </script>    
+        </prop>
+    </Chart>
+</Charts>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData mandatory="true">
+    <jsFunction name="validate" language="groovy"><![CDATA[
+		import net.sf.json.JSONObject;
+
+		def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+			if (requestJson.isEmpty() || !requestJson.has("metadataFileName")) {
+				responseJson.put("metadataFileName", "The required key 'metadataFileName' is missing in formData")
+				return responseJson;
+			}
+			if(requestJson.metadataFileName.isEmpty()){
+			responseJson.put("metadataFileName","The required parameter 'metadataFileName' should not be blank ")
+			}
+			
+			return responseJson;
+			
+		}
+	 ]]>
+	</jsFunction>
+</formData>

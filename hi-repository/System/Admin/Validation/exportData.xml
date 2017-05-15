@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData mandatory="true">
+   <jsFunction name="validate" language="groovy"><![CDATA[
+    import net.sf.json.JSONObject;
+    import net.sf.json.JSONArray;
+
+    public class Validate {
+        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+            JSONObject data = requestJson.getJSONObject("data");
+            if (!data.has("isAdhoc")) {
+                return responseJson;
+            } else {
+                JSONArray columns = data.getJSONArray("columns");
+                if (columns.isEmpty()) {
+                    responseJson.accumulate("columns", "No columns are selected.");
+                    return responseJson;
+                } else {
+                    return responseJson;
+                }
+            }
+        }
+    }
+    ]]></jsFunction>
+</formData>

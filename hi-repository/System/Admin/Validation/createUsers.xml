@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<action type="text"/>
+	<name condition="=" requiredIf="action" type="userName" value="add"/>
+	<password condition="=" maxLength="60" minLength="6" requiredIf="action" value="add"/>
+	<email condition="=" maxLength="60" requiredIf="action" type="email" value="add"/>
+	<enabled type="boolean"/>
+	<organisation type="organisation"/>
+	<limit type="number"/>
+	<offset type="number"/>
+	<!--searchPhrase type="searchPhrase"/-->
+	<searchOn type="searchOn"/>
+</formData>

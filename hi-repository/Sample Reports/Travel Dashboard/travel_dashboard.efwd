@@ -1,0 +1,170 @@
+<EFWD>
+   <DataSources>
+        <Connection id="1" type="sql.jdbc">
+            <Driver>com.mysql.jdbc.Driver</Driver>
+            <Url>jdbc:mysql://192.168.2.9:3306/SampleTravelData</Url>
+            <User>devuser</User>
+            <Pass>devuser</Pass>
+        </Connection>
+    </DataSources>
+    
+   <DataMaps>
+       <DataMap id="1" connection="1" type="sql" >
+           <Name>dummy</Name>
+            <Query>
+                <![CDATA[
+                        select 
+							`SampleTravelData`.`employee_details`.`employee_name` as `employee` 
+						from
+							`SampleTravelData`.`employee_details` 
+						group by
+							`employee` 
+                ]]>
+            </Query>
+        </DataMap>
+		
+		<DataMap id="2" connection="1" type="sql" >
+           <Name>Traveller Type</Name>
+            <Query>
+                <![CDATA[
+                        select 
+							`SampleTravelData`.`employee_details`.`employee_name` as `employee`,
+							count(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_count` 
+						from
+							`SampleTravelData`.`TravelDetails` 
+							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						where
+							(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
+						group by
+							`employee` 
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="traveller_name" type="String" default=""/>
+			</Parameters>
+        </DataMap>
+		
+        <DataMap id="3" connection="1" type="sql" >
+           <Name>bar chart of travel count</Name>
+            <Query>
+                <![CDATA[
+                        select 
+							count(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_count`,
+							case
+								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 1
+								then 'Q 1'
+								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 2
+								then 'Q 2'
+								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 3
+								then 'Q 3'
+								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 4
+								then 'Q 4'
+							end as `quarter` 
+						from
+							`SampleTravelData`.`TravelDetails` 
+							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						where
+							(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
+						group by
+							`quarter` 
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="traveller_name" type="String" default=""/>
+			</Parameters>
+          </DataMap>
+		  
+		   <DataMap id="4" connection="1" type="sql" >
+           <Name>Average cost per traveller</Name>
+            <Query>
+                <![CDATA[
+					select 
+						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_cost`,
+						count(`SampleTravelData`.`employee_details`.`employee_name`) as `count` 
+					from
+						`SampleTravelData`.`TravelDetails` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+					where
+						(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="traveller_name" type="String" default=""/>
+			</Parameters>
+          </DataMap>
+		  
+		  <DataMap id="5" connection="1" type="sql" >
+           <Name>Average cost of Company</Name>
+            <Query>
+                <![CDATA[
+					select 
+						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_cost`,
+						count(`SampleTravelData`.`employee_details`.`employee_name`) as `count` 
+					from
+						`SampleTravelData`.`TravelDetails` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+                ]]>
+            </Query>
+          </DataMap>
+		  
+		  <DataMap id="6" connection="1" type="sql" >
+           <Name>Pie Chart of travel Type</Name>
+            <Query>
+                <![CDATA[
+					select 
+						`SampleTravelData`.`TravelDetails`.`travel_medium` as `Type`,
+						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost` 
+					from
+						`SampleTravelData`.`TravelDetails` 
+					where
+						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc')
+					group by
+						`Type` 
+                ]]>
+            </Query>
+          </DataMap>
+		  
+		  <DataMap id="7" connection="1" type="sql" >
+           <Name>Average cost per traveller per Travel Type</Name>
+            <Query>
+                <![CDATA[
+					select 
+						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost`,
+						count(`SampleTravelData`.`employee_details`.`employee_name`) as `Count`  
+					from
+						`SampleTravelData`.`TravelDetails` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+					where
+						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc' AND 
+						`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}
+						AND `SampleTravelData`.`TravelDetails`.`travel_medium` = ${travel_type}) 
+					
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="traveller_name" type="String" default=""/>
+				<Parameter name="travel_type" type="String" default=""/>
+			</Parameters>
+          </DataMap>
+		  
+		  <DataMap id="8" connection="1" type="sql" >
+           <Name>Average cost per Travel Type</Name>
+            <Query>
+                <![CDATA[
+					select 
+						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost`,
+						count(`SampleTravelData`.`employee_details`.`employee_name`) as `Count` 
+					from
+						`SampleTravelData`.`TravelDetails` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+					where
+						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc' AND 
+						`SampleTravelData`.`TravelDetails`.`travel_medium` = ${travel_type}) 
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="travel_type" type="String" default=""/>
+			</Parameters>
+          </DataMap>
+    </DataMaps>
+</EFWD>

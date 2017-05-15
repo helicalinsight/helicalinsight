@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mappings>
+    <excludePatterns>
+        <pattern>.*js$</pattern>
+        <pattern>.*css$</pattern>
+        <pattern>.*png$</pattern>
+        <pattern>.*jpg$</pattern>
+        <pattern>.*jsp$</pattern>
+        <pattern>.*jpeg$</pattern>
+    </excludePatterns>
+    <validationEnabled>true</validationEnabled>
+    <mapping class="com.helicalinsight.validation.form.GenericValidation">
+        <url definition-file="scheduling.xml" pattern="/saveReport.html"/>
+        <url definition-file="email.xml" pattern="/sendMail.html"/>
+        <url definition-file="getEFWSolution.xml" pattern="/getEFWSolution.html"/>
+        <url definition-file="executeDatasource.xml" pattern="/executeDatasource.html"/>
+        <url definition-file="visualizeData.xml" pattern="/visualizeData.html"/>
+        <url definition-file="fileSystemOperations.xml" pattern="/fileSystemOperations.html"/>
+        <url definition-file="updateEFWTemplate.xml" pattern="/updateEFWTemplate.html"/>
+        <url definition-file="downloadReport.xml" pattern="/downloadReport.html"/>
+        <url definition-file="createUsers.xml" pattern="/admin/users"/>
+        <url definition-file="organisation.xml" pattern="/admin/organisations"/>
+        <url definition-file="roles.xml" pattern="/admin/roles"/>
+        <url definition-file="profile.xml" pattern="/admin/profiles"/>
+        <url definition-file="listDatasource.xml" pattern="/listDataSources.html"/>
+        <url definition-file="getResources.xml" pattern="/getResources.html"/>
+        <url definition-file="exportData.xml" pattern="/exportData.html"/>
+        <url definition-file="visualizeAdhoc.xml" pattern="/visualizeAdhoc.html"/>
+        <url class="com.helicalinsight.validation.form.ServiceValidation" pattern="/services.html">
+            <serviceParameters definition-file="adhocCreateDatasource.xml" service="write" serviceType="dataSource"
+                               type="core"/>
+            <serviceParameters definition-file="adhocCreateDatasource.xml" service="test" serviceType="dataSource"
+                               type="core"/>
+            <serviceParameters definition-file="readDatasource.xml" service="read" serviceType="dataSource"
+                               type="core"/>
+            <serviceParameters definition-file="adhocCreateDatasource.xml" service="update" serviceType="dataSource"
+                               type="core"/>
+            <serviceParameters definition-file="updateShare.xml" service="update" serviceType="share" type="core"/>
+            <serviceParameters definition-file="fetchInfo.xml" service="fetchInfo" serviceType="share" type="core"/>
+            <serviceParameters definition-file="share.xml" service="retrieveSharedInfo" serviceType="share"
+                               type="core"/>
+            <serviceParameters definition-file="readDatasource.xml" service="quickTest" serviceType="dataSource"
+                               type="core"/>
+            <serviceParameters definition-file="executeQuery.xml" service="executeQuery" serviceType="report"
+                               type="adhoc"/>
+        </url>
+    </mapping>
+</mappings>

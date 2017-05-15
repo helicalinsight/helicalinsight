@@ -1,0 +1,77 @@
+<EFWD>
+   <DataSources>
+        <Connection id="1" type="sql.jdbc">
+            <Driver>com.mysql.jdbc.Driver</Driver>
+            <Url>jdbc:mysql://192.168.2.9:3306/SampleTravelData</Url>
+            <User>devuser</User>
+            <Pass>devuser</Pass>
+        </Connection>
+    </DataSources>
+    
+   <DataMaps>
+       <DataMap id="1" connection="1" type="sql" >
+           <Name>dummy</Name>
+            <Query>
+                <![CDATA[
+                        select 
+							SampleTravelData.meeting_details.client_name as 'client',
+							sum(SampleTravelData.TravelDetails.travel_cost) as 'cost' 
+						from
+							SampleTravelData.TravelDetails 
+							inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.TravelDetails.travelled_by) 
+							inner join SampleTravelData.meeting_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.meeting_details.meeting_by) 
+						where
+							(SampleTravelData.meeting_details.meeting_date > ${start_date} AND SampleTravelData.meeting_details.meeting_date < ${end_date}) 
+						group by
+							client 
+						order by
+							cost desc 
+						limit 5
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="start_date" type="String" default="2015-01-01 12:00:00"/>
+				<Parameter name="end_date" type="String" default="2016-01-01 12:00:00"/>
+			</Parameters>
+        </DataMap>
+		
+		<DataMap id="2" connection="1" type="sql" >
+           <Name>Pie Chart</Name>
+            <Query>
+                <![CDATA[
+                        select 
+						SampleTravelData.meeting_details.client_name as client,
+						sum(SampleTravelData.TravelDetails.travel_cost) as cost 
+					from
+						SampleTravelData.TravelDetails 
+						inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.TravelDetails.travelled_by) 
+						inner join SampleTravelData.meeting_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.meeting_details.meeting_by) 
+					where
+						(SampleTravelData.meeting_details.meeting_date > ${start_date} AND SampleTravelData.meeting_details.meeting_date < ${end_date}) 
+					group by
+						client 
+					order by
+						cost desc
+					limit 10
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="start_date" type="String" default="2015-01-01 12:00:00"/>
+				<Parameter name="end_date" type="String" default="2016-01-01 12:00:00"/>
+			</Parameters>
+        </DataMap>
+		
+        <DataMap id="3" connection="1" type="sql" >
+           <Name>dummy query</Name>
+            <Query>
+                <![CDATA[
+                        SELECT ${start_date} as 'Star Date', ${end_date} as 'End Date';
+                ]]>
+            </Query>
+			<Parameters>
+				<Parameter name="start_date" type="String" default="2015-01-01 12:00:00"/>
+				<Parameter name="end_date" type="String" default="2016-01-01 12:00:00"/>
+			</Parameters>
+          </DataMap>
+    </DataMaps>
+</EFWD>

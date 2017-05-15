@@ -1,0 +1,7 @@
+Existing version of PhantomJs:
+
+For Linux - 1.9.7
+
+For MacOS - 1.9.7
+
+For Windows - 1.9.7

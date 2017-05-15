@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE tiles-definitions PUBLIC
+        "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<!--suppress XmlPathReference, StrutsTilesInspection -->
+<tiles-definitions>
+    <definition name="loggedIn" template="/WEB-INF/jsp/loginRest.jsp"/>
+    <definition name="customscript" template="/WEB-INF/jsp/customscript.jsp"/>
+
+    <definition name="login-page" template="/WEB-INF/pages/templates/main.jsp">
+        <put-attribute name="title" value="HI: Login" type="string"/>
+        <put-attribute name="body-content" value="/WEB-INF/pages/sections/login.jsp"/>
+    </definition>
+
+    <definition name="forward-page" extends="login-page">
+        <put-attribute name="title" value="HI: Login" type="string"/>
+        <put-attribute name="body-content" value="/WEB-INF/pages/sections/welcome.jsp"/>
+    </definition>
+
+
+    <definition name="landing-page" template="/WEB-INF/pages/templates/secure.jsp">
+        <put-attribute name="title" value="Admin" type="string"/>
+        <put-attribute name="main-nav" value="/WEB-INF/pages/templates/main-header.jsp"/>
+        <put-attribute name="sidebar" value="/WEB-INF/pages/templates/sidebar.jsp"/>
+        <put-attribute name="body-content" value="/WEB-INF/pages/sections/welcome.jsp"/>
+        <put-attribute name="footer-content" value="/WEB-INF/pages/sections/footer.jsp"/>
+    </definition>
+
+    <definition name="adminLoggedIn" extends="landing-page">
+        <put-attribute name="body-content" value="/WEB-INF/jsp/empty.jsp"/>
+        <put-attribute name="activeClass" value="hdi" type="string" cascade="true"/>
+    </definition>
+
+
+    <definition name="base-template" template="/WEB-INF/pages/templates/base-template.jsp">
+        <put-attribute name="title" value="HI " type="string"/>
+        <put-attribute name="main-nav" value="/WEB-INF/pages/templates/main-header.jsp"/>
+        <put-attribute name="sidebar" value="/WEB-INF/pages/templates/sidebar.jsp"/>
+        <put-attribute name="body" value="/WEB-INF/jsp/empty.jsp"/>
+        <put-attribute name="pageScripts" value="/WEB-INF/pages/templates/base-bottom-script.jsp"/>
+    </definition>
+
+    <definition name="hi" extends="base-template">
+        <put-attribute name="title" value="User" type="string"/>
+        <put-attribute name="body" value="/WEB-INF/pages/templates/landing.jsp"/>
+        <put-attribute name="activeClass" value="hdi" type="string" cascade="true"/>
+        <put-attribute name="pageScripts" value="/WEB-INF/jsp/hdiscript.jsp"/>
+    </definition>
+
+    <definition name="datasource" extends="base-template">
+        <put-attribute name="body" value="/WEB-INF/pages/templates/adhoc/body.jsp"/>
+        <put-attribute name="pageScripts" value="/WEB-INF/pages/templates/adhoc/footer.jsp"/>
+    </definition>
+
+
+    <definition name="datasource-create" extends="datasource">
+        <put-attribute name="title" value="Datasource-create" type="string"/>
+        <put-attribute name="scripts"
+                       value="/WEB-INF/pages/templates/adhoc/datasource-create-footer.jsp"
+                       cascade="true"/>
+        <put-attribute name="active" value="datasource-create" type="string" cascade="true"/>
+        <put-attribute name="activeClass" value="datasource" type="string" cascade="true"/>
+
+    </definition>
+
+    <definition name="datasource-edit" extends="datasource">
+        <put-attribute name="title" value="Datasource-edit" type="string"/>
+        <put-attribute name="scripts"
+                       value="/WEB-INF/pages/templates/adhoc/datasource-edit-footer.jsp"
+                       cascade="true"/>
+        <put-attribute name="active" value="datasource-edit" type="string" cascade="true"/>
+        <put-attribute name="activeClass" value="datasource" type="string" cascade="true"/>
+
+    </definition>
+
+    <definition name="datasource-share" extends="datasource">
+        <put-attribute name="title" value="Datasource-share" type="string"/>
+        <put-attribute name="scripts"
+                       value="/WEB-INF/pages/templates/adhoc/datasource-share-footer.jsp"
+                       cascade="true"/>
+        <put-attribute name="active" value="datasource-share" type="string" cascade="true"/>
+        <put-attribute name="activeClass" value="datasource" type="string" cascade="true"/>
+    </definition>
+
+    <definition name="report" extends="base-template">
+        <put-attribute name="title" value="Reports" type="string"/>
+        <put-attribute name="body" value="/WEB-INF/pages/templates/efw-report.jsp"/>
+        <put-attribute name="activeClass" value="report" type="string" cascade="true"/>
+        <put-attribute name="pageScripts" value="/WEB-INF/jsp/hdiscript.jsp"/>
+    </definition>
+</tiles-definitions>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<components>
+    <description>Configurable components of HI. Either xml based or json based.</description>
+    <xml mandatory="true">
+        <core mandatory="true">
+            <!-- If the componentType consists of one single component, provide a dummy element inside as shown below.-->
+            <!-- Or similar to xml or core, provide mandatory attribute -->
+            <dataSource>
+                <read class="com.helicalinsight.efw.components.EfwdReader" classifier="efwd"/>
+                <write class="com.helicalinsight.efw.components.EfwdWriter" classifier="efwd"/>
+                <update class="com.helicalinsight.efw.components.EfwdUpdateHandler" classifier="efwd"/>
+                <test class="com.helicalinsight.efw.components.EfwdConnectionTester" classifier="efwd"/>
+                <read class="com.helicalinsight.efw.components.GlobalXmlReader" classifier="global"/>
+                <write class="com.helicalinsight.efw.components.GlobalXmlWriter" classifier="global"/>
+                <update class="com.helicalinsight.efw.components.GlobalXmlUpdateHandler" classifier="global"/>
+                <test class="com.helicalinsight.efw.components.GlobalConnectionsTester" classifier="global"/>
+                <shutdown class="com.helicalinsight.admin.management.ManagedDataSourceShutdownHandler"/>
+                <cachedDS class="com.helicalinsight.admin.management.RetrievePooledConnections"/>
+            </dataSource>
+            <!-- To update any resource that has security and share feature -->
+            <share mandatory="true">
+                <update class="com.helicalinsight.resourcesecurity.ShareRuleXmlUpdateHandler"/>
+                <fetchInfo class="com.helicalinsight.resourcesecurity.ShareServiceImpl"/>
+                <retrieveSharedInfo
+                        class="com.helicalinsight.resourcesecurity.SharedInformationRetrievalComponent"/>
+            </share>
+        </core>
+        <adhoc mandatory="true">
+            <query mandatory="true">
+                <cancelQuery class="com.helicalinsight.datasource.CancelQuery"/>
+                <queryDetails class="com.helicalinsight.datasource.RunningQueryComponent"/>
+            </query>
+        </adhoc>
+        <print mandatory="true">
+            <export mandatory="true">
+                <getTemplateList class="com.helicalinsight.export.components.ExportTemplatesListProvider"/>
+                <getExportSettings class="com.helicalinsight.export.components.ExportSettingsProvider"/>
+                <getTemplate class="com.helicalinsight.export.components.GetTemplate"/>
+                <deleteTemplate class="com.helicalinsight.export.components.DeleteTemplate"/>
+                <saveTemplate class="com.helicalinsight.export.components.SaveTemplate"/>
+                <getContents class="com.helicalinsight.export.components.AnySettingsGroovyProcessor"/>
+                <xls class="com.helicalinsight.export.components.ExcelImageBinder"/>
+            </export>
+        </print>
+        <monitor mandatory="true">
+            <scheduling mandatory="true">
+                <schedule class="com.helicalinsight.scheduling.SchedulerActionHandler"/>
+            </scheduling>
+            <cache mandatory="true">
+                <updateConfiguration class="com.helicalinsight.admin.management.ConfigurationReLoader"/>
+                <size class="com.helicalinsight.admin.management.ResourceSizeInformationHandler"/>
+                <delete class="com.helicalinsight.admin.management.ResourceDeleteHandler"/>
+                <clean class="com.helicalinsight.cache.management.ResourceEmptyHandler"/>
+                <dump class="com.helicalinsight.cache.management.ResourceDumpHandler"/>
+                <refresh class="com.helicalinsight.export.ResourceRefreshHandler"/>
+            </cache>
+            <system mandatory="true">
+                <systemInfo class="com.helicalinsight.admin.management.SystemInformationProvider"/>
+                <tempFile class="com.helicalinsight.admin.management.TempDirectoryCleanHandler"/>
+                <log class="com.helicalinsight.admin.management.LogLevelModifier"/>
+                <readWrite class="com.helicalinsight.admin.management.RawResourceReaderAndWriter"/>
+                <closePlugin class="com.helicalinsight.admin.management.PluginCloseComponent"/>
+                <availablePlugins class="com.helicalinsight.admin.management.AvailablePluginsJsonProvider"/>
+                <loadedPlugins class="com.helicalinsight.admin.management.LoadedClassesJsonProvider"/>
+                <reportStats class="com.helicalinsight.admin.management.ReportStatasticsProvider"/>
+                <datasourceCount class="com.helicalinsight.admin.management.DataSourceCountProvider"/>
+                <diskSpace class="com.helicalinsight.admin.management.DiskSpaceProvider"/>
+            </system>
+        </monitor>
+        <util mandatory="true">
+            <io mandatory="true">
+                <getExtensions class="com.helicalinsight.admin.management.FileExtensionProvider"/>
+            </io>
+        </util>
+    </xml>
+    <!-- <import>
+        <xml name="exampleComponents.xml"/>
+    </import> -->
+</components>

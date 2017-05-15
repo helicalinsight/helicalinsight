@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns="http://www.springframework.org/schema/beans"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+
+    <!-- Enables annotations -->
+    <mvc:annotation-driven/>
+
+    <bean id="servletContextFactory" class="com.helicalinsight.efw.controllerutils.ServletContextFactory"/>
+
+    <!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the
+    ${webappRoot}/resources directory -->
+    <mvc:resources mapping="/favicon.ico" location="/"/>
+    <mvc:resources mapping="/js/**" location="/js/"/>
+    <mvc:resources mapping="/css/**" location="/css/"/>
+    <mvc:resources mapping="/images/**" location="/images/"/>
+	<mvc:resources mapping="/fonts/**" location="/fonts/"/>
+    <!-- Configures Tiles -->
+    <bean id="tilesConfigurer" class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+        <property name="checkRefresh" value="true"/>
+        <property name="definitions">
+            <list>
+                <value>classpath:tiles-definitions.xml</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="tilesViewResolver" class="org.springframework.web.servlet.view.tiles3.TilesViewResolver">
+        <property name="order" value="0"/>
+    </bean>
+
+    <!-- Resolves the JSP views -->
+    <bean id="jspViewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+        <property name="contentType" value="text/html"/>
+        <property name="prefix" value="/WEB-INF/jsp/"/>
+        <property name="suffix" value=".jsp"/>
+        <property name="order" value="1"/>
+        <property name="exposedContextBeanNames">
+            <list>
+                <value>applicationSettings</value>
+            </list>
+        </property>
+    </bean>
+</beans>

@@ -1,0 +1,38 @@
+.HI-Core-tooltip {
+    position: absolute;
+    clear: both;
+    float: left;
+    /*height: auto;*/
+    padding: 0px;
+    pointer-events: none;
+    border-collapse: collapse;
+    border-spacing: 0;
+    /*background-color: #fff;*/
+    empty-cells: show;
+    -webkit-box-shadow: 7px 7px 12px -9px #777777;
+    -moz-box-shadow: 7px 7px 12px -9px #777777;
+    box-shadow: 7px 7px 12px -9px #777777;
+    opacity: 0.9;
+}
+
+/*.HI-Core-tooltip {
+    display: none;
+}*/
+
+.HI-Core-tooltip tr {
+    border: 1px solid #CCC;
+}
+
+.HI-Core-tooltip td {
+    font-size: 13px;
+    padding: 3px 6px;
+    /*background-color: #fff;*/
+    border-left: 1px dotted #999;
+}
+
+.HI-Core-tooltip td > span {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 6px;
+}

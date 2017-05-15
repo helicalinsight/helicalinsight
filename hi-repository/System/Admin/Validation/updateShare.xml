@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+    <type type="text"/>
+    <dir type="directory"/>
+    <file type="fileName"/>
+
+    <jsFunction name="validate" language="groovy"><![CDATA[
+    import net.sf.json.JSONObject;
+    import net.sf.json.JSONArray;
+    
+    public class Validate {
+        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+			
+			if(requestJson.has("revoke")){
+				JSONArray userArray = requestJson.getJSONObject("revoke").optJSONArray("user")
+				if(userArray.size()==0){
+					responseJson.accumulate("revoke.user", "Please select a user to revoke");
+				}
+				return responseJson;
+			}else if(requestJson.has("share")){
+				JSONArray userArray = requestJson.getJSONObject("revoke").optJSONArray("user")
+				if(userArray.size()==0){
+					responseJson.accumulate("share.user", "Please select a user to share");
+				}
+				return responseJson;
+			}else{
+				responseJson.accumulate("shareOrRevoke", "The request is missing either share or revoke key");
+                return responseJson;
+            }
+        }
+    }
+    ]]></jsFunction>
+
+</formData>

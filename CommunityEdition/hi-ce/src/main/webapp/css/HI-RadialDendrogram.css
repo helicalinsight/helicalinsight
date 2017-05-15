@@ -1,0 +1,20 @@
+.HI-RadialDendrogram-node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+}
+
+.HI-RadialDendrogram-link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+}
+
+/*.HI-RadialDendrogram-node {
+  font: 10px sans-serif;
+}*/
+
+/*.HI-RadialDendrogram-svg {
+  background-color: #ffa;   
+}*/
+

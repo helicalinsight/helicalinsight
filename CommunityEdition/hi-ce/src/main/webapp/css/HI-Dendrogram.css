@@ -1,0 +1,27 @@
+.HI-Dendrogram-node circle {
+    fill: #fff;
+    stroke: steelblue;
+    stroke-width: 1.5px;
+}
+
+.HI-Dendrogram-link {
+    fill: none;
+    stroke: #ccc;
+    stroke-width: 1.5px;
+}
+
+/*.HI-Dendrogram-node circle {
+     fill: #fff;
+    -webkit-transition: width 2s; 
+    transition: width 2s;
+}*/
+/*.HI-Dendrogram-svg {
+  background-color: #ffa;   
+}*/
+.HI-Dendrogram-text {
+    /*font-weight: 700;*/
+}
+
+/*text.bull:hover{
+text-shadow: 2px 2px #ff0000;
+}*/

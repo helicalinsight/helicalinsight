@@ -1,0 +1,13 @@
+{
+    "head": {
+        "title": "Landscape",
+        "description": "Default template for exporting"
+    },
+    "body": {
+        "viewPortWidth": 1366,
+        "viewPortHeight": 768,
+        "layout": "landscape",
+        "paperSize": "A4",
+        "hasScript": "true"
+    }
+}

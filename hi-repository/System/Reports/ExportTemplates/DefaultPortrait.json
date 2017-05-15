@@ -1,0 +1,13 @@
+{
+    "head": {
+        "title": "Portrait",
+        "description": "Default template for exporting"
+    },
+    "body": {
+        "viewPortWidth": 1200,
+        "viewPortHeight": 1024,
+        "layout": "portrait",
+        "paperSize": "A4",
+        "hasScript": "true"
+    }
+}

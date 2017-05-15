@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<location type="directory"/>
+	<metadataFileName type="file"/>
+	<limitBy type="text"/>
+	<encloser type="enclosure"/>
+	<provideQuery type="boolean"/>
+	<jsFunction name="validate" language="groovy"><![CDATA[
+    import net.sf.json.JSONObject;
+    import net.sf.json.JSONArray;
+    
+    public class Validate {
+        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+            if (requestJson.isEmpty()) {
+                return responseJson;
+            }
+            JSONArray columns = requestJson.getJSONArray("columns");
+            if (columns.isEmpty()) {
+                responseJson.accumulate("columns", "No columns are selected.");
+                return responseJson;
+            } else {
+                return responseJson;
+            }
+        }
+    }
+    ]]></jsFunction>
+</formData>

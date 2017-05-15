@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<type type="text"/>
+	<dir type="directory"/>
+	<file type="fileName"/>
+    <jsFunction name="validate" language="groovy"><![CDATA[
+        import net.sf.json.JSONObject;
+
+        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+            if (requestJson.isEmpty() || !requestJson.has("type")) {
+                responseJson.put("type", "The required key 'type' is missing in formData")
+                return responseJson;
+            }
+
+            if (requestJson.getString("type").equalsIgnoreCase("dataSource")) {
+                if (!requestJson.has("id")) {
+                    responseJson.put("id", "The required key 'id' is missing in formData when type is dataSource")
+
+                }else if(!requestJson.has("classifier")){
+                    responseJson.put("id", "The required key 'classifier' is missing in formData when type is dataSource")
+                }
+                return responseJson;
+            }
+
+            return responseJson;
+        }
+        ]]>
+    </jsFunction>
+</formData>
