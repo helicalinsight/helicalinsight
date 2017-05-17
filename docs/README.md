@@ -9,7 +9,7 @@ Helical Insight is world's first Open Source Business Intelligence framework whi
 Helical Insight also comes with a unique Workflow rule engine, allowing you to call any functionality of Helical Insight or external functionality and thus empowering you to implement any sort of custom business process.
 
 Use HTML skillset and Java skillset to add functionalities at the frontend and backend respectively.
-
+  
 See the [Quick start](quickstart.md) for more details.
 
 ## Features
@@ -29,6 +29,49 @@ See the [Quick start](quickstart.md) for more details.
 * Cache for faster Performance
 * Compatible with All Modern Browsers
 
+
+## Supported Databases
+
+* Mysql
+* PostgreSQL
+* SQL Server
+* Oracle
+* Firebird
+* Informix
+* Ingres
+* MariaDB
+* Presto
+* Progress
+* SQlite
+* MongoDb
+* Hive
+* NuoDB
+* Neo4j
+* Druid
+* Amazon RedShift Database
+* Google MySQL Cloud
+* db2
+* csv
+
+
+
+## Application Screenshots
+
+![CommunityEdition](_media/screens/login.png) 
+
+![CommunityEdition](_media/screens/welcome.png) 
+
+![CommunityEdition](_media/screens/data_sources.png) 
+
+![CommunityEdition](_media/screens/reports.png) 
+
+![CommunityEdition](_media/screens/file_browser.png)  
+#### Sample Report
+![CommunityEdition](_media/screens/sample_report.png) 
+#### Admin Page
+![CommunityEdition](_media/screens/admin.png)  
+
+
 ## Examples
 
 Check out the Demos to Helical Insight in use.
@@ -44,4 +87,12 @@ Check out the Demos to Helical Insight in use.
 
 Helical Insight Enterprise Edition comes with many addon features like self service interface for reports and dashboards creation, multitenancy, machine learning and NLP, UI driven workflow etc.
 
-Try Now [Download 6 Months Free Trial.](http://www.helicalinsight.com/register/)
+Try Now [Download Free Trial.](http://www.helicalinsight.com/register/)
+
+
+
+## License
+
+Copyright (c) Helical Insight. All rights reserved.
+
+Licensed under the  Apache License.

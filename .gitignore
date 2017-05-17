@@ -6,4 +6,7 @@
 .classpath
 .project
 .settings/
-target/
+*/target/*
+!*/target/*.jar
+!*/target/*.war
+

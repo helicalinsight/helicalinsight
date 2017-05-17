@@ -1,2 +1,0 @@
-"use strict";!function(t){var n=t.$;n(document).ready(function(){history.pushState(null,null),window.addEventListener("popstate",function(t){t.stopPropagation(),history.pushState(null,null)},!1),n(document).on("keydown",function(t){return 8===t.which&&"INPUT"!==t.target.tagName&&"TEXTAREA"!==t.target.tagName?t.preventDefault():void 0}),n(".hi-hideBrowserContextMenu").bind("contextmenu",function(t){return t.preventDefault(),!1})})}(window);
-//# sourceMappingURL=handle-browser.js.map
