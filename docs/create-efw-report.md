@@ -26,12 +26,12 @@ The `EFW` file is an XML file which serves as the entry point for the report. Th
 ```
 
 ##### Tag Details
-* `<title>`	      : This tag holds the name of the report as will be visible in the file browser of the application.
+* `<title>`	      : This tag holds the name of the report and it  will be visible in the file browser.
 * `<author>`      : This tag is used to hold the name of the creator.
 * `<description>` : This tag holds a brief description of the report.
 * `<icon>`        : Path to the icon to be displayed along with the name of the report.
 * `<template>`    : Name of the HTML file which will be invoked by the EFW.
-* `<visible>`     : Boolean value to show or hide the dashboard in the file explorer.
+* `<visible>`     : Boolean value to show or hide the dashboard in the file browser.
 
 #### HTML : 
 The `HTML` page is used to display the visualizations on the screen. This file is where the layout of the report is defined, the required JS and CSS files are called,  CSS is defined, scripts are written and charting components are defined. 

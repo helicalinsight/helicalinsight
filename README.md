@@ -32,6 +32,10 @@ See the [Quick start](https://helicalinsight.github.io/helicalinsight/#/quicksta
 
 ## Supported Databases
 
+We support all the JDBC4 complaint datbases, NoSQL, Big Data, RDBMS, Cloud db, Columnar database etc
+
+#### RDBMS
+
 * Mysql
 * PostgreSQL
 * SQL Server
@@ -43,15 +47,78 @@ See the [Quick start](https://helicalinsight.github.io/helicalinsight/#/quicksta
 * Presto
 * Progress
 * SQlite
+
+#### NoSQL & Big Data
+
+* Cassandra
+* Druid
+* HBase
 * MongoDb
 * Hive
 * NuoDB
 * Neo4j
 * Druid
+
+#### Cloud
+
+* Microsoft Azure SQL
 * Amazon RedShift Database
-* Google MySQL Cloud
-* db2
-* csv
+* Google Cloud Sql
+
+#### Flat Files
+
+* CSV
+* TSV
+* JSON
+
+
+
+## How to build ?
+ 
+To build this project you need to have 
+* `Maven 3` or higher installed.
+* `Java 1.7` higher
+* Database created with name `hice`
+
+
+1. Download this project
+2. Change the variables in the `pom.xml`  present in hi-ce module
+```text
+				<systemDirectory>path/to/SystemDirectory</systemDirectory>
+                <logLocation>path/to/log/folder</logLocation>
+                <dbUser>database-user-name</dbUser>
+                <dbPassword>database-password</dbPassword>
+                <dbServer>database-server-host</dbServer>
+                <dbPort>database-port</dbPort>
+                <dbName>hice</dbName>
+    
+    eg:
+				<systemDirectory>E:/hi-repository</systemDirectory> <!--This is the path which points to the hi-repository folder present with the download-->
+                <logLocation>E:/logs</logLocation> <!--log location-->
+                <dbUser>hiuser</dbUser>
+                <dbPassword>hiuser</dbPassword>
+                <dbServer>localhost</dbServer>
+                <dbPort>3306</dbPort>
+                <dbName>hice</dbName>
+```
+
+3. Run the command 
+
+```text
+  mvn clean package -Denv=production
+```
+
+
+
+## Directly deploy
+You may also directly deploy  the `hi-ce.war` file in the application server from the `hi-ce/target` module
+You need `tomcat` or any other server
+
+
+
+
+
+
 
 
 

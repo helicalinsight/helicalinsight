@@ -20,8 +20,8 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <systemDirectory>E:/CommunityEdition/core/src/main</systemDirectory>
-                <logLocation>E:/CommunityEdition/core/src/main/System/Logs</logLocation>
+                <systemDirectory>E:/hi-repository</systemDirectory>
+                <logLocation>E:/logs</logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>localhost</dbServer>
@@ -56,8 +56,8 @@
                 </property>
             </activation>
             <properties>
-                <systemDirectory>/root/.jenkins/workspace/hi_ce_report/core/src/main/</systemDirectory>
-                <logLocation>/root/.jenkins/workspace/hi_ce_report/core/src/main/System/Logs</logLocation>
+                <systemDirectory></systemDirectory>
+                <logLocation></logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>127.0.0.1</dbServer>
@@ -91,7 +91,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-
+<!-- This plugin is not required to build the application 
             <plugin>
                 <groupId>com.helicalinsight</groupId>
                 <artifactId>hi-ce-svn-number</artifactId>
@@ -100,9 +100,9 @@
                 <configuration>
                     <basedir>${project.basedir}</basedir>
                     <doUpdateRevisionNumber>true</doUpdateRevisionNumber>
-                    <url>http://192.168.2.9/svn/helical/trunk/HDI%20Dev/Back-End</url>
-                    <username>somen@helicaltech.com</username>
-                    <password>helical021</password>
+                    <url></url>
+                    <username></username>
+                    <password></password>
                 </configuration>
 
 
@@ -116,7 +116,7 @@
                     </execution>
                 </executions>
             </plugin>
-
+-->
         </plugins>
         <resources>
             <resource>

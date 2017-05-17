@@ -223,5 +223,4 @@ Everything in this section is verified manually.
     * Overview tab :: DataSources Cached Scenario (list update) 
     * Overview tab :: Temp Directory list update 
     * Back-end Files - setting.xml, scheduler.xml, 
-    * Source Code Review
     * Mostly focused on ‘hiuser’ and ‘hiadmin’ other third user
