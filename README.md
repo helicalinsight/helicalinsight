@@ -84,7 +84,7 @@ To build this project you need to have
 1. Download this project
 2. Change the variables in the `pom.xml`  present in hi-ce module
 ```text
-				<systemDirectory>path/to/SystemDirectory</systemDirectory>
+		<systemDirectory>path/to/SystemDirectory</systemDirectory>
                 <logLocation>path/to/log/folder</logLocation>
                 <dbUser>database-user-name</dbUser>
                 <dbPassword>database-password</dbPassword>
@@ -93,7 +93,8 @@ To build this project you need to have
                 <dbName>hice</dbName>
     
     eg:
-				<systemDirectory>E:/hi-repository</systemDirectory> <!--This is the path which points to the hi-repository folder present with the download-->
+		<systemDirectory>E:/hi-repository</systemDirectory> 
+		<!--This is the path which points to the hi-repository folder present with the download-->
                 <logLocation>E:/logs</logLocation> <!--log location-->
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
@@ -112,7 +113,7 @@ To build this project you need to have
 
 ## Directly deploy
 You may also directly deploy  the `hi-ce.war` file in the application server from the `hi-ce/target` module
-You need `tomcat` or any other server
+You need `tomcat` or any other server. Please follow the instructions given [here](https://helicalinsight.github.io/helicalinsight/#/quickstart?id=manual-installation)
 
 
 
