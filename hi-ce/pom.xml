@@ -20,8 +20,8 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <systemDirectory>E:/hi-repository</systemDirectory>
-                <logLocation>E:/logs</logLocation>
+                <systemDirectory>E:/helicalinsight/hi-repository</systemDirectory>
+                <logLocation>E:/helicalinsight/hi-repository/System/Logs</logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>localhost</dbServer>
@@ -91,11 +91,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-<!-- This plugin is not required to build the application 
-            <plugin>
+<!--This plugin is not required while building the war file and can be skipped-->
+            <!--<plugin>
                 <groupId>com.helicalinsight</groupId>
                 <artifactId>hi-ce-svn-number</artifactId>
-                <version>2.0-SNAPSHOT</version>
+                <version>2.0</version>
 
                 <configuration>
                     <basedir>${project.basedir}</basedir>
@@ -115,8 +115,8 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
--->
+            </plugin>-->
+
         </plugins>
         <resources>
             <resource>
@@ -156,6 +156,11 @@
         <dependency>
             <groupId>com.helicalinsight</groupId>
             <artifactId>hi-scheduling</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+		 <dependency>
+            <groupId>com.helicalinsight</groupId>
+            <artifactId>hi-vf-plugin</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

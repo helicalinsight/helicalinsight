@@ -8,7 +8,7 @@
   - [View & Edit Data Sources](view-edit-datasources.md)
 
 - Creating Reports
-  - [Creating Reports & Dashboards](create-efw-report.md)
+  - [Creating A Reports & Dashboards](create-efw-report.md)
 
 - Test Coverage
   - [Helical Insight Test Coverage](test-coverage.md)

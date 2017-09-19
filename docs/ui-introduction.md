@@ -6,7 +6,7 @@ In this article, we will explain about the Helical Insight UI. User needs to acc
 
 ![ui1](_media/UI/ui1.PNG)
 
-After opening Helical Insight page, user needs to provide the required credentials or can access application through default credential and click on 'LOG IN' button, now user will be able to login and can see the `Home` page of Helical Insight. 
+After opening Helical Insight page, user needs to provide the required credentials or can access application throught default credential and click on 'LOG IN' button, now user will be able to login and can see the `Home` page of Helical Insight. 
 
 ![ui2](_media/UI/ui2.PNG)
 

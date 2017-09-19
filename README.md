@@ -57,7 +57,6 @@ We support all the JDBC4 complaint datbases, NoSQL, Big Data, RDBMS, Cloud db, C
 * Hive
 * NuoDB
 * Neo4j
-* Druid
 
 #### Cloud
 
@@ -75,14 +74,40 @@ We support all the JDBC4 complaint datbases, NoSQL, Big Data, RDBMS, Cloud db, C
 
 ## How to build ?
  
-To build this project you need to have 
-* `Maven 3` or higher installed.
-* `Java 1.7` higher
-* Database created with name `hice`
+Prerequisite:  
+
+To build Helical Insight Community Edition project you need 
+
+* `Maven 3` or higher version installed.
+* `Java 1.7` higher version installed.
+* Mysql database should be installed. 
+* Database with name `hice` to be created in the Mysql.
+
+Steps: 
+
+1. Download the Helical Insight project from Helical Insight Github Page.
+ 
+2. Find the hikaricp, tomcat-jdbc jar files in the resources folder of downloaded Helical Insight Project and then install it locally using your maven reporsitory using command.
+
+		a. mvn install:install-file -Dfile={path/to/file} -DartifactId=HikariCP -Dversion=2.4.7-hi -Dpackaging=jar
+		
+		Example: mvn install:install-file -Dfile=E:\Helical\communityEdition\HikariCP-2.4.7-hi.jar -DgroupId=com.zaxxer -DartifactId=HikariCP -Dversion=2.4.7-hi -Dpackaging=jar
+		
+		b. mvn install:install-file -Dfile={path/to/file} -DgroupId=org.apache.tomcat -DartifactId=jdbc-pool -Dversion=7.0.65 -Dpackaging=jar
+		
+		Example: mvn install:install-file -Dfile=E:\Helical\communityEdition\tomcat-jdbc-7.0.65.jar -DgroupId=org.apache.tomcat -DartifactId=tomcat-jdbc -Dversion=7.0.65 -Dpackaging=jar
+
+3. Change the variables in the `pom.xml` present in `hi-ce` folde for configuring HI Repository , Log Location and Database credentials of the `hice` database.
+
+Where:
+
+a) HI Reporsitory: This is the Helical Insight Report reporsitory, which contais all created reports and dashboards.
+
+b) Log Location: On which Location Helical Insight Application log going to create. 
+
+c) hice Database: This database is going to store users/roles/profile information
 
 
-1. Download this project
-2. Change the variables in the `pom.xml`  present in hi-ce module
 ```text
 		<systemDirectory>path/to/SystemDirectory</systemDirectory>
                 <logLocation>path/to/log/folder</logLocation>
@@ -103,24 +128,55 @@ To build this project you need to have
                 <dbName>hice</dbName>
 ```
 
-3. Run the command 
+
+4. Setting.xml configrations
+
+a) Now open the Helical Insights setting.xml file present in below location
+
+Location: E:\HDI UI\Comunity Edition\hi-repository\System\Admin\setting.xml 
+
+NOTE: Location of the setting.xml may be different based on the Helical Insight project location.
+
+b) Find the `<efwSolution>` tag and change the value to  your `hi-repository` path.
+
+
+c) Find the `<BaseUrl>` tag and change the value with your base url
+
+
+Format for base url is: 
+
+http://<ip_address>:<port_no>/hi-ce/hi.html  
+
+Example: http://localhost:8080/hi-ce/hi.html
+
+
+5. Run the command 
+
+Below command builds the Helical Insight Community Edition project and create the `hi-ce.war` file in hi-ce -> target folder.
+
+Run command is also depends on the envirnment also.
+
+Go to the Helical Insight project download location and run the following command
+
+For `Dev` Envirnment
+
+```text
+  mvn clean package -Denv=dev
+```
+
+For `Production` Envirnment
 
 ```text
   mvn clean package -Denv=production
 ```
 
+6. Now Deploy the application on any webserver like Apache tomcat and access the appliation using above mention url.
 
+Example: http://localhost:8080/hi-ce/hi.html
 
 ## Directly deploy
 You may also directly deploy  the `hi-ce.war` file in the application server from the `hi-ce/target` module
 You need `tomcat` or any other server. Please follow the instructions given [here](https://helicalinsight.github.io/helicalinsight/#/quickstart?id=manual-installation)
-
-
-
-
-
-
-
 
 
 ## Application Screenshots
@@ -135,9 +191,9 @@ You need `tomcat` or any other server. Please follow the instructions given [her
 
 ![CommunityEdition](docs/_media/screens/file_browser.png)  
 #### Sample Report
-![CommunityEdition](docs/_media/screens/sample_report.png) 
+![CommunityEdition](docs/_media/screens/SampleReport.gif) 
 #### Admin Page
-![CommunityEdition](docs/_media/screens/admin.png)  
+![CommunityEdition](docs/_media/screens/admin.gif)  
 
 
 ## Examples

@@ -3,8 +3,8 @@
     <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
     -->
     <!--<efwSolution>E:\CommunityEdition\presentation\src\test\resources\solution</efwSolution>-->
-    <efwSolution>E:\Backup\All EFW folders\EFW</efwSolution>
-    <BaseUrl>http://localhost:8084/hi-ce/hi.html</BaseUrl>
+    <efwSolution>E:\helicalinsight\hi-repository</efwSolution>
+    <BaseUrl>http://localhost:8080/hi-ce/hi.html</BaseUrl>
     <!-- The framework related files with extensions and configurable rules -->
     <Extentions>
         <!-- Only efw, efwsr, efwfav, efwresult files are shown in the file browser -->

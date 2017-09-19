@@ -7,7 +7,7 @@ Navigate to `Data Sources`, then click on `Edit`.
 
 Then from the edit data source page, select the required datasource type. Here we are going to use `Managed DataSource`. On selecting managed datasource, list of all the Managed DataSources which have been saved appears with scrolldown option. 
 
-You can click on `Test` to check the database connectivity.
+You can click on `Test` to check the successfull database connectivity.
 
 ![datasource6](_media/DataSource/datasource6.PNG)
 
