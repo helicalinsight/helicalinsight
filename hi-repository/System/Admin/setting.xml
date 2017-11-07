@@ -3,7 +3,7 @@
     <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
     -->
     <!--<efwSolution>E:\CommunityEdition\presentation\src\test\resources\solution</efwSolution>-->
-    <efwSolution>E:\helicalinsight\hi-repository</efwSolution>
+    <efwSolution>E:\New folder\helicalinsight-master\hi-repository</efwSolution>
     <BaseUrl>http://localhost:8080/hi-ce/hi.html</BaseUrl>
     <!-- The framework related files with extensions and configurable rules -->
     <Extentions>
@@ -107,6 +107,9 @@
     <!-- To render the custom charts -->
     <Charts>
         <Chart class="com.helicalinsight.efw.vf.Custom" type="Custom"/>
+		<Chart class="com.helicalinsight.efw.vf.EFWChart" type="EFW-c3"/>
+        <Chart class="com.helicalinsight.efw.vf.EFWCrossTab" type="EFW-crosstab"/>
+        <Chart class="com.helicalinsight.efw.vf.EFWTable" type="EFW-table"/>
     </Charts>
     <!-- Hwf related configuration-->
     <HwfSources>

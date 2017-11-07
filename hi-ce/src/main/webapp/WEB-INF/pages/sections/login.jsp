@@ -22,7 +22,7 @@
                 <div class="col-md-12 col-sm-12 col-xs-12">
                     <div class="login-logo col-md-12 col-sm-12 col-xs-12 nopad">
                         <div class="col-md-3 col-sm-2 col-xs-2 nopad">
-                            <img src="./images/alpha/logo.svg" class="img-responsive login-logo">
+                            <img src="${baseURL}/images/alpha/logo.svg" class="img-responsive login-logo">
                         </div>
                         <div class="col-md-4 col-sm-4 col-xs-4 nopad">
                             <span>Community <br> Edition</span>
@@ -34,14 +34,14 @@
                         <div class="form-group">
                             <label for="hi-login-org">User Name</label>
                             <div class="input-group">
-                                <span class="input-group-addon"><img src="./images/alpha/user.png"></span>
+                                <span class="input-group-addon"><img src="${baseURL}/images/alpha/user.png"></span>
                                 <input id="user-name" type="text" class="form-control"  name="j_username" required>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="hi-login-org">Password</label>
                             <div class="input-group">
-                                <span class="input-group-addon" ><img src="./images/alpha/pass.png"></span>
+                                <span class="input-group-addon" ><img src="${baseURL}/images/alpha/pass.png"></span>
                                 <input id="user-password" type="password" class="form-control" name="j_password" required>
                             </div>
                         </div>
@@ -73,14 +73,14 @@
                             <ul class="list-inline nomar">
                                 <li class="col-md-6 col-sm-6 col-xs-6 nopad text-center">
                                     <a href="#" id="login-admin" class="credientials-hint" >
-                                        <img src="./images/alpha/admin_signin.png" class="img-responsive" data-place="bottom" >
+                                        <img src="${baseURL}/images/alpha/admin_signin.png" class="img-responsive" data-place="bottom" >
                                         <p> Default
                                             <br> Admin </p>
                                     </a>
                                 </li>
                                 <li class="col-md-6 col-sm-6 col-xs-6 nopad text-center" >
                                     <a href="#" id="login-user" class="credientials-hint" >
-                                        <img src="./images/alpha/user_signin.png" class="img-responsive" data-place="bottom" >
+                                        <img src="${baseURL}/images/alpha/user_signin.png" class="img-responsive" data-place="bottom" >
                                         <p> Default
                                             <br> User </p>
                                     </a>
@@ -93,7 +93,7 @@
             </div>
 
             <div class="col-md-8 col-sm-12 col-xs-12 nopad login-placeholder">
-                <img src="./images/alpha/log_placeholder.png" class="img-responsive">
+                <img src="${baseURL}/images/alpha/log_placeholder.png" class="img-responsive">
                 <h1 class="login-text">Visualize, Analyze, Be Wise</h1>
             </div>
 
