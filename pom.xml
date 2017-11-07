@@ -25,6 +25,7 @@
         <module>hwf</module><!--Depends on cache-->
         <module>scheduling</module><!--Depends on export, hwf-->
         <module>validation</module>
+		<module>vf-plugin</module>
         <!--Child modules-->
     </modules>
 

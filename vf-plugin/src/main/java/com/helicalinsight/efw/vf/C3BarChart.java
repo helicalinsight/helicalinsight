@@ -1,0 +1,141 @@
+package com.helicalinsight.efw.vf;
+
+import net.sf.json.JSONObject;
+
+public class C3BarChart extends EFWC3Chart {
+
+    @Override
+    public String getChartConfig(JSONObject chartData) {
+
+        StringBuilder axisConfiguration = null;
+        String colorPatternConfiguration = null;
+        String legendConfiguration = null;
+
+        axisConfiguration = axisProperties(chartData);
+        String dataConf = dataConfiguration(chartData);
+        String gridConf = gridLines(chartData);
+        colorPatternConfiguration = colorPattern(chartData);
+
+        legendConfiguration = legendConfiguration(chartData);
+        String tooltipConf = tooltipConfiguration(chartData);
+        String barConf = barProperties(chartData);
+
+        StringBuilder chartConfiguration = new StringBuilder();
+        chartConfiguration.append("{\r\n").append("	bindto:chartElement, \r\n").append(dataConf);
+        chartConfiguration.append(axisConfiguration).append(colorPatternConfiguration).append(tooltipConf)
+                .append(gridConf).append(legendConfiguration);
+        chartConfiguration.append(barConf).append("}");
+
+        String dynamicJson = chartConfiguration.toString().replace("\"chartElement\"", "chartElement")
+                .replace("\"data\"", "data");
+        StringBuilder c3conf = new StringBuilder();
+        c3conf.append("var chart = c3.generate(").append(dynamicJson).append(");");
+        return c3conf.toString();
+    }
+
+    /**
+     * Returns the script to be rendered by the browser along with the data
+     *
+     * @param chartData The chart data that consists of chart configuration
+     * @return Returns The bar properties to be rendered by the browser
+     */
+    public String barProperties(JSONObject chartData) {
+        StringBuilder barWidth = new StringBuilder();
+        barWidth.append("bar:{");
+        if (chartData.has("BarWidth") && (chartData.get("BarWidth") instanceof String)) {
+            String barWidthValue = chartData.getString("BarWidth").trim();
+            if (barWidthValue.length() > 0) {
+                barWidth.append("width:");
+                barWidth.append(barWidthValue);
+            }
+        }
+        barWidth.append("},\r\n");
+        return barWidth.toString();
+    }
+
+    /**
+     * Returns the script to be rendered by the browser along with the data
+     *
+     * @param chartData The chart data that consists of chart configuration
+     * @return Returns The axis properties to be rendered by the browser
+     */
+    @Override
+    String dataConfiguration(JSONObject chartData) {
+        // TODO Auto-generated method stub
+
+        StringBuilder measuresStack = new StringBuilder();
+        StringBuilder dimensions = new StringBuilder();
+        StringBuilder measures = new StringBuilder();
+        StringBuilder xyAxis = new StringBuilder();
+        StringBuilder dataConfiguration = new StringBuilder();
+
+        ChartUtils chartUtilsObject = new ChartUtils();
+        if (chartData.has("StackMeasures") && (chartData.get("StackMeasures") instanceof String)) {
+            measuresStack.append("groups:[");
+            measuresStack.append(chartData.getString("StackMeasures").trim());
+            measuresStack.append("],");
+        } else {
+            measuresStack.append("");
+        }
+
+		/* check for dimensions */
+        if (chartData.has("Dimensions") && (chartData.get("Dimensions") instanceof String)) {
+            dimensions.setLength(0);
+            dimensions.append(chartData.getString("Dimensions").trim());
+            String[] chartTagDimensionsArray = dimensions.toString().split(",");
+
+            int chartTagDimensionsArrayLength = chartTagDimensionsArray.length;
+            for (int i = 0; i < chartTagDimensionsArrayLength; i++) {
+                chartTagDimensionsArray[i] = chartTagDimensionsArray[i].trim();
+            }
+            dimensions.setLength(0);
+
+			/* empty tags and tag with only whitespace in dimensions */
+            if (chartTagDimensionsArray[0].length() > 0) {
+                dimensions.append("'" + chartTagDimensionsArray[0] + "'");
+            } else {
+                dimensions.setLength(0);
+            }
+        } else {
+            dimensions.setLength(0);
+        }
+
+		/* check for Measures */
+        if (chartData.has("Measures") && (chartData.get("Measures") instanceof String)) {
+            measures.setLength(0);
+            measures.append(chartData.getString("Measures").trim());
+            String[] chartTagMeasuresArray = measures.toString().split(",");
+            int chartTagMeasuresArrayLength = chartTagMeasuresArray.length;
+            for (int i = 0; i < chartTagMeasuresArrayLength; i++) {
+                chartTagMeasuresArray[i] = chartTagMeasuresArray[i].trim();
+            }
+            measures.setLength(0);
+            /* check for empty tag and tag with whitespace in measures */
+            if (chartTagMeasuresArray[0].length() > 0) {
+                measures.append(chartUtilsObject.array2csv(chartTagMeasuresArray));
+            } else {
+                measures.setLength(0);
+            }
+        } else {
+            measures.setLength(0);
+        }
+
+        if ((dimensions.length() != 0) && (measures.length() != 0)) {
+            xyAxis.append("keys:{\r\n x:").append(dimensions).append(",\r\n");
+            xyAxis.append("value: [").append(measures).append("],\r\n},");
+        } else if ((dimensions.length() == 0) && (measures.length() != 0)) {
+            xyAxis.append("keys:{\r\n");
+            xyAxis.append("value: [").append(measures).append("],\r\n},");
+        } else if ((dimensions.length() != 0) && (measures.length() == 0)) {
+            xyAxis.append("keys:{\r\n x:").append(dimensions).append(",\r\n");
+            xyAxis.append(",\r\n},");
+        } else {
+            xyAxis.setLength(0);
+        }
+
+        dataConfiguration.append("data: {\r\n").append("        json: data,\r\n").append(xyAxis).append(measuresStack);
+        dataConfiguration.append("        type: 'bar',\r\n").append("    },\r\n");
+
+        return dataConfiguration.toString();
+    }
+}
