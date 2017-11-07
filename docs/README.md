@@ -79,7 +79,7 @@ To build Helical Insight Community Edition project you need
 * `Java 1.7` higher version installed.
 *  Use Mysql or any other database.
 
-!>NOTE: In case database is not accessed remotely then grant all priviledges to user.
+  !>NOTE: In case database is not accessed remotely then grant all priviledges to user.
 
 *  Database with name `hice` to be created in Mysql or in any other database.
 
@@ -101,7 +101,7 @@ Steps:
 
 Where:
 
-a)`<systemDirectory>` : This is the Helical Insight Report repository path , which contains all created reports and dashboards i.e. '<project-path>\helicalinsight-master\hi-repository'.
+a)`<systemDirectory>` : This is the Helical Insight Report repository path , which contains all created reports and dashboards i.e. `<project-path>\helicalinsight-master\hi-repository`.
 
 b)`<logLocation>` : Location of Helical Insight Application log file i.e, `<project-path>\helicalinsight-master\hi-repository\System\Logs`.
 
