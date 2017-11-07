@@ -3,7 +3,7 @@
     <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
     -->
     <!--<efwSolution>E:\CommunityEdition\presentation\src\test\resources\solution</efwSolution>-->
-    <efwSolution>E:\New folder\helicalinsight-master\hi-repository</efwSolution>
+    <efwSolution>E:\helicalinsight-master\hi-repository</efwSolution>
     <BaseUrl>http://localhost:8080/hi-ce/hi.html</BaseUrl>
     <!-- The framework related files with extensions and configurable rules -->
     <Extentions>
