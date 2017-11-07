@@ -38,8 +38,8 @@
                 </property>
             </activation>
             <properties>
-                <systemDirectory>E:/New folder/helicalinsight-master/hi-repository</systemDirectory>
-                <logLocation>E:/New folder/helicalinsight-master/hi-repository/System/Logs</logLocation>
+                <systemDirectory>E:/helicalinsight/hi-repository</systemDirectory>
+                <logLocation>E:/helicalinsight/hi-repository/System/Logs</logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>127.0.0.1</dbServer>
