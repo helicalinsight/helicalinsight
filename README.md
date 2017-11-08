@@ -77,12 +77,12 @@ To build Helical Insight Community Edition project you need
 
 * `Maven 3` or higher version installed.
 * `JDK 7` higher version installed.
-*  Apache tomcat 7 or 8 should b installed.
-*  Use Mysql 5.6 or higher version installed.
+*  Apache tomcat 7 or 8 should be installed.
+*  Use Mysql 5.7 or higher version.
 
  `NOTE: In case database is not accessed remotely then grant all priviledges to user.`
 
-*  Database with name `hice` to be created in Mysql or in any other database.
+*  Database with name `hice` to be created in Mysql.
 
 Steps:
 

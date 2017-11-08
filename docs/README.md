@@ -76,12 +76,13 @@ Prerequisite:
 To build Helical Insight Community Edition project you need
 
 * `Maven 3` or higher version installed.
-* `Java 1.7` higher version installed.
-*  Use Mysql or any other database.
+* `JDK 7` higher version installed.
+*  Apache tomcat 7 or 8 should be installed.
+*  Use Mysql 5.7 or higher version.
 
  `NOTE: In case database is not accessed remotely then grant all priviledges to user.`
 
-*  Database with name `hice` to be created in Mysql or in any other database.
+*  Database with name `hice` to be created in Mysql.
 
 Steps:
 
@@ -156,7 +157,7 @@ Please refer the below example to do changes for `production environment` in pom
 		Example:<BaseUrl>http://localhost:8080/hi-ce/hi.html</BaseUrl>
 		
 
-5.To view sample reports of hi-repository , import Sample Travel Data in your database(which you are using) present in github at location `helicalinsight/db-dump/SampleTravelData.sql`.
+5.To view sample reports of hi-repository , import Sample Travel Data in your mysql database, present in github at location `helicalinsight/db-dump/SampleTravelData.sql`.
 
 6.Update database details in sample reports in below files :
 
