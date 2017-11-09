@@ -1,3 +1,32 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <connections mandatory="true">
+    <tomcatJdbcDataSource id="1" name="TravelDataSource" type="dynamicDataSource" baseType="global.jdbc">
+        <visible>true</visible>
+        <dataSourcePoolId>tomcat_1</dataSourcePoolId>
+        <dataSourceProvider>tomcat</dataSourceProvider>
+        <forceAlternateUsername>false</forceAlternateUsername>
+        <username>hiuser</username>
+        <password>hiuser</password>
+        <driverClassName>com.mysql.jdbc.Driver</driverClassName>
+        <url>jdbc:mysql://localhost:3306/SampleTravelData</url>
+        <testWhileIdle>false</testWhileIdle>
+        <testOnBorrow>true</testOnBorrow>
+        <testOnReturn>false</testOnReturn>
+        <validationQuery>SELECT 1</validationQuery>
+        <validationInterval>30000</validationInterval>
+        <timeBetweenEvictionRunsMillis>30000</timeBetweenEvictionRunsMillis>
+        <maxActive>100</maxActive>
+        <minIdle>1</minIdle>
+        <maxWait>180000</maxWait>
+        <initialSize>1</initialSize>
+        <removeAbandonedTimeout>3600</removeAbandonedTimeout>
+        <removeAbandoned>true</removeAbandoned>
+        <logAbandoned>true</logAbandoned>
+        <minEvictableIdleTimeMillis>30000</minEvictableIdleTimeMillis>
+        <jmxEnabled>true</jmxEnabled>
+        <jdbcInterceptors>org.apache.tomcat.jdbc.pool.interceptor.ConnectionState; org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer; org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer</jdbcInterceptors>
+        <security>
+            <createdBy>1</createdBy>
+        </security>
+    </tomcatJdbcDataSource>
 </connections>
