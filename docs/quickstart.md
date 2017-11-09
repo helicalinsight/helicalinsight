@@ -11,7 +11,7 @@ Product Name	  	: Helical Insight
 Product Type	  	: Business Intelligence Framework
 Product Edition	   : Community
 Version	           : 2.0.0.0
-Build No.	         : R20170511_5973
+Build No.	         : R20171705_6032
 License Type	      : Apache Version2
 ```
 
@@ -76,18 +76,32 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 [learn to set environment variables ](http://www.helicalinsight.com/technical-guide/configure-java-environment-variables/)
 
 ##### The download contains the following directories and files :
-* hi-repository
-* Third Party Licenses
+* cache
+* core
 * db-dump
-* hi-ce.war
+* docs
+* export
+* externalauth
+* hi-ce
+* hi-repository
+* hwf
+* resources
+* scheduling
+* src
+* Third Party Licenses
+* validation
+* vf-plugin
+* LICENSE.md
+* pom.xml
+* README.md
 
 	![manualinstallation1](_media/Installation/manualinstallation1.png)
 
 ##### NOTE :
 1. These instructions use the windows file path convention `'\'`
-	* For example:  C:\hi-ce\hi-repository  
+	* For example:  C:\helicalinsight-master\hi-repository  
 2. If you are running on linux, please use the convention `'/'` wherever applicable.
-	* For example :  /home/hi-ce/hi-repository
+	* For example :  /home/helicalinsight-master/hi-repository
 
 ##### Steps :
 1. Install the sql file `db.sql`, and `SampleTravelData.sql` present in db-dump folder. This contains the database required for `hi-ce` application and sample reports.
@@ -107,22 +121,22 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 
      ![manualinstallation2](_media/Installation/manualinstallation2.png)
 
-    2.2 You need to set the value to the `INSTALLATIONPATH\hi-ce\hi-repository` (“C:\\hi-ce\\hi-repository”)  
+    2.2 You need to set the value to the `<project-path>\helicalinsight-master\hi-repository` (“C:\\helicalinsight-master\\hi-repository”)  
 
 	 ![manualinstallation3](_media/Installation/manualinstallation3.png)
 
-    2.3 For Windows: If you have copied the `hi-ce` folder in `D:` drive then <efwSolution>D:\\\\hi-ce\\\\hi-repository</efwSolution>
+    2.3 For Windows: If you have copied the `helicalinsight-master` folder in `D:` drive then <efwSolution>D:\\\\helicalinsight-master\\\\hi-repository</efwSolution>
 
  !>NOTE: Please make sure the path separator is “\\\\” and NOT “\”
 
-   For Linux:   If you have copied the hi folder in `/home/user` drive then
-   `<efwSolution>/home/user/hi-ce/hi-repository</efwSolution>`
+   For Linux:   If you have copied the `helicalinsight-master` folder in `/home/user` drive then
+   `<efwSolution>/home/user/helicalinsight-master/hi-repository</efwSolution>`
 
    Find the tag `<BaseUrl><\BaseUrl>`. By default there is no value. You need to set this value to the ip/domain configuration along with the hi path.
 	For example, if you have placed the tomcat in www.yourdomain.com/hi then the base URL will be `<BaseUrl>http://www.yourdomain.com/hi-ce/hi.html<\BaseUrl>`
 	In case of IP based configuration the above may be your format:   `http://<yourip>:<port>/hi`
 
-	* Example: `<BaseUrl>http://192.168.2.1:8080/hi-ce/hdi.html<\BaseUrl>`
+	* Example: `<BaseUrl>http://192.168.2.1:8080/hi-ce/hi.html<\BaseUrl>`
 
 3. For Editing the connection details:
 
@@ -130,7 +144,7 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 
 	3.2. Open `globalConnections.xml`
 
-    3.3. Inside the file, find the element `<hikariDataSource>`, then find these tags `<jdbcUrl>`, `<userName>`,`<password>`.    Also, you can configure the default value for these tags based on your settings.
+    3.3. Inside the file, find the element `<tomcatJdbcDataSource>`, then find these tags `<url>`, `<username>`,`<password>`.    Also, you can configure the default value for these tags based on your settings.
 
 	 ![manualinstallation4](_media/Installation/manualinstallation4.png)
 
@@ -140,21 +154,21 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 
   !>NOTE: This can also be done using hi-ce application by editing the datasource connection.
 
-4. Make sure that Tomcat (or any other application server you have) is up and running, then follow below steps. Copy `hi-ce` war file to
+4. Make sure that Tomcat (or any other application server you have) is up and running, then follow below steps. Copy `hi-ce` war file present in `<project-path>\helicalinsight-master\hi-ce\target` to
     `{TOMCAT-HOME}\webapps` folder. After a few seconds, you can see Tomcat has created one folder with the same name as that of the copied war file. For example, after deploying hi-ce.war file, a folder with name hi-ce would have been created in the same location.		
 
 5. In case of linux environment one needs to have write permissions to change the files that we are going to discuss now. Open              `{TOMCAT_HOME}\webapps\hi-ce\WEB-INF\classes\project.properties` file with any text editor.		
  5.1. Find `settingPath` parameter and replace it with the location of `setting.xml` which is present in System directory.
      Format:    settingPath = {setting.xml Location}
-     Example:   settingPath = D:\\hi-repository\\System\\Admin\\setting.xml
+     Example:   settingPath = D:\\helicalinsight-master\\hi-repository\\System\\Admin\\setting.xml
 
       ![manualinstallation10](_media/Installation/manualinstallation10.png)
 
-     Description: This parameter indicates location of `setting.xml` file, which comes under hi-repository directory. This setting.xml file consists   of helical insight server settings.
+     Description: This parameter indicates location of `setting.xml` file, which comes under hi-repository directory. This setting.xml file consists of helical insight server settings.
 
  5.2. Find schedulerPath parameter and replace the default value with a value where you want the application to store scheduling related data.
      Format:schedulerPath = {scheduling.xml location}
-     Example:schedulerPath = D:\\hi-repository\\System\\scheduling.xml
+     Example:schedulerPath = D:\\helicalinsight-master\\hi-repository\\System\\scheduling.xml
 
      ![manualinstallation11](_media/Installation/manualinstallation11.png)
 
@@ -162,7 +176,7 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 
  5.3. The same way as described above, change the value of pluginPath parameter to a directory named Plugins inside System directory.
     Format:pluginPath = {Plugins location}
-    Example: pluginPath= D:\\EFW_hdidev\\System\\Admin\\Plugins
+    Example: pluginPath= D:\\helicalinsight-master\\hi-repository\\System\\Plugins
 
      ![manualinstallation12](_media/Installation/manualinstallation12.png)
 
@@ -176,7 +190,7 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 
  6.3 Replace the default value with `log4j.appender.file.File={Location where you want place the logs of the application}`
 
-    Example: `log4j.appender.file.File=D:\\hi-repository\\System\\debugLogs.log`
+    Example: `log4j.appender.file.File=D:\\helicalinsight-master\\hi-repository\\System\\debugLogs.log`
 
 	![manualinstallation13](_media/Installation/manualinstallation13.png)
 
@@ -299,9 +313,9 @@ The configuration shown below configures the Hibernate dialect for the database 
 
      Following the above steps complete the installation of the helical insight server. Restart your application server(Preferred) or reload the hi application in your application server manager. After that, you should be able to use the application by opening the browser and accessing at the
      ```text
-     URL:  http://{Your Server}:{Port}/hi-ce/hdi.html
+     URL:  http://{Your Server}:{Port}/hi-ce/hi.html
      ```
-     * For example: http://192.168.2.9:8080/hi-ce/hdi.html
+     * For example: http://192.168.2.9:8080/hi-ce/hi.html
 
      By default a user base with an organization called “Super Organization” that has two users hiadmin, hiuser is created.
 

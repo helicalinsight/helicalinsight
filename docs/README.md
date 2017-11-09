@@ -207,19 +207,19 @@ You need `tomcat` or any other server. Please follow the instructions given [her
 
 ## Application Screenshots
 
-![CommunityEdition](docs/_media/screens/login.png)
+![CommunityEdition](_media/screens/login.png)
 
-![CommunityEdition](docs/_media/screens/welcome.png)
+![CommunityEdition](_media/screens/welcome.png)
 
-![CommunityEdition](docs/_media/screens/data_sources.png)
+![CommunityEdition](_media/screens/data_sources.png)
 
-![CommunityEdition](docs/_media/screens/reports.png)
+![CommunityEdition](_media/screens/reports.png)
 
-![CommunityEdition](docs/_media/screens/file_browser.png)
+![CommunityEdition](_media/screens/file_browser.png)
 #### Sample Report
-![CommunityEdition](docs/_media/screens/SampleReport.gif)
+![CommunityEdition](_media/screens/SampleReport.gif)
 #### Admin Page
-![CommunityEdition](docs/_media/screens/admin.gif)
+![CommunityEdition](_media/screens/admin.gif)
 
 ## Examples
 
