@@ -42,8 +42,8 @@ Browser Name : Google Chrome, Firefox, Internet Explorer, Microsoft Edge, etc.
 * User should have Maven 3 or higher installed 
 * User should have installed jars present in resources folder
 * User should have Eclipse IDE.
-* User should have any database management system installed like `MySQL`
-* User should have any  server like `Tomcat`, `Jboss`, etc. up and running.
+* Use Mysql 5.7 or higher version.
+* Apache tomcat 7 or 8 should be installed.
 
 	
 1. Download ZIP from github and extract project.
@@ -68,9 +68,9 @@ Please refer to the below tutorial to understand how to install helical insight
 This Installation Guide will help user to manually configure the necessary settings required to install Helical Insight Application to the user’s system. This configuration is applicable to any Operating System (Windows family, Linux flavours, MacOS), any Databases (Relational, Columnar, Graph, Flatfiles, NOSQL ) user is using.
 
 ##### Prerequisites :
-* Java version `1.7` or higher
-* User should have any database management system installed like `MySQL`
-* User should have any  server like `Tomcat`, `Jboss`, etc. up and running.
+* Java version `1.7` or higher.
+* Use Mysql 5.7 or higher version.
+* Apache tomcat 7 or 8 should be installed.
 
 In order to run Tomcat or any other application server you may need to set `JAVA_HOME` or `JRE_HOME` based on your environment.
 [learn to set environment variables ](http://www.helicalinsight.com/technical-guide/configure-java-environment-variables/)
