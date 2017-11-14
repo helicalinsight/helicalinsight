@@ -49,12 +49,12 @@
 }
 
 .ui-rangeSlider-arrow.ui-rangeSlider-leftArrow{
-	background-image: url('icons-classic/resultset_previous.png');
+	/*background-image: url('icons-classic/resultset_previous.png');*/
 	background-position:center left;
 }
 
 .ui-rangeSlider-arrow.ui-rangeSlider-rightArrow{
-	background-image: url('icons-classic/resultset_next.png');
+	/*background-image: url('icons-classic/resultset_next.png');*/
 	background-position:center right;
 }
 
