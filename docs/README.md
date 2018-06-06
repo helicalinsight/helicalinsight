@@ -10,7 +10,7 @@ Helical Insight also comes with a unique Workflow rule engine, allowing you to c
 
 Use HTML skillset and Java skillset to add functionalities at the frontend and backend respectively.
 
-See the [Quick start](https://helicalinsight.github.io/helicalinsight/#/quickstart) for more details.
+**Click [here](https://helicalinsight.github.io/helicalinsight/#/quickstart) for quick installation guide.**
 
 ## Features
 

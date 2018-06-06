@@ -1,5 +1,5 @@
 - Getting Started
-  - [Quick start](quickstart.md)
+  - [Quick Installation](quickstart.md)
   - [User & Role Management](user-role-management.md)
   - [UI Introduction](ui-introduction.md)
  
