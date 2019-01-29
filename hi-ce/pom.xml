@@ -7,7 +7,7 @@
     <packaging>war</packaging>
     <name>hi-ce</name>
     <properties>
-        <maven-war-plugin.version>3.0.0</maven-war-plugin.version>
+        <maven-war-plugin.version>3.2.2</maven-war-plugin.version>
         <zeroturnaround.version>1.9</zeroturnaround.version>
 
         <hi.build.maven.plugin>${parent.version}</hi.build.maven.plugin>
@@ -20,8 +20,8 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <systemDirectory>E:/helicalinsight/hi-repository</systemDirectory>
-                <logLocation>E:/helicalinsight/hi-repository/System/Logs</logLocation>
+                <systemDirectory>${hi-basedir}/hi-repository</systemDirectory>
+                <logLocation>${hi-basedir}/hi-repository/System/Logs</logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>localhost</dbServer>
@@ -38,8 +38,8 @@
                 </property>
             </activation>
             <properties>
-                <systemDirectory>E:/helicalinsight/hi-repository</systemDirectory>
-                <logLocation>E:/helicalinsight/hi-repository/System/Logs</logLocation>
+                <systemDirectory>${hi-basedir}/hi-repository</systemDirectory>
+                <logLocation>${hi-basedir}/hi-repository/System/Logs</logLocation>
                 <dbUser>hiuser</dbUser>
                 <dbPassword>hiuser</dbPassword>
                 <dbServer>127.0.0.1</dbServer>
