@@ -220,10 +220,10 @@
     </error-page>
 
     <jsp-config>
-        <taglib>
+        <!--taglib>
             <taglib-uri>spring.security.taglib.tld</taglib-uri>
             <taglib-location>/WEB-INF/security.tld</taglib-location>
-        </taglib>
+        </taglib -->
 
         <jsp-property-group>
             <url-pattern>*.jsp</url-pattern>
