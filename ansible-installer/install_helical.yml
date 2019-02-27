@@ -1,0 +1,82 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - vars/vars.yml
+  tasks:
+  - name: Enable EPEL
+    yum:
+      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+      state: present
+    become: yes
+  - name: Install prerequisites
+    yum:
+      name:
+        - maven
+        - java
+        - mariadb
+        - mariadb-server
+        - MySQL-python
+        - mysql-connector-python
+        - java-1.8.0-openjdk
+        - tomcat
+      state: present
+    become: yes
+  - name: Enable MariaDB service
+    service:
+      name: mariadb
+      state: started
+      enabed: true
+    become: yes
+  - name: Update mysql root password for all root accounts
+    mysql_user:
+      name: root
+      host: "{{ item }}"
+      password: "{{ mysql_root_password }}"
+      login_user: root
+      login_password: "{{ mysql_root_password }}"
+      check_implicit_admin: yes
+      priv: "*.*:ALL,GRANT"
+    with_items:
+      - "{{ ansible_hostname }}"
+      - 127.0.0.1
+      - ::1
+      - localhost
+    become: yes
+  - name: Copy the root credentials as .my.cnf file
+    template:
+      src: root.cnf.j2
+      dest: ~/.my.cnf
+      mode: 0600
+  - name: Create the Helical database user
+    mysql_user:
+      name: '{{ database_user }}'
+      password: '{{ database_password }}'
+      priv: '*.*:ALL'
+      state: present
+  - name: Clone the helical repo
+    git:
+      repo: '{{ helical_repo_url }}'
+      dest: '{{ repo_install_dir }}'
+      clone: yes
+      update: yes
+  - name: Create Helical database from dump
+    mysql_db:
+      name: '{{ database_name }}'
+      target: '{{ install_dir }}/db-dump/db.sql'
+      state: import
+      login_user: root
+      login_password: '{{ mysql_root_password }}'
+    become: yes
+  - name: Import sample report to Helical database
+    mysql_db:
+      name: '{{ database_name }}'
+      target: '{{ install_dir }}/db-dump/SampleData.sql'
+      state: import
+      login_user: root
+      login_password: '{{ mysql_root_password }}'
+    become: yes
+#  - name: Set Helical repository path
+#    lineinfile:
+#      path: '{{ install_Dir }}/hi-repository/System/Admin/setting.xml'
+      
