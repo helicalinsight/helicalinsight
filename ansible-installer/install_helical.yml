@@ -9,74 +9,123 @@
       name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
       state: present
     become: yes
-  - name: Install prerequisites
-    yum:
-      name:
-        - maven
-        - java
-        - mariadb
-        - mariadb-server
-        - MySQL-python
-        - mysql-connector-python
-        - java-1.8.0-openjdk
-        - tomcat
+  - name: Register to RHN and auto-subscribe to available content.
+    redhat_subscription:
       state: present
+      username: '{{ rhn_user }}'
+      password: '{{ rhn_password }}'
+      auto_attach: true
     become: yes
+  - name: Enable RHSM repositories (extras, optional)
+    rhsm_repository:
+      name: '{{ item }}'
+      state: enabled
+    with_items:
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-optional-rpms
+    become: yes
+  # Troubleshoot yum module and then remove command module usage after solution found to slowness
+  - name: Install prerequisites
+    command: yum -y install maven java mariadb mariadb-server MySQL-python mysql-connector-python java-1.8.0-openjdk tomcat
+    become: yes
+#  - name: Install prerequisites
+#    yum:
+#      name:
+#        - maven
+#        - java
+#        - mariadb
+#        - mariadb-server
+#        - MySQL-python
+#        - mysql-connector-python
+#        - java-1.8.0-openjdk
+#        - tomcat
+#      state: present
+#    become: yes
   - name: Enable MariaDB service
     service:
       name: mariadb
       state: started
-      enabed: true
+      enabled: true
     become: yes
-  - name: Update mysql root password for all root accounts
-    mysql_user:
-      name: root
-      host: "{{ item }}"
-      password: "{{ mysql_root_password }}"
-      login_user: root
-      login_password: "{{ mysql_root_password }}"
-      check_implicit_admin: yes
-      priv: "*.*:ALL,GRANT"
-    with_items:
-      - "{{ ansible_hostname }}"
-      - 127.0.0.1
-      - ::1
-      - localhost
-    become: yes
-  - name: Copy the root credentials as .my.cnf file
-    template:
-      src: root.cnf.j2
-      dest: ~/.my.cnf
-      mode: 0600
   - name: Create the Helical database user
     mysql_user:
       name: '{{ database_user }}'
       password: '{{ database_password }}'
       priv: '*.*:ALL'
       state: present
-  - name: Clone the helical repo
-    git:
-      repo: '{{ helical_repo_url }}'
-      dest: '{{ repo_install_dir }}'
-      clone: yes
-      update: yes
-  - name: Create Helical database from dump
-    mysql_db:
-      name: '{{ database_name }}'
-      target: '{{ install_dir }}/db-dump/db.sql'
-      state: import
-      login_user: root
-      login_password: '{{ mysql_root_password }}'
-    become: yes
+#  - name: Clone the helical repo
+#    git:
+#      repo: '{{ helical_repo_url }}'
+#      dest: '{{ repo_install_dir }}'
+#      clone: yes
+#      update: yes
   - name: Import sample report to Helical database
     mysql_db:
       name: '{{ database_name }}'
-      target: '{{ install_dir }}/db-dump/SampleData.sql'
+      target: '{{ install_dir }}/db-dump/SampleTravelData.sql'
       state: import
-      login_user: root
-      login_password: '{{ mysql_root_password }}'
     become: yes
-#  - name: Set Helical repository path
-#    lineinfile:
-#      path: '{{ install_Dir }}/hi-repository/System/Admin/setting.xml'
-      
+  - name: Set hi-repository path
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/setting.xml'
+      xpath: /efwProject/efwSolution
+      value: '{{ install_dir }}/hi-repository'
+  - name: Set BaseURL to listen to
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/setting.xml'
+      xpath: /efwProject/BaseUrl
+      value: 'http://{{ helical_hostname }}:8080/hi-ce/hi.html'
+  - name: Configure app with correct helical database user
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/username
+      value: '{{ database_user }}'
+  - name: Configure app with correct helical database password
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/password
+      value: '{{ database_password }}'
+  - name: Configure app with correct helical database source
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/url
+      value: '{{ helical_db_source }}'
+  - name: Deploy hi-ce war file
+    copy:
+      src: '{{ install_dir }}/hi-ce/target/hi-ce.war'
+      dest: /var/lib/tomcat/webapps/hi-ce.war
+      mode: 0755
+  - name: Restart tomcat
+    service:
+      name: tomcat
+      state: restarted
+  - name: Configure project properties with correct path
+    replace:
+      path: /usr/share/tomcat/webapps/hi-ce/WEB-INF/classes/project.properties
+      regexp: 'E:/New folder'
+      replace: '{{ install_dir }}'
+  - name: Configure logging
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/log4j.properties
+      regexp: 'E:/New folder/helicalinsight-master'
+      replace: '{{ install_dir }}'
+  - name: Configure the database connection
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
+      regexp: 'name="username" value="hiuser"'
+      replace: 'name="username" value="{{ database_user }}"'
+  - name: Configure the database connection and Hibernate dialect
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
+      regexp: 'name="password" value="hiuser"'
+      replace: 'name="password" value="{{ database_password }}"'
+  - name: Restart tomcat
+    service:
+      name: tomcat
+      state: restarted
+  - name: Print BaseURL
+    debug:
+      msg: "Helical Insights will be reachable at: http://{{ helical_hostname }}:8080/hi-ce/hi.html"
+
+
+

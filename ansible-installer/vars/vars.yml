@@ -1,1 +1,16 @@
 # Installation settings defined here
+rhn_user: rhn-username
+rhn_password: rhn-password
+
+helical_hostname: ip-or-dns-name
+
+database_password: hipass
+repo_install_dir: /root
+install_dir: /home/myuser/helicalinsight
+helical_repo_url: https://github.com/mglantz/helicalinsight
+helical_db_source: jdbc:mysql://localhost:3306/SampleTravelData
+
+# Do note change below
+database_user: hiuser
+mysql_root_password: hiroot
+database_name: hice
