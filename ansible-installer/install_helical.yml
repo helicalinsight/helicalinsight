@@ -53,6 +53,7 @@
       password: '{{ database_password }}'
       priv: '*.*:ALL'
       state: present
+    become: yes
 #  - name: Clone the helical repo
 #    git:
 #      repo: '{{ helical_repo_url }}'
@@ -90,6 +91,20 @@
       path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
       xpath: /connections/tomcatJdbcDataSource/url
       value: '{{ helical_db_source }}'
+  - name: Fix pom.xml (HikariCP version number) for maven build
+    replace:
+      path: '{{ install_dir }}/pom.xml'
+      regexp: '2.4.7-hi'
+      replace: 2.7.4
+  - name: Maven install
+    command: 'mvn install:install-file -Dfile={{ install_dir }}/resources/tomcat-jdbc-7.0.65.jar -DgroupId=org.apache.tomcat -DartifactId=tomcat-jdbc -Dversion=7.0.65 -Dpackaging=jar'
+    become: yes
+  - name: Maven build dev
+    shell: 'cd {{ install_dir }} && mvn clean package -Denv=dev'
+    become: yes
+  - name: Maven build prod
+    shell: 'cd {{ install_dir }} && mvn clean package -Denv=production'
+    become: yes
   - name: Deploy hi-ce war file
     copy:
       src: '{{ install_dir }}/hi-ce/target/hi-ce.war'
@@ -97,37 +112,43 @@
       mode: 0755
       owner: tomcat
       group: tomcat
+    become: yes
   - name: Restart tomcat
     service:
       name: tomcat
       state: restarted
+    become: yes
   - name: Configure project properties with correct path
     replace:
-      path: /usr/share/tomcat/webapps/hi-ce/WEB-INF/classes/project.properties
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/project.properties
       regexp: 'E:/New folder'
       replace: '{{ install_dir }}'
+    become: yes
   - name: Configure logging
     replace:
       path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/log4j.properties
       regexp: 'E:/New folder/helicalinsight-master'
       replace: '{{ install_dir }}'
+    become: yes
   - name: Configure the database connection
     replace:
       path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
       regexp: 'name="username" value="hiuser"'
       replace: 'name="username" value="{{ database_user }}"'
+    become: yes
   - name: Configure the database connection and Hibernate dialect
     replace:
       path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
       regexp: 'name="password" value="hiuser"'
       replace: 'name="password" value="{{ database_password }}"'
+    become: yes
   - name: Restart tomcat
     service:
       name: tomcat
       state: restarted
+    become: yes
   - name: Print BaseURL
     debug:
       msg: "Helical Insights will be reachable at: http://{{ helical_hostname }}:8080/hi-ce/hi.html"
-
 
 
