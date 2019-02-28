@@ -95,6 +95,8 @@
       src: '{{ install_dir }}/hi-ce/target/hi-ce.war'
       dest: /var/lib/tomcat/webapps/hi-ce.war
       mode: 0755
+      owner: tomcat
+      group: tomcat
   - name: Restart tomcat
     service:
       name: tomcat
