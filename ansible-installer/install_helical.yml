@@ -121,7 +121,7 @@
   - name: Configure project properties with correct path
     replace:
       path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/project.properties
-      regexp: 'E:/New folder'
+      regexp: 'E:/helicalinsight'
       replace: '{{ install_dir }}'
     become: yes
   - name: Configure logging
