@@ -1,7 +1,8 @@
 The automated Ansible installer works to simplify the installation of Helical Insight to a few commands.
 
 # Limitations
-The installer currently support Red Hat Enterprise Linux. Please feel free to contribute more operating systems.
+* Tomcat needs access to the installation directory
+* The installer currently support Red Hat Enterprise Linux. Please feel free to contribute more operating systems.
 
 # 1. Prerequisites
 To put in place the installers prerequisites, as root, run below commands:
