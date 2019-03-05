@@ -1,16 +1,24 @@
+#
 # Installation settings defined here
+#
+
+# Red Hat Network credentials 
 rhn_user: rhn-username
 rhn_password: rhn-password
 
+# Hostname which app is accessed via
 helical_hostname: ip-or-dns-name
 
+# Password for database user
 database_password: hipass
-repo_install_dir: /root
+
+# Installation directory
 install_dir: /home/myuser/helicalinsight
-helical_repo_url: https://github.com/mglantz/helicalinsight
+
+# DB source, do not change this if you don't know what it is
 helical_db_source: jdbc:mysql://localhost:3306/SampleTravelData
 
-# Do note change below
+# Don't change if you don't know what you are doing, hardcoded values
 database_user: hiuser
 mysql_root_password: hiroot
 database_name: hice
