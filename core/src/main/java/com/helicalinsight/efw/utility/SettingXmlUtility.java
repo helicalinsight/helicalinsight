@@ -46,7 +46,7 @@ public class SettingXmlUtility {
         return efwdDataSourcesTypes;
     }
 
-    public static JSONObject getDataSourcesJson() {
+    public static JSONObject getDataSourcesJson(Boolean searchHidden) {
         JSONObject jsonOfDataSources = new JSONObject();
         JSONObject settings = JsonUtils.getSettingsJson();
         JSONArray dataSources = settings.getJSONArray("DataSources");
@@ -57,14 +57,46 @@ public class SettingXmlUtility {
             dataSource.put("type", aDataSource.getString("@type"));
             dataSource.put("name", aDataSource.getString("@name"));
             dataSource.put("classifier", aDataSource.getString("@classifier"));
-            jsonOfDataSources.accumulate("dataSources", dataSource);
+            if (searchHidden) {
+                if (!"true".equalsIgnoreCase(aDataSource.optString("@hidden"))) {
+                    jsonOfDataSources.accumulate("dataSources", dataSource);
+                }
+            } else {
+                jsonOfDataSources.accumulate("dataSources", dataSource);
+            }
         }
         return jsonOfDataSources;
     }
 
     /**
+     * <p>This method will provide list of dataSource present  in setting.xml by checking hidden attribute's value </p>
+     *
+     * @return JSONObject
+     */
+    public static JSONObject getFilteredDataSourcesJson() {
+        JSONArray jsonOfDataSources = new JSONArray();
+        JSONObject settings = JsonUtils.getSettingsJson();
+        JSONArray dataSources = settings.getJSONArray("DataSources");
+        JSONObject dataSource;
+        for (int count = 0; count < dataSources.size(); count++) {
+            JSONObject aDataSource = dataSources.getJSONObject(count);
+            dataSource = new JSONObject();
+            dataSource.put("type", aDataSource.getString("@type"));
+            dataSource.put("name", aDataSource.getString("@name"));
+            dataSource.put("classifier", aDataSource.getString("@classifier"));
+            if (!"true".equalsIgnoreCase(aDataSource.optString("@hidden"))) {
+                jsonOfDataSources.add(dataSource);
+            }
+
+        }
+        JSONObject dataSourcesList = new JSONObject();
+        dataSourcesList.put("dataSources", jsonOfDataSources);
+        return dataSourcesList;
+    }
+
+    /**
      * Returns the key of the extension from the setting.xml
-     * <p/>
+     * <p>
      * If the key is folder then the relevant method result from JsonUtils.getFolderFileExtension
      * value will be returned.
      *

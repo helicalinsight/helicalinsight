@@ -15,10 +15,10 @@
                 <![CDATA[
                         select 
 							SampleTravelData.meeting_details.client_name as 'client',
-							sum(SampleTravelData.TravelDetails.travel_cost) as 'cost' 
+							sum(SampleTravelData.travel_details.travel_cost) as 'cost' 
 						from
-							SampleTravelData.TravelDetails 
-							inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.TravelDetails.travelled_by) 
+							SampleTravelData.travel_details 
+							inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.travel_details.travelled_by) 
 							inner join SampleTravelData.meeting_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.meeting_details.meeting_by) 
 						where
 							(SampleTravelData.meeting_details.meeting_date > ${start_date} AND SampleTravelData.meeting_details.meeting_date < ${end_date}) 
@@ -41,10 +41,10 @@
                 <![CDATA[
                         select 
 						SampleTravelData.meeting_details.client_name as client,
-						sum(SampleTravelData.TravelDetails.travel_cost) as cost 
+						sum(SampleTravelData.travel_details.travel_cost) as cost 
 					from
-						SampleTravelData.TravelDetails 
-						inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.TravelDetails.travelled_by) 
+						SampleTravelData.travel_details 
+						inner join SampleTravelData.employee_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.travel_details.travelled_by) 
 						inner join SampleTravelData.meeting_details on (SampleTravelData.employee_details.employee_id = SampleTravelData.meeting_details.meeting_by) 
 					where
 						(SampleTravelData.meeting_details.meeting_date > ${start_date} AND SampleTravelData.meeting_details.meeting_date < ${end_date}) 

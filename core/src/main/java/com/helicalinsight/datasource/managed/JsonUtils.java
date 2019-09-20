@@ -21,6 +21,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.DataSourceProviders;
 import com.helicalinsight.efw.exceptions.MalformedJsonException;
+import net.sf.json.JSONObject;
+import org.springframework.http.ResponseEntity;
 
 
 /**
@@ -94,5 +96,12 @@ public class JsonUtils {
             }
         }
         return jdbcUrl;
+    }
+
+    public static ResponseEntity<?> get500ErrorResponse(Exception e) {
+        JSONObject status = new JSONObject();
+        status.put("cause", e.getCause());
+        status.put("message", e.getMessage());
+        return ResponseEntity.status(500).body(status.toString());
     }
 }

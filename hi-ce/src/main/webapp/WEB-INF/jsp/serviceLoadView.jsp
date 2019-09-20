@@ -30,6 +30,7 @@
             <script src="${baseURL}/js/vendors/bootstrap.js"></script>
 
             <script type="text/javascript" src="${baseURL}/customscript"></script>
+            <script data-clone="true" src="${baseURL}/js/plugins/Base64.js"></script>
 
             <script type="text/javascript">
                 window.DashboardGlobals.efwddir = "${dir}";

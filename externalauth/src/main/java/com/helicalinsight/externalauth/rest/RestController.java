@@ -19,10 +19,13 @@ package com.helicalinsight.externalauth.rest;
 import com.helicalinsight.admin.dao.UserDao;
 import com.helicalinsight.admin.filter.PreAuthenticationFilter;
 import com.helicalinsight.admin.model.User;
-import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.datasource.managed.JsonUtils;
+import com.helicalinsight.efw.controllerutils.ControllerUtils;
+import net.sf.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
@@ -32,9 +35,11 @@ import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.io.IOException;
 
 @SuppressWarnings("unused")
@@ -50,26 +55,45 @@ public class RestController {
     private AuthenticationManager authenticationManager;
 
     @RequestMapping(value = "/rest/login", method = {RequestMethod.POST, RequestMethod.GET})
-    public String getLoginAuthentication(@RequestParam("j_username") String j_username,
-                                         @RequestParam("j_password") String j_password, ModelMap model,
-                                         HttpServletRequest request, HttpServletResponse response) throws IOException {
+    @ResponseBody
+    public ResponseEntity<?> getLoginAuthentication(@RequestParam("j_username") String j_username,
+                                                    @RequestParam("j_password") String j_password, ModelMap model,
+                                                    HttpServletRequest request, HttpServletResponse response) throws IOException {
         UsernamePasswordAuthenticationToken authRequest = new UsernamePasswordAuthenticationToken(j_username,
                 j_password);
         authRequest.setDetails(new WebAuthenticationDetails(request));
         String method = request.getMethod();
-        PreAuthenticationFilter preAuthenticationFilter = ApplicationContextAccessor.getBean(PreAuthenticationFilter
-                .class);
+        PreAuthenticationFilter preAuthenticationFilter = new PreAuthenticationFilter();
         if (method.equalsIgnoreCase("get")) {
+            logger.debug("GET requested");
             preAuthenticationFilter.setPostOnly(false);
         }
-        preAuthenticationFilter.setAuthenticationManager(authenticationManager);
-        preAuthenticationFilter.attemptAuthentication(request, response);
-        String jSessionId = request.getSession().getId();
+        try {
+            preAuthenticationFilter.setAuthenticationManager(authenticationManager);
+            preAuthenticationFilter.attemptAuthentication(request, response);
+        } catch (Exception e) {
+            return JsonUtils.get500ErrorResponse(e);
+        }
+        HttpSession session = request.getSession();
+        String jSessionId = session.getId();
         response.setHeader("Cookie", "JSESSIONID=" + jSessionId);
         response.setHeader("Set-Cookie", "JSESSIONID=" + jSessionId);
         response.setHeader("Access-Control-Allow-Credentials", "true");
-        response.addHeader("content-type", "plain/text");
-        return "loggedIn";
+        response.setContentType(ControllerUtils.defaultContentType());
+
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("Cookie", "JSESSIONID=" + jSessionId);
+        responseJson.put("Set-Cookie", "JSESSIONID=" + jSessionId);
+        responseJson.put("Access-Control-Allow-Credentials", "true");
+        responseJson.put("Content-Type", "application/json");
+        long currentTime = System.currentTimeMillis();
+        responseJson.put("currentTime", currentTime);
+        responseJson.put("serverTime", currentTime);
+        int maxInactiveInterval = session.getMaxInactiveInterval();
+        long expiryTime = currentTime + maxInactiveInterval * 1000;
+        responseJson.put("sessionExpiry", expiryTime);
+        return ResponseEntity.ok().body(responseJson);
+        //return responseJson.toString();
     }
 
     @Transactional

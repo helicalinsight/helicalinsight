@@ -49,6 +49,7 @@ public class CasUserDetailService extends UserDetailsServiceImpl {
     @Autowired
     private RoleService roleService;
 
+
     @Autowired
     @Qualifier(value = "userDetailsService")
     private UserService userService;
@@ -95,6 +96,8 @@ public class CasUserDetailService extends UserDetailsServiceImpl {
             roleUser = namesConfigurer.getRoleUser();
             userRole = roleService.findRoleByName(roleUser);
         }
+
+
 
         List<Role> userRoleList = new ArrayList<>();
         userRoleList.add(userRole);

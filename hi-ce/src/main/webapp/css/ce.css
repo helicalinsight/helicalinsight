@@ -1,0 +1,716 @@
+
+body {
+    font-family: 'Lato', sans-serif;
+}
+.ce-tooltip{
+    padding: 2px !important ;
+}
+
+.sidebar-container ul,.ce-navbar ul,.editor-container ul{
+    list-style-type: none;
+}
+.sidebar-container i{
+    cursor: pointer;
+}
+.ce-navbar{
+    height: 42px;
+    width: 100%;
+    padding: 5px;
+}
+.ce-navbar .ce-logo{
+    float: left;
+    margin: 5px 0px 0px 8px;
+}
+.ce-navbar .ce-logo img{
+    height: 30px;
+}
+.ce-navbar .ce-brand{
+    float: left;
+    margin: 1px 5px;
+    cursor: pointer;
+}
+.ce-navbar .user-item{
+    border-left: 1px solid #E1E1E1;
+}
+.ce-navbar .user-item div{
+    float: left;
+    margin: 0px 5px 5px 5px;
+    padding-top: 5px;
+}
+.ce-navbar .user-item .hi-icon{
+    border: 1px solid;
+    width: 29px;
+    height: 29px;
+    border-radius: 50%;
+    /* text-align: center; */
+    background: #3c8bca;
+    color: #ffffff;
+    padding: 5px 7px;
+}
+.ce-navbar .user-item .logout-icon{
+    padding-top: 8px
+}
+.tutorial-container img{
+    width: 81%;
+}
+.sidebar-container{
+    width: 19%;
+    height: 581px;
+    overflow: auto;
+    float: left;
+    background-color: #E2F1FC;
+    border-right: 2px solid #EAEAEA;
+    margin-top: 1px;
+}
+.sidebar-container .nav-list{
+    padding: 0px;
+    height: 40px;
+}
+.sidebar-container .nav-list li{
+    float: left;
+    width: 50%;
+    background-color: #3c8bca;
+    cursor: pointer;
+}
+.sidebar-container .nav-list .active{
+    background-color: #EAEAEA;
+}
+.sidebar-container .nav-list .active a{
+    background-color: #3c8bca;
+    color: #ffffff;
+}
+.sidebar-container .nav-list li a{
+    float: left;
+    color: #000;
+    border-top-right-radius: 25px;
+    border-bottom-right-radius: 25px;
+    -webkit-box-shadow: 4px 0px 6px -2px rgba(133,131,133,1);
+    -moz-box-shadow: 4px 0px 6px -2px rgba(133,131,133,1);
+    box-shadow: 4px 0px 6px -2px rgba(133,131,133,1);
+    padding: 12px 15px;
+    background: #EAEAEA;
+    width: 99%;
+    margin-right: 5px;
+    z-index: 1;
+    font-size: 14px;
+    line-height: 20px;
+    overflow: inherit;
+}
+.sidebar-container .accordian-selector{
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.sidebar-container .accordian{
+    margin: 10px 0px 10px 12px;
+    clear: both;
+}
+.sidebar-container .accordian-list{
+    padding: 0px 0px 0px 20px
+}
+.sidebar-container .accordian-list li{
+    margin: 5px 0px
+}
+.sidebar-container .accordian-icon{
+    margin: 5px;
+}
+.sidebar-container .blue{
+    color: #3c8bca;
+    cursor: pointer;
+}
+.sidebar-container .conn-id{
+    background-color: #FE7A87;
+    color: #ffffff;
+    margin: 2px;
+    padding: 0px 5px 0px 5px;
+    float: left;
+}
+.sidebar-container .conn-name{
+    width: 80px;
+    float: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 4px 0px 4px 5px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #FE7A87;
+}
+.sidebar-container .connection-list .edit-icon{
+    margin: 5px 0px 0px 0px;
+    float: left;
+}
+.sidebar-container .connection-list .delete-icon{
+    margin: 4px 0px 0px 7px;
+    color: #f44336;
+    float: left;
+}
+.sidebar-container .datasource-selector{
+    background-color: transparent;
+    border-color: black;
+    height: 19px;
+    width: 115px;
+    margin: 0px 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+.sidebar-container .datasource-selector .down-icon{
+    float: right;
+    margin-top: 7px;
+}
+
+.sidebar-container .datasource-dropdown{
+    min-width: 129px;
+    display: block;
+    margin-left: -3px;
+}
+.sidebar-container .datasource-dropdown li {
+    margin: 0px;
+}
+.sidebar-container .datasource-dropdown li a{
+    margin: 0px;
+    padding: 0px;
+    text-align: center;
+}
+.sidebar-container .configure{
+    /* text-align: center; */
+    width: 124px;
+    margin: 5px 0px 0px 19px;
+    color: #3c8bca;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+}
+.sidebar-container .html-link{
+    /* text-align: center; */
+    width: 116px;
+    font-weight: 600;
+    color: #3c8bca;
+    cursor: pointer;
+    font-size: 14px;
+}
+.sidebar-container .css-link{
+    /* text-align: center; */
+    width: 116px;
+    font-weight: 600;
+    color: #3c8bca;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+
+.sidebar-container .parameter-selector{
+    background-color: transparent;
+    border-color: black;
+    height: 20px;
+    width: 115px;
+    cursor: pointer;
+    margin: 1px 0px 0px;
+    padding: 1px 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.sidebar-container .parameter-selector .down-icon{
+    float: right;
+    margin-top: 7px;
+    margin-left: 10px;
+}
+.sidebar-container .parameter-dropdown, .editor-container .parameter-dropdown{
+    min-width: 124px;
+    display: block;
+}
+.sidebar-container  .param-id{
+    background-color: #F7B135;
+    color: #ffffff;
+    margin: 2px;
+    padding: 0px 5px 0px 5px;
+    float: left;
+}
+.sidebar-container  .param-name{
+    width: 77px;
+    float: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 3px 0px 5px 5px;
+    font-weight: 600;
+    color: #F7B135;
+}
+.sidebar-container .parameter-list li{
+    clear: both;
+}
+.sidebar-container .parameter-list .edit-icon{
+    margin: 4px 0px 0px 0px;
+    float: left;
+}
+.sidebar-container .parameter-list .delete-icon{
+    margin: 3px 0px 0px 7px;
+    color: #f44336;
+    float: left;
+}
+.sidebar-container .parameter-types,.sidebar-container .datasorce-types{
+    clear: both;
+    border: 1px solid;
+    width: 125px;
+    margin: 2px 0px 2px 18px;
+}
+.sidebar-container .parameter-list input{
+    width: 116px;
+}
+.sidebar-container .parameter-list > div{
+    clear: both;
+    padding: 5px 0px;
+}
+.sql-datasource{
+    clear: both;
+    /* border: 1px solid black; */
+    width: 175px;
+    position: relative;
+    margin: 5px 2px;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 3px 0px;
+}
+.sql-datasource .length{
+    width: 175px;
+    text-align: center;
+    cursor: pointer;
+}
+.sql-datasource ul{
+    display: block;
+    position: absolute;
+    min-width: 175px;
+    top: 18px;
+}
+.sql-datasource ul li{
+    cursor: pointer;
+    margin: 0px 0px 0px 0px !important;
+    text-align: center;
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sql-datasource .sql-conn{
+    color: #FE7A87;
+    width: 116px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    float: left;
+    margin-left: 17px;
+}
+.sql-datasource .conn-selected{
+    color: #FE7A87;
+    cursor: pointer;
+    margin: 0px 0px 0px 0px !important;
+    text-align: center;
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sql-datasource .down-icon{
+    float: left;
+    margin: 3px;
+}
+.sql-datasource .sql-param{
+    color: #F7B135;
+    width: 128px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    float: left;
+    margin-left: 5px;
+}
+.sql-datasource .param-selected{
+    color: #F7B135;
+    cursor: pointer;
+    margin: 0px 0px 0px 0px !important;
+    text-align: center;
+    width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sql-select>div{
+    float: left;
+    cursor: pointer;
+}
+.sql-select .name{
+    color: #3c8bca;
+    margin: 2px;
+    font-weight: 600;
+    font-size: 14px;
+}
+.sql-select .icon{
+    margin: 6px;
+}
+.sql-id{
+    background-color: #3c8bca;
+    color: #ffffff;
+    margin: 4px 2px 2px 20px;
+    padding: 1px 6px 0px 5px;
+    float: left;
+    font-size: 11px;
+}
+.sql-dropdown{
+    clear: both;
+}
+.sql-dropdown-list{
+    float: left;
+    padding: 0px;
+    width: 28px;
+}
+.sql-dropdown-list li {
+    cursor: pointer;
+}
+.sql-dropdown .bordered{
+    /* border: 1px solid black; */
+    box-shadow: 4px 2px 6px 2px rgba(133,131,133,1);
+}
+.sidebar-container .report-types{
+    clear: both;
+    border: 1px solid;
+    width: 168px;
+    margin: 2px 0px;
+}
+
+.sidebar-container .report-type{
+    background-color: transparent;
+    border-color: black;
+    height: 19px;
+    width: 155px;
+    margin: 1px 4px 0px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+}
+.sidebar-container .report-type .down-icon{
+    float: right;
+    margin-top: 7px;
+}
+.sidebar-container .report-dropdown{
+    min-width: 115px;
+    height: 200px;
+    overflow: auto;
+    display: block;
+}
+.editor-container .report-dropdown{
+    min-width: 115px;
+    display: block;
+}
+.sidebar-container .report-dropdown li a{
+    padding: 3px 10px !important;
+}
+.sidebar-container .report-list .report-id{
+    background-color: #707486;
+    color: #ffffff;
+    margin: 2px;
+    padding: 0px 5px 0px 5px;
+    float: left;
+}
+.sidebar-container .report-list .report-name{
+    width: 77px;
+    float: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 3px 0px 4px 6px;
+    font-weight: 600;
+    color: #707486;
+}
+.report-list > div{
+    clear: both;
+    padding: 5px 0px;
+}
+.sidebar-container .report-list .edit-icon{
+    margin: 5px 0px 0px 0px;
+    float: left;
+}
+.sidebar-container .report-list .delete-icon{
+    margin: 4px 0px 0px 7px;
+    color: #f44336;
+    float: left;
+}
+.sidebar-container .visualisation{
+    clear: both;
+    /* text-align: center; */
+    width: 127px;
+    font-weight: 600;
+    font-size: 14px;
+    margin-left: 20px;
+    padding: 3px 0px;
+}
+.sidebar-container .viz-icon{
+    width: 14px;
+}
+.sidebar-container .viz-selected{
+    color: #3c8bca;
+}
+.editor-container{
+    float: left;
+    width: 80%;
+    border-left: 2px solid #EAEAEA;
+    margin-left: 13px;
+    height: 585px;
+}
+.option-group{
+    padding: 10px 6px;
+    float: left;
+}
+.option-group .btn-group{
+    width: 600px;
+}
+.option-group span{
+    background-color: #ffffff;
+    font-weight: bold;
+    font-size: 14px;
+    border-left: 1px solid #E2F1FC;
+    border-right: 1px solid #E2F1FC;
+    width: 150px;
+    height: 26px;
+    padding: 2px;
+}
+.option-group .btn-left-rounded{
+    border-top-left-radius: 20px;
+    
+    border-bottom-left-radius: 20px;
+}
+.option-group .btn-right-rounded{
+    border-top-right-radius: 20px;
+    border-bottom-right-radius: 20px;
+}
+.option-group .btn-clicked{
+    background-color: #3c8bca;
+    color: white;
+}
+.editor-header{
+    height: 50px;
+    background-color: #E2F1FC;
+}
+.editor-container .editor-dropdown{
+    padding: 8px;
+    float: left;
+}
+.editor-container .datasource-selector{
+    background-color: transparent;
+    border-color: black;
+    height: 25px;
+    width: 115px;
+    border: 1px solid black;
+    cursor: pointer;
+    margin: 0px;
+    padding: 2px 4px;
+    font-weight: 600;
+}
+.editor-container .datasource-selector .name{
+    float: left;
+    width: 95px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0px 0px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.editor-container .parameter-selector{
+    background-color: transparent;
+    border-color: black;
+    height: 25px;
+    width: 115px;
+    border: 1px solid black;
+    cursor: pointer;
+    margin: 2px;
+    padding: 0px 4px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.editor-container .parameter-selector .name {
+    float: left;
+    width: 95px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 1px 0px;
+}
+.editor-container .report-type{
+    background-color: transparent;
+    border-color: black;
+    height: 25px;
+    width: 115px;
+    border: 1px solid black;
+    cursor: pointer;
+    margin: 2px;
+    padding: 1px 4px;
+    font-size: 14px;
+}
+
+.editor-container .report-type .name{
+    float: left;
+    width: 95px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0px 0px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.editor-container .datasource-selector .down-icon{
+    float: right;
+    margin-top: 6px;
+}
+.editor-container .parameter-selector .down-icon{
+    float: right;
+    margin-top: 10px;
+}
+.editor-container .report-type .down-icon{
+    float: right;
+    margin-top: 6px;
+}
+.editor-container .datasource-dropdown{
+    min-width: 115px;
+    display: block;
+}
+.editor-container .datasource-dropdown li {
+    margin: 0px;
+    width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.editor-container .datasource-dropdown li a{
+    margin: 0px;
+    padding: 0px;
+    text-align: center;
+}
+.editor-container .parameter-dropdown li {
+    margin: 0px;
+    width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.editor-container .parameter-dropdown li a{
+    padding: 3px 8px;
+}
+.editor-container .report-dropdown li {
+    margin: 0px;
+    width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.editor-header .icon-list{
+    float: right;
+    padding: 6px;
+}
+.editor-header .close-icon,.editor-header .zoom-icon{
+    float: right;
+    height: 50px;
+    width: 60px;
+    border-left: 1px solid #3c8bca ;
+    font-size: 25px;
+    padding: 11px 20px;
+    color: #3c8bca;
+}
+.editor-modes{
+    width: 100%;
+    margin-top: 2px;
+}
+.editor-modes .btn-group{
+    width: 100%
+}
+.editor-modes .mode-button{
+    background-color: #E2F1FC;
+    border: 1px solid #EAEAEA;
+    height: 40px;
+    border-radius: 5px;
+}
+.editor-modes .mode-selected{
+    background-color: #ffffff;
+    border: none;
+    height: 40px;
+    border-radius: 5px;
+}
+.parameter-info{
+    background-color: #E2F1FC;
+    height: 30px;
+    width: 100%;
+    padding: 5px 0px;
+    margin: 8px 0px;
+    border: 1px solid #E2F1FC;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 12px;
+}
+.editor-container .save-items>ul>li{
+    float: left;
+    margin: 0px 10px;
+    cursor: pointer;
+} 
+.editor-container .save-item .fa-save{
+    font-size: 20px;
+    margin: 4px
+}.editor-container .save-item>div{
+    float: left;
+}
+.editor-container .save-item .down-icon{
+    margin-top: 11px;
+}.editor-container .savelist-dropdown li{
+    margin: 3px;
+}
+.editor-container .share-item{
+    font-size: 20px;
+    padding-top: 2px;
+}
+.editor-container .savelist-dropdown{
+    display: block;
+    top: 25px;
+    padding: 5px;
+}
+.editor-container .share-item{
+    font-size: 20px
+}
+
+.editor-container .save-items{
+    float: right;
+    margin-right: 105px;
+}
+.editor-container .save-items>ul>li {
+    float: left;
+    margin: 10px 4px;
+}
+.ace-container{
+    padding: 3px 20px 0px 20px;
+    width: 100%;
+    position: relative;
+    font-family: sans-serif !important;
+}
+.ace-container .apply-btn{
+    position: absolute;
+    right: 38px;
+    bottom: 37px;
+}
+.ace-container .apply-btn button{
+    background-color: #3c8bca;
+    color: #ffffff;
+}
+ace_gutter{
+    background: #001111 !important; 
+    /* color: #fff !important; */
+}
+.ace_error{
+    background-image: none !important;
+}
+.ace_tooltip{
+    display: none !important;
+}
+.__react_component_tooltip{
+    z-index: 1200 !important;
+    padding: 5px !important;
+    font-size: 12px !important;
+}

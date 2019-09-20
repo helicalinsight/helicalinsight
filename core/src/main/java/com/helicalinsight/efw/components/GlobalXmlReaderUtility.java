@@ -16,12 +16,14 @@
 
 package com.helicalinsight.efw.components;
 
-import com.helicalinsight.efw.utility.JsonUtils;
-import net.sf.json.JSONArray;
-import net.sf.json.JSONObject;
+import java.util.List;
+
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import com.helicalinsight.efw.utility.JsonUtils;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
 
 /**
  * Created by author on 05-02-2015.
@@ -32,7 +34,7 @@ import java.util.List;
 //This class is used as singleton class, please ensure while adding class variable
 public class GlobalXmlReaderUtility {
 
-    public void addDataSources(List<JSONObject> dataSources) {
+    public void addDataSources(List<JSONObject> dataSources, String access) {
         JSONObject globalJson = JsonUtils.getGlobalConnectionsJson();
         List<String> keys = JsonUtils.getKeys(globalJson);
 
@@ -42,18 +44,17 @@ public class GlobalXmlReaderUtility {
                 JSONArray jsonArray = globalJson.getJSONArray(key);
                 for (int counter = 0; counter < jsonArray.size(); counter++) {
                     JSONObject aDataSource = jsonArray.getJSONObject(counter);
-                    addADataSource(dataSources, aDataSource);
+                    addADataSource(dataSources, aDataSource,access);
                 }
             } else if (theKey instanceof JSONObject) {
                 JSONObject aDataSource = globalJson.getJSONObject(key);
-                addADataSource(dataSources, aDataSource);
+                addADataSource(dataSources, aDataSource,access);
             }
         }
     }
 
-    private void addADataSource(List<JSONObject> dataSources, JSONObject aDataSource) {
-        Integer maxPermissionOnResource = DataSourceSecurityUtility.getMaxPermissionDataSources(aDataSource,
-                DataSourceSecurityUtility.READ);
+    private void addADataSource( List<JSONObject> dataSources,  JSONObject aDataSource,String access) {
+        Integer maxPermissionOnResource = DataSourceSecurityUtility.getMaxPermissionDataSources(aDataSource,access);
         if (maxPermissionOnResource == null) return;
 
         JSONObject eachXmlElementJson;
@@ -68,9 +69,24 @@ public class GlobalXmlReaderUtility {
         String type = aDataSource.getString("@type");
         eachElementsData.accumulate("type", type);
 
+
+
+        if(aDataSource.has("driverClassName")){
+            eachXmlElementJson.accumulate("driver",aDataSource.getString("driverClassName"));
+        }
+        if(aDataSource.has("driverName")){
+            eachXmlElementJson.accumulate("driver",aDataSource.getString("driverName"));
+        }
+        JSONObject dataSourceTypeInfo = EfwdReaderUtility.getDataSourceType(type);
+        if(dataSourceTypeInfo !=null){
+            eachXmlElementJson.accumulate("dataSourceType", dataSourceTypeInfo.getString("name"));
+            eachXmlElementJson.accumulate("classifier", dataSourceTypeInfo.getString("classifier"));
+        }
+        eachXmlElementJson.accumulate("type", type);
         eachXmlElementJson.accumulate("data", eachElementsData);
         eachXmlElementJson.accumulate("permissionLevel", maxPermissionOnResource);
         eachXmlElementJson.accumulate("dataSourceProvider", aDataSource.getString("dataSourceProvider"));
         dataSources.add(eachXmlElementJson);
     }
+
 }

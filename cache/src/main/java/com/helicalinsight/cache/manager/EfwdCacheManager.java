@@ -18,10 +18,12 @@ package com.helicalinsight.cache.manager;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.IDriver;
+import com.helicalinsight.datasource.QueryExecutor;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.components.DataSourceSecurityUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.framework.FactoryMethodWrapper;
+import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 import com.helicalinsight.efw.validator.ResourceValidator;
@@ -45,7 +47,7 @@ import java.util.Map;
 
 /**
  * @author Somen
- * Created by Somen on 5/30/2015.
+ *         Created by Somen on 5/30/2015.
  */
 @Component
 @Scope("prototype")
@@ -84,10 +86,11 @@ public class EfwdCacheManager extends CacheManager {
 
     @PostConstruct
     public void init() {
-        logger.debug("Initializing content");
+        logger.debug("initializing content");
         applicationProperties = ApplicationProperties.getInstance();
         String settingPath = applicationProperties.getSettingPath();
-        settingFileAsJson = ResourceProcessorFactory.getIProcessor().getJSONObject(settingPath, false);
+        IProcessor processor = ResourceProcessorFactory.getIProcessor();
+        settingFileAsJson = processor.getJSONObject(settingPath, false);
         solutionDirectory = applicationProperties.getSolutionDirectory();
         this.setSettingsDataSourcesMap();
     }
@@ -109,45 +112,28 @@ public class EfwdCacheManager extends CacheManager {
     }
 
     public String getConnectionFilePath() {
-        String extension = settingFileAsJson.getJSONObject("Extentions").getString("efwd");
-        String efwd = null;
-        String directory = getDirectory();
-        // EFWD file
-        File folder = new File(solutionDirectory + File.separator + directory);
-        File[] listOfFiles = folder.listFiles();
-        Assert.notNull(listOfFiles, "List of files is null. Directory has no content.");
-
-        int count = 0;
-
-        if (listOfFiles != null) {
-            for (File listOfFile : listOfFiles) {
-                if (listOfFile.isFile()) {
-                    String fileName = listOfFile.getName();
-                    String[] tokens = fileName.split("\\.(?=[^\\.]+$)");
-                    //Fixed ArrayIndexOutOfBoundsException
-                    if ((tokens.length > 1) && (tokens[1].equalsIgnoreCase(extension))) {
-                        efwd = fileName;
-                        count++;
-                    }
-                }
+        QueryExecutor dataSource = new QueryExecutor(this.requestParameterJson.toString(), applicationProperties);
+        JSONObject efwdJson = this.requestParameterJson.optJSONObject("efwd");
+        String outerDir = this.requestParameterJson.getString("dir");
+        String file = null;
+        if (efwdJson != null) {
+            file = efwdJson.optString("file");
+            String dir = efwdJson.optString("dir");
+            if (dir != null && !dir.isEmpty()) {
+                outerDir = dir;
             }
         }
+        efwdFileAsJson = dataSource.readEFWD(outerDir, file, solutionDirectory);
 
-        if (count == 1) {
-            efwdFile = solutionDirectory + File.separator + directory + File.separator + efwd;
-            efwdFileAsJson = ResourceProcessorFactory.getIProcessor().getJSONObject(efwdFile, false);
-            ResourceValidator resourceValidator = new ResourceValidator(efwdFileAsJson);
-            boolean isValidEFWD = resourceValidator.validateEfwd();
-            if (isValidEFWD) {
-                int length = (solutionDirectory + File.separator).length();
-                return efwdFile.substring(length);
-            } else {
-                return null;
-            }
+        efwdFile = efwdFileAsJson.getString("_efwdFileName_");
+        ResourceValidator resourceValidator = new ResourceValidator(efwdFileAsJson);
+        boolean isValidEFWD = resourceValidator.validateEfwd();
+        if (isValidEFWD) {
+            int length = (solutionDirectory + File.separator).length();
+            return efwdFile.substring(length);
+        } else {
+            return null;
         }
-
-
-        return efwdFile;
     }
 
     public String getDirectory() {
@@ -175,6 +161,7 @@ public class EfwdCacheManager extends CacheManager {
         JSONObject formData = new JSONObject();
         formData.put("id", connectionId);
         formData.put("dir", getDirectory());
+        formData.put("access",DataSourceSecurityUtility.EXECUTE);
         DataSourceSecurityUtility.isDataSourceAuthenticated(formData);
         return (long) connectionId;
     }

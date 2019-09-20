@@ -7,7 +7,15 @@
 <c:set var="contextUrl">${pageContext.request.requestURL}</c:set>
 <c:set var="baseURL"
        value="${fn:replace(contextUrl, pageContext.request.requestURI, pageContext.request.contextPath)}"/>
+<c:set var="firstLoggedIn" value="set" scope="session"/>
+<sec:authorize access="hasAnyRole('ROLE_PREVIOUS_ADMINISTRATOR')">
+    <c:set var="firstLoggedIn" value="notSet" scope="session"/>
+</sec:authorize>
+<c:if test="${firstLoggedIn eq 'set'}">
+    <c:set var="actualUserName"
+           value="${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username}" scope="session"/>
 
+</c:if>
 <nav class="navbar hi-navbar <tiles:insertAttribute name='fixedNavbar' ignore='true'/>" role="navigation">
     <!-- Brand and toggle get grouped for better mobile display -->
     <div class="container-fluid">
@@ -78,6 +86,9 @@
                 <li class="dropdown hi-hoverEffect">
                     <a href="#" class="dropdown-toggle handleOverflow" data-toggle="dropdown"
                        aria-expanded="false"><i class="fa fa-user"></i>&nbsp;&nbsp;
+                        <sec:authorize access="hasAnyRole('ROLE_PREVIOUS_ADMINISTRATOR')">
+                            ${actualUserName} as
+                        </sec:authorize>
                         ${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username}
                     </a>
 
@@ -89,6 +100,13 @@
                                 <sec:authentication
                                         property="principal.loggedInUser.emailAddress"/></a>
                         </li>
+                        <sec:authorize access="hasAnyRole('ROLE_PREVIOUS_ADMINISTRATOR')">
+                            <li>
+                                <a href="${baseURL}/j_spring_security_exit_user">
+                                    <i class="fa fa-sign-out"></i>Logout (${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username})
+                                </a>
+                            </li>
+                        </sec:authorize>
                         <li>
                             <a href="${baseURL}/j_spring_security_logout">
                                 <i class="fa fa-sign-out"></i>Logout

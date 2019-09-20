@@ -16,6 +16,7 @@
 
 package com.helicalinsight.efw.controller;
 
+import com.helicalinsight.efw.components.DataSourceSecurityUtility;
 import com.helicalinsight.efw.components.EfwdReaderUtility;
 import com.helicalinsight.efw.components.GlobalXmlReaderUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
@@ -99,7 +100,7 @@ public class EfwServicesController {
 
         boolean isAjax = ControllerUtils.isAjax(request);
         try {
-            JSONObject dataSourcesList = SettingXmlUtility.getDataSourcesJson();
+            JSONObject dataSourcesList = SettingXmlUtility.getDataSourcesJson(true);
 
             JdbcUrlFormatUtility urlFormatUtility = ApplicationContextAccessor.getBean(JdbcUrlFormatUtility.class);
 
@@ -144,13 +145,15 @@ public class EfwServicesController {
         boolean isAjax = ControllerUtils.isAjax(request);
         try {
             String resources = new DirectoryLoaderProxy(listOfKeys).getResources(true);
+            JSONArray resourcesJsonArray = JSONArray.fromObject(resources);
+            ControllerUtils.replaceFilePath(resourcesJsonArray);
             later = System.currentTimeMillis();
 
             if (logger.isDebugEnabled()) {
                 logger.debug("It took nearly " + ((later - now) / 1000) + " seconds to complete " +
                         "the IO operations to get the resources information.");
             }
-            ControllerUtils.handleSuccess(response, isAjax, resources);
+            ControllerUtils.handleSuccess(response, isAjax, resourcesJsonArray.toString());
         } catch (Exception exception) {
             later = System.currentTimeMillis();
             if (logger.isDebugEnabled()) {
@@ -209,7 +212,7 @@ public class EfwServicesController {
                 }
                 GlobalXmlReaderUtility globalXmlReaderUtility = ApplicationContextAccessor.getBean
                         (GlobalXmlReaderUtility.class);
-                globalXmlReaderUtility.addDataSources(dataSources);
+                globalXmlReaderUtility.addDataSources(dataSources, DataSourceSecurityUtility.READ);
             }
 
             connections.accumulate("dataSources", dataSources);

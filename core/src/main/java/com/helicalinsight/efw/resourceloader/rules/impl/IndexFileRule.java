@@ -20,14 +20,14 @@ import com.helicalinsight.efw.exceptions.ImproperXMLConfigurationException;
 import com.helicalinsight.efw.exceptions.UnSupportedRuleImplementationException;
 import com.helicalinsight.efw.resourceloader.rules.AbstractResourceRule;
 import com.helicalinsight.efw.resourceloader.rules.IResourceRule;
-import com.helicalinsight.efw.resourceloader.rules.IResourceSecurityRule;
 import com.helicalinsight.efw.utility.JsonUtils;
-import com.helicalinsight.resourcesecurity.ShareRule;
+import com.helicalinsight.resourcesecurity.SecurityUtils;
 import net.sf.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -37,8 +37,10 @@ import java.util.Map;
  * instance can be used.
  *
  * @author Rajasekhar
+ * @version 1.1
+ * @since 1.1
  */
-public final class IndexFileRule implements IResourceRule {
+public final class IndexFileRule extends AbstractResourceRule implements IResourceRule {
 
     private static final Logger logger = LoggerFactory.getLogger(IndexFileRule.class);
 
@@ -53,7 +55,6 @@ public final class IndexFileRule implements IResourceRule {
      *
      * @return Instance of the same class
      */
-
     public static IResourceRule getInstance() {
         return EfwFolderRuleHolder.INSTANCE;
     }
@@ -63,7 +64,6 @@ public final class IndexFileRule implements IResourceRule {
      *
      * @return The class name itself
      */
-
     public String toString() {
         return "EFWFolderRuleValidator";
     }
@@ -88,26 +88,36 @@ public final class IndexFileRule implements IResourceRule {
             logger.error("An exception has taken place. The stack trace is ", ex);
         }
         //Check if the folder is shared with other users, if it is shared it should be shown
-        IResourceSecurityRule resourceSecurityRule = ShareRule.getInstance();
-        return isOwner || resourceSecurityRule.validate(fileAsJson);
+        return isOwner || resultOfConfiguredRules(settings, fileAsJson);
     }
-
 
     @Override
     public Map<String, String> getResourceMap(JSONObject fileAsJson, String extensionKey, String path, String name,
                                               String lastModified) {
-        //Returns null as the file content need not be shown to the end user. The file indicates
-        //ownership information.
-        //As the directories need to be recursively put as children in the json. So,
-        //this method is not called using this method interface on this class.
+        Map<String, String> foldersMap = new HashMap<>();
 
-        //Avoid null
-        return new HashMap<>();
+        foldersMap.put("type", "folder");
+        foldersMap.put("name", fileAsJson.getString("title"));
+
+        foldersMap.put("options", new JSONObject().accumulate("selectable", "true").toString());
+        if (fileAsJson.optBoolean("inherit")) {
+            foldersMap.put("permissionLevel", fileAsJson.getString("permissionLevel"));
+            foldersMap.put("inherit", "true");
+        } else {
+            foldersMap.put("permissionLevel", "" + SecurityUtils.whatIsMyPermission(fileAsJson));
+        }
+        return foldersMap;
+
     }
 
     @Override
     public boolean isThreadSafeToCache() {
         return true;
+    }
+
+    @Override
+    protected void addContentOfJson(Map<String, String> foldersMap, JSONObject fileAsJson, Iterator<?> keys) {
+
     }
 
     /**

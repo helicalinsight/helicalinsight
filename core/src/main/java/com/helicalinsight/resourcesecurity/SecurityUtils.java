@@ -17,10 +17,20 @@
 package com.helicalinsight.resourcesecurity;
 
 import com.helicalinsight.admin.utils.AuthenticationUtils;
+import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.XmlConfigurationException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.resourceloader.rules.IResourceRule;
+import com.helicalinsight.efw.resourceloader.rules.impl.IndexFileRule;
+import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
+import com.helicalinsight.efw.utility.ResourcePermissionLevelsHolder;
 import com.helicalinsight.resourcesecurity.jaxb.Security;
+import net.sf.json.JSONObject;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -29,6 +39,8 @@ import java.util.Map;
  * @author Rajasekhar
  */
 public class SecurityUtils {
+    private static final ResourcePermissionLevelsHolder resourcePermissionLevelsHolder = ApplicationContextAccessor.getBean(ResourcePermissionLevelsHolder.class);
+    private static ResourcePermissionFactory factory = new ResourcePermissionFactory();
 
     /**
      * @return The Security object that represents the xml structure of security
@@ -38,6 +50,7 @@ public class SecurityUtils {
 
         final String userId = AuthenticationUtils.getUserId();
         security.setCreatedBy(userId);
+
         return security;
     }
 
@@ -71,4 +84,118 @@ public class SecurityUtils {
         }
         return value;
     }
+
+
+    /*public static int maxInheritPermission(File file) {
+        List<String> pathList= new ArrayList<String>();
+        String parentPath = file.getParent();
+        while(!parentPath.equalsIgnoreCase(ApplicationProperties.getInstance().getSolutionDirectory())) {
+            pathList.add(file.getParent());
+            file = file.getParentFile();
+            parentPath = file.getParent();
+        }
+        if(pathList.size()>0) {
+            for (int index = pathList.size() - 1; index >= 0; index--) {
+                File indexFile = new File(pathList.get(index) + File.separator + "index.efwfolder");
+                if (indexFile.exists()) {
+                JSONObject parentJson = ResourceProcessorFactory.getIProcessor().getJSONObject(indexFile.getAbsolutePath(), false);
+
+                int myPermission = whatIsMyPermission(parentJson);
+                if(myPermission==-1){
+                    return maxInheritPermission(file.getParentFile());
+                }
+
+            }
+        }
+           /* File indexFile = new File(parentPath + File.separator + "index.efwfolder");
+            if (indexFile.exists()) {
+                JSONObject parentJson = ResourceProcessorFactory.getIProcessor().getJSONObject(indexFile.getAbsolutePath(), false);
+                boolean isSharePresent = ShareRuleHelper.isShareTagPresent(parentJson);
+
+                if (!isSharePresent) {
+                    return maxInheritPermission(file.getParentFile());
+                } else {
+                    int myPermission = whatIsMyPermission(parentJson);
+                    if(myPermission==-1){
+                        return maxInheritPermission(file.getParentFile());
+                    }
+                    return myPermission;
+                }
+            }
+        }
+        return 2;
+
+    }*/
+
+    public static int whatIsMyPermission(JSONObject fileAsJson) {
+        IResourcePermission resourcePermission = factory.resourcePermission(fileAsJson);
+        int permissionLevelOnResource = resourcePermission.maximumPermissionLevelOnResource();
+        return permissionLevelOnResource;
+    }
+
+    ;
+
+    public static int maxInheritPermission(File file) {
+        String parentPath = file.getParent();
+        if (!parentPath.equalsIgnoreCase(ApplicationProperties.getInstance().getSolutionDirectory())) {
+            File indexFile = new File(parentPath + File.separator + "index.efwfolder");
+            if (indexFile.exists()) {
+                JSONObject parentJson = ResourceProcessorFactory.getIProcessor().getJSONObject(indexFile.getAbsolutePath(), false);
+                boolean isSharePresent = ShareRuleHelper.isShareTagPresent(parentJson);
+
+                if (!isSharePresent) {
+                    return maxInheritPermission(file.getParentFile());
+                } else {
+                    int myPermission = whatIsMyPermission(parentJson);
+                    if (myPermission == -1) {
+                        return maxInheritPermission(file.getParentFile());
+                    }
+                    return myPermission;
+                }
+            } else {
+                return resourcePermissionLevelsHolder.publicResourceAccessLevel();
+            }
+        }
+        return resourcePermissionLevelsHolder.noAccessLevel();
+
+    }
+
+
+    public static boolean isTargetReachable(File file) {
+        List<String> pathList = getPathList(file);
+
+        for (String path : pathList) {
+            File indexFile = new File(path + File.separator + "index.efwfolder");
+            if (indexFile.exists()) {
+                IResourceRule resourceRule = IndexFileRule.getInstance();
+                JSONObject directoryJson = ResourceProcessorFactory.getIProcessor().getJSONObject(indexFile.getAbsolutePath(), false);
+                try {
+                    directoryJson.put("absolutePath", indexFile.getAbsolutePath());
+                    if (!resourceRule.validateFile(directoryJson)) {
+                        return false;
+                    }
+                } catch (Exception ignore) {
+
+
+                }
+            } else {
+                return true;
+            }
+
+        }
+        return true;
+    }
+
+    private static List<String> getPathList(File file) {
+        List<String> pathList = new ArrayList<String>();
+        String parentPath = file.getParent();
+        while (!parentPath.equalsIgnoreCase(ApplicationProperties.getInstance().getSolutionDirectory())) {
+            pathList.add(file.getParent());
+            file = file.getParentFile();
+            parentPath = file.getParent();
+        }
+        Collections.reverse(pathList);
+        return pathList;
+    }
+
 }

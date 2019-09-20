@@ -33,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
 
-
 @Component("restAuthenticationFilter")
 public class RestTokenAuthenticationFilter extends GenericFilterBean {
 
@@ -64,11 +63,16 @@ public class RestTokenAuthenticationFilter extends GenericFilterBean {
         boolean authenticated = checkToken(httpRequest, httpResponse);
 
         if (canRequestProcessingContinue(httpRequest) && httpRequest.getMethod().equals("POST")) {
-               if (authenticated) {
+            // If we're not authenticated, we don't bother with logout at all.
+            // Logout does not work in the same request with login - this does not make sense,
+            // because logout works with token and login returns it.
+            if (authenticated) {
                 checkLogout(httpRequest);
             }
 
-              checkLogin(httpRequest, httpResponse);
+            // Login works just fine even when we provide token that is valid up to this request,
+            // because then we get a new one.
+            checkLogin(httpRequest, httpResponse);
         }
 
         if (canRequestProcessingContinue(httpRequest)) {
@@ -76,7 +80,10 @@ public class RestTokenAuthenticationFilter extends GenericFilterBean {
         }
     }
 
-     private boolean checkToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws IOException {
+    /**
+     * Returns true, if request contains valid authentication token.
+     */
+    private boolean checkToken(HttpServletRequest httpRequest, HttpServletResponse httpResponse) throws IOException {
         String token = httpRequest.getHeader(HEADER_TOKEN);
         if (token == null) {
             return false;
@@ -99,6 +106,7 @@ public class RestTokenAuthenticationFilter extends GenericFilterBean {
     private void checkLogout(HttpServletRequest httpRequest) {
         if (currentLink(httpRequest).equals(logoutLink)) {
             String token = httpRequest.getHeader(HEADER_TOKEN);
+            // we go here only authenticated, token must not be null
             authenticationService.logout(token);
             doNotContinueWithRequestProcessing(httpRequest);
         }
@@ -122,6 +130,8 @@ public class RestTokenAuthenticationFilter extends GenericFilterBean {
         httpRequest.setAttribute(REQUEST_ATTR_DO_NOT_CONTINUE, "");
     }
 
+    // or use Springs util instead: new UrlPathHelper().getPathWithinApplication(httpRequest)
+    // shame on Servlet API for not providing this without any hassle :-(
     private String currentLink(HttpServletRequest httpRequest) {
         if (httpRequest.getPathInfo() == null) {
             return httpRequest.getServletPath();
@@ -150,7 +160,7 @@ public class RestTokenAuthenticationFilter extends GenericFilterBean {
         TokenInformationProvider tokenInfo = authenticationService.authenticate(username, password);
         if (tokenInfo != null) {
             httpResponse.setHeader(HEADER_TOKEN, tokenInfo.getToken());
-
+            // TODO set other token information possible: IP, ...
         } else {
             httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED);
         }

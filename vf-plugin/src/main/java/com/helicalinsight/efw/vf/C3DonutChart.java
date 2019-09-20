@@ -1,3 +1,19 @@
+/**
+ *    Copyright (C) 2013-2017 Helical IT Solutions (http://www.helicalinsight.com) - All rights reserved.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
 package com.helicalinsight.efw.vf;
 
 import net.sf.json.JSONObject;
@@ -12,6 +28,7 @@ public class C3DonutChart extends EFWC3Chart {
         String colorPatternConf = colorPattern(chartData);
         String donutConf = donutProperties(chartData);
         StringBuilder chartConfiguration = new StringBuilder();
+        String customExpression = "if (data.length ==0) {\r\n\t\t$(chartElement).html(\"<div><h2 style='text-align:center;color:#927333;'>No Data To Display</h2></div>\");\r\n\t} else {\r\n\t\tvar array1 = [];\r\n\t\tfor (var i = 0; i < data.length; i++) {\r\n\t\t\tvar array2 = [];\r\n\t\t\tfor (var prop in data[i]) {\r\n\r\n\t\t\t\tarray2.push(data[i][prop]);\r\n\t\t\t}\r\n\t\t\tarray1[i] = array2;\r\n\t\t}\r\n";
         chartConfiguration.append("{\r\n").append("	bindto:chartElement, \r\n").append(dataConf + tooltipConf);
         chartConfiguration.append(colorPatternConf).append(tooltipConf).append(legendConf).append(donutConf)
                 .append("}");
@@ -19,7 +36,8 @@ public class C3DonutChart extends EFWC3Chart {
         String dynamicJson = chartConfiguration.toString().replace("\"chartElement\"", "chartElement")
                 .replace("\"data\"", "data");
         StringBuilder c3conf = new StringBuilder();
-        c3conf.append("var chart = c3.generate(").append(dynamicJson).append(");");
+        c3conf.append(customExpression);
+        c3conf.append("var chart = c3.generate(").append(dynamicJson).append(")};");
         return c3conf.toString();
     }
 
@@ -77,7 +95,7 @@ public class C3DonutChart extends EFWC3Chart {
             ;
         }
 
-        dataConfiguration.append("data: {\r\n").append("        json: data,").append(xyAxis);
+        dataConfiguration.append("data: {\r\n").append("        columns: array1,");
         dataConfiguration.append("        type: 'donut',\r\n").append("    },\r\n");
 
         return dataConfiguration.toString();

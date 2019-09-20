@@ -1,7 +1,4 @@
 @import url('../fonts/lato/lato.css');
-* {
-    font-family: 'Lato', sans-serif;
-}
 .nopad {
     padding: 0 !important;
 }

@@ -16,11 +16,13 @@
 
 package com.helicalinsight.efw.components;
 
+import com.helicalinsight.datasource.GlobalJdbcType;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.resourceloader.DirectoryLoaderProxy;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.efw.utility.SettingXmlUtility;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
 import net.sf.json.JSONObject;
@@ -41,7 +43,6 @@ public class EfwdReaderUtility {
 
     private static final Logger logger = LoggerFactory.getLogger(EfwdReaderUtility.class);
     private final String solutionDirectory = ApplicationProperties.getInstance().getSolutionDirectory();
-
     private JSONArray extensions;
 
     public EfwdReaderUtility(JSONArray extensions) {
@@ -50,7 +51,6 @@ public class EfwdReaderUtility {
         }
         this.extensions = extensions;
     }
-
 
     public List<JSONObject> getAllEfwdConnections(String subType) {
         if (subType == null) {
@@ -78,7 +78,6 @@ public class EfwdReaderUtility {
         }
         return connections;
     }
-
 
     private Map<String, String> prepareMapOfEfwd() {
         String efwdExtension = JsonUtils.getEfwdExtension();
@@ -114,14 +113,15 @@ public class EfwdReaderUtility {
             //So, EFWD is an array of another array with actual connections
             JSONArray efwd = fileAsJson.getJSONArray("EFWD");
             //Get the inner array at index 0. The info regarding DataSources is missing.
-            JSONArray innerArray = efwd.getJSONArray(0);
+
+            JSONArray innerArray =  DataSourceSecurityUtility.checkInstanceOfJsonArray(efwd);
+
             for (Object object : innerArray) {
                 JSONObject connection = JSONObject.fromObject(object);
                 accumulate(connection, efwdPath, connections, subType);
             }
         }
     }
-
 
     private List<String> getRelativePaths() {
         List<String> list = new ArrayList<>();
@@ -156,9 +156,11 @@ public class EfwdReaderUtility {
         JSONObject eachConnection = new JSONObject();
         String id = connection.getString("@id");
         String type = connection.getString("@type");
+        JSONObject dataSourceTypeInfo = getDataSourceType(type);
         try {
             String name = connection.getString("@name");
             eachConnection.accumulate("name", name);
+            eachConnection.accumulate("type", type);
         } catch (Exception ignore) {
             eachConnection.accumulate("name", id);
         }
@@ -166,6 +168,17 @@ public class EfwdReaderUtility {
         eachConnectionData.accumulate("id", id);
         eachConnectionData.accumulate("dir", StringUtils.remove(efwdPath, this.solutionDirectory + File.separator));
         eachConnectionData.accumulate("type", type);
+        if (connection.has("Driver")) {
+            eachConnectionData.accumulate("driver", connection.getString("Driver"));
+            eachConnection.accumulate("driver", connection.getString("Driver"));
+        }else if (connection.has("driverName")) {
+            eachConnectionData.accumulate("driver", connection.getString("driverName"));
+            eachConnection.accumulate("driver", connection.getString("driverName"));
+        }
+        if (dataSourceTypeInfo != null) {
+            eachConnection.accumulate("dataSourceType", dataSourceTypeInfo.getString("name"));
+            eachConnection.accumulate("classifier", dataSourceTypeInfo.getString("classifier"));
+        }
         eachConnection.accumulate("permissionLevel", maxPermissionOnResource);
         eachConnection.accumulate("data", eachConnectionData);
         connections.add(eachConnection);
@@ -178,5 +191,34 @@ public class EfwdReaderUtility {
         if (subType.equalsIgnoreCase(type)) {
             accumulate(connection, efwdPath, connections);
         }
+
+
+    }
+
+    public static JSONObject getDataSourceType(String type) {
+        switch (type) {
+            case GlobalJdbcType.TYPE:
+            case GlobalJdbcType.NON_POOLED:
+            case GlobalJdbcType.DYNAMIC_DATASOURCE:
+            case GlobalJdbcType.STATIC_DATASOURCE:
+                type = "global.jdbc";
+
+        }
+
+        JSONObject dataSourceJson = SettingXmlUtility.getDataSourcesJson(false);
+        JSONArray dataSources = dataSourceJson.getJSONArray("dataSources");
+        JSONObject dataSourceTypesInfo = new JSONObject();
+        for (int index = 0; index < dataSources.size(); index++) {
+            JSONObject aDataSource = dataSources.getJSONObject(index);
+            if (aDataSource.getString("type").equals(type)) {
+                dataSourceTypesInfo.put("classifier", aDataSource.getString("classifier"));
+                dataSourceTypesInfo.put("name", aDataSource.getString("name"));
+                break;
+            }
+
+        }
+
+        return dataSourceTypesInfo;
+
     }
 }

@@ -40,6 +40,7 @@ import java.util.Iterator;
  * singleton class ApplicationProperties
  *
  * @author Rajasekhar
+ * @since 1.1
  */
 public class BaseLoader {
 
@@ -164,6 +165,7 @@ public class BaseLoader {
             UnSupportedRuleImplementationException, ImproperXMLConfigurationException {
         String resources = null;
         FileValidator fileValidator = new FileValidator();
+        if(specificResource!=null) specificResource=specificResource.replaceAll("\\\\","/");
         fileValidator.setFile(settingPath);
         // If the setting.xml is present read it
         if (fileValidator.isFilePresent()) {

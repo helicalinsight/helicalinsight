@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Charts>
+    <Chart id="1">
+        <prop>
+            <name>travellerType</name>
+            <type>Custom</type>
+            <DataSource>3</DataSource>
+            <script><![CDATA[$('.selected').removeClass('selected');
+					
+					if(data[0].travel_count <= 10 && data[0].travel_count >= 0)
+						$('.tourist').addClass('selected');
+					else if (data[0].travel_count > 10 && data[0].travel_count <= 20)
+						$('.traveller').addClass('selected');
+					else
+						$('.nomad').addClass('selected');]]></script>
+        </prop>
+    </Chart>
+    <Chart id="2">
+        <prop>
+            <name>barChart</name>
+            <type>Custom</type>
+            <DataSource>4</DataSource>
+            <script><![CDATA[ if (data.length == 0) {
+                        $('#chart_2').html("<div><h2 style='text-align:CENTER;color:#927333;'>No Data To Display</h2></div>");
+                    } else {		
+						var travel_count = $.map(data, function(val) { return val.travel_count; });
+						var quarter = $.map(data, function(val) { return val.quarter; });
+						
+						var chart = c3.generate({
+							bindto: '#chart_2',
+							data: {
+								x: 'x',
+								columns: [
+									['x'].concat(quarter),
+									['Tours'].concat(travel_count)
+								],
+								type : 'area-step',
+								colors: {
+									'Tours' : '#faa719'
+								}
+							},
+							axis: {
+								x: {
+									type: 'category' // this needed to load string x value
+								},
+								y : {
+									show: false 
+								}
+							},
+							tooltip: {
+							  show: true
+							},
+							legend:{
+								show: false
+							},
+							padding:{
+								bottom: 10
+							}
+						});	
+					}]]></script>
+        </prop>
+    </Chart>
+    <Chart id="3">
+        <prop>
+            <name>avgCost</name>
+            <type>Custom</type>
+            <DataSource>5</DataSource>
+            <script><![CDATA[if(data[0].Count===0)
+						$('#traveller-avg-cost-value').html('0');
+					else{		
+						var cost = data[0].travel_cost,
+							count = data[0].count;
+						
+						var avg = cost/count;
+											
+						$('#traveller-avg-cost-value').html('$ '+Math.round(avg * 100) / 100);
+					}]]></script>
+        </prop>
+    </Chart>
+    <Chart id="4">
+        <prop>
+            <name>companyAvgCost</name>
+            <type>Custom</type>
+            <DataSource>6</DataSource>
+            <script><![CDATA[if(data[0].Count===0)
+						$('#company-avg-cost-value').html('0');
+					else{
+						var cost = data[0].travel_cost,
+							count = data[0].count;
+						
+						var avg = cost/count;
+											
+						$('#company-avg-cost-value').html('$ '+Math.round(avg * 100) / 100);
+					}]]></script>
+        </prop>
+    </Chart>
+    <Chart id="5">
+        <prop>
+            <name>pieChart</name>
+            <type>Custom</type>
+            <DataSource>7</DataSource>
+            <script><![CDATA[
+					if (data.length == 0) {
+                        $('#chart_5').html("<div style='border:1px solid; border-color:#337ab7;'><h2 style='text-align:CENTER;color:#927333;'>No Data To Display</h2></div>");
+                        return;
+                    } else {
+						var type = $.map(data, function(val) { return val.Type; });
+						var cost = $.map(data, function(val) { return val.Cost; });
+						
+						var chart1 = c3.generate({
+							bindto: '#chart_5',
+							data: {
+								rows: [
+									type,
+									cost
+								],
+								type : 'pie'
+							},
+							color: {
+										pattern: ['#5a68af','#27bfd7', '#faa719', '#f0564e']
+							},
+							legend:{
+								show: false,
+								position: 'top'
+							},
+							padding:{
+								bottom: 20
+							},
+							pie: {
+							  label: {
+								show: false
+							  }
+							}
+						});
+					}]]></script>
+        </prop>
+    </Chart>
+    <Chart id="6">
+        <prop>
+            <name>travelTypeCostPerPerson</name>
+            <type>Custom</type>
+            <DataSource>8</DataSource>
+            <script><![CDATA[if(data[0].Count===0)
+						$('#traveller-travel-type-cost-value').html('$ 0');
+					else{
+						var cost = data[0].Cost,
+							count = data[0].Count;
+						
+						var avg = cost/count;
+											
+						$('#traveller-travel-type-cost-value').html('$ '+Math.round(avg * 100) / 100);
+					}]]></script>
+        </prop>
+    </Chart>
+    <Chart id="7">
+        <prop>
+            <name>travelTypeCostCompany</name>
+            <type>Custom</type>
+            <DataSource>11</DataSource>
+            <script><![CDATA[if(data[0].Count===0)
+						$('#company-travel-type-cost-value').html('0');
+					else{
+						var cost = data[0].Cost,
+							count = data[0].Count;
+						
+						var avg = cost/count;
+											
+						$('#company-travel-type-cost-value').html('$ '+Math.round(avg * 100) / 100);
+				}]]></script>
+        </prop>
+    </Chart>
+</Charts>

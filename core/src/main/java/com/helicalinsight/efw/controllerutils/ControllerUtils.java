@@ -363,4 +363,28 @@ public class ControllerUtils {
         }
         return parameter;
     }
+    public static void replaceFilePath(JSONArray resourceArray) {
+
+
+        for (Object jsonObject : resourceArray) {
+            JSONObject resourceJson = (JSONObject) jsonObject;
+            if (resourceJson.has("children")) {
+                JSONArray children = resourceJson.getJSONArray("children");
+                if (!children.isEmpty()) {
+                    replaceFilePath(children);
+                }
+            } else {
+                String type = resourceJson.getString("type");
+                String path = resourceJson.getString("path");
+                if ("file".equalsIgnoreCase(type)) {
+                    resourceJson.put("path", path.replaceAll("\\\\", "/"));
+                    resourceJson.discard("absolutepath");
+
+
+                }
+            }
+
+        }
+    }
+
 }

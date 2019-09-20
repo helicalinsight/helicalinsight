@@ -4,13 +4,12 @@
     <!--Body type="htmlContent"/-->
     <!--Formats required="true" type="simpleArray" arrayType="text"/-->
     <!--Recipients type="simpleArray" arrayType="email" required="true"/-->
-    <Subject type="text" required="true" minLength="3"/>
-	<Body type="text" />
+    <Subject required="true"/>
     <Zip type="boolean"/>
   </EmailSettings>
   <ScheduleOptions>
     <DaysofWeek arayType="text" type="simpleArray"/>
-    <EndAfterExecutions maxLength="2" type="number" />
+    <EndAfterExecutions maxLength="2" type="number"/>
     <EndDate length="10" type="date.yyyy-mm-dd"/>
     <Frequency maxLength="10" type="text"/>
     <RepeatBy type="text"/>

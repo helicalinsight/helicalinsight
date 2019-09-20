@@ -19,6 +19,7 @@
         </folder>
         <efwExport>crt</efwExport>
         <efwresult rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">result</efwresult>
+		<efwce rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardRule" visible="true">efwce</efwce>
         <hwf>HWF</hwf>
     </Extentions>
     <!-- Additional xml configurations required for configurable services and global jdbc configurations
@@ -43,7 +44,8 @@
     <!-- The following tag is read as string and should be without any attributes-->
     <enableSavedResult>false</enableSavedResult>
     <createNewBackupFile>true</createNewBackupFile>
-
+	<driverLoadRegexPatterns>.*[Dd]{1}river,org.sqlite.JDBC</driverLoadRegexPatterns>
+	<exculdeRegexFromLoadedClass>.*NonRegisteringDriver,.*com.helicalinsight.*,org.apache.derby.jdbc.InternalDriver,org.apache.derby.jdbc.EmbeddedDriver,org.firebirdsql.jdbc.FirebirdDriver,org.firebirdsql.jdbc.AbstractDriver,org.hsqldb.jdbc.JDBCDriver,oracle.jdbc.driver.OracleDriver,com.sybase.jdbcx.SybDriver,COM.ibm.db2os390.sqlj.jdbc.DB2SQLJDriver,com.ibm.db2.jcc.uw.DB2StoredProcDriver,com.ncr.teradata.TeraDriver,com.mysql.jdbc.NonRegisteringReplicationDriver,com.mysql.jdbc.ReplicationDriver,org.gjt.mm.mysql.Driver,org.apache.calcite.avatica.UnregisteredDriver,org.apache.calcite.jdbc.Driver,org.apache.hadoop.util.ProgramDriver,org.apache.spark.network.shuffle.protocol.mesos.RegisterDriver,org.apache.drill.jdbc.proxy.TracingProxyDriver,org.apache.hadoop.hive.jdbc.HiveDriver,oadd.org.apache.curator.utils.DefaultTracerDriver,oadd.org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock$$SortingLockInternalsDriver,oadd.org.apache.calcite.avatica.remote.Driver,oadd.org.apache.curator.framework.recipes.locks.StandardLockInternalsDriver,oadd.org.apache.calcite.avatica.UnregisteredDriver,oadd.org.apache.commons.dbcp.PoolingDriver,oadd.org.apache.hadoop.util.ProgramDriver,oadd.org.apache.curator.drivers.TracerDriver,oadd.org.apache.curator.framework.recipes.locks.LockInternalsDriver,oadd.org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock\$SortingLockInternalsDriver,cdjd.org.*,com.dremio.jdbc.proxy.TracingProxyDriver</exculdeRegexFromLoadedClass>
     <!-- Options for resource security related settings. HI versions 1.2 and before don't need these properties-->
     <security mandatory="true">
         <!-- Support for older resources of type efw. True enables the application to work with old efw resources(resources created for use by HDI version 1.2 or earlier)-->
@@ -52,9 +54,10 @@
         <resourceSecurityRule class="com.helicalinsight.resourcesecurity.ResourceSecurityRule" mandatory="false"/>
         <!-- Resource security based on user/role/organization based -->
         <!-- This section of configurable rules will be applied by some or all the resources. If the name of the tag is rule, then those rules behaviour will be applied at run time. An array of rules are supported.-->
-        <rules mandatory="false" mode="and">
+        <rules mandatory="false" mode="or">
             <!-- mode if not provided is considered as and -->
             <rule class="com.helicalinsight.resourcesecurity.ShareRule"/>
+			<rule class="com.helicalinsight.resourcesecurity.InheritShareRule"/>
         </rules>
     </security>
     <createSeparateDirectoryForEachReportSource>true</createSeparateDirectoryForEachReportSource>
@@ -76,6 +79,9 @@
         <efwdd mandatory="true">
             <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
         </efwdd>
+		<efwce mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWCEDeleteRule"/>
+        </efwce>
     </operations>
     <!-- To serve the external resources like css, js, and images from the configured solution directory -->
     <contents>
@@ -101,9 +107,37 @@
                     name="Managed DataSource" type="global.jdbc"/>
         <DataSource class="com.helicalinsight.datasource.JDBCDriver" classifier="efwd" name="Plain Jdbc DataSource"
                     type="sql.jdbc"/>
-        <DataSource class="com.helicalinsight.datasource.calcite.CalciteAdapter" classifier="efwd"
-                    name="Virtual DataSource" type="sql.calcite"/>
+		 <DataSource class="com.helicalinsight.datasource.ExtJDBCDriver" classifier="efwd" name="Groovy Plain Jdbc DataSource" type="sql.jdbc.groovy"  hidden="false"/>
+		 
+        <!--<DataSource class="com.helicalinsight.datasource.calcite.CalciteAdapter" classifier="efwd"
+                    name="Virtual DataSource" type="sql.calcite"/>-->
     </DataSources>
+	<visualizationTypes>
+		<visualization name="Area" type="EFW-c3" subtype="Area" icon="AreaChart"/>
+		<visualization name="Area Spline" type="EFW-c3" subtype="AreaSpline" icon="AreaSplineChart"/>
+		<visualization name="Area Step" type="EFW-c3" subtype="AreaStep" icon="AreaStepChart"/>
+		<visualization name="Bar" type="EFW-c3" subtype="bar" icon="BarChart"/>
+		<visualization name="Donut" type="EFW-c3" subtype="donut" icon="DonutChart"/>
+		<visualization name="Gauge" type="EFW-c3" subtype="gauge" icon="HICircularGauge"/>
+		<visualization name="Line" type="EFW-c3" subtype="Line" icon="LineChart"/>
+		<visualization name="Pie" type="EFW-c3" subtype="Pie" icon="PieChart"/>
+		<visualization name="Scatter" type="EFW-c3" subtype="Scatter" icon="ScatterChart"/>
+		<visualization name="Spline" type="EFW-c3" subtype="Spline" icon="SplineChart"/>
+		<visualization name="Step" type="EFW-c3" subtype="Step" icon="StepChart"/>
+		<visualization name="Cross Tab" type="EFW-CrossTab" icon="HICrossTable"/>
+		<visualization name="Table" type="EFW-Table" icon="HITable"/>
+		<visualization name="Custom" type="Custom" icon="VF"/>
+	</visualizationTypes>
+	<sqlTypes>
+		<sqlType name="sql"/>
+		<sqlType name="sql.groovy"/>
+		<sqlType name="sql.adhoc"/>
+	</sqlTypes>
+	<parameterTypes>
+		<parameterType name="Collection"/>
+		<parameterType name="Numeric"/>
+		<parameterType name="String"/>
+	</parameterTypes>
     <!-- To render the custom charts -->
     <Charts>
         <Chart class="com.helicalinsight.efw.vf.Custom" type="Custom"/>
@@ -142,13 +176,14 @@
         <efwFolder>com.helicalinsight.resourcesecurity.jaxb.EfwFolder</efwFolder>
         <efwfav>com.helicalinsight.resourcesecurity.jaxb.Efwfav</efwfav>
         <efwresult>com.helicalinsight.resourcesecurity.jaxb.EfwResult</efwresult>
+		<efwce>com.helicalinsight.datasource.managed.jaxb.EFWCE</efwce>
     </jaxbClasses>
     <!-- Default roles created when an organization is created. Super organization user and admin
     are configured here. -->
     <defaultRoleNames>
         <roleUser email="user@helicalinsight.com" name="hiuser">ROLE_USER</roleUser>
         <roleAdmin email="admin@helicalinsight.com" name="hiadmin">ROLE_ADMIN</roleAdmin>
-        <rolePhantom email="phantom@helicalinsight.com" name="phantom">ROLE_PHANTOM</rolePhantom>
+        <rolePhantom email="downloadManager@helicalinsight.com" name="downloadManager">ROLE_USER,ROLE_DOWNLOAD</rolePhantom>
     </defaultRoleNames>
     <efwdDataSourceHandlers>
         <handler class="com.helicalinsight.efw.components.SqlJdbcHandler" classifier="sql.jdbc"/>
@@ -166,4 +201,7 @@
             <file>file</file>
         </efwsr>
     </viewHandler>
+	<EfwceSampleVfName>__efwvf_name__</EfwceSampleVfName>
+	<EfwdSampleName>__efwd_file_name__</EfwdSampleName>
+<encryptedParameters>formData,data,file,body,subject,sourceArray,extensions,reportParameters,ScheduleOptions,EmailSettings</encryptedParameters>
 </efwProject>

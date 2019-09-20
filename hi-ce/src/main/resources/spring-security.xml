@@ -17,6 +17,14 @@
         <beans:property name="authenticationFailureHandler" ref="failureHandler"/>
         <beans:property name="authenticationSuccessHandler" ref="successHandler"/>
     </beans:bean>
+    <!-- JWT -->
+    <beans:bean id="authenticationTokenFilterBean"
+                class="com.helicalinsight.externalauth.jwt.JwtAuthenticationFilter">
+    </beans:bean>
+    <beans:bean id="jwtRestAuthenticationEntryPoint"
+                class="com.helicalinsight.externalauth.jwt.JwtAuthenticationEntryPoint">
+    </beans:bean>
+
 
     <beans:bean id="requestParameterAuthenticationFilter"
                 class="com.helicalinsight.admin.filter.RequestParameterAuthenticationFilter">
@@ -56,14 +64,10 @@
     </authentication-manager>
 
     <!--htpp configuration for rest api starts-->
-    <http pattern="/rest/login" use-expressions="true"
-          create-session="stateless"
-          entry-point-ref="unauthorizedEntryPoint"
-          authentication-manager-ref="authenticationManager">
-
-        <custom-filter ref="restAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
-    </http>
+    <http pattern="/rest/login" security="none"/>
     <!--htpp configuration for rest api ends-->
+    <http pattern="/rest/*" security="none" create-session="stateless"
+          entry-point-ref="jwtRestAuthenticationEntryPoint"/>
 
     <http access-denied-page="/WEB-INF/pages/accessdenied.jsp"
           use-expressions="true" auto-config="false"
@@ -126,7 +130,7 @@
 
         <intercept-url pattern="/admin*" access="denyAll"/>
 
-        <intercept-url pattern="/mock/**" access="hasRole('ROLE_PHANTOM') or hasRole('ROLE_PREVIOUS_ADMINISTRATOR')"/>
+        <intercept-url pattern="/mock/**" access="hasRole('ROLE_ADMIN') or hasRole('ROLE_PREVIOUS_ADMINISTRATOR')"/>
 
         <intercept-url pattern="/user*" access="hasRole('ROLE_USER')"/>
 
@@ -141,6 +145,8 @@
         <intercept-url pattern="/getEFWSolution*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
 
         <intercept-url pattern="/executeDatasource*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+        <intercept-url pattern="/ce-report-create*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
+        <intercept-url pattern="/ce-report-edit*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
 
         <intercept-url pattern="/datasource-*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
 
@@ -186,6 +192,10 @@
 
         <intercept-url pattern="/jasperReports*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN')"/>
 
+
+        <!--  JWT -->
+        <intercept-url pattern="/rest/*" access="permitAll"/>
+        <custom-filter before="BASIC_AUTH_FILTER" ref="authenticationTokenFilterBean"/>
         <!--Filter order changed for integration of CAS_FILTER starts-->
         <custom-filter before="CAS_FILTER" ref="authenticationProcessingFilter"/>
         <custom-filter position="FORM_LOGIN_FILTER" ref="requestParameterAuthenticationFilter"/>

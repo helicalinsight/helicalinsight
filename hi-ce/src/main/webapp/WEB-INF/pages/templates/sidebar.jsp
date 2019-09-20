@@ -1,3 +1,4 @@
+<%@ taglib prefix="auth" uri="http://www.springframework.org/security/tags" %>
 <!--Side bar-->
     <div class="col-sm-3 col-md-2 col-xs-12 sidebar">
         <div class="col-md-12 col-sm-12 col-xs-12 sidebar-inner">
@@ -50,10 +51,12 @@
         <div class="col-md-12 col-sm-12 col-xs-12 sidebar-footer">
 
             <ul class="nav nav-sidebar">
+                <auth:authorize access="hasAnyRole('ROLE_USER','ROLE_ADMIN')">
                 <li>
                     <a class="file-browser-btn" href="#" data-place="right" data-tip="Filebrowser" id="homeButton"
                        data-filebrowser="filebrowser">
                         <i class="flaticon-folder"></i>File Browser</a></li>
+                    </auth:authorize>
                 <li class="version-copy">
                     <p class="pull-left" id="hi-version"></p>
                     <a href="http://www.helicalinsight.com" class="pull-right" target="_blank"> &copy;&nbsp;Helical

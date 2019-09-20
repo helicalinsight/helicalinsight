@@ -6,6 +6,11 @@
 
     public class Validate {
         public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+		
+		   if(requestJson.isEmpty()){
+		    responseJson.accumulate("data", "The data/formData key is required");
+                    return responseJson;
+		   }
             JSONObject data = requestJson.getJSONObject("data");
             if (!data.has("isAdhoc")) {
                 return responseJson;

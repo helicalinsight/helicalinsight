@@ -19,7 +19,7 @@
         <title>HI: <tiles:insertAttribute name="title"/></title>
         <jsp:include page="/WEB-INF/jsp/common-css.jsp"/>
         <link rel="stylesheet" href="${baseURL}/css/admin.css">
-   
+
     </head>
     <body  class="admin-page">
     <tiles:insertAttribute name="main-nav" ignore="true"/>

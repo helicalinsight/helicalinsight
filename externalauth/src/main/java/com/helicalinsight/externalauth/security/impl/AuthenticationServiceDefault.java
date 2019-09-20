@@ -44,9 +44,11 @@ public class AuthenticationServiceDefault implements RestAuthenticationService {
 
     @Override
     public TokenInformationProvider authenticate(String login, String password) {
+        // Here principal=username, credentials=password
         Authentication authentication = new UsernamePasswordAuthenticationToken(login, password);
         try {
             authentication = authenticationManager.authenticate(authentication);
+            // Here principal=UserDetails (UserContext in our case), credentials=null (security reasons)
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
             if (authentication.getPrincipal() != null) {

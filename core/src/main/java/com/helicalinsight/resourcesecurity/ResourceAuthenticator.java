@@ -551,8 +551,8 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
         return null;
     }
 
-    private boolean defaultLookupWithOutPermission(HttpServletRequest request, Context urlContext,
-                                                   String resource) {
+    private boolean defaultLookupWithOutPermission( HttpServletRequest request,  Context urlContext,
+                                                    String resource) {
         Integer minimumPermissionRequired;
         //Now get the required minimum permission
         DecisionState decisionState = getDecisionState(urlContext);
@@ -625,7 +625,7 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
         return decisionState;
     }
 
-    private boolean normalUrlContexts(HttpServletRequest request, Context urlContext,
+    private boolean normalUrlContexts( HttpServletRequest request,  Context urlContext,
                                       Integer minimumPermissionRequired, String solutionDirectory,
                                       boolean optionalParameters) {
         // LookupParameters are configured and resource is available by reading the
@@ -649,8 +649,8 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
         }
     }
 
-    private boolean processDirectoryLookup(HttpServletRequest request, Integer minimumPermissionRequired,
-                                           String solutionDirectory, LookupParameters lookupParameters,
+    private boolean processDirectoryLookup( HttpServletRequest request, Integer minimumPermissionRequired,
+                                           String solutionDirectory,  LookupParameters lookupParameters,
                                            boolean optionalParameters) {
         LookupParameters.Parameter parameter = lookupParameters.getParameter();
         String requestParameterName = parameter.getParameter();
@@ -682,7 +682,7 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
     }
 
     private DecisionState.LogicalIf requiredIfBlock(String requestParameterValue,
-                                                    DecisionState decisionState) {
+                                                     DecisionState decisionState) {
         List<DecisionState.LogicalIf> logicalIfList = decisionState.getLogicalIfList();
         if (logicalIfList == null) {
             throw new ConfigurationException("DecisionState is wrongly configured. Expecting " + "logical state(if).");
@@ -718,7 +718,7 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
         return null;
     }
 
-    private LookupParameters getLookupParameters(Context urlContext) {
+    private LookupParameters getLookupParameters( Context urlContext) {
         LookupParameters lookupParameters = urlContext.getLookupParameters();
         if (lookupParameters == null) {//Wrong configuration
             throw new ConfigurationException("Url context is defined with permission but " +
@@ -728,9 +728,9 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
         return lookupParameters;
     }
 
-    private boolean defaultContext(HttpServletRequest request, boolean optionalParameters,
+    private boolean defaultContext( HttpServletRequest request, boolean optionalParameters,
                                    Integer minimumPermissionRequired, String solutionDirectory,
-                                   LookupParameters lookupParameters) {
+                                    LookupParameters lookupParameters) {
         String lookupParametersDirectory = lookupParameters.getDirectory();
         String directory = request.getParameter(lookupParametersDirectory);
         String fileLookUpParameter = lookupParameters.getFile();
@@ -750,22 +750,26 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
 
         String resource = solutionDirectory + File.separator + directory + File.separator +
                 file;
+
         return processRequest(minimumPermissionRequired, resource);
     }
 
-    private boolean isArrayLookup(LookupParameters lookupParameters) {
+    private boolean isArrayLookup( LookupParameters lookupParameters) {
         return ARRAY_LOOKUP.equalsIgnoreCase(lookupParameters.getType());
     }
 
-    private boolean isDirectoryLookup(LookupParameters lookupParameters) {
+    private boolean isDirectoryLookup( LookupParameters lookupParameters) {
         return DIRECTORY_LOOKUP.equalsIgnoreCase(lookupParameters.getType());
     }
 
-    private boolean isDefaultLookup(LookupParameters lookupParameters) {
+    private boolean isDefaultLookup( LookupParameters lookupParameters) {
         return DEFAULT_LOOKUP.equalsIgnoreCase(lookupParameters.getType());
     }
 
     private boolean processRequest(Integer minimumPermissionRequired, String resource) {
+        if (!SecurityUtils.isTargetReachable(new File(resource))) {
+            return false;
+        }
         if (minimumPermissionRequired == null) {
             throw new IllegalArgumentException("Minimum permission required is null.");
         }
@@ -780,6 +784,7 @@ public class ResourceAuthenticator implements IResourceAuthenticator {
 
     private int permission(String resource) {
         JSONObject fileAsJson = this.processor.getJSONObject(resource, false);
+        fileAsJson.put("absolutePath", resource);
         return maxPermissionOnResource(fileAsJson);
     }
 

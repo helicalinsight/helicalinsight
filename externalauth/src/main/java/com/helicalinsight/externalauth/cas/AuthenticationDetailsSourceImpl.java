@@ -24,10 +24,10 @@ import java.lang.reflect.Constructor;
 
 
 public class AuthenticationDetailsSourceImpl implements AuthenticationDetailsSource<Object, Object> {
-   
+
     private Class<?> clazz = AuthenticationDetails.class;
 
-    
+
     public Object buildDetails(Object context) {
         Object result = null;
         try {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<efw>
+    <title>Community Report</title>
+    <author>hiadmin</author>
+    <description>Efw File</description>
+    <template>d3b00d97-7864-41a4-ab67-c58abb3da198.html</template>
+    <visible>true</visible>
+    <security>
+        <createdBy>1</createdBy>
+    </security>
+</efw>

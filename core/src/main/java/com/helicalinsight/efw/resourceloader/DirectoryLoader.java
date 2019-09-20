@@ -26,7 +26,6 @@ import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 import com.helicalinsight.efw.utility.ResourcePermissionLevelsHolder;
-import com.helicalinsight.resourcesecurity.IResourcePermission;
 import com.helicalinsight.resourcesecurity.ResourcePermissionFactory;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONException;
@@ -44,6 +43,8 @@ import java.util.*;
  * The json excludes System and Images directories.
  *
  * @author Rajasekhar
+ * @version 1.1
+ * @since 1.0
  */
 public class DirectoryLoader {
 
@@ -97,7 +98,7 @@ public class DirectoryLoader {
         // Prepare the list and map for iterations
         factory = new ResourcePermissionFactory();
         this.resourcePermissionLevelsHolder = ApplicationContextAccessor.getBean(ResourcePermissionLevelsHolder.class);
-        this.noAccessLevel = resourcePermissionLevelsHolder.noAccessLevel();
+        this.noAccessLevel = resourcePermissionLevelsHolder.readAccessLevel();
         prepareExtensionsMap(visibleExtensions);
         prepareFoldersTagMap(visibleExtensions);
     }
@@ -413,8 +414,29 @@ public class DirectoryLoader {
                         logger.debug(String.format("The folder %s is being processed.", file));
                     }
                     JSONObject indexFileAsJson = processor.getJSONObject(theFile.toString(), false);
+                    indexFileAsJson.put("absolutePath", file.getAbsolutePath());
                     if (ruleInstance.validateFile(indexFileAsJson)) {
-                        includeFolder(listOfFoldersAndFiles, file, indexFileAsJson, isRequestedRecursive);
+
+                        Map<String, String> resourceMap = ruleInstance.getResourceMap(indexFileAsJson, null,
+                                file.getAbsolutePath(), file.getName(), "" + file.lastModified());
+                        //Include the content only if the permission is not noAccessLevel
+                        String permissionLevel = resourceMap.get("permissionLevel");
+                        Integer permission = Integer.valueOf(permissionLevel);
+                        if (permissionLevel != null) {
+                            if (permission >= noAccessLevel) {
+                                String relativePath = ApplicationUtilities.getRelativeSolutionPath(file.getAbsolutePath());
+                                resourceMap.put("lastModified", file.lastModified() + "");
+                                resourceMap.put("path", relativePath.replaceAll("\\\\", "/"));
+                                if (isRequestedRecursive) {
+                                    JSONArray children = ApplicationUtilities.getJSONArray(getFoldersAndFiles(file.getAbsolutePath(),
+                                            isRequestedRecursive));
+                                    resourceMap.put("children", children.toString());
+                                } else {
+                                    resourceMap.put("children", "[]");
+                                }
+                                listOfFoldersAndFiles.add(resourceMap);
+                            }
+                        }
                     }
                 }
             } catch (Exception ex) {
@@ -495,6 +517,7 @@ public class DirectoryLoader {
                     }
                     //All Rules here use AbstractResourceRule.validationResult() except EFW
                     //The above uses setting.xml resourceSecurityRule and rules in security tag.
+                    fileAsJson.put("absolutePath", file.getAbsolutePath());
                     if (resourceRule.validateFile(fileAsJson)) {
                         Map<String, String> resourceMap = resourceRule.getResourceMap(fileAsJson, extensionKey,
                                 file.getAbsolutePath(), file.getName(), lastModified);
@@ -502,7 +525,7 @@ public class DirectoryLoader {
                         String permissionLevel = resourceMap.get("permissionLevel");
                         Integer permission = Integer.valueOf(permissionLevel);
                         if (permissionLevel != null) {
-                            if (permission != noAccessLevel) {
+                            if (permission >= noAccessLevel) {
                                 listOfFoldersAndFiles.add(resourceMap);
                             }
                         }
@@ -530,39 +553,6 @@ public class DirectoryLoader {
         }
     }
 
-    /**
-     * Applies rule specific action. Meta data of the directory in the json is
-     * accordingly prepared.
-     *
-     * @param listOfFoldersAndFiles The listOfFoldersAndFiles
-     * @param directory             The directory under concern
-     * @param fileAsJson            The efwFolder file as json
-     */
-    private void includeFolder(List<Map<String, String>> listOfFoldersAndFiles, File directory,
-                               JSONObject fileAsJson, boolean isRequestedRecursive) throws
-            UnSupportedRuleImplementationException, ImproperXMLConfigurationException {
-        Map<String, String> foldersMap = new HashMap<>();
-        //The folder permission level is to be included in the json.
-        //The directory is owned by a person. isOwnerOfResource is set by validateFile method.
-        IResourcePermission resourcePermission = this.factory.resourcePermission(fileAsJson);
-        int permissionLevelOnResource = resourcePermission.maximumPermissionLevelOnResource();
-        foldersMap.put("permissionLevel", Integer.toString(permissionLevelOnResource));
-
-        String relativePath = ApplicationUtilities.getRelativeSolutionPath(directory.getAbsolutePath());
-        foldersMap.put("type", "folder");
-        foldersMap.put("name", fileAsJson.getString("title"));
-        foldersMap.put("lastModified", directory.lastModified() + "");
-        foldersMap.put("path", relativePath);
-        foldersMap.put("options", new JSONObject().accumulate("selectable", "true").toString());
-        if (isRequestedRecursive) {
-            JSONArray children = ApplicationUtilities.getJSONArray(getFoldersAndFiles(directory.getAbsolutePath(),
-                    isRequestedRecursive));
-            foldersMap.put("children", children.toString());
-        } else {
-            foldersMap.put("children", "[]");
-        }
-        listOfFoldersAndFiles.add(foldersMap);
-    }
 
     /**
      * Overloaded method for files
@@ -580,7 +570,7 @@ public class DirectoryLoader {
         foldersMap.put("type", "folder");
         foldersMap.put("name", file.getName());
         foldersMap.put("lastModified", file.lastModified() + "");
-        foldersMap.put("path", relativePath);
+        foldersMap.put("path", relativePath.replaceAll("\\\\", "/"));
         if (isRequestedRecursive) {
             JSONArray children = ApplicationUtilities.getJSONArray(getFoldersAndFiles(file.getAbsolutePath(), true));
             foldersMap.put("children", children.toString());
@@ -607,7 +597,7 @@ public class DirectoryLoader {
         foldersMap.put("extension", extensionKey);
         foldersMap.put("lastModified", file.lastModified() + "");
         foldersMap.put("name", file.getName());
-        foldersMap.put("path", relativePath);
+        foldersMap.put("path", relativePath.replaceAll("\\\\", "/"));
         foldersMap.put("visible", "true");
         foldersMap.put("description", file.getName());
         foldersMap.put("title", file.getName());

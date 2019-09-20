@@ -3,7 +3,7 @@
 <notrequired type="text"/>
 	<vf>
 		<dir type="directory"/>
-		<vf_file type="file"/>
-		<vf_id type="number"/>
-	</vf>
+		<vf_file type="file" required="true"/>
+		<vf_id type="number" required="true"/>
+	</vf>	
 </formData>

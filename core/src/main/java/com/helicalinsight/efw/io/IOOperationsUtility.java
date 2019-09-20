@@ -34,7 +34,7 @@ import java.util.Map;
  * Contains utility method related to IO operations. Consists of method that
  * read the configuration settings for different file operations from
  * setting.xml.
- * <p/>
+ * <p>
  * Created by author on 16-10-2014.
  *
  * @author Rajasekhar
@@ -49,6 +49,14 @@ public class IOOperationsUtility {
      */
     public static void deleteWithLogs(File file) {
         if (file.delete()) {
+            logger.debug("Successfully deleted the file " + file);
+        } else {
+            logger.debug("Couldn't delete the file " + file);
+        }
+    }
+
+    public static void safeDeleteWithLogs(File file) {
+        if (file.exists() && file.delete()) {
             logger.debug("Successfully deleted the file " + file);
         } else {
             logger.debug("Couldn't delete the file " + file);

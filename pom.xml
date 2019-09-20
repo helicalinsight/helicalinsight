@@ -31,7 +31,7 @@
 
 
     <properties>
-        <parent.version>2.0.0.0-CE</parent.version>
+        <parent.version>3.1.0.0-CE</parent.version>
         <inceptionYear>2013</inceptionYear>
         <copyrightOwner>Helical IT Solutions (http://www.helicalinsight.com)</copyrightOwner>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -41,7 +41,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- All properties are placed here to manage the versions-->
-        <jdk.version>1.7</jdk.version>
+        <jdk.version>1.8</jdk.version>
 
         <javax.servlet-api.version>3.0.1</javax.servlet-api.version>
         <jsp-api.version>2.2</jsp-api.version>
@@ -476,6 +476,12 @@
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-server</artifactId>
             <version>${jersey-server.version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.jsonwebtoken/jjwt -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.7.0</version>
         </dependency>
     </dependencies>
 

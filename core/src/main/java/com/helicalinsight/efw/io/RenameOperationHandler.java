@@ -16,6 +16,7 @@
 
 package com.helicalinsight.efw.io;
 
+import com.helicalinsight.datasource.managed.jaxb.EFWCE;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.OperationFailedException;
 import com.helicalinsight.efw.exceptions.RequiredParameterIsNullException;
@@ -40,7 +41,7 @@ import java.util.*;
 /**
  * A helper class which handles the rename operation of specific files and
  * folders based on the configuration from the setting.xml.
- * <p/>
+ * <p>
  * Renaming is allowed if the user has matching credentials with the resources
  * he is trying to modify.
  *
@@ -300,6 +301,10 @@ public class RenameOperationHandler extends AbstractOperationsHandler {
             Efw efwFile = JaxbUtils.unMarshal(Efw.class, fileToBeRenamed);
             efwFile.setTitle(newName);
             synchronizeFileOperation(fileToBeRenamed, efwFile);
+        } else if (JsonUtils.getEFWCEExtension().equalsIgnoreCase(actualExtension)) {
+            EFWCE efwce = JaxbUtils.unMarshal(EFWCE.class, fileToBeRenamed);
+            efwce.setName(newName);
+            synchronizeFileOperation(fileToBeRenamed, efwce);
         } else {
             throw new OperationFailedException("The file " + fileToBeRenamed + " can't be renamed" +
                     " as only saved results and reports are supported.");

@@ -9,7 +9,7 @@
     <properties>
         <maven-war-plugin.version>3.0.0</maven-war-plugin.version>
         <zeroturnaround.version>1.9</zeroturnaround.version>
-
+        <mysql-connector-java.version>5.1.6</mysql-connector-java.version>
         <hi.build.maven.plugin>${parent.version}</hi.build.maven.plugin>
 
     </properties>
@@ -91,8 +91,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
-<!--This plugin is not required while building the war file and can be skipped-->
-            <!--<plugin>
+            <!--This plugin is not required while building the war file and can be skipped-->
+           <!-- <plugin>
                 <groupId>com.helicalinsight</groupId>
                 <artifactId>hi-ce-svn-number</artifactId>
                 <version>2.0</version>
@@ -158,7 +158,7 @@
             <artifactId>hi-scheduling</artifactId>
             <version>${project.version}</version>
         </dependency>
-		 <dependency>
+        <dependency>
             <groupId>com.helicalinsight</groupId>
             <artifactId>hi-vf-plugin</artifactId>
             <version>${project.version}</version>
@@ -167,6 +167,16 @@
             <groupId>com.helicalinsight</groupId>
             <artifactId>hi-validation</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+            <version>${mysql-connector-java.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-servlets</artifactId>
+            <version>9.4.6.v20170531</version>
         </dependency>
     </dependencies>
 </project>

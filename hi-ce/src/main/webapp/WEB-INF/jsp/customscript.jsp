@@ -1,5 +1,6 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="auth" uri="http://www.springframework.org/security/tags" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib uri="http://www.springframework.org/security/tags" prefix="sec" %>
 <% response.setContentType("application/javascript;charset=UTF-8");%>
 <sec:authentication property="authorities" var="authorities"/>
@@ -16,9 +17,18 @@ window.loggedInUser = [];
     profileValue: '<c:out value="${userProfile.profile_value}"/>'
     });
 </c:forEach>
+var tempRole=[];
+    <c:forEach var="role" items="${authorities}">
+        <c:if test = "${not fn:contains(role, 'Switch')}">
+            tempRole.push('<c:out value="${role}"/>');
+        </c:if>
+
+    </c:forEach>
+
 
 if (!window.DashboardGlobals) {
 window.DashboardGlobals = (function () {
+
 
 window.HDI = window.HDI || {};
 window.HDI.adhoc = window.HDI.adhoc || {};
@@ -37,6 +47,8 @@ solutionLoader: baseUrl + "getSolutionResources.html",
 resourceLoader: baseUrl + "getEFWSolution.html",
 updateService: baseUrl + "executeDatasource.html",
 chartingService: baseUrl + "visualizeData.html",
+ceReportCreate: baseUrl + "ce-report-create.html",
+ceReportEdit: baseUrl + "ce-report-edit.html",
 exportData: baseUrl + "exportData.html",
 reportDownload: baseUrl + "downloadReport.html",
 productInfo: baseUrl + "getProductInformation.html",
@@ -79,11 +91,12 @@ reportname: undefined
 },
 recursiveDirectoryLoad: false,
 user: {
-roles: "${authorities}",
+roles: tempRole,
 profile: window.loggedInUser,
 userName: "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username}",
 email: "${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.emailAddress}",
-organization: ""
+organization: "",
+actualUserName:'${actualUserName}'
 }
 };
 
@@ -130,7 +143,7 @@ window.DashboardGlobals.currentReport.title=sampleReport.title;
 
 }
 
-
+<auth:authorize access="hasAnyRole('ROLE_USER','ROLE_ADMIN')">
 $.post( window.HDI.adhoc.urls.services+"?type=monitor&serviceType=system&service=reportStats", function( data ) {
 $( "#reportsStats" ).text( data.response.reportsCount);
 jsArray = data.response.latestReports;
@@ -154,6 +167,6 @@ $( "#dsStats" ).text( data.response.dataSourceCount);
 $( "#dsStats" ).text('NA');
 
 });
-
+</auth:authorize>
 }
 

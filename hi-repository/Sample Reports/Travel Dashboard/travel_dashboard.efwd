@@ -29,10 +29,10 @@
                 <![CDATA[
                         select 
 							`SampleTravelData`.`employee_details`.`employee_name` as `employee`,
-							count(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_count` 
+							count(`SampleTravelData`.`travel_details`.`travel_cost`) as `travel_count` 
 						from
-							`SampleTravelData`.`TravelDetails` 
-							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+							`SampleTravelData`.`travel_details` 
+							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
 						where
 							(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
 						group by
@@ -49,20 +49,20 @@
             <Query>
                 <![CDATA[
                         select 
-							count(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_count`,
+							count(`SampleTravelData`.`travel_details`.`travel_cost`) as `travel_count`,
 							case
-								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 1
+								when quarter(`SampleTravelData`.`travel_details`.`travel_date`) = 1
 								then 'Q 1'
-								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 2
+								when quarter(`SampleTravelData`.`travel_details`.`travel_date`) = 2
 								then 'Q 2'
-								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 3
+								when quarter(`SampleTravelData`.`travel_details`.`travel_date`) = 3
 								then 'Q 3'
-								when quarter(`SampleTravelData`.`TravelDetails`.`travel_date`) = 4
+								when quarter(`SampleTravelData`.`travel_details`.`travel_date`) = 4
 								then 'Q 4'
 							end as `quarter` 
 						from
-							`SampleTravelData`.`TravelDetails` 
-							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+							`SampleTravelData`.`travel_details` 
+							inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
 						where
 							(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
 						group by
@@ -79,11 +79,11 @@
             <Query>
                 <![CDATA[
 					select 
-						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_cost`,
+						sum(`SampleTravelData`.`travel_details`.`travel_cost`) as `travel_cost`,
 						count(`SampleTravelData`.`employee_details`.`employee_name`) as `count` 
 					from
-						`SampleTravelData`.`TravelDetails` 
-						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						`SampleTravelData`.`travel_details` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
 					where
 						(`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}) 
                 ]]>
@@ -98,11 +98,11 @@
             <Query>
                 <![CDATA[
 					select 
-						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `travel_cost`,
+						sum(`SampleTravelData`.`travel_details`.`travel_cost`) as `travel_cost`,
 						count(`SampleTravelData`.`employee_details`.`employee_name`) as `count` 
 					from
-						`SampleTravelData`.`TravelDetails` 
-						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						`SampleTravelData`.`travel_details` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
                 ]]>
             </Query>
           </DataMap>
@@ -112,12 +112,12 @@
             <Query>
                 <![CDATA[
 					select 
-						`SampleTravelData`.`TravelDetails`.`travel_medium` as `Type`,
-						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost` 
+						`SampleTravelData`.`travel_details`.`travel_medium` as `Type`,
+						sum(`SampleTravelData`.`travel_details`.`travel_cost`) as `Cost` 
 					from
-						`SampleTravelData`.`TravelDetails` 
+						`SampleTravelData`.`travel_details` 
 					where
-						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc')
+						(`SampleTravelData`.`travel_details`.`travel_medium` != 'Misc')
 					group by
 						`Type` 
                 ]]>
@@ -129,15 +129,15 @@
             <Query>
                 <![CDATA[
 					select 
-						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost`,
+						sum(`SampleTravelData`.`travel_details`.`travel_cost`) as `Cost`,
 						count(`SampleTravelData`.`employee_details`.`employee_name`) as `Count`  
 					from
-						`SampleTravelData`.`TravelDetails` 
-						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						`SampleTravelData`.`travel_details` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
 					where
-						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc' AND 
+						(`SampleTravelData`.`travel_details`.`travel_medium` != 'Misc' AND 
 						`SampleTravelData`.`employee_details`.`employee_name` = ${traveller_name}
-						AND `SampleTravelData`.`TravelDetails`.`travel_medium` = ${travel_type}) 
+						AND `SampleTravelData`.`travel_details`.`travel_medium` = ${travel_type}) 
 					
                 ]]>
             </Query>
@@ -152,14 +152,14 @@
             <Query>
                 <![CDATA[
 					select 
-						sum(`SampleTravelData`.`TravelDetails`.`travel_cost`) as `Cost`,
+						sum(`SampleTravelData`.`travel_details`.`travel_cost`) as `Cost`,
 						count(`SampleTravelData`.`employee_details`.`employee_name`) as `Count` 
 					from
-						`SampleTravelData`.`TravelDetails` 
-						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`TravelDetails`.`travelled_by`) 
+						`SampleTravelData`.`travel_details` 
+						inner join `SampleTravelData`.`employee_details` on (`SampleTravelData`.`employee_details`.`employee_id` = `SampleTravelData`.`travel_details`.`travelled_by`) 
 					where
-						(`SampleTravelData`.`TravelDetails`.`travel_medium` != 'Misc' AND 
-						`SampleTravelData`.`TravelDetails`.`travel_medium` = ${travel_type}) 
+						(`SampleTravelData`.`travel_details`.`travel_medium` != 'Misc' AND 
+						`SampleTravelData`.`travel_details`.`travel_medium` = ${travel_type}) 
                 ]]>
             </Query>
 			<Parameters>

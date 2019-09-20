@@ -32,16 +32,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by author on 09-01-2015.
  *
  * @author Muqtar Ahmed
  * @author Rajasekhar
+ * @author Rajesh
  */
 @SuppressWarnings("unused")
 public class JsonUtils {
@@ -56,6 +54,33 @@ public class JsonUtils {
     public static String getEfwdExtension() {
         JSONObject settingsJson = getSettingsJson();
         return settingsJson.getJSONObject("Extentions").getString("efwd");
+    }
+
+    /**
+     * The extension of efwvf key
+     *
+     * @return efwvf extension from setting.xml
+     */
+    public static String getEfwvfExtension() {
+        JSONObject settingsJson = getSettingsJson();
+        return settingsJson.getJSONObject("Extentions").getString("efwvf");
+    }
+
+    /**
+     * The extension of efwce key
+     *
+     * @return efwce extension from setting.xml
+     */
+    public static String getEFWCEExtension() {
+        JSONObject settingsJson = getSettingsJson();
+        String extension;
+        try {
+            extension = settingsJson.getJSONObject("Extentions").getJSONObject("efwce").getString("#text");
+        } catch (Exception e) {
+            throw new ConfigurationException("The key efwce  is not " +
+                    "configured in application " + "settings.", e);
+        }
+        return extension;
     }
 
     /**
@@ -462,5 +487,12 @@ public class JsonUtils {
             listOfKeys.add(key);
         }
         return listOfKeys;
+    }
+
+    //encryptedParameters
+    public static List<String> getEncryptedParametersList(String parameter) {
+        String encryptedParameters = getSettingsJson().optString(parameter);
+        String arr[] = encryptedParameters.trim().split("\\s*,\\s*");
+        return Arrays.asList(arr);
     }
 }

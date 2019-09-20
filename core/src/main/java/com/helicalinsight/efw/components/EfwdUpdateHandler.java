@@ -56,7 +56,7 @@ public class EfwdUpdateHandler implements IComponent {
         File efwdFile = ApplicationUtilities.getEfwdFile(directory);
 
 
-        DataSourceSecurityUtility.checkEfwdPermission(id, efwdFile, DataSourceSecurityUtility.WRITE);
+        DataSourceSecurityUtility.checkEfwdPermission(id, efwdFile, DataSourceSecurityUtility.READ_WRITE);
 
 
         String name = formDataJson.getString("name");

@@ -3,6 +3,15 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <sec:authentication property="authorities" var="authorities"/>
 <c:set var="organizationAdmin" value=""/>
+<c:set var="firstLoggedIn" value="set" scope="session"/>
+<sec:authorize access="hasAnyRole('ROLE_PREVIOUS_ADMINISTRATOR')">
+    <c:set var="firstLoggedIn" value="notSet" scope="session"/>
+</sec:authorize>
+<c:if test="${firstLoggedIn eq 'set'}">
+    <c:set var="actualUserName"
+           value="${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username}" scope="session"/>
+
+</c:if>
 
 <div class="col-md-10 col-md-offset-2 col-sm-9 col-sm-offset-3 col-xs-12 body-block ">
     <div class="col-md-12 col-sm-12 col-xs-12 report-iframe">
@@ -20,9 +29,11 @@
                 <div class="panel-body nopad">
                     <div class="col-md-6 col-sm-12 col-xs-12 nopad">
                         <c:set var="loggedinUserName" value="${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.username}"/>
-                        <h6><span
-                                class="profile-picture">${fn:toUpperCase(fn:substring(loggedinUserName,0,2))}</span>
-                           <c:out value="${loggedinUserName}" />
+                        <h6><span class="profile-picture">${fn:toUpperCase(fn:substring(loggedinUserName,0,2))}</span>
+                            <sec:authorize access="hasAnyRole('ROLE_PREVIOUS_ADMINISTRATOR')">
+                                ${actualUserName} as
+                            </sec:authorize>
+                            <c:out value="${loggedinUserName}" />
                         </h6>
 
                         <div class="col-md-12 col-sm-12 col-xs-12">
@@ -31,9 +42,15 @@
 
                                     <c:set var="profileArray"
                                            value="${sessionScope.SPRING_SECURITY_CONTEXT.authentication.principal.profiles}"/>
-                                    <c:forEach var="userProfile" items="${profileArray}">
-                                        <c:set var="profileOfUser"
-                                               value="${profileOfUser} ${userProfile.profile_name}"/>
+                                    <c:forEach var="userProfile" items="${profileArray}" varStatus="status">
+                                        <c:if test="${status.index!=0}">
+                                            <c:set var="profileOfUser"  value="${profileOfUser}, ${userProfile.profile_name}"/>
+                                        </c:if>
+                                        <c:if test="${status.index eq 0}">
+
+                                            <c:set var="profileOfUser"
+                                                   value="${profileOfUser} ${userProfile.profile_name}"/>
+                                        </c:if>
                                     </c:forEach>
 
                                     <span class="col-md-6 col-sm-6 col-xs-6 nopad white-space">Profile : </span>
@@ -41,13 +58,18 @@
                                                   data-place="right" data-tip="<c:out value="[${profileOfUser}]"/>">
                                             <c:out value="${profileOfUser}"/>
                                             </span></li>
+
                                 <li class="col-md-12 col-sm-12 col-xs-12 nopad">
                                     <span class="col-md-6 col-sm-6 col-xs-6 nopad white-space"> Role : </span>
                                          <span class="col-md-6 col-sm-6 col-xs-6 nopad white-space"
-                                               data-place="right" data-tip="<c:out value='${authorities}'/>">
-                                               <c:forEach var="role" items="${authorities}">
-                                                   <c:out value="${role} "/>
-                                               </c:forEach>
+                                               data-place="right" data-tip='<c:forEach var="role" items="${authorities}" varStatus="status"><c:if test="${not fn:contains(role.toString(),\'Switch\')}"><c:if test="${status.index!=0}">,</c:if><c:out value="${role} "/></c:if></c:forEach>'>
+                                             <c:forEach var="role" items="${authorities}" varStatus="status">
+
+                                                 <c:if test="${not fn:contains(role.toString(),'Switch')}">
+                                                     <c:if test="${status.index!=0}">,</c:if>
+                                                     <c:out value="${role}"/>
+                                                 </c:if>
+                                             </c:forEach>
                                           </span>
                                 </li>
                             </ul>
@@ -74,20 +96,35 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
+            <div>
+
+            </div>
         </div>
+
         <div class="col-md-6 col-sm-6 col-xs-12 whats-new">
             <div class="panel panel-default">
                 <div class="panel-body">
                     <h4>What's New?</h4>
+
                     <ul>
-                        <li>New version 2.0 is released.</li>
-                        <li>New generation UI with one click access.</li>
-                        <li>Exporting and printing bugs fixed.</li>
-                        <li>Direct links to tutorials.</li>
+                        <li>REST Login using JWT Token based Auth</li>
+                        <li>Reports editor UI available	</li>
+                        <li>UI Support for impersonate/MIMIC login</li>
+                        <li>New "Community Report" in Sample Reports</li>
+
+
+                        <li>Inbuilt JDBC drivers support for databases provided</li>
+                        <li>Groovy Datasource support through Reports</li>
+                        <li>File Browser Filter by type: Community Report for EFWCE file</li>
+                        <li>Share: Permission levels and Inheritance rule</li>
                         <li class="github-link"><a target="_blank" href="https://github.com/helicalinsight/helicalinsight">Github</a></li>
                     </ul>
+
+
+
                 </div>
             </div>
         </div>

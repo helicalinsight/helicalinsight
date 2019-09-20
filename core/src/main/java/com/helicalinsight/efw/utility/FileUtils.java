@@ -16,6 +16,7 @@
 
 package com.helicalinsight.efw.utility;
 
+import com.helicalinsight.efw.exceptions.OperationFailedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,7 +57,7 @@ public class FileUtils {
 
 
     /**
-     * <p/>
+     * <p>
      * Creates a directory if it does not exists. Mostly used to create directories in System
      * directory
      *
@@ -195,5 +196,21 @@ public class FileUtils {
         Properties info = new Properties();
         info.put("model", model);
         return info;
+    }
+
+    public static boolean safeDeleteFile(File file) {
+        try {
+            if (isFilePresent(file)) {
+                org.apache.commons.io.FileUtils.forceDelete(file);
+                return true;
+            }
+        } catch (IOException e) {
+            logger.error("operation failed", e);
+        }
+        return false;
+    }
+
+    public static boolean isFilePresent(File file) {
+        return file.exists();
     }
 }

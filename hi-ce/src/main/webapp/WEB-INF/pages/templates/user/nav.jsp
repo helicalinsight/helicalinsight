@@ -51,16 +51,7 @@
 				<i class="fa fa-clock-o"></i>&nbsp;&nbsp;Schedule Report
 			</a>
 		</li>
-		<!-- <li class="disabled">
-			<a href="#" data-favourite="mark">
-				<i class="fa fa-star-o"></i>&nbsp;&nbsp;Mark as Favourite
-			</a>
-		</li>
-		<li class="disabled hidden">
-			<a href="#" data-favourite="unmark">
-				<i class="fa fa-star"></i>&nbsp;&nbsp;Unmark as Favourite
-			</a>
-		</li> -->
+
 	</ul>
 </li>
 <li class="dropdown">

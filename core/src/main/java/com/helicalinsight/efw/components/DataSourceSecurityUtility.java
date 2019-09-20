@@ -16,8 +16,10 @@
 
 package com.helicalinsight.efw.components;
 
+import com.helicalinsight.datasource.DataSourceUtils;
+import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.AccessDeniedException;
-import com.helicalinsight.efw.exceptions.EfwServiceException;
+import com.helicalinsight.efw.exceptions.ConfigurationException;
 import com.helicalinsight.efw.exceptions.ResourceNotFoundException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
@@ -29,40 +31,51 @@ import com.helicalinsight.resourcesecurity.IResourceAuthenticator;
 import com.helicalinsight.resourcesecurity.ResourceAuthenticator;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author Somen
-  */
+ *         Created on 10/4/2016.
+ */
 public class DataSourceSecurityUtility {
-    public static final String WRITE = "write";
+    public static final String NO_ACCESS = "noAccess";
+    public static final String EXECUTE = "execute";
     public static final String READ = "read";
+    public static final String READ_WRITE = "readWrite";
+    public static final String READ_WRITE_DELETE = "readWriteDelete";
+    public static final String OWNER = "owner";
+    public static final String PUBLIC = "public";
+
+
     private static GlobalXmlReaderUtility globalXmlReaderUtility = new GlobalXmlReaderUtility();
 
     public static Integer getMaxPermissionDataSources(JSONObject connection, String access) {
         if (!connection.has("visible")) {
             connection.accumulate("visible", "true");
         }
-        IResourceAuthenticator IResourceAuthenticator = ApplicationContextAccessor.getBean(ResourceAuthenticator.class);
+        IResourceAuthenticator resourceAuthenticator = ApplicationContextAccessor.getBean(ResourceAuthenticator.class);
         ResourcePermissionLevelsHolder resourcePermissionLevelsHolder = ApplicationContextAccessor.getBean
                 (ResourcePermissionLevelsHolder.class);
-        Integer maxPermissionOnResource = IResourceAuthenticator.maxPermissionOnResource(connection);
+        Integer maxPermissionOnResource = resourceAuthenticator.maxPermissionOnResource(connection);
         int required = -1;
 
         if (READ.equalsIgnoreCase(access)) {
             required = resourcePermissionLevelsHolder.readAccessLevel();
-        } else if (WRITE.equals(access)) {
+        } else if (READ_WRITE.equals(access)) {
             required = resourcePermissionLevelsHolder.readWriteAccessLevel();
+        } else if (READ_WRITE_DELETE.equals(access)) {
+            required = resourcePermissionLevelsHolder.readWriteDeleteAccessLevel();
+        } else if (PUBLIC.equalsIgnoreCase(access)) {
+            required = resourcePermissionLevelsHolder.publicResourceAccessLevel();
+        } else if (NO_ACCESS.equalsIgnoreCase(access)) {
+            required = resourcePermissionLevelsHolder.noAccessLevel();
+        } else if (EXECUTE.equalsIgnoreCase(access)) {
+            required = resourcePermissionLevelsHolder.executeAccessLevel();
+        } else if (OWNER.equalsIgnoreCase(access)) {
+            required = resourcePermissionLevelsHolder.ownerAccessLevel();
         }
         if (maxPermissionOnResource < required) {
             return null;
@@ -82,9 +95,20 @@ public class DataSourceSecurityUtility {
             //So, EFWD is an array of another array with actual connections
             JSONArray efwd = fileAsJson.getJSONArray("EFWD");
             //Get the inner array at index 0. The info regarding DataSources is missing.
-            dataSources = efwd.getJSONArray(0);
+            dataSources = checkInstanceOfJsonArray(efwd);
         }
         checkDataSources(id, dataSources, operation);
+    }
+
+    public static JSONArray checkInstanceOfJsonArray(JSONArray efwd) {
+        JSONArray dataSources;
+        Object unkonwn = efwd.get(0);
+        if (unkonwn instanceof JSONArray) {
+            dataSources = (JSONArray) unkonwn;
+        } else {
+            dataSources = new JSONArray();
+        }
+        return dataSources;
     }
 
     private static void checkDataSources(String id, JSONArray dataSources, String operation) {
@@ -92,6 +116,18 @@ public class DataSourceSecurityUtility {
         for (Object object : dataSources) {
             JSONObject connection = JSONObject.fromObject(object);
             String connectionId = connection.getString("@id");
+            if(connection.has("globalId")){
+                connectionId=connection.getString("globalId");
+                List<JSONObject> dataSourcesGlobal = new ArrayList<>();
+                globalXmlReaderUtility.addDataSources(dataSourcesGlobal, operation);
+                for (JSONObject jsonObject : dataSourcesGlobal) {
+                    JSONObject data = jsonObject.getJSONObject("data");
+                    if (data.getString("id").equals(connectionId)) {
+                        return;
+                    }
+                }
+                throwException();
+            }
             if (id.equalsIgnoreCase(connectionId)) {
                 if (getMaxPermissionDataSources(connection, operation) == null) {
                     throwException();
@@ -112,23 +148,38 @@ public class DataSourceSecurityUtility {
     }
 
     public static Object throwResourceNotFoundException() {
-        throw new ResourceNotFoundException("The  datasource was not found");
+        throw new ResourceNotFoundException("The  dataSource was not found");
     }
 
+    /*
+    * The formJson string has to have 'access' key as set to read,write,noaccess,owner etc. refer static final string declared above
+    * */
     public static void isDataSourceAuthenticated(JSONObject formJson) {
-        String id = formJson.getString("id");
+        String id = formJson.optString("id");
         String dir = formJson.optString("dir");
+        String operation = formJson.optString("operation");
 
         List<JSONObject> dataSources = new ArrayList<>();
+        String accessLevel = formJson.optString("access");
         if (!dir.isEmpty()) {
+            String solutionDirectory = ApplicationProperties.getInstance().getSolutionDirectory();
+            String actualPath = solutionDirectory + File.separator + dir;
+       /*     if(SecurityUtils.isTargetReachable(new File(actualPath+File.separator+"random.index"))){
+               return;
+            }*/
             File efwdFile = ApplicationUtilities.getEfwdFile(dir);
-            checkEfwdPermission(id, efwdFile, READ);
+
+
+            checkEfwdPermission(id, efwdFile, accessLevel);
 
         } else {
+            if (id.equals("0")) {
+                return;
+            }
             if (!hasId(id)) {
                 throwResourceNotFoundException();
             }
-            globalXmlReaderUtility.addDataSources(dataSources);
+            globalXmlReaderUtility.addDataSources(dataSources, accessLevel);
             for (JSONObject jsonObject : dataSources) {
                 JSONObject data = jsonObject.getJSONObject("data");
                 if (data.getString("id").equals(id)) {
@@ -141,7 +192,7 @@ public class DataSourceSecurityUtility {
     }
 
     public static void validateGlobalDataSourceAccessForWriteOperation(String id, String mode) {
-        if (mode.equalsIgnoreCase("edit") || mode.equalsIgnoreCase("share")) {
+        if ("edit".equalsIgnoreCase(mode) || "share".equalsIgnoreCase(mode)) {
             JSONObject globalJson = JsonUtils.getGlobalConnectionsJson();
             List<String> keys = JsonUtils.getKeys(globalJson);
 
@@ -151,20 +202,42 @@ public class DataSourceSecurityUtility {
                     JSONArray jsonArray = globalJson.getJSONArray(key);
                     for (int counter = 0; counter < jsonArray.size(); counter++) {
                         JSONObject aDataSource = jsonArray.getJSONObject(counter);
-                        if (validateDataSource(id, aDataSource)) break;
+                        if (validateDataSource(id, aDataSource, mode)) break;
                     }
                 } else if (theKey instanceof JSONObject) {
                     JSONObject aDataSource = globalJson.getJSONObject(key);
-                    validateDataSource(id, aDataSource);
+                    validateDataSource(id, aDataSource, mode);
                 }
             }
         }
     }
 
-    private static boolean validateDataSource(String id, JSONObject aDataSource) {
+    public static void validateGlobalDataSourceAccessForDeleteOperation(String id, String mode) {
+        if ("delete".equalsIgnoreCase(mode)) {
+            JSONObject globalJson = JsonUtils.getGlobalConnectionsJson();
+            List<String> keys = JsonUtils.getKeys(globalJson);
+
+            for (String key : keys) {
+                Object theKey = globalJson.get(key);
+                if (theKey instanceof JSONArray) {
+                    JSONArray jsonArray = globalJson.getJSONArray(key);
+                    for (int counter = 0; counter < jsonArray.size(); counter++) {
+                        JSONObject aDataSource = jsonArray.getJSONObject(counter);
+                        if (validateDataSource(id, aDataSource, mode)) break;
+                    }
+                } else if (theKey instanceof JSONObject) {
+                    JSONObject aDataSource = globalJson.getJSONObject(key);
+                    validateDataSource(id, aDataSource, mode);
+                }
+            }
+        }
+    }
+
+    private static boolean validateDataSource(String id, JSONObject aDataSource, String mode) {
         String theId = aDataSource.getString("@id");
         if (theId.equalsIgnoreCase(id)) {
-            if (getMaxPermissionDataSources(aDataSource, WRITE) == null) {
+            String access = "edit".equalsIgnoreCase(mode) ? READ_WRITE : ("delete".equalsIgnoreCase(mode) ? READ_WRITE_DELETE : OWNER);
+            if (getMaxPermissionDataSources(aDataSource, access) == null) {
                 throwException();
             }
             return true;
@@ -174,17 +247,12 @@ public class DataSourceSecurityUtility {
 
     public static boolean hasId(String id) {
         try {
-            DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
-            Document document = docBuilder.parse(new File(JsonUtils.getGlobalConnectionsPath()));
-
-            XPathFactory xpathFactory = XPathFactory.newInstance();
-            XPath xpath = xpathFactory.newXPath();
-            Element element = (Element) xpath.evaluate("//*[@id='" + id + "']", document, XPathConstants.NODE);
-            return element != null;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw new EfwServiceException("There was an error while parsing " + ex.getMessage());
+            DataSourceUtils.globalIdJson(Integer.parseInt(id));
+        } catch (ConfigurationException ex) {
+            return false;
         }
+        return true;
+
+
     }
 }

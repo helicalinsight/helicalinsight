@@ -31,6 +31,14 @@
                 <queryDetails class="com.helicalinsight.datasource.RunningQueryComponent"/>
             </query>
         </adhoc>
+		 <dashboard mandatory="true">
+			<efwce mandatory="true">
+                <designer class="com.helicalinsight.efwce.DashboardIOHandler"/>
+                <fetch class="com.helicalinsight.efwce.DashboardFetchHandler"/>
+                <delete class="com.helicalinsight.efwce.DashboardDeleteHandler"/>
+            </efwce>
+
+        </dashboard>
         <print mandatory="true">
             <export mandatory="true">
                 <getTemplateList class="com.helicalinsight.export.components.ExportTemplatesListProvider"/>
@@ -70,6 +78,7 @@
         <util mandatory="true">
             <io mandatory="true">
                 <getExtensions class="com.helicalinsight.admin.management.FileExtensionProvider"/>
+				<getTypesDetails class="com.helicalinsight.admin.management.TypesDetailsProvider"/>
             </io>
         </util>
     </xml>

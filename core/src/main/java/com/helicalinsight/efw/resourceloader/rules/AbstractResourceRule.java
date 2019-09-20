@@ -34,7 +34,7 @@ import java.util.Map;
 
 /**
  * This class enables code reuse by acting as a super class for the specific
- * rule implementation classes. The file tree in the hi left panel (as of
+ * rule implementation classes. The file tree in the HDI left panel (as of
  * version 1.1) shows a set of folders.
  * <p/>
  * Some folders need to be shown to the user and some shouldn't be. For such purposes
@@ -42,6 +42,8 @@ import java.util.Map;
  * rules related classes are designed.
  *
  * @author Rajasekhar
+ * @version 1.1
+ * @since 1.1
  */
 public abstract class AbstractResourceRule {
 
@@ -57,7 +59,7 @@ public abstract class AbstractResourceRule {
      * @throws ImproperXMLConfigurationException
      * @throws UnSupportedRuleImplementationException
      */
-    public static boolean isSecurityMatching(final JSONObject settings, final JSONObject fileAsJson) throws
+    public static boolean isSecurityMatching( final JSONObject settings, final JSONObject fileAsJson) throws
             ImproperXMLConfigurationException, UnSupportedRuleImplementationException {
         String clazz = getResourceSecurityRulesClass(settings);
         IResourceSecurityRule rule = FactoryMethodWrapper.getTypedInstance(clazz, IResourceSecurityRule.class);
@@ -126,8 +128,7 @@ public abstract class AbstractResourceRule {
      * @param extensionKey The extension of the file type. The tag key and not the value
      * @return A map of the file content
      */
-
-    public Map<String, String> include(JSONObject fileAsJson, String extensionKey, String absolutePath,
+    public Map<String, String> include( JSONObject fileAsJson, String extensionKey, String absolutePath,
                                        String fileName, String lastModified) {
         Map<String, String> foldersMap = new HashMap<>();
 
@@ -147,10 +148,14 @@ public abstract class AbstractResourceRule {
                 foldersMap.put("description", fileName);
             }
 
-            IResourcePermission resourcePermission = this.factory.resourcePermission(fileAsJson);
-            int maximumPermissionLevelOnResource = resourcePermission.maximumPermissionLevelOnResource();
-            foldersMap.put("permissionLevel", Integer.toString(maximumPermissionLevelOnResource));
-
+            if (fileAsJson.optBoolean("inherit")) {
+                foldersMap.put("permissionLevel", fileAsJson.getString("permissionLevel"));
+                foldersMap.put("inherit", "true");
+            } else {
+                IResourcePermission resourcePermission = this.factory.resourcePermission(fileAsJson);
+                int maximumPermissionLevelOnResource = resourcePermission.maximumPermissionLevelOnResource();
+                foldersMap.put("permissionLevel", Integer.toString(maximumPermissionLevelOnResource));
+            }
             //Add custom file based content.
             Iterator<?> keys = fileAsJson.keys();
             addContentOfJson(foldersMap, fileAsJson, keys);

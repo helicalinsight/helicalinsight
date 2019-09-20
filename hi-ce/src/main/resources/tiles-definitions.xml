@@ -38,6 +38,7 @@
         <put-attribute name="main-nav" value="/WEB-INF/pages/templates/main-header.jsp"/>
         <put-attribute name="sidebar" value="/WEB-INF/pages/templates/sidebar.jsp"/>
         <put-attribute name="body" value="/WEB-INF/jsp/empty.jsp"/>
+        <put-attribute name="commonCss" value="/WEB-INF/jsp/common-css.jsp"/>
         <put-attribute name="pageScripts" value="/WEB-INF/pages/templates/base-bottom-script.jsp"/>
     </definition>
 
@@ -83,10 +84,27 @@
         <put-attribute name="activeClass" value="datasource" type="string" cascade="true"/>
     </definition>
 
-    <definition name="report" extends="base-template">
-        <put-attribute name="title" value="Reports" type="string"/>
-        <put-attribute name="body" value="/WEB-INF/pages/templates/efw-report.jsp"/>
-        <put-attribute name="activeClass" value="report" type="string" cascade="true"/>
-        <put-attribute name="pageScripts" value="/WEB-INF/jsp/hdiscript.jsp"/>
+
+
+
+
+    <!-- EFWCE Editor Create Page -->
+    <definition name="ce-report-create" extends="base-template">
+        <put-attribute name="title" value="ce-report-create" type="string"/>
+        <put-attribute name="showSecondary" value="false" type="string" cascade="true"/>
+        <put-attribute name="sidebar" value="/WEB-INF/jsp/empty.jsp"/>
+        <put-attribute name="body" value="/WEB-INF/pages/ceeditor/ceBody.jsp"/>
+        <put-attribute name="footer" value="/WEB-INF/pages/ceeditor/ceFooter.jsp"/>
+        <put-attribute name="scripts" value="/WEB-INF/pages/ceeditor/ceCreateFooter.jsp" cascade="true"/>
+        <put-attribute name="activeClass" value="report-ce" type="string" cascade="true"/>
     </definition>
+
+    <!-- EFWCE Editor Edit Page -->
+    <definition name="ce-report-edit" extends="ce-report-create">
+        <put-attribute name="title" value="ce-report-edit" type="string"/>
+        <put-attribute name="scripts" value="/WEB-INF/pages/ceeditor/ceEditFooter.jsp" cascade="true"/>
+        <put-attribute name="activeClass" value="report-ce" type="string" cascade="true"/>
+    </definition>
+
+
 </tiles-definitions>

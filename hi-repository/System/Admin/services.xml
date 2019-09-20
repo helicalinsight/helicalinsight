@@ -30,6 +30,13 @@
             <queryDetails class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
         </query>
     </adhoc>
+	<dashboard mandatory="true">
+		<efwce mandatory="true">
+            <designer class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <fetch class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+            <delete class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
+        </efwce>
+    </dashboard>
     <print mandatory="true">
         <export mandatory="true">
             <getTemplateList class="com.helicalinsight.export.ExportService"/>
@@ -69,6 +76,7 @@
     <util mandatory="true">
         <io mandatory="true">
             <getExtensions class="com.helicalinsight.admin.management.FileExtensionService"/>
+			<getTypesDetails class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
         </io>
     </util>
     <!-- <import>

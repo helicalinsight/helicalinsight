@@ -4,7 +4,8 @@
 <head>
     <jsp:include page="/WEB-INF/jsp/baseUrl.jsp"/>
     <jsp:include page="/WEB-INF/jsp/common-meta.jsp"/>
-    <jsp:include page="/WEB-INF/jsp/common-css.jsp"/>
+	<tiles:insertAttribute name="commonCss" ignore="true"/>
+	<tiles:insertAttribute name="pageCss" ignore="true"/>
     <title>HI: <tiles:insertAttribute name="title"/></title>
 </head>
 <body style="padding-right: 0 !important">
@@ -13,5 +14,6 @@
 <tiles:insertAttribute name="body"/>
 <jsp:include page="/WEB-INF/jsp/common-js.jsp"/>
 <tiles:insertAttribute name="pageScripts" ignore="true"/>
+<tiles:insertAttribute name="footer" ignore="true"/>
 </body>
 </html>

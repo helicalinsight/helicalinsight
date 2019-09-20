@@ -1,98 +1,160 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <contexts>
-    <context name="/hi" parameters="optional" permission="2">
-        <lookupParameters type="default">
-            <directory>dir</directory>
-            <file>file</file>
-        </lookupParameters>
-    </context>
+   <context name="/hi" parameters="optional" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
     <context name="/getEFWSolution" permission="2">
-        <lookupParameters type="default">
-            <directory>dir</directory>
-            <file>file</file>
-        </lookupParameters>
-    </context>
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
     <context name="/updateEFWTemplate" permission="3">
-        <lookupParameters type="default">
-            <directory>dir</directory>
-            <file>file</file>
-        </lookupParameters>
-    </context>
-    <context name="/executeSavedReport" permission="2">
-        <lookupParameters type="default">
-            <directory>dir</directory>
-            <file>file</file>
-        </lookupParameters>
-    </context>
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/executeSavedReport" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
     <context name="/downloadEnableSavedReport" permission="2">
-        <lookupParameters type="default">
-            <directory>dir</directory>
+      <lookupParameters type="default">
+         <directory>dir</directory>
             <file>filename</file>
-        </lookupParameters>
-    </context>
+      </lookupParameters>
+   </context>
     <context name="/executeFavourite" permission="2">
-        <lookupParameters type="default">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/ce-report-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/updateEFWTemplate" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/downloadEnableSavedReport" permission="2">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>filename</file>
+      </lookupParameters>
+   </context>
+   <context name="/executeFavourite" permission="2">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/importFile" permission="3">
+      <lookupParameters type="directory">
+         <parameter>destination</parameter>
+      </lookupParameters>
+   </context>
+   <context name="/downloadReport" parameters="optional" permission="3">
+      <lookupParameters type="directory">
+         <parameter>resultDirectory</parameter>
+      </lookupParameters>
+   </context>
+   <context name="/exportData" parameters="optional" permission="3">
+      <lookupParameters type="directory">
+         <parameter>resultDirectory</parameter>
+      </lookupParameters>
+   </context>
+   <context name="/saveReport">
+      <lookupParameters type="default">
+         <directory>reportDirectory</directory>
+         <file>reportFile</file>
+      </lookupParameters>
+      <decisionState defaultPermission="3">
+         <if parameterValue="favourite" testOperator="eq">
+            <decisionState parameter="markAsFavourite">
+               <if parameterValue="unmark" permission="4" testOperator="eq" />
+            </decisionState>
+         </if>
+      </decisionState>
+   </context>
+   <context name="/fileSystemOperations">
+      <lookupParameters type="array">
+         <parameter dataType="java.lang.String">sourceArray</parameter>
+      </lookupParameters>
+      <decisionState parameter="action">
+         <if parameterValue="newFolder" permission="3" testOperator="eq" />
+         <if parameterValue="delete" permission="4" testOperator="eq" />
+         <if parameterValue="rename" permission="3" testOperator="eq" />
+         <if parameterValue="export" permission="2" testOperator="eq" />
+      </decisionState>
+   </context>
+   <context name="/services">
+      <subContext permission="5" parameters="optional">
+         <type>core</type>
+         <serviceType>share</serviceType>
+         <service>update</service>
+         <formData>
+            <directory optional="true">dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+      <subContext permission="3" parameters="optional">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>write</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+      <subContext permission="5" parameters="optional">
+         <type>core</type>
+         <serviceType>share</serviceType>
+         <service>retrieveSharedInfo</service>
+         <formData>
+            <directory optional="true">dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+      
+      <subContext permission="3">
+         
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>designer</service>
+         <formData>
+            <directory>dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+      <subContext permission="2">
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>fetch</service>
+         <formData>
             <directory>dir</directory>
             <file>file</file>
-        </lookupParameters>
-    </context>
-    <context name="/importFile" permission="3">
-        <lookupParameters type="directory">
-            <parameter>destination</parameter>
-        </lookupParameters>
-    </context>
-    <context name="/downloadReport" parameters="optional" permission="3">
-        <lookupParameters type="directory">
-            <parameter>resultDirectory</parameter>
-        </lookupParameters>
-    </context>
-    <context name="/exportData" parameters="optional" permission="3">
-        <lookupParameters type="directory">
-            <parameter>resultDirectory</parameter>
-        </lookupParameters>
-    </context>
-    <context name="/saveReport">
-        <lookupParameters type="default">
-            <directory>reportDirectory</directory>
-            <file>reportFile</file>
-        </lookupParameters>
-        <decisionState defaultPermission="3">
-            <if parameterValue="favourite" testOperator="eq">
-                <decisionState parameter="markAsFavourite">
-                    <if parameterValue="unmark" permission="4" testOperator="eq"/>
-                </decisionState>
-            </if>
-        </decisionState>
-    </context>
-    <context name="/fileSystemOperations">
-        <lookupParameters type="array">
-            <parameter dataType="java.lang.String">sourceArray</parameter>
-        </lookupParameters>
-        <decisionState parameter="action">
-            <if parameterValue="newFolder" permission="3" testOperator="eq"/>
-            <if parameterValue="delete" permission="4" testOperator="eq"/>
-            <if parameterValue="rename" permission="3" testOperator="eq"/>
-            <if parameterValue="export" permission="2" testOperator="eq"/>
-        </decisionState>
-    </context>
-    <context name="/services">
-        <subContext permission="3" parameters="optional">
-            <type>core</type>
-            <serviceType>share</serviceType>
-            <service>update</service>
-            <formData>
-                <directory optional="true">dir</directory>
-                <file optional="true">file</file>
-            </formData>
-        </subContext>
-        <subContext permission="2" parameters="optional">
-            <type>core</type>
-            <serviceType>share</serviceType>
-            <service>retrieveSharedInfo</service>
-            <formData>
-                <directory optional="true">dir</directory>
-                <file optional="true">file</file>
-            </formData>
-        </subContext>
-    </context>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+   </context>
 </contexts>

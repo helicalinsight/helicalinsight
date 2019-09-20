@@ -1,5 +1,5 @@
 --
---    Copyright (C) 2013-2017 Helical IT Solutions (http://www.helicalinsight.com).
+--    Copyright (C) 2013-2017 Helical IT Solutions (http://www.helicalinsight.com) - All rights reserved.
 --
 --    Licensed under the Apache License, Version 2.0 (the "License");
 --    you may not use this file except in compliance with the License.
@@ -14,8 +14,4 @@
 --    limitations under the License.
 --
 
-SET PASSWORD FOR 'root'@'localhost' = PASSWORD('hiroot');
-CREATE USER 'hiuser'@'localhost' IDENTIFIED BY 'hiuser';
-GRANT ALL PRIVILEGES ON *.* TO 'hiuser'@'localhost' WITH GRANT OPTION;
 CREATE DATABASE hice;
-source SampleTravelData.sql

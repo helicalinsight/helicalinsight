@@ -25,10 +25,10 @@ public class AuthenticationDetails implements Serializable {
 
     private static final long serialVersionUID = SpringSecurityCoreVersion.SERIAL_VERSION_UID;
 
-   
+
     private final String context;
 
-   
+
     public AuthenticationDetails(Object context) {
         this.context = context == null ? "" : context.toString();
         doPopulateAdditionalInformation(context);

@@ -28,6 +28,39 @@
         <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
     </listener>
 
+    <!-- Uncoment the below to enable cross origin -->
+
+    <!--<filter>
+        <filter-name>cross-origin</filter-name>
+        <filter-class>org.eclipse.jetty.servlets.CrossOriginFilter</filter-class>
+        <init-param>
+            <param-name>allowedHeaders</param-name>
+            <param-value>*</param-value>
+        </init-param>
+        <init-param>
+            <param-name>allowedMethods</param-name>
+            <param-value>GET,PUT,POST,DELETE,OPTIONS</param-value>
+        </init-param>
+        <init-param>
+            <param-name>allowedOrigins</param-name>
+            <param-value>*</param-value>
+        </init-param>
+        <init-param>
+            <param-name>preflightMaxAge</param-name>
+            <param-value>3600</param-value>
+        </init-param>
+        <init-param>
+            <param-name>chainPreflight</param-name>
+            <param-value>false</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>cross-origin</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>-->
+
+
+
     <filter>
         <filter-name>errorLogger</filter-name>
         <filter-class>com.helicalinsight.efw.filters.ErrorInterceptorFilter</filter-class>
@@ -46,6 +79,19 @@
 
     <filter-mapping>
         <filter-name>springSecurityFilterChain</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter>
+        <filter-name>formDataEncryptDecryptFilter</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+        <init-param>
+            <param-name>targetFilterLifecycle</param-name>
+            <param-value>true</param-value>
+        </init-param>
+    </filter>
+    <filter-mapping>
+        <filter-name>formDataEncryptDecryptFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
@@ -153,6 +199,7 @@
         <filter-name>encodingFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+
 
     <servlet>
         <servlet-name>dispatcher-servlet</servlet-name>
