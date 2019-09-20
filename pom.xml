@@ -511,7 +511,7 @@
                         <properties>
                             <!-- Values to be substituted in template -->
                             <h_inceptionYear>${inceptionYear}</h_inceptionYear>
-                            <h_currentYear>2017</h_currentYear>
+                            <h_currentYear>2019</h_currentYear>
                             <h_copyrightOwner>${copyrightOwner}</h_copyrightOwner>
                         </properties>
                         <strictCheck>true</strictCheck>
