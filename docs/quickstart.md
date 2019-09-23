@@ -10,9 +10,9 @@ It is recommended to install Helical Insight Community Edition from official web
 Product Name	  	: Helical Insight
 Product Type	  	: Business Intelligence Framework
 Product Edition	   : Community
-Version	           : 2.0.0.0
-Build No.	         : R20171705_6032
-License Type	      : Apache Version2
+Version	           : 3.1.0.0
+Build No.	         : R20191909_13129
+License Type	      : Apache Version 2.0
 ```
 
 ## Minimum System Requirement
@@ -38,11 +38,11 @@ Browser Name : Google Chrome, Firefox, Internet Explorer, Microsoft Edge, etc.
 ## With Eclipse IDE
 
 ##### Prerequisites :
-* Java version `1.7` or higher
+* Java version `1.8`
 * User should have Maven 3 or higher installed 
 * User should have installed jars present in resources folder
 * User should have Eclipse IDE.
-* Use Mysql 5.7 or higher version.
+* Use Mysql 5.7 .
 * Apache tomcat 7 or 8 should be installed.
 
 	
@@ -68,8 +68,8 @@ Please refer to the below tutorial to understand how to install helical insight
 This Installation Guide will help user to manually configure the necessary settings required to install Helical Insight Application to the user’s system. This configuration is applicable to any Operating System (Windows family, Linux flavours, MacOS), any Databases (Relational, Columnar, Graph, Flatfiles, NOSQL ) user is using.
 
 ##### Prerequisites :
-* Java version `1.7` or higher.
-* Use Mysql 5.7 or higher version.
+* Java version `1.8`.
+* Use Mysql 5.7.
 * Apache tomcat 7 or 8 should be installed.
 
 In order to run Tomcat or any other application server you may need to set `JAVA_HOME` or `JRE_HOME` based on your environment.
@@ -107,7 +107,7 @@ In order to run Tomcat or any other application server you may need to set `JAVA
 1. Install the sql file `db.sql`, and `SampleTravelData.sql` present in db-dump folder. This contains the database required for `hi-ce` application and sample reports.
 
 	```text
-	*\db-dump\SampleData.sql
+	*\db-dump\SampleTravelData.sql
 	*\db-dump\db.sql
 	```
 

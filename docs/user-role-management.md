@@ -8,7 +8,7 @@ A user with `ROLE_ADMIN` can create and delete role
 
 ## User
 
-A user with  `ROLE_ADMIN` create, edit and delete user
+A user with  `ROLE_ADMIN` can create, edit and delete user
 
 
 ## Profile 
