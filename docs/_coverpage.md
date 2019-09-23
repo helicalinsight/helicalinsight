@@ -1,6 +1,6 @@
 ![logo](_media/logo-hi.png)
 
-# Helical Insight <small>2.0.0.0 CE</small>
+# Helical Insight <small>3.1.0.0 CE</small>
 
 > Community Edition.
 
