@@ -9,7 +9,12 @@
             <security>
                 <createdBy>1</createdBy>
             </security>
-        </Connection>
+			<share mandatory="true">
+				<roles mandatory="true">
+					<role id="2">2</role>
+				</roles>
+			</share>
+		</Connection>
     </DataSources>
     <DataMaps>
         <DataMap id="1" connection="1" type="sql">
