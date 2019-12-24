@@ -1,0 +1,154 @@
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  vars_files:
+    - vars/vars.yml
+  tasks:
+  - name: Enable EPEL
+    yum:
+      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+      state: present
+    become: yes
+  - name: Register to RHN and auto-subscribe to available content.
+    redhat_subscription:
+      state: present
+      username: '{{ rhn_user }}'
+      password: '{{ rhn_password }}'
+      auto_attach: true
+    become: yes
+  - name: Enable RHSM repositories (extras, optional)
+    rhsm_repository:
+      name: '{{ item }}'
+      state: enabled
+    with_items:
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-optional-rpms
+    become: yes
+  # Troubleshoot yum module and then remove command module usage after solution found to slowness
+  - name: Install prerequisites
+    command: yum -y install maven java mariadb mariadb-server MySQL-python mysql-connector-python java-1.8.0-openjdk tomcat
+    become: yes
+#  - name: Install prerequisites
+#    yum:
+#      name:
+#        - maven
+#        - java
+#        - mariadb
+#        - mariadb-server
+#        - MySQL-python
+#        - mysql-connector-python
+#        - java-1.8.0-openjdk
+#        - tomcat
+#      state: present
+#    become: yes
+  - name: Enable MariaDB service
+    service:
+      name: mariadb
+      state: started
+      enabled: true
+    become: yes
+  - name: Create the Helical database user
+    mysql_user:
+      name: '{{ database_user }}'
+      password: '{{ database_password }}'
+      priv: '*.*:ALL'
+      state: present
+    become: yes
+#  - name: Clone the helical repo
+#    git:
+#      repo: '{{ helical_repo_url }}'
+#      dest: '{{ repo_install_dir }}'
+#      clone: yes
+#      update: yes
+  - name: Import sample report to Helical database
+    mysql_db:
+      name: '{{ database_name }}'
+      target: '{{ install_dir }}/db-dump/SampleTravelData.sql'
+      state: import
+    become: yes
+  - name: Set hi-repository path
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/setting.xml'
+      xpath: /efwProject/efwSolution
+      value: '{{ install_dir }}/hi-repository'
+  - name: Set BaseURL to listen to
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/setting.xml'
+      xpath: /efwProject/BaseUrl
+      value: 'http://{{ helical_hostname }}:8080/hi-ce/hi.html'
+  - name: Configure app with correct helical database user
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/username
+      value: '{{ database_user }}'
+  - name: Configure app with correct helical database password
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/password
+      value: '{{ database_password }}'
+  - name: Configure app with correct helical database source
+    xml:
+      path: '{{ install_dir }}/hi-repository/System/Admin/globalConnections.xml'
+      xpath: /connections/tomcatJdbcDataSource/url
+      value: '{{ helical_db_source }}'
+  - name: Fix pom.xml (HikariCP version number) for maven build
+    replace:
+      path: '{{ install_dir }}/pom.xml'
+      regexp: '2.4.7-hi'
+      replace: 2.7.4
+  - name: Maven install
+    command: 'mvn install:install-file -Dfile={{ install_dir }}/resources/tomcat-jdbc-7.0.65.jar -DgroupId=org.apache.tomcat -DartifactId=tomcat-jdbc -Dversion=7.0.65 -Dpackaging=jar'
+    become: yes
+  - name: Maven build dev
+    shell: 'cd {{ install_dir }} && mvn clean package -Denv=dev'
+    become: yes
+  - name: Maven build prod
+    shell: 'cd {{ install_dir }} && mvn clean package -Denv=production'
+    become: yes
+  - name: Deploy hi-ce war file
+    copy:
+      src: '{{ install_dir }}/hi-ce/target/hi-ce.war'
+      dest: /var/lib/tomcat/webapps/hi-ce.war
+      mode: 0755
+      owner: tomcat
+      group: tomcat
+    become: yes
+  - name: Restart tomcat
+    service:
+      name: tomcat
+      state: restarted
+    become: yes
+  - name: Configure project properties with correct path
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/project.properties
+      regexp: 'E:/helicalinsight'
+      replace: '{{ install_dir }}'
+    become: yes
+  - name: Configure logging
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/log4j.properties
+      regexp: 'E:/New folder/helicalinsight-master'
+      replace: '{{ install_dir }}'
+    become: yes
+  - name: Configure the database connection
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
+      regexp: 'name="username" value="hiuser"'
+      replace: 'name="username" value="{{ database_user }}"'
+    become: yes
+  - name: Configure the database connection and Hibernate dialect
+    replace:
+      path: /var/lib/tomcat/webapps/hi-ce/WEB-INF/classes/application-context.xml
+      regexp: 'name="password" value="hiuser"'
+      replace: 'name="password" value="{{ database_password }}"'
+    become: yes
+  - name: Restart tomcat
+    service:
+      name: tomcat
+      state: restarted
+    become: yes
+  - name: Print BaseURL
+    debug:
+      msg: "Helical Insights will be reachable at: http://{{ helical_hostname }}:8080/hi-ce/hi.html"
+
+
