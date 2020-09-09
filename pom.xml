@@ -100,7 +100,7 @@
         <commons-io.version>2.5</commons-io.version>
         <commons-digester.version>2.1</commons-digester.version>
         <commons-configuration.version>1.10</commons-configuration.version>
-        <hibernate-validator.version>5.2.4.Final</hibernate-validator.version>
+        <hibernate-validator.version>5.3.6.Final</hibernate-validator.version>
         <jersey-server.version>1.19</jersey-server.version>
         <jsr250-api.version>1.0</jsr250-api.version>
     </properties>
