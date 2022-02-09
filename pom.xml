@@ -51,7 +51,7 @@
         <tiles-jsp.version>3.0.7</tiles-jsp.version>
 
         <spring.version>4.3.6.RELEASE</spring.version>
-        <hibernate-core.version>4.3.11.Final</hibernate-core.version>
+        <hibernate-core.version>5.4.24.Final</hibernate-core.version>
 
         <junit.version>4.12</junit.version>
         <mockito-all.version>1.10.19</mockito-all.version>
