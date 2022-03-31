@@ -50,7 +50,7 @@
         <javax.inject.version>1</javax.inject.version>
         <tiles-jsp.version>3.0.7</tiles-jsp.version>
 
-        <spring.version>4.3.6.RELEASE</spring.version>
+        <spring.version>5.3.18</spring.version>
         <hibernate-core.version>4.3.11.Final</hibernate-core.version>
 
         <junit.version>4.12</junit.version>
