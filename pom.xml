@@ -92,7 +92,7 @@
         <cas.client.version>3.3.3</cas.client.version>
         <cas.server.ldap>4.0.1</cas.server.ldap>
 
-        <opennlp.version>1.6.0</opennlp.version>
+        <opennlp.version>1.8.2</opennlp.version>
         <commons-collections.version>3.2.2</commons-collections.version>
         <commons-dbutils.version>1.6</commons-dbutils.version>
         <commons-lang3.version>3.5</commons-lang3.version>
