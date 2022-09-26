@@ -9,7 +9,7 @@
     <properties>
         <maven-war-plugin.version>3.0.0</maven-war-plugin.version>
         <zeroturnaround.version>1.9</zeroturnaround.version>
-        <mysql-connector-java.version>5.1.6</mysql-connector-java.version>
+        <mysql-connector-java.version>8.0.28</mysql-connector-java.version>
         <hi.build.maven.plugin>${parent.version}</hi.build.maven.plugin>
 
     </properties>
