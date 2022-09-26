@@ -97,7 +97,7 @@
         <commons-dbutils.version>1.6</commons-dbutils.version>
         <commons-lang3.version>3.5</commons-lang3.version>
         <commons-codec.version>1.10</commons-codec.version>
-        <commons-io.version>2.5</commons-io.version>
+        <commons-io.version>2.7</commons-io.version>
         <commons-digester.version>2.1</commons-digester.version>
         <commons-configuration.version>1.10</commons-configuration.version>
         <hibernate-validator.version>5.2.4.Final</hibernate-validator.version>
