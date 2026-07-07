@@ -4,8 +4,7 @@
 #   docker compose -f docker-compose.dev.yml up --build
 #
 # Then open:
-#   Frontend: http://localhost:3000
-#   Backend:  http://localhost:8080/hi-ee/hi.html
+#   Backend:  http://localhost:8080/hi-ce/hi.html
 #
 # Login: hiadmin / hiadmin
 
@@ -23,7 +22,7 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./server/docker/init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hice}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -46,18 +45,6 @@ services:
     volumes:
       - ./server/hi-repository:/usr/local/Helical Insight/hi/hi-repository
       - hi-db:/usr/local/Helical Insight/hi/db
-    networks:
-      - hi-dev
-
-  frontend:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "3000:80"
     networks:
       - hi-dev
 
