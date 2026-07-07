@@ -1,0 +1,157 @@
+@import "../../../../styles/variables.scss";
+
+.hi-drawer-title {
+  font-weight: bold;
+}
+
+@media screen and (max-width: 900px) {
+  .ant-drawer-content-wrapper {
+    width: 100vw !important;
+  }
+}
+.hi-overview-border-box {
+  .hi-ellipses {
+    margin-left: 5% !important;
+  }
+}
+
+.hi-overview {
+  height: 100%;
+  .ant-card-head {
+    font-weight: 500 !important;
+  }
+
+  .hi-cache-size {
+    .hi-cache-size-skeleton {
+      height: 110px !important;
+    }
+  }
+
+  .hi-reload-configs {
+    .hi-reload-configs-button {
+      width: 100%;
+      padding: 4px 0 4px 4px;
+      display: flex;
+      justify-content: start;
+      align-items: center;
+    }
+  }
+
+  .hi-overview-padding-3 {
+    padding: 5px 5px 5px 10px;
+    margin-bottom: 0px !important;
+  }
+  .ant-card-body {
+    padding: 0px !important;
+  }
+  .hi-overview-box {
+    padding: 0px;
+    min-height: 100%;
+    // overflow-y: auto;
+    // overflow-x: hidden;
+  }
+  .hi-overview-cache-box {
+    padding: 10px 5px 10px 5px;
+    min-height: 10vh;
+  }
+
+  .hi-height-30 {
+    min-height: 28vh;
+  }
+  .hi-overview-border-right {
+    border: none;
+    border-right: 1px solid $hi-light-gray;
+  }
+  .hi-overview-no-border {
+    border: none;
+  }
+
+  .hi-overview-main-heading {
+    font-size: 13px;
+  }
+  .hi-overview-skeleton-cache {
+    min-height: 107px !important;
+  }
+  .hi-overview-stats {
+    font-size: 26px;
+    font-weight: bold;
+    margin-bottom: 12px !important;
+    margin-top: 12px !important;
+  }
+
+  .hi-overview-no-bold {
+    margin-bottom: 6px !important;
+    margin-top: 6px !important;
+    font-weight: normal;
+  }
+
+  .hi-overview-select {
+    margin: 0 0 3px 3px;
+  }
+
+  .hi-overview-cache {
+    font-size: 16px;
+    font-weight: 500;
+  }
+
+  .hi-overview-padding {
+    padding: 5px 15px 5px 15px;
+  }
+  .hi-overview-padding-cache {
+    padding: 10px;
+  }
+  .hi-overview-no-padding {
+    padding: none;
+  }
+
+  .ant-progress-bg {
+    background-color: $hi-green !important;
+  }
+  .ant-progress-inner {
+    border-radius: 0px !important;
+  }
+  .hi-overview-antdrow {
+    height: 16px;
+  }
+  .hi-overview-padding-2 {
+    padding: 10px 0 0 6px;
+    margin-bottom: 0px !important;
+  }
+
+  .hi-license {
+    .hi-ellipses {
+      text-overflow: ellipsis;
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      display: inline;
+    }
+    .hi-overview-image {
+      margin: 10px 40px 10px 40px;
+    }
+    .hi-upgrade-btn {
+      color: white !important;
+    }
+  }
+
+  .hi-logger {
+    .hi-logger-skeleton {
+      height: 87px !important;
+    }
+    .hi-logger-stats {
+      font-weight: 500;
+      padding-right: 10px;
+      font-size: 30px;
+    }
+    .hi-overview-logger {
+      height: 100%;
+      text-align: center;
+    }
+  }
+
+  @media screen and (max-width: 1024px) {
+    .hi-overview-border-right {
+      border: none;
+    }
+  }
+}

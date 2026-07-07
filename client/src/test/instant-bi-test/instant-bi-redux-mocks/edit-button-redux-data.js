@@ -1,0 +1,25 @@
+export const editButtonReduxData = {
+  searchValue: "adsfasfd",
+  activeInstantBIReport: {},
+  metadata: {
+    location: "naresh",
+    metadataFileName: "Metadata_1.metadata",
+    title: "Metadata_1",
+    path: "naresh/Metadata_1.metadata",
+  },
+  isSaving: false,
+  loading: false,
+  hasUnsavedData: true,
+  mode: "create",
+  derivedFormdata: {
+    visualization: "table",
+    columns: ["adsfasfd"],
+    limit: "",
+    from: [],
+    where: [],
+    groupBy: [],
+    metadataLema: null,
+    aggregate: [],
+  },
+  searchButtonClicked: "12:18:19 GMT+0530 (India Standard Time)",
+};

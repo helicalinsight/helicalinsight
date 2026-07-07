@@ -1,0 +1,50 @@
+@import "../../../../styles/variables.scss";
+
+.hi-instant-bi-report-toolbar {
+  display: none;
+  position: absolute;
+  left: 12px;
+  z-index: 3;
+  width: auto;
+  background-color: $hi-white;
+
+  // padding: 0 4px;
+  // opacity: 0.8;
+  // border: 1px solid grey;
+  .ant-menu-submenu-arrow {
+    display: none;
+  }
+  .ant-menu-title-content {
+    all: unset;
+  }
+  .ant-menu-submenu-title {
+    padding: 0px !important;
+    height: 22px !important;
+    margin: 4px !important;
+    line-height: 25px !important;
+  }
+  .ant-menu-item {
+    padding: 0px !important;
+    margin: 4px !important;
+    height: 22px !important;
+    line-height: 25px !important;
+  }
+  .ant-menu-item-title {
+    padding: 4px !important;
+    margin: 4px !important;
+  }
+  .ant-menu-vertical {
+    * {
+      padding: 0px !important;
+      margin: 4px !important;
+      height: 25px !important;
+      line-height: 22px !important;
+    }
+    > .ant-menu-item {
+      padding: 0px !important;
+      margin: 4px !important;
+      height: 22px !important;
+      line-height: 25px !important;
+    }
+  }
+}

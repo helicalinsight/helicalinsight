@@ -1,0 +1,39 @@
+<HWF mandatory="true" type="com.helical.HWFEngine">
+	<input mandatory="true">
+	<functionName default="getQueryString" type="helical.String">functionName</functionName>
+	<formData default="{}" type="helical.String">formData</formData>
+	</input>
+
+	<flow>
+	<execution alias="userDetails" id="1" type="job.executeGroovy">
+	<input>
+	<ref>functionName</ref>
+	<ref>formData</ref>
+	</input>
+	<code>
+	<![CDATA[
+	import net.sf.json.JSONObject;
+	public JSONObject getQueryString(JSONObject requestJson, JSONObject responseJson) {
+	def dbName = requestJson.databaseName?requestJson.databaseName:'default'
+
+	responseJson.accumulate("query","create database if not exists $dbName");
+	responseJson.accumulate("query","use $dbName");
+requestJson.tables.each{
+	responseJson.accumulate("query","CREATE TABLE IF NOT EXISTS $it.table 	USING org.apache.spark.sql.jdbc 	OPTIONS ( 	url \"$requestJson.url\", 	dbtable \"$requestJson.table\", 	user \'$requestJson.username\', 	password \'$requestJson.password\' 	)");
+	if(request.formData.cache){
+		responseJson.accumulate("query","CACHE TABLE $it.table")
+	}
+	responseJson.accumulate("query","use $dbName");
+}
+	return responseJson;
+	}
+	]]>
+	</code>
+	<output>queryResult</output>
+	</execution>
+	</flow>
+
+	<output mandatory="true" viewPage="" showStack="true" showFlow="true">
+	<queryResult type="com.helical.print">response</queryResult>
+	</output>
+</HWF>

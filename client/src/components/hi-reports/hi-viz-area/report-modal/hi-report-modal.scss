@@ -1,0 +1,46 @@
+.hi-report-modal {
+  .ant-modal-header {
+    padding: 8px !important;
+  }
+  .ant-menu-vertical {
+    border: none !important;
+    .ant-menu-submenu-title {
+      margin-top: 0 !important;
+      margin-bottom: 0 !important;
+      padding-right: 0 !important ;
+    }
+  }
+  .ant-menu-submenu-arrow {
+    display: none !important;
+  }
+
+  .ant-modal-title-container {
+    width: 90%;
+  }
+
+  .report-name-container {
+    & span:first-child {
+      font-size: 12px;
+    }
+  }
+
+  .display-flex {
+    display: flex;
+  }
+
+  .align-items-center {
+    align-items: center;
+  }
+
+  .justify-content-center {
+    justify-content: center;
+  }
+
+  .justify-content-space-between {
+    justify-content: space-between;
+  }
+
+  .flex-direction-columns {
+    flex-direction: column;
+  }
+}

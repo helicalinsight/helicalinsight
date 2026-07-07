@@ -1,0 +1,1745 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_Drilldown</scriptId>
+    <scriptType>js</scriptType>
+    <name>Drill Down</name>
+    <group>Table</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Adds Drill Down to columns</description> 
+    <icon>/images/scriptIcons/DrillDown.png</icon>  
+	<parameters>
+	     <parameter value="[]" name="columnNames" type="String"/>
+	     <parameter value="[]" name="paramNameArr" type="String"/> 
+	     <parameter value="[]" name="nameArr" type="String"/> 
+	     <parameter value="[]" name="customNameArr" type="String"/> 
+	     <parameter value="[]" name="valArr" type="String"/> 
+	     <parameter value="[]" name="customValArr" type="String"/> 
+	     <parameter value="[]" name="customParamNameArr" type="String"/> 
+	     <parameter value="[]" name="paramValArr" type="String"/> 
+	     <parameter value="[]" name="customParamValArr" type="String"/> 
+	     <parameter value="[]" name="url" type="String"/>
+	     <parameter value="[]" name="logicalUrl" type="String"/> 
+		 <parameter value="[]" name="columnNames1" type="String"/>
+		 <parameter value="false" name="switch" type="Boolean"/>
+		 <parameter value="[]" name="clmnNameArr" type="String" />
+		 <parameter value="[]" name="enableIPC" type="String" />
+		 <parameter value="[]" name="newTab" type="String" />
+		 <parameter value="[]" name="renderHere" type="String" />
+		 <parameter value="" name="parentWindowTitle" type="String" />
+	</parameters>
+				   
+    <snippet>
+		<![CDATA[
+		
+		var id = hi_container.get("renderId");
+		
+		if(id== ""){
+			var tableViz = '#main'+id+' .table-viz';
+			var drillDown = '#chart'+id+' .drilldwn';
+		}
+		else{
+			var tableViz = '#main-'+id+' .table-viz';
+			var drillDown = '#chart-'+id+' .drilldwn';
+		}
+		
+		var ftnObj = {};
+			
+		ftnObj['RenderTable'+id]= function(){
+					
+			var column_index=[];
+			var sel_column_index=[];
+			var flag=0;
+			var columnNames=${columnNames};
+			var column_name=${columnNames1};
+	//		var colnames=${selectedClmnArr};
+	//		var colval=${selectedClmnArrVal};
+			var clmnNameArr=${clmnNameArr};
+			var paramNameArr=${paramNameArr};
+			var paramValArr=${paramValArr};
+			var customParamNameArr=${customParamNameArr};
+			var customParamValArr=${customParamValArr};
+			var valArr=${valArr};
+			var nameArr=${nameArr};
+			var customNameArr=${customNameArr};
+			var customValArr=${customValArr};
+	//		var input_text=${selText};
+			var reportUrl=${url};
+			var logicalUrl=${logicalUrl};
+			var enableIPC=${enableIPC};
+			var renderHere=${renderHere};
+			var newTab=${newTab};
+			var currentColumnIndex;
+			var currentCellValue;
+			var selCellValue=[];
+			var nthRow;
+			var currentRowPosition=0;
+			var paramNo=-1;
+		    var idArr=[];	
+            var parentWindowTitle="${parentWindowTitle}";  // To get the window title for the bread crumb
+            var parentWindowUrl;	
+				
+			//	parentWindowUrl=window.location.href;
+			//	parentWindowTitle=$(document).attr('title');
+			//	parentWindowTitle=$(document).find("title").text();
+				parentWindowUrl=$(location).attr('href');
+			
+			
+			var table = document.querySelectorAll(tableViz);
+			[].forEach.call(table, getColumnIndex);
+		// On clicking the Drill Down cell			 
+			$(drillDown).on('click', function(e) {
+			  
+				//	console.log(columnNames);
+				//	console.log(input_text);
+				//	console.log(e);
+				//	console.log('cell index   :-'+this.cellIndex);
+				//	console.log($(this).parent().attr('data-row-id'));
+					currentColumnIndex=this.cellIndex;// to get the column index on which click is there
+					currentCellValue=e.target.innerText;// to get the value of the cell on which the click happens.
+					
+					currentRowPosition=$(this).parent().attr('data-row-id');// to get row no. where the click has happened
+					currentRowPosition=parseInt(currentRowPosition);// To change it to integer value
+					var ParamStr="";
+					var table = document.querySelectorAll(tableViz);
+					[].forEach.call(table,GetValue);
+				//	console.log("currentRowPosition"+currentRowPosition);
+				//	console.log("selCellValue"+selCellValue);
+				//	console.log("paramNameArr"+paramNameArr);
+				//	console.log(nameArr[currentColumnIndex]);
+				//	console.log(customNameArr);
+				//	console.log(customValArr);
+				//	console.log(hi_container); 
+					
+					// To create the parameter string to be appended on the URL.(when the  values are taken from a table)
+					for(var urlParam=0;urlParam<selCellValue.length;urlParam++)
+					{
+					  var selCellValueArr=selCellValue[urlParam].split('_%_');// To get the value
+					 // console.log("selCellValue[urlParam]", selCellValue[urlParam]);
+					 // console.log("selCellValueArr", selCellValueArr);
+					  ParamStr=ParamStr+'&'+nameArr[currentColumnIndex][selCellValueArr[1]]+"="+selCellValueArr[0];
+					 // console.log(ParamStr, nameArr[currentColumnIndex][selCellValueArr[1]], selCellValueArr[0]);
+					}
+					
+					//  To create the parameter string for custom variable. (filters)
+					var filters = hi_container.get("requestData").filters;
+					// console.log(filters);
+					for(var urlCustom=0;urlCustom<customNameArr[currentColumnIndex].length;urlCustom++)
+					{	
+					  var filterVal = '[';
+					  if (customValArr[currentColumnIndex][urlCustom].includes('Filter_')){
+						  var filterID = customValArr[currentColumnIndex][urlCustom].split('_')[1];// To get the filter id e.g. Filter_1 , id = 1
+						  var filterLen = filters[filterID].values.length;
+						  for(var validx=0;validx<filterLen;validx++)
+						  {
+								filterVal = filterVal + '"' + filters[filterID].values[validx]+'",';
+						  }
+						  filterVal = filterVal+"]"
+					  }
+					  else {
+						filterVal = filterVal + '"' + customValArr[currentColumnIndex][urlCustom] +'"]';
+					  }
+					  ParamStr=ParamStr+'&'+customNameArr[currentColumnIndex][urlCustom]+"="+filterVal;
+					}
+					// console.log("2" + ParamStr);
+					 var logicalPathSplit=logicalUrl[currentColumnIndex].split('/');
+					var childWindowTitle=logicalPathSplit.pop();// To get the name of the report to be opened on drill down
+					
+				// Code to Create breadcrumb div using logicalUrl	
+					/*
+					var breadCrumbdiv= document.createElement('div');
+					breadCrumbdiv.id="breadCrumbdiv";
+					breadCrumbdiv.className += " row ";
+				//	breadCrumbdiv.style = "height:100%";
+	
+					var breadCrumblist = document.createElement('ol');
+						breadCrumblist.id = "breadCrumblist";
+						breadCrumblist.className += " row breadcrumb";
+						breadCrumblist.style='margin-left:10px;'
+				    var logicalPathSplit=logicalUrl[currentColumnIndex].split('/');
+					var childWindowTitle=logicalPathSplit.pop();// To get the name of the report to be opened on drill down
+					for(var i=0;i<2;i++)
+					{
+						var listElement= document.createElement('li');
+						if(i==0)
+						{
+								
+							listElement.innerHTML='<a href="'+parentWindowUrl+'">'+parentWindowTitle+'</a>';  // to give the  1st list element as parent window
+							
+						}
+						
+						if(i==1)
+						{
+							listElement.innerHTML=childWindowTitle;
+							listElement.className +="active"
+							
+						}
+						breadCrumblist.appendChild(listElement);
+					}
+					breadCrumbdiv.appendChild(breadCrumblist);
+					
+					*/
+							
+			// If for current column enableIPC is false												
+			/*	
+			if(enableIPC[currentColumnIndex]=="false") {	
+		        //$(window.parent.document.body).find("#dashboardCanvas").css("margin-top","100px");
+                $(window.parent.document.body).find("#hi-cacheToolbar").css("margin-bottom","50px");
+				$(window.parent.document.body).find("#hi-cacheToolbar").append(breadCrumbdiv);
+		  
+               // If for current column RENDER HERE is TRUE			   
+				if(renderHere[currentColumnIndex]=="true") {
+				
+				
+				// To change the mode to from 'mode=dashboard' to 'mode=open'
+			       modeDashboardReportUrl=reportUrl[currentColumnIndex].replace("mode=open","mode=dashboard");    
+					//console.log("3" + ParamStr);
+					var w = window.open(modeDashboardReportUrl+ParamStr,'_self');
+					//var w = reportUrl[currentColumnIndex]+ParamStr;
+					//console.log("w:", w);
+					
+				
+					
+					/*w.document.body.append(w.document.body + "some other data");
+					$(window.child.document.body).find("#hi-cacheToolbar").css("margin-bottom","50px");
+					$(window.child.document.body).find("#hi-cacheToolbar").append(breadCrumbdiv);			
+				  
+				  setTimeout(function(){ 
+				  //console.log("After window Load");
+				  //console.log("in set timeout");
+				  
+				  $('body').find("#dashboardCanvas").css("margin-top","100px");
+                  $('body').find("#hi-cacheToolbar").css("margin-bottom","100px");
+				  $('body').find("#hi-cacheToolbar").append(breadCrumbdiv);
+					}, 5000);*/	
+					// If for current column enableIPC is false	
+			if(enableIPC[currentColumnIndex]=="false") {	
+			
+			   if(renderHere[currentColumnIndex]=="true") {
+				
+				
+				   // To change the mode to from 'mode=dashboard' to 'mode=open'
+			       modeDashboardReportUrl=window.DashboardGlobals.baseUrl+"/hi.html?"+reportUrl[currentColumnIndex].replace("mode=open","mode=dashboard");
+				   var w = window.open(modeDashboardReportUrl+ParamStr,'_self');
+				   
+				} 
+				
+				else {
+					
+				//To open in new window	
+				
+					
+			
+					var w = window.open(window.DashboardGlobals.baseUrl+"/hi.html?"+reportUrl[currentColumnIndex]+ParamStr,"_blank");
+					
+				
+				 
+				}
+			 }
+			 else
+			 {
+			   // Code to execute in case of enableIPC is true
+		    for(var urlCustom=0;urlCustom<customNameArr[currentColumnIndex].length;urlCustom++){
+					if(parent.adhocScripts){ 
+						parent.adhocScripts.setVariable(customNameArr[currentColumnIndex][urlCustom],customValArr[currentColumnIndex][urlCustom]);
+					}
+					if(hi_container.isSet('iframe')){
+						
+						Dashboard.setVariable(customNameArr[currentColumnIndex][urlCustom],customValArr[currentColumnIndex][urlCustom]);
+					}
+					else{
+						parent.Dashboard.setVariable(customNameArr[currentColumnIndex][urlCustom],customValArr[currentColumnIndex][urlCustom]);
+					}
+			}
+			for(var urlParam=0;urlParam<selCellValue.length;urlParam++){
+				  var selCellValueArr=selCellValue[urlParam].split('_%_');  
+				 if(parent.adhocScripts){
+					parent.adhocScripts.setVariable(nameArr[currentColumnIndex][selCellValueArr[1]],selCellValueArr[0]);
+				  }
+				 if(hi_container.isSet('iframe')){
+					Dashboard.setVariable(nameArr[currentColumnIndex][selCellValueArr[1]],selCellValueArr[0]);
+				}
+				else{
+					parent.Dashboard.setVariable(nameArr[currentColumnIndex][selCellValueArr[1]],selCellValueArr[0]);
+				}
+				 
+			}
+			 }
+			 });
+				 
+				 
+				 
+				   //To get the column index of the columns selected by the user for drill down.
+			function getColumnIndex(table) 
+			{
+				[].forEach.call(table.rows, function(row, i){
+					jQuery.each(row.cells, function() {
+						for(var j=0;j<column_name.length;j++)
+						{
+							if(i == 0 && this.textContent == column_name[j])
+							{
+								column_index.push(this.cellIndex);// to get the cell index of selected columns
+								flag=1;
+							}
+						}
+					});
+					if(i != 0 && flag == 1)
+					{ 
+						for(k=0;k<column_index.length;k++)
+						{
+							var cell = row.cells[column_index[k]];// to get the cells for a particular column index
+							var number=cell.innerText;
+							
+								cell.innerHTML="<a>"+number+"</a>";  // Giving the Drill down column as link(clickable).
+								$(cell).css({"text-decoration" : "underline"});
+								$(cell).addClass("drilldwn");//Adding class 'Drill down ' to it.
+							  
+						}
+					}
+				});
+			}
+			//To get the  value for selected drill down 
+			function GetValue(table) 
+			{
+			   var n=0;
+			   selCellValue=[];// to get all the values in array
+			   sel_column_index=[];//to get the column index of selected values
+				[].forEach.call(table.rows, function(row, n){
+				
+					jQuery.each(row.cells, function() {
+						
+					   for(var i=0;i<valArr[currentColumnIndex].length;i++)
+					   {
+							if(n == 0 && this.textContent == valArr[currentColumnIndex][i])
+							{
+								sel_column_index.push(this.cellIndex+'_'+i);//to store the column index from where the values is to be fetched and to the same column the value is to be assigned 
+							//	console.log("sel_column_index",sel_column_index)
+							}
+						
+						}		
+								
+							
+					});
+					
+				//	 sel_column_index.sort(function(a, b){return a-b});
+					if(n ==currentRowPosition+1)//since 1st data row after thead row is counted as 0.
+					{ 
+						for(k=0;k<sel_column_index.length;k++)
+						{
+						    var sel_column_index_arr=sel_column_index[k].split("_");
+							var cell = row.cells[sel_column_index_arr[0]];
+							selCellValue.push(cell.innerText+'_%_'+sel_column_index_arr[1]);//store the value with the index
+						//	console.log("selCellValue",selCellValue);  
+						  
+							//	cell.innerHTML="<a>"+number+"</a>";
+							//	$(cell).css({"text-decoration" : "underline"});
+							//	$(cell).addClass("drilldwn");
+							  
+						}
+					}
+				});
+			}
+			
+			}
+			
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['RenderTable'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['RenderTable'+id]);
+			}
+				
+					
+		]]>
+	</snippet>
+	
+    <uiSnippet>
+		<![CDATA[
+		   <div id="stage1" style="overflow-y:auto;overflow-x:hidden;max-height:300px">  
+		   
+		      <div class="row" style="height:10px;">
+
+		      </div>
+			   
+				<div class="row">
+								<div class="col-sm-1">
+								</div>
+								<div class="col-sm-2">
+								   <div class="columnsDillDown" style="font-weight:bold;">Columns to have drill down </div>
+								</div>
+								<div id="columnsForSelection"  class="col-sm-8">	
+								</div>
+								<div class="col-sm-1" id="loadMore">
+								</div>
+				</div>
+			
+			</div>
+			
+			<style>
+			#overlay{
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+				background-color: #000;
+				filter:alpha(opacity=50);
+				-moz-opacity:0.5;
+				-khtml-opacity: 0.5;
+				opacity: 0.5;
+				z-index: 10000;
+			}
+			</style>
+
+		<script>
+		     adhocScripts.resetAll();
+		//	 $("#moreProperties").hide();
+			 var checkedColumns=[];
+			 var  columnNames1=[]; // stores the checked columns
+		//	 var selText=[];
+			 var columnNames=[]; // stores all the column names on the report
+		//	 var selectedClmnArr=[];
+		//	 var selectedClmnArrVal=[];
+			 var paramNameArr=[];
+			 var paramValArr=[];
+			 var customParamNameArr=[];// stores the name of  custom  parameters of the selcted column .
+			 var customParamNameArrSel=[];
+			 var customParamValArrSel=[];
+			 var customParamValArr=[];
+			 var clmnNameArr=[];   // stores all the checked column at respective index
+			 var nameArr=[];     // stores the name of all the parameters for all columns at respective index(array of arrays)
+			 var nameArrSel=[]; // stores the name of already selected parameters for all columns at respective index(array of arrays)
+			 var valArr=[];     // stores the value of all the parameters for all columns at respective index
+			 var valArrSel=[];  // stores the value of already selected parameters for all columns at respective index
+			 var customNameArr=[]; // stores the name of all the custom  parameters for a column at particular index
+			 var customNameArrSel=[];//stores the name  of all the already selected custom  parameters for a column at particular index
+			 var customValArr=[];
+			 var customValArrSel=[];
+			 var url=[];
+			 var logicalUrl=[];
+			 var urlSel=[];
+			 var currIdIndex;
+			 var currIndex;
+			 var enableIPC=[];
+			 var renderHere=[];
+			 var newTab=[];
+			 var selectedActualPath;
+			 var selectedLogicalPath;
+			 var parentWindowTitle;
+			 var parentWindowUrl;
+			 var selectedActualPathArr=[];
+			 var fileStr;
+			   var folderPth;
+			   var reportData;
+			   var formData={};
+			   var reportSelectedUrl="";
+			   var idArr=[];
+			 
+			 
+			 
+			
+			/* for(var i=0;i<window.frames[0].hi_container._values.reportData.columns.length;i++)
+				{
+					columnNames.push(window.frames[0].hi_container._values.reportData.columns[i].label);
+	
+				}  	*/
+				
+				
+				 for(var j=1;j<=Object.keys(window.frames[0].__hi_result.metadata[0]).length;j++)
+				{ 
+					columnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+	
+				}
+				
+			    for(var i=0;i<columnNames.length;i++)  
+				{
+				    nameArr[i]="";
+				    valArr[i]="";
+				    customNameArr[i]="";
+				    customValArr[i]="";
+					url[i]="";
+					logicalUrl[i]="";
+					enableIPC[i]="";
+					columnNames1[i]="";
+				//	selText[i]=""; 
+				//	selectedClmnArr[i]="";
+				//	selectedClmnArrVal[i]="";
+					clmnNameArr[i]="";
+				//	paramNameArr[i]="";
+				//	paramValArr[i]="";
+			    }
+                 for(var i=0;i<columnNames.length;i++)
+				{
+				    
+					enableIPC[i]="false";
+					
+			    }
+				for(var i=0;i<columnNames.length;i++)
+				{
+				    
+					renderHere[i]="true";
+					
+			    }
+				for(var i=0;i<columnNames.length;i++)
+				{
+				    
+					newTab[i]="false";    
+					
+			    }
+				
+			     adhocScripts.setVariable("switch",params.switch);
+			     
+			   
+			    if(adhocScripts.getVariable("switch")=="false")
+				{
+				adhocScripts.setVariable("switch","true");	
+				adhocScripts.setVariable("columnNames1",columnNames1);
+			//	adhocScripts.setVariable("selText",selText);
+				
+				adhocScripts.setVariable("columnNames",columnNames);
+			//	adhocScripts.setVariable("selectedClmnArr",selectedClmnArr);
+			//	adhocScripts.setVariable("selectedClmnArrVal",selectedClmnArrVal);
+				adhocScripts.setVariable("paramNameArr",paramNameArr);
+				adhocScripts.setVariable("paramValArr",paramValArr);
+				adhocScripts.setVariable("customParamValArr",customParamValArr);
+				adhocScripts.setVariable("customParamNameArr",customParamNameArr);
+				adhocScripts.setVariable("clmnNameArr",clmnNameArr);
+				adhocScripts.setVariable("url",url);
+				adhocScripts.setVariable("logicalUrl",logicalUrl);
+				
+				adhocScripts.setVariable("valArr",valArr);
+				adhocScripts.setVariable("nameArr",nameArr);
+				adhocScripts.setVariable("enableIPC",enableIPC);
+				adhocScripts.setVariable("customNameArr",customNameArr);
+				adhocScripts.setVariable("customValArr",customValArr);
+				adhocScripts.setVariable("newTab",newTab);
+			    adhocScripts.setVariable("renderHere",renderHere);
+				adhocScripts.setVariable("parentWindowTitle","parentwindowtitle");
+				}
+				else
+				{
+				adhocScripts.setVariable("columnNames1",params.columnNames1);
+				adhocScripts.setVariable("columnNames",columnNames);
+			//	adhocScripts.setVariable("selText",params.selText);
+			//	adhocScripts.setVariable("selectedClmnArr",params.selectedClmnArr);
+			//	adhocScripts.setVariable("selectedClmnArrVal",params.selectedClmnArrVal);
+				adhocScripts.setVariable("paramNameArr",params.paramNameArr);
+				adhocScripts.setVariable("paramValArr",params.paramValArr);
+			    adhocScripts.setVariable("customParamValArr",params.customParamValArr);
+				adhocScripts.setVariable("customParamNameArr",params.customParamNameArr);
+				adhocScripts.setVariable("clmnNameArr",params.clmnNameArr);
+				adhocScripts.setVariable("url",params.url);
+				adhocScripts.setVariable("logicalUrl",params.logicalUrl);
+				
+				adhocScripts.setVariable("valArr",params.valArr);
+				adhocScripts.setVariable("nameArr",params.nameArr);
+				adhocScripts.setVariable("enableIPC",params.enableIPC);
+				adhocScripts.setVariable("customNameArr",params.customNameArr);
+				adhocScripts.setVariable("customValArr",params.customValArr);
+				  adhocScripts.setVariable("newTab",params.newTab);
+			     adhocScripts.setVariable("renderHere",params.renderHere);
+				 adhocScripts.setVariable("parentWindowTitle",params.parentWindowTitle);
+				
+				}
+		
+				 nameArr=adhocScripts.getVariable("nameArr");
+				 valArr=adhocScripts.getVariable("valArr");
+				 customNameArr=adhocScripts.getVariable("customNameArr");
+				 customValArr=adhocScripts.getVariable("customValArr");
+				 url=adhocScripts.getVariable("url");
+				 logicalUrl=adhocScripts.getVariable("logicalUrl");
+				 enableIPC=adhocScripts.getVariable("enableIPC");
+				 newTab=adhocScripts.getVariable("newTab");
+				 renderHere=adhocScripts.getVariable("renderHere");
+				  
+				
+				
+				
+				
+				var columnsForSelection = document.getElementById("columnsForSelection");
+				
+
+				for (var i = 0; i < columnNames.length; i++) {
+                    
+					var mainDiv = document.createElement('div');
+                    mainDiv.id="mainDiv_"+columnNames[i];
+                    mainDiv.className += " row";
+                    mainDiv.style = "margin-top:5px";
+					
+					var checkbox = document.createElement('input');
+						checkbox.type = "checkbox";
+						checkbox.name = "chec";
+						checkbox.value = columnNames[i];
+						checkbox.id = "checkbox_"+split(columnNames[i]);
+					    checkbox.className += " col-sm-1";
+					
+	
+						var label = document.createElement('label')
+						label.htmlFor = "text";
+						label.id = "label_"+split(columnNames[i]);
+						
+						label.className += " columnNameLabel col-sm-5";
+
+						label.appendChild(document.createTextNode(columnNames[i]));
+						
+						var loadMoreBttn = document.createElement('button');                                             
+    
+    
+					//	loadMoreBttn.id = "loadMoreBttn_"+split(columnNames[i]);
+						loadMoreBttn.id = "loadMoreBttn_"+i;
+					//	loadMoreBttn.value = "Load";
+						loadMoreBttn.innerHTML = "More";
+					//	loadMoreBttn.style = "position:relative;height: 25px;width: 60px;margin-left: 130px;";
+						loadMoreBttn.setAttribute("onclick", "loadMoreProp(this);");
+						loadMoreBttn.className += " loadMoreBttn btn btn-default pull-right ";
+	
+						
+					
+						
+					
+						mainDiv.appendChild(checkbox);
+						mainDiv.appendChild(label);
+				//		mainDiv.appendChild(variable);
+						mainDiv.appendChild(loadMoreBttn);
+						columnsForSelection.appendChild(mainDiv);
+				}
+				        
+						
+			 
+				
+			// On click of 'OK' buttun in the Load More part 
+			  
+			   $(".modal-footer .btn-primary").on('click', function()
+			   {
+				   //   $("#moreProperties").show();
+				   //   $("#stage1").hide();
+					  
+			     //    var paramNo=-1;
+				     var $boxes=[]; // to store the checked columns
+				//	 var selTextArr=[];
+					  idArr=[];  // to get the deleted id
+					 
+				//	 var paramNameArrSel=[];
+				//	 var paramValArrSel=[];
+				   
+					
+					   
+					   
+		     	// to get the checked boxes
+			
+				 var  $boxes= $('input[name="chec"]:checked');
+				 $boxes.each(function(i,val)
+				 {
+					 checkedColumns.push(val.value);
+					 adhocScripts.setVariable("columnNames1",checkedColumns);
+					 
+                  });
+			
+			// To get the checked columns in an array of size total columns. 
+				  for (var i = 0; i < columnNames.length; i++)
+				  {
+				    for (var j = 0; j < checkedColumns.length; j++)
+					  {
+						if(columnNames[i]==checkedColumns[j])
+						{
+						clmnNameArr[i]=checkedColumns[j];
+						break;
+						}
+						else
+						clmnNameArr[i]="";
+					  }
+				  }
+				 // console.log(clmnNameArr);
+				  adhocScripts.setVariable("clmnNameArr",clmnNameArr);
+			
+                  
+				  
+				 
+				 
+				  
+			   
+			   });
+				   var chk=[];
+			       chk=adhocScripts.getVariable("columnNames1"); 
+			   for (var i = 0; i < chk.length; i++)
+				  {
+				    $("#checkbox_"+split(chk[i])).attr('checked', true);// Checks it
+				  }
+				  
+			     function split(str) {
+				// console.log(str);
+					 var i = str.indexOf(" ");
+					 if(i > 0)
+					  return  str.slice(0, i);
+					 else
+					  return str;     
+					}
+					
+		//  On click of	 load more button		
+			function loadMoreProp(e)
+			 {
+			 
+			
+			    paramNo=-1;// to be used for no of parameters
+			   idArr=[];
+			   currIdIndex=e.id.split("_");
+			    currIndex=currIdIndex[1]; // current column on which the div is appended.
+			   
+			 // creating div for more properties 
+			   var overlay = jQuery('<div id="moreProperties" style="background-color:#ffffff;margin-top:30px;border:1px solid #ccc;border-radius:4px;width:400px">'+
+			   '<div class="row">'+
+					'<div class="col-sm-2">'+
+					'</div>'+
+					'<div class="col-sm-4">'+
+					 '<label><input type="checkbox" name="enableIPC" onclick="enableIPCftn(this);" value="">Enable IPC</label>'+
+					'</div>'+
+					'<div class="col-sm-6">'+	
+					'</div>'+
+				'</div>'+
+				'<div class="row" id="urlBrowser">'+
+							   '<div class="col-sm-8">'+
+								    '<input type="text" placeholder="Give Report URL" name="url" onchange ="runEverytime();" id="url" style="width:100%;margin-left:10px;height:30px;border-radius:4px;line-height:25px;">'+
+							   '</div>'+
+							   '<div class="col-sm-4">'+
+								  '<button  class="btn btn-primary" style="height:30px" value="Browse"id="FileBrowserBttn">Browse</button>'+
+							   '</div>'+
+					'</div>'+
+					'<div class="row" style="height:10px;">'+ 
+                        
+					'</div>'+
+					'<div class="row" id="open">'+
+					          '<div class="col-sm-6">'+ 
+                               '<label "class="checkbox-inline"><input type="checkbox" id="newTab_'+currIdIndex[1]+'"'+'name="newTab" value="newTab" onclick="newTabFtn(this)">Open in New Tab</label>'+							   
+					          ' </div>'+'<div class="col-sm-6">'+ 
+                               '<label "class="checkbox-inline"><input type="checkbox" name="renderHere" value="renderHere" onclick="renderHereFtn(this)">Open in Current Tab</label>'+							   
+					          ' </div>'+ 
+							  
+					'</div>'+
+					
+					'<div class="row" style="height:10px;">'+ 
+                        
+					'</div>'+
+					'<div class="row">'+ 
+                        '<div class="col-sm-2">'+  
+					    '</div>'+
+						'<div class="col-sm-3" id ="addBttndiv">'+  
+					    '</div>'+
+						'<div style="font-weight:bold;" class="col-sm-4" >'+ 
+                        ' PARAMETERS'+						
+					    '</div>'+
+						'<div class="col-sm-3">'+  
+					    '</div>'+
+					'</div>'+	
+					'<div class="row" style="margin-top:10px">'+ 
+                        '<div class="col-sm-1">'+  
+					    '</div>'+
+						'<div class="col-sm-10" id ="parentParamDiv">'+  
+					    '</div>'+
+						'<div class="col-sm-1">'+  
+					    '</div>'+
+		           '</div>'+
+             '</div>'					
+				);
+			//    $('#'e.id).append(overlay);
+			
+			
+			//handling the removal and appending of the more property div
+			 if (!$('#moreProperties').length) {
+
+			
+			 overlay.insertAfter('#'+e.id); //insert after the selected column
+			
+        
+             }
+			 else{
+		//	if (($( '#'+e.id ).next())[0].id=="moreProperties")
+			 $('#moreProperties').remove();
+			 overlay.insertAfter('#'+e.id);
+			 }
+		
+			// In case of enableIPC 'TRUE' hide the URL browser part 
+		       if(enableIPC[currIndex]=="true")
+					 {
+					   $('input[name=enableIPC]').attr('checked', true);
+					   $("#urlBrowser").hide();
+				       $("#open").hide();
+					 }
+					 else
+					 {
+					   $('input[name=enableIPC]').attr('checked', false);
+					   $("#urlBrowser").show();
+				       $("#open").show();
+					 }
+			
+            // To check the checkboxes of 'RenderHere' and 'Open in new tab'  to true			
+				 if(renderHere[currIndex]=="true")
+				 {
+				   $('input[name=renderHere]').attr('checked', true);
+				 }
+				 else
+				 {
+				   $('input[name=renderHere]').attr('checked', false);
+			     } 
+				 if(newTab[currIndex]=="true")
+				 {
+				   $('input[name=newTab]').attr('checked', true);
+				 }
+				 else
+				 {
+				   $('input[name=newTab]').attr('checked', false);
+			     }	 
+	  // Create 'Add' Button and add it to the parameters 
+			 var addBttn = document.createElement('button');
+						addBttn.id = "add";
+				//		addBttn.type = "button";
+						addBttn.value = "Add";
+						addBttn.className += " btn btn-primary btn-xs";
+				//		addBttn.style = "color: white";
+						
+						var span = document.createElement('span');
+						span.innerHTML= "Add";
+						
+						var icon = document.createElement('i');
+						icon.className += " fa fa-plus";
+						
+						addBttn.appendChild(span);
+						addBttn.appendChild(icon);
+						
+						var divAddBttn=document.getElementById("addBttndiv");
+			            divAddBttn.appendChild(addBttn);
+			           
+					    var parentParamDiv=document.getElementById("parentParamDiv");
+						
+						var inputParamDiv = document.createElement('div');
+                        inputParamDiv.id="inputParamDiv";
+                        inputParamDiv.className += " row";
+                        inputParamDiv.style = "overflow-y:auto;overflow-x:hidden;max-height:150px;width:375px;";
+						
+						 parentParamDiv.appendChild(inputParamDiv);
+						 
+					   nameArrSel=adhocScripts.getVariable("nameArr");
+				       valArrSel=adhocScripts.getVariable("valArr");
+				       customValArrSel=adhocScripts.getVariable("customValArr");
+				       customNameArrSel=adhocScripts.getVariable("customNameArr");
+				       urlSel=adhocScripts.getVariable("url");
+					   $("#url").val(urlSel[currIndex]);
+
+					   
+				
+					
+					
+				$("#FileBrowserBttn").on("click",function(){
+					HDIUI.filebrowser.fetchData().done(function(){
+				//	console.log("done");
+					HDIUI.filebrowser.show({footer:'<button id="applyPath" style="float:right;margin-top:10px;margin-right:10px;"  class="btn btn-primary">Select</button>',hideFilters:true});
+					HDIUI.filebrowser.setFilter("report");
+					$(document.getElementById("hdi-filebrowser").querySelector("#hdi-file-explorer")).on('dblclick', function(){
+					
+					//HDIUI.filebrowser.hide();
+					});
+					
+					$(document.querySelector("#hdi-filebrowser")).css('z-index', '1060');
+					
+					   
+					
+					$("#applyPath").on("click", function() { 
+					
+					selectedActualPath=HDIUI.filebrowser.selectedPath;
+					selectedLogicalPath=HDIUI.filebrowser.selectedPath;
+					
+					if(selectedActualPath == null || selectedLogicalPath == null){      
+						alert("Please select a report and then click on 'Select' button");   
+						return
+					}      		
+						
+					selectedActualPath=HDIUI.filebrowser.selectedPath.actual;
+					selectedLogicalPath=HDIUI.filebrowser.selectedPath.logical;
+					parentWindowTitle=parent.window.$(document).attr('title');
+					parentWindowUrl=$(location).attr('href');
+					
+					adhocScripts.setVariable("parentWindowTitle",parentWindowTitle);
+					
+					
+			
+			        if(selectedLogicalPath.indexOf("\\")!=-1)
+						{
+						 selectedLogicalPath = selectedLogicalPath.replace(/\\/g, "/");
+						}
+					if(selectedActualPath.indexOf("\\")!=-1)
+						{
+						 selectedActualPath = selectedActualPath.replace(/\\/g, "/");
+						}
+					selectedActualPathArr=selectedActualPath.split("/");
+			
+				    fileStr=selectedActualPathArr.pop();
+				    folderPth=selectedActualPathArr.join("/");
+			
+				
+							formData['dir']=folderPth;
+							formData['file']=fileStr;
+					var encodedFormData = btoa('{"dir":'+'"'+folderPth+'"'+',"file":'+'"'+fileStr+'"'+'}');		
+			
+				// Url to fetch parameters of selected report			
+				/*reportSelectedUrl=	baseUrl+'services?type=adhoc&serviceType=report&service=getReportForEdit&formData={"dir":'+'"'+formData.dir+'"'+',"file":'+'"'+formData.file+'"'+'}';*/
+			
+				reportSelectedUrl=	window.DashboardGlobals.baseUrl+'services?type=adhoc&serviceType=report&service=getReportForEdit&formData='+encodedFormData;
+				
+				if(fileStr.split('.')[1]=="report")
+				{
+				var xhr = createCORSRequest('GET', reportSelectedUrl);
+				  if (!xhr) {
+						//alert('CORS not supported');
+						return;
+					  }   
+					xhr.send();
+
+					xhr.onload = function() {
+						reportData = xhr.responseText;
+					};
+					
+					 xhr.onloadend = function() {
+					 
+					    getParameters();
+						
+			
+			         };
+			    $("#url").val("dir="+folderPth+"&file="+fileStr+"&mode=open");
+				logicalUrl[currIndex]=selectedLogicalPath;
+			//	console.log("url");
+			//	console.log($("#url").val());
+				 url[currIndex]=$("#url").val();
+			//	 console.log(url);
+			//	 console.log(url[currIndex]);
+				  adhocScripts.setVariable("logicalUrl",logicalUrl);
+				  adhocScripts.setVariable("url",url);
+				HDIUI.filebrowser.hide();
+				}
+                 
+                else{
+					alert("Please select a report");
+				}				 
+				
+					
+			            	}); 
+				 url[currIndex]=$("#url").val();
+			//	 console.log(url);
+			//	 console.log(url[currIndex]);
+				  adhocScripts.setVariable("logicalUrl",logicalUrl);
+				  adhocScripts.setVariable("url",url);
+			  everytime();
+				
+					
+			});
+			
+			
+				
+				$("#close-file-browser").on("click", function() {
+					
+			            	});
+			
+			 everytime();
+			
+			});	
+			
+	//To get the already applied parameters of the report to be opened and append it on the load more button.	
+			function getParameters()
+			{
+				 reportData = $.parseJSON(reportData);// To get the parameter data of the report to be opened.
+				 
+				 // console.log(reportData);
+			
+				 if(reportData.response.state.filters.length!=0)
+				 {
+				     for(var v=0;v<reportData.response.state.filters.length;v++)
+					   {
+					      
+					          paramNo++; // To increament the param no
+		
+							 
+							 
+							var paramDiv = document.createElement('div');
+							paramDiv.id="parameter_"+paramNo;
+							paramDiv.className += " row form-group form-group-sm parameters-group";
+			
+			// To create a div for param name
+			
+							 var paramName = document.createElement('input');
+								paramName.id = "paramName_"+paramNo;
+								paramName.type = "text";
+								paramName.name = "variable";
+								paramName.value=reportData.response.state.filters[v].label;// to give the param name
+								paramName.style= "margin-left:15px;border-radius:4px;height:30px;width:150px;";
+								paramName.className += " col-sm-4";
+                                paramName.placeholder = "Filter Name";	
+                                paramName.setAttribute("onchange", "paramNameValue(event);");	
+								
+					// To create a select  div having all the column names	in the options	
+                           var selectDiv = document.createElement("div");
+							selectDiv.style= "position:relative;border:0;padding:0;margin-left:4px;";
+							var displayValueStr='displayValue'+paramNo;
+							var idvalueStr='idValue'+paramNo;
+							
+		           // To create a select input  having all the column names	in the options	
+							var paramSelect = document.createElement("select");
+							paramSelect.setAttribute("id", "paramSelect_"+paramNo);
+							paramSelect.setAttribute("class", "col-sm-4");
+			
+							paramSelect.setAttribute("onchange", "selValue(event);");
+							
+							paramSelect.style= "position:absolute;border-radius:4px;height:30px;top:0px;left:170px;width:160px; height:30px;line-height:20px;padding:0;";
+							
+							var option = document.createElement("option");
+							  paramSelect.appendChild(option);
+							  
+							
+							if(typeof(window.frames[0].hi_container._values.requestData.filters) != 'undefined'){  
+					
+							
+							var parentReportFilters = [];
+							
+							for(var i=0;i<window.frames[0].hi_container._values.requestData.filters.length;i++)
+							{
+								parentReportFilters.push(window.frames[0].hi_container._values.requestData.filters[i].label);
+	
+							}  
+				
+				
+							for(var j=0;j<parentReportFilters.length;j++)
+							{
+								// columnNames.push(window.frames[0].hi_container._values.requestData.filters[j].label);
+								 var option = document.createElement("option");
+								 option.setAttribute("value","Filter_"+window.frames[0].hi_container._values.requestData.filters[j].id); 
+								 option.text = 'Filter_' + parentReportFilters[j];
+								 option.name = j;
+								 paramSelect.appendChild(option);
+				
+							}  
+							
+							}	
+						 
+							 for(var j=0;j<columnNames.length;j++)
+							 {
+							   var option1 = document.createElement("option");
+							   option1.setAttribute("value",columnNames[j]);
+							   option1.text = 'Column_' + columnNames[j];
+							   option1.name = j;
+							   paramSelect.appendChild(option1);
+							 }	
+							 
+							 // To create a input where we can give the custom values
+							 var textInput = document.createElement('input');
+							     
+								textInput.id = "displayValue_"+paramNo;
+								textInput.type = "text";
+								textInput.name = "displayValue"+paramNo;
+								textInput.setAttribute("onfocus","this.select()");
+								textInput.setAttribute("onchange","selValue(event);");
+					// To give this input above the select option,so it is visible
+					
+								textInput.style= "position:absolute;left:170px;width:140px;width:180px\9;#width:180px;height:30px;border-radius:4px; height:21px\9;#height:18px;border:1px solid #556;";
+					//			textInput.className += " col-sm-4";
+                                textInput.placeholder = "Type/Select a Value";
+								
+							var hiddenTextInput = document.createElement('input');
+							     
+								hiddenTextInput.id = "idValue_"+paramNo;
+								hiddenTextInput.type = "hidden";
+								hiddenTextInput.name = "idValue";
+							 
+							 
+							 
+							 selectDiv.appendChild(paramSelect);
+							 selectDiv.appendChild(textInput);
+							 selectDiv.appendChild(hiddenTextInput);
+							 
+							var delBttn = document.createElement('button');
+								delBttn.id = "delBttn_"+paramNo;
+								delBttn.value = "Del";
+						//		delBttn.innerHTML = "-";
+						//		delBttn.type = "button";
+								delBttn.className += " col-sm-2 delbtn btn btn-sm btn-danger";
+								delBttn.style= "margin-left:175px;height:30px;width:30px";
+						//		delBttn.className += " col-sm-2";
+						//		delBttn.setAttribute("onclick", "delet(e);");
+							
+								var icon = document.createElement('i');
+						       icon.className += " fa fa-trash";
+							
+							    delBttn.appendChild(icon);
+							
+							paramDiv.appendChild(paramName);
+							paramDiv.appendChild(selectDiv);
+							paramDiv.appendChild(delBttn);
+							inputParamDiv.appendChild(paramDiv);
+					   
+						 // to give the filter values to the input
+						    $("#displayValue_"+paramNo).val(reportData.response.state.filters[v].values);
+					      
+                       	  
+                         						 
+					   
+					   
+					   
+				 
+				 
+				 everytime();
+					
+					   }
+				 
+				 }
+				 
+				
+				 
+				 
+					 
+				 		 
+				 
+		// To delete the parameter		 
+			 $(".delbtn").on('click', function(e)
+			             {   
+	
+					
+					// To check if the parent element is del
+							if(e.target.parentElement.value=='Del')
+							{
+							  var idSplitArr=e.target.parentElement.id.split("_");
+							  idArr.push(idSplitArr[1]);// Push the paramno of the deleted in the idarr. 
+					
+						      e.target.parentElement.parentElement.remove();
+							}
+							else{
+							var idSplitArr=e.target.id.split("_");
+							idArr.push(idSplitArr[1]);
+						    e.target.parentElement.remove();
+							}
+							
+							everytime();
+				        });
+			 
+				}
+			
+				
+
+			function createCORSRequest(method, url) {
+			var xhr = new XMLHttpRequest();
+			if ("withCredentials" in xhr) {
+				//alert("Browser Chrome");
+				// XHR for Chrome/Firefox/Opera/Safari.
+				xhr.open(method, url, true);
+			} else if (typeof XDomainRequest != "undefined") {
+				//alert("Browser Internet Explorer");
+				// XDomainRequest for IE.
+				xhr = new XDomainRequest();
+				xhr.open(method, url);
+			} else {
+				// CORS not supported.
+				xhr = null;
+			}
+			return xhr;
+		}
+					    
+			
+     // To add the custom defined parameters in the div			
+				 for(var v=0;v<customNameArrSel[currIndex].length;v++)
+					   {
+					       if(customNameArrSel[currIndex][v]!='')
+						   {
+					          paramNo++;
+							 
+							 
+							var paramDiv = document.createElement('div');
+							paramDiv.id="parameter_"+paramNo;
+							paramDiv.className += " row form-group form-group-sm parameters-group";
+			
+							 var paramName = document.createElement('input');
+								paramName.id = "paramName_"+paramNo;
+								paramName.type = "text";
+								paramName.name = "variable";
+								paramName.value= customNameArrSel[currIndex][v];
+								paramName.style= "margin-left:15px;border-radius:4px;height:30px;width:150px;";
+								paramName.className += " col-sm-4";
+                                paramName.placeholder = "Filter Name";								
+                                paramName.setAttribute("onchange", "paramNameValue(event);");							
+							
+                           var selectDiv = document.createElement("div");
+							selectDiv.style= "position:relative;border:0;padding:0;margin-left:4px;";
+							var displayValueStr='displayValue'+paramNo;
+							var idvalueStr='idValue'+paramNo;
+							var paramSelect = document.createElement("select");
+							paramSelect.setAttribute("id", "paramSelect_"+paramNo);
+					//		paramSelect.setAttribute("onchange", "valueChange(this);");
+							paramSelect.setAttribute("class", "col-sm-4");
+			
+							paramSelect.setAttribute("onchange", "selValue(event);");
+							
+							paramSelect.style= "position:absolute;border-radius:4px;height:30px;top:0px;left:170px;width:160px; height:30px;line-height:20px;padding:0;";
+							
+							var option = document.createElement("option");
+							  paramSelect.appendChild(option);
+							 
+
+						if(typeof(window.frames[0].hi_container._values.requestData.filters) != 'undefined'){ 
+							
+							var parentReportFilters = [];
+							
+							for(var i=0;i<window.frames[0].hi_container._values.requestData.filters.length;i++)
+							{
+								parentReportFilters.push(window.frames[0].hi_container._values.requestData.filters[i].label);
+	
+							}
+							  
+							  
+						 
+							for(var j=0;j<parentReportFilters.length;j++)
+							{
+								// columnNames.push(window.frames[0].hi_container._values.requestData.filters[j].label);
+								 var option = document.createElement("option");
+								 option.setAttribute("value",window.frames[0].hi_container._values.requestData.filters[j].values);
+								 option.text = 'Filter_' + parentReportFilters[j];
+								 option.name = j;
+								 paramSelect.appendChild(option);
+				
+							}  
+						
+						}
+						 
+							 for(var j=0;j<columnNames.length;j++)
+							 {
+							   var option1 = document.createElement("option");
+							   option1.setAttribute("value",columnNames[j]);
+							   option1.text = 'Column_' + columnNames[j];
+							   option1.name = j;
+							   paramSelect.appendChild(option1);
+							 }	
+							 
+							 
+							 var textInput = document.createElement('input');
+							     
+								textInput.id = "displayValue_"+paramNo;
+								textInput.type = "text";
+								textInput.name = "displayValue"+paramNo;
+								textInput.setAttribute("onfocus","this.select()");
+								textInput.style= "position:absolute;left:170px;width:140px;width:180px\9;#width:180px;height:30px;border-radius:4px; height:21px\9;#height:18px;border:1px solid #556;";
+					//			textInput.className += " col-sm-4";
+                                textInput.placeholder = "Type/Select a Value";
+								textInput.setAttribute("onchange","selValue(event);");
+							var hiddenTextInput = document.createElement('input');
+							     
+								hiddenTextInput.id = "idValue_"+paramNo;
+								hiddenTextInput.type = "hidden";
+								hiddenTextInput.name = "idValue";
+							 
+							 
+							 
+							 selectDiv.appendChild(paramSelect);
+							 selectDiv.appendChild(textInput);
+							 selectDiv.appendChild(hiddenTextInput);
+							 
+							var delBttn = document.createElement('button');
+								delBttn.id = "delBttn_"+paramNo;
+								delBttn.value = "Del";
+						//		delBttn.innerHTML = "-";
+						//		delBttn.type = "button";
+								delBttn.className += " col-sm-2 delbtn btn btn-sm btn-danger";
+								delBttn.style= "margin-left:175px;height:30px;width:30px";
+						//		delBttn.className += " col-sm-2";
+						//		delBttn.setAttribute("onclick", "delet(e);");
+							
+								var icon = document.createElement('i');
+						       icon.className += " fa fa-trash";
+							
+							    delBttn.appendChild(icon);
+							
+							paramDiv.appendChild(paramName);
+							paramDiv.appendChild(selectDiv);
+							paramDiv.appendChild(delBttn);
+							inputParamDiv.appendChild(paramDiv);
+					// to give the custom values.    
+						 
+						    $("#displayValue_"+paramNo).val(customValArrSel[currIndex][v]);
+							
+					       
+						   
+						   
+						  
+						  } 
+                       	  
+                         						 
+					   }
+         // to append the already applied parameter values to the div 
+				 for(var v=0;v<nameArrSel[currIndex].length;v++)
+					   {
+					       if(nameArrSel[currIndex][v]!='')
+						   {
+					          paramNo++;
+							 
+							 
+							var paramDiv = document.createElement('div');
+							paramDiv.id="parameter_"+paramNo;
+							paramDiv.className += " row form-group form-group-sm parameters-group";
+			
+							 var paramName = document.createElement('input');
+								paramName.id = "paramName_"+paramNo;
+								paramName.type = "text";
+								paramName.name = "variable";
+								paramName.value= nameArrSel[currIndex][v];
+								paramName.style= "margin-left:15px;border-radius:4px;height:30px;width:150px;";
+								paramName.className += " col-sm-4";
+                                paramName.placeholder = "Filter Name";								
+                                paramName.setAttribute("onchange", "paramNameValue(event);");								
+							
+                           var selectDiv = document.createElement("div");
+							selectDiv.style= "position:relative;border:0;padding:0;margin-left:4px;";
+							var displayValueStr='displayValue'+paramNo;
+							var idvalueStr='idValue'+paramNo;
+							var paramSelect = document.createElement("select");
+							paramSelect.setAttribute("id", "paramSelect_"+paramNo);
+					//		paramSelect.setAttribute("onchange", "valueChange(this);");
+							paramSelect.setAttribute("class", "col-sm-4");
+				
+							paramSelect.setAttribute("onchange", "selValue(event);");
+							
+							paramSelect.style= "position:absolute;border-radius:4px;height:30px;top:0px;left:170px;width:160px; height:30px;line-height:20px;padding:0;";
+							
+							var option = document.createElement("option");
+							  paramSelect.appendChild(option);
+							  
+							 
+							if(typeof(window.frames[0].hi_container._values.requestData.filters) != 'undefined'){ 
+							
+							var parentReportFilters = [];
+							
+							for(var i=0;i<window.frames[0].hi_container._values.requestData.filters.length;i++)
+							{
+								parentReportFilters.push(window.frames[0].hi_container._values.requestData.filters[i].label);
+	
+							}
+						 
+							for(var j=0;j<parentReportFilters.length;j++)
+							{
+								// columnNames.push(window.frames[0].hi_container._values.requestData.filters[j].label);
+								 var option = document.createElement("option");
+								 option.setAttribute("value",window.frames[0].hi_container._values.requestData.filters[j].values);
+								 option.text = 'Filter_' + parentReportFilters[j];
+								 option.name = j;
+								 paramSelect.appendChild(option);
+				
+							}  
+							
+							}	
+						 
+							 for(var j=0;j<columnNames.length;j++)
+							 {
+							   var option1 = document.createElement("option");
+							   option1.setAttribute("value",columnNames[j]);
+							   option1.text = 'Column_' + columnNames[j];
+							   option1.name = j;
+							   paramSelect.appendChild(option1);
+							 }	
+							 
+							 
+							 var textInput = document.createElement('input');
+							     
+								textInput.id = "displayValue_"+paramNo;
+								textInput.type = "text";
+								textInput.name = "displayValue"+paramNo;
+								textInput.setAttribute("onfocus","this.select()");
+								textInput.style= "position:absolute;left:170px;width:140px;width:180px\9;#width:180px;height:30px;border-radius:4px; height:21px\9;#height:18px;border:1px solid #556;";
+					//			textInput.className += " col-sm-4";
+                                textInput.placeholder = "Type/Select a Value";
+								textInput.setAttribute("onchange","selValue(event);");
+								
+							var hiddenTextInput = document.createElement('input');
+							     
+								hiddenTextInput.id = "idValue_"+paramNo;
+								hiddenTextInput.type = "hidden";
+								hiddenTextInput.name = "idValue";
+							 
+							 
+							 
+							 selectDiv.appendChild(paramSelect);
+							 selectDiv.appendChild(textInput);
+							 selectDiv.appendChild(hiddenTextInput);
+							 
+							var delBttn = document.createElement('button');
+								delBttn.id = "delBttn_"+paramNo;
+								delBttn.value = "Del";
+						//		delBttn.innerHTML = "-";
+						//		delBttn.type = "button";
+								delBttn.className += " col-sm-2 delbtn btn btn-sm btn-danger";
+								delBttn.style= "margin-left:175px;height:30px;width:30px";
+						//		delBttn.className += " col-sm-2";
+						//		delBttn.setAttribute("onclick", "delet(e);");
+							
+								var icon = document.createElement('i');
+						       icon.className += " fa fa-trash";
+							
+							    delBttn.appendChild(icon);
+							
+							paramDiv.appendChild(paramName);
+							paramDiv.appendChild(selectDiv);
+							paramDiv.appendChild(delBttn);
+							inputParamDiv.appendChild(paramDiv);
+					   
+						 
+						    $("#displayValue_"+paramNo).val(valArrSel[currIndex][v]);
+							
+						   
+						   
+						  
+							
+					      } 
+                       
+                         						 
+					   }	
+
+
+                      $(".delbtn").on('click', function(e)
+			             {   
+							
+							if(e.target.parentElement.value=='Del')
+							{
+							  var idSplitArr=e.target.parentElement.id.split("_");
+							  idArr.push(idSplitArr[1]);
+						      e.target.parentElement.parentElement.remove();
+							}
+							else{
+							var idSplitArr=e.target.id.split("_");
+							idArr.push(idSplitArr[1]);
+						    e.target.parentElement.remove();
+							}
+							everytime();
+				        });							   
+			// on click of add button, add the new parameters		   
+			     $("#add").on('click', function()
+			      {
+							  paramNo++;
+							 
+							 
+							var paramDiv = document.createElement('div');
+							paramDiv.id="parameter_"+paramNo;
+							paramDiv.className += " row form-group form-group-sm parameters-group";
+			
+							 var paramName = document.createElement('input');
+								paramName.id = "paramName_"+paramNo;
+								paramName.type = "text";
+								paramName.name = "variable";
+								paramName.style= "margin-left:15px;border-radius:4px;height:30px;width:150px;";
+							//	paramName.value= checkedColumns[i];
+								paramName.className += " col-sm-4";	
+								paramName.placeholder = "Filter Name";	
+								paramName.setAttribute("onchange", "paramNameValue(event);");	
+								
+							var selectDiv = document.createElement("div");
+							selectDiv.style= "position:relative;border:0;padding:0;margin-left:4px;";
+							var displayValueStr='displayValue'+paramNo;
+							var idvalueStr='idValue'+paramNo;
+							var paramSelect = document.createElement("select");
+							paramSelect.setAttribute("id", "paramSelect_"+paramNo);
+					//		paramSelect.setAttribute("onchange", "valueChange(this);");
+							paramSelect.setAttribute("class", "col-sm-4");
+				/*		paramSelect.setAttribute("onchange", "document.getElementById(displayValueStr).value=this.options[this.selectedIndex].text; document.getElementById(idvalueStr).value=this.options[this.selectedIndex].value;");*/
+							paramSelect.setAttribute("onchange", "selValue(event);");
+							
+							paramSelect.style= "position:absolute;border-radius:4px;height:30px;top:0px;left:170px;width:160px; height:30px;line-height:20px;padding:0;";
+							
+							var option = document.createElement("option");
+							  paramSelect.appendChild(option);
+							  
+							if(typeof(window.frames[0].hi_container._values.requestData.filters) != 'undefined'){ 
+							
+							var parentReportFilters = [];
+							
+							for(var i=0;i<window.frames[0].hi_container._values.requestData.filters.length;i++)
+							{
+								parentReportFilters.push(window.frames[0].hi_container._values.requestData.filters[i].label);
+	
+							}  
+						 
+							for(var j=0;j<parentReportFilters.length;j++)
+							{
+								// columnNames.push(window.frames[0].hi_container._values.requestData.filters[j].label);
+								 var option = document.createElement("option");
+								 option.setAttribute("value",'Filter_'+window.frames[0].hi_container._values.requestData.filters[j].id);
+								 option.text = 'Filter_' + parentReportFilters[j]; 
+								 option.name = j;
+								 paramSelect.appendChild(option);
+				
+							}  
+							
+							}
+						 
+							 for(var j=0;j<columnNames.length;j++)
+							 {
+							   var option1 = document.createElement("option");
+							   option1.setAttribute("value",columnNames[j]);
+							   option1.text = 'Column_' + columnNames[j];
+							   option1.name = j;
+							   paramSelect.appendChild(option1);
+							 }	
+							 
+							 
+							 var textInput = document.createElement('input');
+							     
+								textInput.id = "displayValue_"+paramNo;
+								textInput.type = "text";
+								textInput.name = "displayValue"+paramNo;
+								textInput.setAttribute("onfocus","this.select()");
+								textInput.style= "position:absolute;left:170px;width:140px;width:180px\9;#width:180px;height:30px;border-radius:4px; height:21px\9;#height:18px;border:1px solid #556;";
+					//			textInput.className += " col-sm-4";
+                                textInput.placeholder = "Type/Select a value";
+								textInput.setAttribute("onchange","selValue(event);");
+								
+							var hiddenTextInput = document.createElement('input');
+							     
+								hiddenTextInput.id = "idValue_"+paramNo;
+								hiddenTextInput.type = "hidden";
+								hiddenTextInput.name = "idValue";
+							 
+							 
+							 
+							 selectDiv.appendChild(paramSelect);
+							 selectDiv.appendChild(textInput);
+							 selectDiv.appendChild(hiddenTextInput);
+							 
+							var delBttn = document.createElement('button');
+								delBttn.id = "delBttn_"+paramNo;
+								delBttn.value = "Del";
+						//		delBttn.innerHTML = "";
+						//		delBttn.type = "button";
+								delBttn.className += " col-sm-2 delbtn btn btn-sm btn-danger";
+								delBttn.style= "margin-left:175px;height:30px;width:30px;";
+						//		delBttn.setAttribute("onclick", "delet(e);");
+							
+								var icon = document.createElement('i');
+						        icon.className += " fa fa-trash";
+							
+							    delBttn.appendChild(icon);
+							
+							paramDiv.appendChild(paramName);
+							paramDiv.appendChild(selectDiv);
+							paramDiv.appendChild(delBttn);
+							inputParamDiv.appendChild(paramDiv);
+                              
+							
+								
+								
+				
+						
+						$(".delbtn").on('click', function(e)
+			             {   
+							if(e.target.parentElement.value=='Del')
+							{
+							  var idSplitArr=e.target.parentElement.id.split("_");
+							  idArr.push(idSplitArr[1]);
+						      e.target.parentElement.parentElement.remove();
+							}
+							else{
+							var idSplitArr=e.target.id.split("_");
+							idArr.push(idSplitArr[1]);
+						    e.target.parentElement.remove();
+							}
+							everytime();
+				        });	
+						
+						everytime();
+						
+				  
+				  
+				  
+					
+                  });
+					     
+			   everytime();
+
+			 
+	 
+			} 
+	 //  To apply all the functionality on click of OK button
+	      function apply()
+			      {}
+		   function everytime()
+			      {
+				     
+				    var p=0;
+				
+				  
+				  // to get unique values in id array
+                    function unique(list) {
+						var result = [];
+						$.each(list, function(i, e) {
+							if ($.inArray(e, result) == -1) result.push(e);
+						});
+						return result;
+					}   
+                              		
+					idArr=unique(idArr);
+					paramNameArr=[];
+					customParamNameArr=[];
+					paramValArr=[];
+					customParamValArr=[];
+				    for (var param = 0; param <=paramNo; param++)
+				    {
+					  if(idArr.length!=0)
+					   {
+						  if(idArr.indexOf(""+param)==-1)
+						  {  
+							 
+						     if(columnNames.indexOf($("#displayValue_"+param).val())==-1)
+							 {
+							    customParamNameArr.push($("#paramName_"+param).val());
+							    customParamValArr.push($("#displayValue_"+param).val());
+							 }
+							 else
+							 {
+							    paramNameArr.push($("#paramName_"+param).val());
+							    paramValArr.push($("#displayValue_"+param).val());
+							 }
+						  }
+					   }
+					   else
+					   {
+					      if(columnNames.indexOf($("#displayValue_"+param).val())==-1)
+							 {
+							    customParamNameArr.push($("#paramName_"+param).val());
+							    customParamValArr.push($("#displayValue_"+param).val());
+							 }
+							 else
+							 {
+							    paramNameArr.push($("#paramName_"+param).val());
+							    paramValArr.push($("#displayValue_"+param).val());
+							 }
+					   }
+		             }
+					/* var paramNameArrfilter = [];
+					 var paramValArrfilter = [];
+					 //console.log(paramNameArr);
+						for (var i = 0; i < paramNameArr.length; i++) {
+							if (paramNameArr[i] !="") {
+								paramNameArrfilter.push(paramNameArr[i]);
+								paramValArrfilter.push(paramValArr[i]);
+								
+							}
+						}*/
+			
+                   nameArr[currIndex]=paramNameArr;	
+                   valArr[currIndex]=paramValArr;
+				   customNameArr[currIndex]=customParamNameArr;
+				   customValArr[currIndex]=customParamValArr;
+				    url[currIndex]=$("#url").val();
+				  adhocScripts.setVariable("logicalUrl",logicalUrl);
+				  adhocScripts.setVariable("url",url);
+                  
+				   
+		//		  adhocScripts.setVariable("selectedClmnArrVal",selectedClmnArrVal);
+		//		  adhocScripts.setVariable("selectedClmnArr",selectedClmnArr);
+				  adhocScripts.setVariable("paramNameArr",paramNameArr);
+				  adhocScripts.setVariable("nameArr",nameArr);
+				  adhocScripts.setVariable("valArr",valArr);
+				  adhocScripts.setVariable("customNameArr",customNameArr);
+				  adhocScripts.setVariable("customValArr",customValArr);
+				  adhocScripts.setVariable("customParamNameArr",customParamNameArr);
+				  adhocScripts.setVariable("customParamValArr",customParamValArr);
+				 
+				  
+				  }
+     //				$('#moreProperties').remove();
+				  
+				  
+				  function cancelBttnFtn()
+			      {
+				   $('#moreProperties').remove();
+				  }
+				  
+				  function newTabFtn(e)
+				   {
+				      if($(e).prop("checked") == true)
+					  {
+					     if(adhocScripts.getVariable("renderHere")[currIndex]=="true")
+						 {
+						   $('input[name=renderHere]').attr('checked', false);
+						   renderHere[currIndex]="false";
+						   adhocScripts.setVariable("renderHere",renderHere)
+						 }
+				    
+				            newTab[currIndex]="true";
+					      adhocScripts.setVariable("newTab",newTab);  
+					  }
+					 else if($(e).prop("checked") == false)
+					  {
+					      newTab[currIndex]="false";
+					      adhocScripts.setVariable("newTab",newTab);     
+					  
+				      }
+				  }
+
+				  
+			    function renderHereFtn(e)
+				   {
+				   
+					   if($(e).prop("checked") == true)
+					  {
+						if(adhocScripts.getVariable("newTab")[currIndex]=="true")
+							 {
+							   $('input[name=newTab]').attr('checked', false);
+							    newTab[currIndex]="false";
+							   adhocScripts.setVariable("newTab",newTab);
+							 }
+							 renderHere[currIndex]="true";
+						adhocScripts.setVariable("renderHere",renderHere);
+						
+					  }
+					  else if($(this).prop("checked") == false){
+					    renderHere[currIndex]="false";
+						adhocScripts.setVariable("renderHere",renderHere);
+					  }
+				   
+				   
+				   }
+				
+			function enableIPCftn(e){
+				   if($(e).prop("checked") == true){
+				
+				  enableIPC[currIndex]="true";
+					adhocScripts.setVariable("enableIPC",enableIPC);
+					$("#urlBrowser").hide();
+				    $("#open").hide();
+				   }
+				   else if($(e).prop("checked") == false){
+			
+				  enableIPC[currIndex]="false";
+					adhocScripts.setVariable("enableIPC",enableIPC);
+					$("#urlBrowser").show();
+				    $("#open").show();
+				  }
+				  everytime();
+			}
+			  
+		function selValue(e)
+					{
+					
+					  var selIdArr=e.target.id.split("_");
+					 
+					 $('#displayValue_'+selIdArr[1]).val(e.target.value);
+					 $('#idvalue_'+selIdArr[1]).val(e.target.value);
+				
+					  everytime();
+					} 	
+							
+				function paramNameValue(e)
+				{
+					everytime();
+				}
+				function runEverytime(e)
+				{
+					everytime();   
+				}
+           				
+							
+                 
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

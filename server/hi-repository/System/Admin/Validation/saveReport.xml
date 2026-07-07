@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<location type="directory" required="true"/>
+	<uuid type="file"/>
+	
+	<!--<jsFunction name="validate" language="groovy"><![CDATA[
+		import net.sf.json.JSONObject;
+
+		def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+			if(requestJson.location==null || requestJson.location.contains("metadata")){
+				responseJson.put("location", "The required key 'location' is invalid in formData "+requestJson.location)
+				}
+				if(requestJson.location==""){
+				responseJson.put("location", "Please select a folder to save");
+				}
+				return responseJson;
+			
+		}
+	 ]]>
+    </jsFunction>-->
+</formData>

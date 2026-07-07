@@ -1,0 +1,7 @@
+create database if not exists $databaseName;
+
+use $databaseName;
+
+CREATE TABLE IF NOT EXISTS  ${databaseName}_$collection USING com.mongodb.spark.sql OPTIONS (db '$databaseName', collection '$collection');
+
+use $databaseName

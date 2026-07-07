@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mappings>
+	<excludePatterns>
+		<pattern>.*js$</pattern>
+		<pattern>.*css$</pattern>
+		<pattern>.*png$</pattern>
+		<pattern>.*jpg$</pattern>
+		<pattern>.*jsp$</pattern>
+		<pattern>.*jpeg$</pattern>
+	</excludePatterns>
+	<validationEnabled>true</validationEnabled>
+	<mapping class="com.helicalinsight.validation.form.GenericValidation">
+		<url definition-file="scheduling.xml" pattern="/saveReport.html"/>
+		<url definition-file="email.xml" pattern="/sendMail.html"/>
+		<url definition-file="getEFWSolution.xml" pattern="/getEFWSolution.html"/>
+		<url definition-file="executeDatasource.xml" pattern="/executeDatasource.html"/>
+		<url definition-file="visualizeData.xml" pattern="/visualizeData.html"/>
+		<!--<url definition-file="fileSystemOperations.xml" pattern="/fileSystemOperations"/>-->
+		<url definition-file="updateEFWTemplate.xml" pattern="/updateEFWTemplate.html"/>
+		<!--<url definition-file="downloadReport.xml" pattern="/downloadReport.html"/>-->
+		<url definition-file="createUsers.xml" pattern="/admin/users"/>
+		<url definition-file="organisation.xml" pattern="/admin/organisations"/>
+		<url definition-file="roles.xml" pattern="/admin/roles"/>
+		<url definition-file="profile.xml" pattern="/admin/profiles"/>
+		<url definition-file="listDatasource.xml" pattern="/listDataSources.html"/>
+		<!--<url definition-file="getResources.xml" pattern="/getResources.html"/>-->
+		<url definition-file="exportData.xml" pattern="/exportData.html"/>
+		<url definition-file="visualizeAdhoc.xml" pattern="/visualizeAdhoc.html"/>
+		<url class="com.helicalinsight.validation.form.ServiceValidation" pattern="/services.html">
+			<serviceParameters definition-file="adhocCreateDatasource.xml" service="write" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="adhocCreateDatasource.xml" service="test" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="readDatasource.xml" service="read" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="adhocCreateDatasource.xml" service="update" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="updateShare.xml" service="update" serviceType="share" type="core"/>
+			<serviceParameters definition-file="fetchInfo.xml" service="fetchInfo" serviceType="share" type="core"/>
+			<serviceParameters definition-file="share.xml" service="retrieveSharedInfo" serviceType="share"
+                               type="core"/>
+			<!--<serviceParameters definition-file="getMetadata.xml" service="get" serviceType="metadata" type="adhoc"/>
+			<serviceParameters definition-file="getMetadataSecuritySettings.xml" service="security"
+                               serviceType="metadata" type="adhoc"/>
+			<serviceParameters definition-file="getSecurity.xml" service="getSecurity" serviceType="metadata"
+                               type="adhoc"/>
+			<serviceParameters definition-file="access.xml" service="access" serviceType="metadata" type="adhoc"/>
+			<serviceParameters definition-file="fetchMetadata.xml" service="fetchMetadata" serviceType="metadata"
+                               type="adhoc"/>
+
+			<serviceParameters definition-file="deleteMetadata.xml" service="delete" serviceType="metadata"
+                               type="adhoc"/>
+
+			<serviceParameters definition-file="getFunctions.xml" service="getFunctions" serviceType="metadata"
+                               type="adhoc"/>
+			<serviceParameters definition-file="metadataWorkflow.xml" service="metadataWorkflow" serviceType="metadata"
+                               type="adhoc"/>
+			<serviceParameters definition-file="metadataWorkflow.xml" service="saveWorkflow" serviceType="metadata"
+                               type="adhoc"/>
+			<serviceParameters definition-file="evaluateSecurity.xml" service="evaluateSecurity" serviceType="metadata"
+                               type="adhoc"/>
+            <serviceParameters definition-file="updateMetadata.xml" service="update" serviceType="metadata"
+                               type="adhoc"/>-->
+			<serviceParameters definition-file="readDatasource.xml" service="quickTest" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="executeQuery.xml" service="executeQuery" serviceType="report"
+                               type="adhoc"/>
+			<serviceParameters definition-file="fetchData.xml" service="fetchData" serviceType="report" type="adhoc"/>
+			<serviceParameters definition-file="saveReport.xml" service="saveReport" serviceType="report" type="adhoc"/>
+			<serviceParameters definition-file="deleteReport.xml" service="deleteReport" serviceType="report"
+                               type="adhoc"/>
+			<serviceParameters definition-file="generateQuery.xml" service="generateQuery" serviceType="report"
+                               type="adhoc"/>
+			<serviceParameters definition-file="visualizationComponent.xml" service="visualize" serviceType="report"
+                               type="adhoc"/>
+			<serviceParameters definition-file="getReport.xml" service="getReport" serviceType="report" type="adhoc"/>
+			<serviceParameters definition-file="getReport.xml" service="getReportForEdit" serviceType="report"
+                               type="adhoc"/>
+			<serviceParameters definition-file="saveCustomScript.xml" service="save" serviceType="customScript"
+                               type="adhoc"/>
+			<serviceParameters definition-file="editCustomScript.xml" service="update" serviceType="customScript"
+                               type="adhoc"/>
+			<!--<serviceParameters definition-file="fetchCustomScript.xml" service="fetch" serviceType="customScript"
+                               type="adhoc"/>-->
+			<serviceParameters definition-file="deleteScript.xml" service="delete" serviceType="customScript"
+                               type="adhoc"/>
+			<serviceParameters definition-file="designer.xml" service="designer" serviceType="efwdd" type="dashboard"/>
+			<serviceParameters definition-file="fetchDesigner.xml" service="fetch" serviceType="efwdd"
+                               type="dashboard"/>
+			<serviceParameters definition-file="deleteDesigner.xml" service="delete" serviceType="efwdd"
+                               type="dashboard"/>
+			<serviceParameters definition-file="monitorSchedule.xml" service="schedule" serviceType="scheduling"
+                               type="monitor"/>
+			<serviceParameters definition-file="listingValidation.xml" service="listing" serviceType="dataSource"
+                               type="core"/>
+			<serviceParameters definition-file="deleteDrillFiles.xml" service="deleteUploadedDrillFiles" serviceType="dataSource"  type="core"/>
+			<!-- <serviceParameters definition-file="generateHCRReport.xml" service="generateReport" serviceType="report"  type="hcr"/> -->
+			<!-- <serviceParameters definition-file="saveHCRReportState.xml" service="saveReportState" serviceType="report"  type="hcr"/> -->
+			<!-- <serviceParameters definition-file="executeReportQueryForHCR.xml" service="executeReportQuery" serviceType="report"  type="hcr"/> -->
+			<serviceParameters definition-file="fetchHCRReportState.xml" service="fetchReportState" serviceType="report"  type="hcr"/>
+			<serviceParameters definition-file="deleteHCRReportState.xml" service="deleteReportState" serviceType="report"  type="hcr"/>
+			<serviceParameters definition-file="dataSourceDeleteValidation.xml" service="delete" serviceType="dataSource"  type="core"/>
+			<serviceParameters definition-file="drillManagerValidation.xml" service="drill" serviceType="dataSource" type="core"/>
+		</url>
+	</mapping>
+</mappings>

@@ -1,0 +1,10 @@
+.databases {
+        background: url("../images/data_sources/database-logos.png") no-repeat;
+        /* // background: url("../../../build/images/hi-metadata/Joins_images/Full.png") no-repeat; */
+        background-size: 305px 244px;
+        display: block;
+        /* // margin: 5px; */
+        background-position: -188px -144px;
+        width: 20px;
+        height: 22px;
+    }

@@ -1,0 +1,9 @@
+<dialects>
+	<sql-server-db enabled="true">
+		<opening_square_bracket>[</opening_square_bracket>
+		<closing_square_bracket>]</closing_square_bracket>
+	</sql-server-db>
+	<common-db-literals enabled="true">
+		",`
+	</common-db-literals>
+</dialects>

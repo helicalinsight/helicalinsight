@@ -1,0 +1,42 @@
+.hr-dropdown-menu {
+  width: 210px;
+  border: 1px solid #ddd;
+}
+.hr-report-area-open {
+  width: 80%;
+  height: 100%;
+  float: left;
+}
+.hr-report-area-open-fullscreen {
+  width: 100%;
+}
+.hr-editing-area-open {
+  width: 20%;
+  height: 100%;
+  float: left;
+}
+.hr-taskbar-csv-icon {
+  width: 13px;
+  // margin-right: 2px;
+}
+// .hr-taskbar-csv-icon + span {
+//   margin-left: 4px !important;
+// }
+
+.pivot-icon {
+  position: relative;
+  left: -6px;
+}
+.vf-icon-new {
+  position: relative;
+  left: 4px;
+}
+
+.hi-preview {
+  color: blue;
+}
+
+.hr-metadata-container-disabled {
+	pointer-events: none;
+	opacity: 0.5;
+}

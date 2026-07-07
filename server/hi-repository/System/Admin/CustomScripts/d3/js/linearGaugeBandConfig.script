@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3_js_linearGaugeBandConfig</scriptId>
+    <scriptType>js</scriptType>
+	<name>Bands Configuration</name>
+    <group>D3Gauge</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Linear/Circular gauge bands configuration</description>
+    <icon>/images/scriptIcons/BandConfig.png</icon>
+	<snippet>
+	<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			
+			
+			var ftnObj = {};
+			
+			ftnObj['setchartValueBandCustomization'+id]= function(d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = colorBands(viz_Options);
+				d.set("viz_Options",viz_Options);
+				
+			}
+			
+			ftnObj['extendchartValueBandCustomization'+id]= function(preExecution, d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = colorBands(viz_Options);
+				
+			}
+	
+
+		/*	function setchartValueBandCustomization(d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = colorBands(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+
+			function extendchartValueBandCustomization(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = colorBands(viz_Options);
+			}*/
+	
+		function colorBands(viz_Options){
+		  var bands = ${conditionArr};
+		  var numberOfbands = bands.length;
+		  var bandsObject = {};
+		  for(i = 0; i < numberOfbands; i++){
+			var rangearray=[];
+			var temparray=[];
+			var tempObject = {};
+			rangearray.push(bands[i].value1);
+			rangearray.push(bands[i].value2);
+			temparray.push(rangearray);
+			temparray.push(bands[i].color);
+			tempObject.config = temparray;
+			bandsObject["block"+(i+1)] = tempObject;
+		  }
+		  viz_Options.chartOptions.linearGaugeBand=bandsObject;
+		  return viz_Options;
+		};	
+		
+		if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setchartValueBandCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendchartValueBandCustomization'+id]);
+			}
+
+
+		
+]]>
+</snippet>
+ <parameters>
+		<parameter value="[]" name="conditionArr" type= "String" />
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		<div id="addButtonPanel" class="col-sm-12">
+        <label for='addButton' class='col-sm-4' >Add New condition</label>
+        <button id='addButton' class='col-sm-2 btn btn-primary' onclick='addConditionPanel({color: "rgba(124,184,47,1)", value1: "", value2: ""}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+			<script>
+				adhocScripts.resetAll();
+
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+				var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+				var tgtPanel = 'conditionList';
+				function createConditionList(conditionArr){
+				  if(conditionArr.length == 0){
+					//conditionArr.push({color: "#7cb82f", condition: "Between", value1: "", value2: ""});
+				  }
+
+				  for(var i = 0 ; i < conditionArr.length; i++){
+					var div = createConditionPanel(conditionArr[i], i);
+					document.getElementById(tgtPanel).appendChild(div);
+					spectrumFtn('input_color_'+i, conditionArr[i]);
+				  }
+				}
+		
+		createConditionList(conditionArr, tgtPanel);
+
+        function addConditionPanel(object, tgtPanel){
+          conditionArr.push(object);
+          var index = conditionArr.length-1;
+          var div = createConditionPanel(object, index);
+          document.getElementById(tgtPanel).appendChild(div);
+          spectrumFtn('input_color_'+index, object);
+        }
+
+        function createConditionPanel(object, index){
+          var conditionOptions = ['Between', 'Equals', 'Not Equals', 'Less Than', 'Greater Than'];
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12';
+
+          /*************** Set Value 1 *******************/
+          var divVal1 = document.createElement('div');
+          divVal1.className = 'form-group col-sm-3 value_1';
+        	divVal1.id = 'div_value1_'+index;
+
+          var labelVal1 = document.createElement('label');
+          labelVal1.for = 'input_value1_'+index;
+          labelVal1.innerHTML = 'Start Value';
+
+          var inputVal1 = document.createElement('input');
+          inputVal1.type = 'text';
+          inputVal1.className = 'form-control';
+          inputVal1.id = 'input_value1_'+index;
+          inputVal1.value = object.value1;
+          inputVal1.onchange = setOnChange;
+
+          /*if(object.condition != 'Between')
+            inputVal1.disabled = 'disabled';*/
+
+          divVal1.appendChild(labelVal1);
+          divVal1.appendChild(inputVal1);
+
+          form.appendChild(divVal1);
+
+          /*************** Set Value 2 *******************/
+          var divVal2 = document.createElement('div');
+          divVal2.className = 'form-group col-sm-3 value_2';
+          divVal2.id = 'div_value2_'+index;
+
+          var labelVal2 = document.createElement('label');
+          labelVal2.for = 'input_value2_'+index;
+          labelVal2.innerHTML = 'End Value';
+
+          var inputVal2 = document.createElement('input');
+          inputVal2.type = 'text';
+          inputVal2.className = 'form-control';
+          inputVal2.id = 'input_value2_'+index;
+          inputVal2.value = object.value2;
+          inputVal2.onchange = setOnChange;
+
+          divVal2.appendChild(labelVal2);
+          divVal2.appendChild(inputVal2);
+
+          form.appendChild(divVal2);
+
+          /*************** Set Color *******************/
+          var divColorVal = document.createElement('div');
+          divColorVal.className = 'form-group col-sm-2 color';
+        	divColorVal.id = 'div_color_'+index;
+
+          var labelColorVal = document.createElement('label');
+         // labelColorVal.for = 'input_color_'+index;
+          labelColorVal.innerHTML = 'Color';
+
+          var inputColorVal = document.createElement('div');
+          //inputColorVal.type = 'text';
+          //inputColorVal.className = 'form-control';
+          inputColorVal.id = 'input_color_'+index;
+          //inputColorVal.onchange = setOnChange;
+          //inputColorVal.value = object.color;
+
+          divColorVal.appendChild(labelColorVal);
+          divColorVal.appendChild(inputColorVal);
+
+          form.appendChild(divColorVal);
+
+          /*********************Delete Button************************/
+          var delButton = document.createElement('button');
+          delButton.id = 'delete_'+index;
+          delButton.classList = 'btn btn-danger';
+          delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+          delButton.onclick = function(d){
+            var index = d.target.id.split('_')[1];
+            conditionArr.splice(index, 1);
+            adhocScripts.setVariable("conditionArr", conditionArr);
+            $(this).parent().remove();
+          };
+          delButton.style.marginTop = '25px';
+
+          form.appendChild(delButton);
+
+          return form;
+
+
+
+				function setOnChange(d){
+					var len = d.target.id.split('_').length;
+					var x = d.target.id.split('_')[2];
+					var key = d.target.id.split('_')[1];
+					 var val = d.target.value;
+
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);
+				  }
+				}
+		
+				function setColorValue(paylod){			  
+					var len = paylod['id'].split('_').length;
+					var x = paylod['id'].split('_')[2];
+					var key = paylod['id'].split('_')[1];
+					var val = paylod['color'];
+					
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);			  
+				}
+
+				function spectrumFtn(id, Obj){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.color) ? Obj.color : '#ffffff' ,
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';	
+								setColorValue({id:id,color:rgbaCode});
+								//setColorValue({id:id,color:color['hexCode']});
+							}
+						});		
+				}
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

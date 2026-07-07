@@ -1,0 +1,41 @@
+
+.functions-scrollbar{
+    height:29vh;
+    overflow: auto;    
+    .db-func-list-item{
+        cursor: pointer;
+        padding-left: 6px;
+        &:hover{
+            background-color:aliceblue;
+        }
+    }
+    .db-func-list-item-active{
+        background:#1890ff;
+        color:#fff;
+        &:hover{
+            background:#1890ff !important;
+            color:#fff !important;
+        }
+    }
+}
+.suggestion-column{
+    font-style: italic;
+    font-size:17px;
+    font-weight:bold;
+    margin-right:5px;
+}
+.auto-suggest-area{
+    
+}
+.db-editor-actions{
+    padding: 10px 0px;
+}
+
+.db-functions-editor{
+    .description{
+        font-size:12px;
+        height:58px;
+        overflow-y: auto;
+        width:100%;
+    }
+}

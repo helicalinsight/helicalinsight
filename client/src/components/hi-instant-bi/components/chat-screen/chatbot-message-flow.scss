@@ -1,0 +1,9 @@
+.chatbot-message-flow-popover {
+    max-width: 25%;
+    font-size: 12px;
+
+    .ant-popover-inner-content {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+}

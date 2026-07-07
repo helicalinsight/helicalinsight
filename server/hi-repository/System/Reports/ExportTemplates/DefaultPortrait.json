@@ -1,0 +1,14 @@
+{
+    "head": {
+        "title": "Portrait",
+        "description": "This mode is useful for printing any reports vertically across the page. (A4 size)"
+    },
+    "body": {
+        "viewPortWidth": 650,
+        "viewPortHeight": 1024,
+        "layout": "portrait",
+        "paperSize": "A4",
+        "hasScript": false
+
+    }
+}

@@ -1,0 +1,84 @@
+{
+	"table": {
+		"dataSetRun": {
+			"dataSetName": "Query1",
+			"dataSetExpression": "$P{REPORT_CONNECTION}"
+		},
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 500,
+			"width": 900,
+			"stretchType": "NoStretch",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff",
+			"positionType": "FixRelativeTop"
+		},
+		"tableStyle": {
+			"colorScheme": "Default",
+			"variation": "Default",
+			"useAlternateRowBackground": false,
+			"alternateRowBackColor": "#F5F5F5",
+			"tableHeaderStyleNameReference": "TABLE_TH",
+			"columnHeaderStyleNameReference": "TABLE_CH",
+			"tableDetailStyleNameReference": "TABLE_TD",
+			"alternateRowStyleNameReference": "TABLE_AD"
+		},
+		"columns": [
+			{
+				"width": 300,
+				"tableHeader": {
+					"height": 25,
+					"rowSpan": 1,
+					"styleNameReference": "TABLE_TH",
+					"enabled" : true,
+					"textField" : [] 
+				},
+				"tableGroupHeaders" : [{
+					"styleNameReference" : "TABLE_TH"
+				}],
+                "columnHeaderOfTable": {
+					"height": 25,
+					"rowSpan": 1,
+					"styleNameReference" : "TABLE_CH",
+					"enabled" : true,
+					"textField" : []
+				},
+                "columnData" : {
+					"height": 25,
+					"rowSpan": 1,
+					"styleNameReference": "TABLE_TD",
+					"enabled" : true,
+					"textField" : []
+				},
+				"alternateColumnData" : {
+					"height": 25,
+					"rowSpan": 1,
+					"styleNameReference": "TABLE_AD",
+					"enabled" : false,
+					"textField" : []
+				},
+				"columnFooterOfTable" : {
+					"height" : 25,
+					"rowSpan": 1,
+					"styleNameReference" : "TABLE_CF",
+					"enabled" : true,
+					"textField" : []
+				},
+				"tableGroupFooters" : [{
+								"styleNameReference" : "TABLE_TF"
+								}],
+				"tableFooter" : {
+					"height" : 25,
+					"rowSpan": 1,
+					"styleNameReference" : "TABLE_TF",
+					"enabled" : true,
+					"textField" : []
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,47 @@
+.hi-sortable-table {
+  .row-dragging {
+    background: #fafafa;
+    border: 1px solid #ccc;
+  }
+
+  .ant-table-thead > tr > th,
+  .ant-table-tbody > tr > td,
+  .ant-table tfoot > tr > th,
+  .ant-table tfoot > tr > td {
+    padding: 0px !important;
+  }
+  .tr {
+    padding: 0px !important;
+  }
+  .td {
+    padding: 0px !important;
+  }
+
+  .row-dragging td {
+    padding: 0px;
+  }
+
+  .row-dragging .drag-visible {
+    visibility: visible;
+  }
+}
+.hi-parameter-drawer {
+  position: "absolute";
+  overflow: hidden !important;
+  .ant-drawer-body {
+    scrollbar-width: thin;
+  }
+  // .ant-drawer-header {
+  //   padding: 0px !important;
+  // }
+  .ant-drawer-body {
+    padding: 5px !important;
+  }
+
+  
+  @media screen and (max-width: 900px) {
+    .ant-drawer-content-wrapper {
+      width: 70vw !important;
+    }
+  }
+}

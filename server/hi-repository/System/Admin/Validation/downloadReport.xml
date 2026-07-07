@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<format required="true" type="custom" expression="^(?i)(png|jpg|pdf|xls)$"/>
+	<dir  type="directory"/>
+	<filename required="true" type="file"/>
+	<reportType required="true" type="reportType"/>
+	<reportNameParam required="true" />
+	<resultDirectory  type="directory"/>
+	
+</formData>

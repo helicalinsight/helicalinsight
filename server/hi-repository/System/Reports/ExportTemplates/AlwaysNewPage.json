@@ -1,0 +1,16 @@
+{
+    "head": {
+        "title": "Always New Page",
+        "description": "Always New Page Extracts all the report from dashboard and prints individual report in a page",
+        "image-name": "Image Path"
+    },
+    "body": {
+        "viewPortWidth": 512,
+        "viewPortHeight": 768,
+        "paperWidth": 1024,
+        "paperHeight": 768,
+        "hasScript": "true",
+        "margin":"0cm",
+        "scaling":"1"
+    }
+}

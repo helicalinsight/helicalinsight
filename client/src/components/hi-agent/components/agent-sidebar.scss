@@ -1,0 +1,62 @@
+@import "../../../styles/variables.scss";
+
+.agent-sidebar-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.agent-sidebar-toggle {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid #ebebeb;
+  background-color: $background-color;
+}
+
+.agent-sidebar-toggle-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: $hi-text-color;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+
+  &:hover {
+    color: $hi-blue;
+  }
+
+  &.active {
+    background-color: $hi-white;
+    color: $hi-blue;
+    border-bottom-color: $hi-blue;
+    font-weight: 600;
+  }
+}
+
+.agent-sidebar-content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.semantic-metadata-nav-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  .me-sidebar {
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+    overflow-y: auto;
+  }
+}

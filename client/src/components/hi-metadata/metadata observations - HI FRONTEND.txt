@@ -1,0 +1,360 @@
+TASKS & OBSERVATIONS
+metadata 
+datasource-section
+	-  	handle service calls
+		each service call should happen only once - done
+		if there are no children then + should not be visible - done
+		refresh button should be available
+		search button to be available
+		loading placeholder
+		handle scroll
+		check/uncheck is taking some time
+		
+		
+I tables - col - info - joins - save/AS - edit
+II security 
+III views
+IV cube, multiple conns
+
+
+vlist for table-tree sample ---  https://codesandbox.io/s/shu-xing-biao-ge-forked-hfhzt?file=/src/index.tsx
+
+
+2-feb-2022
+	work on context menu options for tables in metadata-section
+		alias
+		duplicate
+		remove
+
+	STATUS
+		-	Worked on metadata-tables context menu options
+			o	Rename – added inline table rename – basic functionality – done, validations- pending
+			o	Duplicate – in progress
+				Able to create duplicate tables, but only one per table, cheking the issue
+			o	Remove – done, working fine
+
+
+3-feb-2022
+	work on context menu options for tables in metadata-section
+		duplicate
+		save/saveAS
+
+	STATUS
+	-	Save functionality – in progress
+		-	Worked on duplicating column – done
+			o	Faced issues when duplicating column and then duplicating table – the duplicated column in the original table is not present in duplicated tables
+		-	Worked on saving with duplicate tables – faced issue as those tables are not saving to .metadata file – fixed
+		-	Worked on adding fetching metadata after save and updating redux with the new keys for duplicated columns and tables
+		-	Remove columns functionality – in progress
+
+7-feb 2022
+	remove columns functionality - normal and duplicated table
+	save after removing tables
+
+	- faced issue when deleting a column and then saving file
+		when saving file the deleted columns is being fethed in 'get metadata' service which is called after save - fixed
+			fix : table id is being sent to add tables in formdata everytime
+	- duplicate table's columns are always sent in formdata - fixed
+	- after merging redux with fetched metadata after save - the duplicated column is not showing properly - this is happening with duplicated columns in duplicated table
+	- duplicated tables are not showing in '.metadata' file - fixed
+	- unable to delete columns which are duplicated
+	- duplicated columns in duplicated table is not adding in .metadata file
+
+	// dup columns, dup tables
+
+
+8-feb-2022
+	- after merging redux with fetched metadata after save - the duplicated column is not showing properly - this is happening with duplicated columns in duplicated table
+	- unable to delete columns which are duplicated - fixed
+	- duplicated columns in duplicated table is not adding in .metadata file - fixed
+	- first save : duplicate tables with duplicate columns not working - fixed
+	- when deleting a column in duplicated table it is also deleting column in actual table - fixed
+	- context menu is not working for columns after saving - fixed
+
+9th feb 2022
+	- work on joins (single and multi connection)
+
+10th feb 2022
+	- joins table clolumns	
+		sno, left col, join, right col, actions
+	- joins context menu options
+		discard column, swap columns || discard join
+
+11th feb 2022
+	- joins
+		work on adding new joins
+		add delete action to table
+		add auto completion for new column, drag column for new join
+		save metadata with joins
+		fix UI issue in joins-sortble-table
+		add virtualization
+
+14th feb 2022
+	- joins
+		highlight invalid joins - done
+		delete invalid joins - done
+		delete selected joins - functionality - done, UI - in progress
+		fix sortable-table-issue - few done, still pending
+		add virtualization to joins - in progress
+		services not woring properly
+		working on styles
+
+15th Feb 2022
+	- metadata
+		- datasource section styles
+		- save button mapping
+		- metadata section styles
+		- joins styles
+		- info tab - default state
+		- joins table issue
+		- fetch multiple joins at once
+
+	- updates
+		- working on metadata-page styles - in progress
+		- removed header, added footer - content to be added, content adding - in progress
+		- worked on virtualized table for dynamic height - in progress, hardcoded as of now
+		- worked on showing count of datasources
+		- worked on adding image for datasource type
+		- working on tooltips for datasoure
+		- added refresh datasource functionlality
+		- added loading bar for datasource
+		- added tooltip, icon for datasource
+
+16th Feb 2022
+	- metadata
+		- check for dynamic height for virtual table
+			- datasource table - done
+			- metadata table - in progress
+		- show selected tables/total tables in footer for table in datasource-section - done
+		- work on select all tables in datasource-section table - done
+		- work on metadata-section styles
+		- map save/save As button
+
+17th Feb 2022
+	-metadata
+		- metadata name in metadata-section - done
+		- metadata-table dynamic height - done
+		- metadata-section styles - in progress
+		- work on images for info tab - done
+		- added filebrowser to save - done
+		- added UI functionality for save and saveAs - done
+		- unselect table in ds when it is removed from metadata and also update no of tables selected in footer - done
+		- services - save/joins - pending
+		- use react-grid for resizing components - pending
+	issues 
+		- when selecting table in ds-section - the table is re-rendering
+		- scrolling issue in metadata-section table - happening when fetchign data from bknd
+
+
+22nd FEV 2022
+	-metadata
+		handle styles for joins table
+			metadata-section-table - done
+			ds-section-tables - done
+		enable editing, disable menu, apply photo filter section only if there is any datasource conn available - done
+		change cursor to pointer for connection names in editor - done
+		work on react-grid-layout - done
+		work on services for join and save
+			save - done, not tested yet
+			joins - pending
+		worked on joins issue - delete multiple joins 
+		work on responsiveness
+			- worked on DS info section - done
+			- grid responsiveness - in progress, need to check
+
+	issues 
+		- when selecting table in ds-section - the table is re-rendering
+		- scrolling issue in metadata-section table - happening when fetchign data from bknd
+
+
+METADATA PENDING POINTS FOR PHASE 1
+- DATASOURCE SEARCH 
+	OVERALL SEARCH
+	INDIVIDUAL DS SEARCH
+- METADATA SEACH
+- TEST CASES
+- UPDATE JOINS SERVICE
+- RESPONSIVENESS
+- EDIT FUNCTIONALITY
+- TEST CASES
+- ISSUES : 
+	RERENDERING-TABLE WHEN TABLE SELECT/DESELECT IN DATASOURCE-SECTION
+	SCROLLING ISSUE WHEN FETCHING COLUMNS IN METADATA-SECTION
+	EXPAND TO SPECIFIC DATASOURCE IN METADATA-EDIT
+
+23rd FEB 2022
+	- Metadata
+		- search - in progress
+		- Notifications - in progress
+		- update joins service
+		- edit functionality
+		- responsiveness
+
+24rd FEB 2022
+	- Metadata
+		- search - in progress
+		- Notifications - in progress
+		- update joins service
+		- edit functionality
+		- responsiveness
+		
+
+
+7th March 2022, 8th March 2022
+- testing
+	- fetching datassource-list
+		- derby - worked fine
+		- mysql - worked fine
+		- excel - didn't check
+		UI ISSUE, table flickering when fetching data/checking tables
+	- datasources context options
+		- select all/ deseclt all - worked fine
+		- reset - worked fine
+		- DS search - functionality working fine
+			ISSUE WITH UI
+		- add to metdata 
+			- single connection - worked fine
+			- multiple connetions - fixed, working fine
+	- table in metadata - context options
+		- remove table - removed and also updated selected count in ds-pane
+		- rename table - functionality working fine
+			if the table name is large then the '+' symbol is not visible to show columns - works fine
+			if the table name is large then the edit icon next to it is not visible - works fine
+			validation  - if name already exists - done
+						- length of name - done
+		- duplicate table
+			- single conection -woks fine
+			- multiple connection
+	- fetching columns in metadata-section
+		- column from tables when single connection - works fine
+		- fethching columns with multiple connections - not working, fixed, working fine
+		UI ISSUE - scroll issue when fetching columns data from backend
+	- Metadata name
+		- functionality working fine
+		- UI ISSUE when entering large name - fixed, working fine
+	
+9th March 2022
+	- INFO SECTION
+		- single connection - working fine,
+		- multiple connectin - working fine
+		- change ds - issue - fixed
+		- test connections notification - done
+		- refresh connection - implemented - done
+		- info tab is not active when in info section - fixed, working fine
+		- removing all tables from metadata-section is not removing datasources - fixed , working fine
+	
+	- METADATA SECTION COLUMNS
+		- ALIAS COLUMN - NOT YET IMPLEMENTED
+		- Duplicate column - working fine
+		- remove column working fine
+		- adding tables - not implemented earlier - working on this now
+			MERGE - almost done, testing in progress
+			RELOAD - almost done, testing in progress
+	
+	- JOINS
+		- Lazy loading placeholder - fixed - working fine
+		- change join condition - works fine
+		- context menu options
+			- swap columns - working fine
+			- discard join - working fine
+			- discard columns - working fine
+			- auto suggestions - working fine
+		- fetchig joins from multiple connections(multiple connections) - fixed, working fine
+	
+	ISSUE - same tables are being added to metadata-section multiple times - working on this, fixed
+
+10th March 2022
+	- SAVE
+	- column aliasing - implemented - working fine
+	- EDIT
+
+
+	
+	UI ISSUE RESPONSIVENESS
+
+11th March 2022
+	- EDIT
+		ds not loading
+
+16th March 2022
+	- writing test cases
+		- datasource tables actions and context menu
+			- select
+			- unselect
+			- select all
+			- reset
+			- add to metadata
+
+17th March 2022
+	OBSERVATIONS BY TESTING TEAM
+		3.Datasource icons should small inorder to show more
+		\
+		1.Create metadata option from Datasoure page
+		2.Default file name should be metadata_1 on file browser metadata save
+		3.Notification is not showing while saving of metadata. Not understanding as metadata saved or not.
+
+		1. CSS is not proper
+		2. Created metadata is not showing in :
+			Home File browser
+			Metadata-edit File Browser
+			Helical Report Connect to Metadata File Browser
+		3. SQLite connection is not expanding
+		4. Browser cache issues	:
+			a. Newly created connection are not appear until reloading the browser
+			b. Previously selected tables/columns data is showing in metadata panel
+		5. Joins type icon is not appearing
+
+
+1st April 2022
+	- working on edit related issues
+		- unable to delete column in edit mode - fixed
+		- after saving joins are not proper - fixed
+
+5ht APRIL 2022
+	- form data OBSERVATIONS
+		- SAVE
+			- add 'changed' in datasource-section
+			- 'metadataReload' - discuss with somen
+			- 'uniqueId' true when createing metadata first time
+		- GET 
+			- remove 'uniqueId'
+
+12th APRIL 2022
+	observation by RK
+		Gagan:metadata issues
+		0001 MDC:: After save, In Original Table, Original column name is changing to duplicated column name - WORKING
+					Steps:
+						1. Add geo_cordinates and expand
+						2. Duplicate the location_id column
+						3. Right click on geo_cordinates table duplicate
+						4. Save the table
+		0002 MDC:: After save, Changed alias name for column is showing different in duplicated table - TESTED FEW USECASES WORKING FINE
+					Steps:
+						1. Expand geo_cordinates
+						2. Change alias of location_id column to ID
+						3. Duplicate the table
+						4. Save the table
+						5. Observe, In duplicated table, showing Original name for location_id
+			
+
+		0003 MDC::Escape:: Add to metadata functionality is working even after pressing Escape - WORKING FINE
+		0004 MDC::Escape:: Table is reloading on escape while doing Add to metadata - WORKING FINE
+
+		0005 MDC::Save 2nd time:: Reload is not working, After save loading first time saved metadata status - FIXED
+					Steps:
+						1. Add geo_cordinates and expand then Table alias to GEO 
+						2. Change alias of location_id column to ID
+						3. Duplicate the location column
+						4. Save the table
+						5. Right click on geo_cordinates table on Datasource panel
+						6. Add to metadata then click on Reload
+						7. Click on save
+						8. Observe, first saved metadata content is loading
+
+		0006 MDC::SaveAs with same name and in same location is not working as expected. - FIXED
+					Steps
+						1. Expand geo_cordinates
+						2. Save the metadata
+						3. Do save as without changing anything in same directory and with same name
+						4. Go to edit and reloading 2nd time saved metadata
+						Observe, all the tables are showing metadata panel instead of single table

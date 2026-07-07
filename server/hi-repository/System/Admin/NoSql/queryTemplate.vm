@@ -1,0 +1,27 @@
+
+#if( $databaseName )
+	#set ($dbName = $databaseName)
+#else
+	#set ($dbName = 'default')
+#end
+
+	create database if not exists $dbName;
+
+	use $dbName;
+
+#foreach  ($table in $tables)
+	CREATE TABLE IF NOT EXISTS $table
+	USING org.apache.spark.sql.jdbc
+	OPTIONS (
+	  url "$url",
+	  dbtable "$table",
+	  user '$username',
+	  password '$password'
+	);
+	#if (${formData.cache}==true)
+	CACHE TABLE $table;
+	#end
+	
+#end
+
+use $dbName

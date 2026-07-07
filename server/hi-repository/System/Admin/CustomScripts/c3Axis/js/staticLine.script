@@ -1,0 +1,401 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+   <visible>true</visible>
+    <scriptId>c3Axis_js_staticLine</scriptId>
+    <scriptType>js</scriptType>
+    <name>Static Line Addition</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Static Line Addition in c3 axis charts</description>
+    <icon>/images/scriptIcons/Static_line_value.png</icon>
+	<snippet>
+		<![CDATA[
+
+		
+			
+			var id = hi_container.get("renderId");
+			
+			if(id== ""){
+				var chartId = '#chart'+id;
+				var yGridLineId = '#chart'+id+" .c3-ygrid-line.";
+			}
+			else{
+				var chartId = '#chart-'+id;
+				var yGridLineId = '#chart-'+id+" .c3-ygrid-line.";
+			}
+			
+			var ftnObj = {};
+			
+			ftnObj['setYGrids'+id] = function(d){
+					var viz_Options = d.get("viz_Options");
+					viz_Options = yGridCreator(viz_Options);
+					d.set("viz_Options",viz_Options);
+				
+				};
+					
+			ftnObj['extendsetYGrids'+id] = function(preExecution,d){
+					var viz_Options = d.get("viz_Options");
+					viz_Options = yGridCreator(viz_Options);
+				
+				};
+				
+			ftnObj['setstaticLineAddition'+id] = function(){
+					var conditionArr = ${conditionArr};
+					
+					for(var i = 0; i < conditionArr.length; i++){
+						if(conditionArr[i].condition == 'Dotted'){
+							$(yGridLineId+conditionArr[i].classes+' line').css({	"stroke":conditionArr[i].color,"stroke-width": conditionArr[i].width,"stroke-dasharray":"3,1"});
+							$(yGridLineId+conditionArr[i].classes+' text').css({	"fill":conditionArr[i].color});
+						}
+						else if(conditionArr[i].condition == 'Dashed'){
+							$(yGridLineId+conditionArr[i].classes+' line').css({	"stroke":conditionArr[i].color, "stroke-width": conditionArr[i].width,"stroke-dasharray":"3,2"});
+							$(yGridLineId+conditionArr[i].classes+' text').css({	"fill":conditionArr[i].color});
+						}	
+						else if(conditionArr[i].condition == 'Solid')
+							$(yGridLineId+conditionArr[i].classes+' line').css({	"stroke":conditionArr[i].color, "stroke-width": conditionArr[i].width});
+							$(yGridLineId+conditionArr[i].classes+' text').css({	"fill":conditionArr[i].color});
+					}
+				
+				};
+			
+				
+				
+				
+				/*function setstaticLineAddition() {
+			
+				
+				};*/
+				
+
+			/*function setYGrids(d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = yGridCreator(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+
+			function extendYGrids(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = yGridCreator(viz_Options);
+			}
+			*/
+			function yGridCreator(viz_Options){
+				var conditionArr = ${conditionArr};
+				for(var i = 0; i < conditionArr.length; i++){
+					conditionArr[i].class = conditionArr[i].classes;
+					delete conditionArr[i].classes;
+				}
+				
+				if(viz_Options.chartOptions.grid){
+						viz_Options.chartOptions.grid.y = {
+								lines: conditionArr
+						}
+				}	
+				else{
+						viz_Options.chartOptions.grid = {
+						  y:{
+								lines: conditionArr
+							}
+				}
+					
+				}
+				return viz_Options;
+			}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['setstaticLineAddition'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['setstaticLineAddition'+id]);
+			}
+			
+			
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setYGrids'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendsetYGrids'+id]);
+			}
+
+    	]]>
+	</snippet>
+	<parameters>
+        <parameter value="[]" name="conditionArr" type= "String" />
+    </parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.inputComponent{
+					padding: 6px;
+				}
+				.form-line{
+					margin-top: 10px;
+				}
+				.csComponent{
+					padding: 0px 10px 0px 0px;
+				}
+				.colorPicker > div > div:nth-child(1), .colorPicker > div > div:nth-child(1) > div:nth-child(1){
+					height: 100% !important;
+					width: 100% !important;
+				}
+				.colorPicker > div{
+					height: 30px;
+				}
+				.colorPicker > div > div{
+					padding: 0px;
+				}
+				.colorPicker > div > div > div > div{
+					height: 100% !important;
+					width: 100% !important;
+				}
+			</style>
+			<div id="addButtonPanel">
+				<label for='addButton' class='col-sm-3' >Add new condition</label>
+				<button id='addButton' class='col-sm-2 btn btn-primary' onclick='addYGrid({color: "rgba(124,184,47,1)", condition: "Dashed", axis: "y", text: "", value: "", classes: "", width:"2px"}, "conditionList")'>Add</button>
+			</div>
+			<div id="conditionList"></div>
+
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+							
+
+        var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+        var tgtPanel = 'conditionList';
+		
+
+
+
+
+        function createYGrid(conditionArr){
+          if(conditionArr.length == 0){
+            conditionArr.push({color: "rgba(124,184,47,1)", condition: "Dashed", axis: "y", text: "", value: "", classes: "", width: "2px"});
+          }
+
+          for(var i = 0 ; i < conditionArr.length; i++){
+            var div = createYGridPanel(conditionArr[i], i);
+            document.getElementById(tgtPanel).appendChild(div);
+            spectrumFtn('input_color_'+i, conditionArr[i]);
+          }
+        }
+		
+		 createYGrid(conditionArr, tgtPanel);
+
+        function addYGrid(object, tgtPanel){
+          conditionArr.push(object);
+          var index = conditionArr.length-1;
+          var div = createYGridPanel(object, index);
+          document.getElementById(tgtPanel).appendChild(div);
+          spectrumFtn('input_color_'+index, object);
+        }
+
+        function createYGridPanel(object, index){
+          var conditionOptions = ['Dashed', 'Dotted', 'Solid'];
+		  var axisOptions = ['y', 'y2'];
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12';
+
+          /*************** Set Value 1 *******************/
+          var divVal1 = document.createElement('div');
+          divVal1.className = 'form-group col-sm-2 value csComponent';
+        	divVal1.id = 'div_value_'+index;
+
+          var labelVal1 = document.createElement('label');
+          labelVal1.for = 'input_value_'+index;
+          labelVal1.innerHTML = 'Value';
+
+          var inputVal1 = document.createElement('input');
+          inputVal1.type = 'text';
+		  inputVal1.placeholder = 'Value';
+          inputVal1.className = 'form-control inputComponent';
+          inputVal1.id = 'input_value_'+index;
+          inputVal1.value = object.value;
+          inputVal1.onchange = setOnChange;
+
+          divVal1.appendChild(labelVal1);
+          divVal1.appendChild(inputVal1);
+
+          form.appendChild(divVal1);
+		  
+		   /*************** Set Width *******************/
+        /*  var divWidth = document.createElement('div');
+          divWidth.className = 'form-group col-sm-2 width';
+			divWidth.id = 'div_width_'+index;
+
+          var labelWidth = document.createElement('label');
+          labelWidth.for = 'input_width_'+index;
+          labelWidth.innerHTML = 'Grid Width';
+
+          var inputWidth = document.createElement('input');
+          inputWidth.type = 'text';
+          inputWidth.className = 'form-control';
+          inputWidth.id = 'input_width_'+index;
+          inputWidth.value = object.width;
+          inputWidth.onchange = setOnChange;
+
+          divWidth.appendChild(labelWidth);
+          divWidth.appendChild(inputWidth);
+
+          form.appendChild(divWidth);
+		*/
+          /*************** Set Text *******************/
+          var divVal2 = document.createElement('div');
+          divVal2.className = 'form-group col-sm-3 value_2 csComponent';
+          divVal2.id = 'div_text_'+index;
+
+          var labelVal2 = document.createElement('label');
+          labelVal2.for = 'input_label_'+index;
+          labelVal2.innerHTML = 'Label';
+
+          var inputVal2 = document.createElement('input');
+          inputVal2.type = 'text';
+		  inputVal2.placeholder = 'Label';
+          inputVal2.className = 'form-control inputComponent';
+          inputVal2.id = 'input_text_'+index;
+          inputVal2.value = object.text;
+          inputVal2.onchange = setOnChange;
+
+          divVal2.appendChild(labelVal2);
+          divVal2.appendChild(inputVal2);
+
+          form.appendChild(divVal2);
+
+          /*************** Set ygrid type *******************/
+          var divConditionVal = document.createElement('div');
+          divConditionVal.className = 'form-group col-sm-2 condition csComponent';
+        	divConditionVal.id = 'div_condition_'+index;
+
+          var labelConditionVal = document.createElement('label');
+          labelConditionVal.for = 'input_condition_'+index;
+          labelConditionVal.innerHTML = 'Type';
+
+          var inputConditionVal = document.createElement('select');
+          inputConditionVal.className = 'form-control inputComponent';
+          inputConditionVal.id = 'input_condition_'+index;
+          inputConditionVal.onchange = setOnChange;
+
+          for(var i = 0; i < conditionOptions.length; i++){
+              var options = document.createElement('option');
+              options.value = conditionOptions[i];
+              options.text = conditionOptions[i];
+              if(options.value == object.condition)
+                options.selected = 'selected';
+              inputConditionVal.appendChild(options);
+          }
+
+          divConditionVal.appendChild(labelConditionVal);
+          divConditionVal.appendChild(inputConditionVal);
+
+          form.appendChild(divConditionVal);
+		  
+		   /*************** Set Axis Type *******************/
+          var divAxisVal = document.createElement('div');
+          divAxisVal.className = 'form-group col-sm-2 axis csComponent';
+        	divAxisVal.id = 'div_axis_'+index;
+
+          var labelAxisVal = document.createElement('label');
+          labelAxisVal.for = 'input_axis_'+index;
+          labelAxisVal.innerHTML = 'Axis';
+
+          var inputAxisVal = document.createElement('select');
+          inputAxisVal.className = 'form-control inputComponent';
+          inputAxisVal.id = 'input_axis_'+index;
+          inputAxisVal.onchange = setOnChange;
+
+          for(var i = 0; i < axisOptions.length; i++){
+              var options = document.createElement('option');
+              options.value = axisOptions[i];
+              options.text = axisOptions[i];
+              if(options.value == object.axis)
+                options.selected = 'selected';
+              inputAxisVal.appendChild(options);
+          }
+
+          divAxisVal.appendChild(labelAxisVal);
+          divAxisVal.appendChild(inputAxisVal);
+
+          form.appendChild(divAxisVal);
+
+
+
+          /*************** Set Color *******************/
+          var divColorVal = document.createElement('div');
+          divColorVal.className = 'form-group col-sm-2 colorPicker csComponent';
+        	divColorVal.id = 'div_color_'+index;
+
+          var labelColorVal = document.createElement('label');
+          labelColorVal.innerHTML = 'Color';
+
+          var inputColorVal = document.createElement('div');
+          inputColorVal.id = 'input_color_'+index;
+         
+          divColorVal.appendChild(labelColorVal);
+          divColorVal.appendChild(inputColorVal);
+
+          form.appendChild(divColorVal);
+
+          /*********************Delete Button************************/
+          var delButton = document.createElement('button');
+          delButton.id = 'delete_'+index;
+          delButton.classList = 'btn btn-danger';
+          delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+          delButton.onclick = function(d){
+            var index = d.target.id.split('_')[1];
+            conditionArr.splice(index, 1);
+            adhocScripts.setVariable("conditionArr", conditionArr);
+            $(this).parent().remove();
+          };
+          delButton.style.marginTop = '25px';
+
+          form.appendChild(delButton);
+
+          return form;
+
+
+
+          function setOnChange(d){
+            var len = d.target.id.split('_').length;
+            var x = d.target.id.split('_')[2];
+            var key = d.target.id.split('_')[1];
+            var val = d.target.value;
+          
+			if(key == 'value'){
+				conditionArr[x]['classes'] = 'yGrid'+val;
+			}
+			
+			conditionArr[x][key] = val;
+			adhocScripts.setVariable("conditionArr", conditionArr);
+		  }
+		  				  
+        }
+		
+		function setColorValue(paylod){			  
+            var len = paylod['id'].split('_').length;
+            var x = paylod['id'].split('_')[2];
+            var key = paylod['id'].split('_')[1];
+            var val = paylod['color'];
+          
+			if(key == 'value'){
+				conditionArr[x]['classes'] = 'yGrid'+val;
+			}
+			
+			conditionArr[x][key] = val;
+			adhocScripts.setVariable("conditionArr", conditionArr);			  
+		  }
+
+				function spectrumFtn(id,Obj){
+					// console.log('object val',Obj);
+						HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.color) ? Obj.color : 'rgba(255,255,255,1)' ,
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								setColorValue({id:id,color:rgbaCode});
+								//setColorValue({id:id,color:color['hexCode']});
+							}
+						});					
+				}								
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

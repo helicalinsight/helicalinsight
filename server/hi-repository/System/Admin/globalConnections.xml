@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<connections mandatory="true">
+    <tomcatJdbcDataSource id="1" name="SampleTravelDataDerby" type="dynamicDataSource" baseType="global.jdbc">
+        <visible>true</visible>
+        <dataSourcePoolId>tomcat_1</dataSourcePoolId>
+        <dataSourceProvider>tomcat</dataSourceProvider>
+        <forceAlternateUsername>false</forceAlternateUsername>
+        <username>hiuser</username>
+        <password>hiuser</password>
+        <driverClassName>org.apache.derby.iapi.jdbc.AutoloadedDriver</driverClassName>
+         <url>jdbc:derby:${INSTALL_PATH}${FILE_SEPARATOR}db${FILE_SEPARATOR}SampleTravelData</url>
+        <testWhileIdle>false</testWhileIdle>
+        <testOnBorrow>true</testOnBorrow>
+        <testOnReturn>false</testOnReturn>
+        <validationQuery>SELECT 1 FROM SYSIBM.SYSDUMMY1</validationQuery>
+        <validationInterval>30000</validationInterval>
+        <timeBetweenEvictionRunsMillis>30000</timeBetweenEvictionRunsMillis>
+        <maxActive>100</maxActive>
+        <minIdle>1</minIdle>
+        <maxWait>180000</maxWait>
+        <initialSize>1</initialSize>
+        <removeAbandonedTimeout>3600</removeAbandonedTimeout>
+        <removeAbandoned>true</removeAbandoned>
+        <logAbandoned>true</logAbandoned>
+        <minEvictableIdleTimeMillis>30000</minEvictableIdleTimeMillis>
+        <jmxEnabled>true</jmxEnabled>
+        <jdbcInterceptors>org.apache.tomcat.jdbc.pool.interceptor.ConnectionState; org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer; org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer</jdbcInterceptors>
+		<databaseName>SampleTravelData</databaseName>
+        <security>
+            <createdBy>1</createdBy>
+            <organization></organization>
+        </security>
+        <share mandatory="true">
+			<roles mandatory="true">
+				<role id="2">2</role>
+			</roles>
+        </share>
+    </tomcatJdbcDataSource>
+</connections>

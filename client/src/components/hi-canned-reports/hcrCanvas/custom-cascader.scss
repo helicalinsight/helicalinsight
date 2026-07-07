@@ -1,0 +1,87 @@
+.cascader-container {
+    position: absolute;
+    width: 100%;
+    max-width: 300px;
+    left: 0px;
+    top: 0px;
+}
+
+.cascader-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08),
+        0 3px 6px -4px rgba(0, 0, 0, 0.12),
+        0 9px 28px 8px rgba(0, 0, 0, 0.05);
+    z-index: 1050;
+    display: flex;
+    min-width: 111px;
+}
+
+.cascader-menu {
+    min-width: 111px;
+    height: auto;
+    max-height: 180px;
+    overflow: auto;
+    vertical-align: top;
+    list-style: none;
+    margin: 0;
+    border-right: 1px solid #f0f0f0;
+}
+
+.cascader-menu:last-child {
+    border-right: none;
+}
+
+.cascader-menu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.cascader-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.cascader-menu::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.06);
+    border-radius: 4px;
+}
+
+.cascader-menu::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.cascader-menu-item {
+    padding: 2px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.88);
+    white-space: nowrap;
+    line-height: 1.5715;
+}
+
+.cascader-menu-item:hover {
+    background: #f5f5f5;
+}
+
+.cascader-menu-item-label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+}
+
+.cascader-menu-item-arrow {
+    margin-left: 4px;
+    flex-shrink: 0;
+    color: rgba(0, 0, 0, 0.25);
+}
+
+.ant-popover-bottom-left {
+    padding-top: 0px !important;
+}

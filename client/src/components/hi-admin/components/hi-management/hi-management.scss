@@ -1,0 +1,179 @@
+@import "../../../../styles/variables.scss";
+
+$container-padding: 10px;
+
+// .cube-layout {
+// .dice-storage-header {
+// 	height: 44px;
+// 	display: flex;
+// 	align-items: center;
+// 	justify-content: space-between;
+// 	background-color: transparent;
+// 	border-bottom: 1px solid lightgrey;
+// 	padding: 0 5px;
+// }
+// }
+
+// this is the fix for bug 6184 this ant tooltip css is impacting whole application
+// .ant-tooltip {
+// 	max-width: 100% !important;
+// }
+
+
+.dice-storage-layout {
+	position: relative;
+	.dice-storage-tabs {
+		padding: 5px;
+		.dice-storage-table {
+			// max-height: 430px;
+			// .dice-storage-skeleton {
+
+			// }
+			.ant-tooltip-inner {
+				width: max-content;
+			}
+			.row-child {
+				line-height: 2.5;
+				font-size: 17px;
+			}
+			.actions-col {
+				padding-right: 10px;
+				padding-left: 10px;
+			}
+			.table-actions {
+				justify-content: space-around;
+				display: flex;
+				align-items: center;
+				.table-action {
+					font-size: 16px;
+				}
+			}
+		}
+	}
+	.fb-btn {
+		position: absolute;
+		top: 1%;
+		right: 0.5%;
+	}
+}
+
+.hi-management-card {
+
+	
+	height: 100%;
+	overflow: auto;
+	.ant-card-body {
+		padding: 0 !important;
+	}
+	.hi-management-container {
+		.management-menu {
+			line-height: 20px;
+		}
+
+		.advanced-container {
+			padding: 10px;
+		}
+
+		.overview-container {
+			padding: 10px;
+		}
+
+		.config-container {
+			padding: 10px;
+		}
+
+		.overview-container {
+			padding: 10px;
+		}
+
+		.site-form-in-drawer-wrapper {
+			position: absolute;
+			right: 0px;
+			bottom: 0px;
+			width: 100%;
+			padding: 10px 16px;
+			text-align: right;
+			background: #fff;
+			border-top: 1px solid #e9e9e9;
+		}
+		[data-theme="dark"] .site-form-in-drawer-wrapper {
+			border-top: 1px solid #303030;
+			background: #1f1f1f;
+		}
+
+		.alert-info {
+			background-color: #d9edf7;
+			border-color: #bce8f1;
+			color: #31708f;
+			padding: 10px;
+			margin-top: 10px;
+		}
+		.ant-menu-horizontal {
+			border: none !important;
+		}
+
+		.dice-menu-container {
+			border-bottom: 1px solid $hi-light-gray;
+			padding: 10px;
+		}
+		.dice-storage-menu-container {
+			padding: 10px;
+			border-bottom: 1px solid $hi-light-gray;
+		}
+		.middleware-menu-container {
+			padding: 10px;
+			border-bottom: 1px solid $hi-light-gray;
+		}
+
+		.hi-management-routes {
+			border-bottom: 1px solid $hi-light-gray;
+			padding: 10px;
+		}
+
+		.middleware-routes-data-container {
+			padding: 30px;
+		}
+		.dice-storage-routes-data-container {
+			padding: 30px;
+		}
+		.dice-routes-data-container {
+			padding: 30px;
+		}
+		.switch-container {
+			padding-left: 20px;
+		}
+		.advanced-item {
+			margin-right: 10px;
+			width: 100px;
+			background-color: blueviolet;
+		}
+
+		.more-options {
+			text-align: right;
+			cursor: pointer;
+			color: $hi-blue;
+		}
+
+		.import-container, .export-container{
+			height: 100%;
+			display: "flex";
+			flex-direction: "column";
+			justify-content: "center";
+			align-items: "center";
+			padding: 10px;
+			.import-file::file-selector-button {
+				display: none;
+				color: #fff;
+				background: #1890ff;
+				text-shadow: 0 -1px 0 rgb(0 0 0 / 12%);
+				// box-shadow: 0 2px #0000000b;
+				border: 0;
+				cursor: pointer;
+				height: 32px;
+				padding: 4px 15px;
+				font-size: 14px;
+				border-radius: 2px;
+			}
+		}
+	}
+}

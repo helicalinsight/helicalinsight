@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3_js_axisTick</scriptId>
+    <scriptType>js</scriptType>
+    <name>Axis Tick</name>
+    <group>D3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Axis Tick Customization</description>
+    <icon>/images/scriptIcons/AxisTick.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['setAxisCustomization'+id]= function(d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureAxisCustomization(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+			
+			ftnObj['extendAxisCustomization'+id]= function(preExecution, d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureAxisCustomization(viz_Options);
+				
+			}
+			
+			
+		/*	function setAxisCustomization(d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureAxisCustomization(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+
+			function extendAxisCustomization(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureAxisCustomization(viz_Options);
+			}
+			*/
+            function configureAxisCustomization(viz_Options){
+                //X-Axis
+                if("${x-axis-tick-display}" == "true"){
+                    viz_Options.chartOptions.xAxisShow = "true";
+                    viz_Options.chartOptions.xAxisColor = "${xAxisTickColor}";
+                    viz_Options.chartOptions.xAxisTickShow = "${x-axis-tick-display}";
+                    viz_Options.chartOptions.xAxisTickColor = "${xAxisTickColor}";
+                    viz_Options.chartOptions.xAxisTickFontType = "${XfntFmly}";
+                    viz_Options.chartOptions.xAxisTickFontSize = "${XfntSize}";
+                } else {
+                    viz_Options.chartOptions.xAxisTickShow = "${x-axis-tick-display}";
+                }
+
+                //Y-Axis
+                if("${y-axis-tick-display}" == "true"){
+                    viz_Options.chartOptions.yAxisShow = "true";
+                    viz_Options.chartOptions.yAxisColor = "${yAxisTickColor}";
+                    viz_Options.chartOptions.yAxisTickShow = "${y-axis-tick-display}";
+                    viz_Options.chartOptions.yAxisTickColor = "${yAxisTickColor}";
+                    viz_Options.chartOptions.yAxisTickFontType = "${YfntFmly}";
+                    viz_Options.chartOptions.yAxisTickFontSize = "${YfntSize}";
+                } else {
+                    viz_Options.chartOptions.yAxisTickShow = "${y-axis-tick-display}";
+                }
+
+                return viz_Options;
+            }
+			
+            if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setAxisCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendAxisCustomization'+id]);
+			}
+			
+			
+			
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="true" name="x-axis-tick-display" type="String"/>
+		<parameter value="#000000" name="xAxisTickColor" type="String"/>
+		<parameter value="12" name="XfntSize" type="String"/>
+		<parameter value="12" name="YfntSize" type="String"/>
+		<parameter value="Arial" name="XfntFmly" type="String" />
+		<parameter value="Arial" name="YfntFmly" type="String" />
+		<parameter value="true" name="xSwitch" type="String"/>
+		<parameter value="true" name="y-axis-tick-display" type="String"/>
+		<parameter value="#000000" name="yAxisTickColor" type="String"/>
+		<parameter value="true" name="ySwitch" type="String"/>
+	</parameters>
+ <uiSnippet>
+		<![CDATA[
+			<style>
+				.toggle_label{
+					text-align: center;
+				}
+
+				.extendMarginTop {
+					margin-top: 15px;
+				}
+
+				.extendMarginBot {
+					margin-bottom: 15px;
+				}
+			</style>
+			<div class="container-fluid">
+				<div class="xAxis">
+					<h4 id="xAxisLabel" class="col-sm-12">
+						<strong>X-Axis</strong>
+					</h4>
+					<div class="clearfix"></div>
+					<div id="xToggle" class="xToggle row extendMarginBot">
+						<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-1 toggle_label toggle_label_hide">
+							<label>Hide Tick</label>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-4 switch xSwitch" id="xSwitch">
+							<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='xSwitchToggle(event)' />
+							<label for="cmn-toggle-1"></label>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+							<label>Show Tick</label>
+						</div>
+					</div>
+
+					<div class="form-horizontal">
+						<div id="xCustomization" class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="x_axis_font_size">Font Size</label>
+							<div class="col-sm-2 col-md-3 col-xs-12">
+								<input class="form-control" id="x_axis_font_size" type="number" onchange="XfontSize(this)">
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label XFontFamily" for="Xfntfmly">Font Family</label>
+							<div class="col-sm-4 col-md-4 col-xs-12">
+						 		<select class="form-control" id="Xfntfmly" onchange="XfonFamily(this);">
+									<option value="Arial">Arial</option>
+					  				<option value="Arial Black">Arial Black</option>
+					  				<option value="Comic Sans MS">Comic Sans MS</option>
+					  				<option value="Courier New">Courier New</option>
+					  				<option value="Garamond">Garamond</option>
+					  				<option value="Georgia">Georgia</option>
+					  				<option value="Helvetica Neue">Helvetica Neue</option>
+					  				<option value="Impact">Impact</option>
+					  				<option value="Lucida Bright">Lucida Bright</option>
+					  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+					  				<option value="Platino">Platino</option>
+					  				<option value="Palatino Linotype">Palatino Linotype</option>
+					  				<option value="Tahoma">Tahoma</option>
+					  				<option value="Times New Roman">Times New Roman</option>
+					  				<option value="Trebuchet MS">Trebuchet MS</option>
+					  				<option value="Verdana">Verdana</option>
+						 		</select>
+							</div>
+							<div class="clearfix"></div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label xFontColor extendMarginTop" for="x_axis_tick_color">Font Color</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 extendMarginTop">
+								<div id="x_axis_tick_color"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<hr>
+				<div class="yAxis">
+					<h4 id="yAxisLabel" class="col-sm-12"><strong>Y-Axis</strong></h4>
+
+					<div id="yToggle" class="xToggle row extendMarginBot" >
+						<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-1 toggle_label toggle_label_hide">
+							<label>Hide Tick</label>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-4 switch ySwitch" id="ySwitch">
+							<input id="cmn-toggle-2" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='ySwitchToggle(event)' />
+							<label for="cmn-toggle-2"></label>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+							<label>Show Tick</label>
+						</div>
+					</div>
+					<div class="clearfix"></div>
+					<div class="form-horizontal">
+						<div id="yCustomization" class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label yFontFamily" for="y_axis_font_size">Font Size</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 yFontColor">
+								<input class="form-control" id="y_axis_font_size" type="number" onchange="YfontSize(this)">
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="Yfntfmly">Font Family</label>
+							<div class="col-sm-4 col-md-4 col-xs-12">
+								<select class="form-control" id="Yfntfmly" onchange="YfonFamily(this);">
+									<option value="Arial">Arial</option>
+					  				<option value="Arial Black">Arial Black</option>
+					  				<option value="Comic Sans MS">Comic Sans MS</option>
+					  				<option value="Courier New">Courier New</option>
+					  				<option value="Garamond">Garamond</option>
+					  				<option value="Georgia">Georgia</option>
+					  				<option value="Helvetica Neue">Helvetica Neue</option>
+					  				<option value="Impact">Impact</option>
+					  				<option value="Lucida Bright">Lucida Bright</option>
+					  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+					  				<option value="Platino">Platino</option>
+					  				<option value="Palatino Linotype">Palatino Linotype</option>
+					  				<option value="Tahoma">Tahoma</option>
+					  				<option value="Times New Roman">Times New Roman</option>
+					  				<option value="Trebuchet MS">Trebuchet MS</option>
+					  				<option value="Verdana">Verdana</option>
+								 </select>
+							</div>
+							<div class="clearfix"></div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label extendMarginTop" for="y_axis_tick_color">Font Color</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 extendMarginTop">
+								<div id="y_axis_tick_color"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+
+				//Set global variable from parameter
+				adhocScripts.setVariable("xSwitch",params.xSwitch);
+				adhocScripts.setVariable("xAxisTickColor",params.xAxisTickColor);
+				adhocScripts.setVariable("ySwitch",params.ySwitch);
+				adhocScripts.setVariable("yAxisTickColor",params.yAxisTickColor);
+				adhocScripts.setVariable("XfntSize",params.XfntSize);
+                adhocScripts.setVariable("YfntSize",params.YfntSize);
+                adhocScripts.setVariable("XfntFmly",params.XfntFmly);
+                adhocScripts.setVariable("YfntFmly",params.YfntFmly);
+
+			/*	var script2 = document.createElement("script");
+
+			if(window.DashboardGlobals)
+			 script2.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+			else
+			 script2.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+			script2.async = false;
+			document.getElementsByTagName("head")[0].appendChild(script2);
+
+			script2.onload = function() {
+			 spectrumFtn();
+			 script2Loaded = true;
+			}
+
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+
+				 link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";}
+				else
+				{
+
+				 link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);			*/
+
+				function setYAxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor",event.value);
+				}
+				function setXAxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor",event.value);
+				}
+
+			//	$('#x_axis_tick_color').val(adhocScripts.getVariable("xAxisTickColor"));
+			//	$('#y_axis_tick_color').val(adhocScripts.getVariable("yAxisTickColor"));
+
+				  function spectrumFtn()
+			{
+				
+					HDIUI.renderColorPicker({
+									id:"y_axis_tick_color",
+									color:adhocScripts.getVariable("yAxisTickColor"),
+									change:function(color){								
+										adhocScripts.setVariable("yAxisTickColor",color['hexCode']);
+									}
+						});
+						HDIUI.renderColorPicker({
+									id:"x_axis_tick_color",
+									color:adhocScripts.getVariable("xAxisTickColor"),
+									change:function(color){								
+										adhocScripts.setVariable("xAxisTickColor",color['hexCode']);
+									}
+						});
+				
+
+			 /* $("#y_axis_tick_color").spectrum({
+				//		showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+
+						},
+						change: function(color) {
+    	                    adhocScripts.setVariable("yAxisTickColor",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});
+							  $("#x_axis_tick_color").spectrum({
+				//		showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+
+						},
+						change: function(color) {
+
+							//console.log(color.toHexString());
+
+				        	adhocScripts.setVariable("xAxisTickColor",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});		*/
+                 }
+
+				if(adhocScripts.getVariable('xSwitch') == 'true'){
+					$('#xCustomization').css({"display" : "block"});
+					$('#xCustomizationdivide').css({"display" : "block"});
+					adhocScripts.setVariable("x-axis-tick-display", 'true');
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				}
+				else{
+					$('#xCustomization').css({"display" : "none"});
+					$('#xCustomizationdivide').css({"display" : "none"});
+					adhocScripts.setVariable("x-axis-tick-display", 'false');
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+
+				if(adhocScripts.getVariable('ySwitch') == 'true'){
+					$('#yCustomization').css({"display" : "block"});
+					$('#yCustomizationdivide').css({"display" : "block"});
+					adhocScripts.setVariable("y-axis-tick-display", 'true');
+					$('#cmn-toggle-2').attr('checked', 'checked');
+				}
+				else{
+					$('#yCustomization').css({"display" : "none"});
+					$('#yCustomizationdivide').css({"display" : "none"});
+					adhocScripts.setVariable("y-axis-tick-display", 'false');
+					$('#cmn-toggle-2').removeAttr('checked');
+				}
+
+				function xSwitchToggle(event){
+					if(adhocScripts.getVariable('xSwitch') == 'false'){
+						$('#xCustomization').css({"display" : "block"});
+						$('#xCustomizationdivide').css({"display" : "block"});
+						adhocScripts.setVariable("x-axis-tick-display", 'true');
+						adhocScripts.setVariable("xSwitch", 'true');
+					}
+					else{
+						$('#xCustomization').css({"display" : "none"});
+						$('#xCustomizationdivide').css({"display" : "none"});
+						adhocScripts.setVariable("x-axis-tick-display", 'false');
+						adhocScripts.setVariable("xSwitch", 'false');
+					}
+				}
+
+				function ySwitchToggle(event){
+					if(adhocScripts.getVariable('ySwitch') == 'false'){
+						$('#yCustomization').css({"display" : "block"});
+						$('#yCustomizationdivide').css({"display" : "block"});
+						adhocScripts.setVariable("y-axis-tick-display", 'true');
+						adhocScripts.setVariable("ySwitch", 'true');
+					}
+					else{
+						$('#yCustomization').css({"display" : "none"});
+						$('#yCustomizationdivide').css({"display" : "none"});
+						adhocScripts.setVariable("y-axis-tick-display", 'false');
+						adhocScripts.setVariable("ySwitch", 'false');
+					}
+				}
+
+
+				//function setXAxisColor(event){
+					//adhocScripts.setVariable("xAxisTickColor", event.value);
+				//}
+
+				//function setYAxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor", event.value);
+				//}
+
+				function XfontSize (e)
+				 {
+				  adhocScripts.setVariable("XfntSize",e.value);
+				 }
+
+				function YfontSize (e)
+				 {
+				  adhocScripts.setVariable("YfntSize",e.value);
+				 }
+
+				function XfonFamily (e)
+				 {
+				  adhocScripts.setVariable("XfntFmly",e.value);
+				 }
+
+				 function YfonFamily (e)
+				 {
+				  adhocScripts.setVariable("YfntFmly",e.value);
+				 }
+
+			//	$('#x_axis_tick_color').val(adhocScripts.getVariable('xAxisTickColor'));
+			//	$('#y_axis_tick_color').val(adhocScripts.getVariable('yAxisTickColor'));
+				$('#x_axis_font_size').val(adhocScripts.getVariable('XfntSize'));
+				$('#y_axis_font_size').val(adhocScripts.getVariable('YfntSize'));
+				$('#Xfntfmly').val(adhocScripts.getVariable('XfntFmly'));
+				$('#Yfntfmly').val(adhocScripts.getVariable('YfntFmly'));
+
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+						//	$("#y_axis_tick_color, #x_axis_tick_color").spectrum("hide");
+							HDIUI.removeColorPicker({
+								id:"y_axis_tick_color"
+								});
+							HDIUI.removeColorPicker({
+								id:"x_axis_tick_color"
+								});
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

@@ -1,0 +1,175 @@
+<link rel="stylesheet" type="text/css" href="css/c3.css"></link> 
+<link rel="stylesheet" type="text/css" href="getExternalResource.html?path=1463377807724/1463377978248/Sample EFW Report/classic.css"></link> 
+
+<script src="js/vendors/c3.js"></script>
+<script src="getExternalResource.html?path=1463377807724/1463377978248/Sample EFW Report/jQDateRangeSlider-withRuler-min.js"></script>
+
+
+<style type="text/css">
+@media print{
+	#runButton{
+		display: none;
+	}
+	
+	.ui-ruler-tick-label{
+		font-size: 10px;
+	}
+
+	
+	.ui-ruler-tick-inner{
+		padding-top: 2px;
+	}
+}
+
+
+
+.heading{
+	
+}
+
+#paramLabel{
+	font-size: 1.12vw;
+	font-weight: bold;
+	margin-top: 8px;
+	padding-right:0px;
+	width: 150px;
+}
+
+#runButton{
+}
+
+.pie{
+	border: 1px solid black;
+}
+
+.ui-ruler-tick-inner{
+	text-align: center;
+	padding-top: 0.01vw;
+
+}
+
+.ui-ruler-tick-label{
+	font-size: 1.1vw;
+}
+
+.ui-rangeSlider-bar{
+	height: 1.8vw;
+}
+
+</style>
+
+	<div class="col-sm-12">
+		<div class="row">
+			<div class="col-sm-12">
+				<h1 style="text-align: center;" id="heading" class="heading">Travel Expense Distribution Report</h1> 
+			</div>
+		</div>
+
+		<div class="row" style="margin-top: 25px;">
+			<div class="col-sm-2" id="paramLabel">Select Month:</div>
+			<div class="col-sm-9" id="monthSelector"></div>
+			<div class="col-sm-1" id="runButton"></div>
+		</div>
+		<br>
+		<div class="row pie">
+<!--			<div class="col-sm-12" id="pieChartHeading" style="text-align: center;"><h3>Distribution of Travel Expenses</h3></div>    -->
+			<div class="col-sm-12" id="pieChart"></div>
+		</div>
+		
+	</div>
+	
+<script>
+
+var dashboard = Dashboard;
+
+dashboard.resetAll();
+dashboard.setVariable('start_date', '2015-01-01 12:00:00');
+dashboard.setVariable('end_date', '2015-02-01 12:00:00');
+
+var runButton = {
+    name: "runButton",
+	triggers:["pieChart", "dummy"],
+    type:  "button",
+	options:{
+			display: "Generate Chart"
+		},
+    htmlElementId : "#runButton",
+    executeAtStart: false    
+};
+
+var pieChart = {
+    name: "pieChart",
+	type:  "chart",
+	vf : {
+		id : 1,
+		file : "sample_report.efwvf"
+	},
+	requestParameters : {
+		start_date: "start_date",
+		end_date: "end_date"
+	},
+    htmlElementId : "#pieChart",
+    executeAtStart: true
+};
+
+
+var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"];
+
+$('#monthSelector').dateRangeSlider({
+    bounds:{
+    min: new Date(2015, 0, 1),
+    max: new Date(2016, 0, 1)
+  },
+    defaultValues:{
+    min: new Date(2015, 0, 1),
+    max: new Date(2015, 1, 1)
+  },
+  arrows: false,
+  valueLabels: "hide",
+  symmetricPositionning: true,
+  step:{
+    months: 1
+  },
+    range:{
+    min: {months: 1},
+    max: {months: 12}
+  },
+  scales: [{
+      first: function(value){ return value; },
+      end: function(value) {return value; },
+      next: function(value){
+		var next = new Date(value);
+        return new Date(next.setMonth(value.getMonth() + 1));
+      },
+      label: function(value){
+        return months[value.getMonth()]+"-"+(value.getYear()-100);
+      }
+  }],
+    formatter:function(val){
+		var map = {
+			"1": 'Jan',
+			"2": 'Feb',
+			"3": 'Mar',
+			"4": 'Apr',
+			"5": 'May',
+			"6": 'Jun',
+			"7": 'Jul',
+			"8": 'Aug',
+			"9": 'Sep',
+			"10": 'Oct',
+			"11": 'Nov',
+			"12": 'Dec'
+		};
+        var month = val.getMonth() + 1;
+        return map[month];
+      }
+  });
+  
+ $('#monthSelector').bind("valuesChanged", function(e, data){
+	dashboard.setVariable('start_date', moment(data.values.min).format("YYYY-MM-DD hh:mm:ss"));
+	dashboard.setVariable('end_date', moment(data.values.max).format("YYYY-MM-DD hh:mm:ss"));
+ });
+
+var components = [runButton, pieChart];
+dashboard.init(components);
+</script>

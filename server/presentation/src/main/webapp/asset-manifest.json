@@ -1,0 +1,27 @@
+{
+  "files": {
+    "main.css": "/static/css/main.chunk.css",
+    "main.js": "/static/js/main.chunk.js",
+    "runtime-main.js": "/static/js/runtime-main.js",
+    "static/css/2.chunk.css": "/static/css/2.chunk.css",
+    "static/js/2.chunk.js": "/static/js/2.chunk.js",
+    "static/css/3.chunk.css": "/static/css/3.chunk.css",
+    "static/js/3.chunk.js": "/static/js/3.chunk.js",
+    "static/js/4.chunk.js": "/static/js/4.chunk.js",
+    "static/js/5.chunk.js": "/static/js/5.chunk.js",
+    "static/js/6.chunk.js": "/static/js/6.chunk.js",
+    "index.html": "/index.html",
+    "static/css/2.chunk.css.map": "/static/css/2.chunk.css.map",
+    "static/css/3.chunk.css.map": "/static/css/3.chunk.css.map",
+    "static/css/main.chunk.css.map": "/static/css/main.chunk.css.map",
+    "static/js/2.chunk.js.LICENSE.txt": "/static/js/2.chunk.js.LICENSE.txt",
+    "static/media/metadata-images.scss": "/static/media/database-logos.f0951d38.png"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.js",
+    "static/css/2.chunk.css",
+    "static/js/2.chunk.js",
+    "static/css/main.chunk.css",
+    "static/js/main.chunk.js"
+  ]
+}

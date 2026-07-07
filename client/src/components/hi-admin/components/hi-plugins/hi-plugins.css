@@ -1,0 +1,85 @@
+.hi-admin-plugins-container {
+  border: 1px solid #ddd;
+}
+
+.hi-admin-plugins-container .plugins-header-container {
+  height: 50px;
+  border-bottom: 1px solid #f1e5e5;
+}
+
+.hi-admin-plugins-container .plugins-header-data-container {
+  height: 100%;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-plugins-container .plugins-title {
+  padding-left: 10px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-plugins-container .plugins-refresh-button {
+  text-align: end;
+  padding-right: 7px;
+}
+
+.hi-admin-plugins-container .plugin-refresh-button {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-plugins-container .plugins-table-container {
+  padding: 5px;
+  height: 73vh;
+}
+
+.hi-admin-plugins-container .plugin-warning-icon {
+  margin-right: 5px;
+}
+
+.hi-admin-plugins-container .table-row-color {
+  background-color: whitesmoke;
+}
+
+.hi-admin-plugins-container .capitalize {
+  text-transform: capitalize;
+}
+
+.hi-admin-plugins-container .ant-card-body {
+  padding: 0px !important;
+}
+
+.plugins-code {
+  padding: 2px 4px;
+  font-size: 90%;
+  color: #c7254e;
+  background-color: #f1e5e5;
+  border-radius: 4 px;
+}
+
+.plugins-alert {
+  font-size: 14px !important;
+}
+/*# sourceMappingURL=hi-plugins.css.map */

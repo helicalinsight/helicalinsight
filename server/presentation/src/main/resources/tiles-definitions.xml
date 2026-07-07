@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN"
+        "http://tiles.apache.org/dtds/tiles-config_3_0.dtd">
+
+<!--suppress XmlPathReference, StrutsTilesInspection -->
+<tiles-definitions>
+
+    <!--Login Page -->
+    <definition name="login-page" template="/WEB-INF/pages/templates/login-template.jsp">
+        <put-attribute name="title" value="HI: Login" type="string"/>
+        <put-attribute name="body" value="/WEB-INF/jsp/login/loginBody.jsp"/>
+    </definition>
+
+   <!-- Access Denied -->
+	 <definition name="accessDenied" template="/WEB-INF/jsp/errorPages/accessdenied.jsp">
+        <put-attribute name="title" value="Helical Report" type="string"/>
+    </definition>
+</tiles-definitions>

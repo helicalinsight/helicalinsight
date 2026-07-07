@@ -1,0 +1,69 @@
+@import "../../../../styles/variables.scss";
+
+.hi-admin-plugins-container {
+  border: 1px solid $hi-light-gray;
+  height: 100%;
+
+  .plugins-header-container {
+    height: 45px;
+    border-bottom: 1px solid $hi-white-smoke;
+  }
+
+  .plugins-header-data-container {
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .plugins-title {
+    padding-left: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .plugins-refresh-button {
+    text-align: end;
+    padding-right: 7px;
+  }
+
+  .plugin-refresh-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .plugins-table-container {
+    padding: 5px;
+    height: 75vh;
+  }
+
+  .plugin-warning-icon {
+    margin-right: 5px;
+  }
+
+  .table-row-color {
+    background-color: whitesmoke;
+  }
+
+  .capitalize {
+    text-transform: capitalize;
+  }
+
+  .ant-card-body {
+    padding: 0px !important;
+  }
+}
+
+.plugins-code {
+  padding: 2px 4px;
+  font-size: 90%;
+  color: $hi-light-pink;
+  background-color: $hi-white-smoke;
+  border-radius: 4 px;
+}
+
+.plugins-alert {
+  font-size: 14px !important;
+}

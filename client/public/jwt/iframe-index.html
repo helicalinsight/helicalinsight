@@ -1,0 +1,233 @@
+<html>
+
+<head>
+
+<title>Test jwt token</title>
+<meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+<meta content="utf-8" http-equiv="encoding">
+<script src="https://code.jquery.com/jquery-3.0.0.min.js"
+integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0=" crossorigin="anonymous"></script>
+<style>
+	.jwt-header{
+		float:right;
+		padding: 5px 0px;
+	}
+	.jwt-header button{
+		border-width: 1px;
+		border-color: #ccc;
+		background-color: #3c8bca;
+		color: #fff;
+		padding: 4px;
+		border-radius: 6px;
+	}
+	.jwt-header button:hover {
+		color: #3c8bca;
+		background-color: #fff;
+		border-color: #3c8bca;
+	}
+	#open-btn , #logout-btn{
+		
+	}
+	.reports-list {
+		position: relative;
+	}
+	.reports-list > div{
+		width: 20%;
+		display:none;
+		position: absolute;
+		right: 0px;
+		top: 35px;
+		height: 90vh;
+		overflow: auto;
+		border: 1px solid #ddd;
+		background-color:#fff;
+	}
+	.report-file{
+		cursor: pointer;
+		width: 100%;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		padding: 2px;
+		border-top: 1px solid #3c8bca;
+	}
+	.report-file:hover{
+		background-color:#3c8bca;
+		border-top: 1px solid #fff;
+		color:#fff;
+	}
+</style>
+
+</head>
+
+<body>
+<div class="jwt-header" >
+	<button id="open-btn" onclick="openReportList()">Reports</button>
+	<button id="login-btn" onclick="logIn()">Login</button>
+	<button id="logout-btn" onclick="logout()">Log Out</button>
+</div>
+<div class="reports-list" >
+	<div id="reports" >
+	</div>
+</div>
+<!--iframe id="mainiframe" height="100%" width="100%"></iframe-->
+<iframe id="mainiframe" height="100%" src="" width="100%"></iframe>
+
+
+<script>
+
+var requestBaseUrl = "https://216.48.189.244:8443/hi-ee/"
+
+var settings = {
+	"async": true,
+	"crossDomain": true,
+	"url": requestBaseUrl + "/rest/authToken",
+	"method": "POST",
+	"headers": {
+		"content-type": "application/json",
+		"cache-control": "no-cache",
+	},
+	"processData": false,
+	"data":"{ \"username\": \"hiadmin\", \"password\": \"hiadmin\"}"
+	//"{\"username\": \"hiadmin\",\"password\": \"hiadmin\",\"authenticateUser\": \"SSOUser:HelicalInsight\"}"
+//	"{ \"username\": \"hiadmin\", \"password\": \"hiadmin\"}"
+	
+}
+
+function generateToken() {
+	var token = new Promise((success,failure)=>{
+		$.ajax(settings).done(function (response) {
+			token = response.token;
+		success(token)
+		}).fail(function(reason) {
+			console.log("failed",reason)
+		});
+	})
+	return token
+}
+
+
+
+function callAjax(urlString, token, callback) {
+	$.ajax({
+		type: "POST",
+		url: urlString,
+		contentType: "text/html",
+		xhrFields: {
+		withCredentials: true
+	},
+	crossDomain: true,
+	beforeSend: function (xhr, settings) {
+		if(token){
+			xhr.setRequestHeader("Authorization", token);
+		}
+	},
+	success: function (data) {
+		callback(data)	
+	}
+	});
+	
+}
+
+function login(token) {
+//set cookies
+	var loginData = new Promise((success,failure)=>{
+		callAjax( requestBaseUrl + "/rest/jwtLogin.html?jwtToken=" + encodeURI(token), encodeURI(token),data=>{
+			success(data)
+		});
+	})
+	return loginData
+}
+
+
+function logout() {
+//delete cookies
+	callAjax( requestBaseUrl +  "/rest/jwtLogout.html","",function(){
+		//document.cookie = "authToken" +'=; Path=/hi-ee; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+		<!-- $("#login-btn")[0].style.display = "inline-block" -->
+		<!-- $("#open-btn")[0].style.display = "none" -->
+		<!-- $("#logout-btn")[0].style.display = "none" -->
+		$("#mainiframe").prop('src', "")
+		$("#reports")[0].style.display = "none"
+		$("#reports")[0].innerHTML = ""
+		authToken = ""
+        
+	})
+}
+var authToken = ""
+function logIn(){
+	generateToken().then(token=>{
+		authToken = token
+		login(token).then((loginData)=>{
+			<!-- $("#login-btn")[0].style.display = "none" -->
+			<!-- $("#open-btn")[0].style.display = "inline-block" -->
+			<!-- $("#logout-btn")[0].style.display = "inline-block" -->
+		})
+	})
+}
+
+function openReportList(){
+	var formData = ["report","efw","efwsr","hcr"]
+	var options = {
+        extensions: btoa(JSON.stringify(formData)),
+        v: new Date().getTime()
+    }	
+	var url = requestBaseUrl + "/getResources" 
+	url = url + "?extensions=" + options.extensions + "&v=" + options.v
+    callAjax(url, authToken,function(data){
+		data = JSON.parse(data)
+		var items = []
+		data.map(folder=>{
+			items = items.concat(getChildren(folder))
+		})
+		$("#reports")[0].innerHTML = ""
+		items.map(item=>{
+			if(!item.title){
+				return
+			}
+            var path = item.path
+            var name = item.name
+            var dir = item.path.replace(name, "").replace(/\/$/, "")
+			var div = document.createElement("div")
+			div.addEventListener("click",function(){
+				show(dir,name)
+			})
+			div.innerHTML = item.title
+			div.setAttribute("title",item.title + "(" + item.extension + ")")
+			div.setAttribute("class","report-file")
+			$("#reports")[0].style.display = "block"
+			$("#reports").append(div)
+		})
+	})
+	
+}
+function getChildren(folder){
+	var items = []
+	if(folder.children && folder.children.length){
+		folder.children.map(folder=>{
+			items = items.concat(getChildren(folder))
+		})
+		return items
+	}
+	return folder
+}
+function show(dir,name) {
+	
+	//$("#mainiframe").prop('src', requestBaseUrl + "/hi.html?dir=1463377807724/1463378012748&file=94b8d841-bf01-4ff3-8e9e-ac858ac8a52c.report&mode=open")
+	$("#reports")[0].style.display = "none"
+	//$("#mainiframe").prop('src', requestBaseUrl + "/hi.html?dir="+dir+"&file="+name+"&mode=open")
+	//jwt_cookie=false
+	$("#mainiframe").prop('src', requestBaseUrl + "hi.html?dir="+dir+"&file="+name+"&mode=open&authToken="+authToken)
+	//jwt_cookie=true
+	//$("#mainiframe").prop('src', requestBaseUrl + "/hi.html?dir="+dir+"&file="+name+"&mode=open")
+	
+
+
+
+}
+
+
+</script>
+</body>
+
+</html>

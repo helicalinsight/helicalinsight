@@ -1,0 +1,553 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>generic_js_footer</scriptId>
+    <scriptType>js</scriptType>
+	<name>Report Footer</name>
+    <group>Generic</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Add report footer to your report</description>
+    <icon>/images/scriptIcons/ReportFooter.png</icon>
+	<snippet>
+		<![CDATA[ 
+		
+			var id = hi_container.get("renderId");
+			var containerId="#main";
+			var chartId = "#chart";
+			var footerId = "#footer";
+			var headerId = "#header";
+			var headingId = "#heading";
+			var subHeadingId = "#subHeading";
+			
+			if(id != ""){
+				containerId="#main-"+id;
+				chartId = "#chart-"+id;
+				footerId = footerId + "-"+id;
+				headerId = headerId + "-"+id;
+				headingId = headingId + "-"+id;
+				subHeadingId = subHeadingId+"-"+id;
+			}
+					
+			var ftnObj = {};
+			
+			ftnObj['setFooter'+id]= function(){
+		
+				$(footerId).remove();
+				if('${enableLink}' == 'false')
+					$(containerId).append('<div class="col-sm-12" id="'+footerId.substr(1)+'">${footerTextValue}</div>');
+				else{
+					$(containerId).append('<div class="col-sm-12" id="'+footerId+'" align="${align}"><a id="linkFooter" href="https://${url}" target="_blank">${footerTextValue}</a></div>');
+					$(footerId).css({'cursor': 'pointer'});
+				}
+				
+				$(chartId).addClass('col-sm-12');
+				$(chartId).addClass('nopad');
+				
+				$('#linkFooter').css({
+					
+				});
+				
+				$(footerId).css({	"color":"${color}", 
+									"background-color":"${background}",
+									"text-align":"${align}",
+									"font-family":"${type}",
+									"font-size": "${size}px",
+									"margin-bottom": "3px"
+								});
+				
+				var containerBorder = $(containerId).css('border');
+				containerBorder = parseInt(containerBorder.split(' ')[0].slice(0, -2));
+				var chartBorder = $(chartId).css('border');
+				chartBorder = parseInt(chartBorder.split(' ')[0].slice(0, -2));
+				var calculatedChartHeight = $(containerId).height() - ($(headerId).height() + $(footerId).height() + $(headingId).height() + (2*chartBorder) + (2*containerBorder));
+				
+				//$(chartId).height(calculatedChartHeight);
+				$(containerId).width($(containerId).width() - ((2*chartBorder) + (2*containerBorder)));
+				$(headerId).css('width', 'auto !important');
+				
+				if('${align}' == 'right'){
+					$(footerId).css({	"padding-right":"15px"});
+				} else if('${align}' == 'left'){
+					$(footerId).css({	"padding-left":"15px"});
+				} 
+									
+				if(${bold})
+					$(footerId).css({"font-weight": "bold"});
+				else
+					$(footerId).css({"font-weight": "normal"});
+				
+				if(${italic})
+					$(footerId).css({"font-style": "italic"});
+				else
+					$(footerId).css({"font-style": "normal"});
+				
+				if(${underline})
+					$(footerId).css({"text-decoration": "underline"});
+				else
+					$(footerId).css({"text-decoration": "none"});
+				
+				if(window.navigator.userAgent.indexOf('PhantomJS') === -1) {
+					if(window.navigator.userAgent.indexOf('Trident') !== -1 ){
+						var resizeEvent = window.document.createEvent('UIEvents');
+						resizeEvent.initUIEvent('resize', true, false, window, 0);
+						window.dispatchEvent(resizeEvent);
+					}
+					else{
+						window.dispatchEvent(new Event('resize'));
+					}
+				}else{
+					var resizeEvent = window.document.createEvent('UIEvents');
+					resizeEvent.initUIEvent('resize', true, false, window, 0);
+					window.dispatchEvent(resizeEvent);
+				}
+			};
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['setFooter'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['setFooter'+id]);
+			}
+			 
+		]]>
+	</snippet>
+    <parameters>
+        <parameter value="Report Footer" name="footerTextValue" type= "String"/>
+        <parameter value="rgba(0,0,0,1)" name="color" type= "String"/>
+        <parameter value="rgba(255,255,255,0)" name="background" type= "String"/>
+        <parameter value="12" name="size" type= "String"/>
+        <parameter value="Arial" name="type" type= "String"/>
+        <parameter value="right" name="align" type= "String"/>
+        <parameter value="false" name="bold" type= "Boolean"/>
+        <parameter value="false" name="italic" type= "Boolean"/>
+        <parameter value="false" name="underline" type= "Boolean"/>
+        <parameter value="false" name="enableLink" type= "Boolean"/>
+        <parameter value="" name="url" type= "string"/>
+		
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.image{
+					border-radius: 4px;
+					cursor: pointer;
+				}
+				
+				.selected-decoration, .selected-alignment{
+					border: 1px solid #ccc;
+				}
+				
+				#urlPanel input[type=checkbox] {
+					margin-top: 0;
+				}
+
+				.extendMargins10 {
+					margin: 10px 0;
+				}
+
+				.extMarTop7 {
+					margin-top: 7px;
+				}
+
+				.extMarBtm7 {
+					margin-bottom: 7px;
+				}
+				
+				#footerText {
+					height: inherit;
+				}
+			</style>
+			
+			<div class="container-fluid">
+				<div class="alignment_decoration_panel extMarBtm7" id="alignment_decoration_panel"></div>
+				<div class="clearfix extendMargins10"></div>
+				<div class="customization_panel form-horizontal" id="customization_panel">
+					<div class="form-group extendMargins10">
+						<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="size_value">
+							Font Size
+						</label>
+						<div class="col-sm-3 col-md-3 col-xs-12" id="size_value"></div>
+						<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="font_value">
+							Font Style
+						</label>
+						<div class="col-sm-4 col-md-4 col-xs-12" id="font_value"></div>
+					</div>
+					<div class="clearfix"></div>
+					<div class="form-horizontal">
+						<div class="form-group extendMargins10">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="color_value">Color</label>
+							<div class="col-sm-3 col-md-3 color_value">
+								<div id="color_value"></div>
+							</div>
+							<label class="col-sm-2 col-xs-12 col-md-2 control-label" for="background_value">Background
+							</label>
+							<div class="col-sm-3 col-md-3 col-xs-12">
+								<div id="background_value"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="clearfix"></div>
+				<div class="footer_text_panel extendMargins10" id="footer_text_panel">
+					<label class="control-label report_footer_label" for="footerText">Report Footer</label>
+					<div style="position: relative;">
+						<input class="form-control" type="text" name="footerText" id="footerText"/>
+					</div>
+				</div>
+				<div class="checkbox footerUrl" id="urlPanel">
+					<label class="footerUrlChecbox">
+						<input type="checkbox" name="urlCheckbox" id="urlCheckbox" />Use Footer as Link
+					</label>
+				</div>
+				<div class="clearfix"></div>
+				<div class="form-horizontal urlValue">
+					<div class="form-group">
+						<label for="urlValue" class="control-label col-sm-1 col-md-1 col-xs-12">https://</label>
+						<div class="col-sm-11 col-md-11 col-xs-12">
+							<input class="form-control" id="urlValue" type="text" name="urlValue" id="urlValue" />
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("footerTextValue",params.footerTextValue);
+				adhocScripts.setVariable("color",params.color);
+				adhocScripts.setVariable("background",params.background);
+				adhocScripts.setVariable("size",params.size);
+				adhocScripts.setVariable("type",params.type);
+				adhocScripts.setVariable("align",params.align);
+				adhocScripts.setVariable("bold",params.bold);
+				adhocScripts.setVariable("italic",params.italic);
+				adhocScripts.setVariable("underline",params.underline);
+				adhocScripts.setVariable("enableLink",params.enableLink);
+				adhocScripts.setVariable("url",params.url);
+				 
+			/*	var script = document.createElement("script");
+
+				if(window.DashboardGlobals)
+					script.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				else
+					script.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+				script.async = false;
+				document.getElementsByTagName("head")[0].appendChild(script);
+
+				script.onload = function() {
+					spectrumFtn();
+				}
+				
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				else {
+					link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/CrossTab/js/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);   */
+				
+				var images = [{
+								name: 'alignment',
+								children: [{
+									name: "left-align",
+									value: "left"
+								},{
+									name: "center-align",
+									value: "center"
+								},{
+									name: "right-align",
+									value: "right"
+								}]
+							},{
+								name: "decoration",
+								children: [{
+									name: "bold",
+									value: "bold"
+								},{
+									name: "italic",
+									value: "italic"
+								},{
+									name: "underline",
+									value: "underline"
+								}]
+							}];
+							
+				for(var i = 0; i < images.length; i++){
+					var typeDiv = document.createElement('div');
+					typeDiv.className = "col-sm-6 col-md-6 extMarBtm7 "+images[i].name;
+					typeDiv.id = images[i].name;
+					
+					for(var j = 0; j < images[i].children.length; j++){
+						var imgDiv = document.createElement('div');
+						imgDiv.className = "col-sm-4 col-md-4 img-div "+images[i].children[j].name;
+						imgDiv.align = "center";
+					
+						var image = document.createElement('img');
+						image.src = window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/generic/images/'+images[i].children[j].name+'.png';
+						image.id = images[i].children[j].name;
+						image.alt = images[i].children[j].value;
+						image.className = "image img-responsive";
+					
+						imgDiv.appendChild(image);
+						typeDiv.appendChild(imgDiv);
+					}
+					
+					$('#alignment_decoration_panel').append(typeDiv);
+					$('#'+adhocScripts.getVariable('align')+'-align').addClass('selected-alignment');
+					$('#footerText').css({'text-align' : adhocScripts.getVariable('align')});
+				}
+				
+				//List of font types (family) to show.
+				//Add new font types (family) to array to increase the list in the UI.
+				var fontTypeList = ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Garamond", "Georgia", "Helvetica Neue", "Impact", "Lucida Bright", "Lucida Sans Unicode", "Platino", "Palatino Linotype", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana"];
+
+				//Function to create a select menu for font size selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontSizeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('input');
+												selectMenu.type = "number";
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, $(this).val());
+																		$('#footerText').css({'font-size' : $(this).val()+'px'});
+																	};
+												selectMenu.className = id+' sizeDropDown form-control';
+												//for(var i = 8; i<= 15; i++){
+												//	selectMenu.options[i-8] = new Option(i, i);
+												//}
+												var spanEl = document.createElement("span");
+												$(spanEl).html("<code style='padding: 1px 4px;'>number</code>");
+												$(target).append(selectMenu);
+												$(target).append(spanEl);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+				
+				//Function to create a select menu for font type (family) selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontTypeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('select');
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		
+																		adhocScripts.setVariable(variable, $(this).val());
+																		$('#footerText').css({'font-family' : "'"+$(this).val()+"'"});
+																	};
+												selectMenu.className = id+' fontDropDown form-control';
+												for(var i = 0; i< fontTypeList.length; i++){
+													selectMenu.options[i] = new Option(fontTypeList[i], fontTypeList[i]);
+												}
+												$(target).append(selectMenu);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+											
+				//Create the font size and font type selectors for basic mode 
+				createFontSizeSelector('#size_value', 'size_value_dropdown', 'size');
+				createFontTypeSelector('#font_value', 'font_value_dropdown', 'type');
+				
+			//	$("#color_value").val(adhocScripts.getVariable("color"));
+			//	$("#background_value").val(adhocScripts.getVariable("background"));
+				$("#footerText").css({'background': adhocScripts.getVariable("background"),
+										'color': adhocScripts.getVariable("color"),
+										'font-size': adhocScripts.getVariable("size")+'px',
+										'font-family': adhocScripts.getVariable("font")});
+				$("#footerText").val(adhocScripts.getVariable('footerTextValue'));
+				//Set Bold
+				if(adhocScripts.getVariable("bold") == 'true'){
+					$("#footerText").css({'font-weight': 'bold'});
+					$('#bold').addClass('selected-decoration');
+				}
+				else{
+					$("#footerText").css({'font-weight': 'normal'});
+				}
+				//Set Italic
+				if(adhocScripts.getVariable("italic")  == 'true'){
+					$("#footerText").css({'font-style': 'italic'});
+					$('#italic').addClass('selected-decoration');
+				}
+				else{
+					$("#footerText").css({'font-style': 'normal'});
+				}
+				//Set UnderLine
+				if(adhocScripts.getVariable("underline") == 'true'){
+					$("#footerText").css({'text-decoration': 'underline'});
+					$('#underline').addClass('selected-decoration');
+				}
+				else{
+					$("#footerText").css({'text-decoration': 'none'});
+				}
+			
+
+			
+				function spectrumFtn() {
+					generateColorSelector("background_value", "background");
+					generateColorSelector("color_value", "color");
+				}
+				
+				function generateColorSelector(id, variable){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:adhocScripts.getVariable(variable),
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								adhocScripts.setVariable(variable, rgbaCode)
+								if(variable == 'background')
+									$("#footerText").css({'background': rgbaCode});
+								else if(variable == 'color')
+									$("#footerText").css({'color': rgbaCode});
+							}
+						});
+					
+					
+			/*		$(id).spectrum({
+						showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+							
+						},
+						show: function () {
+						
+						},
+						beforeShow: function (color) {
+							
+						},
+						hide: function () {
+						
+						},
+						change: function(color) {
+							adhocScripts.setVariable(variable, color.toHexString());
+							if(variable == 'background')
+								$("#footerText").css({'background': color.toHexString()});
+							else if(variable == 'color')
+								$("#footerText").css({'color': color.toHexString()});
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});			*/
+				}
+				
+				$('.alignment .image').on("click", function(){
+					$('.selected-alignment').removeClass('selected-alignment');
+					$(this).addClass('selected-alignment');
+					adhocScripts.setVariable('align', $(this)[0].alt);
+					$('#footerText').css({'text-align' : $(this)[0].alt});
+				});
+				
+				$('#bold').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#footerText").css({'font-weight': 'normal'});
+						adhocScripts.setVariable('bold', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#footerText").css({'font-weight': 'bold'});
+						adhocScripts.setVariable('bold', 'true');
+					}
+				});
+				
+				$('#italic').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#footerText").css({'font-style': 'normal'});
+						adhocScripts.setVariable('italic', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#footerText").css({'font-style': 'italic'});
+						adhocScripts.setVariable('italic', 'true');
+					}
+				});
+				
+				$('#underline').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#footerText").css({'text-decoration': 'none'});
+						adhocScripts.setVariable('underline', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#footerText").css({'text-decoration': 'underline'});
+						adhocScripts.setVariable('underline', 'true');
+					}
+				});
+				
+				$('#footerText').bind('input', function() {
+					adhocScripts.setVariable('footerTextValue', $(this).val());
+				});
+				
+				$('#urlValue').val(adhocScripts.getVariable('url'));
+		
+				if(adhocScripts.getVariable('enableLink') == 'true'){
+					$('#urlCheckbox').attr('checked', 'checked');
+					$('#urlValue').removeAttr("disabled");
+				} else {
+					$('#urlValue').attr('disabled', 'disabled');
+					$('#urlCheckbox').removeAttr('checked');
+				}
+				
+		
+				$('#urlCheckbox').change(function (){
+					if($('#urlCheckbox').is(':checked')){
+						$('#urlValue').removeAttr("disabled");
+						adhocScripts.setVariable('enableLink', 'true');
+					}
+					else{
+						$('#urlValue').attr('disabled', 'disabled');
+						adhocScripts.setVariable('enableLink', 'false');
+					}
+				});
+				
+				$('#urlValue').bind('input', function() {
+					adhocScripts.setVariable('url', $(this).val());
+				});
+				
+				
+				function removePicker(id) {
+							HDIUI.removeColorPicker({
+								id:id
+								});
+					
+				}
+				
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							// $("#background_value, #color_value").spectrum("hide");
+							_.forEach(["background_value", "color_value"],function(item){
+								removePicker(item);
+							});
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

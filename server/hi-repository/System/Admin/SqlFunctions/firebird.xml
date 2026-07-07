@@ -1,0 +1,464 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<!-- Return type for each function node can be the following 
+
+	"numeric", "text", "date", "time","dateTime","boolean","other" 
+	
+	-->
+<functions dialect="org.hibernate.dialect.FirebirdDialect" type="db.firebird">
+    <!-- <function group="datetime">
+        <key>db.firebird.datetime.datePart</key>
+        <value>date_part</value>
+        <signature><![CDATA[date_part(${text}, ${interval})]]></signature>
+        <parameters>
+            <parameter name="text- The name of the parameter that goes inside ${}" type="text- text, numeric, boolean, date, time, dateTime" column="false- true quotes need to be applied to the value"/>
+            <parameter name="interval- The name of the parameter that goes inside ${}" type="dateTime- text, numeric, boolean, date, time, dateTime" column="true- true if quotes need to be applied to the value" defaultValue="1444304201089- The default value that will be used in case if the parameter is empty"/>
+        </parameters>
+    </function>-->
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.abs</key>
+        <value>abs</value>
+        <signature><![CDATA[abs(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It returns the absolute value of a number.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.ceil</key>
+        <value>ceil</value>
+        <signature><![CDATA[ceil(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It returns the smallest whole number greater than or equal to the input value.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.pow</key>
+        <value>power</value>
+        <signature><![CDATA[power(${number},${exponent})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="exponent"/>
+        </parameters>
+        <description>It displays the value of a number raised to the power of another number.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.sqrt</key>
+        <value>sqrt</value>
+        <signature><![CDATA[sqrt(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It returns the square root of a number.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.trunc</key>
+        <value>trunc</value>
+        <signature><![CDATA[trunc(${numeric}, ${integer})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+            <parameter defaultValue="2" name="integer"/>
+        </parameters>
+        <description>It returns the smallest whole number greater than or equal to the input value.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.round</key>
+        <value>round</value>
+        <signature><![CDATA[round(${column}, ${decimal})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+            <parameter defaultValue="1" name="decimal"/>
+        </parameters>
+        <description>Displays a value rounded to a certain number of decimal places.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.firebird.numeric.floor</key>
+        <value>floor</value>
+        <signature><![CDATA[floor(${decimal})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="decimal"/>
+        </parameters>
+        <description>It displays the largest whole number not greater than a number specified.</description>
+    </function>
+
+
+    <function group="text" returns="numeric">
+        <key>db.firebird.text.bit_length</key>
+        <value>bit_length</value>
+        <signature><![CDATA[bit_length(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It returns the text length in bits.</description>
+    </function>
+
+    <function group="text" returns="numeric">
+        <key>db.firebird.text.char_length</key>
+        <value>char_length</value>
+        <signature><![CDATA[char_length(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It returns the text length in bits.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.upper</key>
+        <value>upper</value>
+        <signature><![CDATA[upper(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It returns the text in UPPER case.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.lower</key>
+        <value>lower</value>
+        <signature><![CDATA[lower(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It returns the text in lower case.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.trim</key>
+        <value>trim</value>
+        <signature><![CDATA[trim(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It removes all specified characters either from the beginning or the ending of the string.
+        </description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.substring</key>
+        <value>substring</value>
+        <signature><![CDATA[substring(${text},${start_pos} for $(substringlength)]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter column="true" name="start_pos"/>
+            <parameter column="true" name="substringlength"/>
+        </parameters>
+        <description>It returns a string's substring starting at the given position, either to the end of the string or
+            with a given length.
+        </description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.right</key>
+        <value>right</value>
+        <signature><![CDATA[right(${text},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue="2" name="length"/>
+        </parameters>
+        <description>It returns the rightmost part of the argument string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.left</key>
+        <value>left</value>
+        <signature><![CDATA[left(${text},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue="2" name="length"/>
+        </parameters>
+        <description>It returns the leftmost part of the argument string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.reverse</key>
+        <value>reverse</value>
+        <signature><![CDATA[reverse(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It Returns a string backwards.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.replace</key>
+        <value>replace</value>
+        <signature><![CDATA[replace(${text},${find},${replace})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue='xyz' name="find"/>
+            <parameter defaultValue='abc' name="replace"/>
+        </parameters>
+        <description>It replaces all occurrences of a substring in a string.</description>
+    </function>
+
+    <function group="text" returns="numeric">
+        <key>db.firebird.text.position</key>
+        <value>position</value>
+        <signature><![CDATA[position(${searchtext},${text),${startpos}]]></signature>
+        <parameters>
+            <parameter defaultValue='xyz' name="find"/>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue='1' name="startpos"/>
+        </parameters>
+        <description>It returns the position of the first occurrence of a substring in a host string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.firebird.text.lpad</key>
+        <value>lpad</value>
+        <signature><![CDATA[lpad(${text},${endlength},${padtext})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue='xyz' name="text"/>
+            <parameter defaultValue='10' name="endlength"/>
+            <parameter column="true" defaultValue='abc' name="padtext"/>
+        </parameters>
+        <description>It left-pads a string with spaces or with a user-supplied string until a given length is reached.
+        </description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.year</key>
+        <value>year</value>
+        <signature><![CDATA[extract( year from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It extracts year from the date/timestamp.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.month</key>
+        <value>month</value>
+        <signature><![CDATA[extract( month from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing month number.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.week</key>
+        <value>week</value>
+        <signature><![CDATA[extract( week from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing week number.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.day</key>
+        <value>day</value>
+        <signature><![CDATA[extract( day from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing day number.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.weekday</key>
+        <value>weekday</value>
+        <signature><![CDATA[extract( weekday from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing weekday number (0=Sunday)</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.yearday</key>
+        <value>yearday</value>
+        <signature><![CDATA[extract( yearday from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer ranging (0-365) whereas 0= January 1</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.yeardiff</key>
+        <value>yeardiff</value>
+        <signature><![CDATA[datediff( year,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of years elapsed between two date/timestamp values.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.monthdiff</key>
+        <value>monthdiff</value>
+        <signature><![CDATA[extract( month,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of months elapsed between two date/timestamp values.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.daydiff</key>
+        <value>daydiff</value>
+        <signature><![CDATA[datediff( day,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of days elapsed between two date/timestamp values.</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.hour</key>
+        <value>hour</value>
+        <signature><![CDATA[extract(hour from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing hour ranging (0-23)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.hourdiff</key>
+        <value>hourdiff</value>
+        <signature><![CDATA[datediff(hour,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of hours elapsed between two timestamp values.</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.minute</key>
+        <value>minute</value>
+        <signature><![CDATA[extract( minute from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing minute ranging (0-59)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.minutediff</key>
+        <value>minutediff</value>
+        <signature><![CDATA[datediff(minute,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of minutes elapsed between two timestamp values.</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.second</key>
+        <value>second</value>
+        <signature><![CDATA[extract(second from ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing second ranging (0.0000-59.9999)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.seconddiff</key>
+        <value>seconddiff</value>
+        <signature><![CDATA[datediff(second,${date1},${date2})]]></signature>
+        <parameters>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of seconds elapsed between two timestamp values.</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.extract</key>
+        <value>extract</value>
+        <signature><![CDATA[extract( ${part} from ${datetime})]]></signature>
+        <parameters>
+            <parameter defaultValue='month' name="part"/>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It extract YEAR, MONTH, WEEK, DAY, HOUR, MINUTE, SECOND from a date/timestamp.</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.datediff</key>
+        <value>datediff</value>
+        <signature><![CDATA[datediff(${unit},${date1},${date2})]]></signature>
+        <parameters>
+            <parameter defaultValue='month' name="unit"/>
+            <parameter column="true" name="date1"/>
+            <parameter column="true" name="date2"/>
+        </parameters>
+        <description>It returns the number of years, months, days, hours, minutes, seconds or milliseconds elapsed
+            between two date/timestamp values.
+        </description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.firebird.dateTime.dateadd</key>
+        <value>dateadd</value>
+        <signature><![CDATA[dateadd(${value},${unit},${datetime})]]></signature>
+        <parameters>
+            <parameter defaultValue='5' name="value"/>
+            <parameter defaultValue='month' name="unit"/>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It adds the specified number of years, months, days, hours, minutes, seconds or milliseconds to a
+            date/timestamp value.
+        </description>
+    </function>
+<!--Conversion specific functions must be there for every xml file starts-->  
+ <function group="date" returns="text">
+      <key>sql.text.dateToString</key>
+      <value>dateToString</value>
+      <signature><![CDATA[-----------------------]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the date to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.numericToString</key>
+      <value>numericToString</value>
+      <signature><![CDATA[-----------------------]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the number to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.dateTimeToString</key>
+      <value>dateTimeToString</value>
+      <signature><![CDATA[-----------------------]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the datetime to string</description>
+   </function>
+   
+   <function group="date" returns="text">
+      <key>sql.text.timeToString</key>
+      <value>timeToString</value>
+      <signature><![CDATA[-----------------------]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the time to string</description>
+   </function>
+<!--Conversion specific functions must be there for every xml file ends-->
+
+
+</functions>

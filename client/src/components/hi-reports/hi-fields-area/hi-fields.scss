@@ -1,0 +1,160 @@
+.hi-fields-list {
+  border: 1px solid #ddd;
+  margin: 0px 0px 3px 0px;
+  .ant-tag {
+    cursor: pointer;
+    margin: 0px;
+    .field-side-item {
+      padding: 0px 3px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      &:hover {
+        border: 1px solid #fff;
+        padding: 0px 2px;
+      }
+    }
+  }
+  .field-drop-area {
+    position: relative;
+    clear: both;
+    height: 30px;
+    .field-heading {
+      border-right: 1px solid #ddd;
+      width:12%;
+      height: 30px;
+      padding: 4px 4px 4px 3px;
+      position: relative;
+      float: left;
+      cursor: pointer;
+      .canvas-fields-icon {
+        float: left;
+        margin-right: 3px;
+      }
+      .field-heading-label {
+        float: left;
+        width: 67%;
+      }
+      .canvas-fields-dropdown-icon {
+        float: right;
+      }
+    }
+    .fields-list {
+      overflow: hidden;
+      width: 88%;
+      float: left;
+      margin-top: 3px;
+      .filter-rename-input {
+        padding: 0px;
+        width: 135px;
+        color: #fff;
+      }
+      .field-label {
+        max-width: 100px;
+        color: #fff;
+      }
+      .default-text {
+        color: #777;
+        font-size: 11px;
+        padding:10px;
+      }
+    }
+    .scroll-items {
+      position: absolute;
+      bottom: 3px;
+      right: 0px;
+      background: #fff;
+      cursor: pointer;
+      display: none;
+    }
+  }
+}
+.hi-field-menu {
+  border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  border-radius: 4px;
+  box-shadow: 0 6px 12px rgb(0 0 0 / 18%);
+  background-clip: padding-box;
+  .group-end {
+    border-bottom: 1px solid #ddd;
+  }
+  .group-start {
+    border-top: 1px solid #ddd;
+  }
+  .ant-menu-submenu-title {
+    height: 20px !important;
+    line-height: 20px !important;
+    margin-top: 3px !important;
+  }
+  .ant-menu-item {
+    height: 20px !important;
+    line-height: 20px !important;
+    margin-top: 3px !important;
+    margin-bottom: 0px !important;
+    padding-bottom: 22px !important;
+  }
+  .ant-menu-submenu-item {
+    height: 20px !important;
+    line-height: 20px !important;
+    margin-top: 3px !important;
+  }
+}
+.field-calculations {
+  .ant-menu-item {
+    height: 20px !important;
+    line-height: 20px !important;
+    margin-top: 3px !important;
+    margin-bottom: 0px !important;
+    padding-bottom: 22px !important;
+  }
+}
+
+.aggregation-item {
+  display:flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 0px !important;
+  line-height: 1 !important;
+  height: 20px !important;
+}
+
+.hr-query-editor-container {
+  .hr-query-alias {
+    margin-bottom: 5px;
+  }
+  .hr-query-editor {
+    height: 60vh;
+    border: 1px solid #ddd;
+    .CodeMirror {
+      height: 100%;
+    }
+  }
+  .hr-query-save-btn {
+    margin-top: 5px;
+  }
+  .query-validator {
+    font-size: 12px;
+    color: #ff4d4f;
+  }
+  .CodeMirror-gutters{
+    // width: 29px !important;
+  }
+  .CodeMirror-sizer{
+    // margin-left: 30px !important
+  }
+}
+.ant-space-item{
+  &:hover{
+    z-index: 1;
+  }
+}
+
+.hi-fields-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.filter-rename-input {
+  padding: 0px;
+  width: 135px;
+  color: #fff;
+}

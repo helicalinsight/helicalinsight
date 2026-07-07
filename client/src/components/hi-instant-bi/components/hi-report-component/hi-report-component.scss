@@ -1,0 +1,11 @@
+@import "../hi-instant-bi-report-toolbar/hi-instant-bi-report-toolbar.scss";
+
+.hi-instant-bi-report-component {
+  height: 100%;
+  padding: 10px;
+  &:hover {
+    .hi-instant-bi-report-toolbar {
+      display: block;
+    }
+  }
+}

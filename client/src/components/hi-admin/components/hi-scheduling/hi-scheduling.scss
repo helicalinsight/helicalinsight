@@ -1,0 +1,89 @@
+@import "../../../../styles/variables.scss";
+
+.hi-admin-scheduling-container {
+  border: 1px solid $hi-light-gray;
+
+  .scheduling-header-container {
+    height: 50px;
+    border-bottom: 1px solid $hi-white-smoke;
+  }
+
+  .scheduling-header-data-container {
+    height: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .scheduling-title {
+    padding-left: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .scheduling-refresh-button {
+    text-align: end;
+    padding-right: 7px;
+  }
+
+  .plugin-refresh-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .scheduling-alert-icon {
+    padding-left: 5px;
+  }
+
+  .scheduling-alert {
+    width: 100px;
+  }
+
+  .scheduling-table-container {
+    padding: 5px;
+    height: 98%;
+  }
+
+  .table-row-color {
+    background-color: whitesmoke;
+  }
+
+  .capitalize {
+    text-transform: capitalize;
+  }
+
+  .ant-card-body {
+    padding: 0px !important;
+  }
+
+  .expired {
+    color: $hi-red;
+  }
+
+  .actions-card {
+    margin-right: 5px;
+  }
+
+  .scheduling-email-recipients {
+    max-width: 200px;
+  }
+}
+
+.more-info-drawer {
+  .CodeMirror {
+    height: 130px;
+  }
+
+  .ant-table.ant-table-small
+    .ant-table-tbody
+    .ant-table-wrapper:only-child
+    .ant-table {
+    margin: 0;
+  }
+
+  .scheduling-more-info-table-cell {
+    max-width: 200px;
+  }
+}

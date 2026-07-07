@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<components>
+    <description>Configurable components of HDI. Either xml based or json based.</description>
+    <xml mandatory="true">
+        <core mandatory="true">
+            <!-- If the componentType consists of one single component, provide a dummy element inside as shown below.-->
+            <!-- Or similar to xml or core, provide mandatory attribute -->
+            <dataSource>
+                <fileOperationOverNetwork  class="com.helicalinsight.adhoc.services.FileCopierOverNetworkHandler" classifier="global"/>
+                <drill class="com.helicalinsight.adhoc.services.DrillManagerComponent" classifier="global"/>
+                <deleteUploadedDrillFiles  class="com.helicalinsight.adhoc.services.DeleteFilesHandler" classifier="global"/>
+                <updateDrillConfig  class="com.helicalinsight.adhoc.services.UpdateDrillConfig" classifier="global"/>
+                <drillCsvDatasource  class="com.helicalinsight.adhoc.services.DrillCsvDataSourceCreator" classifier="global"/>
+                <drillConfig class="com.helicalinsight.adhoc.services.DrillConfigProvider" classifier="global"/>
+                <loadDriver class="com.helicalinsight.datasource.CustomWatcherComponent" classifier="global"/>
+
+                <reportFiles class="com.helicalinsight.adhoc.services.ReportsRelatedToMetadata" classifier="global"/>
+                <sheduledReports class="com.helicalinsight.adhoc.services.SheduledReportsRelatedToReports" classifier="global"/>
+                <listing class="com.helicalinsight.adhoc.services.DataSourceRelatedFiles" classifier="global"/>
+                <listing class="com.helicalinsight.adhoc.services.DataSourceRelatedFiles" classifier="efwd"/>
+                <listing class="com.helicalinsight.adhoc.services.ReportsRelatedToMetadata" classifier="metadata"/>
+                <listing class="com.helicalinsight.adhoc.services.SheduledReportsRelatedToReports" classifier="report"/>
+                <delete class="com.helicalinsight.adhoc.services.EfwdDeleteComponent" classifier="efwd"/>
+                <!--<delete class="com.helicalinsight.adhoc.services.DatasourceDeleteComponent" classifier="global"/>-->
+
+                <read class="com.helicalinsight.efw.components.EfwdReader" classifier="efwd"/>
+                <write class="com.helicalinsight.efw.components.EfwdWriter" classifier="efwd"/>
+                <update class="com.helicalinsight.efw.components.EfwdUpdateHandler" classifier="efwd"/>
+                <test class="com.helicalinsight.efw.components.EfwdConnectionTester" classifier="efwd"/>
+                <!--<read class="com.helicalinsight.efw.components.GlobalXmlReader" classifier="global"/>-->
+                <!--<write class="com.helicalinsight.efw.components.GlobalXmlWriter" classifier="global"/>-->
+                <!--<update class="com.helicalinsight.efw.components.GlobalXmlUpdateHandler" classifier="global"/>-->
+                <test class="com.helicalinsight.efw.components.GlobalConnectionsTester" classifier="global"/>
+                <shutdown class="com.helicalinsight.admin.management.ManagedDataSourceShutdownHandler"/>
+                <cachedDS class="com.helicalinsight.admin.management.RetrievePooledConnections"/>
+                <cacheStats  class="com.helicalinsight.efw.components.ApplicationCacheStatisticsProvider"/>
+                <abortWorker  class="com.helicalinsight.efw.components.ApplicationWorkerAbortComponent"/>
+
+                <delete class="com.helicalinsight.adhoc.services.DatasourceDSDeleteComponent" classifier="global"/>
+
+                <read class="com.helicalinsight.efw.components.GlobalDSReader" classifier="global"/>
+                <write class="com.helicalinsight.efw.components.GlobalDatabaseConnectionWriter" classifier="global"/>
+                <update class="com.helicalinsight.efw.components.GlobalDBUpdateHandler" classifier="global"/>
+
+            </dataSource>
+            <!-- To update any resource that has security and share feature -->
+
+            <share mandatory="true">
+                <update class="com.helicalinsight.resourcesecurity.ShareRuleDBUpdateHandler"/>
+                <fetchInfo class="com.helicalinsight.resourcesecurity.ShareServiceImpl"/>
+                <retrieveSharedInfo
+                        class="com.helicalinsight.resourcesecurity.SharedInformationRetrievalComponentDB"/>
+            </share>
+        </core>
+        <adhoc mandatory="true">
+            <query mandatory="true">
+                <discover class="com.helicalinsight.nlp.OpenNlpComponent"/>
+                <cancelQuery class="com.helicalinsight.datasource.CancelQuery"/>
+                <queryDetails class="com.helicalinsight.datasource.RunningQueryComponent"/>
+            </query>
+            <metadata mandatory="true">
+
+                <dialectInformation class="com.helicalinsight.adhoc.services.DatabaseViewHandler"
+                                    classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <get class="com.helicalinsight.adhoc.DatabaseMetadataProvider"
+                     classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <!-- Returns the catalogs and schemas -->
+                <fetchMetadata class="com.helicalinsight.adhoc.DatabaseMetadataInformationProvider"
+                               classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <update class="com.helicalinsight.adhoc.metadata.genericdb.DatabaseMetadataCacheUpdateHandler"
+                        classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <delete class="com.helicalinsight.adhoc.metadata.genericdb.MetadataDeleteHandler"
+                        classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <!-- "NewMetadataDeleteHandler" is the new enhancement for MetadataDeleteHandler it has features to delete only metadata file or metadata file and its associated files like reports,savedReports.  -->
+                <deleteMetadata class="com.helicalinsight.adhoc.metadata.genericdb.NewMetadataDeleteHandler"
+                                classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <getFunctions
+                        class="com.helicalinsight.adhoc.metadata.genericdb.DatabaseAggregateFunctionListProvider"
+                        classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <metadataWorkflow class="com.helicalinsight.adhoc.EnhancedMetadataWorkflowComponent"
+                                  classifier="db.generic, db.calcite, db.workflow"/>
+
+
+                <cacheMetadata class="com.helicalinsight.cache.management.metadata.MetadataCacheComponent"
+                               classifier="db.generic, db.calcite, db.workflow"/>
+
+                <metadataWorkflow class="com.helicalinsight.adhoc.SparkWorkflowComponent"  classifier="db.noSql"/>
+                <saveWorkflow class="com.helicalinsight.adhoc.MetadataWorkflowSaveHandler"
+                              classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <retrieveViewLabels class="com.helicalinsight.adhoc.ViewLabelsRetrievalComponent"
+                                    classifier="db.generic, db.calcite, db.workflow,  db.noSql, global, efwd"/>
+                <saveView class="com.helicalinsight.adhoc.DerivedTableSaveHandler"
+                          classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <retrieveView class="com.helicalinsight.adhoc.DerivedTableFetchHandler"
+                              classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <getSecurity class="com.helicalinsight.adhoc.metadata.MetadataSecurityProvider"
+                             classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <security class="com.helicalinsight.adhoc.metadata.MetadataSecuritySettingsProvider"
+                          classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <access class="com.helicalinsight.adhoc.metadata.MetadataSecuritySaveHandler"
+                        classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <sync class="com.helicalinsight.spark.SparkServiceComponent"/>
+                <evaluateSecurity
+                        class="com.helicalinsight.adhoc.metadata.MetadataSecurityExpressionValidator"
+                        classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+
+                <retrieveJoins class="com.helicalinsight.adhoc.EnhancedMetadataJoinsRetriver"
+                               classifier="db.generic, db.calcite, db.workflow"/>
+                <fetchColumns class="com.helicalinsight.adhoc.CachedColumnsProviderComponent"
+                              classifier="db.generic, db.calcite, db.workflow"/>
+                <fetchJoins class="com.helicalinsight.adhoc.CachedJoinsRetrieverComponent"
+                            classifier="db.generic, db.calcite, db.workflow"/>
+                <cachedConnectionStatus  class="com.helicalinsight.adhoc.metadata.genericdb.ConnectionCacheStatusProvider" classifier="db.generic, db.calcite, db.workflow"/>
+                <fetchAllCubes class="com.helicalinsight.adhoc.services.ProcessDetailsComponent" classifier="db.generic, db.calcite, db.workflow"/>
+                <fetchPhase class="com.helicalinsight.adhoc.services.PhaseDetailsProvider" classifier="db.generic, db.calcite, db.workflow"/>
+                <dumpCube class="com.helicalinsight.spark.service.CubeDumpHandler"/>
+                <deleteDump class="com.helicalinsight.spark.service.DumpDeleteHandler"/>
+                <!--  new component  -->
+                <listMetadataDump class= "com.helicalinsight.adhoc.MetadataDumpComponent" />
+                <cancelDump class= "com.helicalinsight.spark.service.CancelDump" />
+                <getMetadataForEdit class="com.helicalinsight.adhoc.DatabaseMetadataProvider"
+                     classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+            </metadata>
+		<cube mandatory="true">
+			 <update class="com.helicalinsight.adhoc.metadata.genericdb.DatabaseCubeUpdateHandler" classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+			<getCube class="com.helicalinsight.adhoc.metadata.genericdb.DatabaseCubeFetchHandler" classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+        </cube>
+
+            <report mandatory="true">
+                <generateQuery class="com.helicalinsight.adhoc.DatabaseQueryGenerator"
+                               classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <executeQuery class="com.helicalinsight.adhoc.DatabaseQueryExecutor"
+                              classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <fetchData class="com.helicalinsight.adhoc.QueryGeneratorAndExecutor" classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <!-- Uncomment below and comment above to use the default _all_ as filter value when the filter values is empty
+                  <fetchData class="com.helicalinsight.adhoc.QueryGeneratorAndExecutorDefaultAll" classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>-->
+                <fetchDataSpark class="com.helicalinsight.spark.QueryFetchFromSpark" classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <saveReport class="com.helicalinsight.adhoc.AdhocReportCreatorDb"
+                            classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+
+                <generateThumbnail class="com.helicalinsight.adhoc.GenerateThumbnail"
+                                   classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+
+                <deleteReport class="com.helicalinsight.adhoc.utils.FileDeleteHandlerDb"/>
+                <visualize class="com.helicalinsight.adhoc.VisualizationComponent"/>
+                <getReport class="com.helicalinsight.adhoc.report.AdhocReportReaderComponentDb"/>
+                <getReportForEdit class="com.helicalinsight.adhoc.report.AdhocReportReaderComponentDb"/>
+                <getDerivedFormdata class="com.helicalinsight.adhoc.AdhocNLPToFormData" />
+                <fetchFilePrcoessStatus class="com.helicalinsight.adhoc.FileProcessStatus" />
+            </report>
+			<customScript mandatory="true">
+                <save class="com.helicalinsight.adhoc.uiscript.CustomScriptSaveHandler"/>
+                <update class="com.helicalinsight.adhoc.uiscript.CustomScriptEditHandler"/>
+                <fetch class="com.helicalinsight.adhoc.uiscript.CustomScriptFetchHandler"/>
+                <delete class="com.helicalinsight.adhoc.uiscript.CustomScriptDeleteHandler"/>
+                <search class="com.helicalinsight.adhoc.uiscript.CustomScriptSearchHandler"/>
+                <getSnippets class="com.helicalinsight.adhoc.uiscript.CustomScriptGetSnippet"/>
+            </customScript>
+             <recycleBin mandotory="true">
+	        	<recycle class="com.helicalinsight.adhoc.recycle.RecycleBinComponent" />
+        	</recycleBin>
+        	<owner mandotory="true">
+        	 	<change class="com.helicalinsight.adhoc.OwnershipChangeComponent"/>
+        	</owner>
+        </adhoc>
+        <instantbi mandatory="true">
+            <instant mandatory="true">
+                <saveReport class="com.helicalinsight.instant.InstantReportCreatorDb"
+                            classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
+                <getReportForEdit class="com.helicalinsight.instant.report.InstantReportReaderComponent"/>
+                <getReport class="com.helicalinsight.instant.report.InstantReportReaderComponent"/>
+
+                <saveAiAgent class="com.helicalinsight.instant.AIAgentCreatorDb" />
+                <getAiAgentForEdit class="com.helicalinsight.instant.report.AIAgentReaderComponent" />
+				<getAgent class="com.helicalinsight.instant.report.AIAgentReaderComponent" />
+                <generateAgent class="com.helicalinsight.instant.report.GenerateAgentFromMD" />
+            </instant>
+
+        </instantbi>
+        <hcr mandatory="true">
+            <report mandatory="true">
+                <generateReport  class="com.helicalinsight.adhoc.services.GenerateHCReport"/>
+                <saveReportState class="com.helicalinsight.adhoc.services.HCReportCreatorDB"/>
+                <fetchReportState class="com.helicalinsight.adhoc.report.HCReportReader"/>
+                <deleteReportState class="com.helicalinsight.adhoc.report.HCReportDelete"/>
+                <executeReportQuery class="com.helicalinsight.adhoc.services.HIJasperQueryExecuter"/>
+            </report>
+        </hcr>
+        <dashboard mandatory="true">
+            <efwdd mandatory="true">
+                <designer class="com.helicalinsight.adhoc.designer.DashboardDesignerIOHandlerDb"/>
+                <fetch class="com.helicalinsight.adhoc.designer.DashboardDesignerFetchHandlerDb"/>
+                <delete class="com.helicalinsight.adhoc.designer.DashboardDesignerDeleteHandlerDb"/>
+            </efwdd>
+			<efwce mandatory="true">
+                <designer class="com.helicalinsight.efwce.DashboardIOHandler"/>
+                <fetch class="com.helicalinsight.efwce.DashboardFetchHandler"/>
+                <delete class="com.helicalinsight.efwce.DashboardDeleteHandler"/>
+            </efwce>
+
+        </dashboard>
+
+        <content mandatory="true">
+            <static mandatory="true">
+                <getContents class="com.helicalinsight.export.components.AnySettingsGroovyProcessor"/>
+            </static>
+        </content>
+        <print mandatory="true">
+            <export mandatory="true">
+                <getTemplateList class="com.helicalinsight.export.components.ExportTemplatesListProvider"/>
+                <getExportSettings class="com.helicalinsight.export.components.ExportSettingsProvider"/>
+                <getTemplate class="com.helicalinsight.export.components.GetTemplate"/>
+                <deleteTemplate class="com.helicalinsight.export.components.DeleteTemplate"/>
+                <saveTemplate class="com.helicalinsight.export.components.SaveTemplate"/>
+                <getContents class="com.helicalinsight.export.components.AnySettingsGroovyProcessor"/>
+                <xls class="com.helicalinsight.export.components.ExcelImageBinder"/>
+                <phantomActions class="com.helicalinsight.export.components.DaemonServiceCheckComponent" />
+            </export>
+        </print>
+        <monitor mandatory="true">
+            <scheduling mandatory="true">
+                <schedule class="com.helicalinsight.scheduling.EnhancedSchedulerActionHandler"/>
+                <migrateSchedules class="com.helicalinsight.scheduling.TriggerMigrationForScheduler"/>
+                <generateCron class="com.helicalinsight.scheduling.CronExpressionGenerator"/>
+            </scheduling>
+            <saml mandatory="true">
+                <saveMD class="com.helicalinsight.externalauth.saml.SaveMDService"/>
+                <editMD class="com.helicalinsight.externalauth.saml.SaveMDService"/>
+            </saml>
+            <cache mandatory="true">
+                <updateConfiguration class="com.helicalinsight.admin.management.ConfigurationReLoader"/>
+                <size class="com.helicalinsight.admin.management.ResourceSizeInformationHandler"/>
+                <delete class="com.helicalinsight.admin.management.ResourceDeleteHandler"/>
+                <clean class="com.helicalinsight.cache.management.ResourceEmptyHandler"/>
+                <dump class="com.helicalinsight.cache.management.ResourceDumpHandler"/>
+                <refresh class="com.helicalinsight.export.ResourceRefreshHandler"/>
+            </cache>
+            <system mandatory="true">
+                <systemInfo class="com.helicalinsight.admin.management.SystemInformationProvider"/>
+                <tempFile class="com.helicalinsight.admin.management.TempDirectoryCleanHandler"/>
+                <log class="com.helicalinsight.admin.management.LogLevelModifier"/>
+                <readWrite class="com.helicalinsight.admin.management.RawResourceReaderAndWriter"/>
+				<list class="com.helicalinsight.admin.management.ImageListComponent"/>
+                <closePlugin class="com.helicalinsight.admin.management.PluginCloseComponent"/>
+                <availablePlugins class="com.helicalinsight.admin.management.AvailablePluginsJsonProvider"/>
+                <loadedPlugins class="com.helicalinsight.admin.management.LoadedClassesJsonProvider"/>
+                <reportStats class="com.helicalinsight.admin.management.ReportStatisticsProvider"/>
+                <datasourceCount class="com.helicalinsight.admin.management.DataSourceCountProvider"/>
+                <diskSpace class="com.helicalinsight.admin.management.DiskSpaceProvider"/>
+                <management class="com.helicalinsight.spark.SparkServiceComponent"/>
+                <customWatcher class="com.helicalinsight.datasource.CustomWatcherComponent"/>
+                <deletePlugin class="com.helicalinsight.datasource.PluginDeleteHandler"/>
+                <readProperty class="com.helicalinsight.admin.management.ReadPropertyComponent"/>
+                <noSqlConfig class="com.helicalinsight.spark.service.NoSqlFileProvider"/>
+                <updateNoSql class="com.helicalinsight.spark.service.UpdateNoSqlConfig"/>
+                <mailStats class="com.helicalinsight.admin.management.MailStatProvider"/>
+                <release class="com.helicalinsight.efw.components.ReleaseNoteComponent" />
+            </system>
+        </monitor>
+        <hwf mandatory="true">
+            <hwfFile mandatory="true">
+                <create class="com.helicalinsight.hwf.component.HWFCreateComponent"/>
+                <fetch  class="com.helicalinsight.hwf.component.HWFFetchComponent"/>
+                <delete class="com.helicalinsight.hwf.component.HWFDeleteComponent"/>
+                <types  class="com.helicalinsight.hwf.util.HWFTypes"/>
+            </hwfFile>
+        </hwf>
+        <util mandatory="true">
+            <io mandatory="true">
+                <getExtensions class="com.helicalinsight.admin.management.FileExtensionProvider"/>
+                <getTypesDetails class="com.helicalinsight.admin.management.TypesDetailsProvider"/>
+                <imageService class="com.helicalinsight.admin.management.ImageListComponentDB"/>
+                <previewEmail class="com.helicalinsight.scheduling.EmailPreviewComponent"/>
+            </io>
+            <fileBrowser mandatory="true">
+                <search class="com.helicalinsight.admin.management.FileBrowserSearchHandler"/>
+                <refreshFileBrowser class="com.helicalinsight.admin.management.FileBrowserCacheValidator"/>
+            </fileBrowser>
+        </util>
+    </xml>
+    <!-- <import>
+        <xml name="exampleComponents.xml"/>
+    </import> -->
+</components>

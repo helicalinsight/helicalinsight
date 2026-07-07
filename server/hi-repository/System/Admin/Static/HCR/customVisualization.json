@@ -1,0 +1,28 @@
+{
+	"customVisualization": {
+		"dataSetRun": {
+			"dataSetName": "MainDataset",
+			"dataSetExpression": "$P{REPORT_CONNECTION}"
+		},
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 500,
+			"width": 900,
+			"stretchType": "NoStretch",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff",
+			"positionType": "FixRelativeTop"
+		},
+		"itemProperties": {
+			"type" : "interval",
+			"width" : 640,
+			"height" : 480,
+			"depth" : 0,
+			"padding" : 0
+		}
+    }
+}

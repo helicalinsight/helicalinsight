@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>generic_js_displayfilters</scriptId>
+    <scriptType>js</scriptType>
+    <name>Display Filters</name>
+    <group>Generic</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Display Filters on the report</description>
+	<icon>/images/scriptIcons/displayfilter.png</icon>
+	<snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			var flag = "firstpage";
+			
+			
+			var ftnObj = {};
+				ftnObj['disablesort'+id] = function(a){
+				var b = hi_container.get("requestData"); 
+				
+				var numeric_filtersData = hi_container.get("requestData").having;
+
+				
+				var num_len=0;
+				if(numeric_filtersData!=null){
+				 num_len= numeric_filtersData.length;
+				}
+
+				if(b.filters !=null){
+                var len = b.filters.length;
+				}
+                var filters=[];
+				var filters1=[];
+				
+				
+				for(var j=0;j<=num_len-1;j++)
+                {
+                var filter_name = numeric_filtersData[j].label;
+	
+                var filter_value = numeric_filtersData[j].values;
+				
+				
+				
+				
+				
+				if(filter_value=='_all_')
+				{
+				filter_value='All';
+				}
+				
+				filters1.push(filter_name+" : "+filter_value+ "<br/>\n");
+				filters=new Array(filters1.join(' '));
+				
+				}
+				
+				
+                for(var i=0;i<=len-1;i++)
+                {
+                var filter_name = b.filters[i].label;
+	
+                var filter_value = b.filters[i].values;
+				
+				
+				if(filter_value=='_all_')
+				{
+				filter_value='All';
+				}
+				
+                filters1.push(filter_name+" : "+filter_value+ "<br/>\n");
+				filters=new Array(filters1.join(' '));
+				
+				
+                }
+				
+				
+				
+				
+                var div = document.createElement("div");
+				div.setAttribute("id","displayfilters");
+				div.innerHTML = '<span style="font-size:16px;color: #3566A2;font-family: Arial">'+filters+'</span>';
+                
+				var header = document.getElementById("header");
+                var heading = document.getElementById("heading");
+                var subHeading = document.getElementById("subHeading");
+				
+				var id = hi_container.get("renderId");
+				var containerId = "#main";
+
+				if(id != "")
+				{
+					containerId="#main-"+id;
+				}
+				
+				
+				if (flag == "firstpage"){
+				
+				if(${switch}==true){
+				
+				
+				$(containerId).prepend(div);
+				
+					
+				// $(containerId).css({"overflow": "hidden"});	
+				
+				}
+				
+				flag="nextPage";
+				} 
+				
+              
+				
+				} ;
+			
+				if(!hi_container.isSet("postExecution")){
+					hi_container.set("postExecution", ftnObj['disablesort'+id]);
+				}
+				else{
+					hi_container.extend("postExecution", ftnObj['disablesort'+id]);
+				}
+			
+			]]>
+	</snippet>
+	<parameters>
+		<parameter value="true" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		
+				<div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle1" align="center">
+							<div class="col-sm-3">
+								<label><b>Display Filters</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Disable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch1">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Enable</label>
+							</div>
+						</div>
+					</div>
+					
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("switch",params.switch);
+				
+				function switchToggle(event){
+					if(adhocScripts.getVariable('switch') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch", 'true');
+					}
+					else{
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} else {
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

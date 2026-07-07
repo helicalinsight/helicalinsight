@@ -1,0 +1,24 @@
+x-test-common: &test-common
+  image: python:3.9-slim
+  working_dir: /app
+  volumes:
+    - .:/app
+  environment:
+    # Loaded from project ".env" for substitution; defaults apply if unset (see .env.example).
+    HELICALBI_LLM_MODE: ${HELICALBI_LLM_MODE:-stub}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+
+services:
+  test:
+    <<: *test-common
+    command:
+      - bash
+      - -lc
+      - pip install --no-cache-dir -r requirements.txt -r requirements-test.txt && exec pytest
+
+  test-llm:
+    <<: *test-common
+    command:
+      - bash
+      - -lc
+      - pip install --no-cache-dir -r requirements.txt -r requirements-test.txt && exec pytest -m llm

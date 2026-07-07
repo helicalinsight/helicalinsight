@@ -1,0 +1,24 @@
+.hi-filebrowser {
+  padding: 15px;
+}
+
+.hi-filebrowser .header {
+  background-color: #fff;
+  font-family: 'Questrial';
+  font-weight: 300;
+  height: auto !important;
+}
+
+.hi-filebrowser .fb-table .ant-table-thead > tr > th,
+.hi-filebrowser .fb-table .ant-table-tbody > tr > td {
+  font-size: 16px;
+}
+
+.hi-filebrowser .fb-table .ant-table-thead > tr > th {
+  font-weight: 600;
+}
+
+.hi-filebrowser .hidden {
+  display: none;
+}
+/*# sourceMappingURL=hi-fileBrowser.css.map */

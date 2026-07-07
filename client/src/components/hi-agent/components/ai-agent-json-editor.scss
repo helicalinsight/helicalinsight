@@ -1,0 +1,16 @@
+.ai-agent-json-editor {
+  height: 100%;
+  width: 100%;
+  
+  .monaco-editor {
+    height: 100% !important;
+  }
+  
+  .monaco-editor .margin {
+    background: #fafafa;
+  }
+  
+  .monaco-editor .editor-container {
+    background: #ffffff;
+  }
+}

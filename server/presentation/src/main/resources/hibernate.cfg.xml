@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+
+<hibernate-configuration>
+    <session-factory>
+        <mapping class="com.helicalinsight.admin.model.User"/>
+        <mapping class="com.helicalinsight.admin.model.Role"/>
+        <mapping class="com.helicalinsight.admin.model.Profile"/>
+        <mapping class="com.helicalinsight.admin.model.Organization"/>
+        <mapping class="com.helicalinsight.cache.model.Cache"/>
+        <mapping class="com.helicalinsight.cache.model.CacheReport"/>
+        <mapping class="com.helicalinsight.admin.model.ProcessDetails"/>
+        <mapping class="com.helicalinsight.admin.model.CubePhaseDetails"/>
+        <mapping class="com.helicalinsight.admin.model.CubeMetadataInformation"/>
+       <!--  <mapping class="com.helicalinsight.nlp.persistence.PatternModel"/>  -->
+
+        <mapping class="com.helicalinsight.admin.model.ApplicationCache"/>
+        <mapping class="com.helicalinsight.admin.model.FileBrowserCache"/>
+        <mapping class="com.helicalinsight.admin.model.DataSourceMapping"/>
+        <!-- scheduling related entities  -->
+        <mapping class="com.helicalinsight.scheduling.model.JobParameters"/>
+        <mapping class="com.helicalinsight.scheduling.model.Schedules"/>
+<!--        <mapping class="com.helicalinsight.scheduling.model.ResourceType"/>-->
+        <mapping class="com.helicalinsight.admin.model.ResourceType"/>
+        <!--  <mapping class="com.helicalinsight.scheduling.model.HiResource"/> -->
+        <mapping class="com.helicalinsight.datasource.model.GlobalConnections"/>
+        <mapping class="com.helicalinsight.datasource.model.GlobalConnectionSecurity"/>
+        <mapping class="com.helicalinsight.datasource.model.DSTypeNoSQL"/>
+        <mapping class="com.helicalinsight.datasource.model.DSTypeHikari"/>
+        <mapping class="com.helicalinsight.datasource.model.DSTypeJndi"/>
+        <mapping class="com.helicalinsight.datasource.model.DSTypeTomcat"/>
+        <mapping class="com.helicalinsight.datasource.model.DSTypePlainJDBC"/>
+        <mapping class="com.helicalinsight.datasource.model.DSExtraOption"/>
+        <mapping class="com.helicalinsight.admin.model.HIResource"/>
+        <mapping class="com.helicalinsight.admin.model.HIResourceSecurityDB"/>
+        <mapping class="com.helicalinsight.admin.model.HIResourceMetadata"/>
+        <mapping class="com.helicalinsight.admin.model.HIResourceHWF"/>
+        <mapping class="com.helicalinsight.admin.model.MetadataDatabases"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataSecurity"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataConnections"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataView"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataTables"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataColumns"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataRelationships"/>
+        <mapping class="com.helicalinsight.admin.model.HWFExecution"/>
+        <mapping class="com.helicalinsight.admin.model.HWFExecutionInput"/>
+        <mapping class="com.helicalinsight.admin.model.HWFExecutionOutput"/>
+        <mapping class="com.helicalinsight.admin.model.HIHwfInput"/>
+        <mapping class="com.helicalinsight.admin.model.HIHwfOutput"/>
+        <mapping class="com.helicalinsight.admin.model.HWFExecutionGroovy"/>
+        <mapping class="com.helicalinsight.admin.model.HWFExecutionConditional"/>
+        <mapping class="com.helicalinsight.admin.model.HIUrlMapping"/>
+        <mapping class="com.helicalinsight.admin.model.HIResourceEFWVF"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataConnectionEFWD"/>
+        <mapping class="com.helicalinsight.admin.model.HIMetadataConnectionGlobal"/>
+        <mapping class="com.helicalinsight.admin.model.HIEfwdDataMap"/>
+        <mapping class="com.helicalinsight.admin.model.HIEfwdDatamapParameters"/>
+        <mapping class="com.helicalinsight.admin.model.EFWDConnSqlJDBC"/>
+        <mapping class="com.helicalinsight.admin.model.EFWDConnGroovy"/>
+        <mapping class="com.helicalinsight.admin.model.HIEfwdConnSecurity"/>
+        <mapping class="com.helicalinsight.admin.model.HIEfwdConnection"/>
+        <mapping class="com.helicalinsight.admin.model.ResourceEfwContents"/>
+        <mapping class="com.helicalinsight.admin.model.HIEFWD"/>
+
+        <mapping class="com.helicalinsight.admin.model.HIMetadataCube"/>
+        <mapping class="com.helicalinsight.admin.model.HICubeDimension"/>
+        <mapping class="com.helicalinsight.admin.model.HICubeMeasure"/>
+        <mapping class="com.helicalinsight.admin.model.HICubeHierarchyLevel"/>
+        <mapping class="com.helicalinsight.admin.model.HIDimensionHierarchy"/>
+		<mapping class="com.helicalinsight.admin.model.HIPhase"/>
+		<mapping class="com.helicalinsight.admin.model.HIAuditDetails"/>
+		<mapping class="com.helicalinsight.admin.model.HIResourcePhaseStatus"/>
+
+
+		 <!--  Recycle Bin  -->
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBin"/>
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBinHIResourceDB"/>
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBinDSGlobalConnections"/>
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBinHUsers"/>
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBinOrganization"/>
+        <mapping class="com.helicalinsight.admin.model.HIRecycleBinHIEfwdConnection"/>
+        
+        <mapping class="com.helicalinsight.admin.model.HIHcrConnectionsEfwd"/>
+        <mapping class="com.helicalinsight.admin.model.HIHcrConnectionsGlobal"/>
+        <mapping class="com.helicalinsight.admin.model.HiHcrQuery"/>
+        <mapping class="com.helicalinsight.admin.model.HIHcrQueryParameters"/>
+        <mapping class="com.helicalinsight.admin.model.HIHcrConnections"/>
+        <mapping class="com.helicalinsight.admin.model.HIResourceMapping"/>
+        
+
+    </session-factory>
+</hibernate-configuration>
+
+

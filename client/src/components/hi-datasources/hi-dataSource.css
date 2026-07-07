@@ -1,0 +1,105 @@
+.hi-datasource-card .ant-card-body {
+  padding: 0 !important;
+}
+
+.hi-datasource-card .menu-card {
+  padding: 5px;
+}
+
+.hi-datasource-card .checked-icon {
+  color: #52c41a;
+  -ms-flex-item-align: end;
+      align-self: flex-end;
+}
+
+.hi-datasource-card .add-icon {
+  color: #d9d9d9;
+  -ms-flex-item-align: end;
+      align-self: flex-end;
+}
+
+.hi-datasource-card .help-icon {
+  font-size: 10px !important;
+  margin-left: 5px;
+}
+
+.hi-datasource-card .gridstyle {
+  width: 19%;
+  margin: 5px;
+  height: 190px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+@media screen and (max-width: 768px) {
+  .hi-datasource-card .gridstyle {
+    width: 95%;
+  }
+}
+
+@media screen and (min-width: 769px) and (max-width: 992px) {
+  .hi-datasource-card .gridstyle {
+    width: 31%;
+    margin: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.hi-datasource-card .datasource-routes-container {
+  height: 82vh;
+  margin: 1px;
+  overflow: auto;
+}
+
+.hi-datasource-card .datasource-container .datasource-header {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+
+.hi-datasource-card .datasource-container .datasource-menu {
+  line-height: 25px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+}
+
+.hi-datasource-card .datasource-container .ant-menu-horizontal {
+  border: none !important;
+}
+
+.clear-button {
+  color: #f5222d;
+  cursor: pointer;
+}
+
+.search-warning {
+  text-align: center;
+  margin: 20px;
+}
+
+.upload-heading {
+  text-align: center;
+  font-size: 19px;
+}
+
+.upload-card {
+  height: 130px;
+  text-align: center;
+}
+/*# sourceMappingURL=hi-dataSource.css.map */

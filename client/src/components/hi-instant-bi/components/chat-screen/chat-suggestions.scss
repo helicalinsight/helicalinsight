@@ -1,0 +1,92 @@
+.chat-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 20px;
+    padding-left: 16px; 
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+    &__icon {
+        font-size: 14px;
+        line-height: 1;
+    }
+    &__label {
+        font-size: 13px;
+        font-weight: 500;
+        color: #6b7280;
+        letter-spacing: 0.01em;
+    }
+
+    &__loading-bar {
+        margin-top: 12px;
+        width: 100%;
+    }
+}
+
+.suggestion-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 2px;
+    cursor: pointer;
+    opacity: 0;
+    animation: fadeInUp 0.5s forwards;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: #e9eaeb;
+    }
+
+    &__title {
+        font-size: 12px;
+        line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__icon {
+        font-size: 14px;
+        color: #6b7280;
+        flex-shrink: 0;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.skeleton {
+    margin-top: 8px;
+    background-size: 200px 100%;
+    background-repeat: no-repeat;
+}
+
+@keyframes skeletonLoading {
+    0% {
+        background-position: -200px 0;
+    }
+
+    100% {
+        background-position: calc(200px + 100%) 0;
+    }
+}
+
+.skeleton {
+    background-size: 200px 100%;
+    background-repeat: no-repeat;
+}

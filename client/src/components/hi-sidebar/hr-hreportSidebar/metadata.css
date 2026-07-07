@@ -1,0 +1,13 @@
+.hr-metadata-container {
+  height: calc(100% - 50px);
+  background-color: #fff;
+}
+
+.hr-metadata-container .hr-md-expand-icons {
+  float: left;
+}
+
+.hr-metadata-container .hr-md-search {
+  width: calc(100% - 33px);
+}
+/*# sourceMappingURL=metadata.css.map */

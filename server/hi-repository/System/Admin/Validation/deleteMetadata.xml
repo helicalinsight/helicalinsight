@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	 <location required="true" type="directory"/>
+	<metadataFileName required="true" type="file"/>
+	<provideJoins type="boolean"/> 
+	<!--<location required="true" type="text"/>
+	<metadataFileName required="true" type="text"/>
+	<type  required ="true" type="text"/>  -->
+</formData>

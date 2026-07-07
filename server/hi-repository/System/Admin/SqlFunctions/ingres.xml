@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Return type for each function node can be the following 
+
+	"numeric", "text", "date", "time","dateTime","boolean","other" 
+	
+	-->
+<functions dialect="org.hibernate.dialect.IngresDialect" type="db.ingres">
+  
+
+    <function group="text" returns="numeric">
+        <key>db.ingres.text.bitLength</key>
+        <value>bit_length</value>
+        <signature><![CDATA[bit_length(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Displays the length of the given string in bits.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.lower</key>
+        <value>lower</value>
+        <signature><![CDATA[lower(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Converts all characters in the specified string to lowercase.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.upper</key>
+        <value>upper</value>
+        <signature><![CDATA[upper(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It converts all the characters in a string to uppercase characters.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.trim</key>
+        <value>trim</value>
+        <signature><![CDATA[trim(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It removes all specified characters either from the beginning or the ending of the string.
+        </description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.ltrim</key>
+        <value>ltrim</value>
+        <signature><![CDATA[ltrim(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It removes all space characters from the left-side of a string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.lpad</key>
+        <value>lpad</value>
+        <signature><![CDATA[lpad(${text},${length},${padString})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue="0" name="length"/>
+            <parameter column="true" name="padString"/>
+        </parameters>
+        <description>Displays a string that is left padded with a specified string to a certain length.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.replace</key>
+        <value>replace</value>
+        <signature><![CDATA[replace(${text},${find_text},${replace_with})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter column="true" defaultValue='abc' name="find_text"/>
+            <parameter column="true" defaultValue='xyz' name="replace_with"/>
+        </parameters>
+        <description>It replaces all the occurrences of a substring within a string.</description>
+    </function>
+
+    <function group="text" returns="numeric">
+        <key>db.ingres.text.characterLength</key>
+        <value>character_length</value>
+        <signature><![CDATA[character_length(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Displays the length of the given string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.concat</key>
+        <value>concat</value>
+        <signature><![CDATA[concat(${text1},${text2})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue='Text 1' name="text1"/>
+            <parameter column="true" defaultValue='Text 2' name="text2"/>
+        </parameters>
+        <description>It used to add two or more strings.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.proper</key>
+        <value>proper</value>
+        <signature><![CDATA[concat(upper(substring(${text}, 1, 1)),lower(substring(${text}, 2)))]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It converts the first character in each word to uppercase and the rest to lowercase.</description>
+    </function>
+
+    <function group="text" returns="numeric">
+        <key>db.ingres.text.length</key>
+        <value>length</value>
+        <signature><![CDATA[length(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Displays the length of the given string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.left</key>
+        <value>left</value>
+        <signature><![CDATA[left(${text},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue="2" name="length"/>
+        </parameters>
+        <description>It returns the leftmost part of the argument string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.right</key>
+        <value>right</value>
+        <signature><![CDATA[right(${text},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue="2" name="length"/>
+        </parameters>
+        <description>It returns the rightmost part of the argument string.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>db.ingres.text.substring</key>
+        <value>substring</value>
+        <signature><![CDATA[substring(${text},${position},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter defaultValue='2' name="position"/>
+            <parameter defaultValue='3' name="length"/>
+        </parameters>
+        <description>It returns a specified number of characters from a particular position of a given string.
+        </description>
+    </function>
+
+    <function group="text" returns="numeric">
+        <key>db.ingres.text.position</key>
+        <value>position</value>
+        <signature><![CDATA[position(${find_char} in ${text})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue='2' name="find_char"/>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It returns the position of a substring within a string.</description>
+    </function>
+
+
+    <function group="numeric" returns="numeric">
+        <key>db.ingres.numeric.abs</key>
+        <value>abs</value>
+        <signature><![CDATA[abs(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It returns the absolute value of a number.</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>db.ingres.numeric.ceiling</key>
+        <value>ceiling</value>
+        <signature><![CDATA[ceiling(${decimal})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="decimal"/>
+        </parameters>
+        <description>Displays the smallest integer value not less than the number specified.</description>
+    </function>
+
+
+    <function group="date" returns="date">
+        <key>db.ingres.date.currentdate</key>
+        <value>current_date</value>
+        <signature><![CDATA[date('today')]]></signature>
+        <parameters>
+        </parameters>
+        <description>It displays current date.</description>
+    </function>
+
+
+    <function group="date" returns="numeric">
+        <key>db.ingres.date.year</key>
+        <value>year</value>
+        <signature><![CDATA[year(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It extracts year from the date/timestamp.</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.ingres.date.month</key>
+        <value>month</value>
+        <signature><![CDATA[month(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing month number ranging (1-12).</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.firebird.date.week</key>
+        <value>week</value>
+        <signature><![CDATA[week(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing week number ranging (1-4).</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.ingres.date.day</key>
+        <value>day</value>
+        <signature><![CDATA[day(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing day number ranging (1-31).</description>
+    </function>
+
+    <function group="date" returns="numeric">
+        <key>db.ingres.date.quarter</key>
+        <value>quarter</value>
+        <signature><![CDATA[quarter(${date})]]></signature>
+        <parameters>
+            <parameter column="true" name="date"/>
+        </parameters>
+        <description>Displays quarter of the year for a date (1-4)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.ingres.dateTime.hour</key>
+        <value>hour</value>
+        <signature><![CDATA[hour(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing hour ranging (0-23)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.ingres.dateTime.minute</key>
+        <value>minute</value>
+        <signature><![CDATA[minute(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing hour ranging (0-23)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.ingres.dateTime.second</key>
+        <value>second</value>
+        <signature><![CDATA[second(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It returns an integer representing hour ranging (0-23)</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.ingres.dateTime.extract</key>
+        <value>extract</value>
+        <signature><![CDATA[extract(${unit} from ${datetime})]]></signature>
+        <parameters>
+            <parameter defaultValue='month' name="unit"/>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>It extracts year,month,day,hour,minute,second and millisecond</description>
+    </function>
+
+    <function group="dateTime" returns="numeric">
+        <key>db.ingres.dateTime.datePart</key>
+        <value>date_part</value>
+        <signature><![CDATA[date_part('${unit}', ${datetime})]]></signature>
+        <parameters>
+            <parameter defaultValue='month' name="unit"/>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+		<description>It extracts year,month,day,hour,minute,second and millisecond</description>
+    </function>
+
+		<!--  Conditional functions-->
+	<function group="conditional" returns="text">
+        <key>sql.conditional.case</key>
+        <value>CASE</value>
+        <signature><![CDATA[(CASE WHEN ${actualValue} ${operator} ${expectedValue} THEN ${assignValue} ELSE ${elseValue} END)]]></signature>
+        <parameters>
+            <parameter column="true" name="actualValue"/>
+			<parameter column="true" name="operator"/>
+			<parameter column="true" name="expectedValue"/>
+			<parameter column="true" name="assignValue"/>
+			<parameter column="true" name="elseValue"/>
+        </parameters>
+        <description>This function compares 'actualValue' and 'expectedValue' based on the operator if condition succeeds then changes the 'actualValue' to 'assignValue' else 'elseValue'. Note:All Values should be in single quotes if you are typing the value.</description>
+    </function>
+	
+	<function group="conditional" returns="text">
+        <key>sql.conditional.case_not_equals</key>
+        <value>CASE_NOT_EQUALS</value>
+        <signature><![CDATA[(CASE WHEN ${actualValue} <>${compareValue} THEN ${changeValue} ELSE ${actualValue} END)]]></signature>
+        <parameters>
+            <parameter column="true" name="actualValue"/>
+			<parameter column="true" name="compareValue"/>
+			<parameter column="true" name="changeValue"/>
+        </parameters>
+        <description>This function compares 'actualValue' and 'compareValue' if both are not equal then changes the 'actualValue' to 'changeValue' other wise 'actualValue' remains same. Note:All Values should be in single quotes if you are typing the value.</description>
+    </function>
+	
+	<!--Conversion specific functions must be there for every xml file starts-->  
+ <function group="date" returns="text">
+      <key>sql.text.dateToString</key>
+      <value>dateToString</value>
+      <signature><![CDATA[cast(${column} as varchar(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the date to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.numericToString</key>
+      <value>numericToString</value>
+      <signature><![CDATA[cast(${column} as varchar(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the number to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.dateTimeToString</key>
+      <value>dateTimeToString</value>
+      <signature><![CDATA[cast(${column} as varchar(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the datetime to string</description>
+   </function>
+   
+   <function group="date" returns="text">
+      <key>sql.text.timeToString</key>
+      <value>timeToString</value>
+      <signature><![CDATA[cast(${column} as varchar(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the time to string</description>
+   </function>
+<!--Conversion specific functions must be there for every xml file ends-->
+
+	
+	
+</functions>

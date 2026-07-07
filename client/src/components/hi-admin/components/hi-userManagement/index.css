@@ -1,0 +1,121 @@
+.hi-user-management {
+  overflow: hidden;
+  padding: 1px 5px 1px 5px;
+}
+
+.hi-user-management .hi-profile-table .ant-checkbox {
+  display: none;
+}
+
+.hi-user-management .hi-um-table-container {
+  min-height: 40vh;
+}
+
+.hi-user-management .hi-um-reload-btn {
+  padding: 10px;
+}
+
+.hi-user-management .ant-card-body {
+  padding: 0px !important;
+}
+
+.hi-user-management .hi-search-box {
+  width: 100% !important;
+}
+
+.hi-user-management .hi-um-edit-icon {
+  opacity: 0;
+}
+
+.hi-user-management .hi-um-edit-icon:hover {
+  opacity: 1;
+}
+
+.hi-user-management .hi-um-button {
+  width: 180px;
+}
+
+.hi-user-management .hi-add-user-form .hi-um-add-org-button {
+  margin-top: 20px;
+}
+
+.hi-user-management .hi-org-card {
+  border-right: 1px solid #ddd;
+  text-align: center;
+}
+
+.hi-user-management .hi-org-card .hi-icon {
+  padding: 20px;
+  font-size: 80px;
+}
+
+.hi-user-management .hi-org-card .hi-card-body {
+  padding: 5px;
+}
+
+.hi-user-management .hi-org-card .hi-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.hi-user-management .hi-org-card .hi-title-count {
+  font-weight: bolder;
+  font-size: 40px;
+}
+
+@media screen and (max-width: 991px) {
+  .hi-user-management .hi-remove-right-border {
+    border: none;
+  }
+}
+
+.hi-user-management .hi-user-card {
+  text-align: center;
+}
+
+.hi-user-management .hi-user-card .hi-icon {
+  padding: 20px;
+  font-size: 80px;
+}
+
+.hi-user-management .hi-user-card .hi-card-body {
+  padding: 5px;
+}
+
+.hi-user-management .hi-user-card .hi-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.hi-user-management .hi-user-card .hi-title-count {
+  font-weight: bolder;
+  font-size: 40px;
+}
+
+.hi-user-management .hi-ellipses {
+  text-overflow: ellipsis;
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  display: inline;
+}
+
+.hi-user-management .hi-card {
+  padding: 10px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.hi-user-management .btn {
+  display: block;
+}
+
+.hi-user-management .hide {
+  display: none;
+}
+
+.hi-user-management .hi-drawer-menu {
+  position: fixed;
+  min-width: 100px;
+}
+/*# sourceMappingURL=index.css.map */

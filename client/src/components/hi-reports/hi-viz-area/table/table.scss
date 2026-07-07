@@ -1,0 +1,82 @@
+$font-size: 12px;
+
+.hreport-table {
+  font-size: $font-size;
+
+  div,
+  table,
+  tbody,
+  tr,
+  td {
+    background-color: transparent;
+  }
+
+  .ant-table-container {
+    clear: both;
+  }
+
+  .ant-table-title {
+    padding: 0px;
+  }
+
+  .ant-table-thead {
+    .ant-table-cell {
+      font-weight: 600;
+    }
+  }
+
+  .ant-table-cell {
+    font-size: $font-size;
+    padding: 0px 0px 1px 0px;
+  }
+
+  th.ant-table-cell {
+    padding: 8px 16px;
+  }
+
+  .ant-pagination {
+    position: relative;
+    z-index: 5;
+    left: -30px; // added below two properties to solve the hreport pin issue 6256
+    top: -8px;
+  }
+
+  .hreport-table-hide-icon {
+    position: absolute;
+    top: 10px;
+    right: 2px;
+    cursor: pointer;
+    z-index: 99;
+  }
+
+  .ant-table-body {
+    overflow: auto !important;
+  }
+}
+
+.hreport-table-layout {
+  table {
+    table-layout: auto !important;
+  }
+}
+
+.hi-table-summary-total {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-weight: bold;
+}
+
+.hi-table-summary-grand-total {
+  position: absolute;
+  top: 45px;
+  left: 16px;
+  font-weight: bold;
+}
+
+.hi-table-summary-title {
+  color: #000;
+  font-size: 13px;
+  padding: 8px 16px;
+  font-weight: bold;
+}

@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HI: Direct Demo</title>
+
+    <script src="https://code.jquery.com/jquery-3.0.0.min.js"
+        integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0=" crossorigin="anonymous"></script>
+
+    <script>
+        // requesBaseURL is a mandetary(set in header) to make hi-report run properly.
+        var requestBaseUrl = "https://164.52.206.202:8443/hi-ee"
+    </script>
+</head>
+
+<body>
+    <!-- Copy script and js files from HI Application -->
+    <!-- Start files from HI -->
+    <script src="https://164.52.206.202:8443/hi-ee/js/2.chunk.js"></script>
+    <script src="https://164.52.206.202:8443/hi-ee/js/main.chunk.js"></script>
+    <link href="https://164.52.206.202:8443/hi-ee/fonts/questrial/questrial.css" rel="stylesheet" />
+    <link href="https://164.52.206.202:8443/hi-ee/css/syncfusion.css" rel="stylesheet">
+    <link href="https://164.52.206.202:8443/hi-ee/css/2.chunk.css" rel="stylesheet">
+    <link href="https://164.52.206.202:8443/hi-ee/css/main.chunk.css" rel="stylesheet">
+    <link href="https://164.52.206.202:8443/hi-ee/css/metadata.css" rel="stylesheet">
+    <!-- End Files from HI -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- This is for lazy loading of js, css files -->
+    <script>!function (e) { function t(t) { for (var n, o, i = t[0], l = t[1], c = t[2], s = 0, p = []; s < i.length; s++)o = i[s], Object.prototype.hasOwnProperty.call(a, o) && a[o] && p.push(a[o][0]), a[o] = 0; for (n in l) Object.prototype.hasOwnProperty.call(l, n) && (e[n] = l[n]); for (f && f(t); p.length;)p.shift()(); return u.push.apply(u, c || []), r() } function r() { for (var e, t = 0; t < u.length; t++) { for (var r = u[t], n = !0, o = 1; o < r.length; o++) { var l = r[o]; 0 !== a[l] && (n = !1) } n && (u.splice(t--, 1), e = i(i.s = r[0])) } return e } var n = {}, o = { 1: 0 }, a = { 1: 0 }, u = []; function i(t) { if (n[t]) return n[t].exports; var r = n[t] = { i: t, l: !1, exports: {} }; return e[t].call(r.exports, r, r.exports, i), r.l = !0, r.exports } i.e = function (e) { var t = []; o[e] ? t.push(o[e]) : 0 !== o[e] && { 3: 1 }[e] && t.push(o[e] = new Promise((function (t, r) { for (var n = "static/css/" + ({}[e] || e) + ".chunk.css", a = i.p + n, u = document.getElementsByTagName("link"), l = 0; l < u.length; l++) { var c = (f = u[l]).getAttribute("data-href") || f.getAttribute("href"); if ("stylesheet" === f.rel && (c === n || c === a)) return t() } var s = document.getElementsByTagName("style"); for (l = 0; l < s.length; l++) { var f; if ((c = (f = s[l]).getAttribute("data-href")) === n || c === a) return t() } var p = document.createElement("link"); p.rel = "stylesheet", p.type = "text/css", p.onload = t, p.onerror = function (t) { var n = t && t.target && t.target.src || a, u = new Error("Loading CSS chunk " + e + " failed.\n(" + n + ")"); u.code = "CSS_CHUNK_LOAD_FAILED", u.request = n, delete o[e], p.parentNode.removeChild(p), r(u) }, p.href = a, document.getElementsByTagName("head")[0].appendChild(p) })).then((function () { o[e] = 0 }))); var r = a[e]; if (0 !== r) if (r) t.push(r[2]); else { var n = new Promise((function (t, n) { r = a[e] = [t, n] })); t.push(r[2] = n); var u, l = document.createElement("script"); l.charset = "utf-8", l.timeout = 120, i.nc && l.setAttribute("nonce", i.nc), l.src = function (e) { return i.p + "static/js/" + ({}[e] || e) + ".chunk.js" }(e); var c = new Error; u = function (t) { l.onerror = l.onload = null, clearTimeout(s); var r = a[e]; if (0 !== r) { if (r) { var n = t && ("load" === t.type ? "missing" : t.type), o = t && t.target && t.target.src; c.message = "Loading chunk " + e + " failed.\n(" + n + ": " + o + ")", c.name = "ChunkLoadError", c.type = n, c.request = o, r[1](c) } a[e] = void 0 } }; var s = setTimeout((function () { u({ type: "timeout", target: l }) }), 12e4); l.onerror = l.onload = u, document.head.appendChild(l) } return Promise.all(t) }, i.m = e, i.c = n, i.d = function (e, t, r) { i.o(e, t) || Object.defineProperty(e, t, { enumerable: !0, get: r }) }, i.r = function (e) { "undefined" !== typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e, "__esModule", { value: !0 }) }, i.t = function (e, t) { if (1 & t && (e = i(e)), 8 & t) return e; if (4 & t && "object" === typeof e && e && e.__esModule) return e; var r = Object.create(null); if (i.r(r), Object.defineProperty(r, "default", { enumerable: !0, value: e }), 2 & t && "string" != typeof e) for (var n in e) i.d(r, n, function (t) { return e[t] }.bind(null, n)); return r }, i.n = function (e) { var t = e && e.__esModule ? function () { return e.default } : function () { return e }; return i.d(t, "a", t), t }, i.o = function (e, t) { return Object.prototype.hasOwnProperty.call(e, t) }, i.p = "/", i.oe = function (e) { throw console.error(e), e }; var l = this.webpackJsonpHelicalInsight = this.webpackJsonpHelicalInsight || [], c = l.push.bind(l); l.push = t, l = l.slice(); for (var s = 0; s < l.length; s++)t(l[s]); var f = c; r() }([]);</script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.14.0/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.14.0/umd/react-dom.development.js"></script> -->
+    <script>
+        const elementId = 'direct';
+
+        // function unMountRootComponent(elementId) {
+        //     const rootElement = document.getElementById(elementId);
+        //     if (rootElement) {
+        //         ReactDOM.unmountComponentAtNode(rootElement);
+        //     }
+        // }
+
+        function callAjax(urlString, token, callback) {
+            $.ajax({
+                method: "POST",
+                url: urlString,
+                contentType: "text/html",
+                dataType: 'json',
+                crossDomain: true,
+                beforeSend: function (xhr, settings) {
+                    if (token) {
+                        // xhr.setRequestHeader("Authorization", token);
+                        xhr.setRequestHeader("type", 'direct');
+                        xhr.setRequestHeader("authToken", token);
+                    }
+                },
+                success: function (data) {
+                    callback(data)
+                },
+            })
+
+        }
+
+
+        function logout() {
+            //delete cookies
+            callAjax(requestBaseUrl + "/rest/jwtLogout.html", "", function () {
+                document.getElementById('reports').innerHTML = '';
+                document.getElementById('reports').style.display = "none"
+                document.getElementById('direct').innerHTML = "";
+                unMountRootComponent(elementId);
+                authToken = ""
+
+            })
+        }
+
+        var authToken = { username: "hiuser", password: "hiuser" };
+
+        function getChildren(folder) {
+            var items = []
+            if (folder.children && folder.children.length) {
+                folder.children.map(folder => {
+                    items = items.concat(getChildren(folder))
+                })
+                return items
+            }
+            return folder
+        }
+
+        function openReportList() {
+            unMountRootComponent(elementId);
+            document.getElementById('direct').innerHTML = "";
+            var formData = ["efw", "hr"]
+            var options = {
+                extensions: btoa(JSON.stringify(formData)),
+                v: new Date().getTime()
+            }
+            var url = requestBaseUrl + "/getSolutionResources"
+            url = url + "?extensions=" + options.extensions + "&v=" + options.v
+            callAjax(url, authToken, function (data) {
+                if (Array.isArray(data)) {
+                    var items = []
+                    data.map(folder => {
+                        items = items.concat(getChildren(folder))
+                    })
+                    $("#reports")[0].innerHTML = ""
+                    items.map(item => {
+                        if (!item.title) {
+                            return
+                        }
+                        var path = item.path
+                        var name = item.name
+                        var dir = item.path.replace(name, "").replace(/\/$/, "")
+                        var div = document.createElement("div")
+                        div.addEventListener("click", function () {
+                            document.getElementById('reports').style.display = "none"
+                            embed({
+                                auth: { type: 'direct', authToken },
+                                report: {
+                                    dir, file: name,
+                                },
+                                elementId,
+                                baseURL: requestBaseUrl
+                            })
+                            var reportCloser = document.createElement("div");
+                            reportCloser.setAttribute("id", "report-closer");
+                            reportCloser.addEventListener("click", function () {
+                                document.getElementById('reports').style.display = "block";
+                                document.getElementById('direct').innerHTML = "";
+                                unMountRootComponent(elementId);
+                            });
+                            reportCloser.innerHTML = 'X';
+                            $("#direct").append(reportCloser);
+                            document.getElementById('report-closer').style.display = "block";
+                        })
+                        div.innerHTML = item.title
+                        div.setAttribute("title", item.title + "(" + item.extension + ")")
+                        div.setAttribute("class", "report-file")
+                        $("#reports")[0].style.display = "block"
+                        $("#reports").append(div)
+                    })
+                } else {
+                    console.error('response is not an array')
+                }
+            })
+        }
+
+    </script>
+
+    <div class="direct-header">
+        <button id="open-btn" onclick="openReportList()">Reports</button>
+        <!-- <button id="login-btn" onclick="logIn()">Login</button> -->
+        <button id="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+    <div class="reports-list">
+        <div id="reports">
+        </div>
+    </div>
+    <div style="width: 100%;  float: left" id="direct">
+    </div>
+
+    <style>
+        #direct {
+            position: relative;
+        }
+
+        #report-closer {
+            font-size: 22px;
+            color: red;
+            font-weight: 800;
+            cursor: pointer;
+            position: absolute;
+            top: -10px;
+            z-index: 1;
+            right: 2.5px;
+        }
+
+        .direct-header {
+            float: right;
+            padding: 5px 0px;
+        }
+
+        .direct-header button {
+            border-width: 1px;
+            border-color: #ccc;
+            background-color: #3c8bca;
+            color: #fff;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .direct-header button:hover {
+            color: #3c8bca;
+            background-color: #fff;
+            border-color: #3c8bca;
+        }
+
+        .reports-list {
+            position: relative;
+        }
+
+        .reports-list>div {
+            width: 20%;
+            display: none;
+            position: absolute;
+            right: 0px;
+            top: 35px;
+            height: 90vh;
+            overflow: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .report-file {
+            cursor: pointer;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding: 2px;
+            border-top: 1px solid #3c8bca;
+        }
+
+        .report-file:hover {
+            background-color: #3c8bca;
+            border-top: 1px solid #fff;
+            color: #fff;
+        }
+    </style>
+
+</body>
+
+</html>

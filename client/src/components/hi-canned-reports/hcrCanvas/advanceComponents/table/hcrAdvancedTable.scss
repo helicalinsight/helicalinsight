@@ -1,0 +1,279 @@
+.hcr-table-view-mode {
+    border-collapse: collapse;
+    font-size: 10px;
+}
+
+.hcr-table-view-mode.all,
+.hcr-table-view-mode.all td {
+    border: 1px solid #555;
+    padding: 0px;
+}
+
+.hcr-table-view-mode.inside {
+    border: none;
+}
+
+.hcr-table-view-mode.inside th,
+.hcr-table-view-mode.inside td {
+    border: 1px solid #555;
+    padding: 0px;
+}
+
+.hcr-table-view-mode.inside thead tr:first-child th,
+.hcr-table-view-mode.inside thead tr:first-child td {
+    border-top: none;
+}
+
+.hcr-table-view-mode.inside tfoot tr:last-child td {
+    border-bottom: none;
+}
+
+.hcr-table-view-mode.inside tr td:first-child,
+.hcr-table-view-mode.inside tr th:first-child {
+    border-left: none;
+}
+
+.hcr-table-view-mode.inside tr td:last-child,
+.hcr-table-view-mode.inside tr th:last-child {
+    border-right: none;
+}
+
+.hcr-table-view-mode.outside {
+    border: 1px solid #555;
+    padding: 0px;
+}
+
+.hcr-table-view-mode.outside th,
+.hcr-table-view-mode.outside td {
+    border: none;
+}
+
+.hcr-table-empty-data-cell {
+    background-color: transparent;
+}
+
+.hcr-table-data-cell {
+    text-align: center;
+}
+
+.hcr-table-band-row {
+    display: flex;
+}
+
+.hcr-table-edit-container {
+    margin-left: 10%;
+    inset: 20px;
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+
+    .table-wrapper {
+        background-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2ZXJzaW9uPSIxLjEiIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuXzAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBhdGggZD0iTSAxMCAwIEgwIE0wIDAgVjAgMTAiIHN0cm9rZT0iI2UwZTBlMCIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuXzEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjAiIHk9IjAiIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIj48cGF0aCBkPSJNIDEwMCAwIEgwIE0wIDAgVjAgMTAwIiBzdHJva2U9IiNjMGMwYzAiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuXzApIi8+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuXzEpIi8+PC9zdmc+");
+    }
+
+    .edit-mode {
+        // border-collapse: collapse;
+        font-size: 12px;
+
+        .band-row {
+            display: flex;
+        }
+
+        .band-row td {
+            // border: 1px solid #555;
+        }
+
+        // .band-row td:last-child {
+        //     border-right-width: 1px;
+        //     // border-right: 1px solid #555;
+        // }
+    }
+
+    .editable-cell.selected {
+        outline: 2px solid #4a90d9;
+        outline-offset: -2px;
+        background-color: rgba(74, 144, 217, 0.08);
+    }
+
+    .editable-cell.drop-ready {
+        background-color: rgba(74, 144, 217, 0.04);
+    }
+
+    .editable-cell.drop-active {
+        background-color: rgba(74, 144, 217, 0.15);
+        outline: 2px dashed #4a90d9;
+        outline-offset: -2px;
+    }
+
+    .editable-cell.deleted-cell {
+        background-color: transparent !important;
+    }
+
+    .editable-cell {
+        padding: 0px !important;
+
+        .cell-elements {
+            width: 100%;
+            height: 100%;
+            display: flex;
+        }
+
+        .resize-handle-right {
+            position: absolute;
+            right: -2px;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 10;
+            background: transparent;
+
+            &:hover {
+                background: rgb(74, 144, 217, 0.5);
+            }
+        }
+
+        .resize-handle-bottom {
+            position: absolute;
+            right: -2px;
+            bottom: 0;
+            width: 100%;
+            height: 4px;
+            cursor: row-resize;
+            z-index: 10;
+            background: transparent;
+
+            &:hover {
+                background: rgb(74, 144, 217, 0.5);
+            }
+        }
+
+        .resize-handle-corner {
+            position: absolute;
+            right: -3px;
+            bottom: -3px;
+            width: 8px;
+            height: 8px;
+            cursor: nwse-resize;
+            z-index: 10;
+            background: transparent;
+            border-radius: 50%;
+
+            &:hover {
+                background: rgb(74, 144, 217, 0.5);
+            }
+        }
+    }
+
+
+    .draggable-node.selected {
+        position: relative;
+
+        &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #0f7df2 !important;
+        }
+    }
+
+    .draggable-node.dragging {
+        opacity: 0.4;
+        cursor: grabbing;
+    }
+
+    .draggable-node {
+        padding: 0px !important;
+
+        .main-node {
+            .element-label {}
+        }
+
+        .resize-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border: 1px solid #3572f9;
+            z-index: 5;
+            box-sizing: border-box;
+
+            &:hover {
+                background: #355d8c;
+            }
+        }
+
+        .resize-handle.active {
+            background-color: #2a4a6e;
+        }
+    }
+
+    .ant-drawer-content-wrapper {
+        width: 299px !important;
+    }
+
+    .hcr-side-bar-wrapper {
+        .ant-drawer {
+            z-index: 99 !important;
+        }
+
+        .hcr-side-bar-panel {
+            .ant-drawer-header {
+                padding: 8px 16px !important;
+
+                .ant-drawer-title {
+                    font-weight: normal;
+                    text-align: center;
+                    color: #1890ff;
+                    text-shadow: 0 0 0.25px currentcolor;
+                    font-size: 12px;
+                }
+            }
+
+            .ant-drawer-body {
+                padding: 0px !important;
+            }
+
+            .property-wrapper {
+                padding: 16px !important;
+            }
+        }
+    }
+
+
+    .ant-input-number-input {
+        height: 22px !important;
+    }
+}
+
+
+.hcr-advance-table-sidebar-panel-tabs {
+    display: flex;
+    flex-direction: row;
+
+    & div {
+        width: 50%;
+        position: relative;
+
+        & span {
+            cursor: pointer;
+        }
+    }
+
+    .panel-tabs-div-1 {
+        &::after {
+            content: '';
+            position: absolute;
+            top: -7px;
+            right: 0;
+            width: 1px;
+            height: 170%;
+            background-color: #f0f0f0;
+        }
+    }
+}

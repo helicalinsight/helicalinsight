@@ -1,0 +1,39 @@
+<Charts>
+	<Chart id="1">
+        <prop>
+            <name>pie chart</name>
+            <type>Custom</type>
+            <DataSource>1</DataSource>
+            <script>
+                <![CDATA[
+					 if (data.length == 0) {
+                        $('#chart_1').html("<div><h2 style='text-align:CENTER;color:#927333;'>No Data To Display</h2></div>");
+                    } else {
+						var array1=[];
+						for (var i = 0; i < data.length; i++) {
+							var array2=[];	
+							for (var prop in data[i]) {	
+									array2.push(data[i][prop]);
+								}
+							array1[i] = array2;
+						}
+							
+							var chart = c3.generate({
+								bindto: '#chart_1',
+								data: {
+									columns: array1,
+									type: 'pie'
+								},
+								legend: {
+									show: true
+								},
+								tooltip: {
+								  show: true
+								}
+							});	
+					}
+				]]>
+            </script>
+        </prop>
+    </Chart>
+</Charts>

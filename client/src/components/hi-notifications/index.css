@@ -1,0 +1,76 @@
+.hi-notifications .hi-notification-card {
+  padding: 3px;
+}
+
+.hi-notifications .hi-notification-card:hover {
+  cursor: pointer;
+}
+
+.hi-notifications .hi-notify-text {
+  font-size: 16px;
+}
+
+.hi-notifications .hi-notify-number {
+  color: #fff;
+  font-size: 10px;
+  background-color: #1890ff;
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.hi-notifications .hi-on-hover-icon {
+  visibility: hidden;
+}
+
+.hi-notifications .hi-notification-card:hover .hi-on-hover-icon {
+  visibility: visible;
+}
+
+.hi-notifications .ant-card-body {
+  padding: 5px !important;
+}
+
+.hi-notifications .ant-drawer-body {
+  padding: 0px !important;
+}
+
+.hi-notifications .hi-success-icon {
+  color: #52c41a;
+  font-size: 20px;
+}
+
+.hi-notifications .hi-error-icon {
+  color: #f5222d;
+  font-size: 20px;
+}
+
+.hi-notifications .hi-info-icon {
+  color: #1890ff;
+  font-size: 20px;
+}
+
+.hi-notifications .hi-warn-icon {
+  color: #faad14;
+  font-size: 20px;
+}
+
+.hi-notifications .hi-tag {
+  font-size: 9px;
+  padding: 4px;
+}
+
+.hi-notifications .hi-success-background {
+  color: #fff;
+  background-color: #52c41a;
+}
+
+.hi-notifications .hi-error-background {
+  color: #fff;
+  background-color: #f5222d;
+}
+
+.hi-notifications .hi-info-background {
+  color: #fff;
+  background-color: #1890ff;
+}
+/*# sourceMappingURL=index.css.map */

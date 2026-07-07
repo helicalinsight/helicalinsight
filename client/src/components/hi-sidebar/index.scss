@@ -1,0 +1,23 @@
+.hi-sidebar-content {
+  text-align: start;
+  .ant-collapse > .ant-collapse-item > .ant-collapse-header {
+    padding: 5px !important;
+  }
+  .hi-tiny-text {
+    font-size: 13px;
+  }
+  .hi-medium-text {
+    font-size: 15px;
+  }
+  .hi-custom-list {
+    .ant-list-item {
+      padding: 0px !important;
+    }
+  }
+  .hi-custom-panel {
+    font-size: 20px;
+  }
+}
+.ant-list-item {
+  padding: 0px !important;
+}

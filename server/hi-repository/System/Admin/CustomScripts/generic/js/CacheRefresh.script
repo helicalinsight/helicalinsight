@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>generic_js_CacheRefresh</scriptId>
+    <scriptType>js</scriptType>
+    <name>Cache Refresh</name>
+    <group>Generic</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Refresh Cache on TimeOut</description>
+	<icon>/images/scriptIcons/cache_refresh.png</icon>
+	<snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+		
+			var isEnable = ${refreshConfig}.isEnable,
+				Hours = ${refreshConfig}.hours,
+				Minutes = ${refreshConfig}.minutes,
+				Seconds = ${refreshConfig}.seconds,
+				timeInterval = (Hours*3600000) + (Minutes * 60000) + (Seconds * 1000);
+			
+			if(!window['refreshData'+id] && isEnable && timeInterval>0){
+				window['refreshData'+id] = setInterval(function(){
+					if(!id){
+						var data = window.hi_container.get("requestData");
+						data.refresh = true;
+						window.hi_container.set('requestData', data);
+						$.ajax({
+							type: 'POST',
+							url: window.DashboardGlobals.baseUrl+'services.html',
+							data: {
+									type: 'adhoc',
+									serviceType: 'report',
+									service: 'fetchData',
+									formData:btoa(JSON.stringify(window.hi_container.get("requestData")))
+							},
+							success: function(data){
+								hi_container.set('responseData', data.response)
+								//window.loadViz();
+								loadViz().then(postExecution);
+							}
+						});
+					}else{
+						Dashboard.updateComponent(id);
+					}
+				}, timeInterval);
+			}
+			else if(!isEnable){
+				clearInterval(window['refreshData'+id]);
+				window['refreshData'+id] = 0;
+			}	
+		]]>
+	</snippet>
+
+    <parameters>
+		<parameter value="{'isEnable': false, 'hours': 23, 'minutes': 59, 'seconds': 59}" name="refreshConfig" type="String"/>
+	</parameters>
+
+	<uiSnippet>
+		<![CDATA[
+			<style>
+				input{
+					width: 100%;
+					height: 30px;
+					font-size: 14px;
+					padding: 0px 5px;
+				}
+				
+				.cs-label{
+					font-size: 14px;
+				}
+				
+				.customizationLabel{
+					padding: 25px 0px 0px 0px !important;
+				}
+				
+				.timeSlabCustomization{
+					margin-top: 15px;
+				}
+				
+				.toggle-pane label{
+					text-align: center;
+				}
+			</style>
+			<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-sm-offset-3 col-md-offset-3 col-lg-offset-3 toggle-pane">
+				<label class="col-sm-4">Disable</label>
+					<div class="col-sm-4 switch" id="switch">
+						<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick="toggleCacheRefresh(event)"/>
+						<label for="cmn-toggle-1"></label>
+					</div>
+				<label class="col-sm-4">Enable</label>
+			</div>
+			<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 timeSlabCustomization" id="timeSlabCustomization">
+				<div class="col-xs-12 col-sm-3 col-md-3 col-lg-3 customizationLabel cs-label" id="refresh-label">
+					Refresh report after :
+				</div>
+				<div class="col-xs-12 col-sm-3 col-md-3 col-lg-3 nopad" id="hours">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 hours-label cs-label">
+						Hours
+					</div>
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 hours-component" id="hoursComponent">
+						<input type="number" id="hoursSelector" min="0" max="23" onchange="setDuration.call(this, 'hours')"/>
+					</div>
+				</div>
+				<div class="col-xs-12 col-sm-3 col-md-3 col-lg-3 nopad" id="minutes">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 minutes-label cs-label">
+						Minutes
+					</div>
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 minutes-component" id="minutesComponent">
+						<input type="number" id="minutesSelector" min="0" max="59" onchange="setDuration.call(this, 'minutes')"/>
+					</div>
+				</div>
+				<div class="col-xs-12 col-sm-3 col-md-3 col-lg-3 nopad" id="seconds">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 seconds-label cs-label">
+						Seconds
+					</div>
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 seconds-component" id="secondsComponent">
+						<input type="number" id="secondsSelector" min="0" max="59" onchange="setDuration.call(this, 'seconds')"/>
+					</div>
+				</div>
+			</div>
+			
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable('refreshConfig',params.refreshConfig);
+			
+				$('#hoursSelector').val(adhocScripts.getVariable('refreshConfig').hours);
+				$('#minutesSelector').val(adhocScripts.getVariable('refreshConfig').minutes);
+				$('#secondsSelector').val(adhocScripts.getVariable('refreshConfig').seconds);
+				if(adhocScripts.getVariable('refreshConfig').isEnable){
+					$('#cmn-toggle-1').attr('checked','checked');
+					$('#timeSlabCustomization').css('display', 'block');
+				}else{
+					$('#cmn-toggle-1').removeAttr('checked');
+					$('#timeSlabCustomization').css('display', 'none');
+				}
+					
+			
+				function setDuration(durationType){
+					var refreshConfigObj = adhocScripts.getVariable('refreshConfig');
+					refreshConfigObj[durationType] = parseInt($(this).val());
+					adhocScripts.setVariable('refreshConfig',refreshConfigObj);
+				}
+				
+				function toggleCacheRefresh(e){
+					var refreshConfigObj = adhocScripts.getVariable('refreshConfig');
+					var isEnable;
+					if($(e.target).attr('checked')){
+						$(e.target).removeAttr('checked');
+						isEnable = false;
+						$('#timeSlabCustomization').css('display', 'none');
+					}else{
+						$(e.target).attr('checked', 'checked');
+						isEnable = true;
+						$('#timeSlabCustomization').css('display', 'block');
+					}
+					refreshConfigObj.isEnable = isEnable;
+					adhocScripts.setVariable('refreshConfig', refreshConfigObj);
+				}
+				
+				$('#hoursSelector').on('keydown keyup', function(e){
+					if ($(this).val() > 23 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(23);
+					}
+					if ($(this).val() < 0 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(0);
+					}
+					if ($(this).val() == '' )
+						$(this).val(0);
+				});
+				
+				$('#minutesSelector').on('keydown keyup', function(e){
+					if ($(this).val() > 59 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(59);
+					}
+					if ($(this).val() < 0 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(0);
+					}
+					if ($(this).val() == '' )
+						$(this).val(0);
+				});
+				
+				$('#secondsSelector').on('keydown keyup', function(e){
+					if ($(this).val() > 59 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(59);
+					}
+					if ($(this).val() < 0 
+						&& e.keyCode !== 46 // keycode for delete
+						&& e.keyCode !== 8 // keycode for backspace
+					   ) {
+					   e.preventDefault();
+					   $(this).val(0);
+					}
+					if ($(this).val() == '' )
+						$(this).val(0);
+				});
+				
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

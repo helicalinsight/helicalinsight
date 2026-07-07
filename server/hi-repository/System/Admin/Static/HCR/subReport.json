@@ -1,0 +1,19 @@
+{
+	"subReport": {
+		"runToBottom": true,
+		"usingCache": true,
+		"datasourceExpression": "new net.sf.jasperreports.engine.JREmptyDataSource()",
+		"overFlowType": "STRETCH",
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 700,
+			"width": 1200,
+			"stretchType": "NoStretch",
+			"positionType": "FixRelativeToTop",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff"
+		}
+	}
+}

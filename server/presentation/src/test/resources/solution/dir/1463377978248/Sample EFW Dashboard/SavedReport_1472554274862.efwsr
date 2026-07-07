@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<efwsr>
+    <reportName>SavedReport</reportName>
+    <reportFile>sample_report.efw</reportFile>
+    <reportDirectory>1463377807724/1463377978248/Sample EFW Report</reportDirectory>
+    <reportParameters><![CDATA[{"start_date":"2015-01-01 12:00:00","end_date":"2015-02-01 12:00:00"}]]></reportParameters>
+    <visible>true</visible>
+    <security>
+        <createdBy>1</createdBy>
+        <organization></organization>
+    </security>
+    <share mandatory="true">
+        <roles mandatory="true">
+            <role id="2">2</role>
+        </roles>
+    </share>
+    <favourite>false</favourite>
+</efwsr>

@@ -1,0 +1,144 @@
+@import "../../styles/variables.scss";
+
+.report-ce-layout {
+  width: 100% !important;
+  // height: 100% !important;
+  // border : 1px solid red
+}
+
+.report-ce-sidebar {
+  background-color: #e2f1fc;
+}
+
+.report-ce-body {
+  margin-left: 5px;
+}
+
+.hi-report-ce-container {
+  width: 100%;
+
+  .editor-header {
+    background-color: #e2f1fc;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    height: 50px;
+  }
+
+  .report-menu-container {
+    margin-left: 10px;
+  }
+
+  .report-ce-menu {
+    display: flex;
+    justify-content: space-between;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    background-color: white;
+    width: 600px;
+    border-radius: 20px;
+    .list-item {
+      width: 150px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      height: 26px;
+      padding: 2px;
+      cursor: pointer;
+      border-right: 1px solid rgb(226, 241, 252);
+    }
+    .first-item {
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+    }
+    .last-item {
+      border-top-right-radius: 20px;
+      border-bottom-right-radius: 20px;
+      border-right: none;
+    }
+  }
+
+  .active-tab {
+    background-color: #3c8bca;
+    color: white;
+  }
+
+  .report-ce-collapse {
+    padding-left: 10px;
+  }
+
+  .editor-container {
+    .CodeMirror {
+      font-family: monaco, Consolas, Lucida Console, monospace;
+      font-size: 12px;
+      height: 490px;
+    }
+  }
+
+  .hi-code-editor {
+    z-index: -1;
+  }
+
+  .add-icon {
+    margin-left: 5px;
+    font-size: 14px;
+    color: $hi-blue;
+    font-weight: bold;
+  }
+
+  .viz-icon {
+    width: 25px;
+  }
+
+  .cursor-pointer {
+    cursor: pointer;
+  }
+
+  .number {
+    color: white;
+    padding: 5px 5px;
+    margin-right: 5px;
+  }
+
+  .text-number {
+    background-color: #fe7a87;
+  }
+
+  .sql-number {
+    background-color: #5c5cff;
+  }
+
+  .display {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .report-title {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .edit-language-title {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .report-select {
+    margin-left: 10px;
+  }
+
+  .create-message {
+    background-color: #e2f1fc;
+    height: 30px;
+    width: 100%;
+    padding: 5px 0px;
+    border: 1px solid #e2f1fc;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 12px;
+    margin: 8px 0px;
+  }
+}

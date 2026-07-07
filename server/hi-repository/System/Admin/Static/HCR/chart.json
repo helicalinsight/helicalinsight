@@ -1,0 +1,130 @@
+{
+	"chart": {
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 700,
+			"width": 1200,
+			"stretchType": "NoStretch",
+			"positionType": "FixRelativeToTop",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff"
+		},
+		"dataSet": {
+			"dataSetRun": {
+				"dataSetName": "Query1",
+				"dataSetExpression": "$P{REPORT_CONNECTION}"
+			},
+			"categorySeries": {
+				"seriesExpression": "",
+				"categoryExpression": "\"\"",
+				"valueExpression": "",
+				"labelExpression": ""
+			}
+		},
+		"chart": {
+			"renderType": "image",
+			"theme": "default",
+			"evaluationTime": "Report",
+			"chartTitle": {
+				"expression": "",
+				"color": "#000000",
+				"font": {
+					"size": 16,
+					"isBold": true,
+					"isItalic": false,
+					"isUnderline": true,
+					"isStrikeThrough": false
+				},
+				"position": "Top"
+			},
+			"chartSubtitle": {
+				"expression": "",
+				"color": "#000000",
+				"font": {
+					"size": 10,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			},
+			"chartLegend": {
+				"showLegend": true,
+				"position": "Bottom",
+				"foreColor": "#000000",
+				"backColor": "#FCFCFC",
+				"font": {
+					"size": 18,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			}
+		},
+		"chartPlot": {
+			"plot": {
+				"backColor": "#FFFFFF",
+				"backgroundAlpha": "1.0",
+				"foregroundAlpha": "1.0",
+				"orientation": "Vertical",
+				"seriesColors": [
+					{
+						"seriesOrder": "0",
+						"color": "#1f77b4"
+					},
+					{
+						"seriesOrder": "1",
+						"color": "#ff7f0e"
+					},
+					{
+						"seriesOrder": "2",
+						"color": "#2ca02c"
+					},
+					{
+						"seriesOrder": "3",
+						"color": "#d62728"
+					},
+					{
+						"seriesOrder": "4",
+						"color": "#9467bd"
+					},
+					{
+						"seriesOrder": "5",
+						"color": "#8c564b"
+					},
+					{
+						"seriesOrder": "6",
+						"color": "#e377c2"
+					},
+					{
+						"seriesOrder": "7",
+						"color": "#7f7f7f"
+					},
+					{
+						"seriesOrder": "8",
+						"color": "#bcbd22"
+					},
+					{
+						"seriesOrder": "9",
+						"color": "#17becf"
+					}
+				]
+			},
+			"itemLabel": {
+				"color": "#000000",
+				"backgroundColor": "#FFFFFF",
+				"font": {
+					"fontName": "SansSerif",
+					"size": 10,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			}
+		}
+	}
+}

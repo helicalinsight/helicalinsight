@@ -1,0 +1,178 @@
+{
+  "name" : "dfs",
+  "config" : {
+    "type" : "file",
+    "connection" : "file:///data",
+    "workspaces" : {
+      "data" : {
+        "location" : "/data",
+        "writable" : true,
+        "defaultInputFormat" : null,
+        "allowAccessOutsideWorkspace" : false
+      },
+      "hidw" : {
+        "location" : "d:/hi7/server/hi-repository/System/hidw",
+        "writable" : true,
+        "defaultInputFormat" : null,
+        "allowAccessOutsideWorkspace" : true
+      },
+      "tmp" : {
+        "location" : "/tmp",
+        "writable" : true,
+        "defaultInputFormat" : null,
+        "allowAccessOutsideWorkspace" : false
+      },
+      "root" : {
+        "location" : "/",
+        "writable" : false,
+        "defaultInputFormat" : null,
+        "allowAccessOutsideWorkspace" : false
+      }
+    },
+    "formats" : {
+      "parquet" : {
+        "type" : "parquet"
+      },
+      "json" : {
+        "type" : "json",
+        "extensions" : [ "json" ]
+      },
+      "sequencefile" : {
+        "type" : "sequencefile",
+        "extensions" : [ "seq" ]
+      },
+      "csvh" : {
+        "type" : "text",
+        "extensions" : [ "csvh" ],
+        "lineDelimiter" : "\n",
+        "fieldDelimiter" : ",",
+        "quote" : "\"",
+        "escape" : "\"",
+        "comment" : "#",
+        "extractHeader" : true
+      },
+      "psv" : {
+        "type" : "text",
+        "extensions" : [ "tbl" ],
+        "lineDelimiter" : "\n",
+        "fieldDelimiter" : "|",
+        "quote" : "\"",
+        "escape" : "\"",
+        "comment" : "#",
+        "extractHeader" : true
+      },
+      "avro" : {
+        "type" : "avro",
+        "extensions" : [ "avro" ]
+      },
+      "tsv" : {
+        "type" : "text",
+        "extensions" : [ "tsv" ],
+        "lineDelimiter" : "\n",
+        "fieldDelimiter" : "\t",
+        "quote" : "\"",
+        "escape" : "\"",
+        "comment" : "#",
+        "extractHeader" : true
+      },
+      "csv" : {
+        "type" : "text",
+        "extensions" : [ "csv" ],
+        "lineDelimiter" : "\n",
+        "fieldDelimiter" : ",",
+        "quote" : "\"",
+        "escape" : "\"",
+        "comment" : "#",
+        "extractHeader" : true
+      },
+      "iceberg" : {
+        "type" : "iceberg",
+        "properties" : null,
+        "caseSensitive" : null,
+        "includeColumnStats" : null,
+        "ignoreResiduals" : null,
+        "snapshotId" : null,
+        "snapshotAsOfTime" : null,
+        "fromSnapshotId" : null,
+        "toSnapshotId" : null
+      },
+      "spss" : {
+        "type" : "spss",
+        "extensions" : [ "sav" ]
+      },
+      "httpd" : {
+        "type" : "httpd",
+        "extensions" : [ "httpd" ],
+        "logFormat" : "common\ncombined"
+      },
+      "xml" : {
+        "type" : "xml",
+        "extensions" : [ "xml" ],
+        "dataLevel" : 1
+      },
+      "pcap" : {
+        "type" : "pcap",
+        "extensions" : [ "pcap", "pcapng" ]
+      },
+      "pdf" : {
+        "type" : "pdf",
+        "extensions" : [ "pdf" ],
+        "extractHeaders" : true,
+        "extractionAlgorithm" : "basic"
+      },
+      "shp" : {
+        "type" : "shp",
+        "extensions" : [ "shp" ]
+      },
+      "hdf5" : {
+        "type" : "hdf5",
+        "extensions" : [ "h5" ],
+        "defaultPath" : null
+      },
+      "msaccess" : {
+        "type" : "msaccess",
+        "extensions" : [ "mdb", "accdb" ]
+      },
+      "image" : {
+        "type" : "image",
+        "extensions" : [ "jpg", "jpeg", "jpe", "tif", "tiff", "dng", "psd", "png", "bmp", "gif", "ico", "pcx", "wav", "wave", "avi", "webp", "mov", "mp4", "m4a", "m4p", "m4b", "m4r", "m4v", "3gp", "3g2", "eps", "epsf", "epsi", "ai", "arw", "crw", "cr2", "nef", "orf", "raf", "rw2", "rwl", "srw", "x3f" ],
+        "fileSystemMetadata" : true,
+        "descriptive" : true
+      },
+      "ltsv" : {
+        "type" : "ltsv",
+        "extensions" : [ "ltsv" ],
+        "parseMode" : "lenient",
+        "escapeCharacter" : null,
+        "kvDelimiter" : null,
+        "entryDelimiter" : null,
+        "lineEnding" : null,
+        "quoteChar" : null
+      },
+      "syslog" : {
+        "type" : "syslog",
+        "extensions" : [ "syslog" ],
+        "maxErrors" : 10
+      },
+      "delta" : {
+        "type" : "delta",
+        "version" : null,
+        "timestamp" : null
+      },
+      "excel" : {
+        "type" : "excel",
+        "extensions" : [ "xlsx" ],
+        "lastRow" : 1048576,
+        "ignoreErrors" : true,
+        "maxArraySize" : -1,
+        "thresholdBytesForTempFiles" : -1
+      },
+      "sas" : {
+        "type" : "sas",
+        "extensions" : [ "sas7bdat" ]
+      }
+    },
+    "authMode" : "SHARED_USER",
+    "enabled" : true
+  }
+}

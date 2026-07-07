@@ -1,0 +1,911 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_drilldown</scriptId>
+    <scriptType>js</scriptType>
+	<name>Chart Drilldown</name>
+    <group>C3Axis</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Add Drilldown to C3 charts</description>
+    <icon>/images/scriptIcons/DrillDown.png</icon>
+	<snippet>
+		<![CDATA[
+      /***********************PRE-EXECUTION************************************/
+	   
+			var id = hi_container.get("renderId");
+			
+			var containerId="#main"; 
+			var chartId="#chart";
+			if(id != ""){
+				var containerId="#main-"+id;
+				var chartId="#chart-"+id;
+			}
+			
+			var ftnObj = {};
+			
+			var c3Chart = hi_container.get("c3Chart");
+			
+			
+			
+			
+			ftnObj['setDrilldown'+id] = function(d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureDrilldown(viz_Options);
+				d.set("viz_Options",viz_Options);
+			} ;
+				
+			ftnObj['extendDrilldown'+id] = function(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureDrilldown(viz_Options);
+			}
+			
+			ftnObj['applyRefresh'+id] = function(d){
+				applyRefresh(d);
+			}
+			ftnObj['extendedapplyRefresh'+id] = function(postExecution,d){
+				applyRefresh(d);
+			}
+
+			function applyRefresh(d){
+				var button = document.createElement('button');
+				button.innerHTML = '<span class="glyphicon glyphicon-refresh"></span>';
+				button.onclick= function(){
+					var pathArray = [].slice.call(document.querySelectorAll(chartId+" ._selected_"));
+					pathArray.filter(function(val, ind, self) {
+						if(val.classList.contains("_selected_")) {
+							$(val).removeClass("_selected_");
+						}
+					});
+
+					for(var i = 0; i < ${childFilterList}.length; i++ ){
+						if(hi_container.isSet('iframe')){
+							Dashboard.setVariable(${childFilterList}[i].filterName, ${childFilterList}[i].filterValue);
+						}
+						else{
+							parent.Dashboard.setVariable(${childFilterList}[i].filterName, ${childFilterList}[i].filterValue);
+						}
+					}
+					var c3Chart= hi_container.get("c3Chart");
+					c3Chart.flush();
+					
+				}
+				button.style.position = 'absolute';
+				button.style.zIndex = 1000;
+				button.style.right = '0%';
+				button.style.background = 'transparent';
+				button.style.border = 0;
+
+				$(containerId).prepend(button)
+			}	
+			/*function enableDisable(){
+				
+				var chart_typeObject=hi_container._values.__hi_params.settings;
+							
+							var chartTypeJSON=JSON.parse(atob(chart_typeObject))
+							
+							var  chartType=chartTypeJSON.type;
+							
+						
+							
+							if(chartType=='HIGroupedBar'){
+								
+								$('.seriesOptiondiv}').show();
+								
+							}else{
+								
+								$('.seriesOptiondiv').hide();
+
+							}
+				
+				
+				
+			}
+			enableDisable(); */
+			function configureDrilldown(viz_Options) {
+				
+				if(false && viz_Options.chartOptions.data){
+					
+				}
+				else{
+					
+						var previousData = null;
+						if(viz_Options.chartOptions.data){
+							previousData = viz_Options.chartOptions.data
+							
+						}
+						
+						let currentData = {
+			
+	
+					selection: {
+						enabled: true   
+					},
+					onclick: function(d,element) {
+						
+						var url = '${drilldownURL}';
+						var category = '',
+							series = '',
+							paramList = ${paramList}; 
+							
+							series=d.id;
+							
+							
+						if('${set_category}' == 'true' && '${category_name}' != ''){
+							var c3Chart = hi_container.get("c3Chart");
+							
+							
+							if( typeof(c3Chart.categories()[d.index]) == 'undefined'){
+								category = d.name;
+								
+								
+							}else{
+								category = c3Chart.categories()[d.index];
+							}
+							
+							var chart_typeObject=hi_container._values.__hi_params.settings;
+							
+							var chartTypeJSON=JSON.parse(atob(chart_typeObject))
+							
+							var  chartType=chartTypeJSON.type;
+							
+							if(chartType=='HIGroupedBar'){
+								
+								url = url+'&${category_name}='+category+'&${series_name}='+series;
+								
+							}else{
+								
+								url = url+'&${category_name}='+category;  
+							}         
+							
+							
+						}
+
+						
+	
+					//  To create the parameter string for custom variable. (filters)
+					var filters = hi_container.get("requestData").filters;
+					
+					var ParamStr = '';
+					var filterVal = '';
+
+					for(var i = 0; i < paramList.length; i++){
+						filterVal = '[';
+						if (paramList[i]['parentColumn'].includes('Filter_')){
+						  var filterID = paramList[i]['parentColumn'].split('_')[1];// To get the filter id e.g. Filter_1 , id = 1
+						  var filterLen = filters[filterID].values.length;
+						  for(var validx=0;validx<filterLen;validx++)
+						  {
+								filterVal = filterVal + '"' + filters[filterID].values[validx]+'",';
+						  }
+						  filterVal = filterVal+"]"
+						}
+						else {
+							filterVal = filterVal + '"' + paramList[i]['parentColumn'] +'"]';
+						}
+						
+						ParamStr=ParamStr+'&'+paramList[i]['childColumn']+"="+filterVal;
+					}
+										
+					
+					
+					url = url+ParamStr;
+					
+						if('${ipc}' == 'true'){
+							if('${category_name}' != ''){
+								if(hi_container.isSet('iframe')){
+									Dashboard.setVariable('${category_name}', category);
+								}
+								else{
+									parent.Dashboard.setVariable('${category_name}', category);
+								}
+							}
+
+							for(var i = 0; i < paramList.length; i++){
+								if(hi_container.isSet('iframe')){
+									Dashboard.setVariable(paramList[i]['childColumn'], paramList[i]['parentColumn']);
+								}
+								else{
+									parent.Dashboard.setVariable(paramList[i]['childColumn'], paramList[i]['parentColumn']);
+								}
+							}
+						}
+
+						if('${new_tab}' == 'true'){
+							window.open(window.DashboardGlobals.baseUrl+url);
+						}
+						if('${current_tab}' == 'true'){  
+						
+							window.open(window.DashboardGlobals.baseUrl+url,"_self");     
+						}   
+
+						var curEle = $(element);
+						for(var i = 0; i < $(chartId+' .c3-shape').length; i++){
+							$(chartId+' .c3-shape')[i].style.opacity = '0.1';
+							$(chartId+' .c3-shape')[i].classList.remove('_selected_');
+						}
+						curEle[0].style.opacity = '1';
+						curEle[0].classList.add('_selected_');
+					},
+				};
+				
+				if(previousData != null)
+						viz_Options.chartOptions["data"] = {...currentData, ...previousData} 
+					else{
+						viz_Options.chartOptions["data"] = currentData
+					}
+					
+				}
+
+				return viz_Options;
+			};
+					
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setDrilldown'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendDrilldown'+id]);
+			}
+
+      /*******************************POST-EXECUTION****************************/
+	  
+	  
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['applyRefresh'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['extendedapplyRefresh'+id]);
+			}
+		]]>
+	</snippet>
+    <parameters>
+        <parameter value="true" name="ipc" type= "String"/>
+        <parameter value="false" name="new_tab" type= "String"/>
+		  <parameter value="false" name="current_tab" type= "String"/>
+        <parameter value="false" name="new_window" type= "String"/>
+        <parameter value="true" name="set_category" type= "String"/>
+        <parameter value="" name="category_name" type= "String"/>
+		
+		 <parameter value="true" name="set_series" type= "String"/>
+        <parameter value="" name="series_name" type= "String"/>
+		
+		
+        <parameter value="" name="drilldownURL" type= "String"/>
+        <parameter value="" name="drilldownName" type= "String"/>
+        <parameter value="" name="params" type= "String"/>
+        <parameter value="[]" name="paramList" type= "String"/>
+        <parameter value="[]" name="childFilterList" type= "String"/>
+
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.drilldown-item.list-group-item span{
+					padding-right: 7px;
+				}
+
+				.drilldown-item.list-group-item{
+					border: none;
+				}
+
+				.drilldown-item{
+					cursor: pointer;
+				}
+
+				#report_url, #report_name{
+					width: 100%;
+					height: 30px;
+					border-radius: 4px;
+					line-height:22px;
+					cursor: pointer;
+				}
+
+				#browse_button{
+					height: 30px;
+				}
+
+				.report_url_label, .report_name_label{
+					line-height: 30px;
+					padding-bottom: 0px;
+					padding-right: 0px;
+				}
+
+				.addButton{
+					position: absolute;
+					left: 45%;
+					padding-top: 2px;
+					padding-bottom: 2px;
+				}
+
+				.param_dropdown{
+					position: absolute;
+					width: 87%;
+				}
+
+				.param_input{
+					position: sticky;
+					width: 90%;
+				}
+
+				.parameter-selection-panel{
+					height: 180px;
+					overflow-y: scroll;
+				}
+			</style>
+
+			<div class="row">
+				<div class="col-sm-12 col-md-12 drilldown-type-panel form-group">
+					<div class="Well">
+						<ul class="list-group checked-list-box col-sm-4">
+							<li class="drilldown-item list-group-item" type="ipc" id="ipc">Enable IPC</li>
+						</ul>
+						<ul class="list-group checked-list-box col-sm-4">
+							<li class="drilldown-item list-group-item" type="new_tab" id="new_tab">Open in New Tab</li>
+						</ul>
+						<ul class="list-group checked-list-box col-sm-4"> 
+							<li class="drilldown-item list-group-item" type="current_tab" id="current_tab">Open in Current Tab</li> 
+						</ul>
+					</div>     
+				</div>
+				<hr>
+				<div class="col-sm-12 col-md-12 report-selector-panel form-group">
+					<div class="col-sm-3 report_name_label">
+						<label class="">Report Name</label>
+					</div>
+					<div class="col-sm-7">
+						<input type="text" placeholder="Select Report Name" name="report_url" id="report_name" disabled>
+					</div>
+				  <div class="col-sm-2">
+						<button  class="btn btn-primary" value="Browse" id="browse_button">Browse</button>
+					</div>
+				</div>
+				<div class="col-sm-12 col-md-12 set-category-panel form-group">
+					<ul class="list-group checked-list-box col-sm-4 col-md-4">
+						<li class="drilldown-item list-group-item" type="set_category" id="set_category">Set Category</li>
+					</ul>
+					<div class="col-sm-10 col-md-10">
+						<select id="category_name" class="form-control">
+							<option value="" disabled selected>Select a Report</option>
+						</select>
+					</div>
+				</div>
+				
+				<div class="col-sm-12 col-md-12 set-category-panel form-group">
+					<ul class="list-group checked-list-box col-sm-4 col-md-4">
+						<li class="drilldown-item list-group-item" type="set_series" id="set_series">Set Series</li>
+						<li> Applicable For Grouped Bar </li>
+					</ul>
+					<div class="col-sm-10 col-md-10">
+						<select id="series_name" class="form-control">
+							<option value="" disabled selected>Select a Report</option>
+						</select>
+					</div>
+				</div>
+				
+		    <div class="col-sm-12 col-md-12 parameter-selection-panel">
+          <div class="col-sm-12 col-md-12 form-group">
+            <label>Parameter Mapping:</label>
+            <button class="btn btn-primary addButton" onclick="createCustomParamDropdown('','')">Add</button>
+          </div>
+          <div class="col-sm-12 col-md-12" id="categorySelector">
+          </div>
+          <div class="col-sm-12 col-md-12" id="paramList">
+          </div>
+				</div>
+			</div>
+			<script>
+			
+			 
+				adhocScripts.resetAll();
+				
+				
+
+				adhocScripts.setVariable("ipc",params.ipc);
+				adhocScripts.setVariable("new_tab",params.new_tab);
+				adhocScripts.setVariable("current_tab",params.current_tab);
+				adhocScripts.setVariable("new_window",params.new_window);
+				adhocScripts.setVariable("set_category",params.set_category);
+				adhocScripts.setVariable("category_name",params.category_name);
+				
+				adhocScripts.setVariable("set_series",params.set_series);
+				adhocScripts.setVariable("series_name",params.series_name);
+				
+				adhocScripts.setVariable("drilldownURL",params.drilldownURL);
+				adhocScripts.setVariable("drilldownName",params.drilldownName);
+				adhocScripts.setVariable("params",params.params);
+				adhocScripts.setVariable("paramList",params.paramList);
+				adhocScripts.setVariable("childFilterList",params.childFilterList);
+
+
+				var reportData;
+				var params = adhocScripts.getVariable('params').split(',');
+				var paramList = adhocScripts.getVariable('paramList');
+
+				
+      	/*************************************Set Default Values*******************************************/
+				//Create params list-box
+				createParamDropdown();
+				//Set report Name in UI
+				$("#report_name").val(adhocScripts.getVariable('drilldownName'));
+				//Set Category Name in UI
+				$('#category_name').val(adhocScripts.getVariable('category_name'));
+				$('#series_name').val(adhocScripts.getVariable('series_name'));
+				
+				//Enable/Disable Select Category
+				if(adhocScripts.getVariable('set_category') == 'true'){
+					$('#category_name').removeAttr('disabled');
+				} else {
+					$('#category_name').attr('disabled', 'disabled');
+				}
+				if(adhocScripts.getVariable('set_series') == 'true'){
+					$('#series_name').removeAttr('disabled');
+				} else {
+					$('#series_name').attr('disabled', 'disabled');
+				}
+				
+				//Create cutrom parameter drop Dropdowns
+				createParamListDropdown();
+
+				/**************************************************************************************************/
+
+				/********************************DRILLDOWN TYPE SELECTOR START*************************************/
+
+				//Create DrillDown type checkbox and selector
+				$('.drilldown-item').each(function () {
+					// Settings
+					var $widget = $(this),
+						$checkbox = $('<input type="checkbox" class="hidden checkbox" />'),
+						settings = {
+							on: {
+								icon: 'glyphicon glyphicon-check'
+							},
+							off: {
+								icon: 'glyphicon glyphicon-unchecked'
+							}
+						};
+
+					$widget.css('cursor', 'pointer')
+					$widget.append($checkbox);
+
+					// Event Handlers
+					$widget.on('click', function () {
+						$checkbox.prop('checked', !$checkbox.is(':checked'));
+
+						//Set Drilldown type
+						adhocScripts.setVariable($($widget).attr('type'), ''+$checkbox.is(':checked')+'');
+						
+						// console.log('from widget onclick', $($widget).attr('type'), $checkbox.is(':checked'));
+						if($($widget).attr('type') == 'new_tab' && $checkbox.is(':checked') == true && adhocScripts.getVariable('current_tab') == 'true'){
+							adhocScripts.setVariable('current_tab', 'false');
+							
+							$("[type=current_tab]").prop("checked", false);
+						} 		
+
+						//Enable and disable select category
+						if($($widget).attr('type') == 'set_category'){
+							if(adhocScripts.getVariable('set_category') == 'true'){
+								$('#category_name').removeAttr('disabled');
+							} else {
+								$('#category_name').attr('disabled', 'disabled');
+							}
+						}
+						//Enable and disable select series
+						if($($widget).attr('type') == 'set_series'){
+							if(adhocScripts.getVariable('set_series') == 'true'){
+								$('#series_name').removeAttr('disabled');
+							} else {
+								$('#series_name').attr('disabled', 'disabled');
+							}
+						}
+
+						updateDisplay();
+					});
+
+
+					// Actions
+					function updateDisplay() {
+						var isChecked = $($checkbox).is(':checked');
+						// Set the button's state
+						$widget.data('state', (isChecked) ? "on" : "off");
+
+						// Set the button's icon
+						$widget.find('.state-icon')
+							.removeClass()
+							.addClass('state-icon ' + settings[$widget.data('state')].icon);
+					}
+
+					// Initialization
+					function init() {
+						if ($($widget).attr('type') == 'ipc' && adhocScripts.getVariable('ipc') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						if ($($widget).attr('type') == 'new_tab' && adhocScripts.getVariable('new_tab') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						if ($($widget).attr('type') == 'current_tab' && adhocScripts.getVariable('current_tab') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+							
+						}
+						if ($($widget).attr('type') == 'set_category' && adhocScripts.getVariable('set_category') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						
+						if ($($widget).attr('type') == 'set_series' && adhocScripts.getVariable('set_series') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						
+						updateDisplay();
+						
+						// Inject the icon if applicable
+						if ($widget.find('.state-icon').length == 0) {
+							$widget.prepend('<span class="state-icon ' + settings[$widget.data('state')].icon + '"></span>');
+						}
+					}
+					init();
+
+				});
+
+
+
+				/*****************************************************************************************************/
+
+				/********************************************GET REPORT URL*******************************************/
+				$("#browse_button").on("click",function(){
+					HDIUI.filebrowser.fetchData().done(function(){
+						HDIUI.filebrowser.show({footer:'<button id="applyPath" style="color:#ffffff;float:right;margin-right: 10px;margin-top:10px"  class="btn btn-primary">Select</button>',hideFilters:true});
+						HDIUI.filebrowser.setFilter("report");
+						$(document.getElementById("hdi-filebrowser").querySelector("#hdi-file-explorer")).on('dblclick', function(e){
+
+						});
+
+						$(document.querySelector("#hdi-filebrowser")).css('z-index', '1060');
+
+						$("#applyPath").on("click", function() {
+							
+							var selectedActualPath=HDIUI.filebrowser.selectedPath;
+							var selectedLogicalPath=HDIUI.filebrowser.selectedPath; 
+					
+							if(selectedActualPath == null || selectedLogicalPath == null){      
+								alert("Please select a report and then click on 'Select' button");  
+								return
+							}
+							
+							var selectedActualPath = HDIUI.filebrowser.selectedPath.actual;
+							var selectedLogicalPath = HDIUI.filebrowser.selectedPath.logical;
+
+							if(selectedActualPath.indexOf("\\")!=-1)
+							{
+								selectedActualPath = selectedActualPath.replace(/\\/g, "/");
+							}
+							selectedActualPathArr = selectedActualPath.split("/");
+							var file = selectedActualPathArr.pop();
+							var dir = selectedActualPathArr.join("/");
+							var encodedFormData = btoa('{"dir":'+'"'+dir+'"'+',"file":'+'"'+file+'"'+'}');
+
+							reportSelectedUrl=	window.DashboardGlobals.baseUrl+'services?type=adhoc&serviceType=report&service=getReportForEdit&formData='+encodedFormData;
+
+							if(file.split('.')[1]=="report")
+							{
+								var xhr = createCORSRequest('GET', reportSelectedUrl);
+								if (!xhr) {
+									//alert('CORS not supported');
+									return;
+								}
+								xhr.send();
+
+								xhr.onload = function() {
+									reportData = xhr.responseText;
+								};
+
+								xhr.onloadend = function() {
+									getParameters();
+									//getParameters_series();
+								};
+
+								adhocScripts.setVariable('drilldownURL', "/hi.html?dir="+dir+"&file="+file+"&mode=dashboard");
+								adhocScripts.setVariable('drilldownName', selectedLogicalPath);
+
+								$("#report_name").val(selectedLogicalPath);
+								$("#report_name").tooltip({title: function(d){return $(this).val()}});
+								HDIUI.filebrowser.hide();
+							}
+
+							else{
+								alert("Please select a report");
+							}
+						});
+						
+						$("#close-file-browser").on("click", function() {
+						
+						});
+					});
+				});
+				/*********************************************************************************/
+
+				/************************************GET PARAMETERS*********************************************/
+				function getParameters()
+				{
+					params = [];
+          var childFilterList = [];
+					for(var i = $('#category_name>option').length; i >= 2; i--){
+						//remove extra parameters
+						$('#category_name>option:nth-child('+i+')').remove();
+					}
+					for(var i = $('#series_name>option').length; i >= 2; i--){
+						//remove extra parameters
+						$('#series_name>option:nth-child('+i+')').remove();
+					}
+
+					reportData = $.parseJSON(reportData);
+
+					if(reportData.response.state.filters.length!=0)
+					{
+						//rename the default drop down option once the report is selected
+						$('#category_name>option').text("Select category name");
+						$('#series_name>option').text("Select series name");
+
+
+						for(var paramNo = 0; paramNo < reportData.response.state.filters.length; paramNo++)
+						{
+							params.push(reportData.response.state.filters[paramNo].label);
+
+              var obj = {};
+			  
+			  obj.filterName = reportData.response.state.filters[paramNo].label;
+              obj.filterValue = reportData.response.state.filters[paramNo].values
+
+              childFilterList.push(obj);
+
+						}
+            adhocScripts.setVariable('childFilterList', childFilterList);
+						createParamDropdown();
+					}
+					
+					
+					else{
+						adhocScripts.setVariable('category_name', '');
+						$('#category_name>option').text('No Parameters');
+						adhocScripts.setVariable('series_name', '');
+						$('#series_name>option').text('No Parameters');
+					}
+				}
+				
+				function getParameters_series()
+				{
+					params = [];
+          var childFilterList = [];
+					for(var i = $('#series_name>option').length; i >= 2; i--){
+						//remove extra parameters
+						$('#series_name>option:nth-child('+i+')').remove();
+					}
+					for(var i = $('#series_name>option').length; i >= 2; i--){
+						//remove extra parameters
+						$('#series_name>option:nth-child('+i+')').remove();
+					}
+
+					reportData = $.parseJSON(reportData);
+
+					if(reportData.response.state.filters.length!=0) 
+					{
+						//rename the default drop down option once the report is selected
+						$('#series_name>option').text("Select series name");
+
+						for(var paramNo = 0; paramNo < reportData.response.state.filters.length; paramNo++)
+						{
+							params.push(reportData.response.state.filters[paramNo].label);
+
+              var obj = {};
+			  
+			  obj.filterName = reportData.response.state.filters[paramNo].label;
+              obj.filterValue = reportData.response.state.filters[paramNo].values
+
+              childFilterList.push(obj);  
+
+						}
+            adhocScripts.setVariable('childFilterList', childFilterList);
+						createParamDropdown();
+					}  
+					
+					
+					else{
+						adhocScripts.setVariable('series_name', '');
+						$('#series_name>option').text('No Parameters');
+					}
+				}
+				/*************************************************************************************************/
+				/*************************************************************************************************/
+				function createParamDropdown(){
+					if(params[0]== '')
+						params.shift();
+
+					for(var i = 0; i < params.length; i++){
+						var option_category	= document.createElement('option');
+						option_category.className = 'parameter_'+params[i];
+						option_category.innerHTML = params[i];
+
+						var option_value = option_category.cloneNode(true);
+
+						$('#category_name').append(option_category);
+						$('#series_name').append(option_value);
+
+						adhocScripts.setVariable('params', params.join());
+					}
+				}
+				/*************************************************************************************************/
+
+				/**************************CATEGORY AND VALUE DROPDOWN VALUE CAPTURE******************************/
+				$('#category_name').on('change',function(){
+					adhocScripts.setVariable('category_name', $(this).val());
+				});
+				$('#series_name').on('change',function(){
+					adhocScripts.setVariable('series_name', $(this).val());
+				});
+	       /*************************************************************************************************/
+
+        /*********************Create Parameter Mapping Dropdowns***********************************/
+        function createCustomParamDropdown(parentValue, childValue){
+            var div = document.createElement('div');
+            div.classList = 'form-group each-param-set';
+
+            /*******************Parent Paremeter List************************/
+            var parentParamDiv = document.createElement('div');
+            parentParamDiv.classList = 'col-sm-5 col-md-5';
+
+            var parentParamSelector = document.createElement('input');
+            parentParamSelector.type = 'text';
+            parentParamSelector.classList = 'form-control param_input parentParamSelector';
+            parentParamSelector.value = parentValue;
+            parentParamSelector.onchange = function(){
+                                              setParamList(); 
+                                            }
+											
+		/* var parentFilterList = document.createElement('select');
+            parentFilterList.classList = 'form-control param_dropdown parentParam';
+            parentFilterList.onchange = function(){
+                                        $(this).next().val(this.value);
+										
+                                      }
+
+            var parentReportFilters = [];
+							
+							for(var i=0;i<window.frames[0].hi_container._values.requestData.filters.length;i++)
+							{
+								parentReportFilters.push(window.frames[0].hi_container._values.requestData.filters[i].label);
+	
+							}   
+				
+				
+							for(var j=0;j<parentReportFilters.length;j++)
+							{
+								// columnNames.push(window.frames[0].hi_container._values.requestData.filters[j].label);
+								 var option = document.createElement("option");
+								 option.setAttribute("value","Filter_"+window.frames[0].hi_container._values.requestData.filters[j].id); 
+								 option.text = 'Filter_' + parentReportFilters[j];
+								 option.name = j;
+								 parentFilterList.appendChild(option);
+				
+							}  
+							
+			
+
+            for(var j = 0; j < parentReportFilters.length; j++){ 
+              var parentOptions = document.createElement('option');
+              parentOptions.value = "Filter_"+window.frames[0].hi_container._values.requestData.filters[j].id;
+              parentOptions.innerHTML = 'Filter_' + parentReportFilters[j];
+              if(j==0 && parentValue == ''){
+                parentParamSelector.value = "Filter_"+window.frames[0].hi_container._values.requestData.filters[j].id;
+              }
+              if(parentOptions.value == parentValue){
+                  parentOptions.selected = true;
+              }
+              parentFilterList.appendChild(parentOptions);
+            }				
+							
+            parentParamDiv.appendChild(parentFilterList);   */		
+            parentParamDiv.appendChild(parentParamSelector);     
+
+            div.appendChild(parentParamDiv);
+
+            /*******************Child Paremeter List************************/
+            var childParamDiv = document.createElement('div');
+            childParamDiv.classList = 'col-sm-5 col-md-5';
+
+            var childParamSelector = document.createElement('input');
+            childParamSelector.type = 'text';
+            childParamSelector.classList = 'form-control param_input childParamSelector';
+            childParamSelector.value = childValue;
+            childParamSelector.onchange = function(){
+                                            setParamList();
+                                          }
+
+            var childDatalist = document.createElement('select');
+            childDatalist.classList = 'form-control param_dropdown childParam';
+            childDatalist.onchange = function(){
+                                        $(this).next().val(this.value);
+                                      }
+
+            for(var j = 0; j < params.length; j++){
+              var childOptions = document.createElement('option');
+              childOptions.value = params[j];
+              childOptions.innerHTML = params[j];
+              if(j==0 && childValue == ''){
+                childParamSelector.value = params[j];
+              }
+              if(childOptions.value == childValue){
+                  childOptions.selected = true;
+              }
+              childDatalist.appendChild(childOptions);
+            }
+            childParamDiv.appendChild(childDatalist);
+            childParamDiv.appendChild(childParamSelector);
+
+            /*********************Delete Button************************/
+            var delButton = document.createElement('button');
+            delButton.id = 'delete';
+            delButton.classList = 'btn btn-danger';
+            delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+            delButton.onclick = function(){
+              $(this).parent().remove();
+              setParamList();
+            };
+
+            div.appendChild(childParamDiv);
+            div.appendChild(parentParamDiv);
+            div.appendChild(delButton);
+
+            document.getElementById('paramList').appendChild(div);
+        }
+        /*************************************************************************************************/
+
+        /**************************Set Param LIst******************************/
+        function setParamList(){
+            var parentParamList = $('#paramList .parentParamSelector');
+            var childParamList = $('#paramList .childParamSelector');
+	
+			 
+
+            paramList = [];
+
+            for(var x = 0; x < $('.each-param-set').length; x++){
+              var obj = new Object();
+              obj.parentColumn = $(parentParamList[x]).val();
+              obj.childColumn = $(childParamList[x]).val();
+
+              paramList.push(obj);
+            }
+            adhocScripts.setVariable('paramList', paramList);
+        }
+				/*************************************************************************************************/
+
+        /**********************Create Param Dropdown from ParamList**************************************/
+        function createParamListDropdown(){
+          for(var y = 0; y < paramList.length; y++){
+            createCustomParamDropdown(paramList[y]['parentColumn'], paramList[y]['childColumn']);
+          }
+        }
+
+        /*************************************************************************************************/
+
+				/*************************************CORS REQUEST START******************************************/
+				function createCORSRequest(method, url) {
+					var xhr = new XMLHttpRequest();
+					if ("withCredentials" in xhr) {
+						//alert("Browser Chrome");
+						// XHR for Chrome/Firefox/Opera/Safari.
+						xhr.open(method, url, true);
+					} else if (typeof XDomainRequest != "undefined") {
+						//alert("Browser Internet Explorer");
+						// XDomainRequest for IE.
+						xhr = new XDomainRequest();
+						xhr.open(method, url);
+					} else {
+						// CORS not supported.
+						xhr = null;
+					}
+					return xhr;
+				}
+				/*************************************CORS REQUEST END********************************************/
+
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

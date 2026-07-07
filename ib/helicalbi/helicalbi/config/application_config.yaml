@@ -1,0 +1,18 @@
+app:
+  name: "Instant BI"        # Display name for the service
+  version: "1.0.0"          # Application version
+  env: "prod"                # dev | qa | prod — controls production vs development mode
+  debug: false               # Enable Flask debug mode and stack traces in error responses
+
+logging:
+  level: "ERROR"             # DEBUG | INFO | WARNING | ERROR | CRITICAL
+  file: "logs/app.log"      # Path to the rotating log file
+  backup_days: 14           # Number of daily log files to retain
+
+feature_flags:
+  enable_cache: false       # Cache LLM and query results
+  enable_streaming: false   # Stream chat responses to the client
+  enable_memory: false      # Persist conversation history across sessions
+
+sql:
+  default_limit: 100        # Default row limit appended to generated SQL queries

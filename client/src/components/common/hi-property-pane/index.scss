@@ -1,0 +1,125 @@
+@import "../../../styles/variables.scss";
+@import "codemirror/lib/codemirror.css";
+@import "codemirror/theme/material.css";
+// .td {
+//   vertical-align: text-top !important;
+// }
+.hi-property-pane {
+  width: 100%;
+  .ant-title-content {
+    display: inline-flex;
+  }
+  // border-collapse: collapse;
+  .ant-drawer-body {
+    padding: 8px !important;
+  }
+  // .ant-table-tbody > tr > td {
+  //   vertical-align: text-top !important;
+  // }
+  // .ant-table-tbody > tr > td {
+  //   height: 180px !important;
+  // }
+  // td,
+  // th {
+  //   border-bottom: 1px solid #dddddd;
+  //   text-align: left;
+  //   padding: 8px;
+  //
+  // }
+  .hi-hide-background {
+    .ant-btn-text:hover,
+    .ant-btn-text:focus {
+      background: none;
+    }
+  }
+  // .hi-show-background {
+  //   .ant-btn-text:hover,
+  //   .ant-btn-text:focus {
+  //     // background: none;
+  //   }
+  // }
+  // .hi-color-picker {
+  //   height: 100px !important;
+  //   width: 100px !important;
+  // }
+  // .hi-editor {
+  //   width: 100%;
+  //   height: 100%;
+  // }
+  .hi-selected {
+    color: $hi-blue;
+  }
+  // .ant-input-number-handler-wrap {
+  //   display: none;
+  // }
+  .hi-color-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 40px;
+    border: 0.5px solid black;
+  }
+  .hi-width-100 {
+    width: 100% !important;
+  }
+  .ql-editor {
+    // overflow-y: auto;
+    resize: vertical;
+  }
+  .CodeMirror {
+    resize: vertical;
+    // overflow-y: auto !important;
+  }
+  // .ant-table-thead {
+  //   display: none;
+  // }
+  .hi-property-pane-footer {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+  }
+  .hi-color-picker-text {
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    display: block;
+    text-overflow: ellipsis;
+  }
+  .hi-editor{
+    .ql-color .ql-picker-options [data-value=custom-color] {
+      background: none !important;
+      width: 100% !important;
+      height: 20px !important;
+      text-align: center;
+    }
+    .ql-color .ql-picker-options [data-value=custom-color]:before {
+      content: 'Color';
+    }
+    .ql-color .ql-picker-options [data-value=custom-color]:hover {
+      border-color: transparent !important;
+      
+    }
+
+    .ql-background .ql-picker-options [data-value=custom-color] {
+      background: none !important;
+      width: 100% !important;
+      height: 20px !important;
+      text-align: center;
+    }
+    .ql-background .ql-picker-options [data-value=custom-color]:before {
+      content: 'Color';
+    }
+    .ql-background .ql-picker-options [data-value=custom-color]:hover {
+      border-color: transparent !important;
+    }
+  }
+}
+
+.hr-report-dropdown-renderer {
+  .rc-virtual-list-holder{
+    overflow-y: auto !important;
+  }
+
+  .rc-virtual-list-scrollbar {
+    display: none !important;
+  }
+}

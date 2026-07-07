@@ -1,0 +1,317 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_dataLabel</scriptId>
+    <scriptType>js</scriptType>
+	<name>Data Label</name>
+    <group>C3Axis</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Charts data Label</description>
+	<icon>/images/scriptIcons/DataLabel.png</icon>
+	<snippet>
+		<![CDATA[
+			
+			var id = hi_container.get("renderId");
+		
+			var ftnObj = {};
+			
+				ftnObj['dataLabels'+id] = function(d){
+					var viz_Options = d.get("viz_Options");
+					var reportData = d.get("reportData");
+					viz_Options = configureDataLabel(viz_Options,reportData);
+					d.set("viz_Options",viz_Options);
+				
+				} ;
+					 
+				ftnObj['extenddataLabels'+id] = function(preFetch,d){
+					var viz_Options = d.get("viz_Options");
+					var reportData = d.get("reportData");
+					viz_Options = configureDataLabel(viz_Options,reportData);
+				
+				};
+			
+
+		
+		function configureDataLabel(viz_options, reportData){
+						//console.log("viz_Options",viz_Options);
+						function getFormatter(digits, name) {
+							  var notations = [
+								{ value: 1E12,  suffix: "T", name:"Trillion" },
+								{ value: 1E9,  suffix: "B" , name: "Billion"},
+								{ value: 1E6,  suffix: "M" , name:"Million"},
+								{ value: 1E3,  suffix: "K" , name:"Thousand"},        
+								{ value: 1E3,  suffix: "K" , name:"none"},        
+								{ value: 1E3,  suffix: "K" , name:"auto"}        
+							  ];
+							  rx = /\.0+$|(\.[0-9]*[1-9])0+$/
+							  
+							if(name === "auto"){
+								return function(num) {
+									var notation
+								for (var i = 0; i < notations.length; i++) {
+								  notation = notations[i]
+								  if (num >= notation.value) {
+									var value = num / notation.value
+									value = value.toFixed(digits)
+									value = value.replace(rx, "$1")
+									value = d3.format("0,000")(value);
+									return value + notation.suffix
+								  }
+								}
+								return num.toFixed(digits);
+							  }
+							}
+							if(name === "none"){
+								return d3.format(',.'+digits+'f');
+							}	
+							else{
+							  var index;
+							  notations.forEach(function(curr,ind){
+								  if(curr.name === name){
+										index = ind;
+									  return;
+								  }
+							  });
+							  return function(num) {
+									var notation = notations[index];
+									var value = num / notation.value;
+									value = value.toFixed(digits)
+									value = value.replace(rx, "$1")
+									//var formatter = d3.format("0,000")(value);
+									value = d3.format("0,000")(value);
+									return value + notation.suffix;
+							  }
+							}
+						}
+					 var parameters = ${conditionArr};
+					 var paramlength = parameters.length;
+					 var charttypes={};
+					 var chartColor={};
+					var measureNames = '';
+					 for(i = 0; i < paramlength; i++){
+						charttypes[parameters[i].measure] = getFormatter(parameters[i].decimalValue, parameters[i].formater);
+					 }
+
+					 if(viz_options.chartOptions.data){
+						viz_options.chartOptions.data.labels={
+							format:charttypes,
+						}
+					 }
+					 else{
+						 viz_options.chartOptions.data={
+							labels:{
+								format:charttypes,
+							}
+						 }
+					}
+					
+					return viz_options;		
+				}
+				
+			if(!hi_container.isSet("preFetch")){ 
+				hi_container.set("preFetch", ftnObj['dataLabels'+id]);
+			}
+			else{
+				hi_container.extend("preFetch", ftnObj['extenddataLabels'+id]);
+				
+			}		
+			
+				
+				
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="[]" name="conditionArr" type= "String" />
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div id="addButtonPanel">
+				<label for='addButton' class='col-sm-3' >Add Data Label</label>
+				<button id='addButton' class='btn btn-primary addButton col-sm-2' onclick='addConditionPanel({measure: "", formater: "auto", decimalValue:"0"}, "conditionList")'>Add</button>
+			</div>
+			<div id="conditionList"></div>
+
+			<script>
+				adhocScripts.resetAll();
+				var subtype = Base64.decode(window.frames[0].__hi_params.settings);
+				chartSubType = JSON.parse(subtype).type;
+
+				var data = window.frames[0].__hi_result.data;
+				var metadata = window.frames[0].__hi_result.metadata[0];
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+
+				var metadataKeys = Object.keys(metadata);
+
+				var measureArray = [],
+					values = [];
+
+
+				column.forEach(function(col, i) {
+					if ((col.aggregate && !(col.hidden === true))|| (col.custom === true && !(col.hidden === true))) {
+						values.push(metadata[(i + 1).toString()].name);
+					}
+				});
+
+				if (chartSubType === "HIGroupedBar") {
+					var val1 = [],
+						val2 = [],
+						valObj = {};
+					data.forEach(function(item) {
+						var temp = Object.keys(item);
+						var val = item[temp[1]];
+						if (!valObj.hasOwnProperty(val)) {
+							valObj[val] = [];
+							valObj[val].push(item[temp[2]]);
+						} else {
+							valObj[val].push(item[temp[2]]);
+						}
+					});
+					measureArray = Object.keys(valObj);
+				} else {
+					measureArray = values;
+				}
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+
+				var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+				var tgtPanel = 'conditionList';
+				createConditionList(conditionArr, tgtPanel);
+
+				function createConditionList(conditionArr) {
+					if (conditionArr.length == 0) {
+						conditionArr.push({ measure: measureArray[0], formater: "auto", decimalValue:"0"});  
+					}
+					adhocScripts.setVariable("conditionArr", conditionArr);
+					for (var i = 0; i < conditionArr.length; i++) {
+						var div = createConditionPanel(conditionArr[i], i);
+						document.getElementById(tgtPanel).appendChild(div);
+					}
+				}
+
+				function addConditionPanel(object, tgtPanel) {
+					if (object.measure.length == 0) {
+						object.measure = measureArray[0];
+					}
+					
+					var conditionArrLength = conditionArr.length;
+					if (conditionArrLength < measureArray.length) {
+						conditionArr.push(object);
+						var index = conditionArr.length - 1;
+						var div = createConditionPanel(object, index);
+						document.getElementById(tgtPanel).appendChild(div);
+					}
+				}
+
+				function createConditionPanel(object, index) {
+					var tickformatter = ["auto", "none", "Thousand", "Million", "Billion", "Trillion"];
+					var form = document.createElement('form');
+					form.className = 'form-line col-sm-12 dataSet';
+
+					var divVal1 = document.createElement('div');
+					divVal1.className = 'form-group col-sm-2 col-md-3 value_1';
+					divVal1.id = 'div_measure_' + index;
+
+					var labelVal1 = document.createElement('label');
+					labelVal1.for = 'input_measure_' + index;
+					labelVal1.innerHTML = 'Measure';
+
+					var inputVal1 = document.createElement('select');
+					inputVal1.type = 'text';
+					inputVal1.className = 'form-control';
+					inputVal1.id = 'input_measure_' + index;
+					inputVal1.value = object.measure;
+					inputVal1.onchange = setOnChange;
+
+					for (var i = 0; i < measureArray.length; i++) {
+						var options = document.createElement('option');
+						options.value = measureArray[i];
+						options.text = measureArray[i];
+						if (options.value == object.measure || options.value == measureArray[0]) {
+							options.selected = 'selected';
+						}
+						inputVal1.appendChild(options);
+					}
+
+					divVal1.appendChild(labelVal1);
+					divVal1.appendChild(inputVal1);
+
+					form.appendChild(divVal1);
+
+					var divConditionVal = document.createElement('div');
+					divConditionVal.className = 'form-group col-sm-3 condition';
+					divConditionVal.id = 'div_formater_' + index;
+
+					var labelConditionVal = document.createElement('label');
+					labelConditionVal.for = 'input_condition_';
+					labelConditionVal.innerHTML = 'Formater';
+					labelConditionVal.id = 'formatLabel'
+
+					var inputConditionVal = document.createElement('select');
+					inputConditionVal.className = 'form-control';
+					inputConditionVal.id = 'input_formater_' + index;
+					inputConditionVal.onchange = setOnChange;
+
+					for (var i = 0; i < tickformatter.length; i++) {
+						var options = document.createElement('option');
+						options.value = tickformatter[i];
+						options.innerHTML = tickformatter[i];
+						if (options.value == object.formater)
+							options.selected = 'selected';
+						inputConditionVal.appendChild(options);
+					}
+
+					divConditionVal.appendChild(labelConditionVal);
+					divConditionVal.appendChild(inputConditionVal);
+					form.appendChild(divConditionVal);
+
+
+					var divVal3 = document.createElement('div');
+					divVal3.className = 'form-group col-sm-3';
+					divVal3.id = 'div_decimal_';
+
+					var labelVal3 = document.createElement('label');
+					labelVal3.for = 'input_decimalValue_';
+					labelVal3.innerHTML = 'Decimal Places';
+
+					var inputVal3 = document.createElement('input');
+					inputVal3.type = 'text';
+					inputVal3.className = 'form-control';
+					inputVal3.id = 'input_decimalValue_' + index;
+					inputVal3.value = object.decimalValue;
+					inputVal3.onchange = setOnChange;
+
+					divVal3.appendChild(labelVal3);
+					divVal3.appendChild(inputVal3);
+					form.appendChild(divVal3);
+					/*-------------------------del button-----------------------*/
+					var delButton = document.createElement('button');
+					delButton.id = 'delete_' + index;
+					delButton.classList = 'btn btn-danger ';
+					delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+					delButton.onclick = function(d) {
+						var index = d.target.id.split('_')[1];
+						conditionArr.splice(index, 1);
+						adhocScripts.setVariable("conditionArr", conditionArr);
+						$(this).parent().remove();
+					};
+					delButton.style.marginTop = '25px';
+
+					form.appendChild(delButton);
+
+					return form;
+					
+					function setOnChange(d) {
+						var len = d.target.id.split('_').length;
+						var x = d.target.id.split('_')[2];
+						var key = d.target.id.split('_')[1];
+						conditionArr[x][key] = d.target.value;
+						adhocScripts.setVariable("conditionArr", conditionArr);
+					}
+				}
+
+				$(".modal-footer .btn-primary").on('click', function() {
+
+				});
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

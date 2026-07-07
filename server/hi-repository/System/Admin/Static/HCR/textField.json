@@ -1,0 +1,73 @@
+{
+	"textField": {
+		"X": 0,
+		"Y": 0,
+		"fontName": "Serif",
+		"configFontName": "Aharoni",
+		"newChkbx": false,
+		"pattern": "",
+		"fontWeight": "",
+		"textForecolor": "#000000",
+		"textBackcolor": "#ffffff",
+		"bold": false,
+		"italic": false,
+		"underline": false,
+		"strikeThrough": false,
+		"textFieldExpression": "",
+		"textWidth": 50,
+		"textHeight": 50,
+		"rotationType": "None",
+		"markUp": "none",
+		"mode": "Transparent",
+		"stretchType": "NoStretch",
+		"positionType": "FixRelativeTop",
+		"printRepeatedValues": true,
+		"repeat": false,
+		"removeLineWhenBlank": false,
+		"textFontSize": 14,
+		"horizontalTextAlign": "Center",
+		"verticalTextAlign": "Top",
+		"isCommonBorder": false,
+		"stretchWithOverFlow": false,
+		"blankWhenNull": false,
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+
+		"paragraph": {
+			"lineSpacing": 0,
+			"firstLineIndent": 0,
+			"leftIndent": 0,
+			"lineSpacingSize": 0,
+			"rightIndent": 0,
+			"spacingAfter": 0,
+			"spacingBefore": 0,
+			"tabStopWidth": 0,
+			"tabStopAlignment": 0,
+			"tabStopPosition": 0
+		},
+		"border": {
+			"line": {
+				"leftLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"rightLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"bottomLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"topLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				}
+			}
+		}
+	}
+}

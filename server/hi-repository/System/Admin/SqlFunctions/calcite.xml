@@ -1,0 +1,307 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Return type for each function node can be the following 
+
+	"numeric", "text", "date", "time","dateTime","boolean","other" 
+	
+	-->
+<functions dialect="com.helicalinsight.adhoc.genericsql.CalciteHibernateDialect" type="db.calcite">
+    <function group="date" returns="numeric">
+        <key>sql.date.dayofmonth</key>
+        <value>dayofmonth</value>
+        <signature><![CDATA[EXTRACT(DAY FROM ${date})]]></signature>
+        <parameters>
+            <parameter column="true" name="date"/>
+        </parameters>
+        <description>Displays day of the month for a given date (1-31).</description>
+    </function>
+    <function group="date" returns="numeric">
+        <key>sql.date.dayofyear</key>
+        <value>dayofyear</value>
+        <signature><![CDATA[EXTRACT(DOY FROM ${date})]]></signature>
+        <parameters>
+            <parameter column="true" name="date"/>
+        </parameters>
+        <description>Displays day of the year for a date (range: 1-366)</description>
+    </function>
+    <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.hour</key>
+        <value>hour</value>
+        <signature><![CDATA[HOUR(${time})]]></signature>
+        <parameters>
+            <parameter column="true" name="time"/>
+        </parameters>
+        <description>Displays the hour portion of a time.</description>
+    </function>
+    
+    <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.minute</key>
+        <value>minute</value>
+        <signature><![CDATA[EXTRACT(MINUTE FROM ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>Displays a minute from a time or datetime.</description>
+    </function>
+	
+	<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.second</key>
+        <value>second</value>
+        <signature><![CDATA[SECOND(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>Displays a second from a time or datetime.</description>
+    </function>
+    <function group="date" returns="numeric">
+        <key>sql.date.month</key>
+        <value>month</value>
+        <signature><![CDATA[EXTRACT(MONTH FROM ${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>Displays month for the date within range 1-12 (January-December)</description>
+    </function>
+    <function group="date" returns="other">
+        <key>sql.date.monthname</key>
+        <value>monthname</value>
+        <signature><![CDATA[CASE EXTRACT(MONTH FROM ${datetime})
+								WHEN 1 then  'January'
+								WHEN 2 then   'February' 
+								WHEN 3 then   'March'
+								WHEN 4 then   'April'
+								WHEN 5 then   'May'
+								WHEN 6 then  'June'
+								WHEN 7 then  'July'
+								WHEN 8 then  'August'
+								WHEN 9 then  'September'
+								WHEN 10 then 'October'
+								WHEN 11 then 'November'
+								WHEN 12 then 'December'
+
+							END	
+		]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime"/>
+        </parameters>
+        <description>Displays fullname of the month (January-December)</description>
+    </function>
+      <function group="date" returns="numeric">
+        <key>sql.date.year</key>
+        <value>year</value>
+        <signature><![CDATA[EXTRACT(YEAR FROM ${date})]]></signature>
+        <parameters>
+            <parameter column="true" name="date"/>
+        </parameters>
+        <description>Displays the year for a given date.</description>
+    </function>
+  
+	<function group="numeric" returns="other">
+        <key>sql.numeric.cast</key>
+        <value>cast</value>
+        <signature><![CDATA[CAST(${text} AS ${format} )]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="text"/>
+            <parameter name="format"/>
+        </parameters>
+        <description>The CAST function converts a value from one data type to another and provides a data type to a dynamic parameter (?) or a NULL value.</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.ceiling</key>
+        <value>ceiling</value>
+        <signature><![CDATA[CEIL(${decimal})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="decimal"/>
+        </parameters>
+        <description>Displays the smallest integer value not less than the number specified.</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.floor</key>
+        <value>floor</value>
+        <signature><![CDATA[FLOOR(${decimal})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="decimal"/>
+        </parameters>
+        <description>Displays the largest value not greater than a number specified.</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.mod</key>
+        <value>mod</value>
+        <signature><![CDATA[MOD(${number},${divisor})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="divisor"/>
+        </parameters>
+        <description>Displays the remainder of a number divided by another number.</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.absolute</key>
+        <value>absolute</value>
+        <signature><![CDATA[ABS(${number})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+        </parameters>
+        <description>Returns the absolute value of numeric</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.pow</key>
+        <value>pow</value>
+        <signature><![CDATA[POWER(${number},${exponent})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="exponent"/>
+        </parameters>
+        <description>Displays the value of a number raised to the power of another number.</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.sqrt</key>
+        <value>sqrt</value>
+        <signature><![CDATA[SQRT(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Displays the square root of a non-negative number.</description>
+    </function>
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.truncate</key>
+        <value>truncate</value>
+        <signature><![CDATA[TRUNCATE(${number},${digit})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="digit"/>
+        </parameters>
+        <description>Displays a number truncated to a ceratin number of decimal places.</description>
+    </function>
+    <function group="text" returns="text">
+        <key>sql.text.lower</key>
+        <value>lower</value>
+        <signature><![CDATA[LOWER(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Converts all characters in the specified string to lowercase.</description>
+    </function>
+    <function group="text" returns="text">
+        <key>sql.text.upper</key>
+        <value>upper</value>
+        <signature><![CDATA[UPPER(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>It converts all the characters in a string to uppercase characters.</description>
+    </function>
+    <function group="text" returns="text">
+        <key>sql.text.trim</key>
+        <value>trim</value>
+        <signature><![CDATA[TRIM(BOTH ${text1} FROM ${text2})]]></signature>
+        <parameters>
+            <parameter column="true" name="text1"/>
+            <parameter column="true" name="text2"/>
+        </parameters>
+        <description>It removes all specified characters either from the beginning or the ending of the string.</description>
+    </function>
+  
+   <!--Bug 358  Remove avg function from database function
+   <function group="numeric" returns="numeric">
+        <key>sql.number.avg</key>
+        <value>avg</value>
+        <signature><![CDATA[AVG(${column})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+        </parameters>
+        <description>Displays the average value of a numeric column.</description>
+    </function>
+  -->
+    <function group="text" returns="text">
+        <key>sql.text.concat</key>
+        <value>concat</value>
+        <signature><![CDATA[ (${text1} || ${text2})]]></signature>
+        <parameters>
+            <parameter column="true" name="text1"/>
+            <parameter column="true" name="text2"/>
+        </parameters>
+        <description>Helps in joining two or more string</description>
+    </function>
+	<function group="text" returns="text">
+        <key>sql.text.initcap</key>
+        <value>initcap</value>
+        <signature><![CDATA[ INITCAP(${text1})]]></signature>
+        <parameters>
+            <parameter column="true" name="text1"/>
+        </parameters>
+        <description>Returns string with the first letter of each word converter to upper case and the rest to lower case. Words are sequences of alphanumeric characters separated by non-alphanumeric characters.</description>
+    </function>
+    <function group="text" returns="text">
+        <key>sql.text.substr</key>
+        <value>substr</value>
+        <signature><![CDATA[ SUBSTRING(${text} FROM ${index} FOR ${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+            <parameter column="true" defaultValue="1" name="index"/>
+            <parameter column="true" defaultValue="1" name="length"/>
+        </parameters>
+        <description>Returns a substring of a character string starting at a given point with a given length</description>
+    </function>
+	<function group="text" returns="numeric" >
+        <key>sql.text.CHAR_LENGTH</key>
+        <value>CHAR_LENGTH</value>
+        <signature><![CDATA[CHAR_LENGTH(${text})]]></signature>
+        <parameters>
+            <parameter column="true" name="text"/>
+        </parameters>
+        <description>Displays numeric value of the left-most character of the string.</description>
+    </function>    
+   <function group="date" returns="text">
+      <key>sql.text.stringToDate</key>
+      <value>stringToDate</value>
+      <signature><![CDATA[CAST (${column} AS Date)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the string value to Date object</description>
+   </function>
+   
+<!--Conversion specific functions must be there for every xml file starts-->  
+ <function group="date" returns="text">
+      <key>sql.text.dateToString</key>
+      <value>dateToString</value>
+      <signature><![CDATA[CAST(${column} as VARCHAR(100)) ]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the date to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.numericToString</key>
+      <value>numericToString</value>
+      <signature><![CDATA[CAST(${column} as VARCHAR(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the number to string</description>
+   </function>
+   
+    <function group="date" returns="text">
+      <key>sql.text.dateTimeToString</key>
+      <value>dateTimeToString</value>
+      <signature><![CDATA[CAST(${column} as VARCHAR(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the datetime to string</description>
+   </function>
+   
+   <function group="date" returns="text">
+      <key>sql.text.timeToString</key>
+      <value>timeToString</value>
+      <signature><![CDATA[CAST(${column} as VARCHAR(100))]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the time to string</description>
+   </function>
+<!--Conversion specific functions must be there for every xml file ends-->
+
+   
+   
+</functions>

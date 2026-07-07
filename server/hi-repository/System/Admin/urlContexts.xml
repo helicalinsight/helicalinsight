@@ -1,0 +1,795 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+permission attribute can have value range from 0 - 5.
+permission is checeked with >= operation
+Eg. if permission="2" then the resource is available  if the user is having  permission 2 or more than 2 on that resource. 
+
+
+-->
+<contexts>
+   <context name="/hi" parameters="optional" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/adhocReport" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/designer-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/visualizeAdhoc" parameters="optional" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/executeSavedReport" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/getEFWSolution" permission="2">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/adhoc/report-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/helical-report" parameters="optional" permission="5">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/helical-report-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/hcr-report" parameters="optional" permission="5">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/hcr-report-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/ce-report-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/instant-bi" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/adhoc/metadata-edit" parameters="optional" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/updateEFWTemplate" permission="3">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/downloadEnableSavedReport" permission="2">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>filename</file>
+      </lookupParameters>
+   </context>
+   <context name="/executeFavourite" permission="2">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>file</file>
+      </lookupParameters>
+   </context>
+   <context name="/importFile" parameters="optional"  permission="3">
+      <lookupParameters type="directory">
+         <parameter>destination</parameter>
+      </lookupParameters>
+   </context>
+
+   <context name="/downloadReport" parameters="optional" permission="1">
+      <lookupParameters type="default">
+         <directory>dir</directory>
+         <file>reportFile</file>
+      </lookupParameters>
+   </context>
+   <!--Uncomment the below and comment the above if the enableSavedResult option is set to true in settings.xml -->
+   <!-- <context name="/downloadReport" parameters="optional" permission="3">
+       <lookupParameters type="directory">
+          <parameter>resultDirectory</parameter>
+       </lookupParameters>
+    </context> -->
+   <context name="/exportData" parameters="optional" permission="1">
+      <!-- No configuration for efw export -->
+      <lookupParameters type="default">
+         <parameter>data</parameter>
+         <file>data.metadataFileName</file>
+         <directory>data.location</directory>
+      </lookupParameters>
+
+   </context>
+   <context name="/saveReport" permission="3">
+      <lookupParameters type="directory">
+         <parameter>location</parameter>
+      </lookupParameters>
+      <decisionState defaultPermission="3">
+         <if parameterValue="favourite" testOperator="eq">
+            <decisionState parameter="markAsFavourite">
+               <if parameterValue="unmark" permission="4" testOperator="eq" />
+            </decisionState>
+         </if>
+      </decisionState>
+   </context>
+   <context name="/fileSystemOperations">
+      <lookupParameters type="array">
+         <parameter dataType="java.lang.String">sourceArray</parameter>
+      </lookupParameters>
+      <decisionState parameter="action">
+         <if parameterValue="newFolder" permission="3" testOperator="eq" />
+         <if parameterValue="delete" permission="4" testOperator="eq" />
+         <if parameterValue="rename" permission="3" testOperator="eq" />
+         <if parameterValue="export" permission="3" testOperator="eq" />
+      </decisionState>
+   </context>
+   <context name="/services">
+      <!--
+	  Uncomment to set permission. 
+	  -->
+      <!--
+      No permission required for
+
+      core/dataSource/fileOperationOverNetwork
+      core/dataSource/loadDriver
+      core/dataSource/updateDrillConfig
+      core/dataSource/deleteUploadedDrillFiles
+      core/dataSource/drillCsvDatasource
+      core/dataSource/drill
+      core/dataSource/drillConfig
+      core/dataSource/sheduledReports
+      core/dataSource/listing
+      core/dataSource/shutdown
+      core/dataSource/cachedDS
+      core/dataSource/cacheStats
+      core/dataSource/abortWorker
+      -->
+      <subContext permission="4" parameters="optional" isDataSource="true">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="2" parameters="optional" isDataSource="true">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>read</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+      <subContext permission="3" parameters="optional">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>write</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+
+      <subContext permission="3" parameters="optional" isDataSource="true">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>update</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="1" parameters="optional" isDataSource="true">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>test</service>
+         <formData>
+            <directory optional="true">directory</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="1" parameters="optional" isDataSource="true">
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>quickTest</service>
+         <formData>
+            <directory optional="true">dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="2" parameters="optional" >
+         <type>core</type>
+         <serviceType>dataSource</serviceType>
+         <service>reportFiles</service>
+         <formData>
+            <directory optional="true">location</directory>
+            <file optional="true">metadataFileName</file>
+         </formData>
+      </subContext>
+
+
+      <!--
+      No permission required for
+      core/share/fetchInfo
+
+      -->
+
+
+      <subContext permission="5" parameters="optional">
+         <type>core</type>
+         <serviceType>share</serviceType>
+         <service>update</service>
+         <formData>
+            <directory optional="true">dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="5" parameters="optional">
+         <type>core</type>
+         <serviceType>share</serviceType>
+         <service>retrieveSharedInfo</service>
+         <formData>
+            <directory optional="true">dir</directory>
+            <file optional="true">file</file>
+         </formData>
+      </subContext>
+
+      <!-- No permission require for
+      adhoc/query/discover
+      adhoc/query/cancelQuery
+      adhoc/query/queryDetails
+
+
+        adhoc/metadata/fetchMetadata
+        adhoc/metadata/security
+        adhoc/metadata/evaluateSecurity
+        adhoc/metadata/saveView
+        **under construction**
+        adhoc/metadata/sync
+        adhoc/metadata/retrieveJoins
+
+        adhoc/metadata/dumpCube
+        adhoc/metadata/cachedConnectionStatus
+        adhoc/metadata/fetchAllCubes
+        adhoc/metadata/fetchPhase
+        **under construction**
+      -->
+
+
+      <subContext parameters="optional" permission="2">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>get</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+	
+	 <subContext parameters="optional" permission="3">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>getMetadataForEdit</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+
+
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>update</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">uuid</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>deleteMetadata</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="1">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>getFunctions</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="2" isDataSource="true" parameters="optional">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>metadataWorkflow</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="2" isDataSource="true" parameters="optional">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>retrieveViewLabels</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+
+      <subContext permission="2">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>retrieveView</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+
+
+
+
+
+      <subContext permission="2" >
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>getSecurity</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>access</service>
+         <formData>
+            <directory>location</directory>
+            <file>uuid</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="1" isDataSource="true" lookupKey="dataSource" parameters="optional">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>fetchJoins</service>
+         <formData>
+            <directory >location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="1" >
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>dialectInformation</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="1" isDataSource="true"  lookupKey="dataSource" parameters="optional">
+         <type>adhoc</type>
+         <serviceType>metadata</serviceType>
+         <service>fetchColumns</service>
+
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+
+      <!-- No permission require for
+      adhoc/report/visualize-->
+
+      <subContext parameters="optional" permission="2">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>generateQuery</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext parameters="optional" permission="1">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>executeQuery</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext parameters="optional" permission="1">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>fetchData</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext parameters="optional" permission="1">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>fetchDataSpark</service>
+         <formData>
+            <directory>location</directory>
+            <file>metadataFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>saveReport</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">uuid</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>deleteReport</service>
+         <formData>
+            <directory>location</directory>
+            <file>reportFileName</file>
+         </formData>
+      </subContext>
+      <subContext permission="1">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>getReport</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>report</serviceType>
+         <service>getReportForEdit</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+	  <subContext permission="1">
+         <type>adhoc</type>
+         <serviceType>cube</serviceType>
+         <service>getCube</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+
+     <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>cube</serviceType>
+         <service>update</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">fileName</file>
+         </formData>
+      </subContext>
+	  <subContext permission="1">
+         <type>adhoc</type>
+         <serviceType>instant</serviceType>
+         <service>saveReport</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+
+     <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>instant</serviceType>
+         <service>getReportForEdit</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">fileName</file>
+         </formData>
+      </subContext>
+
+
+      <!-- No permission require for
+adhoc/customScript/search
+adhoc/customScript/getSnippets
+-->
+
+
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>customScript</serviceType>
+         <service>save</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">uuid</file>
+         </formData>
+      </subContext>
+      <subContext permission="3">
+         <type>adhoc</type>
+         <serviceType>customScript</serviceType>
+         <service>update</service>
+         <formData>
+            <directory>location</directory>
+            <file>uuid</file>
+         </formData>
+      </subContext>
+      <!--<subContext permission="2">
+            <type>adhoc</type>
+            <serviceType>customScript</serviceType>
+            <service>fetch</service>
+            <formData>
+                <directory>location</directory>
+                <file>filename</file>
+            </formData>
+        </subContext>-->
+      <subContext permission="4">
+         <type>adhoc</type>
+         <serviceType>customScript</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory>location</directory>
+            <file>reportFileName</file>
+         </formData>
+      </subContext>
+
+
+      <!-- No permission require for
+      adhoc/threadpool/queryManager
+
+      -->
+
+
+
+      <!--No permission required for executeReportQuery
+      -->
+      <subContext permission="1" parameters="optional">
+         <type>hcr</type>
+         <serviceType>report</serviceType>
+         <service>generateReport</service>
+         <formData>
+            <directory>saveDetails.dir</directory>
+            <file defaultExtension="hcr">saveDetails.uuid</file>
+
+         </formData>
+      </subContext>
+      <subContext permission="3" parameters="optional">
+         <type>hcr</type>
+         <serviceType>report</serviceType>
+         <service>saveReportState</service>
+         <formData>
+            <directory>dir</directory>
+            <file optional="true" defaultExtension="hcr">uuid</file>
+
+         </formData>
+      </subContext>
+
+      <subContext permission="1">
+         <type>hcr</type>
+         <serviceType>report</serviceType>
+         <service>fetchReportState</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>hcr</type>
+         <serviceType>report</serviceType>
+         <service>deleteReportState</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <subContext permission="3">
+         <type>dashboard</type>
+         <serviceType>efwdd</serviceType>
+         <service>designer</service>
+         <formData>
+            <directory>dir</directory>
+            <file optional="true" defaultExtension="efwdd">uuid</file>
+
+         </formData>
+      </subContext>
+      <subContext permission="1">
+         <type>dashboard</type>
+         <serviceType>efwdd</serviceType>
+         <service>fetch</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>dashboard</type>
+         <serviceType>efwdd</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="3">
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>designer</service>
+         <formData>
+            <directory>dir</directory>
+            <file optional="true">uuid</file>
+         </formData>
+      </subContext>
+      <subContext permission="1">
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>fetch</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="4">
+         <type>dashboard</type>
+         <serviceType>efwce</serviceType>
+         <service>delete</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      
+      <subContext permission="2">
+         <type>util</type>
+         <serviceType>io</serviceType>
+         <service>imageService</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      
+      
+
+      <!--No permission required for
+      content/static/getContents
+      print/export/getTemplateList
+    print/export/getExportSettings
+    print/export/getTemplate
+    print/export/deleteTemplate
+    print/export/saveTemplate
+    print/export/getContents
+    print/export/xls
+    print/export/phantomActions
+
+monitor/schedule/schedule
+monitor/schedule/migrateSchedules
+monitor/schedule/generateCron
+monitor/cache/updateConfiguration
+monitor/cache/size
+monitor/cache/delete
+monitor/cache/dump
+monitor/cache/clean
+monitor/cache/refresh
+monitor/system/systemInfo
+monitor/system/tempFile
+monitor/system/log
+monitor/system/readWrite
+monitor/system/closePlugin
+monitor/system/availablePlugins
+monitor/system/loadedPlugins
+monitor/system/reportStats
+monitor/system/datasourceCount
+monitor/system/diskSpace
+monitor/system/management
+monitor/system/customWatcher
+monitor/system/deletePlugin
+monitor/system/readProperty
+monitor/system/noSqlConfig
+monitor/system/updateNoSql
+monitor/system/mailStats
+
+util/io/getExtensions
+util/io/getTypesDetails
+util/io/imageService
+util/fileBrowser/search
+util/fileBrowser/refreshFileBrowser
+common/abort/abortRequest
+
+**under constrction**
+hwf/hwfFile/create
+hwf/hwfFile/fetch
+hwf/hwfFile/delete
+hwf/hwfFile/types
+***under constrction**
+
+      -->
+
+   </context>
+</contexts>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<dir required="true" type="directory"/>
+	<file required="true" type="file"/>
+	<xml required="true"/>
+</formData>

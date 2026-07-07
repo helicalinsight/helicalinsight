@@ -1,0 +1,232 @@
+@import "../../styles/variables.scss";
+
+.hi-cube-sider {
+	height: 100%;
+	background-color: transparent;
+	border-right: 1px solid #eee;
+	// text-align: center;
+	padding-top: 6px;
+	.ant-layout-sider-children {
+		padding-left: 0.7%;
+		.hr-metadata-container {
+			border-left: 1px solid lightgrey;
+		}
+	}
+	.cube-sidebar {
+		height: 100%;
+		display: flex;
+		// .cube-sidebar-fb {
+		// 	align-self: end;
+		// }
+		align-content: space-between;
+		.cube-metadata-content-wraper {
+			width: 100%;
+			.cube-mode-button-active {
+				background-color: #{$hi-white};
+				color: #{$hi-text-color};
+				border-bottom: none;
+			}
+			.cube-mode-button-not-active {
+				background-color: #{$background-color};
+				color: #{$hi-blue};
+			}
+			.border-right-none {
+				border-right: none;
+			}
+			.font-bold {
+				font-weight: bold;
+			}
+			.cube-metadata-content {
+				.cube-metadata-table-wraper {
+					// width: $cube-sctn-1-width;
+					.cube-metadata-table {
+						// height: 400px;
+						// overflow-y: auto;
+						// overflow-x: hidden;
+						// &::-webkit-scrollbar {
+						// 	width: 4.5px;
+						// 	height: 0;
+						// }
+						// &::-webkit-scrollbar-thumb {
+						// 	background-color: black;
+						// }
+						// .cube-md-expand-icons {
+						// 	float: left;
+						// }
+						.ant-table-body {
+							overflow-y: auto;
+							&::-webkit-scrollbar {
+								width: 4.5px;
+								height: 0;
+							}
+							&::-webkit-scrollbar-thumb {
+								background-color: black;
+							}
+						}
+						.ant-table-expanded-row {
+							.ant-table-cell {
+								padding-left: 26%;
+							}
+						}
+						.column-drag {
+							// border-top: 1px solid lightgray;
+							// padding: 5px 0;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+.cube-content {
+	height: 100%;
+	padding-top: 2px;
+	// display: flex;
+	column-gap: 10px;
+	.cube-editor {
+		width: 100%;
+		height: 90%;
+		display: flex;
+		flex-direction: column;
+
+		.cube-editor-drop-surface {
+			flex: 1;
+			min-height: 0;
+		}
+		.cube-editor-header {
+			display: flex;
+			// height: 6%;
+			min-height: 40px;
+			align-items: center;
+			// background-color: red;
+			justify-content: space-between;
+			.editor-header-title {
+				margin: 0;
+			}
+		}
+		.cube-divider {
+			margin: 0 0 10px;
+		}
+		.cube-content-initial {
+			padding-bottom: 0 !important;
+			overflow-y: auto;
+			height: 520px;
+			&::-webkit-scrollbar {
+				width: 4.5px;
+				height: 0;
+			}
+			&::-webkit-scrollbar-thumb {
+				background-color: black;
+			}
+			.cube-list-item {
+				font-size: 18px;
+				cursor: pointer;
+			}
+		}
+		.cube-column-title {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+		}
+		.cube-info-icon {
+			margin-left: 2px;
+			font-size: 12px;
+			color: rgba(0, 0, 0, 0.45);
+		}
+		.cube-domain-description-bar {
+			display: flex;
+			align-items: flex-start;
+			gap: 24px;
+			padding: 8px;
+			background-color: #f9f9f9;
+			font-size: 12px;
+			border-bottom: 1px solid #ebebeb;
+			flex-shrink: 0;
+		}
+		.cube-domain-description-field {
+			display: flex;
+			align-items: flex-start;
+			gap: 8px;
+		}
+		.cube-description-field {
+			flex: 1;
+			min-width: 0;
+		}
+		.cube-domain-label {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			flex-shrink: 0;
+			padding-top: 7px;
+			white-space: nowrap;
+		}
+		.cube-required-mark {
+			color: #ff4d4f;
+		}
+		.cube-domain-input {
+			width: 180px;
+			flex-shrink: 0;
+		}
+		.cube-description-input {
+			flex: 1;
+			min-width: 200px;
+			max-width: 480px;
+		}
+		.schedule-table {
+			.ant-table-body {
+				overflow-y: auto !important;
+				&::-webkit-scrollbar {
+					width: 4.5px;
+					height: 0;
+				}
+				&::-webkit-scrollbar-thumb {
+					background-color: black;
+				}
+			}
+			.table-action-icon {
+				font-size: 24px;
+			}
+			.table-action-icon-disabled {
+				opacity: 0.2;
+			}
+			.row-title {
+				margin-bottom: 0;
+				display: flex;
+				.ant-input {
+					left: 4%;
+				}
+			}
+		}
+		// // .schedule-table,
+		// .cube-content-initial {
+		// 	padding-bottom: 0 !important;
+		// 	overflow-y: scroll;
+		// 	height: 480px;
+		// 	&::-webkit-scrollbar {
+		// 		width: 4.5px;
+		// 		height: 0;
+		// 	}
+		// 	&::-webkit-scrollbar-thumb {
+		// 		background-color: black;
+		// 	}
+		// }
+		.schedule-table-actions {
+			display: flex;
+			justify-content: flex-end;
+			margin-top: 20px;
+		}
+	}
+}
+
+.hi-agent-page {
+	.cube-content {
+		height: 100%;
+		min-height: 0;
+	}
+
+	.cube-content .cube-editor {
+		height: 100%;
+		min-height: 0;
+	}
+}

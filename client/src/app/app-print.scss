@@ -1,0 +1,18 @@
+@media print {
+    .ant-layout-content{
+        height:auto !important;
+    }
+    .hi-content-area{
+        height:auto !important;
+    }
+    .report-viwer-content { 
+        height: auto !important;
+        /* height: 05%; */
+        overflow-y: visible !important;
+    }
+    // bug - 6511 fix
+    // .hi-page-grid {
+    //     flex-flow: row nowrap !important;
+    //  }
+    
+}

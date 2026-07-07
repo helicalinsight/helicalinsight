@@ -1,0 +1,11 @@
+{
+    "head": {
+        "title": "Dashboard",
+        "description": "This will print the entire dashboard in one single page."
+    },
+    "body": {
+        "paperSize": "Letter",
+		"scaling":"0.90",
+		"hasScript": false
+    }
+}

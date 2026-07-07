@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3NonAxis_js_DonutCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Title Settings</name>
+    <group>C3Donut</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Donut Chart Settings</description>
+    <icon>/images/scriptIcons/Donut_chart.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+		
+			var chartId = '#chart'
+			if(id== "")
+				chartId = chartId+'-'+id;
+			
+			var ftnObj = {};
+			
+			ftnObj['setDonutChartCustomization'+id]= function(d){
+				var viz_Options = d.get("viz_Options");
+				if(${switch}==true){
+				viz_Options = donutCustomization(viz_Options);
+				}
+				d.set("viz_Options",viz_Options);
+			}
+	   
+			ftnObj['extendsetDonutChartCustomization'+id]= function(postFetch, d){
+				var viz_Options = d.get("viz_Options");
+				if(${switch}==true){
+				viz_Options = donutCustomization(viz_Options);
+				}
+			}
+		
+			function donutCustomization(viz_Options){  
+				var columns = JSON.parse(window.Base64.decode(hi_container._values.__hi_params.columns)),
+				data = hi_container._values.responseData.data,
+				metadata = hi_container._values.responseData.metadata;
+				metadata = metadata[0];
+				var values = [];
+				var columnName;
+				var agrregateType;
+				var Total = 0;
+				
+				$.each(columns, function(i, col){
+					if (col.aggregate) {
+						columnName = metadata[(i + 1).toString()].name;
+						agrregateType = col.aggregate[0];
+					}
+				});
+				
+				for(var j=0; j< data.length; j++ ){
+					values.push(data[j][columnName]);
+				};
+				
+				for(k=0;k<values.length;k++){
+					Total = Total + values[k];
+				}
+                if(agrregateType == "db.generic.aggregate.avg"){
+					Total = Total/data.length
+
+				}else{
+					Total = Total;
+				}
+				
+				
+				if(!viz_Options.chartOptions.donut)
+					viz_Options.chartOptions.donut = {};
+					
+				viz_Options.chartOptions.donut.title = '${DonutText} '+ ' : ' + d3.format(',')(Total);
+				
+				return viz_Options;
+			}
+			
+			if(!hi_container.isSet("postFetch")){
+				hi_container.set("postFetch", ftnObj['setDonutChartCustomization'+id]);
+			}
+			else{
+				hi_container.extend("postFetch", ftnObj['extendsetDonutChartCustomization'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="Total" name="DonutText" type="String"/>
+		<parameter value="true" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+				<div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle" align="center">
+							<div class="col-sm-3">
+								<label><b>Donut Title Settings: </b></label>
+							</div>
+							<div class="col-sm-3 toggle_label toggle_label_hide">
+								<label>Disable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Enable</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				<hr>
+				<div class="row" id="donutTitle_customization">
+					<div class="col-sm-12 form-horizontal">
+						<div class="form-group" id="hour_input">
+							<label class="col-sm-2 control-label"><b>Donut Title:</b></label>
+							<div class="col-sm-3">
+								<input id="donutText" type="text" class="form-control" value="" onchange="handleDonutTitleValue(this.value)">
+							</div>
+						</div>
+					</div>
+				</div>
+			<script>
+				adhocScripts.resetAll();
+				//Set global variable from parameter
+				adhocScripts.setVariable("switch",params.switch);
+				adhocScripts.setVariable("DonutText",params.DonutText);
+
+				
+				function switchToggle(event){
+					if(adhocScripts.getVariable('switch') == 'false'){
+						$('#donutTitle_customization').css('display', 'block');
+						adhocScripts.setVariable("switch", 'true');
+					}
+					else{
+						$('#donutTitle_customization').css('display', 'none');
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#donutTitle_customization').css('display', 'block');
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} else {
+					$('#donutTitle_customization').css('display', 'none');
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+				
+				function handleDonutTitleValue(val){
+					adhocScripts.setVariable("DonutText",val);
+				}
+				
+				$('#donutText').val(adhocScripts.getVariable('DonutText'));
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EFWD mandatory="true">
+<DataMaps>
+
+		<DataMap id="1" connection="1" type="metadata.dbmetadata">
+            <Name>getCatalog</Name>
+            <catalog>TABLE_CAT</catalog>
+            <Query>
+               
+                <![CDATA[
+				
+				
+						 {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+          <Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		<DataMap id="2" connection="1" type="metadata.dbmetadata">
+            <Name>getSchema</Name>
+			 <schema>TABLE_SCHEM</schema>
+            <Query>
+               
+                <![CDATA[
+				
+				 {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		 
+		<DataMap id="3" connection="1" type="metadata.dbmetadata" >
+           <Name>getTable</Name>
+		   <schemas>TABLE_SCHEME</schemas>
+            <Query>
+                <![CDATA[
+                        
+                       {"catalog":${catalog},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalog" type="String" default="''" openQuote="'" closeQuote="'"/>
+            <Parameter name="schemas" type="String" default="''" openQuote="'" closeQuote="'"/>
+        </Parameters>
+        </DataMap>
+
+		 
+	
+		
+		<DataMap id="4" connection="1" type="metadata.groovy" >
+           <Name>getColumn</Name>
+            <Query><![CDATA[
+				
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import com.helicalinsight.datasource.JDBCDriver;
+
+import com.helicalinsight.adhoc.metadata.genericdb.MetadataRetrievalException;
+import com.helicalinsight.datasource.managed.JdbcQueryExecutor;
+import com.helicalinsight.datasource.managed.SparkJdbcExecutor;
+import com.helicalinsight.adhoc.genericsql.AdhocUtils;
+import com.helicalinsight.datasource.DatabaseConnectionFactory;
+
+				
+ public List<JSONObject> getColumnInfoForTable(String table, String url, String username, String password,String driverClassName) {
+ List<JSONObject> columns = new ArrayList<>();
+ Connection connection =null;
+ try {
+	 
+	if(driverClassName != null && !driverClassName.isEmpty()){
+			connection = JDBCDriver.getConnection(url,username,password,driverClassName);
+			}else{
+				connection = DriverManager.getConnection(url,username,password);
+			}
+
+
+ Statement statement = connection.createStatement();
+ String schemaName =null;
+ schemaName = ${schemas};
+
+
+ 
+ 
+ SparkJdbcExecutor jdbcQueryExecutor = new SparkJdbcExecutor(statement, "select * from \"" + schemaName + "\".\"" + table + "\" limit 1");
+
+ JSONObject result = JSONObject.fromObject(jdbcQueryExecutor.executeSql().toString());
+
+ JSONObject metadataJson = result.getJSONArray("metadata").getJSONObject(0);
+
+  Map<String, String> dataTypesMapping = AdhocUtils.getDataTypeMapping();
+ 
+ for (int index = 0; index < metadataJson.size(); index++) {
+	
+ JSONObject indexElement = metadataJson.getJSONObject(String.valueOf(index + 1));
+
+ String columnName = indexElement.getString("name");
+ String columnType = indexElement.getString("type");
+ 
+  JSONObject columnInfo = new JSONObject();
+  columnInfo.put("catalogs",${catalogs} );
+  columnInfo.put("schemas", schemaName);
+  columnInfo.put("tables", table);
+ 		
+  columnInfo.put("columns", columnName);
+  columnInfo.put("type", columnType);
+  String jsType = AdhocUtils.getType(columnType, dataTypesMapping);
+
+  columnInfo.put("dataType", jsType);
+  columnInfo.put("size", "0");
+  columnInfo.put("nullable", "TRUE");
+  columnInfo.put("position", String.valueOf(index + 1));
+ 
+  columns.add(columnInfo);
+ 
+ }
+
+
+ } catch (SQLException ex) {
+ throw new MetadataRetrievalException(ex);
+ }
+ finally{
+ try {
+				
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+ }
+ return columns;
+ }
+		
+		
+ public JSONObject eachTable(JSONObject connectionJson){
+ String url=null;
+String username =null;
+String password =null;
+String driverClassName =null;
+if(connectionJson.has("url")){
+url=connectionJson.getString("url");
+}
+else if(connectionJson.has("Url")){
+url=connectionJson.getString("Url");
+} else if (connectionJson.has("jdbcUrl")) {
+        url = connectionJson.getString("jdbcUrl");
+    }
+	
+	
+if(connectionJson.has("username")){
+	username = connectionJson.getString("username");
+}
+if(connectionJson.has("userName")){
+	username = connectionJson.getString("userName");
+}
+if(connectionJson.has("password")){
+	password = connectionJson.getString("password");
+}
+if(connectionJson.has("User")){
+	username = connectionJson.getString("User");
+}
+if(connectionJson.has("Pass")){
+	password = connectionJson.getString("Pass");
+}
+if(connectionJson.has("driverClassName")){
+	driverClassName = connectionJson.getString("driverClassName");
+}
+if(connectionJson.has("Driver")){
+	driverClassName = connectionJson.getString("Driver");
+}
+if(connectionJson.has("driverName")){
+	driverClassName = connectionJson.getString("driverName");
+}
+
+if(driverClassName.startsWith(com.helicalinsight.efw.utility.JsonUtils.getHiMiddleWareName())){
+	String minusDs = DatabaseConnectionFactory.getMinus1DataSource();
+	JSONObject formDataMinusJson = JSONObject.fromObject(minusDs);
+    url=formDataMinusJson.getString("url");
+	username = formDataMinusJson.getString("username");
+	password = formDataMinusJson.getString("password");
+	driverClassName = formDataMinusJson.getString("driverClassName");
+}
+	
+	 JSONObject dataObject = new JSONObject();
+ List<JSONObject> singleObjectInList = new ArrayList<>();
+ List<JSONObject> allObjectsInList = new ArrayList<>();
+		
+ 
+JSONArray allTables = new JSONArray();
+			List<String> tableNames = [${tables}];
+			
+			for(String name :  tableNames){
+			
+				singleObjectInList=getColumnInfoForTable(name,url,username,password,driverClassName);			
+						
+						allObjectsInList.addAll(singleObjectInList);
+						
+					}
+					
+dataObject.put("data", allObjectsInList);	
+return dataObject;	
+
+
+ 
+				}
+ 				
+				return eachTable(queryParams.connection);
+   
+                ]]></Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default="" openQuote='"' closeQuote='"'/>
+            <Parameter name="schemas" type="Collection" default="''" openQuote='"' closeQuote='"'/>
+            <Parameter name="tables" type="Collection" default="Null" openQuote='"' closeQuote='"'/>
+        </Parameters>
+        </DataMap>
+	
+		
+</DataMaps> 
+  
+    
+  
+</EFWD> 

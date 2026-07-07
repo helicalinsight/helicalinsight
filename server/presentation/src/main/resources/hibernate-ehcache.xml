@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.ehcache.org/v3"
+        xmlns:jsr107="http://www.ehcache.org/v3/jsr107"
+        xsi:schemaLocation="
+            http://www.ehcache.org/v3 http://www.ehcache.org/schema/ehcache-core-3.0.xsd
+            http://www.ehcache.org/v3/jsr107 http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd">
+
+    <service>
+        <jsr107:defaults enable-management="true" enable-statistics="true"/>
+    </service>
+    
+    <cache-template name="hi-jcache">
+    
+        <expiry>
+            <ttl unit="minutes">120</ttl>
+        </expiry>
+        
+        <heap unit="entries">10000</heap>
+
+    </cache-template>
+
+    <cache alias="com.helicalinsight.admin.model.FileBrowserCache" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.DataSourceMapping" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.ApplicationCache" uses-template="hi-jcache"/>
+<!--
+	<cache alias="com.helicalinsight.datasource.model.GlobalConnections" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.datasource.model.DSTypeTomcat" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.datasource.model.DSTypeHikari" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.datasource.model.DSTypeJndi" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.datasource.model.DSTypeNoSQL" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.datasource.model.DSTypePlainJDBC" uses-template="hi-jcache"/>
+-->
+	<cache alias="com.helicalinsight.datasource.model.GlobalConnectionSecurity" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResource" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceSecurity" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceMetadata" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceHWF" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceFolder" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceResult" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceEFWVF" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceEFWCE" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceEFWD" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceEFWDD" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIResourceEFWSR" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataRelationships" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadata" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataConnections" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.MetadataDatabases" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataColumnSecurity" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataTableSecurity" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataColumns" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIMetadataTables" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIHwfInput" uses-template="hi-jcache"/>
+	<cache alias="com.helicalinsight.admin.model.HIHwfOutput" uses-template="hi-jcache"/>
+    
+</config>

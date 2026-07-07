@@ -1,0 +1,548 @@
+{
+	"formData": {
+		"format": "html",
+		"page": "0",
+		"generateXML": false,
+		"connectionDetails": {},
+		"designerProperties": {
+			"pageWidth": 595,
+			"pageHeight": 842,
+			"orientation": "Portrait",
+			"columnWidth": 0,
+			"columnSpacing": 0,
+			"leftMargin": 20,
+			"rightMargin": 20,
+			"topMargin": 20,
+			"bottomMargin": 20,
+			"titleNewPage": false,
+			"floatColumnFooter": false,
+			"summaryNewPage": false,
+			"designerStyle": [
+				{
+					"backColor": "#f8f9fa",
+					"foreColor" : "#ffffff",
+					"name": "TABLE_CT",
+					"mode": "Opaque",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000000"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000000"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000000"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000000"
+							}
+						}
+					}
+				},
+				{
+					"name": "TABLE_TH",
+					"mode": "Opaque",
+					"backColor": "#F0F8FF",
+					"foreColor": "#000000",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							}
+						}
+					}
+				},
+				{
+					"name": "TABLE_CH",
+					"mode": "Opaque",
+					"backColor": "#BFE1FF",
+					"foreColor": "#000000",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							}
+						}
+					}
+				},
+				{
+					"name": "TABLE_CF",
+					"mode": "Opaque",
+					"backColor": "#BFE1FF",
+					"foreColor": "#000000",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							}
+						}
+					}
+				},
+				{
+					"name": "TABLE_TD",
+					"mode": "Opaque",
+					"backColor": "#FFFFFF",
+					"foreColor": "#000000",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							}
+						}
+					}
+				},
+				{
+					"name": "TABLE_TF",
+					"mode": "Opaque",
+					"backColor": "#F0F8FF",
+					"foreColor": "#000000",
+					"lineStyle": {
+						"penLineWidth": "1"
+					},
+					"border": {
+						"line": {
+							"leftLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"rightLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"topLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							},
+							"bottomLine": {
+								"lineWidth": 1,
+								"lineColor": "#000103"
+							}
+						}
+					}
+				}
+			],	
+			"title": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"pageHeader": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"details": [
+				{
+					"bandHeight": 0,
+					"isImageAttached": "false",
+					"staticText": [],
+					"textField": [],
+					"image": [],
+					"lines": [],
+					"table": [],
+					"crosstab" : [],
+					"chart" : [],
+					"subReport" : [],
+					"customVisualization" : []
+				}
+			],
+			"groups" : [
+				{	"groupHeader": 
+						{
+							"bandHeight": 0,
+							"isImageAttached": "false",
+							"textField": [],
+							"image": [],
+							"lines": [],
+							"table": [],
+							"crosstab" : [],
+							"chart" : [],
+							"subReport" : [],
+							"customVisualization" : []
+						},
+			"groupFooter": 
+						{
+							"bandHeight": 0,
+							"isImageAttached": "false",
+							"textField": [],
+							"image": [],
+							"lines": [],
+							"table": [],
+							"crosstab" : [],
+							"chart" : [],
+							"subReport" : [],
+							"customVisualization" : []
+					}
+			
+
+				}
+			],
+			"pageFooter": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"summary": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"noData": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"lastPageFooter": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"parameters": [],
+			"fields": [],
+			"variables": [],
+			"columnHeader": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			},
+			"columnFooter": {
+				"bandHeight": 0,
+				"isImageAttached": "false",
+				"staticText": [],
+				"textField": [],
+				"image": [],
+				"lines": [],
+				"table": [],
+				"crosstab" : [],
+				"chart" : [],
+				"subReport" : [],
+				"customVisualization" : []
+			}
+		}
+	},
+	"components": {
+		"page": {
+			"summaryWithPageHeaderAndFooter": "summaryWithPageHeaderAndFooter",
+			"titleNewPage": "titleNewPage",
+			"floatColumnFooter": "floatColumnFooter",
+			"summaryNewPage": "summaryNewPage",
+			"ignorePagination": "ignorePagination",
+			"reportName": "reportName",
+			"formatFactoryClass": "formatFactoryClass",
+			"columnCount": "columnCount",
+			"columnSpacing": "columnSpacing",
+			"columnWidth": "columnWidth",
+			"printOrder": "printOrder",
+			"designerStyle": "designerStyles",
+			"variables": "variables",
+			"whenNoDataType": "whenNoDataType",
+			"keepTogether" : "keepTogether",
+			"startNewColumn" : "startNewColumn",
+			"startNewPage":"startNewPage",
+			"resetPageNumber" : "resetPageNumber",
+			"reprintHeaderOnEachPage" : "reprintHeaderOnEachPage"
+		},
+		"basicLine": {
+			"X": 0,
+			"Y": 0,
+			"fill": "true",
+			"lineWidth": 0,
+			"lineHeight": 0,
+			"mode": "mode",
+			"penLineWidth": "penLineWidth",
+			"lineStyle": "lineStyle",
+			"lineBackcolor": "lineBackcolor",
+			"lineForecolor": "lineForecolor",
+			"linePositionType": "linePositionType",
+			"lineDirection": "lineDirection",
+			"stretchType": "stretchType",
+			"rotationType": "rotationType",
+			"printRepeatedValues": "printRepeatedValues",
+			"removeLineWhenBlank": "removeLineWhenBlank",
+			"printInFirstWholeBand": "printInFirstWholeBand",
+			"printWhenDetailOverflows": "printWhenDetailOverflows",
+			"evaluationTime": "evaluationTime",
+			"styleNameReference": "styleNameReference"
+			
+		},
+		"textField": {
+			"X": 0,
+			"Y": 0,
+			"textWidth": 0,
+			"textHeight": 0,
+			"textFieldExpression": "textFieldExpression",
+			"fontName": "fontName",
+			"mode": "mode",
+			"positionType": "positionType",
+			"textFontSize": "textFontSize",
+			"bold": "bold",
+			"horizontalTextAlign": "horizontalTextAlign",
+			"verticalTextAlign": "verticalTextAlign",
+			"textBackcolor": "textBackcolor",
+			"textForecolor": "textForecolor",
+			"italic": "italic",
+			"underline": "underline",
+			"strikeThrough": "strikeThrough",
+			"removeLineWhenBlank": "removeLineWhenBlank",
+			"printRepeatedValues": "printRepeatedValues",
+			"markUp": "markUp",
+			"stretchType": "stretchType",
+			"rotationType": "rotationType",
+			"printInFirstWholeBand": "printInFirstWholeBand",
+			"printWhenDetailOverflows": "printWhenDetailOverflows",
+			"configFontName": "configFontName",
+			"pattern": "pattern",
+			"border": "border",
+			"key": "key",
+			"styleNameReference": "styleNameReference",
+			"printWhenExpression": "printWhenExpression",
+			"propertyExpression": "propertyExpression",
+			"stretchWithOverFlow": "stretchWithOverFlow",
+			"blankWhenNull": "blankWhenNull",
+			"paragraph": "paragraph",
+			"evaluationTime": "evaluationTime",
+			"evaluationGroupName":"evaluationGroupName",
+			"patternExpression":"patternExpression"
+		},
+		"field": {
+			"X": 0,
+			"Y": 0,
+			"textWidth": 0,
+			"textHeight": 0,
+			"pattern": "pattern",
+			"textFieldExpression": "textFieldExpression",
+			"fontName": "fontName",
+			"mode": "mode",
+			"positionType": "positionType",
+			"textFontSize": "textFontSize",
+			"bold": "bold",
+			"horizontalTextAlign": "horizontalTextAlign",
+			"verticalTextAlign": "verticalTextAlign",
+			"textBackcolor": "textBackcolor",
+			"textForecolor": "textForecolor",
+			"italic": "italic",
+			"underline": "underline",
+			"strikeThrough": "strikeThrough",
+			"removeLineWhenBlank": "removeLineWhenBlank",
+			"printRepeatedValues": "printRepeatedValues",
+			"markUp": "markUp",
+			"stretchType": "stretchType",
+			"rotationType": "rotationType",
+			"printInFirstWholeBand": "printInFirstWholeBand",
+			"printWhenDetailOverflows": "printWhenDetailOverflows",
+			"border": "border",
+			"key": "key",
+			"styleNameReference": "styleNameReference",
+			"printWhenExpression": "printWhenExpression",
+			"propertyExpression": "propertyExpression",
+			"stretchWithOverFlow": "stretchWithOverFlow",
+			"blankWhenNull": "blankWhenNull",
+			"patternExpression": "patternExpression",
+			"paragraph": "paragraph",
+			"evaluationTime": "evaluationTime",
+			"evaluationGroupName":"evaluationGroupName"
+		},
+		"image": {
+			"dir": "dir",
+			"file": "file",
+			"X": 0,
+			"Y": 0,
+			"imageWidth": 0,
+			"imageHeight": 0,
+			"styleNameReference": "styleNameReference",
+			"mode": "mode",
+			"imageBackcolor": "imageBackcolor",
+			"imageForecolor": "imageForecolor",
+			"printRepeatedValues": "printRepeatedValues",
+			"removeLineWhenBlank": "removeLineWhenBlank",
+			"key": "key",
+			"evaluationTime": "evaluationTime",
+			"evaluationGroupName":"evaluationGroupName",
+			"isLazy": "isLazy",
+			"isUsingCache": "isUsingCache",
+			"fill": "fill",
+			"scaleImage": "scaleImage",
+			"onErrorType": "onErrorType",
+			"horizontalImageAlign": "horizontalImageAlign",
+			"verticalImageAlign": "verticalImageAlign",
+			"border": "border",
+			"positionType": "positionType",
+			"stretchType": "stretchType",
+			"printInFirstWholeBand": "printInFirstWholeBand",
+			"printWhenExpression": "printWhenExpression",
+			"hyperlinkTooltipExpression": "hyperlinkTooltipExpression",
+			"printWhenDetailOverflows": "printWhenDetailOverflows",
+			"hyperlinkParameterName": "hyperlinkParameterName",
+			"hyperlinkParameterExpression": "hyperlinkParameterExpression"
+		},
+		"table": {
+			"dataSetRun": "dataSetRun",
+			"positionType": "positionType",
+			"printWhenDetailOverflows": "printWhenDetailOverflows",
+			"printInFirstWholeBand": "printInFirstWholeBand",
+			"dataSourceExpression": "dataSourceExpression",
+			"componentElementProperties": "componentElementProperties",
+			"columns": "columns"
+		},
+		"crosstab": {
+			"columnGroups" : "columnGroups",
+			"rowGroups" : "rowGroups",
+			"measures" : "measures",
+			"crosstabCells" : "crosstabCells",
+			"datasetRun": "datasetRun",
+			"componentElementProperties" : "componentElementProperties"
+		},
+		"chart" : {
+			"componentElementProperties" : "componentElementProperties",
+			"chart" : "chart",
+			"chartPlot" : "chartPlot",
+			"itemLabel" : "itemLabel",
+			"dataSet" : "dataSet"
+		},
+		"subReport" : {
+			"runToBottom" : "runToBottom",
+			"usingCache" : "usingCache",
+			"datasourceExpression" : "datasourceExpression",
+			"connectionExpression" : "connectionExpression",
+			"overFlowType" : "overFlowType",
+			"componentElementProperties" : "componentElementProperties",
+			"subReportExpression" : "subReportExpression",
+			"parameters" : "parameters"
+		},
+		"customVisualization":  {
+			"componentElementProperties": "componentElementProperties",
+			"type" : "type",
+			"customScript" : "customScript",	
+			"itemData" : "itemData",
+			"itemProperties" : "itemProperties"
+		}
+	}
+}

@@ -1,0 +1,1221 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<functions dialect="org.hibernate.dialect.MySQLDialect" type="sql">
+<!-- Return type for each function node can be the following 
+
+	"numeric", "text", "date", "time","dateTime","boolean","other" 
+	
+	-->
+<!-- numeric functions -->
+
+<!-- numeric standard function start -->
+<!-- standardize numeric start -->
+	 <function group="numeric" returns="numeric">
+        <key>sql.numeric.abs</key>
+        <value>ABS</value>
+        <signature><![CDATA[abs(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It returns the absolute value of a number. Example: abs(-24)Result: 24</description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.acos</key>
+        <value>ACOS</value>
+        <signature><![CDATA[acos(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>This function calculates the arc cosine of a given number. For example, when you use acos(0.25), the result is approximately 1.318116071652818.</description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.asin</key>
+        <value>ASIN</value>
+        <signature><![CDATA[asin(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>This function computes the arc sine of a specified number. For example, if you input asin(0.25), the result will be approximately 0.25268025514207865.</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.atan</key>
+        <value>ATAN</value>
+        <signature><![CDATA[atan(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>This function calculates the arc tangent of a given number. For example, if you input atan(0.25), the result will be approximately 0.24497866312686414.</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.atan2</key>
+        <value>ATAN2</value>
+        <signature><![CDATA[atan2(${number1},${number2})]]></signature>
+        <parameters>
+            <parameter column="true" name="number1"/>
+			<parameter column="true" name="number2"/>
+        </parameters>
+        <description>This function computes the arc tangent of a given pair of numbers. For example, when you use atan2(0.50, 1), the result is approximately 0.4636476090008061.</description>
+    </function>
+	
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.round</key>
+        <value>ROUND</value>
+        <signature><![CDATA[round(${number}, ${decimalpoint})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+            <parameter defaultValue="1" name="decimalpoint"/>
+        </parameters>
+        <description>Displays a value rounded to a certain number of decimal places. Example: round(34.4158,2) result: 34.42</description>
+    </function>
+    <!--<function group="numeric" returns="numeric">
+        <key>sql.numeric.truncate</key>
+        <value>TRUNCATE</value>
+        <signature><![CDATA[bround(${number},${digit})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="digit"/>
+        </parameters>
+        <description>Displays a number truncated to a certain number of decimal places. Example: bround(1.289,2) result: 1.28</description>
+    </function>-->
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.ceiling</key>
+        <value>CEILING</value>
+        <signature><![CDATA[ceiling(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns number rounded up to the nearest integer. Example: ceiling(0.25) result: 1 </description>
+    </function>
+
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.cos</key>
+        <value>COS</value>
+        <signature><![CDATA[cos(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the cosine of number. Example: cos(0.25) result: 0.9689124217106447 </description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.cot</key>
+        <value>COT</value>
+        <signature><![CDATA[1/tan(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the cotangent of an angle. Specify the angle in radians. Example: 1/tan(0.25) result: 3.9163173646459399 </description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.degrees</key>
+        <value>DEGREES</value>
+        <signature><![CDATA[degrees(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Converts angle number in radians to degrees. Example: degrees(0.25) result: 14.32394487827058</description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.div</key>
+        <value>DIV</value>
+        <signature><![CDATA[(${dividend} / NULLIF(${divisor}, 0))]]></signature>
+        <parameters>
+            <parameter column="true" name="divisor"/>
+            <parameter column="true" name="dividend"/>
+        </parameters>
+        <description>Returns the integer part of a division operation. Example: (10/5) result: 2</description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.exp</key>
+        <value>EXP</value>
+        <signature><![CDATA[exp(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns Euler’s number raised to the power of the given number. Example: exp(2) result: 7.389</description>
+    </function>
+	
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.floor</key>
+        <value>FLOOR</value>
+        <signature><![CDATA[floor(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns number rounded down to the nearest number. Example: floor(3.1415) result: 3 </description>
+    </function>
+	
+		<function group="numeric" returns="numeric">
+        <key>sql.numeric.ln</key>
+        <value>LN</value>
+        <signature><![CDATA[ln(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the natural logarithm of number. Example: ln(2) result: 0.6931471805599453 </description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.log</key>
+        <value>LOG</value>
+        <signature><![CDATA[log10(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the base 10 logarithm of number. Example: log10(2) result: 0.3010299956639812 </description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.max</key>
+        <value>MAX</value>
+        <signature><![CDATA[greatest(${number1},${number2})]]></signature>
+        <parameters>
+            <parameter column="true" name="number1"/>
+            <parameter column="true" name="number2"/>
+        </parameters>
+        <description>Returns the largest of the provided values. Example: greatest(4,13) result: 13</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.min</key>
+        <value>MIN</value>
+        <signature><![CDATA[least(${number1},${number2})]]></signature>
+        <parameters>
+            <parameter column="true" name="number1"/>
+            <parameter column="true" name="number2"/>
+        </parameters>
+        <description>Returns the smallest of the provided values. Example: least(13,4) result: 4</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.pi</key>
+        <value>PI</value>
+        <signature><![CDATA[pi()]]></signature>
+        <parameters/>
+        <description>Returns the constant Pi. Example: pi() result: 3.14159 </description>
+    </function>
+
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.sign</key>
+        <value>SIGN</value>
+        <signature><![CDATA[sign(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the signum function of number, that is:
+		0 if the argument is 0,
+		1 if the argument is greater than 0,
+		-1 if the argument is less than 0. Example: sign(0.5) result: 1.</description>
+    </function>
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.sin</key>
+        <value>SIN</value>
+        <signature><![CDATA[sin(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the sine of number. Example: sin(0.25) result: 0.24740395925452294</description>
+    </function>
+	
+   
+
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.power</key>
+        <value>POWER</value>
+        <signature><![CDATA[pow(${number},${exponent})]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="0" name="number"/>
+            <parameter defaultValue="10" name="exponent"/>
+        </parameters>
+        <description>Displays the value of a number raised to the power of another number. Example: pow(4,2) result: 16</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.radians</key>
+        <value>RADIANS</value>
+        <signature><![CDATA[radians(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Converts the value of a number from degrees to radians. Example : radians(4) result : 0.06981317007977318</description>
+    </function>
+
+    <function group="numeric" returns="numeric">
+        <key>sql.numeric.sqrt</key>
+        <value>SQRT</value>
+        <signature><![CDATA[sqrt(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Displays the square root of a non-negative number. Example: sqrt(5) result: 2.23606797749979</description>
+    </function>
+
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.square</key>
+        <value>SQUARE</value>
+        <signature><![CDATA[(${number} * ${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>It displays the square of a given number. Example: square(4) result: 16</description>
+    </function>
+	
+	<function group="numeric" returns="numeric">
+        <key>sql.numeric.tan</key>
+        <value>TAN</value>
+        <signature><![CDATA[tan(${number})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+        </parameters>
+        <description>Returns the tangent of number. Example: tan(0.25) result: 0.25534192122103627 </description>
+    </function>
+	
+   
+
+<!-- standardize numeric end -->
+
+<!-- numeric standard function end -->
+<!-- standardize text start -->
+ <function group="text" returns="numeric">
+        <key>sql.text.ascii</key>
+        <value>ASCII</value>
+        <signature><![CDATA[ascii(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Returns the Unicode of the first character of string. Example : ASCII('A') result: 65</description>
+    </function>
+	<function group="text" returns="text">
+        <key>sql.text.char</key>
+        <value>CHAR</value>
+        <signature><![CDATA[decode(unhex(hex(${number})), 'US-ASCII')]]></signature>
+        <parameters>
+            <parameter column="true" name="number" defaultValue="65"/>
+        </parameters>
+        <description>Returns the character encoded by the ASCII code. Example: decode(unhex(hex(65)), 'US-ASCII') result: A</description>
+    </function>
+    <function group="text" returns="numeric">
+        <key>sql.text.length</key>
+        <value>LENGTH</value>
+        <signature><![CDATA[length(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Returns the number of characters in string. Example : LENGTH('Bengaluru') result:9  </description>
+    </function>
+	<function group="text" returns="boolean">
+        <key>sql.text.contains</key>
+        <value>CONTAINS</value>
+        <signature><![CDATA[case when instr(${string},${substring})==0 then false else true end]]></signature>
+        <parameters>
+            <parameter column="true" name="substring"/>
+			<parameter column="true" name="string"/>
+        </parameters>
+        <description> Returns true if the given string contains the specified substring. Example : case when instr('world','d')==0 then false else true end. result:true</description>
+    </function>
+	<function group="text" returns="numeric">
+        <key>sql.text.find</key>
+        <value>FIND</value>
+        <signature><![CDATA[instr(${string}, ${substring})]]></signature>
+        <parameters>
+			<parameter column="true" name="string"/>
+			<parameter column="true" name="substring"/>
+        </parameters>
+        <description>Returns the starting position of the first instance of substring in string. Positions start with 1. If not found, 0 is returned. Example instr('world','d') result : 5</description>
+    </function>
+    <function group="text" returns="text">
+        <key>sql.text.lower</key>
+        <value>LOWER</value>
+        <signature><![CDATA[lower(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Converts all characters in the specified string to lowercase. Example:  LOWER('BENGALURU') result: bengaluru</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>sql.text.upper</key>
+        <value>UPPER</value>
+        <signature><![CDATA[upper(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Converts all characters in a string to uppercase. Example: UPPER('bengaluru') result: BENGALURU.</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>sql.text.trim</key>
+        <value>TRIM</value>
+        <signature><![CDATA[trim(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>It removes leading and trailing whitespace from string. Example: TRIM('   Bengaluru   ') result:Bengaluru
+        </description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>sql.text.ltrim</key>
+        <value>LTRIM</value>
+        <signature><![CDATA[ltrim(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Removes leading whitespace from string. Example: LTRIM('     Bengaluru') result: Bengaluru</description>
+    </function>
+	
+	 <function group="text" returns="text">
+        <key>sql.text.rtrim</key>
+        <value>RTRIM</value>
+        <signature><![CDATA[rtrim(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Removes trailing whitespace from string. Example: RTRIM('Bengaluru   ') result: Bengaluru.
+        </description>
+    </function>
+	
+	<function group="text" returns="text">
+        <key>sql.text.space</key>
+        <value>SPACE</value>
+        <signature><![CDATA[rpad(' ',${noOfSpace},' ')]]></signature>
+        <parameters>
+            <parameter column="true" defaultValue="1" name="noOfSpace"/>
+        </parameters>
+        <description>Returns a string consisting of space characters.Ex:rpad(' ',6,' ') -"      "</description>
+    </function>
+	
+	<function group="text" returns="text">
+        <key>sql.text.mid</key>
+        <value>MID</value>
+        <signature><![CDATA[substr(${string},${position},${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+			<parameter column="true" name="position"/>
+			<parameter column="true" name="length"/>
+        </parameters>
+        <description>Returns the string starting from specified position. If position is more than string or length is less than 1 it will return empty string. Example: substr('Bengaluru', 2, 5) result: engal</description>
+    </function>
+	<function group="text" returns="text">
+        <key>sql.text.split</key>
+        <value>SPLIT</value>
+        <signature><![CDATA[(SPLIT(${string},${delimiter})[${index}])]]></signature>
+        <parameters>
+			<parameter column="true" name="string"/>
+			<parameter column="true" name="delimiter"/>
+			<parameter column="true" name="index"/>
+        </parameters>
+        <description>Splits string on delimiter and returns the field index. Field indexes start with 0. If the index is larger than the number of fields, then empty will return Example : (SPLIT('SingaMPoreMBengaMLuru', 'M')[1]) result : 'Pore'. NOTE: Special characters should be entered using two backward slashes in delimiter field. Example: (SPLIT('Singa$Pore$Benga$Luru', '\\$')[1]) OR (SPLIT('Singa*Pore*Benga*Luru', '\\*')[1]) Results:'Pore'</description>
+    </function>
+	<function group="text" returns="text">
+        <key>sql.text.replace</key>
+        <value>REPLACE</value>
+        <signature><![CDATA[regexp_replace(${string},${substring},${replacestring})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+			<parameter column="true" name="substring"/>
+			<parameter column="true" name="replacestring"/>
+        </parameters>
+        <description>String search for substring and replace it with replacestring. If substring is not found, the string is not changed. Example: regexp_replace('bengaluru','b','Z') result: zengaluru</description>
+    </function>
+     <function group="text" returns="text">
+        <key>sql.text.right</key>
+        <value>RIGHT</value>
+        <signature><![CDATA[substr(${string},(length(${string})+1)-${length},length(${string}))]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+			<parameter column="true" name="length" defaultValue="1"/>
+        </parameters>
+        <description>Returns the rightmost character from the string provided as length. Example: substr('bengaluru',(length('bengaluru')+1)-4,length('bengaluru')) result: luru</description>
+    </function>
+
+    <function group="text" returns="text">
+        <key>sql.text.lpad</key>
+        <value>LPAD</value>
+        <signature><![CDATA[lpad(${string},${length},${padString})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+            <parameter defaultValue="0" name="length"/>
+            <parameter column="true" name="padString"/>
+        </parameters>
+        <description>Displays a string that is left padded with a specified string to a certain length. If length is less than string, return value is truncated to length characters. Example: LPAD('Wellesley', 14,'Hills') result:HillsWellesley. </description>
+    </function>
+	
+	<function group="text" returns="text">
+        <key>sql.text.left</key>
+        <value>LEFT</value>
+        <signature><![CDATA[substr(${string},1, ${length})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+			<parameter column="true" name="length" defaultValue="1"/>	
+        </parameters>
+        <description>Returns the left most (length) character from the string . Example: substr('bengaluru',1, 4) result: beng</description>
+    </function>
+	
+	
+	<function group="text" returns="boolean">
+        <key>sql.text.endswith</key>
+        <value>ENDSWITH</value>
+        <signature><![CDATA[case when(${string} like concat('%',${substring})) then true else false end]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+            <parameter column="true" name="substring"/>
+        </parameters>
+        <description>This expression evaluates to true if the given string ends with the specified substring. For example, when you use the expression provided: case when('postgres' like concat('%','res')) then true else false end, it results in true because the string 'postgres' ends with the substring 'res'..</description>
+    </function>
+	
+	<function group="text" returns="boolean">
+        <key>sql.text.startswith</key>
+        <value>STARTSWITH</value>
+        <signature><![CDATA[case when(${string} like concat(${substring},'%')) then true else false end]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+            <parameter column="true" name="substring"/>
+        </parameters>
+        <description>This expression evaluates to true if the given string starts with the specified substring. For instance, when you use the expression: case when('bengaluru' like concat('ben','%')) then true else false end, it yields true because the string 'bengaluru' starts with the substring 'ben'.</description>
+    </function>
+
+	<function group="text" returns="text">
+        <key>sql.text.rpad</key>
+        <value>RPAD</value>
+        <signature><![CDATA[rpad(${string},${length},${padString})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+            <parameter defaultValue="0" name="length"/>
+            <parameter column="true" name="padString"/>
+        </parameters>
+        <description>Displays a string that is right padded with a specified string to a certain length. If length is less than string, return value is truncated to length characters.Length must not be negative and padString must not be non-empty. Example:Rpad('Wellesley', 15, 'Hills') result : Wellesley Hills . </description>
+    </function>
+	<function group="text" returns="text">
+        <key>sql.text.reverse</key>
+        <value>REVERSE</value>
+        <signature><![CDATA[reverse(${string})]]></signature>
+        <parameters>
+            <parameter column="true" name="string"/>
+        </parameters>
+        <description>Returns string with the characters in reverse order. Example: REVERSE('Bengaluru')  result : urulagneB </description>
+    </function>
+	
+    <function group="text" returns="text">
+        <key>sql.text.concat</key>
+        <value>CONCAT</value>
+        <signature><![CDATA[concat(${string1},${string2})]]></signature>
+        <parameters>
+            <parameter column="true" name="string1"/>
+            <parameter column="true" name="string2"/>
+        </parameters>
+        <description>Returns the concatenation of string1, string2. Example: CONCAT('Beng','aluru') result : Bengaluru</description>
+    </function>
+
+	
+
+<!-- standardize text end -->
+
+<function group="spark specific" returns="text">
+        <key>sql.numeric.format</key>
+        <value>FORMAT_NUMBER</value>
+        <signature><![CDATA[FORMAT_NUMBER(${number},${format})]]></signature>
+        <parameters>
+            <parameter column="true" name="number"/>
+            <parameter column="true" name="format"/>
+        </parameters>
+        <description>Formats the number X to a format like '9,999,99', rounded to D decimal places, and returns the result as a string. If D is 0, the result has no decimal point or fractional part.The format may include quotes. Please note that when using spark-hive the quote may not be used.
+Ex for HIVE:	FORMAT_NUMBER(20000,'#,###') results:20,000	
+Ex for SPARK:   FORMAT_NUMBER(20000,2) results:20,000.00</description>
+    </function>
+
+	
+<!-- text functions -->
+
+	<function group="spark specific" returns="text">
+        <key>sql.text.concatWithCustomSep</key>
+        <value>CONCAT_WS</value>
+        <signature><![CDATA[concat_ws(${sep},${text1},${text2})]]></signature>
+        <parameters>
+            <parameter column="true" name="text1"/>
+            <parameter column="true" name="text2"/>
+			<parameter column="true" name="sep"/>
+        </parameters>
+        <description>Like concat() function, but with custom separator SEP.</description>
+    </function>
+
+
+<function group="spark specific" returns="text">
+        <key>sql.text.initcap</key>
+        <value>INITCAP</value>
+        <signature><![CDATA[INITCAP(${column})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+        </parameters>
+        <description>This function returns the string by converting each word 1st char into uppercase. Example: ('apache drill release 1.0')  returns Apache Drill Release 1.0. NOTE:column's value should be in single quotes if you are typing the value. </description>
+    </function>
+
+	<!-- DateTime Functions-->
+	
+	 <function group="date" returns="date">
+        <key>sql.date.dateadd</key>
+        <value>DATEADD</value>
+        <signature><![CDATA[(${date} + Interval ${value} ${unit})]]></signature>
+        <parameters>
+		       <parameter column="true" name="date" defaultValue="date '2014-03-08'"/>
+               <parameter column="true" name="value" defaultValue="'2'"/>
+			   <parameter column="true" name="unit" defaultValue="year"/>
+        </parameters>
+        <description>Returns the specified date with the specified number of interval added to the specified unit of that date.Example:(date '2014-03-08' + Interval '2' year) result:2016-03-08 00:00:00.000000 supported units:day, month , year.</description>
+    </function>
+	 <function group="date" returns="numeric">
+        <key>sql.date.datediff</key>
+        <value>DATEDIFF</value>
+        <signature><![CDATA[(cast(date_format(${date1},${unit})as integer)- cast(date_format(${date2},${unit})as integer))]]></signature>
+        <parameters>
+            <parameter column="true" name="unit" defaultValue="'M'"/>
+            <parameter column="true" name="date1" defaultValue="DATE '2014-03-08'"/>
+			<parameter column="true" name="date2" defaultValue="DATE '2019-03-08'"/>
+        </parameters>
+        <description>Returns the difference between date1 and date2 expressed in terms of unit. Example:(cast(date_format(date '2016-10-20','M')as integer)- cast(date_format(date '2016-05-20','M')as integer)) result: 5 .Supported units: yyyy or y:	This unit return year from date value,
+MM or M:	This unit returns month from date field,
+dd or d:	This unit returns days from date field.
+</description>
+    </function>
+ <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.datetimediff</key>
+        <value>DATETIMEDIFF</value>
+        <signature><![CDATA[(cast(date_format(${datetime1},${unit})as integer)- cast(date_format(${datetime2},${unit})as integer))]]></signature>
+        <parameters>
+            <parameter column="true" name="unit" defaultValue="'M'"/>
+            <parameter column="true" name="datetime1" defaultValue="timestamp '2019-03-08 10:12:12'"/>
+			<parameter column="true" name="datetime2" defaultValue="timestamp '2011-03-08 11:22:33'"/>
+        </parameters>
+        <description>Returns the difference between dateTime and dateTime2 expressed in terms of unit. Example:(cast(date_format(timestamp '2016-10-20 05:06:07','M')as integer)- cast(date_format(timestamp '2016-05-20 05:06:07','M')as integer))result: 5 .Supported units: yyyy or y:	This unit return year from date value
+MM or M:	This unit returns month from date field,
+dd or d:	This unit returns days from date field,
+hh or h:	This unit returns hours from date field,
+HH or H:	This unit returns hours(24 hours)  from date field,
+mm or m:	Returns minutes from date field,
+ss or s:	This unit returns second from date field,
+S:          This unit returns fraction of seconds(milliseconds) from the date field.</description>
+    </function>
+<function group="date" returns="numeric">
+        <key>sql.date.datepart</key>
+        <value>DATEPART</value>
+        <signature><![CDATA[cast(date_format(${date},${unit})as integer)]]></signature>
+        <parameters>
+			<parameter column="true" name="date" defaultValue="date '2016-10-20'"/>
+			<parameter name="unit" defaultValue="'M'"/>
+        </parameters>
+        <description>Retrieve fields such as days or hours from date/string. Supported units include: String Format or Units	Description
+yyyy or y:	This unit return year from date value,
+MM or M:	This unit returns month from date field,
+dd or d:	This unit returns days from date field.
+
+Examples:
+cast(date_format(date '2016-10-20','M')as integer) results in 10.
+</description>
+    </function>
+<function group="date" returns="date">
+        <key>sql.date.datetrunc</key>
+        <value>DATETRUNC</value>
+        <signature><![CDATA[trunc(${date},${unit})]]></signature>
+        <parameters>
+            <parameter column="true" name="date" defaultValue="date '2015-03-17'"/>
+			<parameter column="true" name="unit" defaultValue="'MM'"/>
+        </parameters>
+        <description>Returns date truncated to the unit specified by the format. Supported formats: MONTH/MON/MM, YEAR/YYYY/YY. Example: trunc(date '2015-03-17', 'MM') = 2015-03-01.</description>
+    </function>
+<function group="date" returns="date">
+        <key>sql.date.today</key>
+        <value>TODAY</value>
+        <signature><![CDATA[(current_date)]]></signature>
+        <parameters/>
+        <description>Displays Current date.</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.datetimepart</key>
+        <value>DATETIMEPART</value>
+        <signature><![CDATA[cast(date_format(${datetime},${unit})as integer)]]></signature>
+        <parameters>
+			<parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 12:02:34'"/>
+			<parameter name="unit" defaultValue="'M'"/>
+        </parameters>
+        <description>Retrieve fields such as days or hours from date/timestamp/string. Supported units include: String Format or Units	Description
+yyyy or y:	This unit return year from date value,
+MM or M:	This unit returns month from date field,
+dd or d:	This unit returns days from date field,
+hh or h:	This unit returns hours from date field,
+HH or H:	This unit returns hours(24 hours)  from date field,
+mm or m:	Returns minutes from date field,
+ss or s:	This unit returns second from date field,
+S:          This unit returns fraction of seconds(milliseconds) from the date field.
+
+Examples:
+
+1.cast(date_format(timestamp '2014-03-08 12:02:34','m')as integer) results in 2.
+
+2.cast(date_format(timestamp '2014-03-08 12:02:34','h')as integer) results in 12.</description>
+    </function>
+ <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.day</key>
+        <value>DAY</value>
+        <signature><![CDATA[day(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns day of the month for date/datetime.Example: day(TIMESTAMP '2014-03-08 09:00:00') result: 8</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.dayofweek</key>
+        <value>DAYOFWEEK</value>
+        <signature><![CDATA[cast(date_format(${datetime}, 'u')as integer)]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2007-02-03 09:00:00'"/>
+        </parameters>
+        <description>Returns the ISO day of the week for date/datetime. The value ranges from 1 (Monday) to 7 (Sunday). Example:  cast(date_format(timestamp '2014-03-09 12:02:34', 'u')as integer) result: 7</description>
+    </function>
+<function group="dateTime" returns="text">
+        <key>sql.dateTime.dayname</key>
+        <value>DAYNAME</value>
+        <signature><![CDATA[date_format(${datetime}, "EEEEEE")]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2007-02-03 09:00:00'"/>
+        </parameters>
+        <description>Returns the dayname of the given date/timestamp. Example:date_format(timestamp "2019-10-03 10:00:00.123", "EEEEEE") result: 'Thursday'</description>
+    </function>
+<function group="dateTime" returns="text">
+        <key>sql.dateTime.format</key>
+        <value>FORMAT</value>
+        <signature><![CDATA[date_format(${datetime},${format})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+			<parameter column="true" name="format" defaultValue="'y-MM-dd'"/>
+        </parameters>
+        <description>Return a TIMESTAMP format as a string.Example:  date_format(current_date(), 'y-MM-dd') result:2019-7-31,
+ date_format(current_date(), "y-MM-dd'T'hh:mm:ss.SSS'Z'")result:2019-07-31T12:00:00.000Z</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.hour</key>
+        <value>HOUR</value>
+        <signature><![CDATA[hour(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="'2014-03-08 12:20:19'"/>
+        </parameters>
+        <description>Returns the hour for timestamp. The value ranges from 0 to 23. Example: hour('2014-03-08 12:20:19') result: 12 </description>
+    </function>
+ <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.millisecond</key>
+        <value>MILLISECOND</value>
+        <signature><![CDATA[cast(date_format(${datetime}, 'SSS') as integer)]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns the millisecond for  second of the time. Example: cast(date_format('2019-07-20 09:10:20.234', 'SSS') result: 234</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.minute</key>
+        <value>MINUTE</value>
+        <signature><![CDATA[minute(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns MINUTES from datetime.Example: minute(timestamp '2019-07-20 09:10:20') result: 10</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.month</key>
+        <value>MONTH</value>
+        <signature><![CDATA[month(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns MONTH from date/datetime.Example: month(TIMESTAMP '2014-03-08 09:00:00') result: 3</description>
+    </function>
+  <function group="dateTime" returns="text">
+        <key>sql.dateTime.monthname</key>
+        <value>MONTHNAME</value>
+        <signature><![CDATA[date_format(${datetime}, 'MMMM')]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns MONTHNAME from date/datetime.Example: date_format(TIMESTAMP '2014-03-08 09:00:00', 'MMMM') result: MARCH</description>
+    </function>
+ <function group="dateTime" returns="dateTime">
+        <key>sql.dateTime.now</key>
+        <value>NOW</value>
+        <signature><![CDATA[(CURRENT_TIMESTAMP)]]></signature>
+        <parameters/>
+        <description>Displays Current date and time. </description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.quarter</key>
+        <value>QUARTER</value>
+        <signature><![CDATA[quarter(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 12:20:19'"/>
+        </parameters>
+        <description>Returns the quarter of the year for date/dateTime. Example: quarter(timestamp '2014-03-08 09:00:00')result:1</description>
+    </function>
+<function group="dateTime" returns="numeric">
+        <key>sql.dateTime.second</key>
+        <value>SECOND</value>
+        <signature><![CDATA[second(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 12:20:19'"/>
+        </parameters>
+        <description>Returns the quarter of the year for date/dateTime. Example: second(timestamp '2014-03-08 09:10:00')result:10</description>
+    </function>
+ <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.week</key>
+        <value>WEEK</value>
+        <signature><![CDATA[weekofyear(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 12:20:19'"/>
+        </parameters>
+        <description>Returns the ISO week of the year for date/dateTime. The value ranges from 1 to 53 or 1 to 52. Example: weekofyear(timestamp '2014-03-08 09:00:00') result: 10</description>
+    </function>
+ <function group="dateTime" returns="numeric">
+        <key>sql.dateTime.year</key>
+        <value>YEAR</value>
+        <signature><![CDATA[year(${datetime})]]></signature>
+        <parameters>
+            <parameter column="true" name="datetime" defaultValue="timestamp '2014-03-08 09:00:00'"/>
+        </parameters>
+        <description>Returns YEAR from date/datetime.Example: year(TIMESTAMP '2014-03-08 09:00:00') result: 2014</description>
+    </function>
+		
+	<function group="spark specific" returns="date">
+        <key>sql.date.monthsAdd</key>
+        <value>ADD_MONTHS</value>
+        <signature><![CDATA[ADD_MONTHS(${column},${noOfMonths})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+			<parameter  name="noOfMonths"/>
+			</parameters>
+        <description>Returns the date that is num_months after start_date (as of Hive 1.1.0). start_date is a string, date or timestamp. num_months is an integer. If start_date is the last day of the month or if the resulting month has fewer days than the day component of start_date, then the result is the last day of the resulting month. Otherwise, the result has the same day component as start_date. The default output format is 'yyyy-MM-dd'.
+
+Before Hive 4.0.0, the time part of the date is ignored.
+
+As of Hive 4.0.0, add_months supports an optional argument output_date_format, which accepts a String that represents a valid date format for the output. This allows to retain the time format in the output.
+
+For example :
+
+add_months('2009-08-31', 1) returns '2009-09-30'.
+add_months('2017-12-31 14:15:16', 2, 'YYYY-MM-dd HH:mm:ss') returns '2018-02-28 14:15:16'.</description>
+    </function>
+	
+	<function group="spark specific" returns="date">
+        <key>sql.date.dateSub</key>
+        <value>DATE_SUB</value>
+        <signature><![CDATA[DATE_SUB(${column}, ${noOfDays})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+			<parameter  name="noOfDays"/>
+        </parameters>
+        <description>Subtracts a number of days to startdate: date_sub('2008-12-31', 1) = '2008-12-30'.
+Prior to Hive 2.1.0 (HIVE-13248) the return type was a String because no Date type existed when the method was created.</description>
+    </function>
+
+	<function group="spark specific" returns="time">
+        <key>sql.dateTime.extractTime</key>
+        <value>EXTRACT_TIME</value>
+        <signature><![CDATA[(case when REGEXP_REPLACE(SUBSTR(CAST(${dateTimeColumn} AS TIMESTAMP),${timeStartIndex},${timeEndIndex}),'[\n\r]', '') <>'' then REGEXP_REPLACE(SUBSTR(CAST(${dateTimeColumn}AS TIMESTAMP),${timeStartIndex},${timeEndIndex}),'[\n\r]', '') end )]]></signature>
+        <parameters>
+            <parameter name="dateTimeColumn" column="true" />
+            <parameter name="timeStartIndex" column="false" defaultValue="12"/>
+            <parameter name="timeEndIndex" column="false" defaultValue="11"/>	
+        </parameters>
+        <description>This function extracts time value from the given dataTime value.Ex:('2018-08-20 07:09:34') results:'07:09:34' NOTE:dateTimeColumn values should be in single quote if the you are typing the value. </description>
+    </function>
+	<function group="spark specific" returns="date">
+        <key>sql.dateTime.extractDate</key>
+        <value>EXTRACT_DATE</value>
+        <signature><![CDATA[(case when REGEXP_REPLACE(SUBSTR(CAST(${dateTimeColumn} AS TIMESTAMP),${timeStartIndex},${timeEndIndex}),'[\n\r]', '') <>'' then REGEXP_REPLACE(SUBSTR(CAST(${dateTimeColumn}AS TIMESTAMP),${timeStartIndex},${timeEndIndex}),'[\n\r]', '') end )]]></signature>
+        <parameters>
+            <parameter name="dateTimeColumn" column="true" />
+            <parameter name="timeStartIndex" column="false" defaultValue="0"/>
+            <parameter name="timeEndIndex" column="false" defaultValue="10"/>	
+        </parameters>
+        <description>This function extracts date value from the given dataTime value.Ex:('2018-08-20 07:09:34') results:'2018-08-20' NOTE:dateTimeColumn values should be in single quote if the you are typing the value. </description>
+    </function>
+	<!-- Date Functions-->
+		
+
+
+<!-- type conversion start-->
+ <function group="type conversion" returns="text">
+        <key>sql.typeConversion.cast</key>
+        <value>CAST</value>
+        <signature><![CDATA[CAST(${column} AS ${dataType})]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+			<parameter name="dataType"/>
+        </parameters>
+        <description>Cast function converts one datatype to another. Example1 : CAST( '2019-03-22 17:34:03.000' AS varchar) Example2 : CAST('65' AS integer).result:65</description>
+    </function>
+    <function group="type conversion" returns="text">
+        <key>sql.typeConversion.tochar</key>
+        <value>TOCHAR</value>
+        <signature><![CDATA[cast(${column} as string)]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+        </parameters>
+        <description>Converts value to char type. Example:	cast(date'2015-01-01' as char) result:'2015-01-01' </description>
+    </function>
+   <function group="type conversion" returns="date">
+        <key>sql.typeConversion.todate</key>
+        <value>TODATE</value>
+        <signature><![CDATA[CAST(case when REGEXP_REPLACE(${column},'[\n\r]', '') <>'' then ${column} end as DATE)]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+        </parameters>
+        <description>This function is used to convert character based date value to date type.(format is not required) Example:CAST(case when REGEXP_REPLACE('2014-03-08','[\n\r]', '') lessthangreaterthan '' then '2014-03-08' end as DATE) results:2014-03-08 Note:replace lessthangreaterthan with symbols</description>
+    </function>
+    <function group="type conversion" returns="dateTime">
+      <key>sql.typeConversion.todatetime</key>
+      <value>TODATETIME</value>
+      <signature><![CDATA[CAST(case when REGEXP_REPLACE(${column},'[\n\r]', '') <>'' then ${column} end as TIMESTAMP)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>This function is used to convert character based timestamp/date value to timestamp type. Example:CAST(case when REGEXP_REPLACE('2014-03-08','[\n\r]', '') lessthangreaterthan '' then '2014-03-08' end as TIMESTAMP) results:2014-03-08 Note:replace lessthangreaterthan with symbols</description>
+   </function>
+   <function group="type conversion" returns="numeric">
+        <key>sql.typeConversion.tonum</key>
+        <value>TONUM</value>
+        <signature><![CDATA[1* CAST((case when REGEXP_REPLACE(${column},'[\n\r]', '') <>'' then REGEXP_REPLACE(${column},'[\n\r]', '') end)  AS INTEGER)]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>	
+        </parameters>
+        <description>This function is used to convert character based integer value to integer type.Example: CAST((case when REGEXP_REPLACE('123','[\n\r]', '') lessthangreaterthan '' then REGEXP_REPLACE('123','[\n\r]', '') end)  AS INTEGER) result:456</description>
+    </function>
+<!-- type conversion end-->	
+	
+	<function group="spark specific" returns="numeric">
+        <key>sql.date.monthsBetween</key>
+        <value>MONTHS_BETWEEN</value>
+        <signature><![CDATA[MONTHS_BETWEEN(${dateOne},${dateTwo})]]></signature>
+        <parameters>
+            <parameter name="dateOne" column="true"/>
+			<parameter column="true" name="dateTwo"/>
+        </parameters>
+        <description>Returns number of months between dates date1 and date2 (as of Hive 1.2.0). If date1 is later than date2, then the result is positive. If date1 is earlier than date2, then the result is negative. If date1 and date2 are either the same days of the month or both last days of months, then the result is always an integer. Otherwise the UDF calculates the fractional portion of the result based on a 31-day month and considers the difference in time components date1 and date2. date1 and date2 type can be date, timestamp or string in the format 'yyyy-MM-dd' or 'yyyy-MM-dd HH:mm:ss'. The result is rounded to 8 decimal places. Example: months_between('1997-02-28 10:30:00', '1996-10-30') = 3.94959677
+		</description>
+    </function>
+	
+	
+	<!-- Time functions-->
+	
+		
+ 
+<!-- Json functions-->
+    <function group="json">
+        <key>sql.json.index</key>
+        <value>INDEX</value>
+        <signature><![CDATA[${column}[${index}]]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+            <parameter column="false" name="index" defaultValue="0"/>
+        </parameters>
+        <description>This function can be applied on array type to fetch the array[index] value </description>
+    </function>
+
+    <function group="json">
+        <key>sql.json.property</key>
+        <value>KEY_VALUE</value>
+        <signature><![CDATA[(${column}.`${property}`)]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+            <parameter column="false" name="property" />
+        </parameters>
+        <description>This function can be applied on json type to fetch the  value for a key </description>
+    </function>
+
+	
+<!--  typeConversion functions  -->
+	
+	
+	
+	
+	
+	<!-- function group="typeConversion" returns="time">
+        <key>sql.typeConversion.castToTime</key>
+        <value>CAST_TO_TIME</value>
+        <signature><![CDATA[CAST(case when REGEXP_REPLACE(${field},'[\n\r]', '') <>'' then ${field} end as TIME)]]></signature>
+        <parameters>
+            <parameter column="true" name="field"/>
+			
+        </parameters>
+        <description>This function is used to convert character based time value to time type.(format is not required)Eg:CAST('10:15:30' as TIME)) result:10:15:30</description>
+    </function  -->
+	
+<!--  typeConversion functions  -->
+	<function group="spark specific" returns="other">
+        <key>sql.other.coalesce</key>
+        <value>COALESCE</value>
+        <signature><![CDATA[COALESCE(${expr1},${expr2})]]></signature>
+        <parameters>
+           <parameter column="true" name="expr1"/>
+			<parameter column="true" name="expr2"/>
+        </parameters>
+        <description>This function returns the first non-NULL expression among its arguments.If all expressions evaluate to null, then the COALESCE function returns null. NOTE:expressions should be in single quotes if you are typing value.</description>
+    </function>
+	 <function group="spark specific" returns="numeric">
+        <key>sql.other.toDecimal</key>
+        <value>StringToDecilmal</value>
+        <signature><![CDATA[1* CAST((case when REGEXP_REPLACE(${column},'[\n\r]', '') <>'' then REGEXP_REPLACE(${column},'[\n\r]', '') end)  AS decimal(${size}))]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+			<parameter column="true" name="size"/>
+        </parameters>
+        <description>This function is used to convert character based decimal value to decimal type.Example: CAST((case when REGEXP_REPLACE('234.56','[\n\r]', '') lessthangreaterthan '' then REGEXP_REPLACE('234.56','[\n\r]', '') end)  AS DECIMAL(5,2)) result:456.34Note:replace lessthangreaterthan with symbols.</description>
+    </function>
+	<function group="spark specific" returns="other">
+        <key>sql.other.nullif</key>
+        <value>NULLIF</value>
+        <signature><![CDATA[NULLIF(${expr1},${expr2})]]></signature>
+        <parameters>
+           <parameter column="true" name="expr1"/>
+		   <parameter column="true" name="expr2"/>
+        </parameters>
+        <description>This function compares two expressions.If expr1 and expr2 are equal, then returns NULL. Otherwise, it returns expr1. NOTE: All Expressions should be in single quotes if you are typing value.</description>
+    </function>
+	<!-- conditional Functions-->
+	<!-- Logical (start)-->
+	<function group="logical" returns="text">
+        <key>sql.logical.and</key>
+        <value>AND</value>
+        <signature><![CDATA[AND (${column} ${condition} ${value}) ${moreconditions} ]]></signature>
+        <parameters>
+            <parameter column="true" name="column"/>
+				<parameter name="condition"  defaultValue=""/>
+				<parameter name="value"  defaultValue=""/>
+			<parameter column="true" name="moreconditions" defaultValue=""/>
+			</parameters>
+        <description>Inside IF we will use AND condition. performs a logical conjunction on two expressions.
+            In 'column' paramter we will 'drag column'.
+			In 'condition' parameter provide conditions like (>,= etc.,).
+			In 'value' parameter provide condition value.
+			In 'moreconditions' parameter we will use nested 'OR' condition , 'AND' conditions. Instead of dragging column directly we will write expression in column parameter like 50 > 0.( Note : In such case don't provide anything in 'condition' and 'value' parameter). We will use AND inside IF. Example: IF (creditlim > = 50000 AND creditlim > = 10000), 'Gold', 'silver' ) </description>
+    </function>
+   <function group="logical" returns="text">
+            <key>sql.logical.case</key>
+            <value>CASE</value>
+            <signature><![CDATA[(CASE ${condition} END)]]></signature>
+            <parameters>
+				<parameter column="true" name="condition"/>
+            </parameters>
+            <description>This case statement evaluates conditions from left to right and returns the corresponding result when the first condition is met. If none of the conditions are met, it returns the result specified after the 'ELSE' keyword. Here's an example:CASE     WHEN Quantity > 30 THEN 'The quantity is greater than 30'     ELSE 'The quantity is under 30' END   In this example, if the quantity is greater than 30, it returns 'The quantity is greater than 30'. Otherwise, it returns 'The quantity is under 30'. </description>
+    </function>
+    <function group="logical" returns="text">
+            <key>sql.logical.else</key>
+            <value>ELSE</value>
+            <signature><![CDATA[ELSE ${statement_list}]]></signature>
+            <parameters>
+				<parameter column="true" name="statement_list"/>
+            </parameters>
+            <description>Returns from statement_list when condition gets fail.We will use ELSE inside case function. Example: CASE when 50 > 0 then 'true' else 'false'</description>
+    </function>
+    <function group="logical" returns="text">
+            <key>sql.logical.elseif</key>
+            <value>ELSEIF</value>
+            <signature><![CDATA[(case when ${column} ${condition} ${value} then ${conditiontrue} when ${elseIfcolumn} ${elseIfcondition} ${elseIfvalue} then ${elseIfconditiontrue} else ${conditionfalse} ${moreconditions} end)]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter name="condition" defaultValue=""/>
+				<parameter name="value" defaultValue=""/>
+				<parameter column="true" name="conditiontrue"/>
+				<parameter column="true" name="elseIfcolumn"/>
+				<parameter name="elseIfcondition" defaultValue=""/>
+				<parameter name="elseIfvalue" defaultValue=""/>
+				<parameter column="true" name="elseIfconditiontrue"/>
+				<parameter column="true" name="conditionfalse" defaultValue=""/>
+				<parameter column="true" name="moreconditions" defaultValue=""/>
+            </parameters>
+            <description>Evaluates conditions and returns 'conditiontrue' if condition is true, otherwise return 'conditionfalse'.  We will use nested condition inside else 'conditiontrue' parameter. Example:case when creditlim > 50000 then 'PLATINUM' else when (creditlim > = 50000) then 'GOLD' else 'SILVER' end </description>
+    </function>
+	
+    <!--function group="logical" returns="text">
+            <key>sql.logical.end</key>
+            <value>END</value>
+             <signature><![CDATA[(CASE ${expr} WHEN ${when} THEN ${then} ELSE ${else} END)]]></signature>
+            <parameters>
+                <parameter column="true" name="expr"/>
+				<parameter column="true" name="when"/>
+				<parameter column="true" name="then"/>
+				<parameter column="true" name="else"/>
+            </parameters>
+            <description>Tests a series of expressions returning the "then" value for the first true "exp".</description>
+    </function-->
+	<function group="logical" returns="text">
+            <key>sql.logical.if</key>
+            <value>IF</value>
+             <signature><![CDATA[(case when ${column} ${condition} ${value} ${moreconditions} then ${conditiontrue} else ${conditionfalse} end)]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter name="condition" defaultValue=""/>
+				<parameter name="value" defaultValue=""/>
+				<parameter column="true" name="moreconditions" defaultValue=""/>
+				<parameter column="true" name="conditiontrue" defaultValue=""/>
+				<parameter column="true" name="conditionfalse"/>
+            </parameters>
+            <description>Inside IF we will use AND, OR conditions. Evaluates and returns 'conditiontrue' if condition is true, otherwise return 'conditionfalse'. 
+			In 'column' paramter we will drag column.
+			In 'condition' parameter provide conditions like (>,= etc.,).
+			In 'value' parameter provide value.
+			In 'moreconditions' parameter we will use nested 'OR', 'AND' conditions. Instead of dragging column directly we will write expression in column parameter like 50 > 0 (Note : In such case don't provide anything in 'condition' parameter and 'value' parameter). Example : (Case when (creditlim > 50000) then 'PLATINUM' else 'SILVER' end)</description>
+    </function>
+    <function group="logical" returns="text">
+            <key>sql.logical.ifnull</key>
+            <value>IFNULL</value>
+            <signature><![CDATA[(ifnull(${expr1}, ${expr2}))]]></signature>
+            <parameters>
+                <parameter column="true" name="expr1"/>
+				<parameter column="true" name="expr2"/>
+            </parameters>
+            <description>Returns Expr1 if it is not null otherwise return expr2. Example : ifnull('123', '0') Results:'123' Example2:  ifnull(null, '0') Results:'0'</description>
+    </function>
+     <function group="logical" returns="text">
+            <key>sql.logical.iif</key>
+            <value>IIF</value>
+             <signature><![CDATA[(case when ${column} ${condition} ${value} then ${conditiontrue} else ${conditionfalse} end)]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter name="condition" defaultValue=""/>
+				<parameter name="value" defaultValue=""/>
+				<parameter column="true" name="conditiontrue"/>
+				<parameter column="true" name="conditionfalse"/>
+            </parameters>
+            <description>Evaluates and returns 'conditiontrue' if condition is true, otherwise return 'conditionfalse'. Example : case when 'washington'like 'W%' then 'true' else 'false' end</description>
+    </function>
+	
+    <!--<function group="Logical" returns="numeric">
+            <key>sql.logical.isdate</key>
+            <value>ISDATE</value>
+            <signature><![CDATA[var_pop(${value})]]></signature>
+            <parameters>
+                <parameter column="true" name="value"/>
+            </parameters>
+            <description></description>
+    </function> -->
+    <function group="logical" returns="boolean">
+            <key>sql.logical.isnull</key>
+            <value>ISNULL</value>
+            <signature><![CDATA[IS NULL]]></signature>
+            <parameters>
+             </parameters>
+            <description>Inside WHEN condition we will use ISNULL. Evalutes and returns 'Conditiontrue' if the expression contain Null. Example1 : CASE WHEN 1 ISNULL THEN Conditionfalse. Example2 : CASE WHEN NULL ISNULL THEN Conditiontrue </description>
+		</function>	
+     <function group="logical" returns="boolean">
+            <key>sql.logical.not</key>
+            <value>NOT</value>
+            <signature><![CDATA[NOT(${column} ${condition} ${value})]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter column="true" name="condition" defaultValue=""/>
+				<parameter column="true" name="value" defaultValue=""/>
+            </parameters>
+            <description>Evaluates and returns 'conditiontrue' if condition is false, otherwise returns 'conditionfalse'. We will use NOT inside IF. Example :  NOT(500 > 1000) result :true</description>
+    </function>
+    <function group="logical" returns="numeric">
+            <key>sql.logical.or</key>
+            <value>OR</value>
+            <signature><![CDATA[ OR ${column} ${condition} ${value} ${moreconditions}]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter column="true" name="condition" defaultValue=""/>
+				<parameter column="true" name="value" defaultValue=""/>
+				<parameter column="true" name="moreconditions" defaultValue=""/>
+            </parameters>
+            <description>Performs a logical disjunction on two expressions. 
+			In 'column' paramter we will drag column.
+			In 'condition' parameter provide conditions like (>,= etc.,).
+			In 'value' parameter provide value.
+			In 'moreconditions' parameter we will use nested 'OR' , 'AND' functions. Instead of dragging column directly we will write expression in column parameter like 50 > 0 in such case don't provide anything in 'condition' and 'value' parameter. We will use OR inside IF. Example : IF (creditlim > = 50000 OR creditlim > = 10000), 'Gold', 'silver' )</description>
+    </function>
+    <!--function group="logical" returns="numeric">
+            <key>sql.logical.then</key>
+            <value>THEN</value>
+            <signature><![CDATA[THEN ${then}]]></signature>
+            <parameters>
+				<parameter column="true" name="then"/>
+            </parameters>
+            <description>Tests a series of expressions returning the "then" value for the first true "exp". Example : CASE ['RomanNumber'] WHEN 'R' THEN 1 ELSE 3 NOTE: column's value should be in quotes if the values is manually typing</description>
+    </function-->
+     <function group="logical" returns="numeric">
+            <key>sql.logical.when</key>
+			 <value>WHEN</value>
+             <signature><![CDATA[WHEN ${column} ${searchcondition} ${value} THEN ${statement_list}  ${moreconditions}]]></signature>
+            <parameters>
+                <parameter column="true" name="column"/>
+				<parameter column="true" name="searchcondition" defaultValue=""/>
+				<parameter column="true" name="value" defaultValue=""/>
+				<parameter column="true" name="statement_list"/>
+				<parameter column="true" name="moreconditions" defaultValue=""/>
+            </parameters>
+            <description>Returns 'statement_list' when condition get satisfied .
+			In column paramter we will drag column.
+			In searchcondition parameter provide conditions like (>, =, IS Null etc .,).
+			In value parameter provide value(Note : IS Null used in 'condition' parameter then don't provide anything in 'value' parameter). 
+			In moreconditions parameter we will use nested when conditions, Else condition . We will use WHEN inside CASE. Example1 : CASE WHEN 1 > 0  THEN 'one' else 'TWO'. Example2 : CASE WHEN 'Singapore' IS NULL THEN 'Singa' ELSE 'pore'. Example3 : CASE WHEN Washington like '%sh%' THEN 'return washington' else 'NotMatched' </description>
+    </function>
+	<function group="logical" returns="text">
+            <key>sql.logical.zn</key>
+            <value>ZN</value>
+            <signature><![CDATA[if(${expr} IS NULL, 0,${expr})]]></signature>
+            <parameters>
+                <parameter column="true" name="expr"/>
+            </parameters>
+            <description>Returns "expression" if it is not null, otherwise returns zero.Example :if('123' IS NULL, 0,'123') result :'123' </description>
+    </function>
+    <!-- Logical (end)-->
+
+	
+	<!--Conversion specific functions must be there for every xml file starts-->  
+ <function group="spark specific" returns="text">
+      <key>sql.text.dateToString</key>
+      <value>dateToString</value>
+      <signature><![CDATA[CAST(${column} AS STRING)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the date to string</description>
+   </function>
+   
+    <function group="spark specific" returns="text">
+      <key>sql.text.numericToString</key>
+      <value>numericToString</value>
+      <signature><![CDATA[CAST(${column} AS STRING)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the number to string</description>
+   </function>
+   
+    <function group="spark specific" returns="text">
+      <key>sql.text.dateTimeToString</key>
+      <value>dateTimeToString</value>
+      <signature><![CDATA[CAST(${column} AS STRING)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the datetime to string</description>
+   </function>
+   
+   <function group="spark specific" returns="text">
+      <key>sql.text.timeToString</key>
+      <value>timeToString</value>
+      <signature><![CDATA[CAST(${column} AS STRING)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the time to string</description>
+   </function>
+    <function group="spark specific" returns="text">
+     <key>sql.text.otherToString</key>
+      <value>otherToString</value>
+      <signature><![CDATA[CAST(${column} as STRING)]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Converts the number,date,dateTime,time to string. Example:CAST(120) RESULTS:'120'.NOTE: column's value should be in quotes if the values is manually typing and its data type is "text/date/dateTime/time" type</description>
+   </function>
+	
+
+</functions>

@@ -1,0 +1,70 @@
+# Helical Insight — OSS local development stack
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up --build
+#
+# Then open:
+#   Frontend: http://localhost:3000
+#   Backend:  http://localhost:8080/hi-ee/hi.html
+#
+# Login: hiadmin / hiadmin
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiuser}
+      POSTGRES_DB: ${POSTGRES_DB:-hice}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/docker/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - hi-dev
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST_IP: ${HOST_IP:-localhost}
+      INSTALL_CHROME: ${INSTALL_CHROME:-false}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./server/hi-repository:/usr/local/Helical Insight/hi/hi-repository
+      - hi-db:/usr/local/Helical Insight/hi/db
+    networks:
+      - hi-dev
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+    networks:
+      - hi-dev
+
+networks:
+  hi-dev:
+    driver: bridge
+
+volumes:
+  pgdata:
+  hi-db:

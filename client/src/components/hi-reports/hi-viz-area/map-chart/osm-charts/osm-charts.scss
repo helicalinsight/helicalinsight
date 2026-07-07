@@ -1,0 +1,29 @@
+.osm-chart-container {
+    width: 100%;
+    height: 100%;
+
+    .leaflet-tooltip {
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .leaflet-tooltip-right {
+        &::before {
+            border-left-color: transparent !important;
+            border-right-color: transparent !important;
+        }
+    }
+
+    .leaflet-tooltip-left {
+        &::before {
+            border-left-color: transparent !important;
+            border-right-color: transparent !important;
+        }
+    }
+
+    .leaflet-marker-icon {
+        width: 0px !important;
+        height: 0px !important;
+    }
+}

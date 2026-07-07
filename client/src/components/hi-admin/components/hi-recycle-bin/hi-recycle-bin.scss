@@ -1,0 +1,160 @@
+@import "../../../../styles/variables.scss";
+
+.black-clr {
+  color: black !important;
+}
+
+.opacity-4 {
+  opacity: 0.4
+}
+
+.ownership-btn {
+    padding: 0;
+    background-color: transparent !important;
+    border: none;
+    height: 20px;
+  button {
+    padding: 0;
+    background-color: transparent !important;
+    border: none;
+    height: 20px;
+  }
+}
+
+.red-clr {
+  color: red;
+}
+
+.green-clr {
+  color: green;
+}
+
+.z-index-100000 {
+  z-index: 100000;
+}
+
+.resource-details-drawer {
+  z-index: 10000;
+}
+
+  .ownership-drawer {
+    // position: fixed;
+    // z-index: 1000;
+  }
+  // .ownership-table .ant-table-tbody{
+  //   max-height: 250px;
+  //   overflow-y: auto;
+  // }
+	// .ownership-table .ant-table-tbody::-webkit-scrollbar {
+	// 	width: 6px;
+	// 	height: 6px;
+	// 	transition: 2s all ease;
+	// }
+	// .ownership-table .ant-table-tbody::-webkit-scrollbar-track {
+	// 	border-radius: 10px;
+	// 	background: rgba(0, 0, 0, 0.1);
+	// }
+	// .ownership-table .ant-table-tbody::-webkit-scrollbar-thumb {
+	// 	border-radius: 10px;
+	// 	background: rgba(0, 0, 0, 0.2);
+	// }
+	// .ownership-table .ant-table-tbody::-webkit-scrollbar-thumb:hover {
+	// 	background: rgba(0, 0, 0, 0.4);
+	// }
+	// .ownership-table .ant-table-tbody::-webkit-scrollbar-thumb:active {
+	// 	background: rgba(0, 0, 0, 0.9);
+	// }
+	// .ownership-table .ant-table-tbody{
+	// 	scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.1); /* track thumb */
+	// 	scrollbar-width: thin; /* none, thin, or auto */
+	// 	// background: rgba(0, 0, 0, 0.1);
+	// }
+
+.recycle-info {
+  .ant-tooltip-content {
+    width: 250%;
+  }
+}
+
+.recycle-ownership-dropdown {
+  // .ownership-user-list {
+    padding: 10px;
+    background-color: white;
+  // }
+}
+
+
+.hi-admin-recycle-bin-container {
+    border: 1px solid $hi-light-gray;
+  
+    .recycle-bin-header-container {
+      height: 50px;
+      border-bottom: 1px solid $hi-white-smoke;
+      .ant-btn {
+        display: flex;
+        align-items: center;
+      }
+    }
+  
+    .recycle-bin-header-data-container {
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+  
+    .recycle-bin-title {
+      padding-left: 10px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  
+    // .recycle-bin-refresh-button {
+    //   text-align: end;
+    //   padding-right: 7px;
+    // }
+  
+    // .plugin-refresh-button {
+    //   display: flex;
+    //   justify-content: center;
+    //   align-items: center;
+    // }
+  
+    .recycle-bin-alert-icon {
+      padding-left: 5px;
+    }
+  
+    .recycle-bin-alert {
+      width: 100px;
+    }
+  
+    .recycle-bin-table-container {
+      padding: 5px;
+      height: 98%;
+      overflow: hidden;
+      .ant-space-item {
+        height: 18px;
+      }
+    }
+  
+    .table-row-color {
+      background-color: whitesmoke;
+    }
+  
+    .capitalize {
+      text-transform: capitalize;
+    }
+  
+    .ant-card-body {
+      padding: 0px !important;
+    }
+  
+    .expired {
+      color: $hi-red;
+    }
+  
+    .actions-card {
+      margin-right: 5px;
+    }
+  }

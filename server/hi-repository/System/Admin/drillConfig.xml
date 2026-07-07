@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<drill managerClass="com.helicalinsight.drill.DrilManager">
+    <enabled>false</enabled>
+    <storageImpl></storageImpl>
+    <enabledTypes mandatory="true">
+
+    </enabledTypes>
+    <fileSystemConfiguration>
+        <hdfs>
+            <host></host>
+            <description> Use the hdfs storage to upload your flat files into hadoop ecosystem.
+                Hadoop should be up and running. Hdfs Host is ip address of the name node server. Hdfs port is the datanode port. The Data Warehouse path will be created in hadoop datanode. The path should have read and write access.</description>
+            <port>54310</port>
+
+        </hdfs>
+        <sftp>
+            <host></host>
+            <password></password>
+            <port>22</port>
+            <username></username>
+            <description> Use SFTP When the drill/middleware is installed in separate server and Helical Insight is installed in different Server. The files will be uploaded to the server where drill is running. Incase drill/middleware is installed in the Windows machine, please use linux sytle path in Datawarehouse path. Example /C:/Users/Helical/your/path/to/datawarehouse</description>
+        </sftp>
+        <standalone>
+            <description> Use standalone when middleware and helical insight are in the same machine. The dataware house path will be created inside the System Directory of the hi-repository folder. All the files uploaded will be saved in that location</description>
+            <subDescription/>
+        </standalone>
+    </fileSystemConfiguration>
+    <url>{{https}}://{{host}}:{{port}}</url>
+    <endPointsDetails endPointManager="com.helicalinsight.adhoc.services.DrillEndPointManager">
+        <query>
+            <endpoint>/query.json</endpoint>
+            <actions>select</actions>
+            <method>POST</method>
+            <output>application/json</output>
+        </query>
+        <storage>
+            <endpoint>/storage.json</endpoint>
+            <actions>create,edit,delete</actions>
+            <method>GET,POST</method>
+            <output>application/json</output>
+        </storage>
+        <threads>
+            <endpoint>/thread.json</endpoint>
+            <actions>read</actions>
+            <method>GET,POST</method>
+            <output>application/json</output>
+        </threads>
+        <options>
+            <endpoint>/option.json</endpoint>
+            <actions>read</actions>
+            <method>GET</method>
+            <output>application/json</output>
+        </options>
+    </endPointsDetails>
+    <extractHeaders>csv,csvh,tsv,psv</extractHeaders>
+    <urlConfig>
+        <host></host>
+        <port>8047</port>
+        <dbPort>31010</dbPort>
+        <extraParam></extraParam>
+        <username></username>
+        <password></password>
+        <httpsState>false</httpsState>
+        <https>http</https>
+        <distributedMode>false</distributedMode>
+        <zookeeperPort>2181</zookeeperPort>
+        <securityEnabled>false</securityEnabled>
+        <securityMode>plain</securityMode>
+        <securityCheckType>/j_security_check</securityCheckType>
+    </urlConfig>
+    <drillStorageLocation>
+        <storage path="/"/>
+    </drillStorageLocation>
+</drill>

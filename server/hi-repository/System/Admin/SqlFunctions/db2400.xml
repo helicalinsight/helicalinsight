@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<functions dialect="org.hibernate.dialect.DB2400Dialect" type="db.db2400">
+    <!-- <function group="datetime">
+        <key>db.db2400.datetime.datePart</key>
+        <value>date_part</value>
+        <signature><![CDATA[date_part(${text}, ${interval})]]></signature>
+        <parameters>
+            <parameter name="text- The name of the parameter that goes inside ${}" type="text- text, numeric, boolean, date, time, dateTime" column="false- true quotes need to be applied to the value"/>
+            <parameter name="interval- The name of the parameter that goes inside ${}" type="dateTime- text, numeric, boolean, date, time, dateTime" column="true- true if quotes need to be applied to the value" defaultValue="1444304201095- The default value that will be used in case if the parameter is empty"/>
+        </parameters>
+    </function>-->
+</functions>

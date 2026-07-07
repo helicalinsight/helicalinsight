@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EFWD mandatory="true">
+<DataMaps>
+
+		<DataMap id="1" connection="1" type="metadata.dbmetadata">
+            <Name>getCatalog</Name>
+            <catalog>TABLE_CAT</catalog>
+            <Query>
+               
+                <![CDATA[
+				
+				
+						  {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+          <Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		<DataMap id="2" connection="1" type="metadata.groovy">
+            <Name>getSchema</Name>
+            <Query>
+               
+                 <![CDATA[
+				
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+public JSONObject getDatabaseTables(String url) {
+
+
+
+JSONObject dataObjects = new JSONObject();
+		
+		
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet rs = null;
+		JSONArray dataArray = new JSONArray();
+		try {
+			connection = DriverManager.getConnection(url);
+			statement = connection.createStatement();
+			String query = "show databases";
+			rs = statement.executeQuery(query);
+
+			while (rs.next()) {
+				JSONObject catalog = new JSONObject();
+				catalog.put("schemas", rs.getString(1));
+				dataArray.add(catalog);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+				if (statement != null) {
+					statement.close();
+				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		dataObjects.put("data", dataArray);
+
+		return dataObjects;
+	}
+
+				return getDatabaseTables(queryParams.connection.url);
+						
+                ]]>
+           
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default="table_schema"/>
+        </Parameters>
+        </DataMap>
+		 
+		<DataMap id="3" connection="1" type="metadata.groovy" >
+           <Name>getTable</Name>
+            <Query>
+                
+  <![CDATA[
+				
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+public JSONObject getDatabaseTables(String url) {
+
+
+JSONObject dataObjects = new JSONObject();
+
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet rs = null;
+		JSONArray dataArray = new JSONArray();
+		try {
+			connection = DriverManager.getConnection(url);
+			statement = connection.createStatement();
+			String query = "show tables from "+${schemas};
+			System.out.println("Query  :"+query);
+			rs = statement.executeQuery(query);
+
+			while (rs.next()) {
+				JSONObject catalog = new JSONObject();
+				catalog.put("catalogs","Null");
+				catalog.put("schemas", rs.getString(1));
+				catalog.put("tables",rs.getString(2));
+				dataArray.add(catalog);
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (rs != null) {
+					rs.close();
+				}
+				if (statement != null) {
+					statement.close();
+				}
+				if (connection != null) {
+					connection.close();
+				}
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+		}
+		dataObjects.put("data", dataArray);
+
+		return dataObjects;
+	}
+
+				return getDatabaseTables(queryParams.connection.url);
+						
+                ]]>
+              
+            </Query>
+			<Parameters>
+            <Parameter name="catalog" type="String" default="hice" openQuote="'" closeQuote="'"/>
+            <Parameter name="schemas" type="Integer" default="Null" openQuote="'" closeQuote="'"/>
+			
+        </Parameters>
+        </DataMap>
+		
+		<DataMap id="4" connection="1" type="metadata.groovy" >
+           <Name>getColumn</Name>
+            <Query>
+                 <![CDATA[
+				
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+import com.helicalinsight.adhoc.metadata.genericdb.MetadataRetrievalException;
+import com.helicalinsight.datasource.managed.JdbcQueryExecutor;
+import com.helicalinsight.datasource.managed.SparkJdbcExecutor;
+
+				
+ public List<JSONObject> getColumnInfoForTable(String table, String url) {
+ List<JSONObject> columns = new ArrayList<>();
+ try {
+ Connection con = DriverManager.getConnection(url);
+ 
+ 
+
+
+ table = escape(table);
+ Statement statement = con.createStatement();
+ SparkJdbcExecutor jdbcQueryExecutor = new SparkJdbcExecutor(statement, "select * from " + ${schemas} + "." + table + " limit 1");
+ JSONObject result = JSONObject.fromObject(jdbcQueryExecutor.executeSql().toString());
+ JSONObject metadataJson = result.getJSONArray("metadata").getJSONObject(0);
+
+
+
+
+
+ for (int index = 0; index < metadataJson.size(); index++) {
+ 
+ JSONObject indexElement = metadataJson.getJSONObject(String.valueOf(index + 1));
+ String columnName = indexElement.getString("name");
+ String columnType = indexElement.getString("type");
+ System.out.println("indexElement  :"+indexElement);
+ // allSchemas.add(columnName);
+
+ 
+ JSONObject columnInfo = new JSONObject();
+  columnInfo.put("catalogs", ${schemas});
+  columnInfo.put("schemas", "${catalog}");
+ columnInfo.put("tables", table);
+ 			
+ columnInfo.put("columns", columnName);
+ columnInfo.put("type", columnType);
+ columnInfo.put("size", "0");
+ columnInfo.put("nullable", "TRUE");
+ columnInfo.put("position", String.valueOf(index + 1));
+ 
+ columns.add(columnInfo);
+ 
+ }
+
+
+ } catch (SQLException ex) {
+ throw new MetadataRetrievalException(ex);
+ }
+ return columns;
+ }
+		
+		
+	public static String escape(String string) {
+ if (string.contains("/")) {
+ string = string.replaceAll("/", "//");
+ }
+
+ if (string.contains("\\")) {
+ string = string.replaceAll("\\\\", "\\\\\\\\");
+ }
+ return string;
+ }			
+ 
+ 
+ public JSONObject eachTable(String url){
+ JSONObject dataObject = new JSONObject();
+ List<JSONObject> singleObjectInList = new ArrayList<>();
+		List<JSONObject> allObjectsInList = new ArrayList<>();
+		
+ JSONArray allTables = new JSONArray();
+			String names ="${tables}";
+			
+			List<String> tableNames = Arrays.asList(names.split(","));
+			
+			for(String name :  tableNames){
+			name = name.replaceAll("\'","");
+			
+						singleObjectInList=getColumnInfoForTable(name, url);
+						allObjectsInList.addAll(singleObjectInList);
+						
+					}
+dataObject.put("data", allObjectsInList);	
+return dataObject;				
+				}
+				
+return eachTable(queryParams.connection.url);				
+				
+				
+   
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalog" type="String" default=""/>
+            <Parameter name="schemas" type="Collection" default="Null"/>
+            <Parameter name="tables" type="Collection" default="Null"/>
+        </Parameters>
+        </DataMap>
+	
+		
+</DataMaps> 
+  
+    
+  
+</EFWD>

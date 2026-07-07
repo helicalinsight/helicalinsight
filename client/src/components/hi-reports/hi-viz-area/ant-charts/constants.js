@@ -1,0 +1,68 @@
+export const defaultColorPaletteSchemes = {
+    Palettes: {
+        "Vibrant Spectrum": ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEEAD", "#D4A5A5", "#9B5DE5", "#00BBF9", "#00F5D4", "#FEE440"],
+        "Soft Pastels": ["#FFB5B5", "#A6DCE7", "#C3E5AE", "#FFD9C0", "#E2BEF1", "#B5D8EB", "#FFCBA4", "#C6E2E9", "#F1C0E8", "#CFBAF0"],
+        "Corporate Pro": ["#2C3E50", "#34495E", "#5D6D7E", "#85929E", "#BDC3C7", "#3498DB", "#2980B9", "#1ABC9C", "#16A085", "#27AE60"],
+        "Earth Tones": ["#7E735F", "#A19D94", "#B49A67", "#8B7355", "#6B4423", "#918B76", "#977D59", "#7A6F5D", "#8F7E64", "#A4977B"],
+        "Modern Bold": ["#FF0066", "#2E294E", "#1B998B", "#F46036", "#4CB944", "#E71D36", "#2EC4B6", "#FF9F1C", "#5C4742", "#8D6B94"],
+        "Cool Breeze": ["#48466D", "#3D84A8", "#46CDCF", "#ABEDD8", "#7C83FD", "#96BAFF", "#7776BC", "#4F8A8B", "#4F9EC4", "#6B7FD7"],
+        "Warm Gradient": ["#FF7B89", "#FF9A8B", "#FFB88C", "#FCD48E", "#FFF4BD", "#F7D794", "#F5B971", "#F3A683", "#F19066", "#F0A500"],
+        "Blue Scale": ["#0466C8", "#0353A4", "#023E7D", "#002855", "#001845", "#0582CA", "#006494", "#005B8C", "#00508B", "#034C8C"],
+        "Neon Nights": ["#FF2A6D", "#05D9E8", "#005678", "#01012B", "#7D1128", "#FF71CE", "#01C5C4", "#B967FF", "#FFFB96", "#05FFA1"],
+        "Autumn Mood": ["#D4A373", "#CCD5AE", "#E9EDC9", "#FAEDCD", "#FEFAE0", "#DDA15E", "#BC6C25", "#606C38", "#283618", "#8B7355"],
+        "Fiery Sunset": ['#03071e', '#370617', '#6a040f', '#9d0208', '#d00000', '#dc2f02', '#e85d04', '#f48c06', '#faa307', '#ffba08'],
+        "Earthy Tones": ['#582f0e', '#7f4f24', '#936639', '#a68a64', '#b6ad90', '#c2c5aa', '#a4ac86', '#656d4a', '#414833', '#333d29'],
+        "Warm Earth Tones": ["#ffedd8", "#f3d5b5", "#e7bc91", "#d4a276", "#bc8a5f", "#a47148", "#8b5e34", "#6f4518", "#603808", "#583101"],
+        "Sunny Citrus Burst": ["#ff7b00", "#ff8800", "#ff9500", "#ffa200", "#ffaa00", "#ffb700", "#ffc300", "#ffd000", "#ffdd00", "#ffea00"],
+        "Crimson Passion": ["#641220", "#6e1423", "#85182a", "#a11d33", "#a71e34", "#b21e35", "#bd1f36", "#c71f37", "#da1e37", "#e01e37"],
+        "Mystic Purple Hues": ["#310055", "#3c0663", "#4a0a77", "#5a108f", "#6818a5", "#8b2fc9", "#ab51e3", "#bd68ee", "#d283ff", "#dc97ff"],
+        "Twilight Blues": ["#97dffc", "#93caf6", "#8eb5f0", "#858ae3", "#7364d2", "#613dc1", "#5829a7", "#4e148c", "#461177", "#3d0e61"],
+        "Sunset Ember": ["#ffb950", "#ffad33", "#ff931f", "#ff7e33", "#fa5e1f", "#ec3f13", "#b81702", "#a50104", "#8e0103", "#7a0103"],
+        "Lavender Bliss": ["#a564d3", "#b66ee8", "#c879ff", "#d689ff", "#e498ff", "#f2a8ff", "#ffb7ff", "#ffc4ff", "#ffc9ff", "#ffceff"],
+        "Tropical Waters": ["#0377a8", "#118fb0", "#1fa6b8", "#2fb5c7", "#3ec4d6", "#51ccd1", "#63d4cc", "#8be8d7", "#a0f1da", "#b4fadc"],
+        "Minted Serenity": ["#d8f3dc", "#b7e4c7", "#95d5b2", "#74c69d", "#52b788", "#4d9f6e", "#40916c", "#2d6a4f", "#1b4332", "#081c15",],
+        "volcano": ["#fff2e8", "#ffd8bf", "#ffbb96", "#ff9c6e", "#ff7a45", "#fa541c", "#d4380d", "#ad2102", "#871400", "#610b00"],
+        "gold": ["#fffbe6", "#fff1b8", "#ffe58f", "#ffd666", "#ffc53d", "#faad14", "#d48806", "#ad6800", "#874d00", "#613400"],
+        "yellow": ["#feffe6", "#ffffb8", "#fffb8f", "#fff566", "#ffec3d", "#fadb14", "#d4b106", "#ad8b00", "#876800", "#614700"],
+        "lime": ["#fcffe6", "#f4ffb8", "#eaff8f", "#d3f261", "#bae637", "#a0d911", "#7cb305", "#5b8c00", "#3f6600", "#254000"],
+        "green": ["#f6ffed", "#d9f7be", "#b7eb8f", "#95de64", "#73d13d", "#52c41a", "#389e0d", "#237804", "#135200", "#092b00"],
+        "cyan": ["#e6fffb", "#b5f5ec", "#87e8de", "#5cdbd3", "#36cfc9", "#13c2c2", "#08979c", "#006d75", "#00474f", "#002329"],
+        "geekblue": ["#f0f5ff", "#d6e4ff", "#adc6ff", "#85a5ff", "#597ef7", "#2f54eb", "#1d39c4", "#10239e", "#061178", "#030852"],
+        "purple": ["#f9f0ff", "#efdbff", "#d3adf7", "#b37feb", "#9254de", "#722ed1", "#531dab", "#391085", "#22075e", "#120338"],
+        "magenta": ["#fff0f6", "#ffd6e7", "#ffadd2", "#ff85c0", "#f759ab", "#eb2f96", "#c41d7f", "#9e1068", "#780650", "#520339"],
+        "grey": ["#a6a6a6", "#999999", "#8c8c8c", "#808080", "#737373", "#666666", "#404040", "#1a1a1a", "#000000", "#000000"]
+    },
+    Rainbow: {
+        "Desert": ["#001219", "#005f73", "#0a9396", "#94d2bd", "#e9d8a6", "#ee9b00", "#ca6702", "#bb3e03", "#ae2012", "#9b2226"],
+        "Vibrant Orchid": ["#f72585", "#b5179e", "#7209b7", "#560bad", "#480ca8", "#3a0ca3", "#3f37c9", "#4361ee", "#4895ef", "#4cc9f0"],
+        "Soft Blossom": ["#fec5bb", "#fcd5ce", "#fae1dd", "#f8edeb", "#e8e8e4", "#d8e2dc", "#ece4db", "#ffe5d9", "#ffd7ba", "#fec89a"],
+        "Autumn Harvest": ["#f94144", "#f3722c", "#f8961e", "#f9844a", "#f9c74f", "#90be6d", "#43aa8b", "#4d908e", "#577590", "#277da1"],
+        "Pastel Dreams": ["#fbf8cc", "#fde4cf", "#ffcfd2", "#f1c0e8", "#cfbaf0", "#a3c4f3", "#90dbf4", "#8eecf5", "#98f5e1", "#b9fbc0"],
+        "Ocean Breeze": ["#54478c", "#2c699a", "#048ba8", "#0db39e", "#16db93", "#83e377", "#b9e769", "#efea5a", "#f1c453", "#f29e4c"],
+        "Neon Spectrum": ["#ff0000", "#ff8700", "#ffd300", "#deff0a", "#a1ff0a", "#0aff99", "#0aefff", "#147df5", "#580aff", "#be0aff"],
+        "Vibrant Citrus": ["#669900", "#99cc33", "#ccee66", "#006699", "#3399cc", "#990066", "#cc3399", "#ff6600", "#ff9900", "#ffcc00"],
+        "Fresh Bloom": ["#ff61ab", "#ff6176", "#ff8161", "#ffb561", "#ffea62", "#dfff61", "#abff61", "#76ff61", "#61ff81", "#61ffb5"],
+        "Muted Ocean": ["#48698e", "#5a66a4", "#185ea7", "#358ab4", "#88abad", "#b0b0a0", "#b4a094", "#ac8f90", "#82748a", "#495275"]
+    },
+    Bright: {
+        "Radiant Spectrum": ["#ff0000", "#ff8700", "#ffd300", "#deff0a", "#a1ff0a", "#0aff99", "#0aefff", "#147df5", "#580aff", "#be0aff"],
+        "Neon Vibes": ["#44d800", "#ff8c00", "#7f00ff", "#ff3800", "#a7fc00", "#af0dd3", "#ff2b67", "#ffeb00", "#00ffce", "#ff1dce"],
+        "Electric Pulse": ["#ff0000", "#ff8000", "#ffff00", "#88ff00", "#00ffff", "#0400ff", "#5100ff", "#9e00ff", "#ea00ff", "#ff0059"],
+        "Neon Rainbow": ["#ff0000", "#ff8000", "#ffff00", "#80ff00", "#00ff00", "#00ffff", "#0000ff", "#8000ff", "#ff00ff", "#ff0080"],
+        "Vivid Flash": ["#6a00ff", "#ff00ff", "#ff0040", "#ff9500", "#ffff00", "#aaff00", "#00ff15", "#00ffff", "#0095ff", "#ff00b3"]
+    },
+    Dark: {
+        "Midnight Shadows": ["#664d00", "#6e2a0c", "#691312", "#5d0933", "#291938", "#042d3a", "#12403c", "#475200", "#3b2a2b", "#2f1c10"],
+        "Midnight Tones": ["#095b53", "#114047", "#1a3042", "#1e2a41", "#21243f", "#2c2543", "#362647", "#4b284f", "#50233e", "#551e2d"],
+        "Moonlit Forest": ["#0d0e14", "#252933", "#404556", "#60515c", "#777076", "#597d7c", "#386775", "#20504e", "#193d31", "#17292b"],
+        "Dark Ember": ["#361c0e", "#570211", "#7e3110", "#004540", "#032c4d", "#360825", "#5e2b1f", "#3f1a14", "#1b3b30", "#2e2e44"],
+        "Velvet Shadows": ["#44026c", "#3e0262", "#380259", "#1c0035", "#150b21", "#26061f", "#36001d", "#51002c", "#61173f", "#7a2a4d"]
+    },
+    Qualitative: {
+        "Antique": ["#855c75", "#d9af6b", "#af6458", "#736f4c", "#526a83", "#625377", "#68855c", "#9c9c5e", "#a06177", "#8c785d"],
+        "Paired": ["#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a"],
+        "Pastel": ["#66c5cc", "#f6cf71", "#f89c74", "#dcb0f2", "#87c55f", "#9eb9f3", "#fe88b1", "#c9db74", "#8be0a4", "#b497e7"],
+        "Prism": ["#5f4690", "#1d6996", "#38a6a5", "#0f8554", "#73af48", "#edad08", "#e17c05", "#cc503e", "#94346e", "#6f4070"],
+        "Vivid": ["#e58606", "#5d69b1", "#52bca3", "#99c945", "#cc61b0", "#24796c", "#daa51b", "#2f8ac4", "#764e9f", "#ed645a"],
+    }
+}

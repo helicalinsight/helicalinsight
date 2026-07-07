@@ -1,0 +1,121 @@
+$spaces: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+
+:root {
+  --ib-spacing-1: 3px;
+  --ib-spacing-2: 4px;
+  --ib-spacing-3: 6px;
+  --ib-spacing-4: 8px;
+  --ib-spacing-5: 10px;
+  --ib-spacing-6: 12px;
+  --ib-spacing-7: 15px;
+  --ib-spacing-8: 16px;
+  --ib-spacing-9: 20px;
+  --ib-spacing-10: 30px;
+}
+.ib-space {
+  display: flex;
+  width: 100%;
+  &__horizontal {
+    &__row {
+      flex-direction: row;
+      @each $space in $spaces {
+        &__#{$space} {
+          & > * + * {
+            margin-left: var(--ib-spacing-#{$space});
+          }
+        }
+      }
+    }
+    &__row-reverse {
+      flex-direction: row-reverse;
+      @each $space in $spaces {
+        &__#{$space} {
+          & > * + * {
+            margin-right: var(--ib-spacing-#{$space});
+          }
+        }
+      }
+    }
+  }
+  &__vertical {
+    &__column {
+      flex-direction: column;
+      @each $space in $spaces {
+        &__#{$space} {
+          & > * + * {
+            margin-left: unset;
+            margin-top: var(--ib-spacing-#{$space});
+          }
+        }
+      }
+    }
+    &__column-reverse {
+      flex-direction: column-reverse;
+      @each $space in $spaces {
+        &__#{$space} {
+          & > * + * {
+            margin-left: unset;
+            margin-bottom: var(--ib-spacing-#{$space});
+          }
+        }
+      }
+    }
+  }
+  &__flex-wrap {
+    &--wrap {
+      flex-wrap: wrap;
+    }
+    &--nowrap {
+      flex-wrap: nowrap;
+    }
+  }
+  &__align-item {
+    &--flex-start {
+      align-items: flex-start;
+    }
+    &--flex-end {
+      align-items: flex-end;
+    }
+    &--stretch {
+      align-items: stretch;
+    }
+    &--center {
+      align-items: center;
+    }
+    &--start {
+      align-items: start;
+    }
+    &--end {
+      align-items: end;
+    }
+  }
+  &__justify-content {
+    &--flex-start {
+      justify-content: flex-start;
+    }
+    &--flex-end {
+      justify-content: flex-end;
+    }
+    &--stretch {
+      justify-content: stretch;
+    }
+    &--center {
+      justify-content: center;
+    }
+    &--start {
+      justify-content: start;
+    }
+    &--end {
+      justify-content: end;
+    }
+    &--space-around {
+      justify-content: space-around;
+    }
+    &--space-evenly {
+      justify-content: space-evenly;
+    }
+    &--space-between {
+      justify-content: space-between;
+    }
+  }
+}

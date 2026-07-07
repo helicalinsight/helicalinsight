@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HI: JWT Demo</title>
+
+    <script src="https://code.jquery.com/jquery-3.0.0.min.js"
+        integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0=" crossorigin="anonymous"></script>
+
+    <script>
+        // requesBaseURL is a mandetary(set in header) to make hi-report run properly.
+        var requestBaseUrl = "https://${host}:${port}/hi-ee/"
+    </script>
+</head>
+
+<body>
+    <!-- Copy script and js files from HI Application -->
+    <!-- Start files from HI -->
+    <script src="https://${host}:${port}/hi-ee/js/2.chunk.js"></script>
+    <script src="https://${host}:${port}/hi-ee/js/main.chunk.js"></script>
+    <link href="https://${host}:${port}/hi-ee/fonts/questrial/questrial.css" rel="stylesheet" />
+    <link href="https://${host}:${port}/hi-ee/css/syncfusion.css" rel="stylesheet">
+    <link href="https://${host}:${port}/hi-ee/css/2.chunk.css" rel="stylesheet">
+    <link href="https://${host}:${port}/hi-ee/css/main.chunk.css" rel="stylesheet">
+    <link href="https://${host}:${port}/hi-ee/css/metadata.css" rel="stylesheet">
+    <!-- End Files from HI -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <!-- This is for lazy loading of js, css files -->
+    <script>!function (e) { function t(t) { for (var n, o, i = t[0], c = t[1], l = t[2], s = 0, d = []; s < i.length; s++)o = i[s], Object.prototype.hasOwnProperty.call(a, o) && a[o] && d.push(a[o][0]), a[o] = 0; for (n in c) Object.prototype.hasOwnProperty.call(c, n) && (e[n] = c[n]); for (f && f(t); d.length;)d.shift()(); return u.push.apply(u, l || []), r() } function r() { for (var e, t = 0; t < u.length; t++) { for (var r = u[t], n = !0, o = 1; o < r.length; o++) { var c = r[o]; 0 !== a[c] && (n = !1) } n && (u.splice(t--, 1), e = i(i.s = r[0])) } return e } var n = {}, o = { 1: 0 }, a = { 1: 0 }, u = []; function i(t) { if (n[t]) return n[t].exports; var r = n[t] = { i: t, l: !1, exports: {} }; return e[t].call(r.exports, r, r.exports, i), r.l = !0, r.exports } i.e = function (e) { var t = []; o[e] ? t.push(o[e]) : 0 !== o[e] && { 3: 1 }[e] && t.push(o[e] = new Promise((function (t, r) { for (var n = "/css/" + ({}[e] || e) + ".chunk.css", a = baseURL + n, u = document.getElementsByTagName("link"), c = 0; c < u.length; c++) { var l = (f = u[c]).getAttribute("data-href") || f.getAttribute("href"); if ("stylesheet" === f.rel && (l === n || l === a)) return t() } var s = document.getElementsByTagName("style"); for (c = 0; c < s.length; c++) { var f; if ((l = (f = s[c]).getAttribute("data-href")) === n || l === a) return t() } var d = document.createElement("link"); d.rel = "stylesheet", d.type = "text/css", d.onload = t, d.onerror = function (t) { var n = t && t.target && t.target.src || a, u = new Error("Loading CSS chunk " + e + " failed.\n(" + n + ")"); u.code = "CSS_CHUNK_LOAD_FAILED", u.request = n, delete o[e], d.parentNode?.removeChild(d), r(u) }, d.href = a, document.getElementsByTagName("head")[0].appendChild(d) })).then((function () { o[e] = 0 }))); var r = a[e]; if (0 !== r) if (r) t.push(r[2]); else { var n = new Promise((function (t, n) { r = a[e] = [t, n] })); t.push(r[2] = n); var u, c = document.createElement("script"); c.charset = "utf-8", c.timeout = 120, i.nc && c.setAttribute("nonce", i.nc), c.src = function (e) { console.log('in login body jsp', i.p); return baseURL + "/js/" + ({}[e] || e) + ".chunk.js" }(e); var l = new Error; u = function (t) { c.onerror = c.onload = null, clearTimeout(s); var r = a[e]; if (0 !== r) { if (r) { var n = t && ("load" === t.type ? "missing" : t.type), o = t && t.target && t.target.src; l.message = "Loading chunk " + e + " failed.\n(" + n + ": " + o + ")", l.name = "ChunkLoadError", l.type = n, l.request = o, r[1](l) } a[e] = void 0 } }; var s = setTimeout((function () { u({ type: "timeout", target: c }) }), 12e4); c.onerror = c.onload = u, document.head.appendChild(c) } return Promise.all(t) }, i.m = e, i.c = n, i.d = function (e, t, r) { i.o(e, t) || Object.defineProperty(e, t, { enumerable: !0, get: r }) }, i.r = function (e) { "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e, "__esModule", { value: !0 }) }, i.t = function (e, t) { if (1 & t && (e = i(e)), 8 & t) return e; if (4 & t && "object" == typeof e && e && e.__esModule) return e; var r = Object.create(null); if (i.r(r), Object.defineProperty(r, "default", { enumerable: !0, value: e }), 2 & t && "string" != typeof e) for (var n in e) i.d(r, n, function (t) { return e[t] }.bind(null, n)); return r }, i.n = function (e) { var t = e && e.__esModule ? function () { return e.default } : function () { return e }; return i.d(t, "a", t), t }, i.o = function (e, t) { return Object.prototype.hasOwnProperty.call(e, t) }, i.p = "/", i.oe = function (e) { throw console.error(e), e }; var c = this.webpackJsonpHelicalInsight = this.webpackJsonpHelicalInsight || [], l = c.push.bind(c); c.push = t, c = c.slice(); for (var s = 0; s < c.length; s++)t(c[s]); var f = l; r() }([])</script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/react/16.14.0/umd/react.development.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/16.14.0/umd/react-dom.development.js"></script> -->
+    <!-- <script src="../../src/index.js"></script> -->
+    <script>
+        const elementId = 'jwt';
+
+        // function unMountRootComponent(elementId) {
+        //     const rootElement = document.getElementById(elementId);
+        //     if (rootElement) {
+        //         ReactDOM.unmountComponentAtNode(rootElement);
+        //     }
+        // }
+       var settings = {
+  "url": "https://${host}:${port}/hi-ee/rest/authToken",
+  "method": "POST",
+  "timeout": 0,
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "data": JSON.stringify({
+    "username": "hiadmin",
+    "password": "hiadmin"
+  }),
+};
+
+
+        function generateToken() {
+		
+            var token = new Promise((success, failure) => {
+                $.ajax(settings).done(function (response) {
+                    token = response.token;
+                    success(token)
+                }).fail(function (reason) {
+                    console.log("failed", reason)
+                });
+            })
+            return token
+        }
+        function callAjax(urlString, token, callback) {
+            // token = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIZWxpY2FsSW5zaWdodCIsInN1YiI6ImhpdXNlciIsInNjb3BlcyI6IlJPTEVfQURNSU4sUk9MRV9VU0VSIiwiaWF0IjoxNjQxNTU4ODQyLCJleHAiOjE2NTk1NTg4NDJ9.Q445ReiSP_SFODTKJLVXZ9V5VgNVcveonneXzEykSJ0'
+            $.ajax({
+                method: "POST",
+                url: urlString,
+                contentType: "text/html",
+                dataType: 'json',
+                crossDomain: true,
+                beforeSend: function (xhr, settings) {
+                    if (token) {
+                        xhr.setRequestHeader("type", 'jwt');
+                        xhr.setRequestHeader("authToken", token);
+                    }
+                },
+                success: function (data) {
+                    callback(data)
+                },
+            })
+
+        }
+
+        function login(token) {
+            //set cookies
+            var loginData = new Promise((success, failure) => {
+                callAjax(requestBaseUrl + "?authToken=" + encodeURI(token), encodeURI(token), data => {
+                    success(data)
+                });
+            })
+            return loginData
+        }
+
+
+        function logout() {
+            //delete cookies
+            callAjax(requestBaseUrl + "logout", "", function () {
+                document.getElementById('reports').innerHTML = '';
+                document.getElementById('reports').style.display = "none"
+                document.getElementById('jwt').innerHTML = "";
+                //unMountRootComponent(elementId);
+                authToken = ""
+
+            })
+        }
+
+        var authToken = ""
+
+        function logIn() {
+            generateToken().then(token => {
+                authToken = token
+                login(token).then((loginData) => {
+                    // After successfully login, required functionality/code can be run here.
+                })
+            })
+        }
+
+        function openReportList() {
+            //unMountRootComponent(elementId);
+            //document.getElementById('jwt').innerHTML = "";
+            var formData = ["efw", "hr"]
+            var options = {
+                extensions: btoa(JSON.stringify(formData)),
+                v: new Date().getTime()
+            }
+            var url = requestBaseUrl + "getSolutionResources"
+            url = url + "?extensions=" + options.extensions + "&v=" + options.v
+            callAjax(url, authToken, function (data) {
+                var items = []
+                data.map(folder => {
+                    items = items.concat(getChildren(folder))
+                })
+                $("#reports")[0].innerHTML = ""
+                items.map(item => {
+                    if (!item.title) {
+                        return
+                    }
+                    var path = item.path
+                    var name = item.name
+                    var dir = item.path.replace(name, "").replace(/\/$/, "")
+                    var div = document.createElement("div")
+                    div.addEventListener("click", function () {
+                        document.getElementById('reports').style.display = "none"
+                        embed({
+                            auth: { type: 'jwt', authToken },
+                            report: {
+                                dir, file: name,
+                            },
+                            elementId,
+                            baseURL: requestBaseUrl
+                        })
+                        var reportCloser = document.createElement("div");
+                        reportCloser.setAttribute("id", "report-closer");
+                        reportCloser.addEventListener("click", function () {
+                            document.getElementById('reports').style.display = "block";
+							let parentNode = document.getElementById('jwt');
+							let newParent = parentNode.cloneNode(false);
+							parentNode.replaceWith(newParent);
+                            //document.getElementById('jwt').innerHTML = "";
+                           // unMountRootComponent(elementId);
+                        });
+                        reportCloser.innerHTML = 'X';
+                        $("#jwt").append(reportCloser);
+                        document.getElementById('report-closer').style.display = "block";
+                    })
+                    div.innerHTML = item.title
+                    div.setAttribute("title", item.title + "(" + item.extension + ")")
+                    div.setAttribute("class", "report-file")
+                    $("#reports")[0].style.display = "block"
+                    $("#reports").append(div)
+                })
+            })
+
+        }
+        function getChildren(folder) {
+            var items = []
+            if (folder.children && folder.children.length) {
+                folder.children.map(folder => {
+                    items = items.concat(getChildren(folder))
+                })
+                return items
+            }
+            return folder
+        }
+
+    </script>
+
+    <div class="jwt-header">
+        <button id="open-btn" onclick="openReportList()">Reports</button>
+        <button id="login-btn" onclick="logIn()">Login</button>
+        <button id="logout-btn" onclick="logout()">Log Out</button>
+    </div>
+    <div class="reports-list">
+        <div id="reports">
+        </div>
+    </div>
+    <div style="width: 100%;  float: left" id="jwt">
+    </div>
+
+    <style>
+        #jwt {
+            position: relative;
+        }
+
+        #report-closer {
+            font-size: 22px;
+            color: red;
+            font-weight: 800;
+            cursor: pointer;
+            position: absolute;
+            top: -10px;
+            z-index: 1;
+            right: 2.5px;
+        }
+
+        .jwt-header {
+            float: right;
+            padding: 5px 0px;
+        }
+
+        .jwt-header button {
+            border-width: 1px;
+            border-color: #ccc;
+            background-color: #3c8bca;
+            color: #fff;
+            padding: 4px;
+            border-radius: 6px;
+        }
+
+        .jwt-header button:hover {
+            color: #3c8bca;
+            background-color: #fff;
+            border-color: #3c8bca;
+        }
+
+        .reports-list {
+            position: relative;
+        }
+
+        .reports-list>div {
+            width: 20%;
+            display: none;
+            position: absolute;
+            right: 0px;
+            top: 35px;
+            height: 90vh;
+            overflow: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        .report-file {
+            cursor: pointer;
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            padding: 2px;
+            border-top: 1px solid #3c8bca;
+        }
+
+        .report-file:hover {
+            background-color: #3c8bca;
+            border-top: 1px solid #fff;
+            color: #fff;
+        }
+    </style>
+
+</body>
+
+</html>

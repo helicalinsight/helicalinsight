@@ -1,0 +1,929 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>map_js_Map</scriptId>
+    <scriptType>js</scriptType>
+    <name>Map Customization</name>
+    <group>LeafletMap</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Customize HI Map</description>
+    <icon>/images/scriptIcons/SetChartColor.png</icon>
+	<parameters>
+		<parameter name="markerColor"  value= "#000ff0" type="String"/>
+		<parameter name="markerColorMeasure"  value= "-1" type="String"/>
+		<parameter name="markerRadiusMeasure"  value= "-1" type="String"/>
+		<parameter name="colorDimension"  value= "-1" type="String"/>
+		<parameter name="colorReverse"  value= "false" type="String"/>
+		<parameter name="radiusReverse"  value= "false" type="String"/>
+		<parameter name="iconDimension"  value= "-1" type="String"/>
+		<parameter name="startRadius"  value= "10" type="String"/>
+		<parameter name="endRadius"  value= "15" type="String"/>
+		<parameter name="strokeColor"  value= "#000000" type="String"/>
+		<parameter name="strokeWidth"  value= "2" type="String"/>
+	
+		<parameter name="imageIcon"  value= "true" type="String"/>
+		<parameter name="imageIconURL"  value= "marker-icon.png" type="String"/>
+		<parameter name="customIcon"  value= "false" type="String"/>
+		<parameter name="customIconOpacity"  value= ".6" type="String"/>
+		
+		<parameter name="heatMeasure"  value= "-1" type="String"/>
+		<parameter name="heatMapStatus"  value= "false" type="String"/>
+		
+		<parameter name="heatMeasureLow"  value= "#ffffff" type="String"/>
+		<parameter name="heatMeasureMedium"  value= "#FFFF00" type="String"/>
+		<parameter name="heatMeasureHigh"  value= "#ADFF2F" type="String"/>
+	</parameters>
+    <snippet>
+		<![CDATA[
+			var id = hi_container.get("renderId");
+			
+			if(id== ""){
+				var containerId="#main"+id;
+				var chartId="#chart"+id;
+			}
+			else{
+				
+				var containerId="#main-"+id;
+				var chartId="#chart-"+id;
+			}
+			var ftnObj={};	
+			
+			ftnObj['setMapCustomization'+id]= function(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = mapCustomization(viz_Options);
+				c.set("viz_Options",viz_Options);
+			};
+			
+			ftnObj['extendsetMapCustomization'+id]= function(preExecution,c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = mapCustomization(viz_Options);
+			};
+					
+			ftnObj['addEvents'+id]= function (){
+				var mapObj = Hdi.hiChart.chartObject().map;
+				var markersOnMap=Hdi.hiChart.chartObject().allMarkersArr;
+				
+				mapObj.on('click', onMapClick);
+				
+				for(var i=0;i<markersOnMap.length;i++){
+					markersOnMap[i].on('click', onMarkerClick);
+					
+				}
+		
+			};
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setMapCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution",ftnObj['extendsetMapCustomization'+id]);
+			}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['addEvents'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['addEvents'+id]);
+			}
+			
+			
+			
+			function mapCustomization(viz_Options){
+				viz_Options.chartOptions['marker'] ={"color" : "${markerColor}"};
+				
+				viz_Options.chartOptions.marker["types"] ={"circle":{"startRadius": parseInt("${startRadius}")}};
+				viz_Options.chartOptions.marker.types.circle.endRadius= parseInt("${endRadius}");
+				viz_Options.chartOptions.marker.types.circle.strokeColor="${strokeColor}";	
+				viz_Options.chartOptions.marker.types.circle.strokeWidth= parseInt("${strokeWidth}");	
+				viz_Options.chartOptions["toUseMeasure"]={"forColor" : "${markerColorMeasure}" };	
+				viz_Options.chartOptions.toUseMeasure.forRadius = "${markerRadiusMeasure}" ;
+				
+				
+				viz_Options.chartOptions.heatMapStatus = "${heatMapStatus}" ;	
+				viz_Options.chartOptions.customIcon = "${customIcon}" ;	
+				viz_Options.chartOptions.imageIcon = "${imageIcon}" ;		
+				viz_Options.chartOptions.customIconOpacity = "${customIconOpacity}" ;
+				
+				viz_Options.chartOptions.colorDimension = "${colorDimension}" ;
+				viz_Options.chartOptions.iconDimension = "${iconDimension}" ;
+				
+				viz_Options.chartOptions.toUseMeasure.heatMeasure = "${heatMeasure}" ;	
+				
+				viz_Options.chartOptions.heatMeasureLow = "${heatMeasureLow}" ;		
+				viz_Options.chartOptions.heatMeasureMedium = "${heatMeasureMedium}" ;		
+				viz_Options.chartOptions.heatMeasureHigh = "${heatMeasureHigh}" ;		
+				viz_Options.chartOptions.imageIconURL = "${imageIconURL}" ;		
+				viz_Options.chartOptions.radiusReverse = "${radiusReverse}" ;		
+				viz_Options.chartOptions.colorReverse = "${colorReverse}" ;		
+				
+				
+				return viz_Options;
+				
+			}
+			
+			function onMarkerClick(e) {
+				var popupOnClick = e.target._popup;
+			
+				//When you have the popup you can use the getContent method of L.Popup:
+				var popUpContent = popupOnClick.getContent();
+				
+				$(popUpContent.rows).each(function() {
+					var key =$(this).find("td.key")[0].textContent;
+					var value = $(this).find("td.value")[0].textContent;
+
+					parent.Dashboard.setVariable(key,value);
+					Dashboard.setVariable(key,value);
+				});
+			}
+			
+			
+			function onMapClick(e) {
+			
+			
+			
+			}
+			
+			
+			
+		]]>
+	</snippet>
+
+	  <uiSnippet>
+		<![CDATA[
+			<style>
+				.no-pad{
+					padding:0px!important;
+				}
+				.smallPad{
+					padding:2px!important;
+				}
+				
+				 .input{
+					  border:1px solid #ccc;
+					  background:#efefef;
+					  padding:10px;
+					  font-size: 14px;
+					  border-radius:3px;
+					  outline: none;
+					}
+					.input:focus{
+					  border-color:#4598ff;
+					}
+					
+			</style>
+			
+				<div class="col-sm-12 col-md-12 col-xs-12">
+					<div class="col-sm-12 col-md-12 col-xs-12 form-group "> 
+						<div class="col-sm-12 col-md-12 col-xs-12 "> 
+							<label style="font-weight:bold;" for="heatMap" class="col-sm-3 col-md-3 col-xs-6 control-label">Heat Map :</label>
+								<div class="col-sm-3 col-md-3 col-xs-6" style="">
+									<input style="width:30%;" type="checkbox" class="" id="heatMapChk" name="heatMapChk" onchange="setHeatMapStatus(this)">
+								</div>
+								
+								<label id="heatLabel" for="heatMeasure" class="col-sm-3 col-md-3 col-xs-6 control-label">For Color</label>
+								
+								<div id="heatmeasureDiv" class="col-sm-3 col-md-3 col-xs-6 form-group form-horizontal">
+									<select id="heatMeasure" class="col-sm-3 col-md-3 col-xs-6 form-control" onchange="setHeatMeasure(this)"></select>
+									<span><code style="padding: 1px 4px;">column</code></span>
+									
+								</div>
+							
+						  </div>
+					</div> 
+				</div>
+				
+				<div class="col-sm-12 col-md-12 col-xs-12 form-horizontal">
+						<div class="col-sm-12 col-md-12 col-xs-12 heatMapColors form-group ">
+							<div class="col-sm-4 col-md-4 col-xs-6">
+								<label for="heatMeasureLow" class="col-sm-6 col-md-6 col-xs-12 control-label">Low</label>
+								<!--<input type="text" class="col-sm-6 col-md-6 col-xs-12 form-control" id="heatMeasureLow" name="heatMeasureLow" onchange="setHeatMeasureLow(this)">-->
+								<div type="text" class="col-sm-6 col-md-6 col-xs-12" id="heatMeasureLow" name="heatMeasureLow"></div>
+							</div>
+							
+							<div class="col-sm-4 col-md-4 col-xs-6">
+								<label for="heatMeasureMedium" class="col-sm-6 col-md-6 col-xs-12 control-label">Medium</label>
+								<!--<input type="text" class="col-sm-6 col-md-6 col-xs-12 form-control" id="heatMeasureMedium" name="heatMeasureMedium" onchange="setHeatMeasureMedium(this)">
+								-->
+								<div type="text" class="col-sm-6 col-md-6 col-xs-12" id="heatMeasureMedium" name="heatMeasureMedium"></div>
+							</div>
+							
+							
+							<div class="col-sm-4 col-md-4 col-xs-6">
+								<label for="heatMeasureHigh" class="col-sm-6 col-md-6 col-xs-12 control-label">High</label>
+								<!--<input type="text" class="col-sm-6 col-md-6 col-xs-12 form-control" id="heatMeasureHigh" name="heatMeasureHigh" onchange="setHeatMeasureHigh(this)">-->
+								<div type="text" class="col-sm-6 col-md-6 col-xs-12" id="heatMeasureHigh" name="heatMeasureHigh"></div>
+							</div>
+						</div>
+				</div>		
+			
+			<div class="col-sm-12 col-md-12 col-xs-12" style="padding-top:10px;" id='markerConfigDiv'>
+			
+				   <div class="col-sm-12 col-md-12 col-xs-12">
+							<div class="col-sm-12 col-md-12 col-xs-12">
+								<label style="font-weight:bold;" for="markerType" class="col-sm-4 col-md-4 col-xs-4 control-label">Marker Options :</label>
+								<div class="col-sm-4 col-md-4 col-xs-4">
+									<input type="checkbox" class="" id="imageIcon" name="imageIcon" onchange="setImageIcon(this)"/>
+									<label style="font-weight:bold;" for="imageIcon" class="control-label">Image</label>
+								</div>
+								<div class="col-sm-4 col-md-4 col-xs-4">
+									<input type="checkbox" class="" id="customIcon" name="customIcon" onchange="customIcon(this)"/>
+									<label style="font-weight:bold;" for="customIcon" class="control-label">Icons</label>
+								</div>
+								
+							</div>
+					 </div>	
+					
+					<div class="col-sm-12 col-md-12 col-xs-12" id='iconImagesDiv'>
+						<form>
+							<div style="border:1px solid #ccc;border-radius:4px;" class="col-sm-12 col-md-12 col-xs-12">
+							    <div class="col-sm-6 col-md-6 col-xs-12">
+									<input id="defaultMarkerImageIcon" name="markerImageIcon" type="radio" imgPath ="marker-icon.png" class="col-sm-2 col-md-2 col-xs-2 markerImageIcon" onchange="setMarkerImageIcon(this)"/> 
+									<img id="defaultIcon" imgPath ="marker-icon.png" alt="defaultIcon" width="30px" height="30px" >
+								</div>
+								<div class="col-sm-6 col-md-6 col-xs-12">
+									<input type="radio" name="markerImageIcon" imgPath ="starIcon.png" class="col-sm-2 col-md-2 col-xs-2 markerImageIcon" onchange="setMarkerImageIcon(this)" /> 
+									<img id="starIcon" imgPath ="starIcon.png" alt="starIcon" width="30px" height="30px" >
+								</div>
+							</div>
+						</form>		
+					 </div>	
+								
+				<div style="border:1px solid #ccc;border-radius:4px;" style="margin-top:2%;" class="col-sm-12 col-md-12 col-xs-12" id="circleMarkerConfigDiv">
+						<div class="form-horizontal col-sm-12 col-md-12 col-xs-12 ">
+								<div style="margin-top:5px;" class="col-sm-12 col-md-12 col-xs-12">
+										<div class=" no-pad form-group  col-sm-12 col-md-12 col-xs-12">
+											<label style="" for="colorDimension" class="col-sm-4 col-md-4 col-xs-10 control-label">For Color:</label>
+											<div class="no-pad col-sm-4 col-md-4 col-xs-10">
+												<select id="colorDimension" class="form-control" onchange="setColorDimension(this)">	
+												</select>
+												<span><code style="padding: 1px 4px;">column</code></span>
+											</div>
+											<div class="col-sm-4 col-md-4 col-xs-2">
+											<button style="background:#3c8bca;color:#ffffff;" id ="colorEditBttn" class="btn btn-default btn-sm"> <i class="fa fa-pencil-square-o"></i></button>
+											</div>
+										</div>
+										<div style="margin-left:0px!important;margin-right:0px!important;margin-bottom: 5px!important;" class="col-sm-12 col-md-12 col-xs-12">
+										
+												<div style="background: #e2f2fb;padding:5px;border:1px solid #ccc; border-radius:4px;" class="col-sm-12 col-md-12 col-xs-12 colorEditDiv">
+													<div style="vertical-align:middle;" class="no-pad col-sm-6 col-md-6 col-xs-12">
+													
+														<div class="no-pad col-sm-8 col-md-8 col-xs-12 ">
+														   <label class="no-pad col-sm-6 col-md-6 col-xs-12 " style=""> DOT Color</label>
+															<div type="text" class="col-sm-6 col-md-6 col-xs-12 " id="markerColor" name="markerColor"></div>
+															
+															<span><code style="padding: 1px 4px;">For Gradient On Measure Values</code></span>
+														</div>	
+														<input style="" type="checkbox" class="col-sm-2 col-md-2 col-xs-6 " id="colorReverse" name="colorReverse" onchange="colorReverse(this)"/>
+														<label for="colorReverse" style="" class="no-pad col-sm-2 col-md-2 col-xs-6 "> Reverse </label>
+													</div>
+													
+													<div style="vertical-align:middle;" class="no-pad col-sm-6 col-md-6 col-xs-12">
+														<div  style="" class="no-pad col-sm-12 col-md-12 col-xs-12">
+															<label for="strokeColor" class=" no-pad col-sm-6 col-md-6 col-xs-12 control-label">Stroke</label>
+															<div type="text" class="col-sm-6 col-md-6 col-xs-12" id="strokeColor"></div>
+														</div>
+													</div>
+												</div>
+										</div>
+									</div>	
+									
+								<div class="col-sm-12 col-md-12 col-xs-12">
+										<div  class="form-group  form-horizontal no-pad col-sm-12 col-md-12 col-xs-12 ">
+										
+												<label for="radiusMeasure" class="col-sm-2 col-md-2 col-xs-10 control-label" style="padding-left:0px !important;">For Size: </label>
+												<div class="no-pad col-sm-3 col-md-3 col-xs-10">
+													<select id="radiusMeasure" class="form-control" onchange="setRadiusMeasure(this)">	</select>
+													<span><code style="padding: 1px 4px;">column</code></span>
+												</div>
+												
+												<label for="iconDimension" class="col-sm-2 col-md-2 col-xs-10 control-label" style="padding-left:0px !important;">For Icon: </label>
+												
+												<div class="no-pad col-sm-3 col-md-3 col-xs-10">
+												<select id="iconDimension" class="form-control" onchange="setIconDimension(this)">	
+												</select>
+												<span><code style="padding: 1px 4px;">column</code></span>
+												</div>
+												
+												<div class="col-sm-2 col-md-2 col-xs-2">
+													<button style="background:#3c8bca;color:#ffffff;" id ="sizeEditBttn" class="btn btn-default btn-sm"> <i class="fa fa-pencil-square-o"></i></button>
+												</div>
+										</div>
+										<div style="margin-left:0px!important;margin-right:0px!important;background: #e2f2fb;padding:5px;border:1px solid #ccc; border-radius:4px;" class="col-sm-12 col-md-12 col-xs-12  sizeEditDiv">
+												<div style="" class="no-pad col-sm-12 col-md-12 col-xs-12 ">
+													<div class="col-sm-12 col-md-12 col-xs-12" style="margin-top: 5px;">
+														<div class="no-pad col-sm-4 col-md-4 col-xs-12">
+															<label for="startRadius" class="no-pad col-sm-6 col-md-6 col-xs-12">Smallest: </label>
+															
+																<!--	<select id="startRadius" class="col-sm-6 col-md-6 col-xs-12" onchange="setStartRadius(this)"></select> -->
+																
+															<input type="number" min="1" id="startRadius" class="col-sm-6 col-md-6 col-xs-12" onchange="setStartRadius(this)" />
+															<span><code style="padding: 1px 4px;">size</code></span>
+														</div>
+														
+														<div class="no-pad col-sm-4 col-md-4 col-xs-12">
+															<label for="endRadius" class="col-sm-6 col-md-6 col-xs-12 ">Largest:</label>
+															<!--<select id="endRadius" class="form-control" onchange="setEndRadius(this)"></select> -->
+															<input min="" type="number" name="endRadius" id="endRadius" class="col-sm-6 col-md-6 col-xs-12" onchange="setEndRadius(this)" />
+															<span><code style="padding: 1px 4px;">size</code></span>
+														</div>
+														
+														<div style="text-align:center;" class="no-pad col-sm-4 col-md-4 col-xs-12">
+															
+															<input type="checkbox" class="col-sm-6 col-md-6 col-xs-12" id="radiusReverse" name="radiusReverse" onchange="radiusReverse(this)"/>
+															<label for="radiusReverse" class="col-sm-6 col-md-6 col-xs-12"> Reverse</label>
+															<span><code style="padding: 1px 4px;">SizeGradient</code></span>
+														</div>
+													</div>
+													
+													
+												</div>	
+												<div class="no-pad col-sm-12 col-md-12 col-xs-12 " style="margin-top:5px;">	
+														<div style="text-align:center;" class="no-pad col-sm-6 col-md-6 col-xs-12">
+															<label for="strokeWidth" style="" class="no-pad col-sm-6 col-md-6 col-xs-12">Stroke Width</label> 
+															
+															<input min="0" type="number" id="strokeWidth" class="col-sm-6 col-md-6 col-xs-12" onchange="setStrokeWidth(this)" />
+														</div>
+														<div style="text-align:center;" class="col-sm-6 col-md-6 col-xs-12">
+															<label for="customIconOpacity" style="text-align:center;" class="col-sm-6 col-md-6 col-xs-12">Opacity</label>
+															<select id="customIconOpacity" class="col-sm-6 col-md-6 col-xs-12" onchange="setCustomIconOpacity(this)"></select>
+														</div>
+														
+												</div>
+										</div>
+									</div>	
+							   </div>
+						</div>
+						
+						
+					</div>
+			
+		     </div>
+			 
+			 
+		<!--	  <div class="col-md-12 col-sm-12">
+				<input class="icp demo" value="fa-anchor" type="text">
+			  </div> -->
+
+			
+
+		
+		<script>
+		
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("markerColor",params.markerColor);
+				adhocScripts.setVariable("markerColorMeasure",params.markerColorMeasure);
+				adhocScripts.setVariable("markerRadiusMeasure",params.markerRadiusMeasure);
+				
+				adhocScripts.setVariable("colorDimension",params.colorDimension);
+				adhocScripts.setVariable("iconDimension",params.iconDimension);
+				adhocScripts.setVariable("colorReverse",params.colorReverse);
+				adhocScripts.setVariable("radiusReverse",params.radiusReverse);
+				adhocScripts.setVariable("startRadius",params.startRadius);
+				adhocScripts.setVariable("endRadius",params.endRadius);
+				adhocScripts.setVariable("strokeColor",params.strokeColor);
+				adhocScripts.setVariable("strokeWidth",params.strokeWidth);
+				adhocScripts.setVariable("heatMapStatus",params.heatMapStatus);
+				adhocScripts.setVariable("heatMeasure",params.heatMeasure);
+				adhocScripts.setVariable("imageIcon",params.imageIcon);
+				adhocScripts.setVariable("customIcon",params.customIcon);
+				adhocScripts.setVariable("customIconOpacity",params.customIconOpacity);
+				
+				adhocScripts.setVariable("heatMeasureLow",params.heatMeasureLow);
+				adhocScripts.setVariable("heatMeasureMedium",params.heatMeasureMedium);
+				adhocScripts.setVariable("heatMeasureHigh",params.heatMeasureHigh);
+				
+				adhocScripts.setVariable("imageIconURL",params.imageIconURL);
+				
+				
+				document.getElementById('defaultIcon').src = window.DashboardGlobals.baseUrl
+				+"getExternalResource.html?path=System/Admin/CustomScripts/map/images/marker-icon.png";
+				
+				document.getElementById('starIcon').src = window.DashboardGlobals.baseUrl
+				+"getExternalResource.html?path=System/Admin/CustomScripts/map/images/starIcon.png";
+				
+				//$(".heatMapColors").hide();
+				
+				 $("#iconImagesDiv").hide();
+				 $("#circleMarkerConfigDiv").hide();
+				 $("#heatmeasureDiv").hide();
+				$("#heatLabel").hide();
+				 
+				 checkVariableSetProps();
+				 
+				var opacityArr=[0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1];
+				
+				generateColorSelector("markerColor", "markerColor");
+				generateColorSelector("strokeColor", "strokeColor");
+				generateColorSelector("heatMeasureLow", "heatMeasureLow");
+				generateColorSelector("heatMeasureMedium", "heatMeasureMedium");
+				generateColorSelector("heatMeasureHigh", "heatMeasureHigh");
+				
+				var  $endRadius= document.getElementById("endRadius");
+				
+				var measureColumnNames=[];
+				var dimensionColumnNames=[];
+    
+				for(var j=1;j<=Object.keys(window.frames[0].__hi_result.metadata[0]).length;j++)
+				{
+					if(window.frames[0].__hi_result.metadata[0][j].type == 'numeric'){
+						measureColumnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+					}
+					
+					if(window.frames[0].__hi_result.metadata[0][j].type == 'text'){
+						dimensionColumnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+					}
+				}
+				//console.log(window.frames[0].__hi_result);
+				//console.log(measureColumnNames);
+				
+			/*	  var option = document.createElement("option");
+				   option.setAttribute("value","-1");
+				   option.text = "--Select--";
+				   option.name = "select";
+				   document.getElementById("colorMeasure").appendChild(option);*/
+				   
+				  var option = document.createElement("option");
+				   option.setAttribute("value","-1");
+				   option.text = "--Select--";
+				   option.name = "select";
+				   document.getElementById("radiusMeasure").appendChild(option); 
+				   
+				   var option = document.createElement("option");
+				   option.setAttribute("value","-1");
+				   option.text = "--Select--";
+				   option.name = "select";
+				   document.getElementById("heatMeasure").appendChild(option);
+
+				   var option = document.createElement("option");
+				   option.setAttribute("value","-1");
+				   option.text = "--Select--";
+				   option.name = "select";
+				   document.getElementById("colorDimension").appendChild(option);
+
+				   var option = document.createElement("option");
+				   option.setAttribute("value","-1");
+				   option.text = "--Select--";
+				   option.name = "select";
+				   document.getElementById("iconDimension").appendChild(option);
+				
+				 for(i=0;i<measureColumnNames.length;i++)
+				 {		 
+				/*   var option = document.createElement("option");
+				   option.setAttribute("value",measureColumnNames[i]);
+				   option.text = measureColumnNames[i];
+				   option.name = measureColumnNames[i];
+				   document.getElementById("colorMeasure").appendChild(option);*/
+				   
+				   var option = document.createElement("option");
+				   option.setAttribute("value",measureColumnNames[i]);
+				   option.text = measureColumnNames[i];
+				   option.name = measureColumnNames[i];
+				   document.getElementById("radiusMeasure").appendChild(option); 
+				   
+				   var option = document.createElement("option");
+				   option.setAttribute("value",measureColumnNames[i]);
+				   option.text = measureColumnNames[i];
+				   option.name = measureColumnNames[i];
+				   document.getElementById("heatMeasure").appendChild(option); 
+				   
+				   var option = document.createElement("option");
+				   option.setAttribute("value",measureColumnNames[i]);
+				   option.text = measureColumnNames[i];
+				   option.name = measureColumnNames[i];
+				   document.getElementById("colorDimension").appendChild(option);
+				   
+				  
+				}
+				
+				
+				for(i=0;i<dimensionColumnNames.length;i++){
+					
+					var option = document.createElement("option");
+				   option.setAttribute("value",dimensionColumnNames[i]);
+				   option.text = dimensionColumnNames[i];
+				   option.name = dimensionColumnNames[i];
+				   document.getElementById("iconDimension").appendChild(option);
+				   
+				   var option = document.createElement("option");
+				   option.setAttribute("value",dimensionColumnNames[i]);
+				   option.text = dimensionColumnNames[i];
+				   option.name = dimensionColumnNames[i];
+				   document.getElementById("colorDimension").appendChild(option);
+					
+					
+				}
+				
+			//	$("#colorMeasure").val(adhocScripts.getVariable("markerColorMeasure"));
+				$("#iconDimension").val(adhocScripts.getVariable("iconDimension"));
+				$("#colorDimension").val(adhocScripts.getVariable("colorDimension"));
+				
+				$("#radiusMeasure").val(adhocScripts.getVariable("markerRadiusMeasure"));
+				
+				$("#heatMeasure").val(adhocScripts.getVariable("heatMeasure"));
+				
+				 for(var i=1;i<30;i++)
+				 {		 
+				   var option = document.createElement("option");
+				   option.setAttribute("value",i);
+				   option.text = i;
+				   option.name = i;
+				   document.getElementById("startRadius").appendChild(option); 
+				 }
+				 
+				 $("#startRadius").val(parseInt(adhocScripts.getVariable("startRadius")));
+				 
+				 
+				 
+				 toGetEndValues(parseInt(adhocScripts.getVariable("startRadius")));
+				 
+				 
+				 
+				 $("#endRadius").val(parseInt(adhocScripts.getVariable("endRadius")));
+				 
+				 $endRadius.setAttribute("min", parseInt(adhocScripts.getVariable("startRadius")));
+				 
+				
+				 
+				/* for(var i=0;i<30;i++)
+				 {		 
+				   var option = document.createElement("option");
+				   option.setAttribute("value",i);
+				   option.text = i;
+				   option.name = i;
+				   document.getElementById("strokeWidth").appendChild(option); 
+				 } */
+				 
+				// for(var i=0;i<1;)
+				// {
+					
+				var i=0;					
+				while(i<opacityArr.length){
+								
+					   var option = document.createElement("option");
+					   option.setAttribute("value",opacityArr[i]);
+					   option.text = opacityArr[i];
+					   option.name = opacityArr[i];
+					   document.getElementById("customIconOpacity").appendChild(option); 
+						i++;
+				}
+			       
+				// }
+				 
+				  $("#strokeWidth").val(parseInt(adhocScripts.getVariable("strokeWidth")));
+				  $("#strokeColor").val(adhocScripts.getVariable("strokeColor"));
+				  
+				  $("#heatMeasureLow").val(adhocScripts.getVariable("heatMeasureLow"));
+				  $("#heatMeasureMedium").val(adhocScripts.getVariable("heatMeasureMedium"));
+				  $("#heatMeasureHigh").val(adhocScripts.getVariable("heatMeasureHigh"));
+				  
+				  
+				  $("#customIconOpacity").val(parseFloat(adhocScripts.getVariable("customIconOpacity")));
+				
+				
+				function setColorMeasure(e){
+					//console.log("setColorMeasure");
+					//console.log(e.value);
+					adhocScripts.setVariable("markerColorMeasure",e.value);
+					
+				}
+				
+				function setRadiusMeasure(e){
+					//console.log("setRadiusMeasure");
+					//console.log(e.value);
+					adhocScripts.setVariable("markerRadiusMeasure",e.value);
+					
+				}
+					
+				function setColorDimension(e){
+					//console.log("setColorMeasure");
+					//console.log(e.value);
+					adhocScripts.setVariable("colorDimension",e.value);
+					
+				}
+				
+				function setIconDimension(e){
+					//console.log("setRadiusMeasure");
+					//console.log(e.value);
+					adhocScripts.setVariable("iconDimension",e.value);
+					
+				}
+				
+				function setStartRadius(e){
+					
+					adhocScripts.setVariable("startRadius",e.value);
+					
+					toGetEndValues(parseInt(e.value));
+					
+					adhocScripts.setVariable("endRadius",parseInt(e.value)+5);
+					$("#endRadius").val(parseInt(adhocScripts.getVariable("endRadius")));
+				//	$("#endRadius").attr("min",parseInt(adhocScripts.getVariable("startRadius")));
+					$endRadius.setAttribute("min", parseInt(adhocScripts.getVariable("startRadius")));
+						
+				}
+				
+				function toGetEndValues(startValue){
+					$('#endRadius')
+					.find('option')
+					.remove()
+					.end();
+									
+					 for(var i=startValue; i<(startValue+31); i++)
+						{		 
+						   var option = document.createElement("option");
+						   option.setAttribute("value",i);
+						   option.text = i;
+						   option.name = i;
+						   document.getElementById("endRadius").appendChild(option); 
+						}
+					
+					$endRadius.setAttribute("min", parseInt(adhocScripts.getVariable("startRadius")));
+						
+				}
+				
+				
+				function setEndRadius(e){
+					//console.log("setEndRadius");
+					adhocScripts.setVariable("endRadius",e.value);
+				}
+				
+				function setMarkerColor(e){
+					//console.log("setMarkerColor");
+					adhocScripts.setVariable("markerColor",e.value);
+				}
+				
+				function setStrokeColor(e){
+					//console.log("setStrokeColor");
+					adhocScripts.setVariable("strokeColor",e.value);
+				}
+				
+				function setStrokeWidth(e){
+					//console.log("setStrokeWidth");
+					adhocScripts.setVariable("strokeWidth",e.value);
+				}
+				
+				
+				function setHeatMapStatus(e){
+					
+					//console.log("setHeatMapStatus");
+					if($(e).prop("checked") == true){
+						
+						$("#markerConfigDiv").hide();
+						adhocScripts.setVariable("heatMapStatus","true");
+						
+						adhocScripts.setVariable("customIcon","false");
+						adhocScripts.setVariable("imageIcon","false");
+						
+						$("#circleMarkerConfigDiv").hide();
+						$("#iconImagesDiv").hide();
+						$(".heatMapColors").show();
+						$("#heatmeasureDiv").show();
+						$("#heatLabel").show();
+						
+						$('input[id="customIcon"]').prop('checked', false);
+						$('input[id="imageIcon"]').prop('checked', false);
+					}
+					else if($(e).prop("checked") == false){
+						
+						$("#markerConfigDiv").show();
+						
+						adhocScripts.setVariable("heatMapStatus","false");
+						
+						adhocScripts.setVariable("customIcon","false");
+						adhocScripts.setVariable("imageIcon","true");
+						
+						$("#circleMarkerConfigDiv").hide();
+						$("#iconImagesDiv").show();
+						$(".heatMapColors").hide();
+						$("#heatmeasureDiv").hide();
+						$("#heatLabel").hide();
+						
+						$('input[id="customIcon"]').prop('checked', false);
+						$('input[id="imageIcon"]').prop('checked', true);
+						
+					}
+					
+				}
+				
+				
+				function setImageIcon(e){
+					
+					//console.log("imageIcon");
+					
+					if($(e).prop("checked") == true){
+						
+						$("#iconImagesDiv").show();
+						adhocScripts.setVariable("imageIcon","true");
+						
+						$('input[id="customIcon"]').prop('checked', false);
+						adhocScripts.setVariable("customIcon","false");
+						$("#circleMarkerConfigDiv").hide();
+						
+					}
+					else if($(e).prop("checked") == false){
+						
+						$("#iconImagesDiv").hide();
+						adhocScripts.setVariable("imageIcon","false");
+						
+						$('input[id="customIcon"]').prop('checked', true);
+						adhocScripts.setVariable("customIcon","true");
+						$("#circleMarkerConfigDiv").show();
+						
+						
+					}
+					
+				}
+				
+				  var  $imageIcons= $('input[name="markerImageIcon"]');
+				
+				function setMarkerImageIcon(e){
+					$imageIcons.each(function(i,val){
+						val.setAttribute('checked', false);
+					});
+						  
+					if($(e).prop("checked") == true){
+						adhocScripts.setVariable("imageIconURL",$(e).attr("imgPath"));
+					}
+					
+					else if($(e).prop("checked") == false){
+						adhocScripts.setVariable("imageIconURL","marker-icon.png");
+					}
+				}
+				
+				
+				
+				function customIcon(e){
+					if($(e).prop("checked") == true){
+						adhocScripts.setVariable("customIcon","true");
+						$("#circleMarkerConfigDiv").show();
+						
+						$("#iconImagesDiv").hide();
+						adhocScripts.setVariable("imageIcon","false");
+						$('input[id="imageIcon"]').prop('checked', false);
+					}
+					else if($(e).prop("checked") == false){
+						
+						adhocScripts.setVariable("customIcon","false");
+						$("#circleMarkerConfigDiv").hide();
+						
+						$("#iconImagesDiv").show();
+						adhocScripts.setVariable("imageIcon","true");
+						$('input[id="imageIcon"]').prop('checked', true);
+						
+						
+					}
+					
+				}
+				
+				
+				function colorReverse(e){
+					
+					//console.log("customIcon");
+					
+					if($(e).prop("checked") == true){
+						
+						adhocScripts.setVariable("colorReverse","true");
+					}
+					else if($(e).prop("checked") == false){
+						
+						adhocScripts.setVariable("colorReverse","false");
+					}
+					
+				}
+				
+				function radiusReverse(e){
+					
+					//console.log("customIcon");
+					
+					if($(e).prop("checked") == true){
+						
+						adhocScripts.setVariable("radiusReverse","true");
+					}
+					else if($(e).prop("checked") == false){
+						
+						adhocScripts.setVariable("radiusReverse","false");
+					}
+					
+				}
+				
+				
+				
+				function checkVariableSetProps(){
+					if(adhocScripts.getVariable("heatMapStatus") == "true"){
+						
+						$('input[id="heatMapChk"]').prop('checked', true);
+						$("#markerConfigDiv").hide();
+						$(".heatMapColors").show();
+						$("#heatmeasureDiv").show();
+						$("#heatLabel").show();
+						
+					}
+					else if(adhocScripts.getVariable("heatMapStatus") == "false"){
+						
+						$('input[id="heatMapChk"]').prop('checked', false);
+						$("#markerConfigDiv").show();
+						$(".heatMapColors").hide();
+						$("#heatmeasureDiv").hide();
+						$("#heatLabel").hide();
+						
+					}
+					
+					if(adhocScripts.getVariable("imageIcon") == "true"){
+						$('input[id="imageIcon"]').prop('checked', true);
+						$("#iconImagesDiv").show();
+					}
+					
+					if(adhocScripts.getVariable("customIcon") == "true"){
+						
+						$('input[id="customIcon"]').prop('checked', true);
+						$("#circleMarkerConfigDiv").show();
+						
+					}
+					if(adhocScripts.getVariable("radiusReverse") == "true"){
+						
+						$('input[id="radiusReverse"]').prop('checked', true);
+					}
+					else if(adhocScripts.getVariable("radiusReverse") == "false"){
+						
+						$('input[id="radiusReverse"]').prop('checked', false);
+						
+					}
+					
+					if(adhocScripts.getVariable("colorReverse") == "true"){
+						
+						$('input[id="colorReverse"]').prop('checked', true);
+					}
+					else if(adhocScripts.getVariable("colorReverse") == "false"){
+						
+						$('input[id="colorReverse"]').prop('checked', false);
+						
+					}
+					
+					
+				}
+				
+				function setHeatMeasure(e){
+					
+					adhocScripts.setVariable("heatMeasure",e.value);
+					
+				}	
+				
+				function setCustomIconOpacity(e){
+					
+					adhocScripts.setVariable("customIconOpacity",e.value);
+					
+				}
+				
+				function setHeatMeasureLow(e){
+					
+					adhocScripts.setVariable("heatMeasureLow",e.value);
+					
+				}
+				
+				function setHeatMeasureMedium(e){
+					//console.log(e.value);
+					
+					adhocScripts.setVariable("heatMeasureMedium",e.value);
+					
+				}
+				
+				function setHeatMeasureHigh(e){
+					
+					adhocScripts.setVariable("heatMeasureHigh",e.value);
+					
+				}
+
+				function generateColorSelector(id, variable){
+					//console.log(variable);
+					HDIUI.renderColorPicker({
+						id:id,
+						color:adhocScripts.getVariable(variable),
+						change:function(color){	
+						var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+							adhocScripts.setVariable(variable, rgbaCode);
+						}
+					});
+				};
+				
+				$imageIcons.each(function(i,val){
+					 
+					 	if(adhocScripts.getVariable("imageIconURL") == val.getAttribute("imgPath")){
+							//console.log(val.getAttribute("imgPath"));
+							val.setAttribute('checked', true);
+						} 
+					  });
+					  
+			$( ".colorEditDiv" ).hide();			
+			$( ".sizeEditDiv" ).hide();			
+					  
+			$( "#colorEditBttn" ).click(function() {
+				$( ".colorEditDiv" ).toggle();
+			});
+			
+			$( "#sizeEditBttn" ).click(function() {
+				$( ".sizeEditDiv" ).toggle();
+			});
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

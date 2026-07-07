@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<efwProject version="7.0.0 GA">
+
+    <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
+    -->
+    <efwSolution>${INSTALL_PATH}${FILE_SEPARATOR}hi-repository</efwSolution>
+    <BaseUrl>http://localhost:${portnumber}/${contextname}/hi.html</BaseUrl>
+
+    <!--change the defaultBaseurl to false when the BaseUrl is different then the server address -->
+    <defaultBaseurl>true</defaultBaseurl>
+    <autoSyncCutPasteDesigner>true</autoSyncCutPasteDesigner>
+    <serviceSpeedLimitAlert>15000</serviceSpeedLimitAlert>
+    <!-- The framework related files with extensions and configurable rules -->
+    <Extentions>
+        <!-- Only efw, efwsr, efwfav, efwresult, metadata, report, efwdd files are shown in the file browser -->
+        <efw rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWRule" visible="false">efw</efw>
+        <!-- Existing rdf files wont work. Using same extension as key -->
+        <efwsr rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">efwsr</efwsr>
+        <efwd>efwd</efwd>
+        <efwvf>efwvf</efwvf>
+        <efwfav rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="false">fav</efwfav>
+
+        <efwExport>crt</efwExport>
+        <efwresult rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="false">result</efwresult>
+        <hwfd>hwfd</hwfd>
+        <hcr rule="com.helicalinsight.efw.resourceloader.rules.impl.HCRRule" visible="true">hcr</hcr>
+        <metadata rule="com.helicalinsight.efw.resourceloader.rules.impl.MetadataRule" visible="true">metadata</metadata>
+        <report rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="true">report</report>
+        <hr rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="true">hr</hr>
+        <efwScript visible="false">script</efwScript>
+        <efwdd rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardDesignerRule" visible="true">efwdd</efwdd>
+        <efwce rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardRule" visible="true">efwce</efwce>
+        <cube rule="com.helicalinsight.efw.resourceloader.rules.impl.CubeRule" visible="true">cube</cube>
+        <instant rule="com.helicalinsight.efw.resourceloader.rules.impl.InstantRule" visible="true">instant</instant>
+        <agent rule="com.helicalinsight.efw.resourceloader.rules.impl.AiAgentRule" visible="true">agent</agent>
+        <hwf visible="true">hwf</hwf>
+        <folder visible="true">
+            <efwFolder rule="com.helicalinsight.efw.resourceloader.rules.impl.IndexFileRuleDB">efwfolder</efwFolder>
+        </folder>
+        <image visible="true" rule="com.helicalinsight.efw.resourceloader.rules.impl.ImageRule">image</image>
+    </Extentions>
+    <!-- Additional xml configurations required for configurable services and global jdbc configurations
+    present in the System/Admin directory -->
+    <adhocReportSchedulingPage>visualizeAdhoc.html</adhocReportSchedulingPage>
+    <recursiveLoading>true</recursiveLoading>
+    <readPluginsBootTime>true</readPluginsBootTime>
+    <enableAdhocDefaultFunctions>true</enableAdhocDefaultFunctions>
+    <!-- Regex for filtering the drivers -->
+    <driverLoadRegexPatterns>.*[Dd]{1}river,org.sqlite.JDBC</driverLoadRegexPatterns>
+    <exculdeRegexFromLoadedClass>.*NonRegisteringDriver,.*com.helicalinsight.*,org.apache.derby.jdbc.InternalDriver,org.apache.derby.jdbc.EmbeddedDriver,org.firebirdsql.jdbc.FirebirdDriver,org.firebirdsql.jdbc.AbstractDriver,org.hsqldb.jdbc.JDBCDriver,oracle.jdbc.driver.OracleDriver,com.sybase.jdbcx.SybDriver,COM.ibm.db2os390.sqlj.jdbc.DB2SQLJDriver,com.ibm.db2.jcc.uw.DB2StoredProcDriver,com.ncr.teradata.TeraDriver,com.mysql.jdbc.NonRegisteringReplicationDriver,com.mysql.jdbc.ReplicationDriver,org.gjt.mm.mysql.Driver,org.apache.calcite.avatica.UnregisteredDriver,org.apache.calcite.jdbc.Driver,org.apache.hadoop.util.ProgramDriver,org.apache.spark.network.shuffle.protocol.mesos.RegisterDriver,org.apache.drill.jdbc.proxy.TracingProxyDriver,org.apache.hadoop.hive.jdbc.HiveDriver,oadd.org.apache.curator.utils.DefaultTracerDriver,oadd.org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock$$SortingLockInternalsDriver,oadd.org.apache.calcite.avatica.remote.Driver,oadd.org.apache.curator.framework.recipes.locks.StandardLockInternalsDriver,oadd.org.apache.calcite.avatica.UnregisteredDriver,oadd.org.apache.commons.dbcp.PoolingDriver,oadd.org.apache.hadoop.util.ProgramDriver,oadd.org.apache.curator.drivers.TracerDriver,oadd.org.apache.curator.framework.recipes.locks.LockInternalsDriver,oadd.org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock\$SortingLockInternalsDriver,cdjd.org.*,com.dremio.jdbc.proxy.TracingProxyDriver,com.amazon.redshift.core.jdbc42.PGJDBC42Driver,com.amazon.dsi.core.interfaces.IDriver,com.amazon.jdbc.jdbc42.JDBC42AbstractDriver,com.amazon.dsi.core.impl.DSIDriver,com.amazon.redshift.core.PGJDBCDriver,com.amazon.jdbc.jdbc41.JDBC41AbstractDriver,com.amazon.jdbc.common.AbstractDriver,com.amazon.redshift.jdbc42.Driver,com.simba.googlebigquery.jdbc.jdbc41.JDBC41AbstractDriver,com.simba.googlebigquery.dsi.core.impl.DSIDriver,com.simba.googlebigquery.googlebigquery.core.BQDriver,com.simba.googlebigquery.jdbc.common.AbstractDriver,com.simba.googlebigquery.jdbc.jdbc42.JDBC42AbstractDriver,com.simba.googlebigquery.jdbc.core.DSDriver,com.simba.googlebigquery.dsi.core.interfaces.IDriver,com.vertica.jdbc.common.AbstractDriver,com.vertica.core.VDriver,com.vertica.dsi.core.impl.DSIDriver,com.vertica.dsi.core.interfaces.IDriver,com.vertica.jdbc.hybrid.HybridAbstractDriver,oracle.xml.parser.v2.PrintDriver ,oracle.xml.parser.v2.oraxslDriver ,oracle.xml.parser.v2.XMLPrintDriver ,oracle.xml.parser.v2.ScalableDOMPrintDriver ,oracle.xml.xslt.XSLSAXPrintDriver,org.apache.spark.deploy.DeployMessages$RequestSubmitDriver,org.apache.spark.deploy.DeployMessages$RequestKillDriver,com.mysql.fabric.jdbc.FabricMySQLDriver,io.prestosql.jdbc.PrestoDriver,com.helicalinsight.shp,org.apache.spark.deploy.DeployMessages\$RequestSubmitDriver,org.apache.spark.deploy.DeployMessages*,com.simba.athena.jdbc.jdbc41.future.JDBC41AbstractDriver,com.simba.athena.jdbc.jdbc42.future.JDBC42AbstractDriver,com.simba.athena.jdbc.core.DSDriver,com.simba.athena.dsi.core.interfaces.IDriver,com.simba.athena.dsi.core.impl.DSIDriver,com.simba.athena.jdbc.jdbc41.JDBC41AbstractDriver,com.simba.athena.jdbc.jdbc42.JDBC42AbstractDriver,com.simba.athena.jdbc.common.AbstractDriver,com.simba.athena.athena.core.AJDriver,com.simba.athena.jdbc42.Driver,org.apache.calcite.avatica.remote.Driver,oadd.org.apache.commons.dbcp2.PoolingDriver,com.databricks.client.jdbc.jdbc42.JDBC42AbstractDriver,com.databricks.client.jdbc.common.AbstractDriver,com.databricks.client.jdbc.core.DSDriver,com.databricks.client.dsi.core.impl.DSIDriver,com.databricks.client.dsi.core.interfaces.IDriver,com.databricks.client.jdbc.jdbc42.future.JDBC42AbstractDriver,com.databricks.client.hivecommon.core.HiveJDBCCommonDriver,com.databricks.client.jdbc.jdbc41.JDBC41AbstractDriver,com.databricks.client.jdbc.jdbc41.future.JDBC41AbstractDriver,com.databricks.client.spark.jdbc.SparkJDBC42Driver,com.databricks.client.spark.core.SparkJDBCDriver,org.openqa.selenium.*,org.apache.spark.deploy.DeployMessages\$RequestKillDriver,com.snowflake.client.jdbc.SnowflakeDriver,io.trino.jdbc.NonRegisteringTrinoDriver,META-INF.versions.9.com.sap.db.jdbc.Driver,org.apache.derby.iapi.jdbc.Driver42,org.apache.derby.iapi.jdbc.InternalDriver</exculdeRegexFromLoadedClass>
+    <!-- To restrict the view to shown both html & server or only server side options-->
+    <provideExportViaHtml>false</provideExportViaHtml>
+    <!-- If the default email resource type is 'url', then server side printing is used to get
+    the report and then email the same. If it is 'adhoc' then the html source is expected.-->
+    <defaultEmailResourceType>url</defaultEmailResourceType>
+    <!-- Query cancellation time in seconds -->
+    <jdbcQueryCancellationTime>3000</jdbcQueryCancellationTime>
+    <import>
+        <xml name="services.xml" type="services"/>
+        <xml name="components.xml" type="components"/>
+        <xml name="globalConnections.xml" type="globalConnections"/>
+    </import>
+    <!-- The following tag is read as string and should be without any attributes-->
+    <enableSavedResult>false</enableSavedResult>
+    <showExperimentalFeatures>false</showExperimentalFeatures>
+    <streamResponse>false</streamResponse>
+    <waitUntilFirstPageLoad>false</waitUntilFirstPageLoad>
+    <!-- 
+	  Controls how many events are grouped together before being sent to the client.
+	  Instead of sending an update for every single page (which can be too frequent),
+	  events are batched and emitted only when this count is reached. 
+	
+	  A value close to 100 is recommended to balance performance and responsiveness,
+	  reducing network overhead while still providing timely progress updates.
+	-->
+    <eventBatchSize>100</eventBatchSize>
+    <sseUpdate>
+        <!-- Strategy :   [default, batch] -->
+        <strategy>batch</strategy>
+        <bufferTimeMillis>100</bufferTimeMillis>
+    </sseUpdate>
+    <hideDefaultLoginButtons>false</hideDefaultLoginButtons>
+    <createNewBackupFile>true</createNewBackupFile>
+    <!--changed the status to false as of now we are using the Generic
+    Worker -->
+    <enableMetadataMultiThreading>false</enableMetadataMultiThreading>
+    <!-- Options for resource security related settings. HDI versions 1.2 and before don't need these properties-->
+    <security mandatory="true">
+        <!-- Support for older resources of type efw. True enables the application to work with old efw resources(resources created for use by HDI version 1.2 or earlier)-->
+        <supportOldVersions>true</supportOldVersions>
+        <!-- The resourceSecurityRule tag is not mandatory. But if provided, should have a class configured available in the classpath. -->
+        <resourceSecurityRule class="com.helicalinsight.resourcesecurity.ResourceSecurityRule" mandatory="false"/>
+        <!-- Resource security based on user/role/organization based -->
+        <!-- This section of configurable rules will be applied by some or all the resources. If the name of the tag is rule, then those rules behaviour will be applied at run time. An array of rules are supported.-->
+        <rules mandatory="false" mode="or">
+            <!-- mode if not provided is considered as and -->
+            <rule class="com.helicalinsight.resourcesecurity.ShareRule"/>
+            <rule class="com.helicalinsight.resourcesecurity.InheritShareRule"/>
+        </rules>
+    </security>
+
+    <AdhocSecurityRules mandatory="false">
+        <rules>
+            <rule class="com.helicalinsight.adhoc.security.Default" level="default"/>
+            <rule class="com.helicalinsight.adhoc.security.Stripped" level="stripped"/>
+            <rule class="com.helicalinsight.adhoc.security.StrictMetadata" level="strict-metadata"/>
+            <rule class="com.helicalinsight.adhoc.security.Strict" level="strict"/>
+            <rule class="com.helicalinsight.adhoc.security.SqlDetect" level="sql-detect"/>
+        </rules>
+    </AdhocSecurityRules>
+
+    <createSeparateDirectoryForEachReportSource>true</createSeparateDirectoryForEachReportSource>
+    <!-- Settings for various operations with rule classes. The following tag has many nodes with some attributes "mandatory='true'". Adding any node to the operations tag should have this attribute.-->
+    <operations>
+        <efw mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWDeleteRule"/>
+        </efw>
+        <efwsr mandatory="true">
+            <delete class="com.helicalinsight.scheduling.EFWSRDeleteRule"/>
+            <import class="com.helicalinsight.efw.io.EFWSRImportRule"/>
+        </efwsr>
+        <efwfav mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWFavouriteDeleteRule"/>
+        </efwfav>
+        <efwresult mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWSavedResultDeleteRule"/>
+        </efwresult>
+        <metadata mandatory="true">
+            <delete class="com.helicalinsight.adhoc.MetadataDeleteRule"/>
+        </metadata>
+        <report mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
+        </report>
+        <efwdd mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
+        </efwdd>
+        <efwce mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.EFWCEDeleteRule"/>
+        </efwce>
+        <hcr mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.HCRDeleteRule"/>
+        </hcr>
+        <hr mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
+        </hr>
+        <image mandatory="true">
+            <delete class="com.helicalinsight.efw.io.delete.FileDeleteRule"/>
+        </image>
+    </operations>
+    <!-- To serve the external resources like css, js, and images from the configured solution directory -->
+    <contents>
+        <type class="com.helicalinsight.efw.externalresources.ExternalResourceReader" name="content.generic">
+            <content name="js" pattern="*.js" responseContent="text/javascript"/>
+            <content name="css" pattern="*.css" responseContent="text/css"/>
+            <content name="html" pattern="*.html" responseContent="text/html"/>
+            <content name="tsv" pattern="*.tsv" responseContent="text/tab-separated-values"/>
+            <content name="json" pattern="*.json" responseContent="application/json"/>
+        </type>
+        <type class="com.helicalinsight.efw.externalresources.ImageReader" name="content.image">
+            <content name="jpg" pattern="*.jpg"/>
+            <content name="jpg" pattern="*.jpeg"/>
+            <content name="gif" pattern="*.gif"/>
+            <content name="png" pattern="*.png"/>
+            <content name="svg" pattern="*.svg"/>
+        </type>
+    </contents>
+
+    <resourcereader class="com.helicalinsight.efw.resourcereader.XMLResourceReader" type="xml"/>
+    <!-- To provide datasource related connections -->
+    <DataSources>
+        <DataSource class="com.helicalinsight.datasource.GlobalJdbcDataSource" classifier="global" name="Managed DataSource" type="global.jdbc" hidden="false"/>
+        <DataSource class="com.helicalinsight.datasource.JDBCDriver" classifier="efwd" name="Plain Jdbc DataSource" type="sql.jdbc"  hidden="false"/>
+        <DataSource class="com.helicalinsight.adhoc.SqlAdhocDriver" classifier="efwd" name="Adhoc DataSource" type="sql.adhoc"  hidden="true"/>
+        <!--DataSource class="com.helicalinsight.datasource.calcite.CalciteAdapter" classifier="efwd" name="Virtual DataSource" type="sql.calcite"  hidden="true"/-->
+        <DataSource class="com.helicalinsight.datasource.ExtJDBCDriver" classifier="efwd" name="Groovy Plain Jdbc DataSource" type="sql.jdbc.groovy"  hidden="false"/>
+        <DataSource class="com.helicalinsight.datasource.GroovyManagedDriver" classifier="efwd" name="Groovy Managed Jdbc DataSource" type="sql.jdbc.groovy.managed"  hidden="false"/>
+    </DataSources>
+    <visualizationTypes>
+        <visualization name="Area" type="EFW-c3" subtype="Area" icon="AreaChart"/>
+        <visualization name="Area Spline" type="EFW-c3" subtype="AreaSpline" icon="AreaSplineChart"/>
+        <visualization name="Area Step" type="EFW-c3" subtype="AreaStep" icon="AreaStepChart"/>
+        <visualization name="Bar" type="EFW-c3" subtype="bar" icon="BarChart"/>
+        <visualization name="Donut" type="EFW-c3" subtype="donut" icon="DonutChart"/>
+        <visualization name="Gauge" type="EFW-c3" subtype="gauge" icon="HICircularGauge"/>
+        <visualization name="Line" type="EFW-c3" subtype="Line" icon="LineChart"/>
+        <visualization name="Pie" type="EFW-c3" subtype="Pie" icon="PieChart"/>
+        <visualization name="Scatter" type="EFW-c3" subtype="Scatter" icon="ScatterChart"/>
+        <visualization name="Spline" type="EFW-c3" subtype="Spline" icon="SplineChart"/>
+        <visualization name="Step" type="EFW-c3" subtype="Step" icon="StepChart"/>
+        <visualization name="Cross Tab" type="EFW-CrossTab" icon="HICrossTable"/>
+        <visualization name="Table" type="EFW-Table" icon="HITable"/>
+        <visualization name="Custom" type="Custom" icon="VF"/>
+    </visualizationTypes>
+    <sqlTypes>
+        <sqlType name="sql"/>
+        <sqlType name="sql.groovy"/>
+        <sqlType name="sql.adhoc"/>
+    </sqlTypes>
+    <parameterTypes>
+        <parameterType name="Collection"/>
+        <parameterType name="Numeric"/>
+        <parameterType name="String"/>
+    </parameterTypes>
+
+    <!-- To render the custom charts -->
+    <Charts>
+        <Chart class="com.helicalinsight.efw.vf.Custom" type="Custom"/>
+        <Chart class="com.helicalinsight.efw.vf.EFWChart" type="EFW-c3"/>
+        <Chart class="com.helicalinsight.efw.vf.EFWCrossTab" type="EFW-crosstab"/>
+        <Chart class="com.helicalinsight.efw.vf.EFWTable" type="EFW-table"/>
+    </Charts>
+    <!-- Hwf related configuration-->
+    <HwfSources>
+        <HwfSource class="com.helicalinsight.hwf.component.input.InputProcess" type="helical.String"/>
+        <HwfSource class="com.helicalinsight.hwf.component.output.OutputProcess" type="com.helicalinsight.print"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ExecuteDbQuery" type="job.executeDbQuery"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ExecuteGroovy" type="job.executeGroovy"/>
+        <HwfSource class="com.helicalinsight.hwf.component.ConditionalComponent" type="job.conditional"/>
+        <HwfSource class="com.helicalinsight.hwf.component.IterativeComponent" type="com.helicalinsight.loop.for"/>
+    </HwfSources>
+    <!-- Consists of information related to the ways of retrieving metadata for different datasource types. The ref node refers to the datasource types.-->
+    <metadataImplementations>
+        <!-- Implementations of IMetadata -->
+        <metadata class="com.helicalinsight.adhoc.metadata.genericdb.GenericDatabaseMetadataProvider" connectionProvider="com.helicalinsight.datasource.DatabaseConnectionFactory" type="db.generic" useDefault="true">
+            <ref type="sql.jdbc"/>
+            <ref type="sql.jdbc.groovy"/>
+            <ref type="sql.jdbc.groovy.managed"/>
+            <ref type="global.jdbc"/>
+            <ref type="nonPooled"/>
+            <ref type="dynamicDataSource"/>
+            <ref type="staticDataSource"/>
+            <ref type="db.noSql" />
+            <ref type="noSqlDataSource" />
+        </metadata>
+        <metadata class="com.helicalinsight.adhoc.metadata.CalciteDatabaseMetadataProvider" connectionProvider="com.helicalinsight.datasource.CalciteConnectionFactory" type="db.calcite" useDefault="true">
+            <ref type="sql.csv"/>
+            <ref type="sql.calcite"/>
+        </metadata>
+    </metadataImplementations>
+    <workflowImplementations>
+        <!-- Implementations of IMetadata -->
+        <metadata class="com.helicalinsight.adhoc.metadata.WorkflowDatabaseMetadataProvider" connectionProvider="com.helicalinsight.datasource.MongoConnectionFactory" type="db.workflow" useDefault="true">
+            <ref type="sql.jdbc"/>
+            <ref type="sql.jdbc.groovy"/>
+            <ref type="sql.jdbc.groovy.managed"/>
+            <ref type="global.jdbc"/>
+            <ref type="nonPooled"/>
+            <ref type="dynamicDataSource"/>
+            <ref type="staticDataSource"/>
+            <ref type="db.noSql" />
+        </metadata>
+        <metadata class="com.helicalinsight.adhoc.metadata.WorkflowDatabaseMetadataProvider" connectionProvider="com.helicalinsight.datasource.CalciteConnectionFactory" type="db.calcite" useDefault="true">
+            <ref type="sql.csv"/>
+            <ref type="sql.calcite"/>
+        </metadata>
+        <metadata
+                class="com.helicalinsight.adhoc.metadata.WorkflowDatabaseMetadataProvider"	connectionProvider="com.helicalinsight.datasource.SparkConnectionFactory" type="db.noSql" useDefault="true">
+            <ref type="noSqlDataSource" />
+        </metadata>
+    </workflowImplementations>
+    <queryGenerators>
+        <!-- Implementations of IQueryGenerator -->
+        <generator class="com.helicalinsight.adhoc.genericsql.GenericSqlQueryGenerator" type="db.generic" useDefault="true">
+            <ref type="sql.jdbc"/>
+            <ref type="sql.jdbc.groovy"/>
+            <ref type="sql.jdbc.groovy.managed"/>
+            <ref type="global.jdbc"/>
+            <ref type="db.noSql" />
+        </generator>
+        <generator class="com.helicalinsight.adhoc.genericsql.GenericSqlQueryGenerator" type="db.calcite" useDefault="true">
+            <ref type="sql.csv"/>
+            <ref type="sql.calcite"/>
+        </generator>
+    </queryGenerators>
+    <sqlImplementations mandatory="true">
+        <implementation class="com.helicalinsight.adhoc.genericsql.SqlQueryImplementation" type="db.generic"/>
+        <implementation class="com.helicalinsight.adhoc.genericsql.SqlQueryImplementation" type="db.calcite"/>
+        <implementation class="com.helicalinsight.adhoc.genericsql.SqlQueryImplementation" type="db.workflow"/>
+        <implementation class="com.helicalinsight.adhoc.genericsql.SqlQueryImplementation" type="db.noSql"/>
+    </sqlImplementations>
+    <!-- Spring DI beans configured for different types to produce MetadataProducers. Acts as a bean factory using the interface IMetadataProducer -->
+    <metadataXmlProducers mandatory="true">
+        <producer bean="genericMetadataProducer" type="db.generic"/>
+        <producer bean="extendedWorkflowMetadataProducer" type="db.workflow"/>
+        <producer bean="calciteMetadataProducer" type="db.calcite"/>
+        <producer bean="sparkMetadataProducer" type="db.noSql" />
+    </metadataXmlProducers>
+
+    <!-- The language engine for natural language processing. -->
+    <nlpEngineLanguage>java</nlpEngineLanguage>
+    <nlpProcessor>open.nlp</nlpProcessor>
+
+    <!-- Default permission for files and folders. If this setting is not available, then
+    an integer value of 4 will be used.-->
+    <permissions>
+        <noAccessLevel>0</noAccessLevel>
+        <executeAccessLevel>1</executeAccessLevel>
+        <readAccessLevel>2</readAccessLevel>
+        <readWriteAccessLevel>3</readWriteAccessLevel>
+        <readWriteDeleteAccessLevel>4</readWriteDeleteAccessLevel>
+        <!-- Read, Write, Delete, Share -->
+        <ownerAccessLevel>5</ownerAccessLevel>
+    </permissions>
+    <defaultPermissions mandatory="true">
+        <publicResourceAccessLevel>3</publicResourceAccessLevel>
+    </defaultPermissions>
+    <!-- The following configuration is read only once during application reload. -->
+    <jaxbClasses>
+        <efw>com.helicalinsight.resourcesecurity.jaxb.Efw</efw>
+        <efwsr>com.helicalinsight.resourcesecurity.jaxb.Efwsr</efwsr>
+        <efwFolder>com.helicalinsight.resourcesecurity.jaxb.EfwFolder</efwFolder>
+        <efwfav>com.helicalinsight.resourcesecurity.jaxb.Efwfav</efwfav>
+        <efwresult>com.helicalinsight.resourcesecurity.jaxb.EfwResult</efwresult>
+        <metadata>com.helicalinsight.adhoc.metadata.jaxb.Metadata</metadata>
+        <efwdd>com.helicalinsight.adhoc.designer.EfwDashboardDesigner</efwdd>
+        <efwce>com.helicalinsight.datasource.managed.jaxb.EFWCE</efwce>
+        <report>com.helicalinsight.adhoc.report.AdhocReport</report>
+        <hr>com.helicalinsight.adhoc.report.AdhocReport</hr>
+        <hcr>com.helicalinsight.datasource.managed.jaxb.HCReport</hcr>
+    </jaxbClasses>
+    <!-- Default roles created when an organization is created. Super organization user and admin
+    are configured here. -->
+    <defaultRoleNames>
+        <roleUser email="user@helicalinsight.com" name="hiuser">ROLE_USER</roleUser>
+        <roleAdmin email="admin@helicalinsight.com" name="hiadmin">ROLE_ADMIN</roleAdmin>
+        <roleViewer email="viewer@helicalinsight.com" name="hiviewer">ROLE_VIEWER</roleViewer>
+        <rolePhantom email="download@helicalinsight.com" name="downloadManager">ROLE_USER,ROLE_DOWNLOAD</rolePhantom>
+    </defaultRoleNames>
+    <efwdDataSourceHandlers>
+        <!-- All the data source related operations like read, write, test, update for different types of efwd data sources are configured here. The classes extend EfwdDataSourceHandler. The name of the tag should be handler.-->
+        <handler class="com.helicalinsight.efw.components.SqlJdbcHandler" classifier="sql.jdbc"/>
+        <handler class="com.helicalinsight.datasource.GroovySqlJdbcHandler" classifier="sql.jdbc.groovy"/>
+        <handler class="com.helicalinsight.datasource.GroovyManagedJdbcHandler" classifier="sql.jdbc.groovy.managed"/>
+        <handler class="com.helicalinsight.efw.components.SqlCalciteHandler" classifier="sql.calcite"/>
+    </efwdDataSourceHandlers>
+    <viewHandler>
+        <efw>
+            <redirectLink>/getEFWSolution.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </efw>
+        <efwsr>
+            <redirectLink>/executeSavedReport.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </efwsr>
+        <report>
+            <redirectLink>/adhocReport.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </report>
+        <hcr>
+            <redirectLink>/hcr-report.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </hcr>
+        <hr>
+            <redirectLink>/helical-report.html</redirectLink>
+            <dir>dir</dir>
+            <file>file</file>
+        </hr>
+    </viewHandler>
+    <export mandatory="true">
+        <!--All unit of time is taken in milliseconds -->
+        <phantomTimeout>300000</phantomTimeout>
+        <phanmtomPoolSize>3</phanmtomPoolSize>
+        <phantomPort>3000</phantomPort>
+        <daemonTimeCheck>8000</daemonTimeCheck>
+        <maxRequestCount>3</maxRequestCount>
+        <printingModes>
+            <printingMode class="com.helicalinsight.export.PhantomServiceManager"  type="phantomService"/>
+            <printingMode class="com.helicalinsight.export.PhantomServicePoolManager" type="poolService"/>
+            <printingMode class="com.helicalinsight.export.HttpExportServiceHandler"  type="httpService"/>
+            <printingMode class="com.helicalinsight.export.HeadlessChromeManager" default="true" type="chromeService"/>
+        </printingModes>
+    </export>
+    <instantbiConfig mandatory="true">
+        <serviceUrl>http://instantbi:8000/</serviceUrl>
+    </instantbiConfig>
+    <metadataSecurity access="grant,deny" expressionType="global,column,table" mandatory="true">
+        <securityType class="com.helicalinsight.adhoc.metadata.MetadataSecurityConditionIf" type="conditionIf">
+            <conditionTemplate>${user}.name eq 'hiadmin'</conditionTemplate>
+            <filterTemplate>TableName.ColumnName = Filter Condition</filterTemplate>
+        </securityType>
+        <!--securityType class="com.helicalinsight.adhoc.metadata.MetadataSecurityConditionIf" type="hasStoredProcedure">
+            <conditionTemplate>${user}.name eq 'hiadmin'</conditionTemplate>
+            <filterTemplate>TableName.ColumnName = Filter Condition</filterTemplate>
+        </securityType-->
+        <securityType class="com.helicalinsight.adhoc.metadata.MetadataSecurityGroovyExecutor" type="groovy">
+            <conditionTemplate><![CDATA[
+		        def evalCondition(){
+			        return true;
+		    }]]></conditionTemplate>
+            <filterTemplate><![CDATA[
+		        def evalFilter() {
+			        return 'TableName.ColumnName = Filter Condition';
+		        }
+		]]></filterTemplate>
+        </securityType>
+    </metadataSecurity>
+    <!--Implementation of IBackground services-->
+    <!--BackgroundServices>
+       <service class="com.helicalinsight.spark.cli.DICEExecuteAtStart"/> 
+																																			 
+						   
+    </BackgroundServices-->
+    <!-- To switch between the default and the Http based scheduling use the following
+    <job type="yourType" class="com.helicalinsight.scheduling.ScheduleJob"> -->
+
+    <schedule>
+        <job class="com.helicalinsight.scheduling.EnhancedScheduleJob" type="efwdd"/>
+        <job class="com.helicalinsight.scheduling.EnhancedScheduleJob" type="report"/>
+        <job class="com.helicalinsight.scheduling.EnhancedScheduleJob" type="hr"/>
+        <job class="com.helicalinsight.scheduling.EnhancedHwfScheduler" type="hwf"/>
+        <job class="com.helicalinsight.scheduling.EnhancedHCRScheduler" type="hcr"/>
+    </schedule>
+
+    <DataMaps>
+        <DataMap class="com.helicalinsight.datasource.DataMapSQLImpl" type="metadata.sql"/>
+        <DataMap class="com.helicalinsight.datasource.DataMapGroovyImpl" type="metadata.groovy"/>
+        <DataMap class="com.helicalinsight.adhoc.metadata.DataMapDbMetadataImpl" type="metadata.dbmetadata"/>
+    </DataMaps>
+
+    <!--The upload handler for any type of file Upload -->
+    <upload>
+        <handler bean="databaseJarZipHandler" type="datasource"/>
+        <handler bean="importOperationHandler" type="efwsr"/>
+        <handler bean="licenseUploadHanlder" type="licence"/>
+        <handler bean="csvUploadHandler" type="csv"/>
+        <handler bean="csvUploadHandler" type="csv2"/>
+        <handler bean="imageUploadHandler" type="image"/>
+        <handler bean="driverConfigUploadHandler" type="flatfile"/>
+    </upload>
+
+    <datasourceDeleteHandlers>
+        <dataSourceDelete bean="simpleDataSourceDeleteHandlerDB" type="simple"/>
+        <dataSourceDelete bean="cascadedDatasourceDeleteHandler" type="cascade"/>
+    </datasourceDeleteHandlers>
+
+    <metadataDeleteHandlers>
+        <metadataDelete bean="simpleMetadataDeleteHandler" type="simple"/>
+        <metadataDelete bean="cascadedMetadataDeleteHandler" type="cascade"/>
+    </metadataDeleteHandlers>
+    <hiMiddleWareDriverName>com.helicalinsight</hiMiddleWareDriverName>
+    <fileOperationOverNetworkHandler>
+        <fileOperationHandler bean="SFTPTransferHandler" type="sftp"/>
+        <fileOperationHandler bean="HDFSTransferHandler" type="hdfs"/>
+        <fileOperationHandler bean="FTPTransferHandler" type="ftp"/>
+        <fileOperationHandler bean="StandAlone" type="standalone"/>
+    </fileOperationOverNetworkHandler>
+    <hideVirtualDatasourceInAllCategory>true</hideVirtualDatasourceInAllCategory>
+    <!--The below request parameters are encoded from base64 to normal text -->
+    <encryptedParameters>formData,data,file,body,subject,sourceArray,reportParameters,ScheduleOptions,EmailSettings,extensions,adhocFormData</encryptedParameters>
+    <!--The below keywords are not included in the report url parameters-->
+    <excludeUrlParameter>j_username,j_password,j_organization,authToken</excludeUrlParameter>
+    <!--Inmemory database template-->
+    <dsTemplate>
+        <![CDATA[
+		       
+{
+   "id":_id_,
+   "name":"default",
+   "type":"dynamicDataSource",
+   "baseType":"global.jdbc",
+   "visible":"false",
+   "dataSourcePoolId":"tomcat__tomcatid_",
+   "dataSourceProvider":"tomcat",
+   "forceAlternateUsername":false,
+   "username":"_username_",
+   "password":"_password_",
+   "driverClassName":"_driverClass_",
+   "url":"_url_",
+   "testWhileIdle":false,
+   "testOnBorrow":true,
+   "testOnReturn":false,
+   "validationQuery":"SELECT 1",
+   "validationInterval":30000,
+   "timeBetweenEvictionRunsMillis":30000,
+   "maxActive":100,
+   "minIdle":1,
+   "maxWait":180000,
+   "initialSize":1,
+   "removeAbandonedTimeout":3600,
+   "removeAbandoned":true,
+   "logAbandoned":true,
+   "minEvictableIdleTimeMillis":30000,
+   "jmxEnabled":true,
+   "jdbcInterceptors":"org.apache.tomcat.jdbc.pool.interceptor.ConnectionState; org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer; org.apache.tomcat.jdbc.pool.interceptor.ResetAbandonedTimer"
+}
+			   
+			   
+			   ]]>
+    </dsTemplate>
+    <!--This catalogs/schema are not cached when metadata is being prepared-->
+    <ignoreCatalogSchema>mysql,information_schema,pg_catalog,ANONYMOUS,APEX_040000,APEX_PUBLIC_USER,APPQOSSYS,CAT11,AUDSYS,DBSFWUSER,CTXSYS,DBSNMP,DIP,FLOWS_FILES,FNPROD,MDSYS,ORACLE_OCM,OUTLN,SYS,SYSTEM,XS$NULL,XDB,DVF,DVSYS,GGSYS,GSMADMIN_INTERNAL,GSMCATUSER,GSMUSER,LBACSYS,MDDATA,OJVMSYS,OLAPSYS,ORDDATA,ORDPLUGINS,ORACLE_OCM,ORDSYS,REMOTE_SCHEDULER_AGENT,SI_INFORMTN_SCHEMA,SYS$UMF,SYSBACKUP,SYSDG,SYSKM,SYSRAC,WMSYS,pg_toast,pg_temp_1,pg_toast_temp_1,cp.default,All,console,Crashdumps,dbcmngr,External_AP,EXTUSER,LockLogShredder,SysAdmin,SYSBAR,SYSJDBC,SYSLIB,SYSSPATIAL,SystemFe,SYSUDTLIB,SYSUIF,Sys_Calendar,TDMaps,TDPUSER,TDQCD,TDStats,TD_SERVER_DB,TD_SYSFNLIB,TD_SYSGPL,TD_SYSXML,viewpoint</ignoreCatalogSchema>
+    <applicationCacheType>memory</applicationCacheType>
+    <applicationCacheName>helicalInsightCache</applicationCacheName>
+    <EfwceSampleVfName>__efwvf_name__</EfwceSampleVfName>
+    <EfwdSampleName>__efwd_file_name__</EfwdSampleName>
+    <!-- NOTE After enabling the FileBrowserCache need to restart the application in order to start the WatcherService for repository. -->
+    <enableFileBrowserCache>false</enableFileBrowserCache>
+    <HCRBandContent>
+        <contentClass name="staticText" bean="HCRStaticText"/>
+        <contentClass name="textField" bean="HCRTextField"/>
+        <contentClass name="image" bean="HCRImage"/>
+        <contentClass name="table" bean="HCRTable"/>
+        <contentClass name="rectangle" bean="HCRRectangle"/>
+        <contentClass name="line" bean="HCRLine"/>
+        <contentClass name="crosstab" bean="HCRCrosstab" />
+        <contentClass name="chart" bean="HCRChart"/>
+        <contentClass name="subReport" bean="HCRSubReport" />
+        <contentClass name="customVisualization" bean="HCRCustomVisualization"/>
+    </HCRBandContent>
+    <hcrConfigurations>
+        <properties>Static/HCR</properties>
+        <properties>Static/HcrPreviewFormdataConfig</properties>
+        <properties>Static/HcrPropertiesConfiguration</properties>
+        <properties>Static/HcrShapeState</properties>
+        <properties>Static/exportType</properties>
+        <properties>allTypes</properties>
+    </hcrConfigurations>
+    <HCRGeneratorTypes>
+        <genratorType name="bean-datasource" bean="HCRBeanDatasourceReportGenerator"/>
+        <genratorType name="regular" bean="HCRRegularReportGenerator"/>
+    </HCRGeneratorTypes>
+    <HCRDefaultGeneratorType>regular</HCRDefaultGeneratorType>
+    <!-- This tag should have value as either  XML or DATABASE . If you want to continue in XML file  then change the value to XML and change MigrateFromXMLSchedulingToDatabase to false.
+    If you need to migrate all the xml schedules to database then place the existing scheduling.xml file in your hi-repository/System folder and then restart the application. After the restart the schedule data should have migrated into the default database
+    -->
+    <ScheduleStorageType>DATABASE</ScheduleStorageType>
+
+    <MigrateFromXMLSchedulingToDatabase>true</MigrateFromXMLSchedulingToDatabase>
+
+
+    <enabledPoolMail>true</enabledPoolMail>
+    <poolMonitorInterval>60</poolMonitorInterval>
+
+
+
+    <!--This Tag is used to migrate global connections xml data to database.
+    If you want to stick to default storage mechanism change the MigrateFromGlobalXMLDatasourceToDatabase tag value to false.
+    otherwise if you want to move global connections data to database mark the MigrateFromGlobalXMLDatasourceToDatabase tag value as true-->
+    <MigrateFromGlobalXMLDatasourceToDatabase>true</MigrateFromGlobalXMLDatasourceToDatabase>
+    <!--This Tag is used for how you want to store the data.
+    put DSStorageType tag value XML to store data in XML file
+     put DSStorageType tag value DATABASE to store data in database-->
+    <DSStorageType>DATABASE</DSStorageType>
+
+
+    <!--This Tag is used for force migration-->
+    <!--In force migration the migrated tables will be deleted and reinserted again in hte database-->
+    <ForceMigrationDatasource>false</ForceMigrationDatasource>
+
+    <!--to define priority to load the class-->
+    <loadOrder>
+        <bean name="applicationDefaultUsersInitializer"></bean>
+        <bean name="dataSourceMigrator"></bean>
+        <bean name="initializeScheduleData"></bean>
+        <bean name="hIPhasesInitializer"></bean>
+    </loadOrder>
+
+    <!--Mapping of Datasources classes with datasource names-->
+    <dsType>
+        <class name="com.helicalinsight.datasource.model.DSTypeTomcat" query="id as id, globalConnections.globalId as globalId, visible as visible, dataSourcePoolId as dataSourcePoolId, dataSourceProvider as dataSourceProvider, forceAlternateUsername as forceAlternateUsername, username as username, password as password, url as url, testWhileIdle as testWhileIdle, testOnBorrow as testOnBorrow, testOnReturn as testOnReturn, validationInterval as validationInterval, timeBetweenEvictionRunsMillis as timeBetweenEvictionRunsMillis, minIdle as minIdle, maxWait as maxActive, initialSize as initialSize, removeAbandonedTimeout as removeAbandonedTimeout, removeAbandoned as removeAbandoned, logAbandoned as logAbandoned, minEvictableIdleTimeMillis as minEvictableIdleTimeMillis, jmxEnabled as jmxEnabled, jdbcInterceptors as jdbcInterceptors, databaseDialect as databaseDialect, databaseName as databaseName,  driverClassName as driverClassName, validationQuery as validationQuery " dtoClass="com.helicalinsight.admin.dto.DSTypeTomcatDTO">TomcatJdbcDataSource</class>
+        <class name="com.helicalinsight.datasource.model.DSTypePlainJDBC" query="id as id , globalConnections.globalId as globalId , visible as visible , userName as userName , password as password , jdbcUrl as jdbcUrl , dataSourceProvider as dataSourceProvider , databaseDialect as databaseDialect , databaseName as databaseName ,  driverName as driverName " dtoClass="com.helicalinsight.admin.dto.DSTypePlainJDBCDTO">JDBCConnection</class>
+        <class name="com.helicalinsight.datasource.model.DSTypeHikari" query=" id as  id , globalConnections.globalId as  globalId , visible as  visible , dataSourcePoolId as  dataSourcePoolId , dataSourceProvider as  dataSourceProvider , maximumPoolSize as  maximumPoolSize , minimumIdle as  minimumIdle , maxLifetime as  maxLifetime , userName as  userName , password as  password , poolName as  poolName , jdbcUrl as  jdbcUrl , connectionTimeout as  connectionTimeout , leakDetectionThreshold as  leakDetectionThreshold , idleTimeout as  idleTimeout , databaseDialect as  databaseDialect , databaseName as  databaseName ,  driverName as  driverName , validationQuery as  validationQuery" dtoClass="com.helicalinsight.admin.dto.DSTypeHikariDTO">HikariDataSource</class>
+        <class name="com.helicalinsight.datasource.model.DSTypeNoSQL" query="id as id , globalConnections.globalId as globalId , visible as visible , dataSourcePoolId as dataSourcePoolId , dataSourceProvider as dataSourceProvider , forceAlternateUsername as forceAlternateUsername , username as username , password as password , driverClassName as driverClassName , url as url , testWhileIdle as testWhileIdle , testOnBorrow as testOnBorrow , testOnReturn as testOnReturn , validationQuery as validationQuery , validationInterval as validationInterval , timeBetweenEvictionRunsMillis as timeBetweenEvictionRunsMillis , maxActive as maxActive , minIdle as minIdle , maxWait as maxWait , initialSize as initialSize , removeAbandonedTimeout as removeAbandonedTimeout , removeAbandoned as removeAbandoned , logAbandoned as logAbandoned , minEvictableIdleTimeMillis as minEvictableIdleTimeMillis , jmxEnabled as jmxEnabled , jdbcInterceptors as jdbcInterceptors , databaseDialect as databaseDialect , databaseName as databaseName , hiveReferenceId as hiveReferenceId , subType as subType , collection as collection  " dtoClass="com.helicalinsight.admin.dto.DSTypeNoSQLDTO">NoSqlDataSource</class>
+        <class name="com.helicalinsight.datasource.model.DSTypeJndi" query="id as  id , globalConnections.globalId as  globalId , visible as  visible , dataSourceProvider as  dataSourceProvider , databaseDialect as  databaseDialect , databaseName as  databaseName , driverClassName as  driverClassName , lookUpName as  lookUpName " dtoClass="com.helicalinsight.admin.dto.DSTypeJndiDTO">JndiDataSource</class>
+    </dsType>
+
+    <!-- Resultset configuration for streaming query  -->
+    <resultSetConfig>
+        <batchSize>20000</batchSize>
+        <fetchSize>10000</fetchSize>
+        <dbConfigOverrides>
+            <db name="MySQL">
+                <fetchSize>-2147483648</fetchSize>
+            </db>
+            <db name="MariaDB">
+                <fetchSize>-2147483648</fetchSize>
+            </db>
+        </dbConfigOverrides>
+        <autoCommit>false</autoCommit>
+    </resultSetConfig>
+
+    <!-- Drill dfs.json → drillConfig.xml attribute find/replace (same index in both arrays) -->
+    <drillConfigXmlReplaceRules><![CDATA[
+{
+  "findText": ["&", "<", ">", "\n", "\r", "\t", "\""],
+  "replaceText": ["&amp;", "&lt;", "&gt;", "&#10;", "", "&#09;", "&quot;"]
+}
+]]></drillConfigXmlReplaceRules>
+
+</efwProject>

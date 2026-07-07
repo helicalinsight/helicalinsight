@@ -1,0 +1,86 @@
+@import "../../styles/variables.scss";
+
+.hi-notifications {
+  .hi-notification-card {
+    padding: 3px;
+  }
+  .hi-notify-text {
+    font-size: 13px;
+    &:hover {
+      cursor: pointer;
+    }
+  }
+  .hi-notify-number {
+    color: $hi-white;
+    font-size: 10px;
+    background-color: $hi-blue;
+    padding: 5px;
+    border-radius: 5px;
+  }
+  .hi-on-hover-icon {
+    visibility: hidden;
+  }
+  .hi-notification-card:hover .hi-on-hover-icon {
+    visibility: visible;
+  }
+  .hi-icon {
+    font-size: 15px;
+  }
+  .ant-card-body {
+    padding: 5px !important;
+  }
+  .ant-drawer-body {
+    padding: 0px !important;
+  }
+  .hi-notification-item {
+    padding: 5px;
+  }
+  .hi-success-icon {
+    color: $hi-green;
+    font-size: 20px;
+  }
+  .hi-error-icon {
+    color: $hi-red;
+    font-size: 20px;
+  }
+  .hi-info-icon {
+    color: $hi-blue;
+    font-size: 20px;
+  }
+  .hi-warn-icon {
+    color: $hi-yellow;
+    font-size: 20px;
+  }
+  .hi-tag {
+    font-size: 9px;
+    padding: 4px;
+  }
+  .hi-success-background {
+    color: $hi-white;
+    background-color: $hi-green;
+  }
+  .hi-error-background {
+    color: $hi-white;
+    background-color: $hi-red;
+  }
+  .hi-info-background {
+    color: $hi-white;
+    background-color: $hi-blue;
+  }
+  .hi-title {
+    padding: 20px;
+    text-align: center;
+  }
+  .green-border-left {
+    border-left: 3px solid $hi-green;
+  }
+  .red-border-left {
+    border-left: 3px solid $hi-red;
+  }
+  .yellow-border-left {
+    border-left: 3px solid $hi-yellow;
+  }
+  .blue-border-left {
+    border-left: 3px solid $hi-blue;
+  }
+}

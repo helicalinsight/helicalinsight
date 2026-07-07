@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<threadPoolConfig managerClass="com.helicalinsight.parallelprocessor.WorkerManager">
+	 
+	 <!--The number of threads that will be created when process is used -->
+	 <maxPoolSize>200</maxPoolSize>
+	 
+	 <!-- Maximum memory threshold (in MB) allowed for thread pool operations. Used internally for controlling memory-intensive task execution.-->
+	 <threadPoolMaxMemory>10</threadPoolMaxMemory>
+	 
+	 <!--Maximum idle wait time (in milliseconds) for pooled worker threads/processes. Threads waiting longer than this may be cleaned up based on pool policy. -->
+	 <threadPoolTimeout>600000</threadPoolTimeout>
+	 
+	 <!--Thread name prefix used for easier debugging and monitoring. Example thread name: hi_pool_1-->
+	 <threadPoolPrefix>hi_pool_</threadPoolPrefix>
+	 
+	 <!-- Maximum waiting time (in milliseconds) before retrying/rejecting task submission when the pool is under heavy load. -->
+	 <maxWaitingTime>1000</maxWaitingTime>
+	 
+	 <!-- Threshold value used to decide when to switch to pooled executor service based execution. -->
+	 <poolExecutorServiceThreshold>1000</poolExecutorServiceThreshold>
+	 
+	 <!-- Initial number of core threads created during pool startup. These threads remain alive unless core timeout is enabled. -->
+	 <corePoolSize>25</corePoolSize>
+	 
+	 <!--If true, the executor waits for all running and queued tasksto complete before shutting down the application. -->
+	 <waitForTasksToCompleteOnShutdown>true</waitForTasksToCompleteOnShutdown>
+	 
+	 <!-- Maximum number of tasks allowed in the queue before new task submissions are rejected or handled by the rejection policy. -->
+	 <queueCapacity>100</queueCapacity>
+	 
+	 <!-- Spring bean name of the task executor implementation used by the application thread pool. -->
+	 <taskExecutorBean>threadPoolTaskExecutorImpl</taskExecutorBean>
+	  
+	 <!-- Maximum execution timeout (in milliseconds) allowed for a task. Long running tasks exceeding this limit may be interrupted or marked failed. -->
+	 <taskTimeout>600000</taskTimeout>
+	 
+	 <!-- Time unit used for task timeout configuration.-->
+	 <taskTimeoutUnit>MILLISECONDS</taskTimeoutUnit>
+	 
+	 <!-- Custom rejection handler bean invoked when the pool and queue are fully exhausted and cannot accept new tasks. -->
+	 <workerRejectionExecutionHandler>workerRejectionExecutionHandler</workerRejectionExecutionHandler>
+	 
+	 <!-- Service responsible for monitoring thread pool health, utilization, queue status, and thread activity. -->
+	 <threadPoolMonitorService>threadPoolMonitorService</threadPoolMonitorService>
+	 
+	 <!-- How often (in seconds) the thread pool monitor checks the pool status -->
+	 <threadPoolMonitorPeriod>60</threadPoolMonitorPeriod>
+	
+	 <!-- Whether core threads are allowed to time out and terminate when idle -->
+	 <allowCoreThreadTimeOut>false</allowCoreThreadTimeOut>
+
+	 <!-- Keep-alive time (in seconds) for threads beyond the core pool size -->
+	 <corePoolKeepAliveSeconds>60</corePoolKeepAliveSeconds>
+	 
+</threadPoolConfig>

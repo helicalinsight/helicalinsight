@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+   <visible>true</visible>
+    <scriptId>c3Axis_js_chartRangCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Value Based Color</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Chart Range Customization</description>
+    <icon>/images/scriptIcons/color_value.png</icon>
+	<snippet>
+		<![CDATA[
+
+			
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['setchartValueColorCustomization'+id] = function(d){
+					var viz_Options = d.get("viz_Options");
+					viz_Options = chartValueColorCustomization(viz_Options);
+					d.set("viz_Options",viz_Options);
+				
+				} ;
+					
+			ftnObj['extendchartValueColorCustomization'+id] = function(preExecution,d){
+					var viz_Options = d.get("viz_Options");
+					viz_Options = chartValueColorCustomization(viz_Options);
+				
+				}; 
+			
+
+			function chartValueColorCustomization(viz_Options){
+				
+				if(!viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data={};
+				}
+				
+				viz_Options = setColor(viz_Options);
+				//console.log(viz_Options.chartOptions.data.color.toString())
+				return viz_Options;
+			}
+			
+			function setColor(viz_Options){
+				var conditionArr = ${conditionArr};
+				//console.log(conditionArr);
+				viz_Options.chartOptions.data.color = function(color, d){
+					var customColor = color;
+					for(var i = 0; i < conditionArr.length; i++){
+						  if(conditionArr[i].condition == 'Between'){
+							// console.log('between');
+						   if(conditionArr[i].value1 <= d.value && d.value <= conditionArr[i].value2){
+							customColor = conditionArr[i].color;
+							return customColor;
+						   }
+						  } else if(conditionArr[i].condition == 'Equals'){
+							 // console.log('equals');
+							if(d.value == conditionArr[i].value2){
+							 customColor = conditionArr[i].color;
+							 return customColor;
+							}
+						  }else if(conditionArr[i].condition == 'Not Equals'){
+							 // console.log('!=');
+							if(d.value != conditionArr[i].value2){
+							 customColor = conditionArr[i].color;
+							 return customColor;
+							}
+						  }else if(conditionArr[i].condition == 'Less Than'){
+							 // console.log('<');
+							if(d.value < conditionArr[i].value2){
+							 customColor = conditionArr[i].color;
+							 return customColor;
+							}
+						  }else if(conditionArr[i].condition == 'Greater Than'){
+							 // console.log('>');
+							if(d.value > conditionArr[i].value1){
+								 customColor = conditionArr[i].color;
+								 return customColor;
+							}
+						  }
+						}
+						return customColor;
+					}
+				
+				return viz_Options;
+			}
+			
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setchartValueColorCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendchartValueColorCustomization'+id]);
+			}
+			
+			
+		]]>
+	</snippet>
+	<parameters>
+        <parameter value="[]" name="conditionArr" type= "String" />
+    </parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div id="addButtonPanel" class="col-sm-12">
+        <label for='addButton' class='col-sm-4' >Add New condition</label>
+        <button id='addButton' class='col-sm-2 btn btn-primary' onclick='addConditionPanel({color: "#7cb82f", condition: "Between", value1: "", value2: ""}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+
+			<script>
+				adhocScripts.resetAll();
+
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+
+			/*	var script2 = document.createElement("script");
+
+				if(window.DashboardGlobals){
+					script2.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				}else{
+					script2.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				}
+
+				script2.async = false;
+
+				document.getElementsByTagName("head")[0].appendChild(script2);
+
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}else{
+				 link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);		*/
+
+
+
+
+        var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+        var tgtPanel = 'conditionList';
+
+
+      //	script2.onload = function() {
+          
+		//		}
+
+        function createConditionList(conditionArr,tgtPanel){
+          if(conditionArr.length == 0){
+            conditionArr.push({color: "#7cb82f", condition: "Between", value1: "", value2: ""});
+          }
+
+          for(var i = 0 ; i < conditionArr.length; i++){
+            var div = createConditionPanel(conditionArr[i], i);
+            document.getElementById(tgtPanel).appendChild(div);
+            spectrumFtn('input_color_'+i, conditionArr[i]);
+          }
+        }
+		
+		createConditionList(conditionArr, tgtPanel);
+
+        function addConditionPanel(object, tgtPanel){
+          conditionArr.push(object);
+          var index = conditionArr.length-1;
+          var div = createConditionPanel(object, index);
+          document.getElementById(tgtPanel).appendChild(div);
+          spectrumFtn('input_color_'+index, object);
+        }
+
+        function createConditionPanel(object, index){
+          var conditionOptions = ['Between', 'Equals', 'Not Equals', 'Less Than', 'Greater Than'];
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12';
+
+          /*************** Set Value 1 *******************/
+          var divVal1 = document.createElement('div');
+          divVal1.className = 'form-group col-sm-3 value_1';
+        	divVal1.id = 'div_value1_'+index;
+
+          var labelVal1 = document.createElement('label');
+          labelVal1.for = 'input_value1_'+index;
+          labelVal1.innerHTML = 'Start Value';
+
+          var inputVal1 = document.createElement('input');
+          inputVal1.type = 'text';
+          inputVal1.className = 'form-control';
+          inputVal1.id = 'input_value1_'+index;
+          inputVal1.value = object.value1;
+          inputVal1.onchange = setOnChange;
+
+            if(object.condition == 'Equals' || object.condition == 'Not Equals' || object.condition == 'Less Than')
+			{
+            inputVal1.disabled = 'disabled';
+			}
+			else
+			{
+				inputVal1.disabled = false;
+			}
+		    
+
+          divVal1.appendChild(labelVal1);
+          divVal1.appendChild(inputVal1);
+
+          form.appendChild(divVal1);
+
+          /*************** Set Condition *******************/
+          var divConditionVal = document.createElement('div');
+          divConditionVal.className = 'form-group col-sm-3 condition';
+        	divConditionVal.id = 'div_condition_'+index;
+
+          var labelConditionVal = document.createElement('label');
+          labelConditionVal.for = 'input_condition_'+index;
+          labelConditionVal.innerHTML = 'Condition';
+
+          var inputConditionVal = document.createElement('select');
+          inputConditionVal.className = 'form-control';
+          inputConditionVal.id = 'input_condition_'+index;
+          inputConditionVal.onchange = function(d){
+            setOnChange(d);
+            var index = d.target.id.split('_')[2];
+			 if(this.value == 'Between'){
+				//console.log('between');
+				$('#input_value1_'+index).removeAttr('disabled');
+				$('#input_value2_'+index).removeAttr('disabled');
+            }
+			if(this.value == 'Equals' || this.value == 'Not Equals' || this.value == 'Less Than'){
+				//console.log('rest');
+				$('#input_value1_'+index).attr('disabled', 'disabled');
+				$('#input_value2_'+index).removeAttr('disabled');
+            }
+			if(this.value == 'Greater Than'){
+				//console.log('>');
+				$('#input_value1_'+index).removeAttr('disabled');
+				$('#input_value2_'+index).attr('disabled', 'disabled');
+            }
+		  };
+
+          for(var i = 0; i < conditionOptions.length; i++){
+              var options = document.createElement('option');
+              options.value = conditionOptions[i];
+              options.text = conditionOptions[i];
+              if(options.value == object.condition)
+                options.selected = 'selected';
+              inputConditionVal.appendChild(options);
+          }
+
+          divConditionVal.appendChild(labelConditionVal);
+          divConditionVal.appendChild(inputConditionVal);
+
+          form.appendChild(divConditionVal);
+
+          /*************** Set Value 2 *******************/
+          var divVal2 = document.createElement('div');
+          divVal2.className = 'form-group col-sm-3 value_2';
+          divVal2.id = 'div_value2_'+index;
+
+          var labelVal2 = document.createElement('label');
+          labelVal2.for = 'input_value2_'+index;
+          labelVal2.innerHTML = 'End Value';
+
+          var inputVal2 = document.createElement('input');
+          inputVal2.type = 'text';
+          inputVal2.className = 'form-control';
+          inputVal2.id = 'input_value2_'+index;
+          inputVal2.value = object.value2;
+          inputVal2.onchange = setOnChange;
+		  
+			if(object.condition == 'Greater Than')
+            inputVal2.disabled = 'disabled';
+		
+          divVal2.appendChild(labelVal2);
+          divVal2.appendChild(inputVal2);
+
+          form.appendChild(divVal2);
+
+          /*************** Set Color *******************/
+          var divColorVal = document.createElement('div');
+          divColorVal.className = 'form-group col-sm-2 color';
+        	divColorVal.id = 'div_color_'+index;
+
+          var labelColorVal = document.createElement('label');
+         // labelColorVal.for = 'input_color_'+index;
+          labelColorVal.innerHTML = 'Color';
+
+          var inputColorVal = document.createElement('div');
+          // inputColorVal.type = 'text';
+          // inputColorVal.className = 'form-control';
+          inputColorVal.id = 'input_color_'+index;
+         // inputColorVal.onchange = setOnChange;
+         // inputColorVal.value = object.color;
+
+          divColorVal.appendChild(labelColorVal);
+          divColorVal.appendChild(inputColorVal);
+
+          form.appendChild(divColorVal);
+
+          /*********************Delete Button************************/
+          var delButton = document.createElement('button');
+          delButton.id = 'delete_'+index;
+          delButton.classList = 'btn btn-danger';
+          delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+          delButton.onclick = function(d){
+            var index = d.target.id.split('_')[1];
+            conditionArr.splice(index, 1);
+            adhocScripts.setVariable("conditionArr", conditionArr);
+            $(this).parent().remove();
+          };
+          delButton.style.marginTop = '25px';
+
+          form.appendChild(delButton);
+
+          return form;
+
+
+
+          function setOnChange(d){
+            var len = d.target.id.split('_').length;
+            var x = d.target.id.split('_')[2];
+            var key = d.target.id.split('_')[1];
+			var val = d.target.value;
+
+            conditionArr[x][key] = val;
+            adhocScripts.setVariable("conditionArr", conditionArr);
+          }
+        }
+		
+			function setColorValue(paylod){			  
+            var len = paylod['id'].split('_').length;
+            var x = paylod['id'].split('_')[2];
+            var key = paylod['id'].split('_')[1];
+            var val = paylod['color'];
+         
+			conditionArr[x][key] = val;
+			adhocScripts.setVariable("conditionArr", conditionArr);			  
+		  }
+
+				function spectrumFtn(id,Obj){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.color) ? Obj.color : '#ffffff' ,
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								setColorValue({id:id,color:rgbaCode});
+							}
+						});	
+					
+					
+				/*	$("#"+id).spectrum({
+						showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+
+						},
+						change: function(color) {
+							adhocScripts.setVariable("background",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});		*/
+				}
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

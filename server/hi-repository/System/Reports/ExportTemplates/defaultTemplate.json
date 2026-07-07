@@ -1,0 +1,16 @@
+{
+	"head": {
+		"title": "Default",
+		"description": "Exports reports with landscape. The page uses A4 size."
+	},
+	"body": {
+		"layout": "landscape",
+		"paperSize": "A4",
+		"hasScript": false,
+		"scaling": 0.5,
+		"displayHeaderFooter": true,
+		"headerTemplate":"<div style=\"text-shadow:1px 2px 1px rgba(198,184,255,1);width:100%%;padding:0 30px;box-sizing:border-box;font-size:8px;font-weight:bold;color:#498FDE;-webkit-print-color-adjust:exact; \"><span style=\"float:left;\">%s</span><span style=\"float:right;\">  Page <span class=\"pageNumber\"></span> of <span class=\"totalPages\"></span></span> </div>",
+		"footerTemplate":"<div style=\"text-shadow:1px 2px 1px rgba(198,184,255,1);width:100%%;padding:0 30px;box-sizing:border-box;font-size:8px;font-weight:bold;color:#498FDE;-webkit-print-color-adjust:exact; \"><span style=\"float:left;\">%s</span><span style=\"float:right;\">  Page <span class=\"pageNumber\"></span> of <span class=\"totalPages\"></span></span> </div>"
+
+	}
+}

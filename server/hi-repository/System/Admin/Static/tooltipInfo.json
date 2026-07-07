@@ -1,0 +1,1345 @@
+{
+	"tooltip_pageSetup": {
+		"show": true,
+		"onIcon": true,
+		"isHtml": true,
+		"htmlId": "pageSetupTooltip",
+		"content": [
+			{
+				"type": "infoDisplay",
+				"fromStatic": false,
+				"displayContent": "page width : $__width and page height : $__height",
+				"displayValues": {
+					"width": [
+						"pageLayoutInfo",
+						"size",
+						"fullPage",
+						"width"
+					],
+					"height": [
+						"pageLayoutInfo",
+						"size",
+						"fullPage",
+						"height"
+					]
+				}
+			},
+			{
+				"type": "infoDisplay",
+				"fromStatic": false,
+				"displayContent": "page margins top : $__top, bottom : $__bottom, left : $__left, right : $__right",
+				"displayValues": {
+					"top": [
+						"pageLayoutInfo",
+						"margin",
+						"top"
+					],
+					"bottom": [
+						"pageLayoutInfo",
+						"margin",
+						"bottom"
+					],
+					"left": [
+						"pageLayoutInfo",
+						"margin",
+						"left"
+					],
+					"right": [
+						"pageLayoutInfo",
+						"margin",
+						"right"
+					]
+				}
+			},
+			{
+				"type": "infoDisplay",
+				"fromStatic": false,
+				"displayContent": "editable page width : $__width and page height : $__height",
+				"displayValues": {
+					"width": [
+						"pageLayoutInfo",
+						"size",
+						"canvasPage",
+						"width"
+					],
+					"height": [
+						"pageLayoutInfo",
+						"size",
+						"canvasPage",
+						"height"
+					]
+				}
+			}
+		]
+	},
+	"tooltip_pageSize": {
+		"content": [
+			{
+				"displayContent": "Change the page dimensions"
+			}
+		]
+	},
+	"tooltip_titleInNewPage": {
+		"content": [
+			{
+				"displayContent": "Specify if the title section should be printed on a separate initial page"
+			}
+		]
+	},
+	"tooltip_summaryInNewPage": {
+		"content": [
+			{
+				"displayContent": "Specify if the summary section should be printed on a separate last page"
+			}
+		]
+	},
+	"tooltip_floatingColumnFooter": {
+		"content": [
+			{
+				"displayContent": "Specify if the column footer section should be printed at the bottom of the column or if it should immediately follow the last detail or group footer printed on the current column"
+			}
+		]
+	},
+	"tooltip_summaryWithHeaderAndFooter": {
+		"content": [
+			{
+				"displayContent": "Specify if the summary section should be accompained by the page Header and footer"
+			}
+		]
+	},
+	"tooltip_reprintHeaderOnEachPage": {
+		"content": [
+			{
+				"displayContent": "Reprint header on each page"
+			}
+		]
+	},
+	"tooltip_ignorePagination": {
+		"content": [
+			{
+				"displayContent": "Specify whether to use pagination"
+			}
+		]
+	},
+	"tooltip_printInFirstWholeBand": {
+		"content": [
+			{
+				"displayContent": "The element gets printed in the first section of a new page or column that is not an overflow from a previous page or column."
+			}
+		]
+	},
+	"tooltip_printRepeatedValues": {
+		"content": [
+			{
+				"displayContent": "Allows suppressing the repeating values for the dynamic elements such as text field and image fields and to fully customize the bheviour of the static elements like line and static texts"
+			}
+		]
+	},
+	"tooltip_removeLineWhenBlank": {
+		"content": [
+			{
+				"displayContent": "Collapses the section if the element is not printing and no other element is occupying the same horizontal space."
+			}
+		]
+	},
+	"tooltip_pattern": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Pattern to use when formatting the output of the text field expression <br><table style = 'border : 1px solid white'> <tr style = 'font-weight : bold'> <td style = 'border : 1px solid white'>Format</td><td style = 'border : 1px solid white'>Pattern</td><td style = 'border : 1px solid white'>Example</td> </tr> <tr> <td style = 'border : 1px solid white'>Numeric </td><td style = 'border : 1px solid white'> #,##0.###</td><td style = 'border : 1px solid white'>1,234.00</td> </tr> <tr> <td style = 'border : 1px solid white'>Date </td><td style = 'border : 1px solid white'> MMM d, yyyy</td><td style = 'border : 1px solid white'>Jan 01, 2020</td> </tr> <tr> <td style = 'border : 1px solid white'>Time </td><td style = 'border : 1px solid white'> h:mm:ss a z</td><td style = 'border : 1px solid white'>4:14:46 PM IST</td> </tr> <tr> <td style = 'border : 1px solid white'>Currency </td><td style = 'border : 1px solid white'> $#,##0</td><td style = 'border : 1px solid white'>$1,234</td> </tr> <tr> <td style = 'border : 1px solid white'>Percentage </td><td style = 'border : 1px solid white'> #,##0.##%</td><td style = 'border : 1px solid white'>84%</td> </tr> <tr> <td style = 'border : 1px solid white'>Scientific Notation </td><td style = 'border : 1px solid white'> 0.0##E0</td><td style = 'border : 1px solid white'>1.001E3</td> </tr> </table>"
+			}
+		]
+	},
+	"tooltip_columnCount": {
+		"content": [
+			{
+				"displayContent": "Specify the number of columns in a page"
+			}
+		]
+	},
+	"tooltip_columnSpacing": {
+		"content": [
+			{
+				"displayContent": "Space between the columns"
+			}
+		]
+	},
+	"tooltip_columnWidth": {
+		"content": [
+			{
+				"displayContent": "Width of each column created"
+			}
+		]
+	},
+	"tooltip_printOrder": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Vertical - the filling process run first from top to bottom and then from left to right; the first column is entirely filled, then the second one, the third, etc <br> Horizontal - the filling process run first from left to right and then from top to bottom; the first row is filled in any column, then the second row, etc."
+			}
+		]
+	},
+	"tooltip_whenNoData": {
+		"content": [
+			{
+				"displayContent": "Allows users to customize the behaviour of the report when there is no data"
+			}
+		]
+	},
+	"tooltip_varResetType": {
+		"content": [
+			{
+				"displayContent": "Reset level for variables that perform calculations"
+			}
+		]
+	},
+	"tooltip_varIncrementFactoryClassName": {
+		"content": [
+			{
+				"displayContent": "The name of a class that implements the net.sf.jasperreports.engine.fill.JRIncrementerFactory interface to use when creating the incrementer instance for this variable. Incrementers are objects that implement thenet.sf.jasperreports.engine.fill.JRIncrementer interface and handle the incremental calculation performed on the variable's current value with every iteration in the data source."
+			}
+		]
+	},
+	"tooltip_varInitialValueExpression": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Definition of the expression that will be used to calculate the initial value of the variable, before any calculations are made. <br> Example : Suppose to have a variable called variable1 with the expression \"new Integer(5)\". At every record read will be assign to the variable the integer value 5, so the initial value it isn't important in this context. But suppose to change the expression to \"$V{variable1}+5\", this means that at every iteration the variable is incremented by 5. In this case an initial value it's necessary otherwise at the first iteration the variable1 is undefined and this breaks all future evaluations."
+			}
+		]
+	},
+	"tooltip_StyleName": {
+		"content": [
+			{
+				"displayContent": "Name of the style."
+			}
+		]
+	},
+	"tooltip_Name": {
+		"content": [
+			{
+				"displayContent": "Name of the calculation."
+			}
+		]
+	},
+	"tooltip_varClassName": {
+		"content": [
+			{
+				"displayContent": "Class of the calculation values."
+			}
+		]
+	},
+	"tooltip_varCalculation": {
+		"content": [
+			{
+				"displayContent": "Calulation to perform on the master report variable when returing the value from the subreport"
+			}
+		]
+	},
+	"tooltip_varIncrement": {
+		"content": [
+			{
+				"displayContent": "Increment level for variables that perform calculations."
+			}
+		]
+	},
+	"tooltip_varExpression": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Definition of the expression associated with the calculation.The value of this expression will be calculated at runtime and will represent the value of the corresponding calculation or it will be used in calculation to obtain the value of the calculated variable"
+			}
+		]
+	},
+	"tooltip_resetPageNumber": {
+		"content": [
+			{
+				"displayContent": "Reset page number."
+			}
+		]
+	},
+	"tooltip_startNewPage": {
+		"content": [
+			{
+				"displayContent": "Start new page for new group"
+			}
+		]
+	},
+	"tooltip_startNewColumn": {
+		"content": [
+			{
+				"displayContent": "Start new column for new group"
+			}
+		]
+	},
+	"tooltip_keepTogether": {
+		"content": [
+			{
+				"displayContent": "Keep together."
+			}
+		]
+	},
+	"tooltip_preventOrphanFooter": {
+		"content": [
+			{
+				"displayContent": "Prevent Orphan Footer."
+			}
+		]
+	},
+	"tooltip_minDetailsToStartFromTop": {
+		"content": [
+			{
+				"displayContent": "Minimum number of details to be rendered on the current column, to avoid starting the group on a new column"
+			}
+		]
+	},
+	"tooltip_minHeightToStartNewPage": {
+		"content": [
+			{
+				"displayContent": "Minimum Height To Start New Page"
+			}
+		]
+	},
+	"tooltip_poition": {
+		"content": [
+			{
+				"displayContent": "Specifies the object position when the report section is affected by stretch."
+			}
+		]
+	},
+	"tooltip_stretch": {
+		"content": [
+			{
+				"displayContent": "Specifies the graphic element stretch behavior when the report section is affected by stretch."
+			}
+		]
+	},
+	"tooltip_rotationType": {
+		"content": [
+			{
+				"displayContent": "Type of the rotation of text object"
+			}
+		]
+	},
+	"tooltip_markUp": {
+		"content": [
+			{
+				"displayContent": "Name of the mark up language used to embed style information in text content. Supported values are none(Plain text),styled(styled text), rtf(RTF format) and html(HTML format)"
+			}
+		]
+	},
+	"tooltip_evalTime": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "The text to be printed is supplied by the associated expression. This expression can be evaluated at a specified moment. This could be useful for example, when we want to have on the first page a text that will be generated only after fetching all the datasource rows"
+			}
+		]
+	},
+	"tooltip_styleNameReference": {
+		"content": [
+			{
+				"displayContent": "Name of the report level style to use as base style(see <Page styles> element)"
+			}
+		]
+	},
+	"tooltip_evalGroupName": {
+		"content": [
+			{
+				"displayContent": "Specify group name at which the expression to be executed if the evaluation time is selected as group"
+			}
+		]
+	},
+	"tooltip_patternExpression": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Definition of Boolean expression that will return a pattern based on the expression <br> Example :$F{travel_cost}.equals(1350)? \"#,##0.##%\":\"#,##0.###\"  "
+			}
+		]
+	},
+	"tooltip_printWhenExpression": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Definition of Boolean expression that will determine if the element should be printed or not <br> Example : (($F{meet_cancellation_status}.equals(\"Yes\")))"
+			}
+		]
+	},
+	"tooltip_printWhenDetailOverflows": {
+		"content": [
+			{
+				"displayContent": "The element will be printed when the record overflows to a new page or a new column"
+			}
+		]
+	},
+	"tooltip_stretchWithOverflow": {
+		"content": [
+			{
+				"displayContent": "Allows the text field to stretch downwards in order to display all its text when it doesn't fit in the defined text field height"
+			}
+		]
+	},
+	"tooltip_blankWhenNull": {
+		"content": [
+			{
+				"displayContent": "Specifies that the text field should display a blank character instead of null when the text field expression evaluates to null"
+			}
+		]
+	},
+	"tooltip_varResetGroup": {
+		"content": [
+			{
+				"displayContent": "Name of the group at which the variable is reinitialized, when the Reset Type property is set to Group."
+			}
+		]
+	},
+	"tooltip_varIncrementGroup": {
+		"content": [
+			{
+				"displayContent": "Name of the group at which the variable is incremented, when the Increment Type property is set to Group."
+			}
+		]
+	},
+	"tooltip_isDefaultStyle": {
+		"content": [
+			{
+				"displayContent": "The default report style is used as base style for all the elements that do not explicitly reference a report style definition"
+			}
+		]
+	},
+	"tooltip_content": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Define the expression to use for this text field <br> Note : Enclose static text in double quotes"
+			}
+		]
+	},
+	"tooltip_mode": {
+		"content": [
+			{
+				"displayContent": "Specifies whether the background of an object is transparent or opaque"
+			}
+		]
+	},
+	"tooltip_isUsingCache": {
+		"content": [
+			{
+				"displayContent": "If true, tells the report engine to cache the images that are loaded from the same location."
+			}
+		]
+	},
+	"tooltip_isLazy": {
+		"content": [
+			{
+				"displayContent": "Gives control over when the images are retrieved from their specified location."
+			}
+		]
+	},
+	"tooltip_onErrorType": {
+		"content": [
+			{
+				"displayContent": "Controls the behavior of the engine in case the image is not available."
+			}
+		]
+	},
+	"tooltip_scaleImage": {
+		"content": [
+			{
+				"displayContent": "Image displaying type."
+			}
+		]
+	},
+	"tooltip_fillImage": {
+		"content": [
+			{
+				"displayContent": "Type of the fill pattern used to fill objects."
+			}
+		]
+	},
+	"tooltip_query": {
+		"content": [
+			{
+				"displayContent": "Please select a query, whose data will be used to fill the table/crosstab/chart cells."
+			}
+		]
+	},
+	"tooltip_selectFields": {
+		"content": [
+			{
+				"displayContent": "Select the fields from the query to include in the table, crosstab, or chart. You can modify, add, or remove fields later."
+			}
+		]
+	},
+	"tooltip_selectFieldsColumns": {
+		"content": [
+			{
+				"displayContent": "Select the fields of the dataset that will be used to produce table columns. If no fields are selected, the table will be created without any column."
+			}
+		]
+	},
+	"tooltip_selectFieldsGroup": {
+		"content": [
+			{
+				"displayContent": "Select the dataset fields that should be used to create table groups. The selected fields will organize and group the table data based on their values. You can modify, add, or remove group fields later. If no fields are selected, the table will be created without grouping."
+			}
+		]
+	},
+	"tooltip_alignmentX": {
+		"content": [
+			{
+				"displayContent": "Horizontal position of the object measured from the left edge of the report band, in pixels."
+			}
+		]
+	},
+	"tooltip_alignmentY": {
+		"content": [
+			{
+				"displayContent": "Vertical position of the object measured from the top edge of the report band, in pixels."
+			}
+		]
+	},
+	"tooltip_alignmentWidth": {
+		"content": [
+			{
+				"displayContent": "Total horizontal space occupied by the object. This includes all columns and must fit within the band width."
+			}
+		]
+	},
+	"tooltip_alignmentHeight": {
+		"content": [
+			{
+				"displayContent": "Total vertical space allocated to the object. Content exceeding this height may overflow or stretch based on report settings."
+			}
+		]
+	},
+	"tooltip_borders": {
+		"content": [
+			{
+				"displayContent": "Controls the visibility of the object border around the element.stroke"
+			}
+		]
+	},
+	"tooltip_stroke": {
+		"content": [
+			{
+				"displayContent": "Defines the thickness of the border line."
+			}
+		]
+	},
+	"tooltip_style": {
+		"content": [
+			{
+				"displayContent": "Specifies the border line pattern, such as solid, dashed, or dotted."
+			}
+		]
+	},
+	"tooltip_color": {
+		"content": [
+			{
+				"displayContent": "Sets the color of the border line using a hex or RGB value."
+			}
+		]
+	},
+	"tooltip_paddingTop": {
+		"content": [
+			{
+				"displayContent": "Adds space between the content and the top edge of the element."
+			}
+		]
+	},
+	"tooltip_paddingLeft": {
+		"content": [
+			{
+				"displayContent": "Adds space between the content and the left edge of the element."
+			}
+		]
+	},
+	"tooltip_paddingBottom": {
+		"content": [
+			{
+				"displayContent": "Adds space between the content and the bottom edge of the element."
+			}
+		]
+	},
+	"tooltip_paddingRight": {
+		"content": [
+			{
+				"displayContent": "Adds space between the content and the right edge of the element."
+			}
+		]
+	},
+	"tooltip_tableHeaderColor": {
+		"content": [
+			{
+				"displayContent": "Background color applied to the table header section."
+			}
+		]
+	},
+	"tooltip_columnHeaderColor": {
+		"content": [
+			{
+				"displayContent": "Background color applied to the column header cells."
+			}
+		]
+	},
+	"tooltip_tableBodyColor": {
+		"content": [
+			{
+				"displayContent": "Background color applied to the data cells in the table body."
+			}
+		]
+	},
+	"tooltip_bordersColor": {
+		"content": [
+			{
+				"displayContent": "Background color applied to the border of the cells in the table body."
+			}
+		]
+	},
+	"tooltip_selectColumns": {
+		"content": [
+			{
+				"displayContent": "Defines how data is grouped and displayed as columns in the crosstab."
+			}
+		]
+	},
+	"tooltip_selectRows": {
+		"content": [
+			{
+				"displayContent": "Defines how data is grouped and displayed as rows in the crosstab."
+			}
+		]
+	},
+	"tooltip_selectMeasures": {
+		"content": [
+			{
+				"displayContent": "Specifies the numeric fields and aggregation functions (such as sum or count) used to calculate values in the crosstab cells."
+			}
+		]
+	},
+	"tooltip_selectChartType": {
+		"content": [
+			{
+				"displayContent": "Specifies the type of chart to render, such as bar, arc"
+			}
+		]
+	},
+	"tooltip_xField": {
+		"content": [
+			{
+				"displayContent": "Field used for the horizontal (category) axis of the chart."
+			}
+		]
+	},
+	"tooltip_yField": {
+		"content": [
+			{
+				"displayContent": "Field used for the vertical (value) axis of the chart."
+			}
+		]
+	},
+	"tooltip_colorField": {
+		"content": [
+			{
+				"displayContent": "Field used to assign colors dynamically based on data values or categories."
+			}
+		]
+	},
+	"tooltip_labelField": {
+		"content": [
+			{
+				"displayContent": "Field used to display labels on the chart, such as category names or data values."
+			}
+		]
+	},
+	"tooltip_renderType": {
+		"content": [
+			{
+				"displayContent": "Specifies how the chart is rendered, for example as a drawn graphic or an image or svg."
+			}
+		]
+	},
+	"tooltip_theme": {
+		"isHtml": true,
+		"content": [
+			{
+				"displayContent": "Applies a visual theme that controls the chart’s overall style and appearance.<span class=\"chart-theme-note\">   <strong>Note:</strong> After selecting a theme from the dropdown below, please click the   <strong>Preview</strong> button to view the applied changes. Theme updates are not reflected   directly on the canvas. </span>\n"
+			}
+		]
+	},
+	"tooltip_foreColor": {
+		"content": [
+			{
+				"displayContent": "The foreground color of the object, such as font line etc."
+			}
+		]
+	},
+	"tooltip_backColor": {
+		"content": [
+			{
+				"displayContent": "The backgournd color of the object"
+			}
+		]
+	},
+	"tooltip_title": {
+		"content": [
+			{
+				"displayContent": "Main heading displayed at the top of the chart, describing what the chart represents"
+			}
+		]
+	},
+	"tooltip_subTitle": {
+		"content": [
+			{
+				"displayContent": "Secondary text displayed below the title, used to add context or explain the data further."
+			}
+		]
+	},
+	"tooltip_seriesColors": {
+		"content": [
+			{
+				"displayContent": "Defines the colors used for each data series in the chart, applied in order to distinguish multiple series visually."
+			}
+		]
+	},
+	"tooltip_colorMode": {
+		"content": [
+			{
+				"displayContent": "Controls how foreground and background colors are applied, such as transparent or solid."
+			}
+		]
+	},
+	"tooltip_pageSetupOreientation": {
+		"content": [
+			{
+				"displayContent": "Specifies the page orientation, such as portrait or landscape, for the report layout."
+			}
+		]
+	},
+	"tooltip_margin": {
+		"content": [
+			{
+				"displayContent": "Defines the overall page margins that control spacing between the content and page edges."
+			}
+		]
+	},
+	"tooltip_marginTop": {
+		"content": [
+			{
+				"displayContent": "Sets the top margin of the page, determining the space between the top edge and report content."
+			}
+		]
+	},
+	"tooltip_marginBottom": {
+		"content": [
+			{
+				"displayContent": "Sets the bottom margin of the page, determining the space between the bottom edge and report content."
+			}
+		]
+	},
+	"tooltip_marginLeft": {
+		"content": [
+			{
+				"displayContent": "Sets the left margin of the page, controlling horizontal spacing from the left edge."
+			}
+		]
+	},
+	"tooltip_marginRight": {
+		"content": [
+			{
+				"displayContent": "Sets the right margin of the page, controlling horizontal spacing from the right edge."
+			}
+		]
+	},
+	"tooltip_clearCalculation": {
+		"content": [
+			{
+				"displayContent": "Clears the currently defined calculation values and resets them to their default state."
+			}
+		]
+	},
+	"tooltip_saveCalculation": {
+		"content": [
+			{
+				"displayContent": "Saves the current calculation configuration for later reuse."
+			}
+		]
+	},
+	"tooltip_deleteCalculation": {
+		"content": [
+			{
+				"displayContent": "Deletes the selected calculation permanently from the configuration."
+			}
+		]
+	},
+	"tooltip_previewParameters": {
+		"content": [
+			{
+				"displayContent": "Controls whether report parameters are displayed when previewing the report."
+			}
+		]
+	},
+	"tooltip_previewParametersPosition": {
+		"content": [
+			{
+				"displayContent": "Defines the position where preview parameters are displayed in the report preview."
+			}
+		]
+	},
+	"tooltip_previewParametersShowParameters": {
+		"content": [
+			{
+				"displayContent": "Toggles the visibility of parameters in the report preview screen."
+			}
+		]
+	},
+	"tooltip_groupPropertiesSelectGroup": {
+		"content": [
+			{
+				"displayContent": "Select the name of the group from the dropdown to view or modify its properties."
+			}
+		]
+	},
+	"tooltip_groupPropertiesEditGroup": {
+		"content": [
+			{
+				"displayContent": "Toggle this button to edit the values of the selected group."
+			}
+		]
+	},
+	"tooltip_groupPropertiesGroupId": {
+		"content": [
+			{
+				"displayContent": "Displays the unique identifier assigned to the selected group."
+			}
+		]
+	},
+	"tooltip_groupPropertiesGroupName": {
+		"content": [
+			{
+				"displayContent": "Defines the display name of the group used within the report."
+			}
+		]
+	},
+	"tooltip_groupPropertiesGroupExpression": {
+		"content": [
+			{
+				"displayContent": "Specifies the expression that determines how records are grouped in the report."
+			}
+		]
+	},
+	"tooltip_borderTop": {
+		"content": [
+			{
+				"displayContent": "Controls the appearance of the top border for the selected element."
+			}
+		]
+	},
+	"tooltip_borderBottom": {
+		"content": [
+			{
+				"displayContent": "Controls the appearance of the bottom border for the selected element."
+			}
+		]
+	},
+	"tooltip_borderRight": {
+		"content": [
+			{
+				"displayContent": "Controls the appearance of the right border for the selected element."
+			}
+		]
+	},
+	"tooltip_borderLeft": {
+		"content": [
+			{
+				"displayContent": "Controls the appearance of the left border for the selected element."
+			}
+		]
+	},
+	"tooltip_imageFileName": {
+		"content": [
+			{
+				"displayContent": "Specifies the file name or path of the image to be displayed in the report."
+			}
+		]
+	},
+	"tooltip_imageXPosition": {
+		"content": [
+			{
+				"displayContent": "Defines the horizontal position (X coordinate) of the image within the report band."
+			}
+		]
+	},
+	"tooltip_imageYPosition": {
+		"content": [
+			{
+				"displayContent": "Defines the vertical position (Y coordinate) of the image within the report band."
+			}
+		]
+	},
+	"tooltip_imageWidth": {
+		"content": [
+			{
+				"displayContent": "Sets the width of the image displayed in the report."
+			}
+		]
+	},
+	"tooltip_imageHeight": {
+		"content": [
+			{
+				"displayContent": "Sets the height of the image displayed in the report."
+			}
+		]
+	},
+	"tooltip_imageAlignment": {
+		"content": [
+			{
+				"displayContent": "Specifies how the image is aligned within its allocated area."
+			}
+		]
+	},
+	"tooltip_imageColor": {
+		"content": [
+			{
+				"displayContent": "Defines the foreground color applied to the image, if supported."
+			}
+		]
+	},
+	"tooltip_imageBackcolor": {
+		"content": [
+			{
+				"displayContent": "Defines the background color behind the image."
+			}
+		]
+	},
+	"tooltip_lineStroke": {
+		"content": [
+			{
+				"displayContent": "Defines the thickness of the line stroke used when rendering the line."
+			}
+		]
+	},
+	"tooltip_lineStyle": {
+		"content": [
+			{
+				"displayContent": "Specifies the visual style of the line, such as solid, dashed, or dotted."
+			}
+		]
+	},
+	"tooltip_lintStyleName": {
+		"content": [
+			{
+				"displayContent": "Choose a line style name from the dropdown to apply a predefined style."
+			}
+		]
+	},
+	"tooltip_lineDirection": {
+		"content": [
+			{
+				"displayContent": "Defines the direction in which the line is drawn, either top-down or bottom-up."
+			}
+		]
+	},
+	"tooltip_fontFamily": {
+		"content": [
+			{
+				"displayContent": "Specifies the font family used to render the text."
+			}
+		]
+	},
+	"tooltip_fontSize": {
+		"content": [
+			{
+				"displayContent": "Defines the font size used for the text."
+			}
+		]
+	},
+	"tooltip_fontStyles": {
+		"content": [
+			{
+				"displayContent": "Controls the combination of styles applied to the text, such as bold, italic, underline, or strike-through."
+			}
+		]
+	},
+	"tooltip_fontStylesBold": {
+		"content": [
+			{
+				"displayContent": "Applies bold styling to the text."
+			}
+		]
+	},
+	"tooltip_fontStylesItalics": {
+		"content": [
+			{
+				"displayContent": "Applies italic styling to the text."
+			}
+		]
+	},
+	"tooltip_fontStylesUnderlined": {
+		"content": [
+			{
+				"displayContent": "Underlines the text to emphasize its content."
+			}
+		]
+	},
+	"tooltip_fontStylesStrikeThrough": {
+		"content": [
+			{
+				"displayContent": "Applies a strike-through effect across the text."
+			}
+		]
+	},
+	"tooltip_textColor": {
+		"content": [
+			{
+				"displayContent": "Specifies the color used to render the text."
+			}
+		]
+	},
+	"tooltip_textForeColor": {
+		"content": [
+			{
+				"displayContent": "Defines the foreground color of the text."
+			}
+		]
+	},
+	"tooltip_textBackColor": {
+		"content": [
+			{
+				"displayContent": "Defines the background color behind the text."
+			}
+		]
+	},
+	"tooltip_textAlignment": {
+		"content": [
+			{
+				"displayContent": "Controls how the text is aligned within its container, such as left, center, right, or justified."
+			}
+		]
+	},
+	"tooltip_repeatColumnHeaders": {
+		"content": [
+			{
+				"displayContent": "Repeats column headers on every new page when the crosstab spans multiple pages."
+			}
+		]
+	},
+	"tooltip_repeatRowHeaders": {
+		"content": [
+			{
+				"displayContent": "Repeats row headers on every new page to keep row labels visible across page breaks."
+			}
+		]
+	},
+	"tooltip_repeatColumnBreakOffset": {
+		"content": [
+			{
+				"displayContent": "Defines the space (in pixels) between column groups when the crosstab continues into multiple columns."
+			}
+		]
+	},
+	"tooltip_measureAggregateFunctions": {
+		"content": [
+			{
+				"displayContent": "Defines how measure values are aggregated across records, such as sum, average, count, minimum, or maximum."
+			}
+		]
+	},
+	"tooltip_legendPosition": {
+		"content": [
+			{
+				"displayContent": "Specifies the position of the legend within the chart area."
+			}
+		]
+	},
+	"tooltip_legendShowLegend": {
+		"content": [
+			{
+				"displayContent": "Toggles the visibility of the legend in the chart."
+			}
+		]
+	},
+	"tooltip_colorOrientation": {
+		"content": [
+			{
+				"displayContent": "Defines how colors are oriented or applied within the visual element."
+			}
+		]
+	},
+	"tooltip_colorBackgoundAlpha": {
+		"content": [
+			{
+				"displayContent": "Controls the transparency level (alpha) of the background color. The valid range is between (0.1-1)"
+			}
+		]
+	},
+	"tooltip_foreGroundBackgoundAlpha": {
+		"content": [
+			{
+				"displayContent": "Controls the transparency level (alpha) of the foreground colors.The valid range is between (0.1-1)"
+			}
+		]
+	},
+	"tooltip_pageStyleSelectStyle": {
+		"content": [
+			{
+				"displayContent": "Select a page style from the dropdown to apply predefined layout and formatting settings."
+			}
+		]
+	},
+	"tooltip_tableCellColor": {
+		"content": [
+			{
+				"displayContent": "Defines the background color applied to table cells."
+			}
+		]
+	},
+	"tooltip_tableHeaderColor": {
+		"content": [
+			{
+				"displayContent": "Specifies the background color used for the table header section."
+			}
+		]
+	},
+	"tooltip_coloumnHeaderColor": {
+		"content": [
+			{
+				"displayContent": "Defines the background color applied to column headers."
+			}
+		]
+	},
+	"tooltip_tableBorderColor": {
+		"content": [
+			{
+				"displayContent": "Specifies the color used for the table borders."
+			}
+		]
+	},
+	"tooltip_cellBorder": {
+		"content": [
+			{
+				"displayContent": "Controls whether borders are displayed around individual table cells."
+			}
+		]
+	},
+	"tooltip_cellBorderColor": {
+		"content": [
+			{
+				"displayContent": "Defines the color of the borders surrounding table cells."
+			}
+		]
+	},
+	"tooltip_cellBorderStyles": {
+		"content": [
+			{
+				"displayContent": "Specifies the style of the cell borders, such as solid, dashed, or dotted."
+			}
+		]
+	},
+	"tooltip_addTableHeader": {
+		"content": [
+			{
+				"displayContent": "Adds a table header section that appears at the top of the table."
+			}
+		]
+	},
+	"tooltip_addTableFooter": {
+		"content": [
+			{
+				"displayContent": "Adds a table footer section that appears at the bottom of the table."
+			}
+		]
+	},
+	"tooltip_addColumnFooter": {
+		"content": [
+			{
+				"displayContent": "Adds a footer section for each column in the table."
+			}
+		]
+	},
+	"tooltip_addColumnHeader": {
+		"content": [
+			{
+				"displayContent": "Adds a header section for each column in the table."
+			}
+		]
+	},
+	"tooltip_addGroupHeader": {
+		"content": [
+			{
+				"displayContent": "Adds a group header section for the selected table group fields. The group header appears at the beginning of each group and can be used to display group labels, field values, or related information."
+			}
+		]
+	},
+	"tooltip_addGroupFooter": {
+		"content": [
+			{
+				"displayContent": "Adds a group footer section for the selected table group fields. The group footer appears at the end of each group and can be used to display totals, summaries, or other group-related information."
+			}
+		]
+	},
+	"tooltip_labelShowLabel": {
+		"content": [
+			{
+				"displayContent": "Toggles the visibility of the label in the report output."
+			}
+		]
+	},
+	"tooltip_selectCalcutations": {
+		"content": [
+			{
+				"displayContent": "Select one or more calculations from the list to apply to the selected field or measure."
+			}
+		]
+	},
+	"tooltip_propertyName": {
+		"content": [
+			{
+				"displayContent": "Specifies the name of the property to be configured."
+			}
+		]
+	},
+	"tooltip_propertyValue": {
+		"content": [
+			{
+				"displayContent": "Defines the value assigned to the selected property."
+			}
+		]
+	},
+	"tooltip_componentColor": {
+		"content": [
+			{
+				"displayContent": "Use this to apply color to the component."
+			}
+		]
+	},
+	"tooltip_chartColor": {
+		"content": [
+			{
+				"displayContent": "Use this to apply color to the chart"
+			}
+		]
+	},
+	"tooltip_keyField": {
+		"content": [
+			{
+				"displayContent": "Choose a numeric field whose value is used to calculate and render the pie chart slices."
+			}
+		]
+	},
+	"tooltip_parameters": {
+		"content": [
+			{
+				"displayContent": "Used to select filters that are internally applied as query parameters in the main query or subquery."
+			}
+		]
+	},
+	"tooltip_hideFilter": {
+		"content": [
+			{
+				"displayContent": "Toggle this option to hide or unhide the filter in the report interface."
+			}
+		]
+	},
+	"tooltip_fieldType": {
+		"content": [
+			{
+				"displayContent": "Select the field type to control the input component in the report, such as input box, query-based dropdown, date, datetime, date range, or date-time range."
+			}
+		]
+	},
+	"tooltip_defaultValue": {
+		"content": [
+			{
+				"displayContent": "Specifies a default value that is applied when the user does not select any value."
+			}
+		]
+	},
+	"tooltip_options": {
+		"content": [
+			{
+				"displayContent": "Used to configure the available options for the filter parameter."
+			}
+		]
+	},
+	"tooltip_multiple": {
+		"content": [
+			{
+				"displayContent": "Select true or false to control whether the dropdown allows multiple selections."
+			}
+		]
+	},
+	"tooltip_display": {
+		"content": [
+			{
+				"displayContent": "Defines the display label shown to the user in the dropdown."
+			}
+		]
+	},
+	"tooltip_value": {
+		"content": [
+			{
+				"displayContent": "Defines the actual value associated with the selected dropdown option."
+			}
+		]
+	},
+	"tooltip_quotes": {
+		"content": [
+			{
+				"displayContent": "Specifies how string values should be quoted, such as single quotes, double quotes, or bracket quotes."
+			}
+		]
+	},
+	"tooltip_openQuotes": {
+		"content": [
+			{
+				"displayContent": "Defines the opening quote character applied to string values."
+			}
+		]
+	},
+	"tooltip_closeQuotes": {
+		"content": [
+			{
+				"displayContent": "Defines the closing quote character applied to string values."
+			}
+		]
+	},
+	"tooltip_dateRangeParameters": {
+		"content": [
+			{
+				"displayContent": "Used to select other filters that belong to the date or date-time category."
+			}
+		]
+	},
+	"tooltip_dateRangeStart": {
+		"content": [
+			{
+				"displayContent": "Specifies the filter that will be used as the start date in a date range."
+			}
+		]
+	},
+	"tooltip_dateRangeEnd": {
+		"content": [
+			{
+				"displayContent": "Specifies the filter that will be used as the end date in a date range. When selected, the end date filter is automatically hidden."
+			}
+		]
+	},
+	 "tooltip_displayFormat": {
+    "content": [
+      {
+        "displayContent": "Available for date, time, or datetime filters only. Select the appropriate format used to display values, such as dd-MM-yyyy or other applicable date and time formats."
+      }
+    ]
+  },
+
+  "tooltip_valueFormat": {
+    "content": [
+      {
+        "displayContent":  "Same as the display format, but used as the dropdown value. The key and value both represent the selected date or time format."
+      }
+    ]
+  }
+}

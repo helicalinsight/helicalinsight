@@ -1,0 +1,86 @@
+.hi-system-details {
+  height: 82vh;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+}
+
+.system-details-table-container {
+  border: 1px solid #ddd;
+}
+
+@media screen and (max-width: 768px) {
+  .system-details-table-container {
+    margin-bottom: 10px;
+  }
+}
+
+.system-heading-container {
+  padding: 15px;
+  border-bottom: 1px solid #ddd;
+}
+
+.table-heading-container {
+  height: 10px;
+  line-height: 10px;
+}
+
+.hi-system-table-title {
+  font-size: 14px;
+}
+
+.hi-sytem-sync-button {
+  background-color: transparent;
+  border: 0;
+}
+
+.system-table-data-container {
+  padding: 10px;
+  /* row data */
+  /* row tags */
+}
+
+.system-table-data-container .ant-table {
+  font-size: 12px;
+}
+
+.system-table-data-container .ant-table-tbody > tr > td {
+  height: 5px;
+  padding: 5px;
+}
+
+.system-table-data-container .my-tag {
+  font-size: 12px;
+}
+
+.system-table-data-container .ant-table-thead > tr > th {
+  height: 5px;
+  font-weight: 0;
+  padding: 5px;
+  background-color: transparent;
+}
+
+.system-table-data-container .example {
+  margin: 20px 0;
+  margin-bottom: 20px;
+  padding: 30px 50px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.table-row-color {
+  background-color: whitesmoke;
+}
+
+.jvm-true-icon {
+  color: #52c41a;
+}
+
+.jvm-false-icon {
+  color: #f5222d;
+}
+/*# sourceMappingURL=hi-systemDetails.css.map */

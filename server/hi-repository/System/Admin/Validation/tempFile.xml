@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<limit type="number"/>
+	<offset type="number"/>
+	<searchPhrase type="searchPhrase"/>
+	<action type="text"/>
+</formData>

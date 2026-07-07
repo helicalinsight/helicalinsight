@@ -1,0 +1,24 @@
+#Provide the llm provider for Instant BI
+default_provider:
+#Provide base url of the hi-ee application along with port number
+#base_url: http://hiee:8080/hi-ee
+base_url:
+
+providers:
+  openai:
+    model: gpt-5.4-mini
+    temperature: 0.1
+    max_tokens: 1000
+    api_key:
+
+  anthropic:
+    model: claude-opus-4-6
+    temperature: 0.1
+    max_tokens: 1500
+    api_key: 
+
+  gemini:
+    model: gemini-2.5-flash
+    temperature: 0.1
+    max_tokens: 1500
+    api_key:

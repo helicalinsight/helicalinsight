@@ -1,0 +1,15 @@
+flask
+waitress
+python-dotenv
+langchain-core
+langchain-community
+langgraph
+sqlglot
+langchain-openai
+langchain-anthropic
+langchain-google-genai
+langgraph-checkpoint-postgres
+langgraph-checkpoint-sqlite
+google-generativeai
+openai
+psycopg[binary]

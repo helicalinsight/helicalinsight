@@ -1,0 +1,91 @@
+.hi-management-card .ant-card-body {
+  padding: 0 !important;
+}
+
+.hi-management-card .hi-management-container .management-menu {
+  line-height: 20px;
+}
+
+.hi-management-card .hi-management-container .advanced-container {
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .overview-container {
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .config-container {
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .overview-container {
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .site-form-in-drawer-wrapper {
+  position: absolute;
+  right: 0px;
+  bottom: 0px;
+  width: 100%;
+  padding: 10px 16px;
+  text-align: right;
+  background: #fff;
+  border-top: 1px solid #e9e9e9;
+}
+
+.hi-management-card .hi-management-container [data-theme="dark"] .site-form-in-drawer-wrapper {
+  border-top: 1px solid #303030;
+  background: #1f1f1f;
+}
+
+.hi-management-card .hi-management-container .alert-info {
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+  color: #31708f;
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.hi-management-card .hi-management-container .ant-menu-horizontal {
+  border: none !important;
+}
+
+.hi-management-card .hi-management-container .dice-menu-container {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .middleware-menu-container {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+}
+
+.hi-management-card .hi-management-container .hi-management-routes {
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+
+.hi-management-card .hi-management-container .middleware-routes-data-container {
+  padding: 30px;
+}
+
+.hi-management-card .hi-management-container .dice-routes-data-container {
+  padding: 30px;
+}
+
+.hi-management-card .hi-management-container .switch-container {
+  padding-left: 20px;
+}
+
+.hi-management-card .hi-management-container .advanced-item {
+  margin-right: 10px;
+  width: 100px;
+  background-color: blueviolet;
+}
+
+.hi-management-card .hi-management-container .more-options {
+  text-align: right;
+  cursor: pointer;
+  color: #1890ff;
+}
+/*# sourceMappingURL=hi-management.css.map */

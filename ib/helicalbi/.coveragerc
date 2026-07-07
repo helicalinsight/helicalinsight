@@ -1,0 +1,19 @@
+# Coverage configuration for pytest-cov.
+# Run from repo root: pytest --cov --cov-report=term-missing --cov-report=html
+
+[run]
+source =
+    helicalbi
+    app
+omit =
+    */tests/*
+    */.venv/*
+branch = false
+
+[report]
+show_missing = true
+skip_covered = false
+exclude_lines =
+    pragma: no cover
+    if TYPE_CHECKING:
+    if __name__ == "__main__":

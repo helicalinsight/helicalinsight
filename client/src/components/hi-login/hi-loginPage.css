@@ -1,0 +1,87 @@
+@media (max-width: 750px) {
+  .login-page-text {
+    font-size: 20px !important;
+  }
+
+  .login-form {
+    padding-bottom: 5%;
+  }
+}
+@media (max-width: 1095px) and (min-width: 991px) {
+  .login-form-item:nth-child(2), .login-form-item:nth-child(3), .login-form-item:nth-child(4) {
+    min-height: 6.25rem !important;
+  }
+}
+.login-page-wrapper {
+  padding: 1px 5%;
+  background-color: #e2f2fb;
+}
+.login-page-wrapper .login-page {
+  box-shadow: 0px 0px 51px -13px rgba(0, 0, 0, 0.75);
+  margin: 6% auto;
+  max-width: 86%;
+}
+.login-page-wrapper .login-page .form-wrapper {
+  overflow: visible;
+}
+.login-page-wrapper .login-page .login-page-placeholder {
+  position: relative;
+}
+.login-page-wrapper .login-page .login-page-placeholder .login-page-text {
+  color: white !important;
+  position: absolute;
+  bottom: 4%;
+  width: 100%;
+  text-align: center;
+  font-weight: 500 !important;
+  font-family: "Questrial";
+}
+.login-page-wrapper .main-login-form {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7% 10%;
+  height: 100%;
+  background-color: white;
+}
+.login-page-wrapper .main-login-form .login-logo-container {
+  margin-bottom: 4%;
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+.login-page-wrapper .main-login-form .login-logo-container .login-form-logo-text {
+  font-size: 11px;
+  margin: 0 0 0 1% !important;
+}
+.login-page-wrapper .main-login-form .login-form-item .ant-input-group-addon {
+  background-color: white;
+  line-height: 1;
+}
+.login-page-wrapper .main-login-form .login-form-item:nth-child(2), .login-page-wrapper .main-login-form .login-form-item:nth-child(3), .login-page-wrapper .main-login-form .login-form-item:nth-child(4) {
+  min-height: 5.35rem;
+  margin-bottom: 0;
+}
+.login-page-wrapper .main-login-form .login-form-item .ant-form-item-explain-error {
+  font-size: 12px;
+  font-weight: 350;
+}
+.login-page-wrapper .main-login-form .login-btn {
+  text-align: center;
+}
+.login-page-wrapper .main-login-form .login-form-actions {
+  flex-wrap: initial;
+}
+.login-page-wrapper .main-login-form .login-form-actions .login-form-admin-action, .login-page-wrapper .main-login-form .login-form-actions .login-form-user-action {
+  height: 50px;
+  padding: 5px;
+  display: flex;
+  border: 1px solid #9ac0de;
+  align-items: center;
+}
+.login-page-wrapper .main-login-form .login-form-actions .login-form-admin-action > .action-text, .login-page-wrapper .main-login-form .login-form-actions .login-form-user-action > .action-text {
+  display: inline-block;
+  margin: 0;
+  line-height: 1.1;
+  margin-left: 4%;
+  text-align: initial;
+}/*# sourceMappingURL=hi-loginPage.css.map */

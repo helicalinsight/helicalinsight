@@ -1,0 +1,39 @@
+@import "../../../styles/variables.scss";
+
+.hi-shortcut-container {
+  position: relative;
+  .hi-shortcut-text {
+    position: absolute;
+    left: 25%;
+    bottom: -48%;
+    line-height: normal;
+    height: 20px;
+    z-index: 1;
+    font-size: 11px;
+    padding: 2px;
+    border-radius: 2px;
+    border: 2px solid #625f63;
+    background-color: #625f63;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+  }
+  .menu-item{
+    bottom: -130%;
+    left: 0;
+  }
+  .navbar-item{
+    bottom: -95%;
+    left: 5%;
+  }
+  .dropdown-item {
+    bottom: -112%;
+  }
+  .button-item {
+    bottom: -130%;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+}

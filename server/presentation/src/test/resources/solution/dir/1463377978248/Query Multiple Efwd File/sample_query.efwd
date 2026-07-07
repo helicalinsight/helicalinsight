@@ -1,0 +1,22 @@
+<EFWD>
+   <DataSources>
+        <Connection id="1" type="sql.jdbc">
+            <Driver>com.mysql.jdbc.Driver</Driver>
+			<Url>jdbc:mysql://localhost:3306/hdi</Url>
+            <User>root</User>
+            <Pass>root</Pass>
+        </Connection>
+    </DataSources>
+    
+   <DataMaps>
+		<DataMap id="1" connection="1" type="sql" >
+           <Name>Pie Chart</Name>
+            <Query>
+                <![CDATA[
+                        select 
+						count(*) from h_users limit 4
+                ]]>
+            </Query>
+        </DataMap>
+	</DataMaps>
+</EFWD>

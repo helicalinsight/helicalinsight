@@ -1,0 +1,81 @@
+.hi-admin-scheduling-container {
+  border: 1px solid #ddd;
+}
+
+.hi-admin-scheduling-container .scheduling-header-container {
+  height: 50px;
+  border-bottom: 1px solid #f1e5e5;
+}
+
+.hi-admin-scheduling-container .scheduling-header-data-container {
+  height: 100%;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-scheduling-container .scheduling-title {
+  padding-left: 10px;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-scheduling-container .scheduling-refresh-button {
+  text-align: end;
+  padding-right: 7px;
+}
+
+.hi-admin-scheduling-container .plugin-refresh-button {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+}
+
+.hi-admin-scheduling-container .scheduling-alert-icon {
+  padding-left: 5px;
+}
+
+.hi-admin-scheduling-container .scheduling-alert {
+  width: 100px;
+}
+
+.hi-admin-scheduling-container .scheduling-table-container {
+  padding: 5px;
+  height: 73vh;
+}
+
+.hi-admin-scheduling-container .table-row-color {
+  background-color: whitesmoke;
+}
+
+.hi-admin-scheduling-container .capitalize {
+  text-transform: capitalize;
+}
+
+.hi-admin-scheduling-container .ant-card-body {
+  padding: 0px !important;
+}
+
+.hi-admin-scheduling-container .expired {
+  color: #f5222d;
+}
+/*# sourceMappingURL=hi-scheduling.css.map */

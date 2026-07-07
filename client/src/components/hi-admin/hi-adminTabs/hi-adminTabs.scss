@@ -1,0 +1,66 @@
+@import "../../../styles/variables.scss";
+
+.recycle-bin-btns {
+	margin-bottom: 1%;
+}
+
+.renew-license {
+	margin-left: 3px;
+	background-color: $hi-blue;
+	color: $hi-white !important;
+	padding: 3px;
+}
+
+.hi-admin-tabs {
+	height: 100%;
+	.hi-admin-container {
+		border: 1px solid $hi-light-gray;
+		border-top-right-radius: 3px;
+		border-top-left-radius: 3px;
+	}
+	.hi-admin-tabs-container {
+		background-color: $hi-background-blue;
+		border-bottom: 1px solid $hi-light-gray;
+		height: 43px;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.hi-tabs-menu {
+		line-height: 28px;
+		border-radius: 5px;
+		border: 1px solid $hi-light-gray;
+		// width: 63%;
+		max-width: 778.5px !important;
+		min-width: 220px;
+		.active {
+			background-color: $hi-blue !important;
+			color: $hi-white !important;
+			.link, .selected {
+				color: $hi-white !important;
+			}
+		}
+		.menu-item {
+			line-height: 28px;
+			font-size: 13px;
+			border-right: 1px solid $hi-light-gray;
+		}
+		.menu-first-item {
+			border-top-left-radius: 5px;
+			border-bottom-left-radius: 5px;
+		}
+		.menu-last-item {
+			border-top-right-radius: 5px;
+			border-bottom-right-radius: 5px;
+			border: 0 !important;
+		}
+	}
+	.hi-admin-routes-container {
+		padding: 10px;
+		height: calc(100% - 43px);
+		overflow-y: auto;
+		//height: 85vh;
+		border: 1px solid $hi-light-gray;
+	}
+}

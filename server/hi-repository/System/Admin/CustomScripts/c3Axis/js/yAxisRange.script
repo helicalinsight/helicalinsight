@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_yAxisRange</scriptId>
+    <scriptType>js</scriptType>
+    <name>Y Axis Range</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Define the max and min range for Y axis of c3 axis charts</description>
+    <icon>/images/scriptIcons/yAxis_range.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['setaxisRange'+id]= function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = axisRange(viz_Options);
+				c.set("viz_Options",viz_Options);
+			}
+			
+			ftnObj['extendaxisRange'+id]= function(preExecution, c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = axisRange(viz_Options);
+				
+			}
+		/*	
+			function setaxisRange(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = axisRange(viz_Options);
+				c.set("viz_Options",viz_Options);
+			}
+			function extendaxisRange(preExecution, c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = axisRange(viz_Options);
+			}
+			*/
+			
+		   function axisRange(viz_Options){
+			  if(viz_Options.chartOptions.axis){
+					viz_Options.chartOptions.axis.y = {
+						  max: ${max},
+						  min: ${min},
+						  padding: {top: 0, bottom: 0},
+						  tick: {
+							     format: d3.format(",s")
+							  }
+					}
+			}
+			else{
+				viz_Options.chartOptions["axis"] ={
+					y:{
+					  max: ${max},
+					  min: ${min},
+					  padding: {top: 0, bottom: 0},
+					  tick: {
+							     format: d3.format(",s")
+							  }
+					}
+				  }
+				
+			}
+				return viz_Options;
+		   }
+		   
+		   if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setaxisRange'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendaxisRange'+id]);
+			}
+		
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="100" name="max" type="String"/>
+		<parameter value="0" name="min" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		<style>
+		.yAxis, .form-group{
+			padding-bottom: 25px;
+		}
+		
+		</style>
+		
+			<div class="container-fluid">
+				<div class="yAxis">
+					<h4 id="yAxisRange" class="col-sm-12">
+						<strong>Y Axis Range</strong>
+					</h4>	
+				</div>
+				
+				<form class="form-inline">
+					<div class="form-group">
+						<label class="col-sm-5 col-md-5 col-xs-12 control-label" for="y_axis_max_value">Maximum Value</label>
+							<div class="col-sm-3 col-md-3 col-xs-12">
+								<input class="form-control" id="y_axis_max_value" type="number" onchange="YMaxValue(this)">
+							</div>
+					</div>
+					<div class="form-group">	
+						<label class="col-sm-5 col-md-5 col-xs-12 control-label" for="y_axis_min_value">Minimum Value</label>
+							<div class="col-sm-3 col-md-3 col-xs-12">
+								<input class="form-control" id="y_axis_min_value" type="number" onchange="YMinValue(this)">
+							</div>
+					</div>		
+					
+				</form>		
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				//Set global variable from parameter
+				adhocScripts.setVariable("max",params.max);
+				adhocScripts.setVariable("min",params.min);
+				
+				function YMaxValue (e) 
+				 {
+				  adhocScripts.setVariable("max",e.value);
+				 }
+				 function YMinValue (e) 
+				 {
+				  adhocScripts.setVariable("min",e.value);
+				 }
+				 
+				$('#y_axis_max_value').val(adhocScripts.getVariable('max'));
+				$('#y_axis_min_value').val(adhocScripts.getVariable('min'));
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

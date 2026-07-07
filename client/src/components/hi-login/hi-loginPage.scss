@@ -1,0 +1,189 @@
+@import "../../styles/variables.scss";
+
+@media (max-width: 750px) {
+	.login-page-text {
+		font-size: 20px !important;
+	}
+
+	.login-form {
+		padding-bottom: 5%;
+	}
+}
+
+@media (max-width: 1095px) and (min-width: 991px) {
+	.login-form-item {
+		&:nth-child(2),
+		&:nth-child(3),
+		&:nth-child(4) {
+			min-height: 6rem !important; // org, usr, pass
+			// background-color: red !important;
+		}
+	}
+}
+
+//       ------------------------------                    LOGIN PAGE STYLES                     ---------------------------
+
+.login-page-wrapper {
+	padding: 1px 5%;
+	background-color: #{$background-color};
+
+	.login-page {
+		box-shadow: 0px 0px 51px -13px rgb(0 0 0 / 75%);
+		margin: 6% auto;
+		max-width: 86%;
+
+		.form-wrapper {
+			overflow: visible;
+		}
+
+		.login-page-placeholder {
+			position: relative;
+
+			.login-page-text {
+				font-size: 36px;
+				color: white !important;
+				position: absolute;
+				bottom: 4%;
+				width: 100%;
+				text-align: center;
+				font-weight: 500 !important;
+				// font-family: 'Questrial';
+			}
+		}
+	}
+
+	//    ----------------------------              LOGIN FORM STYLES             ----------------------------------
+
+	.main-login-form {
+		width: 100%;
+		box-sizing: border-box;
+		padding: 7% 10%;
+		height: 100%;
+		background-color: white;
+		position: relative;
+		// padding-bottom: 40px;
+
+		.ant-form-item-label > label {
+			font-size: 12.5px;
+		}
+
+		.login-logo-container {
+			margin-bottom: 4%;
+			display: flex;
+			justify-content: left;
+			align-items: center;
+
+			.login-form-logo-text {
+				font-size: 11px;
+				margin: 0 0 0 1% !important;
+			}
+		}
+
+		.login-form-item {
+			.ant-input-group-addon {
+				background-color: white;
+				line-height: 1;
+			}
+
+			&:nth-child(2),
+			&:nth-child(3),
+			&:nth-child(4) {
+				min-height: 5rem; // 5.35
+				margin-bottom: 0;
+				// background-color: red !important;
+			}
+			&:nth-child(7) {
+				// saml link
+				text-align: center;
+				margin-bottom: 0;
+			}
+
+			// &:nth-child(4), &:nth-child(5){
+			//     margin-bottom: 16px;
+			// }
+
+			.ant-form-item-explain-error,
+			.invalid-msg {
+				font-size: 12px;
+				font-weight: 350;
+			}
+			.invalid-msg {
+				// text-align: center;
+				color: #ff4d4f;
+				margin: 0;
+				position: absolute;
+				left: 50%;
+				transform: translate(-50%, 0);
+			}
+		}
+
+		.login-btn {
+			text-align: center;
+			margin-bottom: 18px;
+		}
+
+		.login-form-actions {
+			flex-wrap: initial;
+			margin-bottom: 10px;
+
+			.login-form-admin-action,
+			.login-form-user-action {
+				height: 50px;
+				padding: 5px;
+				display: flex;
+				border: 1px solid #9ac0de;
+				align-items: center;
+				> .action-text {
+					font-size: 12px;
+					display: inline-block;
+					margin: 0;
+					line-height: 1.1;
+					margin-left: 4%;
+					text-align: initial;
+				}
+			}
+		}
+
+		.login-form-saml-link,
+		.login-form-credentials-link {
+			text-decoration: underline;
+		}
+
+		//---------------------------------------------------    SAML LOGIN     ---------------------------------------------------------
+		.saml-container {
+			height: 100%;
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			min-height: 300px;
+			.saml-body {
+				.radio-list .ant-form-item-control-input {
+					max-height: 200px;
+					overflow: scroll;
+					// background-color: lightblue;
+					&::-webkit-scrollbar {
+						width: 4.5px;
+						height: 0;
+					}
+					&::-webkit-scrollbar-thumb {
+						background-color: #9ac0de;
+					}
+				}
+				.ant-form-item-explain-error {
+					// position: relative;
+					// z-index: 5;
+					// bottom: 200px;
+				}
+			}
+			.saml-footer {
+				display: flex;
+				align-items: center;
+				flex-direction: column;
+				// margin-top: 12.5%;
+				.saml-sign-on {
+					margin-bottom: 10px;
+				}
+			}
+		}
+	}
+}

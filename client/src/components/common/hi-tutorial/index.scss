@@ -1,0 +1,40 @@
+
+
+.hi-tutorial {
+  padding: 0 !important;
+}
+
+.pad-top-10 {
+  padding: 10px 0 0 !important;
+}
+
+.hide-filter, .ignore-filter {
+  max-width: 25% !important;
+}
+
+.hi-navbar-right-item.hi-navbar-right-item-dropdown{
+  .hi-tutorial-info{
+    padding-top: 5px;
+  }
+}
+.hi-tutorial {
+  .ant-popover-inner-content {
+    padding: 10px !important;
+  }
+  .ant-popover-message-title {
+    padding: 0px !important;
+  }
+}
+// .hr-editing-area-position {
+//   top: 150px !important;
+//   left: 525px !important;
+// }
+.hi-tutorial-container {
+  width: 20vw;
+}
+.hi-title {
+  font-size: 14px;
+}
+.hi-description {
+  font-size: 13px;
+}

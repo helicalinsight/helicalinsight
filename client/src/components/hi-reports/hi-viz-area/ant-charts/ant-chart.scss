@@ -1,0 +1,90 @@
+.card-container {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .ant-statistic-content {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+
+    .hi-card-trend-title {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .hr-trend-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        // max-height: 120px;
+        // overflow-y: auto;
+
+        &>div {
+            // width: 50%;
+            margin-top: 8px;
+
+            .ant-table-row {
+                .ant-table-cell {
+                    padding: 2px 8px !important;
+                    // border-right: 1px solid #f0f0f0;
+                    border-bottom: none !important;
+                }
+
+                .ant-table-cell:last-child {
+                    border-right: none;
+                }
+            }
+
+            .hr-card-table-percentage {
+                display: flex;
+            }
+
+            .ant-pagination-item {
+                display: none !important;
+            }
+
+            .ant-pagination-jump-prev {
+                display: none !important;
+            }
+
+            .ant-pagination-jump-next {
+                display: none !important;
+            }
+
+            .ant-pagination {
+                margin: 0 !important;
+            }
+        }
+
+        .ant-table-body {
+            overflow: auto !important;
+        }
+    }
+}
+
+.doughnut-analytics-ellipsis {
+    display: inline-block;
+    max-width: 3ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.doughnut-analytics-text-ellipsis {
+    display: inline-block;
+    max-width: 9ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #000;
+}
+
+.doughnut-analytics-ellipsis-tooltip {
+    color: #fff !important;
+
+    span {
+        color: #fff !important;
+    }
+}

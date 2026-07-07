@@ -1,0 +1,22 @@
+<Charts>
+	<Chart id="1">
+        <prop>
+            <name>pie chart</name>
+            <type>Custom</type>
+            <DataSource>1</DataSource>
+            <script>
+                <![CDATA[testVF]]>
+            </script>
+        </prop>
+    </Chart>
+	<Chart id="1">
+        <prop>
+            <name>pie chart</name>
+            <type>Custom</type>
+            <DataSource>1</DataSource>
+            <script>
+                <![CDATA[testVF]]>
+            </script>
+        </prop>
+    </Chart>
+</Charts>

@@ -1,0 +1,123 @@
+@import "../../../../styles/variables.scss";
+
+.instant-bi-preview-container {
+  background-color: $hi-white;
+  height: calc(100% - 22px);
+
+  .ib-space {
+    height: 100%;
+  }
+
+  .instant-bi-preview-content {
+    height: 95%;
+    padding: 12px;
+
+    .ib-preview-container {
+      height: 100%;
+      width: 100%;
+
+    }
+
+
+    .ib-preview-tabs {
+      .radio-btn-item {
+        width: 60px;
+        padding: 0px !important;
+        text-align: center;
+        font-size: 10px;
+      }
+
+      .radio-btn-item:first-child {
+        border-radius: 8px 0 0 8px;
+      }
+
+      .radio-btn-item:last-child {
+        border-radius: 0 8px 8px 0;
+      }
+    }
+
+
+    .ib-preview-area {
+      height: 100%;
+      width: 100%;
+
+      .json-data-viewer {
+        white-space: pre-wrap;
+        background-color: #f0f0f0;
+        padding: 16px;
+        margin-top: 12px;
+        max-height: 90%;
+        overflow-y: auto;
+      }
+
+
+      code {
+        background-color: #f1f1f1;
+        border-radius: 3px;
+        padding: 2px 4px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+
+      pre {
+        background-color: #f1f1f1;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+        overflow-x: auto;
+        margin: 10px;
+        font-size: 12px;
+      }
+    }
+
+  }
+
+  .instant-bi-preview-footer {
+    // height: 5%;
+    position: relative;
+
+    .instant-bi-footer-container {
+      position: relative;
+      clear: both;
+
+      .footer-menu-icon {
+        position: absolute;
+        left: 0;
+        top: 3px;
+        background-color: #fff;
+        cursor: pointer;
+      }
+
+      .scroll-items {
+        position: absolute;
+        top: 3px;
+        right: 0px;
+        background: #fff;
+        cursor: pointer;
+      }
+
+      .tab-list {
+        overflow: hidden;
+        width: 90% !important;
+        float: left;
+        margin-left: 20px;
+
+        .ant-radio-group {
+          display: flex;
+        }
+
+        .ant-radio-button-wrapper {
+          width: max-content;
+        }
+      }
+
+      .ant-tabs-nav {
+        margin: 0px !important;
+      }
+
+      .ant-tabs-tab {
+        padding: 0px 8px !important;
+      }
+    }
+  }
+}

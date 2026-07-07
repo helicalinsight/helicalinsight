@@ -1,0 +1,7 @@
+# Local tooling / coverage (not source)
+htmlcov/
+.coverage
+coverage.xml
+
+# Local Compose / secrets (use .env.example as template)
+.env

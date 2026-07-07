@@ -1,0 +1,174 @@
+.cell-menu {
+  position: fixed;
+  background: #fff;
+  color: brown;
+  text-align: left;
+  z-index: 9999;
+  border: 1px solid #ddd;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.175);
+  width: 330px;
+  height: 117px;
+
+  .cell-card-extra-container {
+    display: flex;
+    align-items: center;
+
+    .hr-card-ant-menu {
+      border: none !important;
+      line-height: 12px !important;
+
+      .ant-menu-submenu-title {
+        .ant-menu-title-content {
+          display: none;
+          margin: 0 !important;
+        }
+      }
+
+      .anticon {
+        color: #000 !important;
+      }
+
+      .ant-menu-overflow-item::after {
+        content: none !important;
+      }
+    }
+  }
+}
+
+.cell-menu-body {
+  padding: 0px;
+}
+
+.cell-menu .item {
+  padding: 0px 10px;
+}
+
+.cell-menu li>a {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.cell-menu {
+  .action-item.drill-through-btn:hover {
+    opacity: 0.5;
+  }
+
+  .drill-through-icon {
+    float: right;
+  }
+}
+
+.cell-menu .action-item.sort-up {
+  margin-bottom: -10px;
+  margin-top: 2px;
+}
+
+.cell-menu .action-item.sort-down {
+  margin-top: -10px;
+}
+
+.cell-menu .action-item i {
+  font-size: 25px;
+}
+
+.cell-menu .field-table {
+  margin: 5px 3px;
+}
+
+.cell-menu .field-name {
+  float: left;
+  width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px;
+}
+
+.cell-menu .field-value {
+  font-weight: 600;
+  float: left;
+  width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px;
+}
+
+.cell-menu .close-btn {
+  float: right;
+  padding: 3px;
+}
+
+.cell-menu-header {
+  background-color: #777;
+  padding: 5px;
+  height: 25px;
+  color: #fff;
+}
+
+.cell-menu .nav-tabs {
+  background-color: #e2f2fb !important;
+  overflow: hidden;
+}
+
+.cell-menu .global-check {
+  float: right;
+}
+
+.cell-menu .global-check input {
+  margin: 0px 5px;
+}
+
+.drag-div {
+  background-color: #777;
+  padding: 5px;
+  /* text-align: center; */
+  height: 25px;
+  color: white;
+  cursor: move;
+}
+
+.drag-div .drag-close {
+  font-size: 14px;
+  color: #e4dede;
+}
+
+.drag-content .nav-tabs {
+  background-color: #e2f2fb !important;
+}
+
+.drag-div .content-title {
+  padding-left: 10px;
+}
+
+.global-filter-input {
+  margin: 0px 5px;
+  cursor: pointer;
+}
+
+.global-filter-input>input {
+  margin: 0px 5px;
+}
+
+.toolbar-container {
+  border: 1px solid #ddd;
+  padding: 0px 5px;
+  background-color: #fff;
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  z-index: 999;
+}
+
+.toolbar-container:empty {
+  border: none;
+}
+
+.ant-tooltip{
+  z-index: 99999 !important;
+}
+
+.hr-card-ant-menu-item{
+  line-height: 24px !important;
+  height: 24px !important;
+}

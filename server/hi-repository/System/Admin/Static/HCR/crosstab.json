@@ -1,0 +1,76 @@
+{
+	"crosstab": {
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"backColor": "#ffffff",
+			"foreColor": "#000000",
+			"height": 950,
+			"mode": "Transparent",
+			"stretchType": "NoStretch",
+			"width": 2400,
+			"runDirection": "LTR",
+			"repeatColumnHeaders": true,
+			"repeatRowHeaders": true,
+			"printRepeatedValues": true,
+			"columnBreakOffset": 10,
+			"horizontalPosition": "LEFT",
+			"ignoreWidth": false,
+			"positionType": "FixRelativeToTop"
+		},
+		"columnGroups": [
+			{
+				"name" : "sampleColumnGroup",
+				"bucket": {
+					"className": "java.lang.String",
+					"expression": ""
+				},
+				"crosstabColumnHeader": {
+					"styleNameReference": "TABLE_TH"
+				},
+				"crosstabTotalColumnHeader": {
+					"styleNameReference": "TABLE_CT"
+				},
+				"height": 80,
+				"totalPosition": "END"
+			}
+		],
+		"rowGroups": [
+			{
+				"name": "sampleRowGroup",
+				"bucket": {
+					"className": "java.lang.String",
+					"expression": ""
+				},
+				"crosstabRowHeader": {
+					"styleNameReference": "TABLE_TH"
+				},
+				"crosstabTotalRowHeader": {
+					"styleNameReference": "TABLE_CT"
+				},
+				"totalPosition": "END",
+				"width": 350
+			}
+		],
+		"measures": [
+			{
+				"name" : "sampleMeasure",
+				"calculation": "Sum",
+				"className": "java.lang.Integer",
+				"measureExpression" : ""
+			}
+		],
+		"dataSetRun": {
+			"dataSetName": "Query1",
+			"dataSetExpression": "$P{REPORT_CONNECTION}"
+		},
+		"crosstabCells": [
+			{
+				"height": 80,
+				"styleNameReference": "TABLE_TD",
+				"textField": [],
+				"width": 350
+			}
+		]
+	}
+}

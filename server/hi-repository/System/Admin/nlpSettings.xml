@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nlpSettings>
+    <!--Default limit applied to queries-->
+    <limitDefault>1000</limitDefault>
+    <!--Remove consecutive white spaces, periods, colons, semi colons, commas-->
+    <cleanSearchPhrase>true</cleanSearchPhrase>
+    <!--Pos Tokens in the rules are separated by this string-->
+    <posSeparator><![CDATA[ ]]></posSeparator>
+    <minimumEditDistance>0.65</minimumEditDistance>
+    <engines>
+        <engine language="java">
+            <processors>
+                <processor class="com.helicalinsight.nlp.SearchPhraseProcessor" type="open.nlp">
+                    <!-- Maxent models -->
+                    <posTokenizerModel>hi-pos_custom.bin</posTokenizerModel>
+                    <tokenizerModel>en-token.bin</tokenizerModel>
+                </processor>
+            </processors>
+        </engine>
+    </engines>
+</nlpSettings>

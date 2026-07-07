@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<artifactId>hi-ce</artifactId>
+	<packaging>war</packaging>
+	<name>hi-ce</name>
+
+
+	<properties>
+		<maven-war-plugin.version>3.3.2</maven-war-plugin.version>
+		<proguard-maven-plugin.version>2.0.14</proguard-maven-plugin.version>
+		<proguard.version>5.3.2</proguard.version>
+		<mysql-connector-java.version>5.1.6</mysql-connector-java.version>
+		<hiRepositoryPath>${maven.multiModuleProjectDirectory}/hi-repository</hiRepositoryPath>
+		<dbBasePath>${maven.multiModuleProjectDirectory}/db</dbBasePath>
+		<logLocation>${hiRepositoryPath}/System/Logs</logLocation>
+	</properties>
+	<profiles>
+
+		<!-- Default for local development: embedded Derby, paths relative to server/ -->
+		<profile>
+			<id>dev</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<dbUser>hiuser</dbUser>
+				<dbPassword>hiuser</dbPassword>
+				<dbDialect>org.hibernate.dialect.DerbyDialect</dbDialect>
+				<dbServer>localhost</dbServer>
+				<dbPort>1527</dbPort>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hiee;create=true</dbUrl>
+				<dbDriver>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriver>
+				<dbUrlQtz>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hischeduledata;create=true</dbUrlQtz>
+				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
+				<delegateClass>org.quartz.impl.jdbcjobstore.StdJDBCDelegate</delegateClass>
+			</properties>
+		</profile>
+		
+		<profile>
+			<id>production</id>
+			<activation>
+				<property>
+					<name>env</name>
+					<value>production</value>
+				</property>
+			</activation>
+			<properties>
+				<dbUser>hiuser</dbUser>
+				<dbPassword>hiuser</dbPassword>
+				<dbDialect>org.hibernate.dialect.DerbyDialect</dbDialect>
+				<dbServer>127.0.0.1</dbServer>
+				<dbPort>1527</dbPort>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hiee;create=true</dbUrl>
+				<dbDriver>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriver>
+				<dbUrlQtz>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hischeduledata;create=true</dbUrlQtz>
+				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
+				<delegateClass>org.quartz.impl.jdbcjobstore.StdJDBCDelegate</delegateClass>
+			</properties>
+		</profile>
+		<profile>
+			<id>docker</id>
+			<activation>
+				<property>
+					<name>env</name>
+					<value>docker</value>
+				</property>
+			</activation>
+			<properties>
+				<hiRepositoryPath>/usr/local/Helical Insight/hi/hi-repository</hiRepositoryPath>
+				<dbBasePath>/usr/local/Helical Insight/hi/db</dbBasePath>
+				<logLocation>${hiRepositoryPath}/System/Logs</logLocation>
+				<dbUser>hiuser</dbUser>
+				<dbPassword>hiuser</dbPassword>
+				<dbDialect>org.hibernate.dialect.PostgreSQLDialect</dbDialect>
+				<dbServer>postgres</dbServer>
+				<dbPort>5432</dbPort>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:postgresql://postgres:5432/hiee</dbUrl>
+				<dbDriver>org.postgresql.Driver</dbDriver>
+				<dbUrlQtz>jdbc:postgresql://postgres:5432/hischeduledata</dbUrlQtz>
+				<dbDriverQtz>org.postgresql.Driver</dbDriverQtz>
+				<delegateClass>org.quartz.impl.jdbcjobstore.PostgreSQLDelegate</delegateClass>
+			</properties>
+			<dependencies>
+				<dependency>
+					<groupId>org.postgresql</groupId>
+					<artifactId>postgresql</artifactId>
+					<version>42.7.11</version>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+
+	<parent>
+		<groupId>com.helicalinsight</groupId>
+		<artifactId>parent</artifactId>
+		<version>${parent.version}</version>
+		<relativePath>..</relativePath>
+	</parent>
+
+	<build>
+		<finalName>${project.artifactId}</finalName>
+		<plugins>
+			<!--No need to mention the version and configuration details as the pluginManagement section
+            is written in the parent POM-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+
+			<!--Presentation layer requires war plugin-->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-war-plugin</artifactId>
+				<version>${maven-war-plugin.version}</version>
+				<!--To remove the pom.xml from war file-->
+				<configuration>
+					<archive>
+						<addMavenDescriptor>false</addMavenDescriptor>
+					</archive>
+					<packagingExcludes>WEB-INF/lib/bcprov-jdk15-1.*.jar,WEB-INF/lib/servlet-api-2.5.jar,WEB-INF/lib/slf4j-log4j*.jar,WEB-INF/lib/log4j-1.2.17.jar,WEB-INF/lib/velocity-1.7.jar,WEB-INF/lib/netty-3.10.5.Final.jar,guava-14.0.1.jar,HikariCP-java7-2.4.13.jar</packagingExcludes>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<configuration>
+       				<excludes>
+            			<exclude>com/helicalinsight/scheduling/XmlOperationWithParser.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/XmlOperation.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/SchedulerActionHandler.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/HCRScheduler.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/EnhancedHwfScheduler.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/HwfScheduler.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/TriggerMigrationForScheduler.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/TriggerUtility.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/ScheduleJob.class</exclude>
+            			<exclude>com/helicalinsight/scheduling/ScheduleProcessCall.class</exclude>
+            			<exclude>com/helicalinsight/export/components/DaemonServiceCheckComponent.class</exclude>
+            			<exclude>com/helicalinsight/export/DaemonPhantomService.class</exclude>
+            			<exclude>com/helicalinsight/export/PhantomJS.class</exclude>
+            			<exclude>com/helicalinsight/export/PhantomServiceManager.class</exclude>
+            			<exclude>com/helicalinsight/export/PhantomThreadDemonManager.class</exclude>
+            			<exclude>com/helicalinsight/adhoc/metadata/genericdb/JoinsHandler.class</exclude>		
+            			<exclude> com/helicalinsight/adhoc/metadata/jaxb/** </exclude>
+            		</excludes>
+    			</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					
+					<!-- attached to Maven test phase -->
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report-aggregate</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+
+		</plugins>
+
+		<!--To replace the parametrized variables with the configuration provided in the pom file-->
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<filtering>true</filtering>
+				<includes>
+					<include>META-INF/persistence.xml</include>
+					<include>application-context.xml</include>
+				</includes>
+			</testResource>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<filtering>false</filtering>
+				<excludes>
+					<exclude>META-INF/persistence.xml</exclude>
+					<exclude>application-context.xml</exclude>
+				</excludes>
+			</testResource>
+		</testResources>
+	</build>
+
+	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
+
+
+		<!--Add your dependencies here-->
+		
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-adhoc</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-instant</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-cache</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-core</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-export</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-externalauth</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-hwf</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-scheduling</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.helicalinsight</groupId>
+			<artifactId>hi-validation</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derby</artifactId>
+			<version>10.17.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbyclient</artifactId>
+			<version>10.17.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbytools</artifactId>
+			<version>10.17.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.derby</groupId>
+			<artifactId>derbynet</artifactId>
+			<version>10.17.1.0</version>
+		</dependency>
+		<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-1.2-api</artifactId>
+			</dependency>
+
+		<!-- SLF4J → Log4j2 binding -->
+			<dependency>
+				<groupId>org.apache.logging.log4j</groupId>
+				<artifactId>log4j-slf4j2-impl</artifactId>
+				
+			</dependency>
+
+	</dependencies>
+</project>
+
+
+
+
+
+
+

@@ -1,0 +1,35 @@
+.grid-text-chart {
+  #chart {
+    width: auto;
+    overflow-y: auto !important;
+    text-align: center;
+    padding: 0px 10px 10px 10px;
+    height: 100px;
+  }
+
+  .muze-grid-top {
+    border-bottom: 1px solid #ffcbcb;
+    border-right: 1px solid #ffcbcb;
+  }
+
+  .muze-grid-center {
+    border-bottom: 1px solid #ffcbcb;
+    border-right: 1px solid #ffcbcb;
+  }
+
+  .muze-text-cell {
+    font-weight: bold;
+  }
+
+  .muze-ticks {
+    font-weight: bold;
+  }
+
+  .muze-axis-name {
+    font-weight: bold;
+  }
+}
+
+.muze-layer-text rect {
+  fill-opacity: 1 !important;
+}

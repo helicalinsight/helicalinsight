@@ -1,0 +1,200 @@
+adhoc api
+
+hreport
+	for all components
+		filters, report and query genration
+
+
+
+dashboard
+	only newly developed components
+	
+	
+usecases
+	fetch data
+	advanced filters, dbfun, aggragation, sorting
+	search
+	pagination
+	
+code changes
+	creating api using existing code
+	code changes at the place where API is being called
+	
+ADHOC QUERY UTILITY DISCUSSION WITH NITIN
+estimation : 3days
+we should have function chaining 
+it should be something like
+	hi_api.generateFD(...arg) -> this will generate formdata
+	hi_api.generateFD(...arg).debug() -> this will return the generated formdata
+	hi_api.generateFD(...arg).fetch() -> it should tigger api and return response (fetch - name is not sure yet)
+	
+	in future we should be able to extend this utility for many other functionalities
+	
+DISCUSSION on 17th Nov 2021 with NITIN
+where(coloumn, condition, value)
+columns should be []
+debug - process of exec
+.show() - return created fd
+.alias -> as , can have array
+.select should accept array fo cols - should also accept callback
+.limit -> -1 for full - done
+api suggestions
+
+
+
+new ReportQuery(dataSource)
+.select([column])
+//.select([{col : 'dest', alias : 'dest'}])
+.nfunction() //DEST
+	.upper(column) //DEST
+	.lower(column) //dest
+	.concat(column, col2)
+	
+.alias(aliasName).limit(number >0 || 'full')
+.offset(number)
+
+.function([]) || chain()
+or
+.upper(col_Name || []) - check for a utility whihc will create chaining methoids
+
+nested
+	.fucntion([[upper, round], []])
+.generateFilterFormData().debug() 
+
+.select({destination : {alias : '', count : {upper : }}})
+
+{ destination:  { alias : '', function: [{ count : destination } }, { upper:destination} ] }
+
+DISCUSSION WITH NITIN on 18th Nov 2021
+for select - use fileds(column, alias) - consider this for select
+consider the below links for implementation ideas
+https://hiddentao.github.io/squel/v4/index.html
+https://knexjs.org/#Builder-avg - give this more priority
+
+22nd NOV 2021
+dbfunc(e => e.sum('destination').count('destination')) - for DB function use something like this
+
+=================================================================================
+where
+query = new ReportQuery({"location": "1463377807724/1463377836985/1591703058466",
+	"metadataFileName": "aa3d9571-5568-444e-9446-79ec1f53c78f.metadata"})
+.select([{"column": "travel_details.booking_platform", alias : 'bfr'}])
+.from('HIUSER')
+.limit(-1)
+.groupBy('br')
+where
+
+
+usecases - without db function
+			with db function
+			single where
+			multiple where AND || OR
+			
+			
+			
+24TH NOV 2021 discussion with NITIN
+1. .select should be as follows
+	.select('travel_details.booking_platform', 'bf') // mandatory as of now, no duplication for alias
+	.select({'travel_details.booking_platform':'bf', destination: 'dest'}) // mul cols
+2. .from should also accept multiple connects, and also aliases
+	.from('HIUSER', 'alias')
+	.from({'HIUSER': 'alias'}) // for ,ultiple conn
+3. .limit should accept two argumnts limit, offset
+	.limit(-1, offset) // consider offset
+4. .groupBy should accept multiple aliases at once 
+	.groupoBY(col1, col2, col3...) should accept alias
+5. .order by is also required
+	.orderby(col1, col2, col3...) // default asc
+	.orderBy({'HIUSER': 'asc/desc'})
+6. "prependTableNameToAlias": false - always set to false
+7. .where to be implemented
+	refer https://knexjs.org/#Builder-where 
+
+
+30th Nov discussion with NITIN
+topic - applying dbfunction
+ change select clause as (earlier select clauses will remiain same) .select((builder)=>{builder.abs(builder.sum('destination_id')).alias('id')})
+ 
+ 
+ 
+9th dec 2021 - review with Nitin --- start
+		console.clear()
+		updateReportQueryApi(()=>{
+			query = new ReportQuery({
+				"location": "1463377807724/1463377836985/1591703058466",
+				"metadataFileName": "aa3d9571-5568-444e-9446-79ec1f53c78f.metadata"
+			}).select('HIUSER.travel_details.destination', 'destination')
+			.selectRaw('abs(sum("travel_details"."destination_id"))', 'alias')//- ** custom: true
+		//     .from('HIUSER') - not needed
+		//     .from({'HIUSER' : ['']})
+			//     .dbFun(builder => {builder.sum('destination').builder.datetostring()})
+			.functionBuilder(builder=>{
+				builder.raw({
+					"functionName": "sql.text.dateTimeToString",
+					"dataType": "text",
+					"parameters": {
+						"column": "travel_details.booking_platform"
+					}
+				}, 'alias')
+			}
+			).limit(1, 10).reportFormData({
+				flux: hrFlux
+			}).execute({
+				query: true
+			})
+		}
+		)
+
+observations
+select raw
+dbf - builder.raw
+chnage .dbfun to functionBuilder
+remove from
+handle database name in select itself
+
+--- end
+
+
+
+
+order of writing jest cases for ReportQuery
+1. select - done
+2. selectRaw - done
+3. groupBy - done
+4. orderBy - done
+5. limit and offset - done
+6. function builder - done
+	6.1 normal builder	 - done
+	6.2 raw builder - done
+7. where - done
+	7.1 where - done
+	7.2 orWhere - done
+	7.3 whereIn - done
+	7.4 orWhereIn - done
+	7.5 whereNotIn - done
+	7.6 orWhereNotIn - done
+	7.7 whereBuilder - done
+
+
+
+
+14th dec 2021
+- issue fixed while writing jest cases
+groupBy
+1. order of groupBy applying is not reflected to query - done
+
+FuntionBuilder
+1. empty argument for function builder -  issue - done
+2. issue when passing alias name - done
+3. the order of applying agg function and the agg funtions in query are not same - done
+4. removed unwanted property raw : true - done
+
+Filters
+1. numeric filters not woking - done
+2. IS_ONE_OF not working with integers - done
+3. datatype number is not passing when intergers are passed to query - done
+4. when combining two filters with OR-Condition issue with formData - done
+5. issue when filtering data - in progress
+
+Requirements
+ Filters: custom condition : encloseInQuotes is not working

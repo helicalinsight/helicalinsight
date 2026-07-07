@@ -1,0 +1,19 @@
+{
+    "name" : "products",
+    "url": "https://dummyjson.com/products",
+    "strategy" : "in-memory",
+    "persistentLocation" : "",
+    "authType": "",
+    "headers" : {
+        "Authorization" : ""
+    },
+    "queryParams": {},
+    "params": [],
+    "postBody": {},
+    "dataPath": "products",
+    "method" : "",
+    "requireTail": false,
+    "username" : "",
+    "password" : "",
+    "timeout" : 1000
+}

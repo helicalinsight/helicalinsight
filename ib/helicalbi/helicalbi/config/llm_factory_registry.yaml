@@ -1,0 +1,5 @@
+# Maps provider keyword -> fully qualified factory class name.
+factories:
+  openai: helicalbi.integration.openai.OpenAIFactory.OpenAIFactory
+  anthropic: helicalbi.integration.anthropic.AnthropicFactory.AnthropicFactory
+  gemini: helicalbi.integration.gemeni.GeminiFactory.GeminiFactory

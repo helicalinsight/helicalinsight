@@ -1,0 +1,64 @@
+rendering of comp - HOC
+comp = {
+	parameters -> 
+		
+	listeners -> 
+	exec at start
+	commandline (from console)
+		reset
+		getVariable/allvariables/set
+		components and its info
+}
+
+<DASHBOARD  type = 'hreport' id = {uniq} 
+	parameters = [{}]
+/>
+
+
+
+DASHBOARD 
+	- Hreport
+		mode = 'edit' || 'open'
+		file
+		dir
+		##optional
+			parameters (opt)
+			listeners
+		
+	- HCR
+		mode = 'edit' || 'open'
+		file
+		dir
+		##optional
+			parameters (opt)
+	- CE
+	- EFW
+	- METADATA
+	
+	- ANTD COMPONENTS for filters
+		data to render, from whre
+		where to render
+		var to set
+		listeners
+	
+select
+	query - redirect to herport, create new/open exiting, static data
+	parameter settting
+	default value
+	...other options
+	
+
+
+
+dashboard redux will only have data for components communication
+    - dashbaord should be minimal, coding should only have dashboard functionality
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

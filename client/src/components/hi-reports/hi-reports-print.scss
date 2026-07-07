@@ -1,0 +1,16 @@
+@media print {
+    // .ant-pagination{
+    //     display: none;
+// }
+    .hreport-table{
+        .ant-table-body{
+            overflow-y: hidden !important;
+        }
+    }
+    .hr-cache-time{
+        display: none;
+    }
+    // #hi-editing-area-container{
+    //     height: 100% !important;
+    // }
+}

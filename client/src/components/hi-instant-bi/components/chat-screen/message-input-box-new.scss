@@ -1,0 +1,263 @@
+.ib-chat-container {
+    margin: 0 auto;
+    position: relative;
+    // padding: 40px 20px;
+    // background-color: #fafafa;
+
+    .search-section {
+        margin-bottom: 12px;
+
+        .search-container {
+            background: #fff;
+            border-radius: 28px;
+            padding: 8px 16px;
+            border: 1px solid transparent;
+            box-shadow: 
+                  0 4px 20px rgba(0, 0, 0, 0.08),
+                  0 1px 3px rgba(0, 0, 0, 0.06);
+                  transition: all 0.2s ease;
+        }
+         .search-container:hover {
+            border: 1px solid #e5e5e5;
+        }
+
+        .no-border-shadow {
+            border: none;
+            box-shadow: none;
+            padding: 4px;
+        }
+
+        .no-bottom-margin {
+            margin-bottom: 0 !important;
+        }
+
+        .search-input-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            position: relative;
+            gap: 8px;
+
+            .search-input {
+                width: 100%;
+                // padding: 16px;
+                // border: 1px solid #e0e0e0;
+                border: none;
+                // border-radius: 12px;
+                font-size: 12px;
+                // background-color: #f8f9fa;
+                transition: all 0.2s ease;
+                outline: none;
+                resize: none;
+            }
+
+            .input-box-disabled {
+                pointer-events: none;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 16px;
+            color: #666;
+            z-index: 1;
+        }
+
+        .search-input:focus {
+            // border-color: #1890ff;
+            background-color: white;
+            // box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .search-input:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+    }
+
+
+    .ib-metadata-btn-container {
+        position: relative;
+    }
+    }
+
+    .action-buttons-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 6px;
+}
+
+    .ib-metadata-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        // padding: 12px;
+        padding: 4px 8px;
+        background: #fff;
+        // border: 1px solid #e0e0e0;
+        border-radius: 28px;
+        font-size: 14px;
+        color: #333;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+
+        .ib-metadata-not-present-dot {
+            width: 8px;
+            height: 8px;
+            background-color: #1890ff;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+        }
+    }
+
+    .ib-action-buttons {
+        display: flex;
+        gap: 16px;
+        margin-left: auto;
+
+        .icon-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            // width: 40px;
+            // height: 40px;
+            padding: 4px 8px;
+            // border: 1px solid #e0e0e0;
+            // border: none;
+            border-radius: 28px;
+            background: #f5f5f5;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            gap: 6px;
+        }
+
+        // .icon-button:hover {
+        //     background: #ebebeb;
+        //     border-color: #d0d0d0;
+        // }
+
+       .send-button {
+          padding-left: 10px;
+        background: #fff;
+        //   color: #fff !important;
+     }
+
+        .send-button:hover {
+            color: #fff !important;
+            background: #1890ff !important;
+        }
+
+        .stop-button {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            padding: 0;
+            border-radius: 50%;
+            background: #1890ff;
+            color: #fff !important;
+        }
+
+        .ib-stop-icon {
+            display: block;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 2px;
+        }
+
+        .stop-button:hover {
+            background: #1890ff !important;
+            color: #fff !important;
+        }
+    }
+
+
+
+    .suggestions-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e5e5e5;
+            border-radius: 12px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: fit-content;
+            max-width: 60%;
+            // box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .suggestion-item:hover {
+            border-color: #1890ff;
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.15);
+        }
+
+        .suggestion-icon {
+            color: #666;
+            flex-shrink: 0;
+        }
+
+        .suggestion-text {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.4;
+        }
+    }
+
+}
+   .ib-metadata-btn-container {
+        display: flex;
+        align-items: center;
+    }
+
+    .ib-metadata-button {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: none;
+        background: #f1f1f1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+
+        &:hover {
+            background: #e7e7e7;
+        }
+
+        .ib-metadata-not-present-dot {
+            width: 8px;
+            height: 8px;
+            background: #1890ff;
+            border-radius: 50%;
+            position: absolute;
+            top: 4px;
+            right: 4px;
+        }
+
+        .anticon {
+            font-size: 18px;
+        }
+    }
+        .left-icons-container {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+         }
+        .left-icons-divider {
+             width: 1px;
+             height: 18px;
+            background: #e5e5e5;
+        }

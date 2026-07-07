@@ -1,0 +1,86 @@
+import logging
+
+from langchain_core.messages import AIMessage
+from langchain_core.output_parsers import PydanticOutputParser
+from langchain_core.prompts import PromptTemplate
+
+from helicalbi.common.ChatManager import get_last_sql, add_sql, get_last_sql_only
+from helicalbi.common.app_config import default_sql_limit
+from helicalbi.common.LlmInvokeHelper import invoke_structured, merge_token_usage
+from helicalbi.common.configuration import llm
+from helicalbi.model.SQLAgent import SQLAgent
+from helicalbi.model.output.SqlGen import SqlGen
+from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+from helicalbi.prompt.FormatInstruction import format_instruction_string
+
+logger = logging.getLogger(__name__)
+
+
+class FinalSqlGen:
+    def process_flow(self, state: SQLAgent):
+        logger.info("FinalSqlGen flow started")
+        user_question = state["query"]
+        query_plan_json = state["query_plan"]
+        required_metrics = state["required_business_metrics"]
+        last_chats = state["last_chats"]
+        required_joins = state["required_joins"]
+        dialect = state["dialect"]
+        thread_id = state["thread_id"]
+        prev_sql = get_last_sql(thread_id)
+        logger.debug("Previous SQL for thread %s: %s", thread_id, prev_sql)
+
+        parser = PydanticOutputParser(pydantic_object=SqlGen)
+        prompt = PromptTemplate(
+            template=final_sql_prompt + format_instruction_string,
+            input_variables=["dialect", "last_chats", "user_question", "query_plan_json",
+                             "required_joins", "required_metrics", "prev_sql"],
+            partial_variables={
+                "format_instructions": parser.get_format_instructions(),
+                "default_sql_limit": default_sql_limit,
+            },
+        )
+        action =state["action"]
+        if action == "updt_viz":
+            if prev_sql:
+                first_entry = prev_sql[0] if isinstance(prev_sql[0], dict) else {}
+                previous_sql_obj = first_entry.get("previous_sql")
+                if previous_sql_obj is not None:
+                    pr_sql = (
+                        previous_sql_obj.get("sql")
+                        if isinstance(previous_sql_obj, dict)
+                        else getattr(previous_sql_obj, "sql", None)
+                    )
+                    if pr_sql:
+                        state["final_sql"] = pr_sql
+                        state["sql_reason"] = (
+                            previous_sql_obj.get("reason")
+                            if isinstance(previous_sql_obj, dict)
+                            else getattr(previous_sql_obj, "reason", "")
+                        ) or ""
+                        add_sql(state["thread_id"], previous_sql_obj)
+                        return state
+
+        response, usage = invoke_structured(
+            prompt,
+            llm,
+            parser,
+            {
+                "dialect": dialect,
+                "last_chats": last_chats,
+                "user_question": user_question,
+                "query_plan_json": query_plan_json,
+                "prev_sql": prev_sql,
+                "required_joins": required_joins,
+                "required_metrics": required_metrics,
+            },
+        )
+        merge_token_usage(state, usage)
+        state["final_sql"] = response.sql
+        state["sql_reason"] = getattr(response, "reason", "") or ""
+        add_sql(state["thread_id"], response)
+        #state["messages"] = [AIMessage(content=str(response))]
+        return state
+
+# -----------------------------------------------------
+# Here are filters used, ignore if blank or empty
+# {filter}

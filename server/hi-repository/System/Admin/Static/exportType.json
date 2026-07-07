@@ -1,0 +1,146 @@
+{
+	"HCR": {
+		"PDF": {
+			"icon": "",
+			"name": "PDF document (.pdf)",
+			"tooltip": "Print as Portable Document Format",
+			"format": "pdf"
+		},
+		"DOCX": {
+			"icon": "",
+			"name": "Microsoft Word (.docx)",
+			"tooltip": "Export as Microsoft Word Document",
+			"format": "docx"
+		},
+		"CSV": {
+			"icon": "",
+			"name": "Comma Separated Values (.csv)",
+			"tooltip": "Export as Comma-Separated Values",
+			"format": "csv"
+		},
+		"XLSX": {
+			"icon": "",
+			"name": "Microsoft Excel  Metadata(.xlsx)",
+			"tooltip": "Export as Microsoft Excel Workbook",
+			"format": "xlsx"
+		},
+		"XLS": {
+			"icon": "",
+			"name": "Microsoft Excel (.xls)",
+			"tooltip": "Export as Microsoft Excel 97-2003 Workbook",
+			"format": "xls"
+		},
+		"PNG": {
+			"icon": "",
+			"name": "PNG Image (.png)",
+			"tooltip": "Export as Portable Network Graphics Image",
+			"format": "png"
+		},
+		"JPEG": {
+			"icon": "",
+			"name": "JPEG Image (.jpeg)",
+			"tooltip": "Export as JPEG Image",
+			"format": "jpeg"
+		},
+		"JPG": {
+			"icon": "",
+			"name": "JPG Image (.jpg)",
+			"tooltip": "Export as JPG Image",
+			"format": "jpg"
+		},
+		"XML": {
+			"icon": "",
+			"name": "Extensible Markup Language (.xml)",
+			"tooltip": "Export as XML Document",
+			"format": "xml"
+		},
+		"HTML": {
+			"icon": "",
+			"name": "Web Page (.html)",
+			"tooltip": "Export as HTML Document",
+			"format": "html"
+		},
+		"RTF": {
+			"icon": "",
+			"name": "Rich Text Format (.rtf)",
+			"tooltip": "Export as Rich Text Format",
+			"format": "rtf"
+		},
+		"ODT": {
+			"icon": "",
+			"name": "OpenDocument Text (.odt)",
+			"tooltip": "Export as OpenDocument Text",
+			"format": "odt"
+		},
+		"ODS": {
+			"icon": "",
+			"name": "OpenDocument Spreadsheet (.ods)",
+			"tooltip": "Export as OpenDocument Spreadsheet",
+			"format": "ods"
+		},
+		"PPTX": {
+			"icon": "",
+			"name": "Microsoft PowerPoint (.pptx)",
+			"tooltip": "Export as Microsoft PowerPoint Presentation",
+			"format": "pptx"
+		},
+		"TXT": {
+			"icon": "",
+			"name": "Plain Text (.txt)",
+			"tooltip": "Export as Plain Text",
+			"format": "txt"
+		}
+	},
+	"HReport": {
+		"CSV": {
+			"icon": "",
+			"name": "Comma Separated Values (.csv)",
+			"tooltip": "Export as Comma-Separated Values",
+			"format": "csv"
+		},
+		"XLSX": {
+			"icon": "",
+			"name": "Microsoft Excel Metadata (.xlsx)",
+			"tooltip": "Export as Microsoft Excel Workbook",
+			"format": "xlsx"
+		},
+		"PDF": {
+			"icon": "",
+			"name": "PDF document (.pdf)",
+			"tooltip": "Print as Portable Document Format",
+			"format": "pdf"
+		},
+		"PPTX": {
+			"icon": "",
+			"name": "Microsoft PowerPoint (.pptx)",
+			"tooltip": "Export as Microsoft PowerPoint Presentation",
+			"format": "pptx"
+		},
+		"PNG": {
+			"icon": "",
+			"name": "PNG Image (.png)",
+			"tooltip": "Export as Portable Network Graphics Image",
+			"format": "png"
+		}
+	},
+	"Efwdd": {
+		"PDF": {
+			"icon": "",
+			"name": "PDF document (.pdf)",
+			"tooltip": "Print as Portable Document Format",
+			"format": "pdf"
+		},
+		"PPTX": {
+			"icon": "",
+			"name": "Microsoft PowerPoint (.pptx)",
+			"tooltip": "Export as Microsoft PowerPoint Presentation",
+			"format": "pptx"
+		},
+		"PNG": {
+			"icon": "",
+			"name": "PNG Image (.png)",
+			"tooltip": "Export as Portable Network Graphics Image",
+			"format": "png"
+		}
+	}
+}

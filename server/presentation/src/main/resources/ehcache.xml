@@ -1,0 +1,410 @@
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="ehcache.xsd"
+         updateCheck="true"
+         monitoring="autodetect"
+         dynamicConfig="true">
+
+
+    <defaultCache maxEntriesLocalHeap="10000" eternal="false"
+                  timeToIdleSeconds="120" timeToLiveSeconds="120" diskSpoolBufferSizeMB="30"
+                  maxEntriesLocalDisk="10000000" diskExpiryThreadIntervalSeconds="120"
+                  memoryStoreEvictionPolicy="LRU" statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </defaultCache>
+    
+    <cache name="helicalInsightCache"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true" >
+        <persistence strategy="localTempSwap"/>
+
+    </cache>
+    <cache name="datasourceCache"
+           maxEntriesLocalHeap="100"
+           maxEntriesLocalDisk="10"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="300000" timeToLiveSeconds="6000000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <!-- 
+    <cache name="com.helicalinsight.admin.model.FileBrowserCache"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.DataSourceMapping"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.ApplicationCache"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.GlobalConnections"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.DSTypeTomcat"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.DSTypeHikari"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.DSTypeJndi"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.DSTypeNoSQL"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.DSTypePlainJDBC"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.datasource.model.GlobalConnectionSecurity"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="org.hibernate.cache.internal.StandardQueryCache"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="org.hibernate.cache.spi.UpdateTimestampsCache"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true" eternal="true">
+        <persistence strategy="localTempSwap"/>
+    </cache> 
+    <cache name="com.helicalinsight.admin.model.HIResource"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceSecurity"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIResourceMetadata"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIResourceHWF"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIResourceFolder"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIResourceResult"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceEFWVF"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceEFWCE"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceEFWD"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceEFWDD"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIResourceEFWSR"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIMetadataRelationships"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIMetadata"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIMetadataConnections"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.MetadataDatabases"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+
+    <cache name="com.helicalinsight.admin.model.HIMetadataColumnSecurity"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIMetadataTableSecurity"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIMetadataColumns"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIMetadataTables"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIHwfInput"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    <cache name="com.helicalinsight.admin.model.HIHwfOutput"
+           maxEntriesLocalDisk="100000"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           diskSpoolBufferSizeMB="20"
+           timeToIdleSeconds="86400000" timeToLiveSeconds="172800000"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off"
+           statistics="true">
+        <persistence strategy="localTempSwap"/>
+    </cache>
+    -->
+    
+</ehcache>

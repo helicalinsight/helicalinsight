@@ -1,0 +1,28 @@
+.canned-skeleton-wrapper {
+  padding: 16px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.skeleton-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.skeleton-block {
+  flex: 1;
+  height: 20px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+}
+
+.canvas-wrapper {
+  margin: 0 auto;
+  background: #fff;
+  border: 1px dashed #ccc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

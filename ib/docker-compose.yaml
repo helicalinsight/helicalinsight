@@ -1,0 +1,10 @@
+services:
+  pyflask:
+    image: python:3.9-slim
+    container_name: pyflask
+    working_dir: /app
+    volumes:
+      - ./helicalbi:/app
+      - ./dist:/dist
+    command: tail -f /dev/null
+    restart: unless-stopped

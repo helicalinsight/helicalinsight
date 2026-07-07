@@ -1,0 +1,53 @@
+.hi-admin-tabs .hi-admin-container {
+  border: 1px solid #ddd;
+  border-top-right-radius: 3px;
+  border-top-left-radius: 3px;
+}
+
+.hi-admin-tabs .hi-admin-tabs-container {
+  background-color: #e2f2fb;
+  border-bottom: 1px solid #ddd;
+  height: 43px;
+}
+
+.hi-admin-tabs .hi-tabs-menu {
+  line-height: 28px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.hi-admin-tabs .hi-tabs-menu .menu-last-item {
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
+  border: 0 !important;
+  -webkit-box-flex: 0.9;
+      -ms-flex-positive: 0.9;
+          flex-grow: 0.9;
+}
+
+.hi-admin-tabs .hi-tabs-menu .refresh-active {
+  background-color: #1890ff !important;
+  color: #fff !important;
+}
+
+.hi-admin-tabs .hi-tabs-menu .menu-item {
+  line-height: 28px;
+  font-size: 13px;
+  border-right: 1px solid #ddd;
+}
+
+.hi-admin-tabs .hi-tabs-menu .menu-first-item {
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+}
+
+.hi-admin-tabs .hi-tabs-menu .selected {
+  color: #fff !important;
+}
+
+.hi-admin-tabs .hi-admin-routes-container {
+  padding: 10px;
+  height: 85vh;
+  border: 1px solid #ddd;
+}
+/*# sourceMappingURL=hi-adminTabs.css.map */

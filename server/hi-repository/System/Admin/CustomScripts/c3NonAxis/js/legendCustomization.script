@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3NonAxis_js_legendCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Legends</name>
+    <group>C3NonAxis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Enable or Disable Legend</description>
+    <icon>/images/scriptIcons/Legends.png</icon>
+    <snippet>
+		<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			var containerId="#main";
+			var chartId="#chart";
+			
+			if(id!=""){
+				 chartId = '#chart-'+id;
+				 containerId="#main-"+id;
+			}
+			
+			var ftnObj = {};
+			
+			
+			ftnObj['legendCustomization'+id] = function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = legendConfig(viz_Options);
+				c.set("viz_Options",viz_Options);
+			 };
+					
+			ftnObj['extendlegendCustomization'+id] = function(preExecution, c){
+					
+					var viz_Options = c.get("viz_Options");
+					viz_Options = legendConfig(viz_Options);
+				
+			};
+			
+			
+			function legendConfig(viz_Options){
+				
+				
+					viz_Options.chartOptions.legend = {
+						show : ${hideLegend},
+						position: '${legendPosition}'
+						
+					}
+			
+				return viz_Options;
+			}
+			
+				
+			ftnObj['legendCustomizationDisplay'+id] = function(c){
+				 
+				 var styleTag = $('#custom-style-00001'+id).length;
+				if(styleTag == 0){
+					$(containerId).append('<style id="custom-style-00001"'+id+'>				'+
+								'	'+containerId+'	.c3-legend-item{							'+
+								'			font-size:${fntSize}px;					'+
+								'		}											'+
+								'	'+containerId+'	.c3-legend-item text {						'+
+								'			font-family:"${fntFmly}";				'+
+								'		}											'+
+								'	</style>										'
+							);
+				}
+			 };
+			
+			
+			
+		
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution",ftnObj['legendCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution",ftnObj['extendlegendCustomization'+id]);
+			}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['legendCustomizationDisplay'+id]);
+			}
+			else{
+				hi_container.extend("postExecution",ftnObj['legendCustomizationDisplay'+id]);
+			}
+			
+		
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="bottom" name="legendPosition" type="String"/>
+		<parameter value="12" name="fntSize" type="String"/>
+		<parameter value="Arial" name="fntFmly" type="String"/>
+		<parameter value="true" name="hideLegend" type="Boolean"/>
+		<parameter value="true" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.extendMarginTop {
+					margin-top: 20px;
+				}
+				
+				.selected {
+                	border-color: #66afe9;
+				    padding: 6px 12px;
+				    border-radius: 4px;
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+				    -webkit-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+                }
+			</style>
+			<div id="legendCustomization" class="container-fluid">
+				<div id="toggle" align="center">
+					<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-2 toggle_label toggle_label_hide">
+						<label>Hide Legend</label>
+					</div>
+					<div class="col-sm-2 switch" id="switch">
+						<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+						<label for="cmn-toggle-1"></label>
+					</div>
+					<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+						<label>Show Legend</label>
+					</div>
+				</div>
+				<div class="clearfix"></div>
+				<hr>
+				<div id="font_customization" class="form-horizontal">
+				    <div class="form-group">
+						<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="legend_font_size">Font-size</label>
+						<div class="col-sm-3 col-md-3 col-xs-12">
+							<input class="form-control" id="legend_font_size" type="number" onchange="fontSize(this)">
+						</div>
+
+						<label class="col-sm-2 col-md-2 col-xs-12 control-label FontFamily">Font Family</label>
+						<div id="font-style" class="col-sm-4 col-md-4 col-xs-12">
+							<select class="form-control" id="fntfmly" onchange="fonFamily(this);"> 
+								<option value="Arial">Arial</option>
+				  				<option value="Arial Black">Arial Black</option>
+				  				<option value="Comic Sans MS">Comic Sans MS</option>
+				  				<option value="Courier New">Courier New</option>
+				  				<option value="Garamond">Garamond</option>
+				  				<option value="Georgia">Georgia</option>
+				  				<option value="Helvetica Neue">Helvetica Neue</option>
+				  				<option value="Impact">Impact</option>
+				  				<option value="Lucida Bright">Lucida Bright</option>
+				  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+				  				<option value="Platino">Platino</option>
+				  				<option value="Palatino Linotype">Palatino Linotype</option>
+				  				<option value="Tahoma">Tahoma</option>
+				  				<option value="Times New Roman">Times New Roman</option>
+				  				<option value="Trebuchet MS">Trebuchet MS</option>
+				  				<option value="Verdana">Verdana</option>
+							</select>
+						</div>
+					</div>
+				</div>			
+				
+				<div id="legend_position" class="form-horizontal extendMarginTop">
+					<div class="form-group">
+						<label class="col-sm-2 col-md-2 col-xs-12 control-label">Position:</label>
+						<div id="legend_position_buttons">					
+						<div class="col-sm-3 col-md-3 col-xs-4">
+							<button id="alignRight" class="btn btn-default form-control" onclick="alignRight(event)">Right</button>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4">
+							<button id="alignINset" class="btn btn-default form-control" onclick="alignInset(event)">Inset</button>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4">
+							<button id="alignBottom" class="btn btn-default form-control" onclick="alignBottom(event)">Bottom</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				//Set global variable from parameter
+				adhocScripts.setVariable("switch",params.switch);
+				adhocScripts.setVariable("legendPosition",params.legendPosition);
+				adhocScripts.setVariable("fntSize",params.fntSize);
+				adhocScripts.setVariable("fntFmly",params.fntFmly);
+				
+				
+				//set function of toggle switch
+				function switchToggle(event){
+					if(adhocScripts.getVariable('switch') == 'false'){
+						$('#legend_position').css('display', 'block');
+						$('#legend_position_buttons').css('display', 'block');
+                        $('#font_customization').css('display', 'block');						
+						$('#longdivider').css('display', 'block');
+						$('#font-style').css('display', 'block');
+						adhocScripts.setVariable("switch", 'true');
+						adhocScripts.setVariable("hideLegend", 'true');
+					}
+					else{
+						$('#legend_position').css('display', 'none');
+						$('#legend_position_buttons').css('display', 'none');
+						$('#font_customization').css('display', 'none');						
+						$('#longdivider').css('display', 'none');
+						$('#font-style').css('display', 'none');
+						adhocScripts.setVariable("switch", 'false');
+						adhocScripts.setVariable("hideLegend", 'false');
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#legend_position').css('display', 'block');
+					$('#legend_position_buttons').css('display', 'block');
+					$('#font_customization').css('display', 'block');						
+					$('#longdivider').css('display', 'block');
+					$('#font-style').css('display', 'block');
+					$('#cmn-toggle-1').attr('checked', 'checked');
+					adhocScripts.setVariable("hideLegend", 'true');
+				} 
+				else {
+					$('#legend_position').css('display', 'none');
+					$('#legend_position_buttons').css('display', 'none');
+					$('#font_customization').css('display', 'none');						
+					$('#longdivider').css('display', 'none');
+					$('#font-style').css('display', 'none');					
+					$('#cmn-toggle-1').removeAttr('checked');
+					adhocScripts.setVariable("hideLegend", 'false');
+				}
+					
+				//Align Legend based on which button is clicked
+				function alignRight(event){
+					$('.selected').removeClass('selected');
+					$('.align_right_button').addClass('selected');
+					adhocScripts.setVariable("legendPosition","right");
+				}
+
+				function alignBottom(event){
+					$('.selected').removeClass('selected');
+					$('.align_bottom_button').addClass('selected');
+					adhocScripts.setVariable("legendPosition","bottom");
+				}
+
+				function alignInset(event){
+					$('.selected').removeClass('selected');
+					$('.align_inset_button').addClass('selected');
+					adhocScripts.setVariable("legendPosition","inset");
+				}
+
+				function fontSize(e){
+				  adhocScripts.setVariable("fntSize",e.value);
+				}
+
+				function fonFamily(e){
+					adhocScripts.setVariable("fntFmly", e.value);
+				}
+				
+				if(adhocScripts.getVariable("legendPosition")=="right"){
+					$('.selected').removeClass('selected');
+					$('.align_right_button').addClass('selected');
+				} else if(adhocScripts.getVariable("legendPosition") =="bottom"){
+					$('.selected').removeClass('selected');
+					$('.align_bottom_button').addClass('selected');
+				} else if (adhocScripts.getVariable("legendPosition") =="inset"){
+					$('.selected').removeClass('selected');
+					$('.align_inset_button').addClass('selected');
+				}
+
+				$('#legend_font_size').val(adhocScripts.getVariable('fntSize'));
+				$('#fntfmly').val(adhocScripts.getVariable('fntFmly'));
+				
+				if(adhocScripts.getVariable("legendPosition")) {
+					var buttons = $("#legend_position_buttons button");
+					var arr = Array.prototype.slice.call(buttons);
+					var a = adhocScripts.getVariable("legendPosition");
+					arr.map(function (val, ind, arr) {
+						if(val.innerHTML === adhocScripts.getVariable("legendPosition").charAt(0).toUpperCase() + adhocScripts.getVariable("legendPosition").slice(1)) {
+							$("#"+val.id).addClass("selected");
+						}
+					});
+				}
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

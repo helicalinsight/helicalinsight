@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_combinationChart</scriptId>
+    <scriptType>js</scriptType>
+	<name>Combination Charts</name>
+    <group>C3Axis</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Multiple Charts</description>
+    <icon>/images/scriptIcons/combined_chart.png</icon>
+	<snippet>
+		<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+				ftnObj['multipleCharts'+id] = function(d){
+					var viz_Options = d.get("viz_Options");
+					var reportData = d.get("reportData");
+					viz_Options = configureDrilldown(viz_Options,reportData);
+					d.set("viz_Options",viz_Options);
+				
+				};
+					
+				ftnObj['extendmultipleCharts'+id] = function(preFetch,d){
+					var viz_Options = d.get("viz_Options");
+					var reportData = d.get("reportData");
+					viz_Options = configureDrilldown(viz_Options,reportData);
+				
+				};
+			
+			
+			function configureDrilldown(viz_options,reportData){
+					 var parameters = ${conditionArr};
+					 var paramlength = parameters.length;
+					 var charttypes={};
+					 var chartColor={};
+					var measureNames = '';
+					 if(parameters[0].measure.length <=0 ){
+						var selectedColumns = reportData.columns;
+						for(i = 0; i < selectedColumns.length; i++){
+							if(selectedColumns[i].type.dataType === 'numeric'){
+								measureNames = selectedColumns[i].autogen_alias;
+								break;
+							}
+						}
+						 parameters[0].measure = measureNames;
+					 }
+					 for(i = 0; i < paramlength; i++){
+						charttypes[parameters[i].measure] = parameters[i].type;
+					 }
+					 for(i = 0; i < paramlength; i++){
+						chartColor[parameters[i].measure] = parameters[i].color;
+					}
+					if(viz_options.chartOptions.data){
+						viz_options.chartOptions.data.types=charttypes;
+						viz_options.chartOptions.data.colors=chartColor;
+						
+					}
+					else{
+						viz_options.chartOptions.data={
+							types:charttypes,
+							colors:chartColor,
+						 }
+					}
+						return viz_options;
+					};
+					
+					
+				if(!hi_container.isSet("preFetch")){
+					hi_container.set("preFetch", ftnObj['multipleCharts'+id]);
+				}
+				else{
+					hi_container.extend("preFetch", ftnObj['extendmultipleCharts'+id]);
+				}	
+					
+		]]>
+	</snippet>
+    <parameters>
+		<parameter value="[{color: '#7cb82f', measure: '', type: 'line'}]" name="conditionArr" type= "String" />
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		<div id="addButtonPanel">
+        <label for='addButton' class='col-sm-3' >Add new</label>
+        <button id='addButton' class='btn btn-primary addButton col-sm-2' onclick='addConditionPanel({color: "#7cb82f", measure: "", type: "line"}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+
+			<script>
+				var abc = adhocScripts.getAllVariables();
+				adhocScripts.resetAll();
+				var metadata = window.frames[0].__hi_result.metadata[0];
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+				var metadataKeys = Object.keys(metadata);
+				var measureArray = [],values = [];
+				
+				column.forEach(function(col, i){
+					if (col.aggregate && !(col.hidden === true)) {
+						values.push(metadata[(i + 1).toString()].name);
+					}
+				});
+				
+				measureArray = values;
+				
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+
+			
+				var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+				var tgtPanel = 'conditionList';
+
+          
+
+				function createConditionList(conditionArr,tgtPanel){
+					if(conditionArr.length == 0){
+						conditionArr.push({color: "#7cb82f", measure: measureArray[0], type: "line"});
+					}
+					adhocScripts.setVariable("conditionArr", conditionArr);	
+					for(var i = 0 ; i < conditionArr.length; i++){
+						var div = createConditionPanel(conditionArr[i], i);
+						document.getElementById(tgtPanel).appendChild(div);
+						spectrumFtn('input_color_'+i, conditionArr[i]);
+					}
+				}
+		
+				createConditionList(conditionArr, tgtPanel);
+
+				function addConditionPanel(object, tgtPanel){
+					if(object.measure.length == 0){
+						object.measure = measureArray[0];
+					}
+					var conditionArrLength = conditionArr.length;
+				    if(conditionArrLength < measureArray.length){
+						conditionArr.push(object);
+						var index = conditionArr.length-1;
+						var div = createConditionPanel(object, index);
+						document.getElementById(tgtPanel).appendChild(div);
+						spectrumFtn('input_color_'+index, object);  
+					}
+				}
+				
+				
+		
+
+				function createConditionPanel(object, index){
+					var conditionOptions = ['line','bar', 'step', 'spline', 'scatter', 'area', 'area-step', 'area-spline'];
+					var form = document.createElement('form');
+					form.className = 'form-line col-sm-12 dataSet';
+
+					var divVal1 = document.createElement('div');
+					divVal1.className = 'form-group col-sm-2 col-md-3 value_1';
+					divVal1.id = 'div_measure_'+index;
+
+					var labelVal1 = document.createElement('label');
+					labelVal1.for = 'input_measure_'+index;
+					labelVal1.innerHTML = 'Measure';
+
+					var inputVal1 = document.createElement('select');
+					inputVal1.type = 'text';
+					inputVal1.className = 'form-control';
+					inputVal1.id = 'input_measure_'+index;
+					inputVal1.value = object.measure;
+					inputVal1.onchange = setOnChange;
+				
+					for(var i = 0; i < measureArray.length; i++){
+						var options = document.createElement('option');
+						options.value = measureArray[i];
+						options.text = measureArray[i];
+						//inputVal1.appendChild(options);
+						if(options.value == object.measure || options.value == measureArray[0]){
+						options.selected = 'selected';
+						}
+						inputVal1.appendChild(options);
+					}
+
+					divVal1.appendChild(labelVal1);
+					divVal1.appendChild(inputVal1);
+
+					form.appendChild(divVal1);
+
+
+					var divConditionVal = document.createElement('div');
+					divConditionVal.className = 'form-group col-sm-4 col-md-3 condition';
+					divConditionVal.id = 'div_type_'+index;
+
+					var labelConditionVal = document.createElement('label');
+					labelConditionVal.for = 'input_type_'+index;
+					labelConditionVal.innerHTML = 'Type';
+
+					var inputConditionVal = document.createElement('select');
+					inputConditionVal.className = 'form-control';
+					inputConditionVal.id = 'input_type_'+index;
+					inputConditionVal.onchange = function(d){
+						setOnChange(d);
+					};
+
+					for(var i = 0; i < conditionOptions.length; i++){
+						var options = document.createElement('option');
+						options.value = conditionOptions[i];
+						options.text = conditionOptions[i];
+						if(options.value == object.type)
+							options.selected = 'selected';
+						inputConditionVal.appendChild(options);
+					}
+
+					divConditionVal.appendChild(labelConditionVal);
+					divConditionVal.appendChild(inputConditionVal);
+
+					form.appendChild(divConditionVal);
+
+
+					var divColorVal = document.createElement('div');
+					divColorVal.className = 'form-group col-sm-2 color';
+					divColorVal.id = 'div_color_'+index;
+
+					var labelColorVal = document.createElement('label');
+					labelColorVal.innerHTML = 'Color';
+
+					var inputColorVal = document.createElement('div');
+					inputColorVal.id = 'input_color_'+index;
+				
+					divColorVal.appendChild(labelColorVal);
+					divColorVal.appendChild(inputColorVal);
+
+					form.appendChild(divColorVal);
+
+					var delButton = document.createElement('button');
+					delButton.id = 'delete_'+index;
+					delButton.classList = 'btn btn-danger ';
+					delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+					delButton.onclick = function(d){
+						var index = d.target.id.split('_')[1];
+						conditionArr.splice(index, 1);
+						adhocScripts.setVariable("conditionArr", conditionArr);
+						$(this).parent().remove();
+					};
+					delButton.style.marginTop = '25px';
+
+					form.appendChild(delButton);
+
+					return form;
+
+					function setOnChange(d){
+						var len = d.target.id.split('_').length;
+						var x = d.target.id.split('_')[2];
+						var key = d.target.id.split('_')[1];
+						var val = d.target.value;
+
+						conditionArr[x][key] = val;
+						adhocScripts.setVariable("conditionArr", conditionArr);
+					}
+				}
+		
+				function setColorValue(paylod){			  
+					var len = paylod['id'].split('_').length;
+					var x = paylod['id'].split('_')[2];
+					var key = paylod['id'].split('_')[1];
+					var val = paylod['color'];
+					
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);			  
+				}
+
+				function spectrumFtn(id, Obj){
+					HDIUI.renderColorPicker({
+						id:id,
+						color:( Obj && Obj.color) ? Obj.color : '#ffffff' ,
+						change:function(color){	
+							//setColorValue({id:id,color:color['hexCode']});
+							var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+							setColorValue({id:id,color:rgbaCode});
+						}
+					});		
+				}
+				$(".modal-footer .btn-primary").on('click', function() {
+					
+				});
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

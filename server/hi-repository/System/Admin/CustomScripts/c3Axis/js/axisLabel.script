@@ -1,0 +1,565 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_axisLabel</scriptId>
+    <scriptType>js</scriptType>
+	<name>Axis Label</name>
+    <group>C3Axis</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Add report heading to your report</description>
+    <icon>/images/scriptIcons/AxisLabel.png</icon>
+	<snippet>
+		<![CDATA[ 
+			
+			var id = hi_container.get("renderId");
+			
+				if(id== ""){
+					var chartId = '#chart'+id;
+					var containerId="#main"+id;
+					var yLabel= chartId+" .c3-axis-y-label";
+					var xLabel= chartId+" .c3-axis-x-label";
+				}
+				else{
+					var chartId = '#chart-'+id;
+					var containerId="#main-"+id;
+					var xLabel= chartId+" .c3-axis-x-label";
+					var yLabel= chartId+" .c3-axis-y-label";
+				}
+				
+				var ftnObj = {};
+			
+			ftnObj['setAxisLabel'+id] = function(d){
+				
+				 Hdi.c3chart.axis.labels({
+				  x: '${xLabelText}',
+				  y: '${yLabelText}'
+				});
+			
+				$(yLabel).css({	"fill":"${yColor}", "font-size": "${ySize}"});
+									
+				if(${yBold})
+					$(yLabel).css({"font-weight": "bold"});
+				else
+					$(yLabel).css({"font-weight": "normal"});
+				
+				if(${yItalic})
+					$(yLabel).css({"font-style": "italic"});
+				else
+					$(yLabel).css({"font-style": "normal"});
+				
+				if(${yUnderline})
+					$(yLabel).css({"text-decoration": "underline"});
+				else
+					$(yLabel).css({"text-decoration": "none"});
+				
+				$(xLabel).css({	"fill":"${xColor}", "font-size": "${xSize}"});
+									
+				if(${xBold})
+					$(xLabel).css({"font-weight": "bold"});
+				else
+					$(xLabel).css({"font-weight": "normal"});
+				
+				if(${xItalic})
+					$(xLabel).css({"font-style": "italic"});
+				else
+					$(xLabel).css({"font-style": "normal"});
+				
+				if(${xUnderline})
+					$(xLabel).css({"text-decoration": "underline"});
+				else
+					$(xLabel).css({"text-decoration": "none"});
+			 }
+					
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['setAxisLabel'+id]);
+			}
+			else{
+				hi_container.extend("postExecution",ftnObj['setAxisLabel'+id]);
+			}
+			
+			
+		
+		]]>
+	</snippet>
+    <parameters>
+        <parameter value="y-Axis" name="yLabelText" type= "String"/>
+        <parameter value="#000000" name="yColor" type= "String"/>
+        <parameter value="15" name="ySize" type= "String"/>
+        <parameter value="true" name="yBold" type= "Boolean"/>
+        <parameter value="false" name="yItalic" type= "Boolean"/>
+        <parameter value="false" name="yUnderline" type= "Boolean"/>
+		<parameter value="x-Axis" name="xLabelText" type= "String"/>
+        <parameter value="#000000" name="xColor" type= "String"/>
+        <parameter value="15" name="xSize" type= "String"/>
+        <parameter value="true" name="xBold" type= "Boolean"/>
+        <parameter value="false" name="xItalic" type= "Boolean"/>
+        <parameter value="false" name="xUnderline" type= "Boolean"/>
+		
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.image {
+					border-radius: 4px;
+					cursor: pointer;
+				}
+				
+				.y_label_panel {
+					border-right: 1px solid #ccc;
+				}
+				
+				.y_selected_decoration, .x_selected_decoration{
+					border: 1px solid #ccc;
+				}
+				
+				.y_customization_panel, .y_decoration_panel, .x_customization_panel, .x_decoration_panel{
+					margin-top: 15px;
+				}
+			
+				.y_decoration_panel, .x_decoration_panel{
+					display: flex;
+				}
+				
+				.y_label, .x_label{
+					text-align: center;
+				}
+				
+				.y_text_panel, .x_text_panel{
+					margin-top: 16px;
+				}
+				
+				.addMarginLabels {
+					margin-bottom: 5px;
+				}
+				
+				.addMarginPanel {
+					margin: 15px 0;
+				}
+				
+				.addPadding {
+					padding: 0 15px;
+				}
+			</style>
+			
+			<div class="row">
+				<div class="col-sm-6 col-md-6 col-xs-12 y_label_panel" align="center">
+					<h4 class="y_label_panel_heading"><strong>Y-Axis</strong></h4>
+
+					<div class="y_decoration_panel" id="y_decoration_panel"></div>
+
+					<div class="y_customization_panel" id="y_customization_panel">
+						<div class="col-sm-6 col-md-6 y_size addMarginPanel">
+							<div class="y_size_label addMarginLabels">
+								Font Size
+							</div>
+							<div class="y_size_value" id="y_size_value">
+							</div>
+						</div>
+						<div class="col-sm-6 col-md-6 y_color addMarginPanel">
+							<div class="y_color_label addMarginLabels">
+								Label Color
+							</div>
+							<div class="y_color_value">
+								<div id="y_color_value"></div>
+							</div>
+						</div>
+					</div>
+					<div class="y_text_panel" id="y_text_panel">
+						<div class=" col-sm-12 col-md-12 y_label addMarginLabels">
+							Y-Axis Label
+						</div>
+						<div class="addPadding">
+							<input type="text" name="y_label_text" class="form-control" id="y_label_text"/>
+						</div>
+					</div>
+				</div>
+				<div class="col-sm-6 col-md-6 col-xs-12 x_label_panel" align="center">
+					<h4 class="x_label_panel_heading">
+						<strong>X-Axis</strong>
+					</h4>
+					<div class="x_decoration_panel" id="x_decoration_panel">
+					</div>
+					<div class="x_customization_panel" id="x_customization_panel">
+						<div class="col-sm-6 col-md-6 x_size addMarginPanel">
+							<div class="x_size_label addMarginLabels">
+								Font Size
+							</div>
+							<div class="x_size_value" id="x_size_value">
+							</div>
+						</div>
+						<div class="col-sm-6 col-md-6 x_color addMarginPanel">
+							<div class="x_color_label addMarginLabels">
+								Label Color
+							</div>
+							<div class="x_color_value" align="center">
+								<div id="x_color_value"></div>
+							</div>
+						</div>
+					</div>
+					<div class="x_text_panel" id="x_text_panel">
+						<div class="col-sm-12 col-md-12 x_label addMarginLabels">
+							X-Axis Label
+						</div>
+						<div class="addPadding">
+							<input type="text" name="x_label_text" id="x_label_text" class="form-control"/>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("yLabelText",params.yLabelText);
+				adhocScripts.setVariable("yColor",params.yColor);
+				adhocScripts.setVariable("ySize",params.ySize);
+				adhocScripts.setVariable("yBold",params.yBold);
+				adhocScripts.setVariable("yItalic",params.yItalic);
+				adhocScripts.setVariable("yUnderline",params.yUnderline);
+				adhocScripts.setVariable("xLabelText",params.xLabelText);
+				adhocScripts.setVariable("xColor",params.xColor);
+				adhocScripts.setVariable("xSize",params.xSize);
+				adhocScripts.setVariable("xBold",params.xBold);
+				adhocScripts.setVariable("xItalic",params.xItalic);
+				adhocScripts.setVariable("xUnderline",params.xUnderline);
+				 
+				var images = [{
+								name: "decoration",
+								children: [{
+									name: "bold",
+									value: "bold"
+								},{
+									name: "italic",
+									value: "italic"
+								},{
+									name: "underline",
+									value: "underline"
+								}]
+							}];
+				
+				//Y AXIS Decoration images				
+				for(var i = 0; i < images.length; i++){
+					for(var j = 0; j < images[i].children.length; j++){
+						var imgDiv = document.createElement('div');
+						imgDiv.className = "col-sm-4 col-md-4 img-div "+images[i].children[j].name;
+						imgDiv.align = "center";
+					
+						var image = document.createElement('img');
+						image.src = window.DashboardGlobals.baseUrl+'getExternalResource.html?path=System/Admin/CustomScripts/generic/images/'+images[i].children[j].name+'.png';
+						image.id = 'y_'+images[i].children[j].name;
+						image.alt = images[i].children[j].value;
+						image.className = "image";
+
+						imgDiv.appendChild(image);
+						$('#y_decoration_panel').append(imgDiv);
+					}
+				}
+				
+				
+				//Function to create a select menu for font size selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontSizeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('input');
+												selectMenu.type = "number";
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, $(this).val());
+																		if(variable == 'ySize')
+																			$('#y_label_text').css({'font-size' : $(this).val()+'px'});
+																		else if (variable == 'xSize')
+																			$('#x_label_text').css({'font-size' : $(this).val()+'px'});
+																	};
+												selectMenu.className = id+' form-control';
+												//for(var i = 8; i<= 25; i++){
+													//selectMenu.options[i-8] = new Option(i, i);
+												//}
+												var spanEl = document.createElement("span");
+												$(spanEl).html("<code style='padding: 1px 4px;'>number</code>");
+												$(target).append(selectMenu);
+												$(target).append(spanEl);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+				
+				//Create the font size and font type selectors for basic mode 
+				createFontSizeSelector('#y_size_value', 'y_size_value_dropdown', 'ySize');
+				
+			//	$("#y_color_value").val(adhocScripts.getVariable("yColor"));
+				
+				$("#y_label_text").css({'color': adhocScripts.getVariable("yColor"),
+										'font-size': adhocScripts.getVariable("ySize")+'px'});
+										
+				$("#y_label_text").val(adhocScripts.getVariable('yLabelText'));
+				
+				//Set Bold
+				if(adhocScripts.getVariable("yBold") == 'true'){
+					$("#y_label_text").css({'font-weight': 'bold'});
+					$('#y_bold').addClass('y_selected_decoration');
+				}
+				else{
+					$("#y_label_text").css({'font-weight': 'normal'});
+				}
+				//Set Italic
+				if(adhocScripts.getVariable("yItalic")  == 'true'){
+					$("#y_label_text").css({'font-style': 'italic'});
+					$('#y_italic').addClass('y_selected_decoration');
+				}
+				else{
+					$("#y_label_text").css({'font-style': 'normal'});
+				}
+				//Set UnderLine
+				if(adhocScripts.getVariable("yUnderline") == 'true'){
+					$("#y_label_text").css({'text-decoration': 'underline'});
+					$('#y_underline').addClass('y_selected_decoration');
+				}
+				else{
+					$("#y_label_text").css({'text-decoration': 'none'});
+				}
+			
+
+			
+				function spectrumFtn() {
+					generateColorSelector("y_color_value", "yColor");
+					generateColorSelector("x_color_value", "xColor");
+				}
+				
+				function generateColorSelector(id, variable){
+					
+						HDIUI.renderColorPicker({
+							id:id,
+							color:adhocScripts.getVariable(variable),
+							change:function(color){	
+							
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								adhocScripts.setVariable(variable, rgbaCode);
+								//adhocScripts.setVariable(variable, color['hexCode']);
+									if(variable == 'yColor')
+										$("#y_label_text").css({'color': rgbaCode});
+										//$("#y_label_text").css({'color': color['hexCode']});
+									
+									if(variable == 'xColor')
+										$("#x_label_text").css('color', rgbaCode);
+										//$("#x_label_text").css('color', color['hexCode']);
+							}
+						});
+					
+					
+					/* $(id).spectrum({
+						showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+							
+						},
+						show: function () {
+						
+						},
+						beforeShow: function (color) {
+							
+						},
+						hide: function () {
+						
+						},
+						change: function(color) {
+							adhocScripts.setVariable(variable, color.toHexString());
+							if(variable == 'yColor')
+								$("#y_label_text").css({'color': color.toHexString()});
+							
+							if(variable == 'xColor')
+								$("#x_label_text").css('color', color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});	*/
+				}
+				
+				$('#y_bold').on("click", function(){
+					if($(this).hasClass('y_selected_decoration')){
+						$(this).removeClass('y_selected_decoration');
+						$("#y_label_text").css({'font-weight': 'normal'});
+						adhocScripts.setVariable('yBold', 'false');
+					} else {
+						$(this).addClass('y_selected_decoration');
+						$("#y_label_text").css({'font-weight': 'bold'});
+						adhocScripts.setVariable('yBold', 'true');
+					}
+				});
+				
+				$('#y_italic').on("click", function(){
+					if($(this).hasClass('y_selected_decoration')){
+						$(this).removeClass('y_selected_decoration');
+						$("#y_label_text").css({'font-style': 'normal'});
+						adhocScripts.setVariable('yItalic', 'false');
+					} else {
+						$(this).addClass('y_selected_decoration');
+						$("#y_label_text").css({'font-style': 'italic'});
+						adhocScripts.setVariable('yItalic', 'true');
+					}
+				});
+				
+				$('#y_underline').on("click", function(){
+					if($(this).hasClass('y_selected_decoration')){
+						$(this).removeClass('y_selected_decoration');
+						$("#y_label_text").css({'text-decoration': 'none'});
+						adhocScripts.setVariable('yUnderline', 'false');
+					} else {
+						$(this).addClass('y_selected_decoration');
+						$("#y_label_text").css({'text-decoration': 'underline'});
+						adhocScripts.setVariable('yUnderline', 'true');
+					}
+				});
+				
+				$('#y_label_text').bind('input', function() {
+					adhocScripts.setVariable('yLabelText', $(this).val());
+				});
+				
+				
+				
+				
+				/////////////////////////////////////////////////////
+				////////////	X-Axis			////////////////////
+				
+				//Images for decoration
+				for(var i = 0; i < images.length; i++){
+					for(var j = 0; j < images[i].children.length; j++){
+						var imgDiv = document.createElement('div');
+						imgDiv.className = "col-sm-4 col-md-4 img-div "+images[i].children[j].name;
+						imgDiv.align = "center";
+					
+						var image = document.createElement('img');
+						image.src = window.DashboardGlobals.baseUrl+'getExternalResource.html?path=System/Admin/CustomScripts/generic/images/'+images[i].children[j].name+'.png';
+						image.id = 'x_'+images[i].children[j].name;
+						image.alt = images[i].children[j].value;
+						image.className = "image";
+
+						imgDiv.appendChild(image);
+						$('#x_decoration_panel').append(imgDiv);
+					}
+				}
+				
+				createFontSizeSelector('#x_size_value', 'x_size_value_dropdown', 'xSize');
+				
+			//	$("#x_color_value").val(adhocScripts.getVariable("xColor"));
+				
+				$("#x_label_text").css({'color': adhocScripts.getVariable("xColor"),
+										'font-size': adhocScripts.getVariable("xSize")+'px'});
+										
+				$("#x_label_text").val(adhocScripts.getVariable('xLabelText'));
+				
+				//Set Bold
+				if(adhocScripts.getVariable("xBold") == 'true'){
+					$("#x_label_text").css({'font-weight': 'bold'});
+					$('#x_bold').addClass('x_selected_decoration');
+				}
+				else{
+					$("#x_label_text").css({'font-weight': 'normal'});
+				}
+				//Set Italic
+				if(adhocScripts.getVariable("xItalic")  == 'true'){
+					$("#x_label_text").css({'font-style': 'italic'});
+					$('#x_italic').addClass('x_selected_decoration');
+				}
+				else{
+					$("#x_label_text").css({'font-style': 'normal'});
+				}
+				
+				
+				//Set UnderLine
+				if(adhocScripts.getVariable("xUnderline") == 'true'){
+					$("#x_label_text").css({'text-decoration': 'underline'});
+					$('#x_underline').addClass('x_selected_decoration');
+				}
+				else{
+					$("#x_label_text").css({'text-decoration': 'none'});
+				}
+				
+			
+				
+				$('#x_bold').on("click", function(){
+					if($(this).hasClass('x_selected_decoration')){
+						$(this).removeClass('x_selected_decoration');
+						$("#x_label_text").css({'font-weight': 'normal'});
+						adhocScripts.setVariable('xBold', 'false');
+						//console.log("bold");
+					} else {
+						$(this).addClass('x_selected_decoration');
+						$("#x_label_text").css({'font-weight': 'bold'});
+						adhocScripts.setVariable('xBold', 'true');
+					}
+				});
+				
+				$('#x_italic').on("click", function(){
+					
+					if($(this).hasClass('x_selected_decoration')){
+						$(this).removeClass('x_selected_decoration');
+						$("#x_label_text").css({'font-style': 'normal'});
+						adhocScripts.setVariable('xItalic', 'false');
+					} else {
+						$(this).addClass('x_selected_decoration');
+						$("#x_label_text").css({'font-style': 'italic'});
+						adhocScripts.setVariable('xItalic', 'true');
+					}
+				});
+				
+				$('#x_underline').on("click", function(){
+					if($(this).hasClass('x_selected_decoration')){
+						$(this).removeClass('x_selected_decoration');
+						$("#x_label_text").css({'text-decoration': 'none'});
+						adhocScripts.setVariable('xUnderline', 'false');
+					} else {
+						$(this).addClass('x_selected_decoration');
+						$("#x_label_text").css({'text-decoration': 'underline'});
+						adhocScripts.setVariable('xUnderline', 'true');
+					}
+				});
+				
+				$('#x_label_text').bind('input', function() {
+					adhocScripts.setVariable('xLabelText', $(this).val());
+				});
+				
+				
+				function removePicker(id) {
+							HDIUI.removeColorPicker({
+								id:id
+								});
+					
+				}
+
+				
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							_.forEach(["y_color_value", "x_color_value"],function(item){
+								removePicker(item);
+							});
+							
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

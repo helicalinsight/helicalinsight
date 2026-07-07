@@ -1,0 +1,35 @@
+@import "../../styles/variables.scss";
+
+.sidebar-footer-bg-light-blue {
+  background-color: $hi-light-blue;
+}
+.sidebar-footer-bg-white {
+  background-color: $hi-white;
+}
+
+.sidebar-footer {
+  .sidebar-footer-text {
+    font-size: 12px;
+  }
+  .hi-sidebar-search {
+    width: 100%;
+    padding: 10px 0px 10px 0px;
+  }
+  .hi-sidebar-file-browser-button {
+    text-align: left;
+  }
+}
+.sidebar-footer-text-left {
+  text-align: left;
+  padding-left: 5px;
+}
+
+.sidebar-footer-text-right {
+  text-align: right;
+  padding-right: 5px;
+}
+
+.sidebar-footer-text-right-hr{
+  text-align: right;
+  padding-right: 20px;
+}

@@ -1,0 +1,145 @@
+@import "../../styles/variables.scss";
+
+$container-padding: 10px;
+
+.hi-datasource-card {
+  height: 100%;
+  width: 100%;
+  .ant-card-body {
+    padding: 0 !important;
+    height: 100%;
+  }
+
+  .menu-card {
+    padding: 5px;
+  }
+
+  .checked-icon {
+    color: #52c41a;
+    align-self: flex-end;
+  }
+
+  .add-icon {
+    color: #d9d9d9;
+    align-self: flex-end;
+  }
+
+  .help-icon {
+    font-size: 10px !important;
+    margin-left: 5px;
+  }
+
+  .datasource-container {
+    height: 90%;   // bug 6552 - fix 
+    .title {
+      width: 100%;
+      text-align: center;
+    }
+    .title:hover {
+      overflow: visible;
+      white-space: pre-line;
+    }
+    .datasource-header {
+      border-bottom: 1px solid $hi-light-gray;
+      padding: 10px;
+      max-height: 55px;
+    }
+    .datasource-menu {
+      line-height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ant-menu-horizontal {
+      border: none !important;
+    }
+    .ellipsis {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .datasource-content {
+      height: 100%; // bug 6552 - fix 
+      // bug 6552 - fix start
+      .datasource-card{
+        height: 100%;
+      }
+      // bug 6552 - fix end
+
+      .datasource-card .ant-card-body {
+        width: 100%;
+        // min-height: 510px; // bug 6552 - fix 
+        max-height: 100%; // bug 6552 - fix 
+        overflow-y: auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        align-content: flex-start;
+      }
+
+      .gridstyle {
+        margin: 8px;
+        width: 15%;
+        height: 150px;
+        display: flex;
+        cursor: pointer !important;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      @media screen and (max-width: 768px) {
+        .gridstyle {
+          width: 95%;
+        }
+      }
+
+      @media screen and (min-width: 769px) and (max-width: 992px) {
+        .gridstyle {
+          width: 31%;
+          margin: 5px;
+          height: 120px;
+        }
+      }
+    }
+  }
+}
+
+.clear-button {
+  color: #f44336;
+  font-weight: 700;
+  text-decoration: underline;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.search-warning {
+  text-align: center;
+  margin: 20px;
+}
+
+.upload-heading {
+  text-align: center;
+  font-size: 15px;
+}
+
+.upload-card {
+  height: 130px;
+  text-align: center;
+}
+
+.show-card {
+  height: 130px;
+  text-align: "center";
+  opacity: 1;
+}
+
+.show-card {
+  height: 130px;
+  text-align: "center";
+  opacity: 0.5;
+  cursor: none;
+}

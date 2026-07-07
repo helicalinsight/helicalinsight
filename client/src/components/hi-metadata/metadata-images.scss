@@ -1,0 +1,426 @@
+/*
+ copied this file from {OLD HI APPLICATION}dist\css\metadata-image.css
+*/
+
+.hi-metadata-container {
+	.data-source-image-block {
+		height: 20px;
+		/*height: 100px;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;*/
+	}
+	// .databases {
+	//     background: url("./database-logos.png") no-repeat;
+	//     // background: url("../../../build/images/hi-metadata/Joins_images/Full.png") no-repeat;
+	//     background-size: 305px 244px;
+	//     display: block;
+	//     // margin: 5px;
+	//     background-position: -188px -144px;
+	//     width: 20px;
+	//     height: 22px;
+	// }
+
+	.default-icon {
+		background-position: -762px -585px;
+		width: 60px;
+		height: 68px;
+	}
+	.data-source-image-block [class*="dynamodb"],
+	.amazon_dynamodb-icon {
+		background-position: -6px -9px;
+		width: 20px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="couchbase"],
+	.couchbase-icon {
+		background-position: -37px -12px;
+		width: 23px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="dbase"],
+	.dbase-icon {
+		background-position: -68px -12px;
+		width: 21px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="druid"],
+	.druid-icon {
+		background-position: -98px -10px;
+		width: 22px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="fileMaker"],
+	.FileMaker-icon {
+		background-position: -126px -12px;
+		width: 23px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="firebird"],
+	.firebird-icon {
+		background-position: -157px -8px;
+		width: 21px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="googlecloud"],
+	.Google_cloud-icon {
+		background-position: -187px -8px;
+		width: 22px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="googlebigquery"],
+	.Googlebigquery-icon {
+		background-position: -219px -10px;
+		width: 20px;
+		height: 16px;
+	}
+	.data-source-image-block [class*="influxdb"],
+	.Influxdb-icon {
+		background-position: -248px -14px;
+		width: 21px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="cosmosdb"],
+	.Cosmosdb-icon {
+		background-position: -280px -10px;
+		width: 21px;
+		height: 18px;
+	}
+	.data-source-image-block [class*="greenplum"],
+	.Greenplum-icon {
+		background-position: -9px -40px;
+		width: 20px;
+		height: 7px;
+	}
+	.data-source-image-block [class*="h2"],
+	.h2-icon {
+		background-position: -39px -42px;
+		width: 20px;
+		height: 12px;
+	}
+	.data-source-image-block [class*="hive"],
+	.hive-icon {
+		background-position: -66px -37px;
+		width: 23px;
+		height: 22px;
+	}
+	.data-source-image-block [class*="hsqldb"],
+	.hsqldb-icon {
+		background-position: -98px -43px;
+		width: 22px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="ibmdb2"],
+	.IBMdb2-icon {
+		background-position: -127px -39px;
+		width: 21px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="netezza"],
+	.IBMNetezza-icon {
+		background-position: -158px -45px;
+		width: 20px;
+		height: 7px;
+	}
+	.data-source-image-block [class*="impala"],
+	.Impala-icon {
+		background-position: -190px -40px;
+		width: 13px;
+		height: 22px;
+	}
+	.data-source-image-block [class*="solr"],
+	.Solr-icon {
+		background-position: -217px -42px;
+		width: 23px;
+		height: 15px;
+	}
+	.data-source-image-block [class*="redis"],
+	.Redis-icon {
+		background-position: -249px -44px;
+		width: 20px;
+		height: 11px;
+	}
+	.data-source-image-block [class*="derby"],
+	.Derby-icon {
+		background-position: -281px -42px;
+		width: 20px;
+		height: 15px;
+	}
+	.data-source-image-block [class*="informix"],
+	.Informix-icon {
+		background-position: -9px -75px;
+		width: 22px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="ingres"],
+	.Ingres-icon {
+		background-position: -39px -77px;
+		width: 19px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="mariadb"],
+	.mariadb-icon {
+		background-position: -68px -75px;
+		width: 22px;
+		height: 17px;
+	}
+	.data-source-image-block [class*="mongodb"],
+	.mongodb-icon {
+		background-position: -96px -70px;
+		width: 23px;
+		height: 25px;
+	}
+	.data-source-image-block [class*="access"],
+	.Ms_Access-icon {
+		background-position: -127px -71px;
+		width: 20px;
+		height: 23px;
+	}
+	.data-source-image-block [class*="azure"],
+	.MSAzure-icon {
+		background-position: -156px -77px;
+		width: 22px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="mysql"],
+	.mysql-icon {
+		background-position: -186px -71px;
+		width: 23px;
+		height: 23px;
+	}
+	.data-source-image-block [class*="hbase"],
+	.hbase-icon {
+		background-position: -219px -79px;
+		width: 20px;
+		height: 7px;
+	}
+	.data-source-image-block [class*="cassandra"],
+	.cassandra-icon {
+		background-position: -248px -75px;
+		width: 22px;
+		height: 15px;
+	}
+	.data-source-image-block [class*="redshift"],
+	.redshift-icon {
+		background-position: -281px -76px;
+		width: 19px;
+		height: 13px;
+	}
+	.data-source-image-block [class*="hana"],
+	.SAP_HANA-icon {
+		background-position: -9px -144px;
+		width: 20px;
+		height: 9px;
+	}
+	.data-source-image-block [class*="neo4j"],
+	.neo4j-icon {
+		background-position: -39px -108px;
+		width: 19px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="nuodb"],
+	.nuodb-icon {
+		background-position: -68px -110px;
+		width: 21px;
+		height: 18px;
+	}
+	.data-source-image-block [class*="oracle"],
+	.oracle_hyperion_essbase-icon {
+		background-position: -96px -105px;
+		width: 22px;
+		height: 20px;
+	}
+	.data-source-image-block [class*="postgres"],
+	.postgresql-icon {
+		background-position: -126px -107px;
+		width: 23px;
+		height: 24px;
+	}
+	.data-source-image-block [class*="presto"],
+	.presto_big-icon {
+		background-position: -157px -114px;
+		width: 20px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="sparksql"],
+	.sparkSQL-icon {
+		background-position: -187px -112px;
+		width: 22px;
+		height: 13px;
+	}
+	.data-source-image-block [class*="memcached"],
+	.memcached-icon {
+		background-position: -220px -110px;
+		width: 17px;
+		height: 17px;
+	}
+	// .data-source-image-block [class*="elastic"],
+	// .elastic-icon {
+	// 	background-position: -10px -10px;
+	// 	width: 21px;
+	// 	height: 9px;
+	// }
+	.data-source-image-block [class*="csv"],
+	.CSV-icon {
+		background-position: -280px -108px;
+		width: 21px;
+		height: 20px;
+	}
+	.data-source-image-block [class*="sql2008"],
+	.SQL2008-icon {
+		background-position: -10px -148px;
+		width: 19px;
+		height: 15px;
+	}
+	.data-source-image-block [class*="microsoftsqlserver"],
+	.SQL2014-icon {
+		background-position: -39px -148px;
+		width: 19px;
+		height: 17px;
+	}
+	.data-source-image-block [class*="sqlite"],
+	.sqlite-icon {
+		background-position: -69px -144px;
+		width: 20px;
+		height: 22px;
+	}
+	.data-source-image-block [class*="sybase"],
+	.sybase-icon {
+		background-position: -96px -149px;
+		width: 22px;
+		height: 12px;
+	}
+	.data-source-image-block [class*="teradata"],
+	.Teradata_logo-icon {
+		background-position: -127px -151px;
+		width: 21px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="vertica"],
+	.vertica-icon {
+		background-position: -156px -151px;
+		width: 23px;
+		height: 8px;
+	}
+	.data-source-image-block [class*="marklogic"],
+	.marklogic-icon {
+		background-position: -217px -150px;
+		width: 22px;
+		height: 8px;
+	}
+	.data-source-image-block [class*="splunk"],
+	.splunk-icon {
+		background-position: -250px -150px;
+		width: 19px;
+		height: 8px;
+	}
+	.data-source-image-block [class*="oracledatabase"],
+	.oracledatabase-icon {
+		background-position: -98px -186px;
+		width: 20px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="apachedrill"],
+	.drill-icon {
+		background-position: -281px -149px;
+		width: 19px;
+		height: 11px;
+	}
+	.data-source-image-block [class*="json"],
+	.json-icon {
+		background-position: -7px -179px;
+		width: 24px;
+		height: 23px;
+	}
+	.data-source-image-block [class*="excel"],
+	.excel-icon {
+		background-position: -39px -179px;
+		width: 19px;
+		height: 23px;
+	}
+	.data-source-image-block [class*="couchdb"],
+	.couchdb-icon {
+		background-position: -66px -183px;
+		width: 24px;
+		height: 16px;
+	}
+	.data-source-image-block [class*="essbase"],
+	.essbase-icon {
+		background-position: -98px -186px;
+		width: 20px;
+		height: 10px;
+	}
+	.data-source-image-block [class*="parquet"],
+	.parquet-icon {
+		background-position: -128px -180px;
+		width: 19px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="json"],
+	.json-icon {
+		background-position: -161px -180px;
+		width: 14px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="sequencefile"],
+	.couchdb-icon {
+		background-position: -185px -184px;
+		width: 25px;
+		height: 13px;
+	}
+	.data-source-image-block [class*="csvh"],
+	.csvh-icon {
+		background-position: -217px -180px;
+		width: 16px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="avro"],
+	.avro-icon {
+		background-position: -246px -185px;
+		width: 26px;
+		height: 11px;
+	}
+	.data-source-image-block [class*="img"],
+	.img-icon {
+		background-position: -282px -180px;
+		width: 17px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="psv"],
+	.psv-icon {
+		background-position: -9px -216px;
+		width: 21px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="tsv"],
+	.tsv-icon {
+		background-position: -38px -216px;
+		width: 21px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="httpd"],
+	.httpd-icon {
+		background-position: -72px -216px;
+		width: 14px;
+		height: 19px;
+	}
+	.data-source-image-block [class*="pcap"],
+	.pcap-icon {
+		background-position: -97px -216px;
+		width: 21px;
+		height: 21px;
+	}
+	.data-source-image-block [class*="dremio"],
+	.dremio-icon {
+		background-position: -159px -223px;
+		width: 18px;
+		height: 6px;
+	}
+	.data-source-image-block [class*="click"],
+	.dremio-icon {
+		background-position: -186px -223px;
+		width: 18px;
+		height: 6px;
+	}
+}

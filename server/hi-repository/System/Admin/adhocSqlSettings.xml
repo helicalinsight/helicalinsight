@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sqlSettings mandatory="true">
+    <ansiGroupByDialects>
+		<dialect>org.hibernate.dialect.Oracle8iDialect</dialect>
+		<dialect>org.hibernate.dialect.OracleDialect</dialect>
+        <dialect>org.hibernate.dialect.SQLServerDialect</dialect>
+        <dialect>com.helicalinsight.adhoc.genericsql.CalciteHibernateDialect</dialect>
+		<!--PostgreSQLDialect is added in Ansi to support other depending database like Presto etc -->
+		<dialect>org.hibernate.dialect.PostgreSQLDialect</dialect>
+		<dialect>org.hibernate.dialect.DerbyDialect</dialect>
+		<dialect>org.hibernate.dialect.DB2Dialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.AapacheDrillSqlDialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.TeradataHIDialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.DremioSqlDialect</dialect>
+		
+    </ansiGroupByDialects>
+
+    <!-- NOTE: the defaultDriverClassName and defaultJdbcDialect need to be in sync and should refer to only one rdbms.
+    Changing one property and leaving the other may lead to inconsistent behaviour.
+    In case of JNDI data sources one needs to configure the driver class name and the default hibernate dialect here. -->
+
+    <!-- <defaultDriverClassName>org.postgresql.Driver</defaultDriverClassName> -->
+    <defaultJdbcDialect>org.hibernate.dialect.PostgreSQLDialect</defaultJdbcDialect>
+
+    <defaultDriverClassName>com.mysql.jdbc.Driver</defaultDriverClassName>
+    
+</sqlSettings>

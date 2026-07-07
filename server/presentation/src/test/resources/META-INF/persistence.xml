@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="3.0" xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+
+	<persistence-unit name="helicalInsight-pu" transaction-type="RESOURCE_LOCAL">
+		<description>HELICAL INSIGHT PERSISTENCE UNIT</description>
+		
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        
+        <class>com.helicalinsight.admin.model.User</class>
+		<class>com.helicalinsight.admin.model.Role</class>
+		<class>com.helicalinsight.admin.model.Profile</class>
+		<class>com.helicalinsight.admin.model.Organization</class>
+		<class>com.helicalinsight.cache.model.Cache</class>
+		<class>com.helicalinsight.cache.model.CacheReport</class>
+		<class>com.helicalinsight.admin.model.ProcessDetails</class>
+		<class>com.helicalinsight.admin.model.CubePhaseDetails</class>
+		<class>com.helicalinsight.admin.model.CubeMetadataInformation</class>
+		<class>com.helicalinsight.admin.model.ApplicationCache</class>
+		<class>com.helicalinsight.admin.model.FileBrowserCache</class>
+		<class>com.helicalinsight.admin.model.DataSourceMapping</class>
+		<class>com.helicalinsight.scheduling.model.JobParameters</class>
+		<class>com.helicalinsight.scheduling.model.Schedules</class>
+		<class>com.helicalinsight.admin.model.ResourceType</class>
+		<!-- <class>com.helicalinsight.scheduling.model.HiResource</class> -->
+		<class>com.helicalinsight.datasource.model.GlobalConnections</class>
+		<class>com.helicalinsight.datasource.model.GlobalConnectionSecurity</class>
+		<class>com.helicalinsight.datasource.model.DSTypeNoSQL</class>
+		<class>com.helicalinsight.datasource.model.DSTypeHikari</class>
+		<class>com.helicalinsight.datasource.model.DSTypeJndi</class>
+		<class>com.helicalinsight.datasource.model.DSTypeTomcat</class>
+		<class>com.helicalinsight.datasource.model.DSTypePlainJDBC</class>
+		<class>com.helicalinsight.datasource.model.DSExtraOption</class>
+		<class>com.helicalinsight.admin.model.HIResource</class>
+		<class>com.helicalinsight.admin.model.HIResourceSecurityDB</class>
+		<class>com.helicalinsight.admin.model.HIResourceMetadata</class>
+		<class>com.helicalinsight.admin.model.HIResourceHWF</class>
+		<class>com.helicalinsight.admin.model.MetadataDatabases</class>
+		<class>com.helicalinsight.admin.model.HIMetadataSecurity</class>
+		<class>com.helicalinsight.admin.model.HIMetadataConnections</class>
+		<class>com.helicalinsight.admin.model.HIMetadataView</class>
+		<class>com.helicalinsight.admin.model.HIMetadataTables</class>
+		<class>com.helicalinsight.admin.model.HIMetadataColumns</class>
+		<class>com.helicalinsight.admin.model.HIMetadataRelationships</class>
+		<class>com.helicalinsight.admin.model.HWFExecution</class>
+		<class>com.helicalinsight.admin.model.HWFExecutionInput</class>
+		<class>com.helicalinsight.admin.model.HWFExecutionOutput</class>
+		<class>com.helicalinsight.admin.model.HIHwfInput</class>
+		<class>com.helicalinsight.admin.model.HIHwfOutput</class>
+		<class>com.helicalinsight.admin.model.HWFExecutionGroovy</class>
+		<class>com.helicalinsight.admin.model.HWFExecutionConditional</class>
+		<class>com.helicalinsight.admin.model.HIUrlMapping</class>
+		<class>com.helicalinsight.admin.model.HIResourceEFWVF</class>
+		<class>com.helicalinsight.admin.model.HIMetadataConnectionEFWD</class>
+		<class>com.helicalinsight.admin.model.HIMetadataConnectionGlobal</class>
+		<class>com.helicalinsight.admin.model.HIEfwdDataMap</class>
+		<class>com.helicalinsight.admin.model.HIEfwdDatamapParameters</class>
+		<class>com.helicalinsight.admin.model.EFWDConnSqlJDBC</class>
+		<class>com.helicalinsight.admin.model.EFWDConnGroovy</class>
+		<class>com.helicalinsight.admin.model.HIEfwdConnSecurity</class>
+		<class>com.helicalinsight.admin.model.EFWDConnManaged</class>
+		<class>com.helicalinsight.admin.model.HIEfwdConnection</class>
+		<class>com.helicalinsight.admin.model.ResourceEfwContents</class>
+		<class>com.helicalinsight.admin.model.HIEFWD</class>
+		<class>com.helicalinsight.admin.model.HIMetadataCube</class>
+		<class>com.helicalinsight.admin.model.HICubeDimension</class>
+		<class>com.helicalinsight.admin.model.HICubeMeasure</class>
+		<class>com.helicalinsight.admin.model.HICubeHierarchyLevel</class>
+		<class>com.helicalinsight.admin.model.HIDimensionHierarchy</class>
+		<class>com.helicalinsight.admin.model.HIPhase</class>
+		<class>com.helicalinsight.admin.model.HIResourcePhaseStatus</class>
+		<class>com.helicalinsight.admin.model.HIAuditDetails</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBin</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBinHIResourceDB</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBinDSGlobalConnections</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBinHUsers</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBinOrganization</class>
+		<class>com.helicalinsight.admin.model.HIRecycleBinHIEfwdConnection</class>
+		<class>com.helicalinsight.admin.model.HIHcrConnections</class>
+		<class>com.helicalinsight.admin.model.HIHcrConnectionsEfwd</class>
+		<class>com.helicalinsight.admin.model.HIHcrConnectionsGlobal</class>
+		<class>com.helicalinsight.admin.model.HiHcrQuery</class>
+		<class>com.helicalinsight.admin.model.HIHcrQueryParameters</class>
+		<class>com.helicalinsight.admin.model.HIResourceMapping</class>
+		
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+        
+		<properties>
+			<property name="hibernate.dialect" value="${dbDialect}" />
+			<property name="hibernate.hbm2ddl.auto" value="update" />
+			<property name="hibernate.show_sql" value="false"/>
+			<property name="hibernate.format_sql" value="false"/>
+
+			<property name="jakarta.persistence.jdbc.driver" value="${dbDriver}" />
+			<property name="jakarta.persistence.jdbc.url" value="${dbUrl}"/>
+
+			<property name="jakarta.persistence.jdbc.user" value="${dbUser}" />
+			<property name="jakarta.persistence.jdbc.password" value="${dbPassword}" />
+		</properties>
+		
+	</persistence-unit>
+</persistence>

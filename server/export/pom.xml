@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>parent</artifactId>
+        <groupId>com.helicalinsight</groupId>
+        <version>${parent.version}</version>
+        <relativePath>..</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>hi-export</artifactId>
+    <packaging>jar</packaging>
+    <name>hi-export</name>
+
+    <build>
+        <finalName>${name}-${parent.version}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            
+             <plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>aspectj-maven-plugin</artifactId>
+					<configuration>
+					   <skip>${aspectj.skip}</skip>
+				       <includes>
+				        	<include>com/helicalinsight/export/handler/importres/ImportResourceManager.java</include>
+				        	<include>com/helicalinsight/export/handler/ResourceExportHandler.java</include>
+				       </includes>
+				    </configuration>
+            </plugin>
+            
+            
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.helicalinsight</groupId>
+            <artifactId>hi-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.helicalinsight</groupId>
+            <artifactId>hi-cache</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.helicalinsight</groupId>
+            <artifactId>hi-validation</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.helicalinsight</groupId>
+            <artifactId>hi-adhoc</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+		 <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-chrome-driver</artifactId>
+            <version>4.39.0</version>
+            <exclusions>
+            	<exclusion>
+            		 <groupId>io.netty</groupId>
+					 <artifactId>netty-codec-socks</artifactId>
+            	</exclusion>
+            </exclusions>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.seleniumhq.selenium/selenium-support -->
+        <dependency>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-support</artifactId>
+            <version>4.39.0</version>
+        </dependency>
+    </dependencies>
+</project>

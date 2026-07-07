@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3_js_linearGaugeScale</scriptId>
+    <scriptType>js</scriptType>
+	<name>Scale Configuration</name>
+    <group>D3Gauge</group>
+	<renderOn>simpleModel</renderOn>
+    <description>change domain for linear gauge</description>
+    <icon>/images/scriptIcons/ScaleConfig.png</icon>
+	<snippet>
+	<![CDATA[
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['scaleDomain'+id]= function(d){
+				var viz_Options = d.get("viz_Options");
+				configureScaleDomain(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+			
+			ftnObj['scaleDomainextend'+id]= function(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureScaleDomain(viz_Options);
+			}
+	
+			function configureScaleDomain(viz_Options){
+				function getFormatter(digits, name) {
+					var notations = [
+						{ value: 1E12,  suffix: "T", name:"Trillion" },
+						{ value: 1E9,  suffix: "B" , name: "Billion"},
+						{ value: 1E6,  suffix: "M" , name:"Million"},
+						{ value: 1E3,  suffix: "K" , name:"Thousand"},        
+						{ value: 1E3,  suffix: "K" , name:"none"},        
+						{ value: 1E3,  suffix: "K" , name:"auto"}        
+					];
+					rx = /\.0+$|(\.[0-9]*[1-9])0+$/
+					notations.forEach(function(curr,ind){
+						if(curr.name === name){
+							index = ind;
+							return;
+						}
+					})
+					var notation = notations[index];  
+					if(name === "auto"){
+						return function(num) {
+							var notation;
+							for (var i = 0; i < notations.length; i++) {
+							  notation = notations[i]
+							  if (num >= notation.value) {
+								var value = num / notation.value;
+								if (parseInt(value.toFixed(digits).split('.')[0]) != 0)
+									value = value.toFixed(digits)
+								//value = value.replace(rx, "$1")
+								//value = d3.format(',.2f')(value);
+								return (value*1).toString() + notation.suffix
+							  }
+							}
+							return ((num.toFixed(digits))*1).toString();
+						}
+					}
+					if(name === "none"){
+						//return d3.format(',.'+digits+'f');
+					}	
+					else{
+						return function(num) {
+							var notation = notations[index];
+							var value = num / notation.value;
+							if (parseInt(value.toFixed(digits).split('.')[0]) != 0)
+									value = value.toFixed(digits)
+							//value = value.replace(rx, "$1");
+							//value = d3.format(",.2r")(value);
+							return (value*1).toString() + notation.suffix
+						}
+					}
+				}
+				viz_Options.chartOptions.linearGaugedomain={
+					domainMin:'${domainMin}',
+					domainMax:'${domainMax}',
+					tickFormat: getFormatter(${decimalValue},'${tickformat}')
+			 }
+			 return viz_Options;
+			}		
+			
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution",ftnObj['scaleDomain'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['scaleDomainextend'+id]);
+			}
+
+			
+			
+	]]>
+	</snippet>
+	<parameters>
+		<parameter value="0" name="domainMin" type="Number"/>
+		<parameter value="" name="domainMax" type="Number"/>
+		<parameter value="auto" name="tickformat" type="String"/>
+		<parameter value="" name="decimalValue" type="Number"/>
+	</parameters>
+	<uiSnippet>
+	<![CDATA[
+
+	<div class="row">
+		<form class = "form-line col-sm-12" id = "Scaleform">
+	</form>
+	</div>
+	<script>
+		adhocScripts.resetAll();
+		adhocScripts.setVariable('tickformat', params.tickformat);
+		adhocScripts.setVariable('decimalValue', params.decimalValue);
+		adhocScripts.setVariable('domainMin', params.domainMin);
+		adhocScripts.setVariable('domainMax', params.domainMax);
+		
+		var tickformatter = ["auto", "none", "Thousand", "Million", "Billion","Trillion"]
+		
+		
+		var dataValue = window.frames[0].hi_container._values.responseData.data[0][JSON.parse(atob(window.frames[0].hi_container._values.__hi_params.columns))[0]['autogen_alias']];
+		
+		var divVal1 = document.createElement('div');
+		divVal1.className = 'form-group col-sm-3';
+		divVal1.id = 'div_minimum_';
+
+		var labelVal1 = document.createElement('label');
+		labelVal1.for = 'input_value1_';
+		labelVal1.innerHTML = 'Minimum Value';
+
+		var inputVal1 = document.createElement('input');
+		inputVal1.type = 'text';
+		inputVal1.className = 'form-control';
+		inputVal1.id = 'Scalemin';
+		inputVal1.value = adhocScripts.getVariable('domainMin');
+		inputVal1.onchange = setOnChangeMinimum;
+
+		divVal1.appendChild(labelVal1);
+		divVal1.appendChild(inputVal1);
+
+		document.getElementById("Scaleform").appendChild(divVal1);	
+
+		var divVal2 = document.createElement('div');
+		divVal2.className = 'form-group col-sm-3';
+		divVal2.id = 'div_maximum_';
+
+		var labelVal2 = document.createElement('label');
+		labelVal2.for = 'input_value1_';
+		labelVal2.innerHTML = 'Maximum Value';
+
+		var inputVal2 = document.createElement('input');
+		inputVal2.type = 'text';
+		inputVal2.className = 'form-control';
+		inputVal2.id = 'Scalemax';
+		inputVal2.value = adhocScripts.getVariable('domainMax') || dataValue;
+		inputVal2.onchange = setOnChangeMaximum;
+
+		divVal2.appendChild(labelVal2);
+		divVal2.appendChild(inputVal2);
+
+		document.getElementById("Scaleform").appendChild(divVal2);			  
+		
+		var divVal3 = document.createElement('div');
+		divVal3.className = 'form-group col-sm-3';
+		divVal3.id = 'div_decimal_';
+
+		var labelVal3 = document.createElement('label');
+		labelVal3.for = 'input_value1_';
+		labelVal3.innerHTML = 'Decimal Places';
+
+		var inputVal3 = document.createElement('input');
+		inputVal3.type = 'text';
+		inputVal3.className = 'form-control';
+		inputVal3.id = 'DecimalValueCount';
+		inputVal3.value = adhocScripts.getVariable('decimalValue') || 2;
+		inputVal3.onchange = setOnChangeDecimal;
+
+		divVal3.appendChild(labelVal3);
+		divVal3.appendChild(inputVal3);
+
+		document.getElementById("Scaleform").appendChild(divVal3);	
+          
+		var divConditionVal = document.createElement('div');
+		divConditionVal.className = 'form-group col-sm-3 condition';
+		divConditionVal.id = 'div_condition_';
+
+		var labelConditionVal = document.createElement('label');
+		labelConditionVal.for = 'input_condition_';
+		labelConditionVal.innerHTML = 'Format';
+		labelConditionVal.id = 'formatLabel'
+
+		var inputConditionVal = document.createElement('select');
+		inputConditionVal.className = 'form-control';
+		inputConditionVal.id = 'input_condition_';
+		inputConditionVal.onchange = setOnChange;
+
+        for(var i = 0; i < tickformatter.length; i++){
+            var options = document.createElement('option');
+            options.value = tickformatter[i];
+            options.innerHTML = tickformatter[i];
+			  
+              
+			if(tickformatter[i] == adhocScripts.getVariable('tickformat')){
+                options.selected = 'selected';
+			}
+            inputConditionVal.appendChild(options);
+        }
+
+		divConditionVal.appendChild(labelConditionVal);
+		divConditionVal.appendChild(inputConditionVal);
+		
+		document.getElementById("Scaleform").appendChild(divConditionVal);	
+		
+		adhocScripts.setVariable('domainMax', $('#Scalemax').val());
+		adhocScripts.setVariable('decimalValue', $('#DecimalValueCount').val());
+		
+		 
+		function setOnChange(d){
+            adhocScripts.setVariable("tickformat", d.target.value);
+		}
+		function setOnChangeDecimal(d){
+            adhocScripts.setVariable("decimalValue", d.target.value);
+		}
+		function setOnChangeMinimum(d){
+            adhocScripts.setVariable("domainMin", d.target.value);
+		}
+		function setOnChangeMaximum(d){
+            adhocScripts.setVariable("domainMax", d.target.value);
+         }		  
+		  
+	</script>
+]]>
+</uiSnippet>
+</customScript>

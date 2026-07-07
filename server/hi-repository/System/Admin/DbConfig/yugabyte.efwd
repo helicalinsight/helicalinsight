@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EFWD mandatory="true">
+<DataMaps>
+
+		<DataMap id="1" connection="1" type="metadata.dbmetadata">
+            <Name>getCatalog</Name>
+            <catalog>TABLE_CAT</catalog>
+            <Query>
+               
+                <![CDATA[
+				
+				
+						 {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW","MATERIALIZED VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+          <Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		<DataMap id="2" connection="1" type="metadata.sql">
+            <Name>getSchema</Name>
+			 <schema>TABLE_SCHEM</schema>
+            <Query>
+               
+                <![CDATA[
+				
+    select schema_name as schemas   from information_schema.schemata where schema_name  in ('public','pg_catalog','information_schema','schema2')
+						
+						
+                ]]>
+           
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		 
+		<DataMap id="3" connection="1" type="metadata.sql" >
+           <Name>getTable</Name>
+		   <schemas>TABLE_SCHEME</schemas>
+            <Query>
+                <![CDATA[
+                        
+                       SELECT table_name as tables,table_schema as schemas, table_catalog as catalogs FROM information_schema.tables 
+				WHERE table_schema = ${schemas} and table_catalog=${catalog}
+				UNION
+				SELECT matviewname as tables,${schemas} as schemas, ${catalog} as catalogs FROM pg_matviews where schemaname = ${schemas}
+				
+				
+						
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalog" type="String" default="''" openQuote="'" closeQuote="'"/>
+            <Parameter name="schemas" type="String" default="''" openQuote="'" closeQuote="'"/>
+        </Parameters>
+        </DataMap>
+		
+		<DataMap id="4" connection="1" type="metadata.dbmetadata" >
+           <Name>getColumn</Name>
+            <Query>
+                <![CDATA[
+                       {"catalog":[${catalogs}],"schema":[${schemas}],"table":[${tables}],"columnPattern":""}
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default=""/>
+            <Parameter name="schemas" type="Collection" default="''"/>
+            <Parameter name="tables" type="Collection" default="Null"/>
+        </Parameters>
+        </DataMap>
+	
+		
+</DataMaps> 
+  
+    
+  
+</EFWD>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<script>
+		<snippet type="cdata"/>
+		<group type="text"/>
+		<description type="text"/>
+		<icon type="text"/>
+	</script>
+	<uuid type="file"/>
+	<location type="directory"/>
+</formData>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_axisTickRotate</scriptId>
+    <scriptType>js</scriptType>
+    <name>Axis Tick Rotation</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>X axis tick rotation in c3 axis charts</description>
+    <icon>/images/scriptIcons/Tick_rotate.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+				ftnObj['setaxisTickRotate'+id] = function(c){
+					var viz_Options = c.get("viz_Options");
+					viz_Options = axisTickRotate(viz_Options);
+					c.set("viz_Options",viz_Options);
+				
+				} ;
+					
+				ftnObj['extendaxisTickRotate'+id] = function(preExecution,c){
+					
+					var viz_Options = c.get("viz_Options");
+					viz_Options = axisTickRotate(viz_Options);
+				
+				
+				}; 
+			
+			
+		    function axisTickRotate(viz_Options){
+				
+				if(viz_Options.chartOptions.axis){
+					viz_Options.chartOptions.axis.x = {
+						tick: {
+								rotate : ${rotationValue},
+								multiline : false
+							}	
+					}
+				}
+				else{
+				 viz_Options.chartOptions["axis"] = {
+					x: {
+						tick: {
+							rotate : ${rotationValue},
+							multiline : false   
+						} 
+					}
+				}
+			}
+			//this case for when open chart its tick data visible in single line
+			
+				//console.log(viz_Options)
+				return viz_Options;
+			}
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setaxisTickRotate'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendaxisTickRotate'+id]);
+			}
+		
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="0" name="rotationValue" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div class="container-fluid">
+				<div class="xAxis">
+					<h4 id="xAxisTickRotate" class="col-sm-12">
+						<strong>X-Axis Tick Rotate </strong>
+					</h4>	
+				</div>
+					
+				<label class="col-sm-4 col-md-4 col-xs-12 control-label" for="x_axis_rotate_value">Rotate (in degrees)</label>
+					<div class="col-sm-3 col-md-3 col-xs-12">
+						<input class="form-control" id="x_axis_rotate_value" type="number" onchange="XRotateValue(this)">
+				    </div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				//Set global variable from parameter
+				adhocScripts.setVariable("rotationValue",params.rotationValue);
+				
+				function XRotateValue (e) 
+				 {
+				  adhocScripts.setVariable("rotationValue",e.value);
+				 }
+				 
+				$('#x_axis_rotate_value').val(adhocScripts.getVariable('rotationValue'));
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

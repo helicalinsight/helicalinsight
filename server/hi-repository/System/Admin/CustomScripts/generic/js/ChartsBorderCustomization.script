@@ -1,0 +1,356 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>generic_js_ChartsBorderCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Border</name>
+    <group>Generic</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Border Customization</description>
+	<icon>/images/scriptIcons/ChartBorder.png</icon>
+	<snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var containerId = '#main';
+			var chartId = '#chart';
+			var footerId = '#footer';
+			
+			if(id != ''){
+				containerId =  containerId+'-'+id;
+				chartId =  chartId+'-'+id;
+				footerId =  footerId+'-'+id;
+			}
+			
+			var ftnObj = {};
+			
+			ftnObj['chartBorderCustomization'+id] = function(){
+				var borderWidth = parseInt('${basicBorder}'.substr(0, '${basicBorder}'.length-2));
+
+				var $bodyHeight = document.querySelector(chartId).scrollHeight;
+				var $bodyWidth = document.querySelector(chartId).scrollWidth;
+				
+				$(containerId).css({'border': '${basicBorder}','border-style': '${basicBorderStyle}','border-color': '${basicBorderColor}'});
+				
+			};
+			
+			if(!hi_container.isSet("postExecution"))
+				hi_container.set("postExecution", ftnObj['chartBorderCustomization'+id]);
+			else
+				hi_container.extend("postExecution", ftnObj['chartBorderCustomization'+id]);
+			
+
+
+
+		]]>
+	</snippet>
+    <parameters>		
+		<parameter value='1px' name="basicBorder" type="String" />
+		<parameter value='none' name="basicBorderStyle" type="String" />
+		<parameter value='black' name="basicBorderColor" type="String" />
+	</parameters>
+	
+	<uiSnippet>
+		<![CDATA[
+			<style>
+				.allowScrollY{
+					overflow-y: auto;
+					height: 200px;
+				}
+				
+				.switchLabel{
+					text-align: center;
+					line-height: 23px;
+				}			
+								
+				.layoutImage{	
+					cursor: pointer;
+				}
+				
+				.selected{
+					border: 1px solid #ccc;
+				}
+
+				.layoutBorderImage{
+					cursor: pointer;
+				}
+
+				img.selected {
+                	border-color: #66afe9;
+				    padding: 6px 12px;
+				    border-radius: 4px;
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+				    -webkit-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+                }
+
+                img.layoutBorderImage.selected {
+                	height: 29px;
+                }
+
+                .layoutImage:not(:first-child) {
+					margin-top: 14px;
+                }
+			</style>
+			
+			<div class="container-fluid">
+				<div id="basic">
+					<div id="basicFontSizeRow" class="col-sm-12">
+						<div class="col-sm-9 col-md-9 col-xs-12" align="center">
+							<label>Border size</label>
+						</div>
+						<div class="col-sm-3 col-md-3" align="center" >
+							<label>Border color</label>			
+						</div>
+					</div>
+					<div id="backgroundCustomization">
+						<div id="basicBorderLayout" class="col-sm-9 col-md-9 col-xs-12" align="center"></div>
+						<div class="col-sm-3 col-md-3 col-xs-12" align="center">
+							<div id="background_input_color"></div>
+						</div>
+					</div>
+					<hr>
+					<div class="clearfix"></div>
+					<hr>
+					<div id="basicLayout" class="allowScrollY"></div>
+				</div>
+			</div>
+
+			<script>
+			$(function(){
+			    var $select = $("#border_width");
+				    for (i=1;i<=10;i++){
+				        $select.append($('<option></option>').val(i).html(i))
+				    }
+				});
+				adhocScripts.resetAll();				
+				
+				//Set global variable from parameter
+				adhocScripts.setVariable("basicBorderColor", params.basicBorderColor);
+				
+				function setBackground(event){
+				//	adhocScripts.setVariable("basicBorderColor",event.value);
+				}
+
+			//	$('#background_input_color').val(adhocScripts.getVariable("basicBorderColor"));
+				
+				function spectrumFtn() {
+					
+					HDIUI.renderColorPicker({
+							id:"background_input_color",
+							color:adhocScripts.getVariable("basicBorderColor"),
+							change:function(color){								
+								adhocScripts.setVariable("basicBorderColor",color['hexCode']);
+							}
+						});
+				}
+				
+				adhocScripts.setVariable("basicBorder",params.basicBorder);
+				adhocScripts.setVariable("basicBorderStyle",params.basicBorderStyle);
+				adhocScripts.setVariable("basicBorderColor",params.basicBorderColor);
+
+				var bordervalue = adhocScripts.getVariable('basicBorder');
+				
+				//JSON containing the details for default layout of tables.
+				//name: category
+				//children: array of deatials of individual image inside each category.
+				//image: name of image to be shown on screen.
+				var basicTableLayoutJSON = [
+					{
+						name: '',
+						children: [
+							{ id: 'Default_1', image: 'Border_9.png', border_style: 'none' },
+							{ id: 'FirstRow_1', image: 'Border_1.png', border_style: 'dashed' },
+							{ id: 'FirstRow_2', image: 'Border_2.png', border_style: 'dotted' },
+							{ id: 'FirstRow_3', image: 'Border_3.png', border_style: 'double' },
+							{ id: 'FirstRow_4', image: 'Border_4.png', border_style: 'groove' },
+							{ id: 'FirstRow_5', image: 'Border_5.png', border_style: 'ridge' },
+							{ id: 'FirstRow_6', image: 'Border_6.png', border_style: 'solid' },
+							{ id: 'FirstColumn_1', image: 'Border_7.png', border_style: 'inset' },
+							{ id: 'FirstColumn_2', image: 'Border_8.png', border_style: 'outset' }
+						]
+					}
+				];				
+				
+				//Function to create layout templates using the "basicTableLayoutJSON"
+				function setBasicLayout(){
+					var layoutDiv = document.createElement('div');
+					layoutDiv.className = 'layoutPanel';
+					layoutDiv.id = 'layoutPanel'
+					
+					var layoutHeading = document.createElement('h4');
+					layoutHeading.className = 'layoutHeading';
+					layoutHeading.id = 'layoutHeading';
+					layoutHeading.innerHTML = 'Layout';
+					
+					layoutDiv.appendChild(layoutHeading);
+					
+					for(var i = 0 ; i < basicTableLayoutJSON.length; i++){
+						var layoutTypeEach =  document.createElement('div');
+						layoutTypeEach.className = 'layoutType '+basicTableLayoutJSON[i].name.replace(/ /g, "_");
+						layoutTypeEach.id = basicTableLayoutJSON[i].name.replace(/ /g, "_");
+						
+						var layoutTypeEachHeading = document.createElement('div');
+						layoutTypeEachHeading.innerHTML = basicTableLayoutJSON[i].name;
+						layoutTypeEachHeading.id = basicTableLayoutJSON[i].name.replace(/ /g, "_")+"_heading";
+						layoutTypeEachHeading.className = 'layoutTypeHeading col-sm-12 col-md-12 col-xs-12 '+basicTableLayoutJSON[i].name.replace(/ /g, "_")+"_heading";
+						
+						layoutTypeEach.appendChild(layoutTypeEachHeading);
+						
+						var layoutImagesDiv = document.createElement('div');
+						
+						for(var j = 0; j < basicTableLayoutJSON[i].children.length; j++){
+							var image = document.createElement('img');
+							image.className = 'layoutImage img-responsive col-sm-10 col-md-10 col-sm-offset-1 col-xs-12';
+							image.src = 
+				    window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/generic/ChartsBorderImages/'+ basicTableLayoutJSON[i].children[j].image;
+
+							image.id = basicTableLayoutJSON[i].children[j].id;
+							image.setAttribute('type', basicTableLayoutJSON[i].name.replace(/ /g, "_"));
+							image.setAttribute('basic_BorderStyle', basicTableLayoutJSON[i].children[j].border_style);
+							layoutImagesDiv.appendChild(image);
+						}
+						
+						layoutTypeEach.appendChild(layoutImagesDiv);
+						layoutDiv.appendChild(layoutTypeEach);
+					}
+					
+					$('#basicLayout').append(layoutDiv);
+					
+					$('#'+adhocScripts.getVariable('basicLayoutSelected')).addClass('selected');
+				};
+				
+				//Create the basic mode template layout.
+				setBasicLayout()
+				
+				//Add click event on layout template images
+				$('.layoutImage').on('click', function(){
+					$('.layoutImage').removeClass('selected');
+					var attrId = $(this).attr("id");
+					$("#"+attrId).addClass('selected');
+					//$(this).addClass('selected');
+
+					adhocScripts.setVariable('basicLayoutSelected', $(this)[0].id);
+					adhocScripts.setVariable('basicLayoutSelectedType', $(this)[0].getAttribute('type'));	
+					adhocScripts.setVariable('basicBorderStyle', $(this)[0].getAttribute('basic_BorderStyle'));
+				});
+				
+				//JSON containing the details for default layout of tables.
+				//name: category
+				//children: array of deatials of individual image inside each category.
+				//image: name of image to be shown on screen.
+				var basicBorderLayoutJSON = [
+					{
+						name: '',
+						children: [
+							{ id: 'basicBorder_1', image: 'Newline-2.png',	border: '1px' },
+							{ id: 'basicBorder_2', image: 'Newline_4.png', border: '2px' },
+							{ id: 'basicBorder_3', image: 'Newline_5.png', border: '3px' }
+						]
+					}
+				];
+
+				//Function to create layout templates using the "basicBorderLayoutJSON"
+				function setBorderBasicLayout(){
+					var layoutDiv = document.createElement('div');
+					layoutDiv.className = 'layoutPanel col-sm-12 col-md-12 col-xs-12';
+					layoutDiv.id = 'layoutPanel'
+					
+					var layoutHeading = document.createElement('div');
+					layoutHeading.className = 'layoutHeading row';
+					layoutHeading.id = 'layoutHeading';
+
+					layoutDiv.appendChild(layoutHeading);
+					
+					for(var i = 0 ; i < basicBorderLayoutJSON.length; i++){
+						var layoutTypeEachImage =  document.createElement('div');
+						layoutTypeEachImage.className = 'layoutType '+basicBorderLayoutJSON[i].name.replace(/ /g, "_");+' col-sm-12 col-md-12 col-xs-12';
+						layoutTypeEachImage.id = basicBorderLayoutJSON[i].name.replace(/ /g, "_");
+						
+						var layoutTypeEachHeading = document.createElement('div');
+						layoutTypeEachHeading.innerHTML = basicBorderLayoutJSON[i].name;
+						layoutTypeEachHeading.id = basicBorderLayoutJSON[i].name.replace(/ /g, "_")+"_heading";
+						layoutTypeEachHeading.className = 'layoutTypeHeading '+basicBorderLayoutJSON[i].name.replace(/ /g, "_")+"_heading";
+						
+						layoutTypeEachImage.appendChild(layoutTypeEachHeading);
+						
+						var layoutBorderDiv = document.createElement('div');
+						
+						for(var j = 0; j < basicBorderLayoutJSON[i].children.length; j++){
+							var image = document.createElement('img');
+							image.className = 'layoutBorderImage col-sm-4 img-responsive';
+							image.src = 
+				    window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/generic/ChartsBorderWidthImages/'+ basicBorderLayoutJSON[i].children[j].image;
+
+							image.id = basicBorderLayoutJSON[i].children[j].id;
+							image.setAttribute('type', basicBorderLayoutJSON[i].name.replace(/ /g, "_"));
+							image.setAttribute('basic_Border', basicBorderLayoutJSON[i].children[j].border);
+							layoutBorderDiv.appendChild(image);
+						}
+						
+						layoutTypeEachImage.appendChild(layoutBorderDiv);
+						
+						layoutDiv.appendChild(layoutTypeEachImage);
+					}
+					
+					$('#basicBorderLayout').append(layoutDiv);
+					
+					$('#'+adhocScripts.getVariable('basicLayoutSelected')).addClass('selected');
+				};
+				
+				//Create the basic mode template layout.
+				setBorderBasicLayout()
+				
+				//Add click event on layout template images
+				$('.layoutBorderImage').on('click', function(){
+					$('.layoutBorderImage').removeClass('selected');
+					var atId = $(this).attr("id");
+					$("#"+atId).toggleClass('selected');
+
+					adhocScripts.setVariable('basicLayoutSelected', $(this)[0].id);
+					adhocScripts.setVariable('basicLayoutSelectedType', $(this)[0].getAttribute('type'));
+					adhocScripts.setVariable("basicBorder",$(this)[0].getAttribute('basic_Border'));
+				});
+
+				(function() {
+					basicBorderLayoutJSON.map(function(val, ind, arr) {
+						val.children.map(function(v, i, arr2) {
+							if(arr2[i].border === adhocScripts.getVariable('basicBorder')) {
+								$("#"+arr2[i].id).addClass("selected");
+							}
+						});
+					});
+				})();
+
+				(function() {
+					basicTableLayoutJSON.map(function(val, ind, arr) {
+						val.children.map(function(v, i, arr2) {
+							if(arr2[i].border_style === adhocScripts.getVariable('basicBorderStyle')) {
+								$("#"+arr2[i].id).addClass("selected");
+							}
+						});
+					});
+				})();
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							HDIUI.removeColorPicker({
+								id:"background_input_color"
+								});
+						});
+					}
+				})(window);
+				spectrumFtn();
+				
+				</script>	
+		]]>
+	</uiSnippet>
+</customScript>

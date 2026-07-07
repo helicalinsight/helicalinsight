@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+    <location type="directory"/>
+    <!--<jsFunction name="validate" language="groovy"><![CDATA[
+        import net.sf.json.JSONObject;
+		import net.sf.json.JSONArray;
+        import org.apache.commons.codec.binary.Base64;
+
+        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+            if (requestJson.isEmpty() || !requestJson.has("columns")) {
+                return responseJson;
+            }
+			
+            columns = requestJson.getString("columns");
+            columnValue = new String(Base64.decodeBase64(columns));
+
+            if ("[]".equals(columnValue)) {
+                responseJson.accumulate("columns", "No columns are selected.");
+            }
+			JSONArray columns = JSONArray.fromObject(columnValue);
+			if(columns.size()==1){
+					JSONObject firstJsonObject =columns[0];
+					if(firstJsonObject."hidden"){
+						responseJson.accumulate("columns", "Please select atleast one unhidden column to generate report.");
+						return responseJson;
+					}
+				
+			}
+            return responseJson;
+        }
+        ]]></jsFunction>-->
+</formData>

@@ -1,0 +1,348 @@
+@import "../../styles/variables.scss";
+
+.hi-instant-bi {
+  height: 100% !important;
+  padding: 2px;
+
+  &--open-mode {
+    height: auto !important;
+    min-height: 100%;
+    overflow: visible !important;
+  }
+
+  .hi-instant-bi-header {
+    background-color: $hi-white;
+    height: 10%;
+  }
+
+  .hi-instant-bi-content {
+    height: 90%;
+  }
+
+  .no-metadata-container {
+    display: flex;
+    height: calc(100% - 20px);
+    justify-content: center;
+    align-items: center;
+
+    .no-metadata-title {
+      font-size: 10px;
+      font-weight: bold
+    }
+
+    .no-metadata-sub-title {
+      font-size: 10px;
+    }
+  }
+}
+
+.instant-bi-metadata-selected {
+  color: $hi-blue;
+}
+
+.instant-bi-tooltip-title {
+  font-size: 11px;
+}
+
+.hi-instant-bi-open-wrapper {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+.json-data-viewer {
+  width: 100%;
+  overflow-x: auto;
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  th,
+  td {
+    border: 1px solid #d9d9d9;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 10px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  th {
+    background: #fafafa;
+    font-weight: 600;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .ib-data-table {
+    width: 100%;
+
+    &__content {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 1px solid #d9d9d9;
+      padding: 6px 8px;
+      text-align: left;
+      font-size: 10px;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    th {
+      background: #fafafa;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+    }
+
+    &__pagination {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+      font-size: 10px;
+
+      .ant-pagination-item,
+      .ant-pagination-prev,
+      .ant-pagination-next,
+      .ant-pagination-jump-prev,
+      .ant-pagination-jump-next {
+        min-width: 24px;
+        height: 24px;
+        line-height: 22px;
+      }
+
+      .ant-pagination-item a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        padding: 0 4px !important;
+        font-size: 10px;
+        color: rgba(0, 0, 0, 0.85);
+      }
+
+      .ant-pagination-prev .ant-pagination-item-link,
+      .ant-pagination-next .ant-pagination-item-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+      }
+
+      .ant-pagination-options {
+        margin-left: 8px;
+      }
+
+      .ant-select-selector {
+        height: 24px !important;
+        font-size: 10px !important;
+        padding: 0 8px !important;
+      }
+
+      .ant-select-selection-item {
+        font-size: 10px !important;
+        line-height: 22px !important;
+      }
+    }
+  }
+
+  .ib-data-table__empty {
+    font-size: 10px;
+    color: rgba(0, 0, 0, 0.45);
+  }
+}
+
+// Inline chart preview pagination (VF-rendered charts only; not IB data tables)
+.chart-container .chart-wrapper--compact:not(.chart-wrapper--table) .ib-live-preview,
+.instant-bi-preview-content .ib-preview-area .ib-live-preview {
+  .ant-pagination-item a {
+    display: block;
+    padding: 10px 6px !important;
+    color: rgba(0, 0, 0, 0.85);
+    transition: none;
+  }
+}
+
+.ib-chart-preview-modal {
+  .ant-modal {
+    max-width: min(1400px, calc(100vw - 16px));
+    padding-bottom: 0;
+  }
+
+  .ant-modal-body {
+    max-height: calc(100vh - 110px);
+    overflow: hidden;
+    padding-bottom: 16px;
+  }
+
+  .chart-wrapper--modal {
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: 100%;
+    height: calc(100vh - 140px);
+    min-height: 320px;
+
+    .chart-wrapper__content {
+      width: 100%;
+      height: 100%;
+    }
+
+    &.chart-wrapper--table {
+      height: auto;
+      min-height: 0;
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: block;
+
+      .json-data-viewer {
+        max-height: none;
+        overflow: visible;
+      }
+    }
+
+    &.chart-wrapper--kpi {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .chart-wrapper__content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+      }
+
+      .ib-live-preview--kpi {
+        height: 100%;
+
+        > div {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          height: 100%;
+        }
+      }
+    }
+  }
+}
+
+.chart-wrapper--kpi .ib-live-preview--kpi {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+
+  .ant-card {
+    width: 100% !important;
+    height: auto !important;
+    border: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: transparent;
+
+    .ant-card-body {
+      width: 100%;
+      padding: 4px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ant-statistic {
+      width: 100%;
+      text-align: center;
+    }
+  }
+
+  .ant-statistic-title {
+    text-align: center;
+    color: rgba(0, 0, 0, 0.45) !important;
+    margin-bottom: 2px !important;
+  }
+
+  .ant-statistic-content,
+  .ant-statistic-content-value,
+  .ant-statistic-content-value-int,
+  .ant-statistic-content-value-decimal,
+  .ant-statistic-content-prefix,
+  .ant-statistic-content-suffix {
+    text-align: center;
+    font-weight: 700 !important;
+    color: rgba(0, 0, 0, 0.85) !important;
+  }
+}
+
+.chart-wrapper--compact {
+  .ib-live-preview--chart {
+    font-size: 10px;
+
+    .g2-legend,
+    .g2-legend-list,
+    .g2-legend-list-item,
+    .g2-legend-item-text,
+    .g2-slider-text,
+    .g2-slider-pagination-text {
+      font-size: 10px !important;
+    }
+  }
+
+  &.chart-wrapper--kpi .ib-live-preview--kpi {
+    height: auto;
+    min-height: 0;
+    padding: 8px 0;
+
+    > div {
+      height: auto;
+    }
+
+    .ant-statistic-title {
+      font-size: 10px !important;
+      line-height: 13px !important;
+    }
+
+    .ant-statistic-content,
+    .ant-statistic-content-value,
+    .ant-statistic-content-value-int,
+    .ant-statistic-content-value-decimal,
+    .ant-statistic-content-prefix,
+    .ant-statistic-content-suffix {
+      font-size: 10px !important;
+      line-height: 13px !important;
+    }
+  }
+}
+
+.ib-live-preview {
+  width: 100%;
+  height: 100%;
+
+  > div {
+    width: 100%;
+    height: 100%;
+  }
+}

@@ -1,0 +1,128 @@
+@import "../../../../styles/variables.scss";
+
+// .ant-drawer-body {
+//   padding: 5px 15px 15px 15px !important;
+//}
+
+.hi-important-info {
+  font-size: 11px;
+  font-weight: bold;
+}
+.hi-um-edit-drawer {
+  .ant-divider-horizontal.ant-divider-with-text {
+    margin: 10px;
+  }
+  .ant-drawer-body {
+    padding: 10px 0px 24px 24px !important;
+  }
+}
+
+.hi-user-management {
+  overflow: hidden;
+  padding: 1px 5px 1px 5px;
+  .hi-profile-table {
+    .ant-checkbox {
+      display: none;
+    }
+  }
+  // .hi-um-edit-all-scrolling-container {
+  //   height: "100%" !important;
+  //   overflow-y: "auto" !important;
+  //   overflow-x: "hidden" !important;
+  // }
+
+  .hi-um-table-container {
+    min-height: 40vh;
+  }
+  .hi-um-reload-btn {
+    padding: 10px;
+  }
+  .ant-card-body {
+    padding: 0px !important;
+  }
+  .hi-search-box {
+    width: 100% !important;
+  }
+  .hi-um-edit-icon {
+    opacity: 0;
+  }
+  .hi-text-container:hover {
+    .hi-um-edit-icon {
+      opacity: 1;
+    }
+  }
+
+  .hi-um-button {
+    width: 180px;
+  }
+  .hi-add-user-form {
+    .hi-um-add-org-button {
+      margin-top: 40px;
+    }
+  }
+  .hi-org-card {
+    border-right: 1px solid $hi-light-gray;
+    text-align: center;
+    .hi-icon {
+      padding: 20px;
+      font-size: 80px;
+    }
+    .hi-card-body {
+      padding: 5px;
+    }
+    .hi-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .hi-title-count {
+      font-weight: bolder;
+      font-size: 40px;
+    }
+  }
+  @media screen and (max-width: 991px) {
+    .hi-remove-right-border {
+      border: none;
+    }
+  }
+  .hi-user-card {
+    text-align: center;
+    .hi-icon {
+      padding: 20px;
+      font-size: 80px;
+    }
+    .hi-card-body {
+      padding: 5px;
+    }
+    .hi-title {
+      font-size: 20px;
+      font-weight: bold;
+    }
+    .hi-title-count {
+      font-weight: bolder;
+      font-size: 40px;
+    }
+  }
+  .hi-ellipses {
+    text-overflow: ellipsis;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    display: inline;
+  }
+  .hi-card {
+    padding: 10px;
+    overflow: hidden;
+    text-align: center;
+  }
+  .btn {
+    display: block;
+  }
+  .hide {
+    display: none;
+  }
+  .hi-drawer-menu {
+    position: fixed;
+    min-width: 100px;
+    padding: 10px;
+  }
+}

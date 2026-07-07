@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>card_js_widgetCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Widget Customization</name>
+    <group>Card</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Widget Customization</description>
+	  <icon>/images/scriptIcons/HIWidget.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var containerId = '#chart';
+			var widgetId = '#widget-value';
+		
+			
+			if(id != ''){
+				
+				containerId = containerId+'-'+id;
+			}
+			
+			var ftnObj = {};
+	
+			ftnObj['setWidgetCustomization'+id]= function(d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = widgetCustomization(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+			
+			ftnObj['extendWidgetCustomization'+id]= function(preExecution, d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = widgetCustomization(viz_Options);
+				
+			}
+	
+     /* function setWidgetCustomization(d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = widgetCustomization(viz_Options);
+				d.set("viz_Options",viz_Options);
+			}
+
+			function extendWidgetCustomization(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = widgetCustomization(viz_Options);
+			}
+			*/
+
+			function widgetCustomization(viz_Options){
+				viz_Options.chartOptions.title = ${title};
+				viz_Options.chartOptions.value = ${value};
+				viz_Options.chartOptions.layoutOption = '${layoutType}';
+				viz_Options.chartOptions.backgroundColor = '${backgroundColor}';
+				return viz_Options;
+			}
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setWidgetCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendWidgetCustomization'+id]);
+			}
+			
+			var ftnObj_values = {};
+			
+			ftnObj_values['setWidgetValue'+id]= function(){ 
+				
+				
+				
+				$(containerId + ' ' + widgetId).empty();   
+				
+				var column_name = hi_container._values.responseData.metadata[0][1].name;
+				var column_type = hi_container._values.responseData.metadata[0][1].type;
+				
+				if(column_type == 'numeric'){
+					var card_value = d3.format(",")(hi_container._values.responseData.data[0][column_name]);       
+				}
+				else{
+					var card_value = hi_container._values.responseData.data[0][column_name]; 
+				}	
+				
+				var preFix=${value}.prefix;
+				var suffix=${value}.suffix;
+				// var card_value = ${value}.text
+				
+				var Final_Value=preFix +' '+card_value+' '+ suffix;
+				
+				$(containerId + ' ' + widgetId).append(Final_Value);        
+				
+				
+			} 
+
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj_values['setWidgetValue'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj_values['setWidgetValue'+id]);
+			}
+
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="headingTop" name="layoutType" type="String"/>
+		<parameter value="rgba(255, 255, 255, 0)" name="backgroundColor" type="String"/>
+		<parameter value="{text:'', font:'Arial', size:16, color:'rgba(0, 0, 0, 1)', decoration:[] }" name="title" type="String"/>
+		<parameter value="{text:'', font:'Arial', size:22, color:'rgba(0, 0, 0, 1)', decoration:[], prefix:'', suffix:'' }" name="value" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+      <style>
+        /* Style the tab */
+        div.tab {
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* Style the buttons inside the tab */
+        div.tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 6px;
+            transition: 0.3s;
+            test-align: center;
+            font-size: 18px;
+            border-bottom: 1px solid #CCC;
+        }
+
+        /* Change background color of buttons on hover */
+        div.tab button:hover {
+            background-color: #ddd;
+        }
+
+        /* Create an active/current tablink class */
+        div.tab button.active {
+          color: blue;
+          border: 1px solid #CCC;
+          border-bottom: none;
+        }
+
+        /* Style the tab content */
+        .tabcontent {
+            display: none;
+            padding: 6px 12px;
+        }
+
+        .dummy{
+          height:38px;
+          border-bottom:1px solid #CCC;
+        }
+
+        /*Colour Picker alignment*/
+        .full-spectrum{
+          margin-left: 20px;
+          margin-top: -5px;
+        }
+
+        #genericCustomization{
+          padding-bottom: 20px;
+        }
+        .input-box{
+          padding-left:20px;
+        }
+
+        .each-line{
+          margin-bottom: 10px;
+        }
+
+        #label input, #label select, #value input, #value select{
+          margin-top: -6px;
+          margin-right: 20px;
+        }
+
+       #genericCustomization label, #label label, #value label{
+          margin-right: 10px;
+        }
+
+        .text-decoration img{
+          height: 40px;
+        }
+
+        .text-decoration{
+          margin-top: -10px;
+        }
+
+        .layout-type img{
+          margin-top: -6px;
+          height:40px;
+        }
+
+        .layout-type{
+          padding-right:20px;
+        }
+
+        .decoration_selected, .layout_selected{
+          background: #CCC;
+        }
+
+        #value_prefix, #value_text{
+          margin-right: 0px !important;
+        }
+
+        .prefix, .suffix{
+          width: 50px !important;
+          padding: 0px;
+          text-align: center;
+        }
+
+      </style>
+      <div id="genericCustomization" class="form-inline">
+        <div class="form-group">
+            <label class=''>Layout Type</label>
+            <span class="layout-type">
+            </span>
+        </div>
+        <div class="form-group">
+          <label for="background_color_selector" class='background_color_selector'>Background Color</label>
+		  <div id="background_color_selector"></div>
+          <!--<input type="text" class="form-control" id="background_color_selector" name="background_color_selector">-->
+        </div>
+
+      </div>
+      <div class="row">
+        <div class="tab">
+          <button id="labelButton" class="tablinks col-sm-2" onclick="openTab(event, 'label')">Label</button>
+          <button id="valueButton" class="tablinks col-sm-2" onclick="openTab(event, 'value')">Value</button>
+          <div class="col-sm-8 dummy"></div>
+        </div>
+
+        <div id="label" class="tabcontent">
+          <div class="form-inline each-line">
+            <div class="form-group">
+              <label for="title_text" class='title_text'>Title</label>
+              <input type="text" class="form-control" id="title_text" name="title_text" class="input-box" onchange="setVariable(this, 'text', 'title')">
+            </div>
+            <div class="form-group text-decoration label-text-decoration">
+
+            </div>
+          </div>
+          <div class="form-inline each-line">
+            <div class="form-group">
+              <label for="title_font_type" class='title_font_type_label'>Font Type</label>
+              <select type="text" class="form-control input-box select-box" id="title_font_type" name="title_font_type" onchange="setVariable(this, 'font', 'title')">
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="title_font_size" class='title_font_size_label'>Font Size</label>
+              <select type="text" class="form-control input-box select-box" id="title_font_size" name="title_font_size" onchange="setVariable(this, 'size', 'title')">
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="title_color_selector" class='title_color_selector'>Title Color</label>
+			  <div id="title_color_selector"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="value" class="tabcontent">
+        <div class="form-inline each-line">
+          <div class="form-group">
+            <label for="value_text" class='value_text'>Value</label>
+            <input type="text" class="form-control input-box prefix" id="value_prefix" name="value_prefix" placeholder='Prefix' onchange="setVariable(this, 'prefix', 'value')">
+            <input type="text" class="form-control input-box" id="value_text" name="value_text" disabled>
+            <input type="text" class="form-control input-box suffix" id="value_suffix" name="value_suffix" placeholder='Sufffix' onchange="setVariable(this, 'suffix', 'value')">
+          </div>
+          <div class="form-group text-decoration value-text-decoration">
+
+          </div>
+        </div>
+          <div class="form-inline each-line">
+            <div class="form-group">
+              <label for="value_font_type" class='value_font_type_label'>Font Type</label>
+              <select type="text" class="form-control input-box select-box" id="value_font_type" name="value_font_type" onchange="setVariable(this, 'font', 'value')">
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="value_font_size" class='value_font_size_label'>Font Size</label>
+              <select type="text" class="form-control input-box select-box" id="value_font_size" name="value_font_size" onchange="setVariable(this, 'size', 'value')">
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="value_color_selector" class='value_color_selector'>Value Color</label>
+			   <div id="value_color_selector"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+		  <script>
+				adhocScripts.resetAll();
+
+			/*	var spectrumScript = document.createElement("script");
+
+  			if(window.DashboardGlobals)
+  			 spectrumScript.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+  			else
+  			 spectrumScript.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+  			spectrumScript.async = false;
+  			document.getElementsByTagName("head")[0].appendChild(spectrumScript);
+
+  			spectrumScript.onload = function() {
+  			 generateCustomizationPanel();
+  			}
+
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+          link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";}
+				else{
+				 link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);		*/
+
+
+        /********************************************************************/
+        //Set global variable from parameter
+        adhocScripts.setVariable("backgroundColor",params.backgroundColor);
+        adhocScripts.setVariable("title",params.title);
+        adhocScripts.setVariable("value",params.value);
+        adhocScripts.setVariable("layoutType",params.layoutType);
+
+        var fontType = ['Arial', 'Arial Black', 'Comic Sans MS', 'Courier New', 'Garamond', 'Georgia', 'Helvetica Neue', 'Impact', 'Lucida Bright', 'Lucida Sans Unicode', 'Platino', 'Palatino Linotype', 'Tahoma', 'Times New Roman', 'Trebuchet MS', 'Verdana'];
+
+        function generateCustomizationPanel(){
+          spectrumFtn('background_color_selector', 'backgroundColor');
+         //  $("#background_color_selector").spectrum("set", adhocScripts.getVariable("backgroundColor"));
+
+         /* openTab(event, 'label');
+          $('#labelButton').addClass("active");*/
+		  $('#labelButton').click();
+
+          generateLayoutType('layout-type', 'layoutType');
+
+          $('#value_prefix').val(adhocScripts.getVariable('value').prefix);
+          $('#value_suffix').val(adhocScripts.getVariable('value').suffix);
+
+          /************Label Tab UI*************/
+          generateTextDecoration('label-text-decoration', 'title');
+
+          generateFontTypeSelector('title_font_type', 'title');
+          generateFontSizeSelector('title_font_size', 'title');
+
+          spectrumFtn('title_color_selector', 'title');
+       //   $("#title_color_selector").spectrum("set", adhocScripts.getVariable("title").color);
+          setText('widget-title', 'title_text', 'title');
+
+          /************Value Tab UI*************/
+          generateTextDecoration('value-text-decoration', 'value');
+
+          generateFontTypeSelector('value_font_type', 'value');
+          generateFontSizeSelector('value_font_size', 'value');
+
+          spectrumFtn('value_color_selector', 'value');
+      //    $("#value_color_selector").spectrum("set", adhocScripts.getVariable("value").color);
+          setText('widget-value', 'value_text', 'value');
+        }
+		
+		 generateCustomizationPanel();
+
+        function setVariable(d, key, variable){
+            var x = adhocScripts.getVariable(variable);
+            var str = d.value;
+            if(str.indexOf('$') !== -1){
+              str = str.replace(/\$/g, '&#36;');
+            }
+            x[key] = str;
+            adhocScripts.setVariable(variable, x);
+        }
+
+        function generateFontTypeSelector(id, variable){
+          var obj = adhocScripts.getVariable(variable);
+          for(var i = 0; i < fontType.length; i++){
+            var option = document.createElement('option');
+            option.value = fontType[i];
+            option.innerHTML = fontType[i];
+            if(fontType[i] == obj.font){
+              option.selected = 'selected';
+            }
+
+             // $('#'+id).append(option);
+			 document.getElementById(id).appendChild(option);
+          }
+        }
+
+        function generateFontSizeSelector(id, variable){
+          var obj = adhocScripts.getVariable(variable);
+          for(var i = 10; i < 30; i++){
+            var option = document.createElement('option');
+            option.value = i;
+            option.innerHTML = i;
+            if(i == obj.size){
+              option.selected = 'selected';
+            }
+             // $('#'+id).append(option);
+				document.getElementById(id).appendChild(option);             
+			 i++;
+          }
+        }
+
+        function setText(src, tgt, variable){
+			if( window.frames[0].document.querySelectorAll('#'+src)[0]){
+				var existingText = window.frames[0].document.querySelectorAll('#'+src)[0].innerHTML;
+				var x = adhocScripts.getVariable(variable);
+				if(x.text == ''){
+					$('#'+tgt).val(existingText);
+					x.text = existingText;
+					adhocScripts.setVariable(variable, x);
+				} else {
+					var str = x.text;
+					if(str.indexOf('&#36;') !== -1){
+					  str = str.replace(/&#36;/g, '$');
+					}
+					$('#'+tgt).val(str);
+				}	
+			}
+        }
+
+        function generateTextDecoration(className, variable){
+          var classArr = document.getElementsByClassName(className);
+          var decorationArr = ['bold', 'italic', 'underline'];
+          for(var i = 0; i < classArr.length; i++){
+            for(var j = 0; j < decorationArr.length; j++){
+              var img = document.createElement('img');
+              img.src = window.baseUrl+'images/scriptIcons/WidgetIcons/'+decorationArr[j]+'.png';
+              img.alt = decorationArr[j];
+              var x = adhocScripts.getVariable(variable);
+              if(x.decoration.indexOf(decorationArr[j]) > -1){
+                img.className = 'decoration_selected';
+              }
+              img.onclick = function(d){
+                if($(this).hasClass('decoration_selected')){
+                  $(this).removeClass('decoration_selected');
+                  var index = x.decoration.indexOf(d.target.alt);
+                  if (index > -1) {
+                      x.decoration.splice(index, 1);
+                  }
+                  adhocScripts.setVariable(variable, x);
+                } else {
+                  $(this).addClass('decoration_selected');
+                  x.decoration.push(d.target.alt);
+                  adhocScripts.setVariable(variable, x);
+                }
+              }
+              //classArr[i].append(img);
+			   classArr[i].appendChild(img);
+            }
+          }
+        }
+
+        function generateLayoutType(className, variable){
+          var classArr = document.getElementsByClassName(className);
+          var layoutArr = ['headingTop', 'headingBottom', 'headingLeft', 'headingRight'];
+          for(var i = 0; i < classArr.length; i++){
+            for(var j = 0; j < layoutArr.length; j++){
+              var img = document.createElement('img');
+              img.src = window.baseUrl+'images/scriptIcons/WidgetIcons/'+layoutArr[j]+'.png';
+              img.alt = layoutArr[j];
+              var x = adhocScripts.getVariable(variable);
+              if(x == layoutArr[j]){
+                img.className = 'layout_selected';
+              }
+              img.onclick = function(d){
+                $('.layout_selected').removeClass('layout_selected');
+                $(this).addClass('layout_selected');
+                adhocScripts.setVariable(variable, d.target.alt);
+              }
+              //classArr[i].append(img);
+			  classArr[i].appendChild(img);
+            }
+          }
+        }
+
+        function spectrumFtn(id, variable){
+			var passedColor = adhocScripts.getVariable(variable);
+			if(typeof passedColor === 'object'){
+				passedColor = passedColor.color;
+			};
+			
+			HDIUI.renderColorPicker({
+					id:id,
+					color: passedColor,
+					change:function(color){
+							var rgbaColor = 'rgba('+color.color.r+','+color.color.g+','+color.color.b+','+color.color.a+')';
+							if(variable == 'backgroundColor')
+							  adhocScripts.setVariable(variable, rgbaColor);
+							else{
+							  var x = adhocScripts.getVariable(variable);
+							  x.color = rgbaColor
+							  adhocScripts.setVariable(variable, x);
+							}
+						// adhocScripts.setVariable("background",color['hexCode']);					
+					}
+				});		
+			
+			
+	        /* $("#"+id).spectrum({
+              className: "full-spectrum",
+              showInitial: true,
+              showPalette: true,
+              showSelectionPalette: true,
+              showPaletteOnly: true,
+              togglePaletteOnly: true,
+              togglePaletteMoreText: 'more',
+              togglePaletteLessText: 'less',
+              hideAfterPaletteSelect: true,
+              maxSelectionSize: 10,
+              preferredFormat: "hex",
+              localStorageKey: "spectrum.HIColorPallete",
+              move: function (color) {
+
+              },
+              show: function () {
+              },
+              beforeShow: function (color) {
+
+              },
+              hide: function () {
+
+              },
+			        change: function(color) {
+                if(variable == 'backgroundColor')
+                  adhocScripts.setVariable(variable, color.toHexString());
+                else{
+                  var x = adhocScripts.getVariable(variable);
+                  x.color = color.toHexString()
+                  adhocScripts.setVariable(variable, x);
+                }
+
+							},
+						  palette: [
+  							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+  							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+  							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+  							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+  							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+			        ]
+		        });		*/
+          }
+
+          function openTab(evt, tabName) {
+            // Declare all variables
+            var i, tabcontent, tablinks;
+
+            // Get all elements with class="tabcontent" and hide them
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Get all elements with class="tablinks" and remove the class "active"
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the current tab, and add an "active" class to the button that opened the tab
+            document.getElementById(tabName).style.display = "block";
+			$(evt.target).addClass("active");
+			//document.getElementById(tabName+"Button").className  += " active";
+            //evt.currentTarget.className += " active";
+        }
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

@@ -1,0 +1,23 @@
+.hi-instant-bi-info-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 8px;
+    background-color: #f9f9f9;
+    // font-weight: 600;
+    font-size: 12px;
+    border-bottom: 1px solid #ebebeb;
+
+    .hi-ib-close {
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    &:hover {
+        .hi-ib-close {
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "version": 3,
+    "mappings": "AACA,AAAA,sBAAsB,CAAA;EAClB,MAAM,EAAC,iBAAiB;EACxB,gBAAgB,EAAC,IAAI;CAOxB;;AATD,AAGI,sBAHkB,CAGlB,mBAAmB,CAAA;EACf,KAAK,EAAE,IAAI;CACd;;AALL,AAMI,sBANkB,CAMlB,aAAa,CAAA;EACT,KAAK,EAAE,iBAAiB;CAC3B",
+    "sources": [
+        "metadata.scss"
+    ],
+    "names": [],
+    "file": "metadata.css"
+}

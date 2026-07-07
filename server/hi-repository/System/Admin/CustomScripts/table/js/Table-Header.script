@@ -1,0 +1,1304 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_Table-Header</scriptId>
+    <scriptType>js</scriptType>
+    <name>Table Header</name>
+    <group>Table</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Table HeaderProperties</description>
+    <icon>/images/scriptIcons/Table_Header.png</icon>
+    <parameters>
+		<parameter value="[]" name="columnNames" type="String"/>
+		<parameter value="[]" name="basicProperties" type="String"/>
+		<parameter value="[]" name="PreffixValue" type="String"/>
+		<parameter value="[]" name="SuffixValue" type="String"/>
+		<parameter value="[]" name="DateTimeFormatFlag" type="String"/>
+		<parameter value="[]" name="OriginalFormatValue" type="String"/>
+		<parameter value="[]" name="ModifiedFormatValue" type="String"/>
+		<parameter value="[]" name="FontSizeValue" type="String"/>
+		<parameter value="[]" name="TextColorValue" type="String"/>
+		<parameter value="[]" name="NullValue" type="String"/>
+		<parameter value="[]" name="TextAlignValue" type="String"/>
+		<parameter value="[]" name="BoldValue" type="String"/>
+		<parameter value="[]" name="ItalicValue" type="String"/>
+		<parameter value="[]" name="UnderlineValue" type="String"/>
+		<parameter value="[]" name="BackgroundColorValue" type="String"/>
+		<parameter value="[]" name="ThousandSeparatorFlag" type="String"/>
+		<parameter value="false" name="switch1" type="Boolean"/>
+		<parameter value="false" name="flag1" type="Boolean"/>
+		<parameter value="Default" name="TableStyleNo" type="String"/>
+	</parameters>
+	<snippet>
+		<![CDATA[
+		
+		
+		
+		
+			var id = hi_container.get("renderId");
+			
+			var containerId = "#main";
+
+			if(id != "")
+				containerId = containerId+'-'+id;
+			
+			var tableName = containerId+' .table';
+			var thTable = containerId+' .table thead th>a>span';
+			var tdTable = containerId+' .table tbody tr>td';
+			var thead = containerId+' .table thead';
+			var tbody = containerId+' .table tbody';
+			var tableViz = containerId+' .table-viz';
+			var tableThead = containerId+' .table thead th';
+			var tableTbody = containerId+' .table tbody tr';
+			var tbodyEven = containerId+' .table tbody tr td:nth-child(even)';
+			var tbodyOdd = containerId+' .table tbody tr td:nth-child(odd)';
+			var theadEven = containerId+' .table thead tr th:nth-child(even)';
+			var theadEvenSpan = containerId+' .table thead tr th:nth-child(even)>a>span';
+			var theadOdd = containerId+' .table thead tr th:nth-child(odd)';
+			var theadOddSpan = containerId+' .table thead tr th:nth-child(odd)>a>span';
+			
+			var ftnObj = {};
+			
+			ftnObj['RenderTableFormat'+id]= function(){
+			
+				//loading d3.js thousand separator and date time formatting
+				var script1 = document.createElement("script"),
+						script1loaded = false;
+						
+				if(window.DashboardGlobals)
+					script1.src= window.DashboardGlobals.baseUrl+"/js/vendors/d3.js";
+				else
+					script1.src= "/js/vendors/d3.js"; 
+				   
+				script1.async = true;
+
+				document.getElementsByTagName("head")[0].appendChild(script1);
+
+				script1.onload = function() {
+					var table = document.querySelectorAll(tableViz);
+					[].forEach.call(table, NumberFormat);
+					
+				}
+			}
+			
+			function NumberFormat(table) {
+				//Taking all parameters in variables
+				var column_index=[],
+					column_name=${columnNames},
+					tableStyleNo='${TableStyleNo}',
+					basicProperties=${basicProperties},
+					switch1=${switch1},
+					fontSizeValue=${FontSizeValue},
+					textColorValue=${TextColorValue},
+					backgroundColorValue=${BackgroundColorValue},
+					boldValue=${BoldValue},
+					italicValue=${ItalicValue},
+					underlineValue=${UnderlineValue},
+					textAlignValue=${TextAlignValue},
+					Preffixes=${PreffixValue},
+					Suffixes=${SuffixValue},
+					thousandSeparatorFlag=${ThousandSeparatorFlag},
+					nullValue=${NullValue},
+					dateTimeFormatFlag=${DateTimeFormatFlag},
+					originalFormatValue=${OriginalFormatValue},
+					modifiedFormatValue=${ModifiedFormatValue};
+				//var defaultFormatValue="%Y,%m,%d,%H,%M,%S,%L";		
+
+				//Applying table layout properties to table according to the layout selected
+				$(tableName).removeClass('table-striped');
+				
+				if(!${switch1}){
+					$(thTable).css({"font-size":basicProperties[4]+'px'});
+					$(tableThead).css({"font-size":basicProperties[4]+'px'});
+					$(tdTable).css({"font-size":basicProperties[4]+'px'});
+					setBasicColors();
+					return;
+				}
+				
+				//$(tableName).css({"font-size":basicProperties[4]});
+				
+				function setBasicColors(){
+					var tableStyle=tableStyleNo.split("_")[0];
+					if(tableStyle=="Default" || tableStyle=="TableStyle0") {
+						$(thTable).css({"color":basicProperties[0]});
+						$(tableThead).css({"color":basicProperties[0]});
+						$(thead).css("background-color",basicProperties[1]);
+						$(tdTable).css({"color":basicProperties[2]});
+						$(tbody).css("background-color", basicProperties[3]);
+					} else if(tableStyle=="FirstRow") {
+						$(thTable).css({"color":basicProperties[0]});
+						$(tableThead).css({"color":basicProperties[0]});
+						$(thead).css("background-color",basicProperties[1]);
+						$(tdTable).css({"color":basicProperties[2]});
+						$(tbody).css("background-color", basicProperties[3]);
+
+						$(tableThead).hover(function(){
+								var cells=$(this).context.childNodes[0].childNodes[0];
+								$(cells).css({"color":"#000000"});
+							}, function(){
+								var cells=$(this).context.childNodes[0].childNodes[0];
+								$(cells).css({"color":basicProperties[0]});
+							});
+
+						$(tableTbody).hover(function(){
+								var cells=$(this).context.childNodes;
+								$(cells).css({"color":"#000000"});
+							}, function(){
+								var cells=$(this).context.childNodes;
+								$(cells).css({"color":basicProperties[2]});
+							});
+					} else if(tableStyle=="FirstColumn") {
+						$(thead+' tr th:not(:nth-child(1))>a>span').css({"color":basicProperties[2]});
+						$(thead+' tr th:not(:nth-child(1))').css({"background-color":basicProperties[3]});
+						$(tbody+' tr td:not(:nth-child(1))').css({"background-color":basicProperties[3],"color":basicProperties[2]});
+						$(thead+' tr th:nth-child(1)>a>span').css({color:basicProperties[0]});
+						$(thead+' tr th:nth-child(1)').css({'background':basicProperties[1]});
+						$(tbody+' tr td:nth-child(1)').css({'background': basicProperties[1],"color":basicProperties[0]});
+					} else if(tableStyle=="BandedColumn") {
+						$(theadEvenSpan).css({color:basicProperties[0]});
+						$(theadEven).css({color:basicProperties[0]});
+						$(theadOddSpan).css({color:basicProperties[2]});
+						$(theadOdd).css({color:basicProperties[2]});
+						$(theadEven).css({'background': basicProperties[1]});
+						$(theadOdd).css({'background': basicProperties[3]});
+						$(tbodyEven).css({color:basicProperties[0],'background': basicProperties[1]});
+						$(tbodyOdd).css({color:basicProperties[2],'background': basicProperties[3]});
+					} else if(tableStyle=="FirstRowFirstColumn") {
+						$(thTable).css({"color":basicProperties[0]});
+						$(tableThead).css({"color":basicProperties[0]});
+						$(thead).css("background-color",basicProperties[1]);
+						$(tbody+' tr td:not(:nth-child(1))').css({"background-color":basicProperties[3],"color":basicProperties[2]});
+						$(tbody+' tr td:nth-child(1)').css({'background': basicProperties[1],"color":basicProperties[0]});
+						
+						$(tableThead).hover(function(){
+							var cells=$(this).context.childNodes[0].childNodes[0];
+							$(cells).css({"color":"#000000"});
+						}, function(){
+							var cells=$(this).context.childNodes[0].childNodes[0];
+							$(cells).css({"color":basicProperties[0]});
+						});
+					}
+				}
+				/**************************End of basic**************************************/
+				
+				setBasicColors();
+				
+				$(thTable).css({"margin-right":"0px"});
+					
+				//Now accessing each cell of the table to apply the properties to each cell indvidually	
+				[].forEach.call(table.rows, function(row, i){
+					//Collecting the column indexes of each column in the table
+					jQuery.each(row.cells, function() {
+						for(var j=0;j<column_name.length;j++)
+						{
+							if(i == 0 && this.textContent == column_name[j])
+								column_index.push(this.cellIndex);
+						}
+					});
+					
+					//Accessing each cell and giving it the alignment property, which is compulsory
+					for(k=0;k<column_index.length;k++)
+					{
+						var cell = row.cells[column_index[k]];
+						if(cell.nodeName == 'TH') {
+							
+							$(cell).css({"text-align":textAlignValue[k]});
+						
+							//Apply the basic properties to the cells, as enabled by user
+							$(cell).css({"font-size":fontSizeValue[k]+'px',"font-weight":boldValue[k],"font-style":italicValue[k],"text-decoration":underlineValue[k]});
+							
+						}
+							
+					}
+			
+					
+				});
+			}
+
+			
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['RenderTableFormat'+id]);
+			}	
+			else{
+				hi_container.extend("postExecution", ftnObj['RenderTableFormat'+id]);
+			}
+			
+		]]>
+	</snippet>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+			
+				.style-initialDisplay{
+					text-align:center;
+				}
+								
+				.style-Btns{
+					padding: 5px 9px;
+					margin-right: 15px;
+				}
+				
+				.style-addBackgroundComparison{
+					width:33px;
+					margin-left:5px;
+					font-weight:bold;
+					font-size:15px;
+					line-height:7.5px;
+				}
+				
+				.extendMargins10 {
+					margin-top: 10px;
+					margin-bottom: 10px;
+				}
+
+				.imageStyles {
+					padding-left:0px;
+					padding-right:0px;
+					width:80px;
+					margin-left:2em;
+					cursor:pointer;
+				}
+
+				.tableStyles {
+					<!-- box-shadow: 5px 5px 5px #dadada; -->
+					padding-top:1em;
+					padding-bottom:1em;
+					padding-left:1em;
+					padding-right:1em;
+					margin-bottom:1em;
+				}
+
+				.ExtraFormats {
+					border-top: 1px solid #ccc;
+					border-bottom: 1px solid #ccc;
+					margin: 15px 0;
+				}
+
+				.marginBelow {
+					margin-bottom: 8px;
+				}
+
+				.style-htWdth {
+					cursor: pointer;
+				}
+				#switch{
+					display : none;
+				}
+				.bootgrid-table th>.column-header-anchor.sortable {
+					cursor: pointer;
+					display: block !important;
+				}
+				
+				
+			</style>
+			
+			<div class="row" align="center">
+				<div class="switch">
+					<label class="col-sm-16">Apply Properties</label>
+					<div class="col-sm-4 switch" id="switch">
+						<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick="switchToggle()"/>
+						<label for="cmn-toggle-1"></label>
+					</div>
+					
+				</div>
+			</div>
+			<hr class="extendMargins10">
+			<div id="details" style="height: 350px;"></div>
+
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("flag1",params.flag1);
+				
+				var switch1="true";
+				
+				var columnNames=[],
+					columnType=[];
+				
+				var basicProperties=[];
+				basicProperties[0]="";		//Heading color
+				basicProperties[1]="";		//Heading background
+				basicProperties[2]="";		//Body color
+				basicProperties[3]="";		//Body background
+				basicProperties[4]="11";	//Font Size
+				
+				var TableStyleNo="TableStyle0";
+				
+				var BoldValue=[],
+					ItalicValue=[],
+					UnderlineValue=[],
+					TextAlignValue=[],
+					FontSizeValue=[],
+					TextColorValue=[],
+					BackgroundColorValue,
+					text = '{"background":[]}';
+
+				BackgroundColorValue = JSON.parse(text);
+				
+				var PreffixValue=[],
+					SuffixValue=[],
+					NullValue=[],
+					ThousandSeparatorFlag=[];
+				
+				var DateTimeFormatFlag=[],
+					OriginalFormatValue=[],
+					ModifiedFormatValue=[];
+			
+				var basicLeftFlag=0,
+					basicCenterFlag=0,
+					basicRightFlag=0;
+
+				var boldFlag=[],
+					italicFlag=[],
+					underlineFlag=[],
+					leftAlignFlag=[],
+					centerAlignFlag=[],
+					rightAlignFlag=[];
+				
+				var disp_icons=0;
+						
+				var display_basic="false",
+					display_extra="false",
+					display_ComparisonColor=[],
+					display_ComparisonIcons=[],
+					display_ComparisonDataBars=[];
+									
+				//getting the column name and its type to display it in the UI
+				for(var j=1;j<=Object.keys(window.frames[0].__hi_result.metadata[0]).length;j++)
+				{
+					var colNam=window.frames[0].__hi_result.metadata[0][j]['name'];
+					columnNames.push(colNam);
+					columnType.push(window.frames[0].__hi_result.metadata[0][j]['type']);
+				}
+					
+				//setting the 'columnNames' parameter with the column names taken in the above code 
+				adhocScripts.setVariable("columnNames",columnNames);
+				
+				columnNames=adhocScripts.getVariable("columnNames");
+				
+				//setting default values for each parameter
+				for(var i=0;i<columnNames.length;i++)
+				{
+					FontSizeValue[i]="11";
+					TextColorValue[i]="Black";
+					
+					BoldValue[i]="normal";
+					ItalicValue[i]="normal";
+					UnderlineValue[i]="normal";
+					
+					if(columnType[i]=="numeric")
+					{
+						TextAlignValue[i]="right";
+						
+						//calcutaing average of the columns having type 'numeric', for comparison purpose 
+						var dat=[];
+						var sum=0;
+						for(var n=0;n<window.frames[0].__hi_result.data.length;n++)
+						{
+							var col="window.frames[0].__hi_result.data[n]['"+columnNames[i]+"']";
+							dat.push(parseInt(eval(col)));
+							sum=sum+eval(col);
+						}
+						var max_dat=Math . max. apply(null,dat);
+						var avg=parseInt(sum/window.frames[0].__hi_result.data.length);
+					}	
+					else
+					{
+						TextAlignValue[i]="left";
+						var avg=0;
+						var max_dat="";
+					}
+					BackgroundColorValue.background.push({"column":columnNames[i],"max_val":max_dat,"value":avg,"color":"","image":"","databar":""});
+					
+					PreffixValue[i]="";
+					SuffixValue[i]="";
+					NullValue[i]="NULL";
+					ThousandSeparatorFlag[i]="false";
+									
+					DateTimeFormatFlag[i]="false";
+					OriginalFormatValue[i]="";
+					ModifiedFormatValue[i]="";
+					
+					boldFlag[i]="0";
+					italicFlag[i]="0";
+					underlineFlag[i]="0";
+					leftAlignFlag[i]="0";
+					centerAlignFlag[i]="0";
+					rightAlignFlag[i]="0";
+	
+					display_ComparisonColor[i]="false";
+					display_ComparisonIcons[i]="false";
+					display_ComparisonDataBars[i]="false";
+				}
+
+				//if the UI is opened/displayed for first time, then set the parameters with default values
+				//else set the parameters with previously stored values
+				if(adhocScripts.getVariable("flag1")=="false")
+				{
+					adhocScripts.setVariable("switch1",switch1);
+					adhocScripts.setVariable("basicProperties",basicProperties);
+					adhocScripts.setVariable("TableStyleNo",TableStyleNo);
+					
+					adhocScripts.setVariable("FontSizeValue",FontSizeValue);
+					adhocScripts.setVariable("TextColorValue",TextColorValue);
+					adhocScripts.setVariable("BoldValue",BoldValue);
+					adhocScripts.setVariable("ItalicValue",ItalicValue);
+					adhocScripts.setVariable("UnderlineValue",UnderlineValue);
+					adhocScripts.setVariable("TextAlignValue",TextAlignValue);
+					
+					adhocScripts.setVariable("BackgroundColorValue",BackgroundColorValue);
+					
+					adhocScripts.setVariable("PreffixValue",PreffixValue);
+					adhocScripts.setVariable("SuffixValue",SuffixValue);
+					adhocScripts.setVariable("ThousandSeparatorFlag",ThousandSeparatorFlag);
+					adhocScripts.setVariable("NullValue",NullValue);
+					
+					adhocScripts.setVariable("DateTimeFormatFlag",DateTimeFormatFlag);
+					adhocScripts.setVariable("OriginalFormatValue",OriginalFormatValue);
+					adhocScripts.setVariable("ModifiedFormatValue",ModifiedFormatValue);
+					
+					adhocScripts.setVariable("flag1","true");
+				}
+                else
+				{
+					adhocScripts.setVariable("switch1",params.switch1);
+					adhocScripts.setVariable("basicProperties",params.basicProperties);
+					adhocScripts.setVariable("TableStyleNo",params.TableStyleNo);
+				
+					adhocScripts.setVariable("FontSizeValue",params.FontSizeValue);
+					adhocScripts.setVariable("TextColorValue",params.TextColorValue);
+					adhocScripts.setVariable("BoldValue",params.BoldValue);
+					adhocScripts.setVariable("ItalicValue",params.ItalicValue);
+					adhocScripts.setVariable("UnderlineValue",params.UnderlineValue);
+					adhocScripts.setVariable("TextAlignValue",params.TextAlignValue);
+					
+					adhocScripts.setVariable("BackgroundColorValue",params.BackgroundColorValue);
+					
+					adhocScripts.setVariable("PreffixValue",params.PreffixValue);
+					adhocScripts.setVariable("SuffixValue",params.SuffixValue);
+					adhocScripts.setVariable("ThousandSeparatorFlag",params.ThousandSeparatorFlag);
+					adhocScripts.setVariable("NullValue",params.NullValue);
+					
+					adhocScripts.setVariable("DateTimeFormatFlag",params.DateTimeFormatFlag);
+					adhocScripts.setVariable("OriginalFormatValue",params.OriginalFormatValue);
+					adhocScripts.setVariable("ModifiedFormatValue",params.ModifiedFormatValue);
+				}				
+				
+				//function to display basic options
+				function BasicDropdowns()
+				{	
+					$("#details").append('<div class="BasicFormats container-fluid">'+
+										'		<div class="form-horizontal">'+
+										'			<div class="form-group">'+
+										'				<label class="col-sm-3 control-label" for="basicFontSize">Font Size</label>'+
+										'					<div class="col-sm-2">'+
+										'						<select id="basicFontSize" class="col-sm-2 form-control" onchange="setBasicFontSize(this)">'+
+										'			  				<option value="11">11</option>'+
+										'			  				<option value="12">12</option>'+
+										'			  				<option value="13">13</option>'+
+										'			  				<option value="14">14</option>'+
+										'			  				<option value="15">15</option>'+
+										'						</select>'+
+										'					</div>'+
+										'			</div>'+
+										'		</div>'+
+										'	<div id="display_tableformats" class="row">'+
+										'		<h5>Default</h5><hr class="extendMargins10">'+
+										'			<img id="Default" class="col-sm-3 imageStyles img-responsive extendMargins10" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle0.jpg" alt="Smiley face" name="#000000_#ffffff_#000000_#ffffff" onclick="setTableFormat(this)"/>'+
+										'	</div>'+
+										'	<div class="row">'+
+										'		<h5>First Row</h5><hr class="extendMargins10">'+
+										'			<img id="FirstRow_4" class="col-sm-3 image imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle4.jpg" alt="Smiley face" name="#ffffff_#5b9bd5_#000000_#ffffff" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRow_5" class="col-sm-3 imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle5.jpg" alt="Smiley face" name="#ffffff_#ed7d31_#000000_#ffffff" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRow_6" class="col-sm-3 imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle6.jpg" alt="Smiley face" name="#ffffff_#a5a5a5_#000000_#ffffff" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRow_1" class="col-sm-3 imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle1.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#70ad47" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRow_2" class="col-sm-3 imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle2.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#ffc000" onclick="setTableFormat(this)"/>'+
+										'			<div class="clearfix"></div>'+
+										'			<img id="FirstRow_3" class="col-sm-3 imageStyles extendMargins10" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/TableStyle3.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#4472c4" onclick="setTableFormat(this)"/>'+
+										'	</div>'+
+										'		<div class="row">'+
+										'			<h5>First Column</h5><hr class="extendMargins10">'+
+										'			<img id="FirstColumn_1" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn1.jpg" alt="Smiley face" name="#ffffff_#5b9bd5_#000000_#ddebf7" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstColumn_2" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn2.jpg" alt="Smiley face" name="#ffffff_#ed7d31_#000000_#fce4d6" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstColumn_3" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn3.jpg" alt="Smiley face" name="#ffffff_#a5a5a5_#000000_#ededed" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstColumn_4" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn4.jpg" alt="Smiley face" name="#ffffff_#2f75b5_#ffffff_#5b9bd5" style="padding-left:0px;padding-right:0px;width:80px;margin-left:2em;cursor:pointer;" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstColumn_5" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn5.jpg" alt="Smiley face" name="#ffffff_#c65911_#ffffff_#ed7d31" onclick="setTableFormat(this)"/>'+
+										'			<div class="clearfix"></div>'+
+										'			<img id="FirstColumn_6" class="col-sm-3 img-responsive imageStyles extendMargins10" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstColumn6.jpg" alt="Smiley face" name="#ffffff_#7b7b7b_#ffffff_#a5a5a5" onclick="setTableFormat(this)"/>'+
+										'		</div>'+
+										'		<div class="row">'+
+										'			<h5>Banded Column</h5><hr class="extendMargins10">'+
+										'			<img id="BandedColumn_1" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn1.jpg" alt="Smiley face" name="#000000_#bdd7ee_#000000_#ddebf7" onclick="setTableFormat(this)"/>'+
+										'			<img id="BandedColumn_2" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn2.jpg" alt="Smiley face" name="#000000_#f8cbad_#000000_#fce4d6" onclick="setTableFormat(this)"/>'+
+										'			<img id="BandedColumn_3" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn3.jpg" alt="Smiley face" name="#000000_#dbdbdb_#000000_#ededed" onclick="setTableFormat(this)"/>'+
+										'			<img id="BandedColumn_4" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn4.jpg" alt="Smiley face" name="#ffffff_#2f75b5_#ffffff_#5b9bd5" onclick="setTableFormat(this)"/>'+
+										'			<img id="BandedColumn_5" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn5.jpg" alt="Smiley face" name="#ffffff_#c65911_#ffffff_#ed7d31" onclick="setTableFormat(this)"/>'+
+										'			<div class="clearfix"></div>'+
+										'			<img id="BandedColumn_6" class="col-sm-3 img-responsive imageStyles extendMargins10" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BandedColumn6.jpg" alt="Smiley face" name="#ffffff_#7b7b7b_#ffffff_#a5a5a5" onclick="setTableFormat(this)"/>'+
+										'		</div>'+
+										'		<div class="row">'+
+										'			<h5>First Row and First Column</h5><hr class="extendMargins10">'+
+										'			<img id="FirstRowFirstColumn_1" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn1.jpg" alt="Smiley face" name="#ffffff_#000000_#000000_#d9d9d9" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRowFirstColumn_2" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn2.jpg" alt="Smiley face" name="#ffffff_#5b9bd5_#000000_#ddebf7" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRowFirstColumn_3" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn3.jpg" alt="Smiley face" name="#ffffff_#ed7d31_#000000_#fce4d6" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRowFirstColumn_4" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn4.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#737373" onclick="setTableFormat(this)"/>'+
+										'			<img id="FirstRowFirstColumn_5" class="col-sm-3 img-responsive imageStyles" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn5.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#5b9bd5" onclick="setTableFormat(this)"/>'+
+										'			<div class="clearfix"></div>'+
+										'			<img id="FirstRowFirstColumn_6" class="col-sm-3 img-responsive imageStyles extendMargins10" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/FirstRowFirstColumn6.jpg" alt="Smiley face" name="#ffffff_#000000_#ffffff_#ed7d31" onclick="setTableFormat(this)"/>'+
+										'		</div>'+
+										'</div>');
+								
+					basicProperties=adhocScripts.getVariable("basicProperties");
+					TableStyleNo=adhocScripts.getVariable("TableStyleNo");
+					$("#basicFontSize").val(basicProperties[4]);
+
+					$(".image").css("box-shadow","5px 5px 5px gray");
+					$("#"+TableStyleNo).css("box-shadow","5px 5px 5px black");
+				};
+				
+				//function to set font size for complete table 
+				function setBasicFontSize(event)
+				{
+					basicProperties=adhocScripts.getVariable("basicProperties");
+					basicProperties[4]=event.value;
+					adhocScripts.setVariable("basicProperties",basicProperties);
+				};
+				
+				
+				
+				//function to set table layout format style values
+				function setTableFormat(event)
+				{
+					var tableStyleId=event.id;
+					var hd_clr=event.name.split("_")[0];
+					var hd_backgrnd=event.name.split("_")[1];
+					var bd_clr=event.name.split("_")[2];
+					var bd_backgrnd=event.name.split("_")[3];
+					basicProperties=adhocScripts.getVariable("basicProperties");
+					basicProperties[0]=hd_clr;
+					basicProperties[1]=hd_backgrnd;
+					basicProperties[2]=bd_clr;
+					basicProperties[3]=bd_backgrnd;
+					adhocScripts.setVariable("basicProperties",basicProperties);
+					TableStyleNo=adhocScripts.getVariable("TableStyleNo");
+					TableStyleNo=tableStyleId;
+					adhocScripts.setVariable("TableStyleNo",TableStyleNo);
+					$(".image").css("box-shadow","5px 5px 5px gray");
+					$(event).css("box-shadow","5px 5px 5px black");
+				};
+
+				
+				//function to display advanced options wih separate options for individual columns
+				function AdvancedDropdowns()
+				{
+					$("#details").append('<div class="row AdvancedFormats">'+
+										'	<div class="col-sm-6 extendMargins10" align="center"><strong>Column Name</strong></div>'+
+										'	<div class="col-sm-6 titles extendMargins10"><strong>Type</strong></div>'+
+										'</div>');
+		
+					for(var i=0;i<columnNames.length;i++)
+					{	
+						var colType=columnType[i].substr(0,1).toUpperCase()+columnType[i].substr(1).toLowerCase();
+						$(".AdvancedFormats").append('<div id="COLUMN'+i+'" class="form-horizontal">'+
+													'		<div class="form-group">'+
+													'			<label class="col-sm-5 control-label" align="center" title="'+columnNames[i]+'" for="ColumnType_'+i+'" style="word-wrap: break-word;">'+columnNames[i]+'</label>'+
+													'			<div class="col-sm-3">'+
+													'				<input id="ColumnType_'+i+'" class="form-control style-initialDisplay" style="margin-right:4px;" type="text" value="'+colType+'"/>'+
+													'			</div>'+
+													'			<div class="col-sm-3">'+
+													'				<input id="MoreOption_'+i+'" class="form-control style-initialDisplay btn btn-default" style="line-height:4.5px;" type="button" value="More" onclick="'+columnType[i]+'BasicDropdowns(this)">'+
+													'			</div>'+
+													'		</div>'+
+													'</div>');
+					}
+				}
+				
+				//function of toggle switch1
+				function switchToggle(){
+					if(adhocScripts.getVariable('switch1') == 'false'){
+						adhocScripts.setVariable("switch1", "true");
+						$('.BasicFormats').remove();
+						AdvancedDropdowns();
+					}
+					else{
+						adhocScripts.setVariable("switch1", "false");
+						$('.AdvancedFormats').remove();
+						//BasicDropdowns();
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch1') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+					AdvancedDropdowns();
+				} 
+				else{
+					$('#cmn-toggle-1').removeAttr('checked');
+					//BasicDropdowns();
+				}
+				
+				//function to display advanced options for columns having type 'numeric'
+				function numericBasicDropdowns(event)
+				{
+					$(".ExtraFormats").remove();
+					var Id_num=event.id.split("_")[1];
+						
+					$(event).closest("#COLUMN"+Id_num)
+					.after('<div class="ExtraFormats container-fluid">'+
+							'	<div class="form-inline extendMargins10" align="center">'+
+							'		<div class="form-group">'+
+							'			<i id="boldValue_'+Id_num+'" class="style-Btns col-xs-2 fa fa-bold form-control marginBelow" aria-hidden="true" onclick="Boldtext(this)"></i>'+
+							'			<i id="italicValue_'+Id_num+'" class="style-Btns col-xs-2 fa fa-italic form-control marginBelow" aria-hidden="true" onclick="Italictext(this)"></i>'+
+							'			<i id="underlineValue_'+Id_num+'"class="style-Btns col-xs-2 fa fa-underline form-control marginBelow" aria-hidden="true" onclick="Underlinetext(this)"></i>'+
+							'			<i id="left_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-left form-control marginBelow" aria-hidden="true" onclick="LeftAlign(this)"></i>'+
+							'			<i id="center_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-center form-control marginBelow" aria-hidden="true" onclick="CenterAlign(this)"></i>'+
+							'			<i id="right_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-right form-control marginBelow" aria-hidden="true" onclick="RightAlign(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="form-horizontal">'+
+							'		<div class="form-group">'+
+							'			<label class="col-sm-2 control-label" for="fontSize_'+Id_num+'">Font Size</label>'+
+							'			<div class="col-sm-3">'+
+							'				<select id="fontSize_'+Id_num+'" class="form-control" onchange="setFontSize(this)">'+
+							'		  			<option value="11">11</option>'+
+							'		  			<option value="12">12</option>'+
+							'		  			<option value="13">13</option>'+
+							'		  			<option value="14">14</option>'+
+							'		  			<option value="15">15</option>'+
+							'				</select>'+
+							'	  		</div>'+
+							'		</div>'+
+							'	</div>');
+							
+					var fntsz=adhocScripts.getVariable("FontSizeValue");
+					var bldval=adhocScripts.getVariable("BoldValue");
+					var itlcval=adhocScripts.getVariable("ItalicValue");
+					var undrlnval=adhocScripts.getVariable("UnderlineValue");
+					var txtalgnval=adhocScripts.getVariable("TextAlignValue");
+					var nllval=adhocScripts.getVariable("NullValue");
+					var thsndsepflagval=adhocScripts.getVariable("ThousandSeparatorFlag");
+					var pref=adhocScripts.getVariable("PreffixValue");
+					var suf=adhocScripts.getVariable("SuffixValue");
+					
+					var BackgroundColorValue=adhocScripts.getVariable("BackgroundColorValue");
+					
+					$("#ComparisonValue_value_"+Id_num).val(BackgroundColorValue.background[Id_num].value);
+					$("#fontSize_"+Id_num).val(fntsz[Id_num]);
+					$("#nullValue_"+Id_num).val(nllval[Id_num]);
+				
+					if(bldval[Id_num]=="bold")
+						$("#boldValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(bldval[Id_num]=="normal")
+						$("#boldValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(itlcval[Id_num]=="italic")
+						$("#italicValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(itlcval[Id_num]=="normal")
+						$("#italicValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(undrlnval[Id_num]=="underline")
+						$("#underlineValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(undrlnval[Id_num]=="normal")
+						$("#underlineValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(txtalgnval[Id_num]=="left")
+						$("#left_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="center")
+						$("#center_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="right")
+						$("#right_"+Id_num).css({"background":"#e6e6e6"});
+					
+					if(pref[Id_num]=="Dollar")
+						$("#PreffixSymbol_"+Id_num).val("$");
+					else
+						$("#PreffixSymbol_"+Id_num).val(pref[Id_num]);
+					
+					if(suf[Id_num]=="Dollar")
+						$("#SuffixSymbol_"+Id_num).val("$");
+					else
+						$("#SuffixSymbol_"+Id_num).val(suf[Id_num]);
+																	
+					if(thsndsepflagval[Id_num]=="true")
+						$("#thsndSepValue_"+Id_num).attr("checked","checked");
+				};
+				
+				
+				//function to display advanced options for columns having type 'text'
+				function textBasicDropdowns(event)
+				{
+					$(".ExtraFormats").remove();
+					var Id_num=event.id.split("_")[1];
+					$(event).closest("#COLUMN"+Id_num)
+					.after('<div class="ExtraFormats">'+
+							'	<div class="form-inline extendMargins10" align="center">'+
+							'		<div class="form-group">'+
+							'			<i id="boldValue_'+Id_num+'" class="style-Btns col-xs-2 fa fa-bold form-control marginBelow" aria-hidden="true" onclick="Boldtext(this)"></i>'+
+							'			<i id="italicValue_'+Id_num+'" class="style-Btns col-xs-2 fa fa-italic form-control marginBelow" aria-hidden="true" onclick="Italictext(this)"></i>'+
+							'			<i id="underlineValue_'+Id_num+'"class="style-Btns col-xs-2 fa fa-underline form-control marginBelow" aria-hidden="true" onclick="Underlinetext(this)"></i>'+
+							'			<i id="left_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-left form-control marginBelow" aria-hidden="true" onclick="LeftAlign(this)"></i>'+
+							'			<i id="center_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-center form-control marginBelow" aria-hidden="true" onclick="CenterAlign(this)"></i>'+
+							'			<i id="right_'+Id_num+'" class="style-Btns col-xs-2 fa fa-align-right form-control marginBelow" aria-hidden="true" onclick="RightAlign(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="form-horizontal">'+
+							'		<div class="form-group">'+
+							'			<div class="col-sm-12">'+
+							'		<label class="col-sm-2 control-label" for="fontSize_'+Id_num+'">Font Size</label>'+
+							'		<div class="col-sm-3">'+
+							'			<select id="fontSize_'+Id_num+'" class="form-control" onchange="setFontSize(this)">'+
+							'		  		<option value="11">11</option>'+
+							'		  		<option value="12">12</option>'+
+							'		  		<option value="13">13</option>'+
+							'		  		<option value="14">14</option>'+
+							'		  		<option value="15">15</option>'+
+							'			</select>'+
+							'		</div>'+
+							'	</div>'+
+							'</div>');
+							
+					var fntsz=adhocScripts.getVariable("FontSizeValue");
+					var txtclr=adhocScripts.getVariable("TextColorValue");
+					var bckclr=adhocScripts.getVariable("BackgroundColorValue");
+					var bldval=adhocScripts.getVariable("BoldValue");
+					var itlcval=adhocScripts.getVariable("ItalicValue");
+					var undrlnval=adhocScripts.getVariable("UnderlineValue");
+					var txtalgnval=adhocScripts.getVariable("TextAlignValue");
+					
+					$("#fontSize_"+Id_num).val(fntsz[Id_num]);
+					$("#textColorValue_"+Id_num).val(txtclr[Id_num]);
+					$("#backgroundColorValue_"+Id_num).val(bckclr.background[Id_num].color);
+																
+					if(bldval[Id_num]=="bold")
+						$("#boldValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(bldval[Id_num]=="normal")
+						$("#boldValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(itlcval[Id_num]=="italic")
+						$("#italicValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(itlcval[Id_num]=="normal")
+						$("#italicValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(undrlnval[Id_num]=="underline")
+						$("#underlineValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(undrlnval[Id_num]=="normal")
+						$("#underlineValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(txtalgnval[Id_num]=="left")
+						$("#left_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="center")
+						$("#center_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="right")
+						$("#right_"+Id_num).css({"background":"#e6e6e6"});
+				};
+								
+				
+				//function to display advanced options for columns having type 'dateTime'
+				function dateTimeBasicDropdowns(event)
+				{
+					$(".ExtraFormats").remove();
+					var Id_num=event.id.split("_")[1];
+					$(event).closest("#COLUMN"+Id_num)
+					.after('<div class="ExtraFormats col-sm-12" style="border:solid 1px #a9a9a9;">'+
+							'	<div class="col-sm-12" style="margin-top:1.3em;padding-bottom:1em;">'+
+							'		<div class="col-sm-3">Font Size</div>'+
+							'		<select id="fontSize_'+Id_num+'" class="col-sm-3" style="height:20px;" onchange="setFontSize(this)">'+
+							'		  <option value="11">11</option>'+
+							'		  <option value="12">12</option>'+
+							'		  <option value="13">13</option>'+
+							'		  <option value="14">14</option>'+
+							'		  <option value="15">15</option>'+
+							'		</select>'+
+							'		<div class="col-sm-6" style="text-align:center">'+
+							'			<i id="boldValue_'+Id_num+'" class="style-Btns fa fa-bold" aria-hidden="true" onclick="Boldtext(this)"></i>'+
+							'			<i id="italicValue_'+Id_num+'" class="style-Btns fa fa-italic" aria-hidden="true" onclick="Italictext(this)"></i>'+
+							'			<i id="underlineValue_'+Id_num+'" class="style-Btns fa fa-underline" aria-hidden="true" onclick="Underlinetext(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="col-sm-12" style="padding-bottom:1em;">'+
+							'		<div class="col-sm-6" style="text-align:center">'+
+							'			<i id="left_'+Id_num+'" class="style-Btns fa fa-align-left" aria-hidden="true" onclick="LeftAlign(this)"></i>'+
+							'			<i id="center_'+Id_num+'" class="style-Btns fa fa-align-center" aria-hidden="true" onclick="CenterAlign(this)"></i>'+
+							'			<i id="right_'+Id_num+'" class="style-Btns fa fa-align-right" aria-hidden="true" onclick="RightAlign(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="col-sm-12">'+
+							'		<div class="col-sm-3" style="margin-top:5px;text-align:center">Original Format</div>'+
+							'		<input id="OriginalFormat_'+Id_num+'" class="col-sm-3 style-margins" style="margin-left:-20px" type="text" placeholder="%d,%m,%y" onchange="originalFormat(this)">'+
+							'		<div class="col-sm-2" style="margin-top:5px;margin-left:20px;text-align:center">New Format</div>'+
+							'		<input id="ModifiedFormat_'+Id_num+'" class="col-sm-3 style-margins" type="text" placeholder="%Y-%m-%d" onchange="modifiedFormat(this)">'+
+							'	</div>'+
+							'</div>');
+							
+					var fntsz=adhocScripts.getVariable("FontSizeValue");
+					var txtclr=adhocScripts.getVariable("TextColorValue");
+					var bckclr=adhocScripts.getVariable("BackgroundColorValue");
+					var bldval=adhocScripts.getVariable("BoldValue");
+					var itlcval=adhocScripts.getVariable("ItalicValue");
+					var undrlnval=adhocScripts.getVariable("UnderlineValue");
+					var txtalgnval=adhocScripts.getVariable("TextAlignValue");
+					var orgFrmt=adhocScripts.getVariable("OriginalFormatValue");
+					var mdfdFrmt=adhocScripts.getVariable("ModifiedFormatValue");
+					$("#fontSize_"+Id_num).val(fntsz[Id_num]);
+					$("#textColorValue_"+Id_num).val(txtclr[Id_num]);
+					$("#backgroundColorValue_"+Id_num).val(bckclr.background[Id_num].color);
+					$("#OriginalFormat_"+Id_num).val(orgFrmt[Id_num]);
+					$("#ModifiedFormat_"+Id_num).val(mdfdFrmt[Id_num]);
+					
+					if(bldval[Id_num]=="bold")
+						$("#boldValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(bldval[Id_num]=="normal")
+						$("#boldValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(itlcval[Id_num]=="italic")
+						$("#italicValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(itlcval[Id_num]=="normal")
+						$("#italicValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(undrlnval[Id_num]=="underline")
+						$("#underlineValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(undrlnval[Id_num]=="normal")
+						$("#underlineValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(txtalgnval[Id_num]=="left")
+						$("#left_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="center")
+						$("#center_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="right")
+						$("#right_"+Id_num).css({"background":"#e6e6e6"});
+				};
+				
+				//function to display advanced options for columns having type 'date'
+				function dateBasicDropdowns(event)
+				{
+					$(".ExtraFormats").remove();
+					var Id_num=event.id.split("_")[1];
+					$(event).closest("#COLUMN"+Id_num)
+					.after('<div class="ExtraFormats col-sm-12" style="border:solid 1px #a9a9a9;">'+
+							'	<div class="col-sm-12" style="margin-top:1.3em;padding-bottom:1em;">'+
+							'		<div class="col-sm-3">Font Size</div>'+
+							'		<select id="fontSize_'+Id_num+'" class="col-sm-3" style="height:20px;" onchange="setFontSize(this)">'+
+							'		  <option value="11">11</option>'+
+							'		  <option value="12">12</option>'+
+							'		  <option value="13">13</option>'+
+							'		  <option value="14">14</option>'+
+							'		  <option value="15">15</option>'+
+							'		</select>'+
+							'		<div class="col-sm-6" style="text-align:center">'+
+							'			<i id="boldValue_'+Id_num+'" class="style-Btns fa fa-bold" aria-hidden="true" onclick="Boldtext(this)"></i>'+
+							'			<i id="italicValue_'+Id_num+'" class="style-Btns fa fa-italic" aria-hidden="true" onclick="Italictext(this)"></i>'+
+							'			<i id="underlineValue_'+Id_num+'" class="style-Btns fa fa-underline" aria-hidden="true" onclick="Underlinetext(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="col-sm-12" style="padding-bottom:1em;">'+
+							'		<div class="col-sm-6" style="text-align:center">'+
+							'			<i id="left_'+Id_num+'" class="style-Btns fa fa-align-left" aria-hidden="true" onclick="LeftAlign(this)"></i>'+
+							'			<i id="center_'+Id_num+'" class="style-Btns fa fa-align-center" aria-hidden="true" onclick="CenterAlign(this)"></i>'+
+							'			<i id="right_'+Id_num+'" class="style-Btns fa fa-align-right" aria-hidden="true" onclick="RightAlign(this)"></i>'+
+							'		</div>'+
+							'	</div>'+
+							'	<div class="col-sm-12">'+
+							'		<div class="col-sm-3" style="margin-top:5px;text-align:center">Original Format</div>'+
+							'		<input id="OriginalFormat_'+Id_num+'" class="col-sm-3 style-margins" style="margin-left:-20px" type="text" placeholder="%d,%m,%y" onchange="originalFormat(this)">'+
+							'		<div class="col-sm-2" style="margin-top:5px;margin-left:20px;text-align:center">New Format</div>'+
+							'		<input id="ModifiedFormat_'+Id_num+'" class="col-sm-3 style-margins" type="text" placeholder="%Y-%m-%d" onchange="modifiedFormat(this)">'+
+							'	</div>'+
+							'</div>');
+							
+					var fntsz=adhocScripts.getVariable("FontSizeValue");
+					var txtclr=adhocScripts.getVariable("TextColorValue");
+					var bckclr=adhocScripts.getVariable("BackgroundColorValue");
+					var bldval=adhocScripts.getVariable("BoldValue");
+					var itlcval=adhocScripts.getVariable("ItalicValue");
+					var undrlnval=adhocScripts.getVariable("UnderlineValue");
+					var txtalgnval=adhocScripts.getVariable("TextAlignValue");
+					var orgFrmt=adhocScripts.getVariable("OriginalFormatValue");
+					var mdfdFrmt=adhocScripts.getVariable("ModifiedFormatValue");
+					$("#fontSize_"+Id_num).val(fntsz[Id_num]);
+					$("#textColorValue_"+Id_num).val(txtclr[Id_num]);
+					$("#backgroundColorValue_"+Id_num).val(bckclr.background[Id_num].color);
+					$("#OriginalFormat_"+Id_num).val(orgFrmt[Id_num]);
+					$("#ModifiedFormat_"+Id_num).val(mdfdFrmt[Id_num]);
+					
+					if(bldval[Id_num]=="bold")
+						$("#boldValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(bldval[Id_num]=="normal")
+						$("#boldValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(itlcval[Id_num]=="italic")
+						$("#italicValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(itlcval[Id_num]=="normal")
+						$("#italicValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(undrlnval[Id_num]=="underline")
+						$("#underlineValue_"+Id_num).css({"background":"#e6e6e6"});
+					else if(undrlnval[Id_num]=="normal")
+						$("#underlineValue_"+Id_num).css({"background":"#ffffff"});
+					
+					if(txtalgnval[Id_num]=="left")
+						$("#left_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="center")
+						$("#center_"+Id_num).css({"background":"#e6e6e6"});
+					else if(txtalgnval[Id_num]=="right")
+						$("#right_"+Id_num).css({"background":"#e6e6e6"});
+				};
+
+				
+				//function to set prefix values entered by user
+				function setNumericPreffix(event) 		//Set the preffix
+				{
+					var PreffixId_num=event.id.split("_")[1];
+					
+					if($.isNumeric(event.value) || event.value.length>3)
+						alert("Preffix should not be a number and should be just 3 letter!!");
+					else
+					{
+						PreffixValue=adhocScripts.getVariable("PreffixValue");
+					
+						if(event.value=="$")
+							PreffixValue[PreffixId_num]="Dollar";
+						else
+							PreffixValue[PreffixId_num]=event.value;
+						
+						adhocScripts.setVariable("PreffixValue",PreffixValue);
+					}
+				}
+				
+				//function to set sufix values entered by user
+				function setNumericSuffix(event) 		//Set the suffix
+				{
+					var SuffixId_num=event.id.split("_")[1];
+					if($.isNumeric(event.value) || event.value.length>3)
+						alert("Suffix should not be a number and should be just 3 letter!!");
+					else
+					{
+						SuffixValue=adhocScripts.getVariable("SuffixValue");
+				
+						if(event.value=="$")
+							SuffixValue[SuffixId_num]="Dollar";
+						else
+							SuffixValue[SuffixId_num]=event.value;
+						
+						adhocScripts.setVariable("SuffixValue",SuffixValue);
+					}
+				}
+				
+				//function to set original format for date entered by user
+				function originalFormat(event)	
+				{
+					var OriginalFormatId_num=event.id.split("_")[1];
+					
+					OriginalFormatValue=adhocScripts.getVariable("OriginalFormatValue");
+					OriginalFormatValue[OriginalFormatId_num]=event.value;
+					adhocScripts.setVariable("OriginalFormatValue",OriginalFormatValue);
+				}
+				
+				//function to set modified values for date entered by user
+				function modifiedFormat(event)
+				{
+					var ModifiedFormatId_num=event.id.split("_")[1];
+					
+					ModifiedFormatValue=adhocScripts.getVariable("ModifiedFormatValue");
+					ModifiedFormatValue[ModifiedFormatId_num]=event.value;
+					adhocScripts.setVariable("ModifiedFormatValue",ModifiedFormatValue);
+				
+					DateTimeFormatFlag=adhocScripts.getVariable("DateTimeFormatFlag");
+					DateTimeFormatFlag[ModifiedFormatId_num]="true";
+					adhocScripts.setVariable("DateTimeFormatFlag",DateTimeFormatFlag);
+				}
+				
+				//function to set the font size for individual columns
+				function setFontSize(event)		
+				{
+					var FontSizeId_num=event.id.split("_")[1];
+					FontSizeValue=adhocScripts.getVariable("FontSizeValue");
+					FontSizeValue[FontSizeId_num]=event.value;
+					adhocScripts.setVariable("FontSizeValue",FontSizeValue);
+				}				
+				
+				
+				//function to set a value if there is a null value
+				function setNumericNullValue(event)	
+				{
+					var NullId_num=event.id.split("_")[1];
+					NullValue=adhocScripts.getVariable("NullValue");
+					NullValue[NullId_num]=event.value;
+					adhocScripts.setVariable("NullValue",NullValue);
+				}
+				
+				//function to display color options for comparison purpose
+				function displayComparisonWithColors(event)
+				{
+					$(".displayComparedBackground").hide();
+					$(".DataBars").hide();
+					
+					var BackgroundColorId_num=event.id.split("_")[1];
+					display_ComparisonIcons[BackgroundColorId_num]="false";
+						
+					//if it is not display previously then only display it 	
+					if(display_ComparisonColor[BackgroundColorId_num]=="false")
+					{
+						display_ComparisonColor[BackgroundColorId_num]="true";
+						$(event).closest("#backgroundColor_"+BackgroundColorId_num)
+							.after('<div class="col-sm-12 sameBackgroundColor">'+
+									'	<div id="sameBackgroundColor_'+BackgroundColorId_num+'" class="col-sm-12 col-md-12 col-xs-12" style="margin-bottom:1em;border:1px solid gray;padding-bottom:1em;padding-top:1em">'+
+									'		<img id="sameBackgroundColorValue_color_'+BackgroundColorId_num+'_#ff8484-#ffc68c-#ffff82" class="col-sm-4 style-htWdth" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/BackgroundColor1.jpg" alt="Smiley face" onclick="setBackgroundComparisonStyle(this)">'+
+									'	</div>'+
+									'</div>');
+					}	
+					else
+					{
+						display_ComparisonColor[BackgroundColorId_num]="false";
+						$(".sameBackgroundColor").hide();
+					}
+				}
+				
+				//function to display icon options for comparison purpose
+				function displayComparisonWithIcons(event)		
+				{
+					$(".sameBackgroundColor").hide();
+					$(".DataBars").hide();
+					
+					var ComparedBackgroundColorId_num=event.id.split("_")[1];
+					display_ComparisonColor[ComparedBackgroundColorId_num]="false";
+										
+					//if it is not displayed previously then only display it 	
+					if(display_ComparisonIcons[ComparedBackgroundColorId_num]=="false")
+					{
+						display_ComparisonIcons[ComparedBackgroundColorId_num]="true";
+						$(event).closest("#backgroundColor_"+ComparedBackgroundColorId_num)
+							.after('<div id="comparisonForBackgroundColor_'+ComparedBackgroundColorId_num+'" class="col-sm-12 displayComparedBackground" style="margin-top:2px;margin-bottom:1em;border:1px solid gray;padding-bottom:1em;padding-top:1em">'+
+									'	<div id="comparedBackgroundColorValue_image_'+ComparedBackgroundColorId_num+'_Arrows" class="col-sm-4 style-htWdth" style="border:1px solid gray;margin-left:50px;line-height:18px;" onclick="setBackgroundComparisonStyle(this)">'+
+									'		<i class="fa fa-arrow-down" aria-hidden="true" style="color:red"></i>'+
+									'		<i class="fa fa-arrow-right" aria-hidden="true" style="color:orange"></i>'+
+									'		<i class="fa fa-arrow-up" aria-hidden="true" style="color:yellow"></i>'+
+									'	</div>'+
+									'	<div id="comparedBackgroundColorValue_image_'+ComparedBackgroundColorId_num+'_Circles" class="col-sm-4 style-htWdth" style="border:1px solid gray;margin-left:50px;line-height:18px;" onclick="setBackgroundComparisonStyle(this)">'+
+									'		<i class="fa fa-circle" aria-hidden="true" style="color:red"></i>'+
+									'		<i class="fa fa-circle" aria-hidden="true" style="color:orange"></i>'+
+									'		<i class="fa fa-circle" aria-hidden="true" style="color:yellow"></i>'+
+									'	</div>'+
+									'</div>');
+					}	
+					else
+					{
+						display_ComparisonIcons[ComparedBackgroundColorId_num]="false";
+						$(".displayComparedBackground").hide();
+					}
+				}
+				
+				//function to display datbar options for comparison purpose
+				function displayComparisonWithDataBars(event)		//Extend a div which includes the color to be selected as background color and set the color
+				{
+					$(".sameBackgroundColor").hide();
+					$(".displayComparedBackground").hide();
+					
+					var DataBarId_num=event.id.split("_")[1];
+					display_ComparisonColor[DataBarId_num]="false";
+					display_ComparisonIcons[DataBarId_num]="false";
+					
+					//if it is not display previously then only display it 	
+					if(display_ComparisonDataBars[DataBarId_num]=="false")
+					{
+						display_ComparisonDataBars[DataBarId_num]="true";
+						$(event).closest("#backgroundColor_"+DataBarId_num)
+							.after('<div class="col-sm-12 DataBars">'+
+									'	<div id="ComparisonDataBars_'+DataBarId_num+'" class="col-sm-12" style="margin-top:2px;margin-bottom:1em;border:1px solid gray;padding-bottom:1em;padding-top:1em">'+
+									'		<img id="ComparisonDataBars_databar_'+DataBarId_num+'_blue-blue-blue" class="col-sm-4 style-htWdth" style="border:1px solid gray;margin-left:50px;height:30px" src="'+window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/table/images/databar_1.jpg" alt="Smiley face" onclick="setBackgroundComparisonStyle(this)">'+
+									'	</div>'+
+									'</div>');
+					}	
+					else
+					{
+						display_ComparisonDataBars[DataBarId_num]="false";
+						$(".DataBars").hide();
+					}
+				}
+				
+				//function to set the comparison value, entered by user	
+				function setComparisonValue(event)
+				{
+					var comparedBackgroundColorGroup=event.id.split("_")[1];
+					var comparedBackgroundColorId_num=event.id.split("_")[2];
+					
+					BackgroundColorValue=adhocScripts.getVariable("BackgroundColorValue");
+					BackgroundColorValue.background[comparedBackgroundColorId_num].value=event.value;
+					adhocScripts.setVariable("BackgroundColorValue",BackgroundColorValue);
+				}
+				
+				//function to set the colors,icons and databars for comparison, entered by user
+				function setBackgroundComparisonStyle(event)
+				{
+					$(".style-htWdth").css({"border":"1px solid #ccc", "border-radius":"4px"});
+					var BackgroundColorGroup=event.id.split("_")[1];
+					var BackgroundColorId_num=event.id.split("_")[2];
+					var BackgroundColor_style=event.id.split("_")[3];
+					
+					BackgroundColorValue=adhocScripts.getVariable("BackgroundColorValue");
+					//if user clicks on color options the set the color for comparison
+					if(BackgroundColorGroup=="color")
+					{	
+						BackgroundColorValue.background[BackgroundColorId_num].color=BackgroundColor_style;
+						displayComparisonWithColors(event);
+					}
+					else if(BackgroundColorGroup=="image")	// else if user clicks on icon options the set the color for comparison
+					{
+						BackgroundColorValue.background[BackgroundColorId_num].image=BackgroundColor_style;
+						displayComparisonWithIcons(event);
+					}
+					else if(BackgroundColorGroup=="databar")		//if user clicks on databar options the set the color for comparison
+					{
+						BackgroundColorValue.background[BackgroundColorId_num].databar=BackgroundColor_style;
+						displayComparisonWithDataBars(event);
+					}
+					
+					adhocScripts.setVariable("BackgroundColorValue",BackgroundColorValue);
+				}
+				
+				//function to set the bold property to individual columns on user choice
+				function Boldtext(event) 
+				{
+					var boldId_num=event.id.split("_")[1];
+					BoldValue=adhocScripts.getVariable("BoldValue");
+					if(boldFlag[boldId_num]==0)
+					{
+						boldFlag[boldId_num]=1;
+						BoldValue[boldId_num]="bold";
+						$("#"+event.id).css({"background":"#e6e6e6"});
+					}
+					else{
+						boldFlag[boldId_num]=0;
+						BoldValue[boldId_num]="normal";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("BoldValue",BoldValue);
+				}
+				
+				
+				//function to set the italic property to individual columns on user choice
+				function Italictext(event) 
+				{
+					var ItalicId_num=event.id.split("_")[1];
+					ItalicValue=adhocScripts.getVariable("ItalicValue");
+					if(italicFlag[ItalicId_num]==0)
+					{
+						italicFlag[ItalicId_num]=1;
+						ItalicValue[ItalicId_num]="italic";
+						$("#"+event.id).css({"background":"#e6e6e6"});
+					}
+					else{
+						italicFlag[ItalicId_num]=0;
+						ItalicValue[ItalicId_num]="normal";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("ItalicValue",ItalicValue);
+				}
+				
+				//function to set the underline property to individual columns on user choice
+				function Underlinetext(event) 
+				{
+					var UnderlineId_num=event.id.split("_")[1];
+					UnderlineValue=adhocScripts.getVariable("UnderlineValue");
+					if(underlineFlag[UnderlineId_num]==0)
+					{
+						underlineFlag[UnderlineId_num]=1;
+						UnderlineValue[UnderlineId_num]="underline";
+						$("#"+event.id).css({"background":"#e6e6e6"});
+					}
+					else{
+						underlineFlag[UnderlineId_num]=0;
+						UnderlineValue[UnderlineId_num]="normal";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("UnderlineValue",UnderlineValue);
+				}
+				
+				//function to set the left align property to individual columns on user choice						
+				function LeftAlign(event) 
+				{
+					var leftAlignId_num=event.id.split("_")[1];
+					TextAlignValue=adhocScripts.getVariable("TextAlignValue");
+					if(leftAlignFlag[leftAlignId_num]==0)
+					{
+						leftAlignFlag[leftAlignId_num]=1;
+						centerAlignFlag[leftAlignId_num]=0;
+						rightAlignFlag[leftAlignId_num]=0;
+						TextAlignValue[leftAlignId_num]="left";
+						$("#left_"+leftAlignId_num).css({"background":"#e6e6e6"});
+						$("#center_"+leftAlignId_num).css({"background":"#ffffff"});
+						$("#right_"+leftAlignId_num).css({"background":"#ffffff"});
+					}
+					else{
+						leftAlignFlag[leftAlignId_num]=0;
+						TextAlignValue[leftAlignId_num]="right";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("TextAlignValue",TextAlignValue);
+				}
+				
+				//function to set the center align property to individual columns on user choice						
+				function CenterAlign(event) 
+				{
+					var centerAlignId_num=event.id.split("_")[1];
+					TextAlignValue=adhocScripts.getVariable("TextAlignValue");
+					
+					if(centerAlignFlag[centerAlignId_num]==0)
+					{
+						centerAlignFlag[centerAlignId_num]=1;
+						leftAlignFlag[centerAlignId_num]=0;
+						rightAlignFlag[centerAlignId_num]=0;
+						TextAlignValue[centerAlignId_num]="center";
+						$("#center_"+centerAlignId_num).css({"background":"#e6e6e6"});
+						$("#left_"+centerAlignId_num).css({"background":"#ffffff"});
+						$("#right_"+centerAlignId_num).css({"background":"#ffffff"});
+					
+					}
+					else{
+						centerAlignFlag[centerAlignId_num]=0;
+						TextAlignValue[centerAlignId_num]="right";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("TextAlignValue",TextAlignValue);
+				}
+				
+				//function to set the right align property to individual columns on user choice						
+				function RightAlign(event) 
+				{
+					var rightAlignId_num=event.id.split("_")[1];
+					TextAlignValue=adhocScripts.getVariable("TextAlignValue");
+					
+					if(rightAlignFlag[rightAlignId_num]==0)
+					{
+						rightAlignFlag[rightAlignId_num]=1;
+						leftAlignFlag[rightAlignId_num]=0;
+						centerAlignFlag[rightAlignId_num]=0;
+						TextAlignValue[rightAlignId_num]="right";
+						$("#right_"+rightAlignId_num).css({"background":"#e6e6e6"});
+						$("#left_"+rightAlignId_num).css({"background":"#ffffff"});
+						$("#center_"+rightAlignId_num).css({"background":"#ffffff"});
+					}
+					else{
+						rightAlignFlag[rightAlignId_num]=0;
+						TextAlignValue[rightAlignId_num]="right";
+						$("#"+event.id).css({"background":"#ffffff"});
+					}
+					adhocScripts.setVariable("TextAlignValue",TextAlignValue);
+				}
+				
+				//function to set the thousand separator parameter to individual columns on user choice						
+				function setThousandSeperator(event)
+				{
+					var ThousandSeparatorId_num=event.id.split("_")[1];
+					ThousandSeparatorFlag=adhocScripts.getVariable("ThousandSeparatorFlag");
+					
+					if(event.checked)
+						ThousandSeparatorFlag[ThousandSeparatorId_num]="true";
+					else
+						ThousandSeparatorFlag[ThousandSeparatorId_num]="false";
+					
+					adhocScripts.setVariable("ThousandSeparatorFlag",ThousandSeparatorFlag);  
+				}
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

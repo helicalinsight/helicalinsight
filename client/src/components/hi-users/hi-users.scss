@@ -1,0 +1,45 @@
+@import "../../styles/variables.scss";
+.hi-users {
+  .hi-users-icon {
+    font-size: 80px;
+  }
+  .hi-users-text {
+    font-size: 16px;
+  }
+  .text-align-center {
+    text-align: center;
+  }
+  .hi-users-username-icon {
+    font-size: 20px;
+    height: 80px;
+    width: 80px;
+    border-radius: 50%;
+  }
+  .text-align-none {
+    text-align: left;
+  }
+  .hi-users-card {
+    height: 100%;
+  }
+  .stats {
+    font-size: 50px;
+  }
+  .recent-reports-card {
+    .recent-reports-bg-img {
+      min-height: 150px;
+      min-width: 150px;
+      background-color: $hi-black;
+      opacity: 0.5;
+      cursor: pointer;
+      // background-image: url("/images/hi-adminPageImages/sample-report-1.png");
+    }
+    .text {
+      margin: 15px;
+      font-size: 18px;
+      color: white;
+      opacity: 1;
+      max-width: 80%;
+      margin-bottom: 0;
+    }
+  }
+}

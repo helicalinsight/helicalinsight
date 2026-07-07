@@ -1,0 +1,187 @@
+CONSTRUCTOR
+new ReportQuery({
+        "location": "1463377807724/1463377836985",
+        "metadataFileName": "e9be6771-995b-40eb-a01c-304857a100a1.metadata"
+    }, dispatch <optional>)
+
+SELECT
+.select('HIUSER.travel_details.destination', 'destination')
+.select({'a' : '123', 'a2' : '456'})
+.select(e=>{e.abs('HIUSER.travel_details.destination')}, 'destination')
+.select(e=>{e.abs(e.sqrt('HIUSER.travel_details.destination'))}, 'destination')
+.select(e=>{e.sum(e.count('HIUSER.travel_details.destination'))}, 'destination')
+
+SELECTRAW
+.selectRaw('upper("HIUSER"."travel_details"."destination")', 'destination')
+
+FUNCTIONBUILDER
+.functionBuilder((builder) =>{builder.sum(arg.alias)}, arg.alias)
+.functionBuilder(builder=>{
+        builder.raw({
+                "functionName": "sql.numeric.abs",
+                "dataType": "numeric",
+                "parameters": {
+                    "number": {
+                        "functionName": "sql.numeric.sqrt",
+                        "dataType": "numeric",
+                        "parameters": {
+                            "number": "destination"
+                        }
+                    }
+                }
+            })
+    } , 'destination') //the first argument in raw will be added as a db function for destination column
+
+REPORTFORMDATA
+.reportFormData() -> to generate reportFormData
+
+EXECUTE
+.execute({query : <BOOLEAN>, callBack : (res) => {... handle response}}) -> query true to fetch query, false to fetch data
+
+
+WHERE
+    .where(alias, condition, value)
+        condition [=, !=, <>, <, >, <=, >=, 'IN', 'NOTIN', 
+        'INRANGE', 'NOTINRAGE',like, contains, startswith, endswith, notlike,
+        doesnotcontains, doesnotendswith, doesnotstartswith ]
+        value = STRING || ARRAY
+        alias = alias name to be defined already
+    .orWhere(alias, condition, value) - where condition with OR operator
+    .whereIn, .orWhereIn, .whereNotIn, .orWhereNotIn will have the same arguments as follows  (alias, value) 
+    .where((builder) => builder.abs(alias)) -> where can also be used with builder where we can write apply nested db/aggregate functions
+
+
+LIMIT
+.limit(<LIMIT>, <OFFSET>)
+    limit is a number and if it is -1 then it is considered as no limit
+    offser is a number and is optional
+
+
+GROUPBY
+.groupBy(alias1, alias2, alias3, ....)
+
+ORDERBY
+.oderbyBy(alias1, alias2, alias3...) - for all these columns asc is applied by default
+.orderBy({alias1 : 'asc/desc', alias2 : 'asc/desc'})
+
+
+
+//             .where('destination', 'like', 'abad')
+//             .where('destination', 'contains', 'Hyder')
+//             .where('destination', 'startswith', 'H')
+//             .where('destination', 'endswith', 'd')
+//             .where('destination', 'notlike', 'z')
+//             .where('destination', 'doesnotcontains', 'z')
+//             .where('destination', 'doesnotendswith', 'z')
+//             .where('destination', 'doesnotstartswith', 'z')
+
+
+HIDE
+.hide(alias1, alias2, ...)
+
+HIDEANDINCLUDEINRESULTSET
+.hideAndIncludeInResultSet(alias1, alias2, ...)
+
+REFRESH
+.refresh(true || false) true if there is no any argument
+
+ANALYTICS
+.analytics(arguments) - what ever we pass here that will be added to formdata under 'analytics' key
+
+MANIPULATEFORMDATA
+.manipulateFormData(callBack) - this is to manipulate formdata and the callback should return the modified formdata
+
+REQUESTID
+.requestId(<string>)
+
+DYNAMIC DATABASE Functions - new functions to be passed under useDBfunction key
+(new ReportQuery({
+            "location": "1639026125991",
+            "metadataFileName": "59ced249-8d96-4175-aa88-75a17b200b5c.metadata",
+            "useDBFuntion": {
+                test: [{
+                "key": "sql.date.makedate",
+            "description": "Returns a date for given year, month and day. Example: date(char('2019',4)||'-'||char('11',2)||'-'||char('23',2)) result : 2019-17-23",
+            "value": "__test_fn",
+            "signature": "date(${year}||'-'||${month}||'-'||${day})",
+            "returns": "date",
+            "parameters": [
+            {
+                "name": "year",
+            "defaultValue": "'2013'"
+                },
+            {
+                "name": "month",
+            "defaultValue": "'7'"
+                },
+            {
+                "name": "day",
+            "defaultValue": "'15'"
+                }
+            ]
+        }]
+    }
+}))
+
+
+WHERE CONDITION WITH ADVANCED FILTERS
+.where('col || alias', condition, value, config)
+        config = {
+        "label": "employee_name",
+        "mode": "auto",
+        "alias": "employee_name",
+        "mapping": {
+            "isEnabled": true,
+            "unique": true,
+            "valueDBFunction": {
+                "key": "sql.text.lower",
+                "description": "Converts all characters in the specified string to lowercase. Example: LOWER('BENGALURU') result: bengaluru ",
+                "value": "LOWER",
+                "signature": "lower(${string})",
+                "returns": "text",
+                "parameters": [{
+                    "name": "string",
+                    "column": true,
+                    "value": "HIUSER.employee_details.employee_name"
+                }]
+            },
+            "DisplayDBFunction": {
+                "key": "sql.text.upper",
+                "description": "Converts all characters in a string to uppercase. Example: UPPER('bengaluru') result: BENGALURU",
+                "value": "UPPER",
+                "signature": "upper(${string})",
+                "returns": "text",
+                "parameters": [{
+                    "name": "string",
+                    "column": true,
+                    "value": "employee_details.employee_name"
+                }]
+            },
+            "isDefaultFunction": true,
+            "valueDisplayMap": [],
+            "valueAliasName": "random",
+            "orderBy": {
+                "display": "asc",
+                "value": "none"
+            },
+            "valueColumn": {
+                "alias": "employee_name",
+                "fullyQualifiedColumn": "employee_details.employee_name",
+                "columnId": "3a91c58b-388e-4617-b622-3b93a3c54766",
+                "defaultFunction": "db.generic.groupBy.group",
+                "type": {
+                    "java.lang.String": "text"
+                }
+            },
+            "displayColumn": {
+                "alias": "employee_name",
+                "fullyQualifiedColumn": "employee_details.employee_name",
+                "columnId": "3a91c58b-388e-4617-b622-3b93a3c54766",
+                "defaultFunction": "db.generic.groupBy.group",
+                "type": {
+                    "java.lang.String": "text"
+                }
+            }
+        },
+        "dataType": "text"
+    }

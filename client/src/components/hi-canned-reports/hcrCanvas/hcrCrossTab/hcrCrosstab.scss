@@ -1,0 +1,28 @@
+.crosstab-template {
+  border-collapse: collapse;
+  width: 100%;
+  height: 100%;
+
+  th:last-child,
+  td:last-child,
+  tr:last-child {
+    background: #bfe1ff;
+  }
+
+  tr,
+  th {
+    background: #ffffff;
+  }
+}
+
+.crosstab-template th,
+.crosstab-template td {
+  border: 1px solid #959595;
+  padding: 4px 8px;
+  text-align: center;
+  height: 25px;
+}
+
+.crosstab-template .crosstab-template th:first-child {
+  border: none;
+}
