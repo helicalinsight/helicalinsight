@@ -92,7 +92,7 @@
 
 		<commons-collections.version>3.2.2</commons-collections.version>
 		<commons-dbutils.version>1.6</commons-dbutils.version>
-		<commons-lang3.version>3.10</commons-lang3.version>
+		<commons-lang3.version>3.18.0</commons-lang3.version>
 		<commons-codec.version>1.10</commons-codec.version>
 		<commons-io.version>2.21.0</commons-io.version>
 		<commons-digester.version>2.1</commons-digester.version>
