@@ -2,8 +2,7 @@
 
 [Helical Insight](https://www.helicalinsight.com/) is an open-source business intelligence (BI) and analytics platform. It lets teams connect to data sources, explore metadata, build ad hoc reports and dashboards, schedule deliveries, and export results — all from a modern web interface.
 
-[Watch the Helical Insight Introduction](https://youtu.be/hz07TO1gL9c?si=Tg0d2oJipahBeElL)
-
+[![Watch the Helical Insight Introduction](https://img.youtube.com/vi/hz07TO1gL9c/0.jpg)](https://youtu.be/hz07TO1gL9c?si=Tg0d2oJipahBeElL)
 
 This repository contains two components:
 
