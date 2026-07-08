@@ -32,7 +32,7 @@ This repository contains two components:
 | Maven | 3.8+ |
 | Node.js | 18+ |
 | npm | 9+ |
-| Apache Tomcat | 10.x or 11.x (native backend only) |
+| Apache Tomcat | 11.x+ (native backend only) |
 | Docker + Compose | Optional — fastest way to run everything |
 
 Verify tools:
@@ -61,18 +61,12 @@ cp .env.example .env   # optional — defaults work for local dev
 docker compose -f docker-compose.dev.yml up --build
 ```
 
-Once build is done: you can run docker in detached mode
-
-```bash
-docker compose -f docker-compose.dev.yml up -d
-```
-
 | URL | Purpose |
 |-----|---------|
 | http://localhost:3000 | React frontend |
 | http://localhost:8080/hi-ce/hi.html | Backend (Tomcat) |
 
-### 3. Native development
+### 3. Native development 
 
 **Prepare paths and directories:**
 
