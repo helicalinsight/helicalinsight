@@ -24,7 +24,7 @@ export const CUBE_EDITOR_TOOLTIPS = {
   Topic:
     "Business topic for this field. Enter comma-separated values (e.g., Sales, Travel).",
   "Agent Topic":
-    "Business topic for this field. Enter a single topic (e.g., Sales).",
+    "Business topics for this agent. Enter comma-separated values (e.g., Sales, Travel).",
   Formula:
     "Define the calculation or expression for this field. Reference columns using cube notation (e.g., [Measures].[Amount]) or aggregation functions (e.g., SUM, AVG).",
   "Filter (optional)":
@@ -52,6 +52,10 @@ export const AGENT_EDITOR_TOOLTIPS = {
     "Define the calculation used for this field. Reference columns from your source tables using aggregation functions (e.g., SUM(order_amount), AVG(total_price)).",
   "Dimension/Measure":
     "Toggle between Dimension and Measure. Dimensions are used for grouping and filtering; Measures are numeric values that can be aggregated. Use the menu (⋯) to configure data type and display format when Measure is selected.",
+  "Agent Topic":
+    "Business topics for this agent. Enter comma-separated values (e.g., Sales, Travel).",
+  Agent:
+    "The name of this agent file (e.g., Agent_1). This is used when saving the agent.",
   "Clear field values": "Clear the field values for this field",
   "Remove field": "Removes this field from the agent metadata",
 };

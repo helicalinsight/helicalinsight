@@ -226,6 +226,51 @@ export const isIbTableChart = (chartName = "", vf = "") => {
   );
 };
 
+export const parseBackendErrorMessage = (error) => {
+  if (!error) return "";
+  if (typeof error === "object" && error.message) return String(error.message);
+  const str = String(error).trim();
+  const normalized = str
+    .replace(/\\\\'/g, "__SINGLE_QUOTE__")
+    .replace(/\\"/g, "__DOUBLE_QUOTE__");
+  const messageMatch = normalized.match(
+    /['"]message['"]\s*:\s*['"]([\s\S]*?)['"]\s*(?:,\s*['"]className['"]\s*:|\})/i,
+  );
+  const extracted = messageMatch ? messageMatch[1] : normalized;
+  return extracted
+    .replace(/__SINGLE_QUOTE__/g, "'")
+    .replace(/__DOUBLE_QUOTE__/g, '"')
+    .replace(/\\\\/g, "\\")
+    .trim();
+};
+
+const IBPreviewErrorMessage = ({ className = "", backendError }) => {
+  const [showDetails, setShowDetails] = useState(false);
+  const errorMessage = parseBackendErrorMessage(backendError);
+  const hasDetails = Boolean(errorMessage);
+
+  return (
+    <div className={`ib-response-error ${className}`.trim()}>
+      <span>{IB_CHART_RENDER_ERROR}</span>
+      {hasDetails && (
+        <>
+          {" "}
+          <button
+            type="button"
+            className="ib-response-error__details-link"
+            onClick={() => setShowDetails((prev) => !prev)}
+          >
+            {showDetails ? "Hide Details" : "View Details"}
+          </button>
+        </>
+      )}
+      {showDetails && hasDetails && (
+        <div className="ib-response-error__details">{errorMessage}</div>
+      )}
+    </div>
+  );
+};
+
 export const ChartView = ({
   data,
   vf,
@@ -236,6 +281,7 @@ export const ChartView = ({
   compact = false,
   chartName = "",
   onPreviewError,
+  backendError,
 }) => {
   const containerRef = useRef(null);
   const isTableChart = isIbTableChart(chartName, vf);
@@ -283,9 +329,7 @@ export const ChartView = ({
 
   if (hasError) {
     return (
-      <div className={`ib-response-error ${className}`.trim()}>
-        {IB_CHART_RENDER_ERROR}
-      </div>
+      <IBPreviewErrorMessage className={className} backendError={backendError} />
     );
   }
 

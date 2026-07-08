@@ -211,14 +211,6 @@ export function HIAGENT({ urlObj = {} }) {
     }
   }, [urlObj]);
 
-  useEffect(() => {
-    if (urlFile) {
-      const base = urlFile.split(".")[0];
-      if (base) {
-        setAgentName(base);
-      }
-    }
-  }, [urlFile]);
   const getSaveContent = () => {
     if (isRawJsonView) {
       const { agentState } = semanticEditorRef.current?.getSaveState?.() || {};
@@ -236,20 +228,20 @@ export function HIAGENT({ urlObj = {} }) {
   const onFormSumbit = (onSaveData, name, uuid) => {
     const dir = metadataDetails?.path;
     const file = metadataDetails?.fileName;
+    const Notify = notify(dispatch);
+    const finalName = name || agentName || "Agent_1";
     let content;
 
     try {
       content = getSaveContent();
     } catch (e) {
-      const Notify = notify(dispatch);
       Notify.error({
         type: "Frontend",
         message: `Invalid JSON: ${e.message}`,
       });
       return;
     }
-    const Notify = notify(dispatch);
-    const finalName = name || agentName || "Agent_1";
+    setAgentName(finalName);
     abortedRef.current = false;
     setIsSaving(true);
     const apiParams = {
@@ -357,6 +349,7 @@ export function HIAGENT({ urlObj = {} }) {
       type: "Save",
       form: (
         <SaveItems
+          key={filebrowserFor}
           formHeading="Agent file name"
           onFormSumbit={onFormSumbit}
           saveButtonText={filebrowserFor === "saveAs" ? "Save As" : "Save"}
@@ -497,6 +490,8 @@ export function HIAGENT({ urlObj = {} }) {
         <SemanticMetadataEditor
           ref={semanticEditorRef}
           agentData={agentData}
+          agentName={agentName}
+          onAgentNameChange={setAgentName}
           onContentChange={setEditorContent}
           isLoading={isLoading || isEditing}
           handleAbort={handleAbort}

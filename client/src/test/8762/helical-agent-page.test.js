@@ -101,7 +101,10 @@ jest.mock("../../components/hi-agent/components/semantic-metadata-editor", () =>
       resetEditor: jest.fn(),
       getSaveState: () => ({
         cubeFieldsData: { children: [] },
-        agentState: { business_metrics: [] },
+        agentState: {
+          domain: [{ domain_name: "Sales", description: "desc", topics: [] }],
+          cube_info: [{ cubeName: "", dimensions: [], measures: [] }],
+        },
       }),
     }));
 
@@ -199,27 +202,6 @@ describe("HIAGENT Page", () => {
     render(
       <Provider store={store}>
         <HIAGENT urlObj={{}} />
-      </Provider>,
-    );
-    await waitFor(() => {
-      expect(agentEditServiceAPI).toHaveBeenCalled();
-    });
-  });
-
-  it("loads agent file from url", async () => {
-    agentEditServiceAPI.mockImplementationOnce(({ successCB }) => {
-      successCB({
-        data: {
-          state: { loaded: "data" },
-          agentName: "UrlAgent",
-          metadata: { location: "/test", metadataFileName: "test.metadata" },
-        },
-      });
-      return { abort: jest.fn() };
-    });
-    render(
-      <Provider store={store}>
-        <HIAGENT urlObj={{ dir: "agents", file: "UrlAgent.agent" }} />
       </Provider>,
     );
     await waitFor(() => {

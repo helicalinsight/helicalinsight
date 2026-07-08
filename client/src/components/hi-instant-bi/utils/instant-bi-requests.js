@@ -508,10 +508,6 @@ export const loadInstantBIOpenChat = ({
     location,
     fileName,
     successCB: (response) => {
-      if (response?.error) {
-        onComplete({ success: false });
-        return;
-      }
       const chatResponse = response?.chat_response;
       const hasChatResponse =
         chatResponse && Object.keys(chatResponse).length > 0;

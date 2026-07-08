@@ -431,7 +431,7 @@ const VizArea = (props) => {
         {content}
         {metaInfo ?
           <Watermark
-            text={metaInfo.productName || "Helical Insight"}
+            text={`Powered by ${metaInfo.productName}©${metaInfo.version}` || "Powered by Helical Insight"}
             link={metaInfo.link}
             placement="bottom-right"
             tooltip="Please upgrade your license to remove this watermark."
