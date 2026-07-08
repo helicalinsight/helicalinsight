@@ -3,8 +3,10 @@ package com.helicalinsight.adhoc.security;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
+import net.sf.jsqlparser.expression.AnalyticExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -13,6 +15,7 @@ import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.AllTableColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
+import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
@@ -335,6 +338,42 @@ public final class SqlQueryMetadataValidator {
                         tableOrAlias = normalizeIdentifier(table.getName());
                     }
                     columnReferences.add(new ColumnReference(tableOrAlias, columnName));
+                }
+
+                /**
+                 * JSQLParser 4.0 ExpressionVisitorAdapter NPEs when ORDER BY inside OVER() is absent
+                 * (getOrderByElements() returns null). Also visit PARTITION BY expressions, which the
+                 * stock visitor skips.
+                 */
+                @Override
+                public void visit(AnalyticExpression expr) {
+                    if (expr.getExpression() != null) {
+                        expr.getExpression().accept(this);
+                    }
+                    if (expr.getDefaultValue() != null) {
+                        expr.getDefaultValue().accept(this);
+                    }
+                    if (expr.getOffset() != null) {
+                        expr.getOffset().accept(this);
+                    }
+                    if (expr.getKeep() != null) {
+                        expr.getKeep().accept(this);
+                    }
+                    if (expr.getFilterExpression() != null) {
+                        expr.getFilterExpression().accept(this);
+                    }
+                    ExpressionList partitionExpressions = expr.getPartitionExpressionList();
+                    if (partitionExpressions != null) {
+                        partitionExpressions.accept(this);
+                    }
+                    List<OrderByElement> orderByElements = expr.getOrderByElements();
+                    if (orderByElements != null) {
+                        for (OrderByElement element : orderByElements) {
+                            if (element != null && element.getExpression() != null) {
+                                element.getExpression().accept(this);
+                            }
+                        }
+                    }
                 }
             };
         }

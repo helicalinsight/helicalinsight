@@ -71,6 +71,7 @@
         <mapping class="com.helicalinsight.admin.model.HIDimensionHierarchy"/>
 		<mapping class="com.helicalinsight.admin.model.HIPhase"/>
 		<mapping class="com.helicalinsight.admin.model.HIAuditDetails"/>
+		<mapping class="com.helicalinsight.admin.model.HILlmUsageAudit"/>
 		<mapping class="com.helicalinsight.admin.model.HIResourcePhaseStatus"/>
 
 

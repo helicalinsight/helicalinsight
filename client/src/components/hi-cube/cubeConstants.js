@@ -48,12 +48,23 @@ export const CUBE_FIELD_SEMANTIC_TEXT_FIELDS = [
 	{ fieldName: 'description', label: 'Description', placeholder: 'Add Description. Ex:Business description.' },
 ];
 
+const AGENT_HIDDEN_SEMANTIC_FIELDS = new Set(['filter', 'example']);
+
+export function getCubeFieldSemanticTextFields(variant = 'cube') {
+	if (variant === 'agent') {
+		return CUBE_FIELD_SEMANTIC_TEXT_FIELDS.filter(
+			({ fieldName }) => !AGENT_HIDDEN_SEMANTIC_FIELDS.has(fieldName),
+		);
+	}
+	return CUBE_FIELD_SEMANTIC_TEXT_FIELDS;
+}
+
 export const CUBE_FIELD_SEMANTIC_MENU_KEY = 'semantic-fields';
 
 export const CUBE_FIELD_MENU_TEXT_KEYS = [CUBE_FIELD_SEMANTIC_MENU_KEY];
 
-const getSemanticDraftFromRecord = (record) =>
-	CUBE_FIELD_SEMANTIC_TEXT_FIELDS.reduce((acc, { fieldName }) => {
+const getSemanticDraftFromRecord = (record, variant = 'cube') =>
+	getCubeFieldSemanticTextFields(variant).reduce((acc, { fieldName }) => {
 		acc[fieldName] = record[fieldName] ?? '';
 		return acc;
 	}, {});
@@ -68,7 +79,7 @@ function CubeFieldSemanticMenuPanel({ draft, onDraftChange, disabled = false }) 
       onMouseDown={stopMenuEvent}
       onKeyDown={stopMenuEvent}
     >
-      {CUBE_FIELD_SEMANTIC_TEXT_FIELDS.map(({ fieldName, label, placeholder }) => (
+      {getCubeFieldSemanticTextFields(variant).map(({ fieldName, label, placeholder }) => (
         <div key={fieldName} style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
             <CubeFieldSemanticLabel label={label} />
@@ -101,7 +112,7 @@ export function commitCubeFieldSemanticDraft({ dispatch, record, draft, variant 
 	if (record.isHierarchyChild && variant !== 'agent') {
 		return;
 	}
-	CUBE_FIELD_SEMANTIC_TEXT_FIELDS.forEach(({ fieldName }) => {
+	getCubeFieldSemanticTextFields(variant).forEach(({ fieldName }) => {
 		const nextValue = draft[fieldName] ?? '';
 		const prevValue = record[fieldName] ?? '';
 		if (nextValue !== prevValue) {
@@ -254,7 +265,7 @@ function buildCubeFieldsMenuItems({
 
 export function CubeFieldsMenu({ dispatch, record, hierarchyData, semanticCommitsRef }) {
 	const { variant } = useCubeEditorBindings();
-	const semanticDraftRef = useRef(getSemanticDraftFromRecord(record));
+	const semanticDraftRef = useRef(getSemanticDraftFromRecord(record, variant));
 	const [semanticDraft, setSemanticDraft] = useState(() => semanticDraftRef.current);
 
 	const updateSemanticDraft = (nextDraft) => {
@@ -263,14 +274,15 @@ export function CubeFieldsMenu({ dispatch, record, hierarchyData, semanticCommit
 	};
 
 	useEffect(() => {
-		const nextDraft = getSemanticDraftFromRecord(record);
+		const nextDraft = getSemanticDraftFromRecord(record, variant);
 		semanticDraftRef.current = nextDraft;
 		setSemanticDraft(nextDraft);
 	}, [
 		record.key,
 		record.parentKey,
 		record.isHierarchyChild,
-		...CUBE_FIELD_SEMANTIC_TEXT_FIELDS?.map(({ fieldName }) => record[fieldName]),
+		variant,
+		...getCubeFieldSemanticTextFields(variant).map(({ fieldName }) => record[fieldName]),
 	]);
 
 	useEffect(() => {
@@ -282,13 +294,14 @@ export function CubeFieldsMenu({ dispatch, record, hierarchyData, semanticCommit
 				dispatch,
 				record,
 				draft: semanticDraftRef.current,
+				variant,
 			});
 		};
 		semanticCommitsRef.current.set(record.key, commitDraft);
 		return () => {
 			semanticCommitsRef.current.delete(record.key);
 		};
-	}, [semanticCommitsRef, dispatch, record]);
+	}, [semanticCommitsRef, dispatch, record, variant]);
 
 	const handleMenuClick = (e) => {
 		// if (e.key !== 'TextArea' && (e.key !== 'deleteFromHierarchy')) {
@@ -300,6 +313,7 @@ export function CubeFieldsMenu({ dispatch, record, hierarchyData, semanticCommit
 				dispatch,
 				record,
 				draft: semanticDraftRef.current,
+				variant,
 			});
 			dispatch(
 				updateFieldValues({

@@ -144,6 +144,34 @@
 			border-bottom: 1px solid #ebebeb;
 			flex-shrink: 0;
 		}
+		.cube-domain-description-bar--agent {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 12px 16px;
+			align-items: start;
+
+			.cube-domain-description-field {
+				flex-direction: column;
+				align-items: stretch;
+				gap: 4px;
+				min-width: 0;
+			}
+			.cube-domain-label {
+				padding-top: 0;
+			}
+			.cube-domain-input,
+			.cube-topic-input {
+				width: 100%;
+				max-width: none;
+				min-width: 0;
+			}
+			.cube-description-input {
+				min-width: 0;
+				max-width: none;
+				resize: vertical;
+				overflow: auto;
+			}
+		}
 		.cube-domain-description-field {
 			display: flex;
 			align-items: flex-start;
@@ -172,6 +200,19 @@
 			flex: 1;
 			min-width: 200px;
 			max-width: 480px;
+		}
+		.cube-topic-field {
+			flex-shrink: 0;
+		}
+		.cube-topic-input {
+			width: 180px;
+			flex-shrink: 0;
+		}
+		.cube-agent-fields-toolbar {
+			display: flex;
+			justify-content: flex-end;
+			padding: 4px 8px 0;
+			flex-shrink: 0;
 		}
 		.schedule-table {
 			.ant-table-body {

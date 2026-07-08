@@ -33,11 +33,13 @@ import {
   convertAgentDataToCubeFieldsData,
   convertCubeFieldsDataToAgentData,
   getAgentStateFromCubeFields,
+  normalizeAgentData,
   resolveAgentDataFromInput,
   serializeAgentData,
   serializeAgentDataForDisplay,
   stripInternalTableRefsFromAgentState,
 } from "../../utils/agent-cube-bridge";
+import { AgentNameProvider } from "../../../common/agent-name-context";
 import "./semantic-metadata-editor.scss";
 
 const EMPTY_AGENT_DATA = ensureShape({});
@@ -46,6 +48,8 @@ const SemanticMetadataEditor = React.forwardRef(
   (
     {
       agentData = null,
+      agentName = "Agent_1",
+      onAgentNameChange,
       onContentChange,
       isLoading = false,
       handleAbort,
@@ -105,7 +109,7 @@ const SemanticMetadataEditor = React.forwardRef(
 
     const publishAgentData = useCallback(
       (nextAgentData, { syncCube = true, syncJson = true } = {}) => {
-        const shaped = ensureShape(nextAgentData);
+        const shaped = normalizeAgentData(nextAgentData);
         const serialized = serializeAgentData(shaped);
 
         agentDataRef.current = shaped;
@@ -139,7 +143,7 @@ const SemanticMetadataEditor = React.forwardRef(
         const { agentState } = parsePastedAgentPayload(rawText);
         const nextAgentData = resolveAgentDataFromInput(
           agentDataRef.current,
-          agentState,
+          normalizeAgentData(agentState),
         );
         lastLoadedAgentPropRef.current = serializeAgentData(nextAgentData);
         return applyAgentData(nextAgentData, { syncJson });
@@ -277,28 +281,33 @@ const SemanticMetadataEditor = React.forwardRef(
     }
 
     return (
-      <CubeEditorProvider
-        cubeState={cubeState}
-        dispatch={editorDispatch}
-        variant="agent"
+      <AgentNameProvider
+        agentName={agentName}
+        onAgentNameChange={onAgentNameChange}
       >
-        <JsonEditorShell
-          className={`semantic-metadata-editor${
-            isRawJsonView ? " semantic-metadata-editor--raw-json" : ""
-          }`}
-          isRawJsonView={isRawJsonView}
-          jsonText={jsonText}
-          onJsonChange={handleJsonChange}
-          isJsonActive={false}
-          pasteOpen={pasteOpen}
-          pasteText={pasteText}
-          onPasteTextChange={setPasteText}
-          onPasteClose={closePasteModal}
-          onPasteLoad={handlePasteLoad}
+        <CubeEditorProvider
+          cubeState={cubeState}
+          dispatch={editorDispatch}
+          variant="agent"
         >
-          <Cube />
-        </JsonEditorShell>
-      </CubeEditorProvider>
+          <JsonEditorShell
+            className={`semantic-metadata-editor${
+              isRawJsonView ? " semantic-metadata-editor--raw-json" : ""
+            }`}
+            isRawJsonView={isRawJsonView}
+            jsonText={jsonText}
+            onJsonChange={handleJsonChange}
+            isJsonActive={false}
+            pasteOpen={pasteOpen}
+            pasteText={pasteText}
+            onPasteTextChange={setPasteText}
+            onPasteClose={closePasteModal}
+            onPasteLoad={handlePasteLoad}
+          >
+            <Cube />
+          </JsonEditorShell>
+        </CubeEditorProvider>
+      </AgentNameProvider>
     );
   },
 );

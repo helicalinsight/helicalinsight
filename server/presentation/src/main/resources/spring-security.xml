@@ -254,6 +254,8 @@
         <intercept-url pattern="/ai/load-chat*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/data-insight/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/data-insight*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/llm-usage-audit/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/llm-usage-audit*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/services*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 

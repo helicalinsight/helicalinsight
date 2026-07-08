@@ -18,6 +18,8 @@ public final class InstantBIServiceFactory {
             "com.helicalinsight.instant.ai.service.impl.AiLoadChatServiceImpl";
     private static final String CHAT_CONTEXT_SERVICE_IMPL =
             "com.helicalinsight.instant.ai.service.impl.AiChatContextServiceImpl";
+    private static final String LLM_USAGE_AUDIT_SERVICE_IMPL =
+            "com.helicalinsight.instant.ai.service.impl.AiLlmUsageAuditServiceImpl";
 
     private InstantBIServiceFactory() {
     }
@@ -48,5 +50,9 @@ public final class InstantBIServiceFactory {
 
     public static IAiChatContextService getChatContextService() {
         return FactoryMethodWrapper.getTypedInstance(CHAT_CONTEXT_SERVICE_IMPL, IAiChatContextService.class);
+    }
+
+    public static IAiLlmUsageAuditService getLlmUsageAuditService() {
+        return FactoryMethodWrapper.getTypedInstance(LLM_USAGE_AUDIT_SERVICE_IMPL, IAiLlmUsageAuditService.class);
     }
 }
