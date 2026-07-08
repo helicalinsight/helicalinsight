@@ -2,6 +2,9 @@
 
 [Helical Insight](https://www.helicalinsight.com/) is an open-source business intelligence (BI) and analytics platform. It lets teams connect to data sources, explore metadata, build ad hoc reports and dashboards, schedule deliveries, and export results — all from a modern web interface.
 
+[Watch the Helical Insight Introduction](https://youtu.be/hz07TO1gL9c?si=Tg0d2oJipahBeElL)
+
+
 This repository contains two components:
 
 | Component | Directory | Stack |
@@ -17,7 +20,8 @@ This repository contains two components:
 - **Scheduling** — email and automate report delivery
 - **Export** — PDF, Excel, and other formats (Chrome-based rendering on the server)
 - **Administration** — users, roles, plugins, and system configuration
-- **Instant BI** — natural-language and assisted analytics
+- **Instant BI** — AI based insights for direct answers for users on thier feet.
+- **Canned Report** - Create professional reports ideal for invoices, financial statements, compliance documents, and operational needs.
 
 ## Quick start
 
@@ -56,6 +60,12 @@ git checkout helicalinsight-ce-7.0
 cp .env.example .env   # optional — defaults work for local dev
 # Windows PowerShell: Copy-Item .env.example .env
 docker compose -f docker-compose.dev.yml up --build
+```
+
+Once build is done: you can run docker in detached mode
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 | URL | Purpose |
