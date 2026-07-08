@@ -60,7 +60,9 @@ import Highlighter from "react-highlight-words";
 import { fileBrowserActions } from "../../redux/actions";
 import { SEMANTIC_TYPES } from "../hi-agent/components/semantic-metadata-editor/semantic-metadata-utils";
 import { getCubeEditorTooltipText } from "./cubeEditorTooltips";
-import { parseSingleTopic } from "./cubeSemanticFields";
+import { useAgentName } from "../common/agent-name-context";
+import { parseCommaSeparatedToArray, formatArrayAsCommaSeparated } from "./cubeSemanticFields";
+import { createManualMetricChild } from "../hi-agent/utils/agent-cube-bridge";
 
 const { Title, Paragraph } = Typography;
 
@@ -99,7 +101,6 @@ const CubeSemanticListInput = memo(function CubeSemanticListInput({
   placeholder,
   isHierarchyChild,
   hierarchyKey,
-  singleValue = false,
 }) {
   const { dispatch } = useCubeEditorBindings();
   const [localValue, setLocalValue] = useState(value ?? "");
@@ -112,9 +113,9 @@ const CubeSemanticListInput = memo(function CubeSemanticListInput({
   }, [value, recordKey]);
 
   const commit = (nextValue) => {
-    const normalized = singleValue
-      ? parseSingleTopic(nextValue ?? "")
-      : (nextValue ?? "");
+    const normalized = formatArrayAsCommaSeparated(
+      parseCommaSeparatedToArray(nextValue ?? ""),
+    );
     if (normalized !== (value ?? "")) {
       dispatch(
         updateFieldValues({
@@ -166,6 +167,7 @@ export function CubeEditor() {
   const searchInput = useRef(null);
   const semanticMenuCommitsRef = useRef(new Map());
   const { cubeState, dispatch, variant } = useCubeEditorBindings();
+  const { agentName, onAgentNameChange } = useAgentName();
   const descriptionFieldUi =
     DESCRIPTION_FIELD_UI[variant] || DESCRIPTION_FIELD_UI.cube;
   const {
@@ -343,7 +345,7 @@ export function CubeEditor() {
 
   if (variant === "agent") {
     tableVirtualProps = {
-      scroll: { y: 440, x: "max-content" },
+      scroll: { y: 430, x: "max-content" },
     };
   } else {
     tableVirtualProps = {
@@ -364,6 +366,15 @@ export function CubeEditor() {
     );
     dispatch(setVisibleCheckValue(e.target.checked));
     dispatch(setCubeIndeterminate(false));
+  };
+
+  const handleAddManualMetric = () => {
+    dispatch(
+      setCubeFieldsData({
+        mode: "setChild",
+        child: createManualMetricChild(cubeFieldsData.children),
+      }),
+    );
   };
 
   const handleVisibleChange = ({ flag, record }) => {
@@ -388,7 +399,6 @@ export function CubeEditor() {
     dataIndex,
     fieldName,
     placeholder,
-    singleValue = false,
     infoLabel,
   }) => ({
     title: (
@@ -411,7 +421,6 @@ export function CubeEditor() {
           placeholder={placeholder}
           isHierarchyChild={record.isHierarchyChild}
           hierarchyKey={record.parentKey}
-          singleValue={singleValue}
         />
       ),
   });
@@ -450,20 +459,23 @@ export function CubeEditor() {
           </Select>
         ),
     },
-    semanticListInputColumn({
-      title: "Synonyms",
-      dataIndex: "synonyms",
-      fieldName: "synonyms",
-      placeholder: "e.g. users, clients",
-    }),
-    semanticListInputColumn({
-      title: "Topic",
-      dataIndex: "topic",
-      fieldName: "topic",
-      placeholder: variant === "agent" ? "e.g. Sales" : "e.g. Sales, Travel",
-      singleValue: variant === "agent",
-      infoLabel: variant === "agent" ? "Agent Topic" : "Topic",
-    }),
+    ...(variant !== "agent"
+      ? [
+          semanticListInputColumn({
+            title: "Synonyms",
+            dataIndex: "synonyms",
+            fieldName: "synonyms",
+            placeholder: "e.g. users, clients",
+          }),
+          semanticListInputColumn({
+            title: "Topic",
+            dataIndex: "topic",
+            fieldName: "topic",
+            placeholder: "e.g. Sales, Travel",
+            infoLabel: "Topic",
+          }),
+        ]
+      : []),
   ];
   const columns = [
     {
@@ -717,7 +729,25 @@ export function CubeEditor() {
 
   return (
     <div className="cube-editor" ref={drop}>
-      <div className="cube-domain-description-bar">
+      <div
+        className={`cube-domain-description-bar${
+          variant === "agent" ? " cube-domain-description-bar--agent" : ""
+        }`}
+      >
+        {variant === "agent" && (
+          <div className="cube-domain-description-field cube-agent-name-field">
+            <span className="cube-domain-label">
+              Agent
+              <CubeFieldInfo label="Agent" />
+            </span>
+            <Input
+              className="cube-domain-input"
+              value={agentName || ""}
+              placeholder="Agent_1"
+              onChange={(e) => onAgentNameChange?.(e.target.value)}
+            />
+          </div>
+        )}
         <div className="cube-domain-description-field">
           <span className="cube-domain-label">
             Domain <span className="cube-required-mark">*</span>
@@ -758,7 +788,48 @@ export function CubeEditor() {
             }
           />
         </div>
+        {variant === "agent" && (
+          <div className="cube-domain-description-field cube-topic-field">
+            <span className="cube-domain-label">
+              Topic
+              <CubeFieldInfo label="Agent Topic" />
+            </span>
+            <Input
+              className="cube-topic-input"
+              value={cubeFieldsData.cubeTopic || ""}
+              placeholder="e.g. Sales, Travel"
+              onChange={(e) =>
+                dispatch(
+                  updateFieldValues({
+                    updateName: "cubeTopic",
+                    checkVal: e.target.value,
+                  }),
+                )
+              }
+              onBlur={(e) => {
+                const normalized = formatArrayAsCommaSeparated(
+                  parseCommaSeparatedToArray(e.target.value ?? ""),
+                );
+                if (normalized !== (cubeFieldsData.cubeTopic || "")) {
+                  dispatch(
+                    updateFieldValues({
+                      updateName: "cubeTopic",
+                      checkVal: normalized,
+                    }),
+                  );
+                }
+              }}
+            />
+          </div>
+        )}
       </div>
+      {variant === "agent" && (
+        <div className="cube-agent-fields-toolbar">
+          <Button type="primary" size="small" onClick={handleAddManualMetric}>
+            Add Metric
+          </Button>
+        </div>
+      )}
       <Table
         className="schedule-table"
         columns={columns}

@@ -71,6 +71,7 @@
 		<class>com.helicalinsight.admin.model.HIPhase</class>
 		<class>com.helicalinsight.admin.model.HIResourcePhaseStatus</class>
 		<class>com.helicalinsight.admin.model.HIAuditDetails</class>
+		<class>com.helicalinsight.admin.model.HILlmUsageAudit</class>
 		<class>com.helicalinsight.admin.model.HIRecycleBin</class>
 		<class>com.helicalinsight.admin.model.HIRecycleBinHIResourceDB</class>
 		<class>com.helicalinsight.admin.model.HIRecycleBinDSGlobalConnections</class>

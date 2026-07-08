@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Typography, Input, Button, Form, Space, Checkbox  } from "antd";
+import { Typography, Input, Button, Form } from "antd";
 import { useSelector, useDispatch } from "react-redux";
 import { SelectedItemBreadcrumb } from "./components";
 import { fileBrowserActions } from "../../redux/actions";
@@ -59,7 +59,7 @@ const SaveItems = ({
       <SelectedItemBreadcrumb pathItem={clickedContextRecord} />
       <Title level={5}>{formHeading || "Save file"}</Title>
       <Form
-        data-testid = "hi-file-browser-saveItems"
+        data-testid="hi-file-browser-saveItems"
         {...layout}
         onFinish={onSubmit}
         ref={saveForm}

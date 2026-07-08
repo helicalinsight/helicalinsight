@@ -289,6 +289,8 @@ const cubeInitialState = {
     id: "",
     domainName: "",
     cubeDescription: "",
+    cubeTopic: "",
+    cubeName: "",
     children: [],
     // key: '',
     hierarchyData: { isHierarchyPresent: false, hierarchyList: [] },

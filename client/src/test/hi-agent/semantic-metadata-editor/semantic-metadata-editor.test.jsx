@@ -78,10 +78,13 @@ const renderWithStore = (agentOverrides = {}, ui) => {
 };
 
 const sampleAgentData = ensureShape({
-  metadata_info: {
-    metadata: { domain: ["Finance"], description: "Test metadata" },
-  },
-  business_metrics: [{ metric: "revenue", description: "", formula: "", tables: [] }],
+  domain: [
+    {
+      domain_name: "Finance",
+      description: "Test metadata",
+      topics: [],
+    },
+  ],
 });
 
 describe("SemanticMetadataEditor", () => {
@@ -164,7 +167,9 @@ describe("SemanticMetadataEditor", () => {
     const copied = JSON.parse(navigator.clipboard.writeText.mock.calls[0][0]);
     expect(copied.metadata).toBeUndefined();
     expect(copied.state).toBeUndefined();
-    expect(copied.metadata_info).toBeDefined();
+    expect(copied.domain).toBeDefined();
+    expect(copied.cube_info).toBeDefined();
+    expect(copied.business_metrics).toBeUndefined();
 
     ref.current.handleOpenPaste();
     expect(screen.getByText("Paste JSON")).toBeInTheDocument();
@@ -175,9 +180,13 @@ describe("SemanticMetadataEditor", () => {
     const onContentChange = jest.fn();
     const ref = createRef();
     const pastedState = ensureShape({
-      metadata_info: {
-        metadata: { domain: ["Sales"], description: "Pasted metadata" },
-      },
+      domain: [
+        {
+          domain_name: "Sales",
+          description: "Pasted metadata",
+          topics: [],
+        },
+      ],
     });
     renderWithStore(
       {},

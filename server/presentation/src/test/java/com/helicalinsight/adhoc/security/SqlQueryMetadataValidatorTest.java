@@ -189,6 +189,37 @@ public class SqlQueryMetadataValidatorTest {
         assertFalse(allowed.containsKey("invalid_table"));
     }
 
+    @Test
+    public void ut_a19_validateQueryAgainstMetadata_allowsAnalyticWithoutOrderBy() {
+        JsonObject columns = new JsonObject();
+        columns.add("travel_date", new JsonObject());
+        columns.add("travel_cost", new JsonObject());
+
+        JsonObject table = new JsonObject();
+        table.addProperty("name", "travel_details");
+        table.add("columns", columns);
+
+        JsonObject tables = new JsonObject();
+        tables.add("travel_details", table);
+
+        JsonObject metadata = new JsonObject();
+        metadata.add("tables", tables);
+
+        Map<String, Set<String>> allowed = SqlQueryMetadataValidator.buildAllowedTablesColumns(metadata);
+
+        // Window function with PARTITION BY but no ORDER BY — JSQLParser 4.0 NPE without null-safe visit
+        SqlQueryMetadataValidator.validateQueryAgainstMetadata(
+                "SELECT TO_CHAR(\"travel_details\".\"travel_date\", 'YYYY-MM') AS \"month\", "
+                        + "SUM(\"travel_details\".\"travel_cost\") "
+                        + "OVER (PARTITION BY TO_CHAR(\"travel_details\".\"travel_date\", 'YYYY-MM')) "
+                        + "AS \"monthly_cost\" "
+                        + "FROM \"travel_details\" "
+                        + "GROUP BY TO_CHAR(\"travel_details\".\"travel_date\", 'YYYY-MM') "
+                        + "ORDER BY \"month\" "
+                        + "LIMIT 100",
+                allowed);
+    }
+
     private static JsonObject sampleMetadata() {
         JsonObject employeeColumns = new JsonObject();
         employeeColumns.add("id", new JsonObject());

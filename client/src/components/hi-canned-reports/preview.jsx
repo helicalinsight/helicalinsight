@@ -29,7 +29,7 @@ const PreviewArea = ({ previewTag, flowchartInstance, setIsPreviewLoading, isPre
                     )}
                     {metaInfo ?
                         <Watermark
-                            text={"Helical Insight"}
+                            text={`Powered by ${metaInfo.productName}©${metaInfo.version}` || "Powered by Helical Insight"}
                             link={"https://www.helicalinsight.com/"}
                             placement="bottom-right"
                             tooltip="Please upgrade your license to remove this watermark."

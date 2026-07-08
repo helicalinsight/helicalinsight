@@ -274,6 +274,40 @@ public class SqlUtils {
                 sqlMap.putAll(nestedFunction(function,sqlMap,allowComplexJson));
             }
 
+            /**
+             * JSQLParser 4.0 ExpressionVisitorAdapter NPEs when OVER() has no ORDER BY
+             * (getOrderByElements() is null). Visit PARTITION BY / ORDER BY safely.
+             */
+            @Override
+            public void visit(AnalyticExpression analyticExpression) {
+                if (analyticExpression.getExpression() != null) {
+                    extractColumns(analyticExpression.getExpression(), sqlMap, allowComplexJson);
+                }
+                if (analyticExpression.getDefaultValue() != null) {
+                    extractColumns(analyticExpression.getDefaultValue(), sqlMap, allowComplexJson);
+                }
+                if (analyticExpression.getOffset() != null) {
+                    extractColumns(analyticExpression.getOffset(), sqlMap, allowComplexJson);
+                }
+                if (analyticExpression.getFilterExpression() != null) {
+                    extractColumns(analyticExpression.getFilterExpression(), sqlMap, allowComplexJson);
+                }
+                ExpressionList partitionExpressions = analyticExpression.getPartitionExpressionList();
+                if (partitionExpressions != null && partitionExpressions.getExpressions() != null) {
+                    for (Expression partitionExpression : partitionExpressions.getExpressions()) {
+                        extractColumns(partitionExpression, sqlMap, allowComplexJson);
+                    }
+                }
+                List<OrderByElement> orderByElements = analyticExpression.getOrderByElements();
+                if (orderByElements != null) {
+                    for (OrderByElement element : orderByElements) {
+                        if (element != null && element.getExpression() != null) {
+                            extractColumns(element.getExpression(), sqlMap, allowComplexJson);
+                        }
+                    }
+                }
+            }
+
             @Override
             public void visit(CastExpression castExpression) {
                 Expression leftExpression = castExpression.getLeftExpression();
