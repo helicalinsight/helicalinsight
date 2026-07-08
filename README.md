@@ -157,7 +157,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-See the [LICENSE](LICENSE) file in the repository root. If no license file is present yet, contact [Helical Insight](https://www.helicalinsight.com/) for licensing terms before redistribution.
+See the [LICENSE](LICENSE) and [LICENSE-HICL](LICENSE-HICL.MD) files in the repository root. If no license file is present yet, contact [Helical Insight](https://www.helicalinsight.com/) for licensing terms before redistribution.
 
 ## Support
 
