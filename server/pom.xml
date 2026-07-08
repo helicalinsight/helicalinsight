@@ -1494,7 +1494,7 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-transport-native-epoll</artifactId>
-				<version>4.1.92.Final</version>
+				<version>4.1.135.Final</version>
 			</dependency>
 
 			<!-- https://mvnrepository.com/artifact/org.codehaus.groovy/groovy -->
