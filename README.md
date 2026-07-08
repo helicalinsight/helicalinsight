@@ -20,7 +20,7 @@ This repository contains two components:
 - **Scheduling** — email and automate report delivery
 - **Export** — PDF, Excel, and other formats (Chrome-based rendering on the server)
 - **Administration** — users, roles, plugins, and system configuration
-- **Instant BI** — AI based insights for direct answers for users on thier feet.
+- **Instant BI** — Easily ask questions in natural language to get instant visual insights. It includes the flexibility to **Bring Your Own LLM (BYOL) model.
 - **Canned Report** - Create professional reports ideal for invoices, financial statements, compliance documents, and operational needs.
 
 ## Quick start
