@@ -423,6 +423,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                             chartName={vizDetails?.chart_name}
                             className="chart-wrapper--message"
                             onPreviewError={setHasPreviewError}
+                            backendError={resolvedFullChatResponse?.error}
                           />
                         </div>
                         {(isLoadingDataInsight || dataInsightContent) && (

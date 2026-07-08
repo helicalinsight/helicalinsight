@@ -117,6 +117,15 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 					}
 				};
 			}
+			if (updateName === 'cubeTopic') {
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						cubeTopic: checkVal ?? ''
+					}
+				};
+			}
 			let dupCubeFieldsData = JSON.parse(JSON.stringify(state.cubeFieldsData));
 			let dupChildren = [];
 			let duplicateHierarchyData = {

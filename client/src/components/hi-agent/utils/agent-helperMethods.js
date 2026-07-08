@@ -20,10 +20,12 @@ const toCubeFieldsDataForValidation = (cubeFieldsData, agentState) => {
   if (cubeFieldsData) {
     return cubeFieldsData;
   }
-  const metadata = agentState?.metadata_info?.metadata || {};
+  const domainEntry = agentState?.domain?.[0] || {};
   return {
-    domainName: metadata.domain || [],
-    cubeDescription: metadata.description || "",
+    domainName: (agentState?.domain || [])
+      .map((entry) => entry.domain_name)
+      .filter(Boolean),
+    cubeDescription: domainEntry.description || "",
   };
 };
 
