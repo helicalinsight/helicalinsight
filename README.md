@@ -53,7 +53,6 @@ Verify tools:
 ```bash
 git clone https://github.com/helicalinsight/helicalinsight.git
 cd helicalinsight
-git checkout helicalinsight-ce-7.0
 ```
 
 ### 2. Fastest path — Docker (recommended)
