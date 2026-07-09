@@ -4,27 +4,26 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html" charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>HI: JWT Demo</title>
+    <title>HI: Embedding JWT Demo</title>
 
     <script src="https://code.jquery.com/jquery-3.0.0.min.js"
         integrity="sha256-JmvOoLtYsmqlsWxa7mDSLMwa6dZ9rrIdtrrVYRnDRH0=" crossorigin="anonymous"></script>
 
     <script>
         // requesBaseURL is a mandetary(set in header) to make hi-report run properly.
-        var requestBaseUrl = "https://164.52.206.202:8443/hi-ee"
+        var requestBaseUrl = "https://{{helical insight IP address}}/hi-ee"
     </script>
 </head>
 
 <body>
     <!-- Copy script and js files from HI Application -->
     <!-- Start files from HI -->
-    <script src="https://164.52.206.202:8443/hi-ee/js/2.chunk.js"></script>
-    <script src="https://164.52.206.202:8443/hi-ee/js/main.chunk.js"></script>
-    <link href="https://164.52.206.202:8443/hi-ee/fonts/questrial/questrial.css" rel="stylesheet" />
-    <link href="https://164.52.206.202:8443/hi-ee/css/syncfusion.css" rel="stylesheet">
-    <link href="https://164.52.206.202:8443/hi-ee/css/2.chunk.css" rel="stylesheet">
-    <link href="https://164.52.206.202:8443/hi-ee/css/main.chunk.css" rel="stylesheet">
-    <link href="https://164.52.206.202:8443/hi-ee/css/metadata.css" rel="stylesheet">
+    <script src="https://{{helical insight IP address}}/hi-ee/js/2.chunk.js"></script>
+    <script src="https://{{helical insight IP address}}/hi-ee/js/main.chunk.js"></script>
+    <link href="https://{{helical insight IP address}}/hi-ee/fonts/questrial/questrial.css" rel="stylesheet" />
+    <link href="https://{{helical insight IP address}}/hi-ee/css/2.chunk.css" rel="stylesheet">
+    <link href="https://{{helical insight IP address}}/hi-ee/css/main.chunk.css" rel="stylesheet">
+    <link href="https://{{helical insight IP address}}/hi-ee/css/metadata.css" rel="stylesheet">
     <!-- End Files from HI -->
     <noscript>You need to enable JavaScript to run this app.</noscript>
 
@@ -65,7 +64,7 @@
             return token
         }
         function callAjax(urlString, token, callback) {
-            // token = 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJIZWxpY2FsSW5zaWdodCIsInN1YiI6ImhpdXNlciIsInNjb3BlcyI6IlJPTEVfQURNSU4sUk9MRV9VU0VSIiwiaWF0IjoxNjQxNTU4ODQyLCJleHAiOjE2NTk1NTg4NDJ9.Q445ReiSP_SFODTKJLVXZ9V5VgNVcveonneXzEykSJ0'
+            token = '{{provide JWT token}}'
             $.ajax({
                 method: "POST",
                 url: urlString,
