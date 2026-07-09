@@ -2,17 +2,8 @@
 
 [Helical Insight](https://www.helicalinsight.com/) is an open-source business intelligence (BI) and analytics platform. It lets teams connect to data sources, explore metadata, build ad hoc reports and dashboards, schedule deliveries, and export results — all from a modern web interface.
 
-## Watch the Helical Insight Introduction video
+## Video Overview
 [![Watch the Helical Insight Introduction](https://img.youtube.com/vi/hz07TO1gL9c/0.jpg)](https://youtu.be/hz07TO1gL9c?si=Tg0d2oJipahBeElL)
-
-![Helical Insight Introduction](docs/All%20Resource%20Open%20mode.gif)
-
-This repository contains two components:
-
-| Component | Directory | Stack |
-|-----------|-----------|-------|
-| **Backend** | [`server/`](server/) | Java 21, Spring, Hibernate, Apache Tomcat (WAR) |
-| **Frontend** | [`client/`](client/) | React 17, Redux, Ant Design |
 
 ## Features
 
@@ -24,6 +15,17 @@ This repository contains two components:
 - **Administration** — users, roles, plugins, and system configuration
 - **Instant BI** — Easily ask questions in natural language to get instant visual insights. It includes the flexibility to **Bring Your Own LLM (BYOL) model.
 - **Canned Report** - Create professional reports ideal for invoices, financial statements, compliance documents, and operational needs.
+
+## Demo 
+![Helical Insight Introduction](docs/All%20Resource%20Open%20mode.gif)
+
+## Repository outlook
+This repository contains two components:
+
+| Component | Directory | Stack |
+|-----------|-----------|-------|
+| **Backend** | [`server/`](server/) | Java 21, Spring, Hibernate, Apache Tomcat (WAR) |
+| **Frontend** | [`client/`](client/) | React 17, Redux, Ant Design |
 
 ## Quick start
 
