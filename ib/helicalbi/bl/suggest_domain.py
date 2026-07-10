@@ -3,7 +3,8 @@ import logging
 from flask import request
 
 from bl.app_context import app
-from helicalbi.common.auth import resolve_session_auth
+from bl.helpers import log_endpoint_input
+from helicalbi.common.auth import bind_request_identity
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,8 @@ def register(flask_app) -> None:
     @flask_app.route("/suggestDomain", methods=["POST"])
     def suggest_domain():
         data = request.get_json()
-        session_cookie, username = resolve_session_auth(data)
+        log_endpoint_input("/suggestDomain", data)
+        session_cookie, username = bind_request_identity(data)
         agent_file_name = data["agent"]["file"]
         location = data["agent"]["dir"]
         logger.info(

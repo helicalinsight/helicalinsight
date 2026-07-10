@@ -8,11 +8,20 @@ logging:
   level: "ERROR"             # DEBUG | INFO | WARNING | ERROR | CRITICAL
   file: "logs/app.log"      # Path to the rotating log file
   backup_days: 14           # Number of daily log files to retain
+  show_llm_activity: false  # Log rendered LLM prompts and invoke/token activity
+  show_endpoint_log: false   # Log HTTP endpoint request payloads
+  show_api_call_log: false   # Log HI service API request/response payloads
 
 feature_flags:
   enable_cache: false       # Cache LLM and query results
   enable_streaming: false   # Stream chat responses to the client
   enable_memory: false      # Persist conversation history across sessions
+  enable_llm_usage_audit: true  # Persist LLM token usage to the Java audit API
+  optional_prompt_reason: false  # Omit reason from LLM prompts and API responses
+
+api_cache:
+  enabled: true             # Cache HI service API responses in memory
+  max_entries: 100          # Evict oldest entries when this limit is reached
 
 sql:
   default_limit: 100        # Default row limit appended to generated SQL queries

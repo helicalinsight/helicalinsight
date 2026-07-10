@@ -3,8 +3,8 @@ import logging
 from flask import request
 
 from bl.app_context import app
-from bl.helpers import agent_error_payload, error_messages_from_exception, json_response
-from helicalbi.common.auth import resolve_session_auth
+from bl.helpers import agent_error_payload, error_messages_from_exception, json_response, log_endpoint_input
+from helicalbi.common.auth import bind_request_identity
 
 logger = logging.getLogger(__name__)
 
@@ -13,10 +13,11 @@ def register(flask_app) -> None:
     @flask_app.route("/getSemanticData", methods=["POST"])
     def get_semantic_data():
         data = request.get_json()
+        log_endpoint_input("/getSemanticData", data)
         user_input = data["input"]
         location = user_input["location"]
         file_name = user_input["fileName"]
-        session_cookie, username = resolve_session_auth(data, user_input)
+        session_cookie, username = bind_request_identity(data, user_input)
         tables_requested = user_input.get("tables", [])
         logger.info(
             "Semantic data requested user=%s file=%s location=%s tables=%s",
