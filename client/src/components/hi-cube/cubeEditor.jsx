@@ -1,6 +1,5 @@
 import {
   Typography,
-  Button,
   Space,
   Divider,
   Table,
@@ -33,6 +32,7 @@ import {
   EllipsisOutlined,
   CaretRightOutlined,
   InfoCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { useDrop } from "react-dnd";
 import { VList } from "virtuallist-antd";
@@ -761,7 +761,7 @@ export function CubeEditor() {
               dispatch(
                 updateFieldValues({
                   updateName: "domainName",
-                  checkVal: e.target.value,
+                  checkVal: e.target.value.split(",")[0],
                 }),
               )
             }
@@ -794,32 +794,54 @@ export function CubeEditor() {
               Topic
               <CubeFieldInfo label="Agent Topic" />
             </span>
-            <Input
-              className="cube-topic-input"
-              value={cubeFieldsData.cubeTopic || ""}
-              placeholder="e.g. Sales, Travel"
-              onChange={(e) =>
-                dispatch(
-                  updateFieldValues({
-                    updateName: "cubeTopic",
-                    checkVal: e.target.value,
-                  }),
-                )
-              }
-              onBlur={(e) => {
-                const normalized = formatArrayAsCommaSeparated(
-                  parseCommaSeparatedToArray(e.target.value ?? ""),
-                );
-                if (normalized !== (cubeFieldsData.cubeTopic || "")) {
+            <div className="cube-topic-input-row">
+              <Input
+                className="cube-topic-input"
+                value={cubeFieldsData.cubeTopic || ""}
+                placeholder="e.g. Sales, Travel"
+                onChange={(e) =>
                   dispatch(
                     updateFieldValues({
                       updateName: "cubeTopic",
-                      checkVal: normalized,
+                      checkVal: e.target.value,
                     }),
-                  );
+                  )
                 }
-              }}
-            />
+                onBlur={(e) => {
+                  const normalized = formatArrayAsCommaSeparated(
+                    parseCommaSeparatedToArray(e.target.value ?? ""),
+                  );
+                  if (normalized !== (cubeFieldsData.cubeTopic || "")) {
+                    dispatch(
+                      updateFieldValues({
+                        updateName: "cubeTopic",
+                        checkVal: normalized,
+                      }),
+                    );
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {variant === "agent" && (
+          <div className="cube-domain-description-field cube-add-metric-field">
+            <Tooltip title="Add Metric" placement="top">
+              <span
+                className="cube-add-metric-action"
+                onClick={handleAddManualMetric}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleAddManualMetric();
+                  }
+                }}
+              >
+                <PlusOutlined className="cube-add-metric-icon" />
+              </span>
+            </Tooltip>
           </div>
         )}
       </div>
