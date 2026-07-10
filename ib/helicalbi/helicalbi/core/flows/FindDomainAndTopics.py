@@ -4,11 +4,11 @@ from langchain_core.messages import AIMessage
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
-from helicalbi.common.LlmInvokeHelper import invoke_structured, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.common.JsonToPara import is_bare_minimum_config
 from helicalbi.model.AgentState import AgentState
-from helicalbi.model.output.DomainTopicReason import DomainTopicReason
+from helicalbi.model.output.DomainTopicReason import get_domain_topic_reason_model
 from helicalbi.prompt.DomainTopicPrompt import domain_topic_template, personification, domain_topic_prompt_string
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.service.agentservice.AgentLayerHelper import AgentLayerHelper
@@ -21,6 +21,8 @@ class FindDomainAndTopics:
     def process_flow(self, state: AgentState):
         logger.info("FindDomainAndTopics flow started")
         last_chats = state["last_chats"]
+        if state.get("got_domain",False):
+            return state
 
         user_query = state.get("query", "")
         helper = AgentLayerHelper(state["session_cookie"], state["agent_file_name"], state["agent_location"])
@@ -43,14 +45,14 @@ class FindDomainAndTopics:
         business_logic = info_provider.get_matching_descriptions(input_tables)
         business_logic_string = "\n".join(business_logic)
         business_logic = "Business Logic:" + business_logic_string
-        parser = PydanticOutputParser(pydantic_object=DomainTopicReason)
+        parser = PydanticOutputParser(pydantic_object=get_domain_topic_reason_model())
         prompt = PromptTemplate(
             template=domain_topic_prompt_string + format_instruction_string,
             input_variables=["domain_topic_string", "semantic_string", "business_logic", "mps",
                              "user_query,personification,last_chats","messages"],
             partial_variables={"format_instructions": parser.get_format_instructions()},
         )
-        response, usage = invoke_structured(
+        response, _ = invoke_structured(
             prompt,
             llm,
             parser,
@@ -63,8 +65,8 @@ class FindDomainAndTopics:
                 "personification": personification,
                 "last_chats": state["last_chats"],
             },
+            state=state,
         )
-        merge_token_usage(state, usage)
         #state["messages"]=[AIMessage(content=str(response))]
         #state["classifyintent"]=state["messages"]
 

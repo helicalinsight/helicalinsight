@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import "./instant-bi-response-metadata.scss";
 import {
   AppstoreOutlined,
@@ -22,6 +22,7 @@ const SQL_KEYS = [
   "required_topic",
   "required_domain"
 ];
+
 const omitEmpty = (obj = {}) =>
   Object.fromEntries(
     Object.entries(obj).filter(([, value]) => {
@@ -30,6 +31,9 @@ const omitEmpty = (obj = {}) =>
       return true;
     })
   );
+
+const VISIBLE_PILL_COUNT = 1;
+const VISIBLE_REASON_CHARS = 120;
 
 export const getInstantBIResponseMetadata = ({
   sqlDetails = {},
@@ -46,9 +50,9 @@ export const getInstantBIResponseMetadata = ({
   if (Object.keys(usage).length) metadata.token_usage = usage;
   return metadata;
 };
+
 const getIcon = (kind) => {
   const style = { fontSize: "9px" };
-
   const iconMap = {
     table: <TableOutlined style={style} />,
     column: <StarOutlined style={style} />,
@@ -58,9 +62,40 @@ const getIcon = (kind) => {
   return iconMap[kind] || <StarOutlined style={style} />;
 };
 
+const ShowMoreToggle = ({ expanded, onClick, collapsedLabel = "See More" }) => (
+  <button type="button" className="ibm-show-more" onClick={onClick}>
+    {expanded ? "show less" : collapsedLabel}
+  </button>
+);
+
+const MetadataRowSection = ({
+  label,
+  children,
+  expandable,
+  expanded,
+  onToggle,
+  extra,
+  collapsedToggleLabel,
+}) => (
+  <div className="ibm-section">
+    <div className="ibm-section-row">
+      <span className="ibm-section-label">{label}</span>
+      <div className="ibm-section-content">{children}</div>
+      {expandable && (
+        <ShowMoreToggle
+          expanded={expanded}
+          onClick={onToggle}
+          collapsedLabel={collapsedToggleLabel}
+        />
+      )}
+    </div>
+    {extra}
+  </div>
+);
+
 const Pills = ({ items, kind }) => {
   if (!items.length) return <span className="ibm-empty">None specified</span>;
-const icon = getIcon(kind);
+  const icon = getIcon(kind);
   return (
     <div className="ibm-pills">
       {items.map((item, ind) => (
@@ -73,11 +108,35 @@ const icon = getIcon(kind);
   );
 };
 
-const ReasonText = ({ text }) => {
-  if (!text) return <span className="ibm-empty">No reasoning provided</span>;
-  const parts = String(text).split(/('[^']+')/g);
+const PillSection = ({ label, items, kind }) => {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = items.length > VISIBLE_PILL_COUNT;
+  const visibleItems = expanded ? items : items.slice(0, VISIBLE_PILL_COUNT);
+  const hiddenCount = Math.max(0, items.length - VISIBLE_PILL_COUNT);
+
   return (
-    <p className="ibm-reason">
+    <MetadataRowSection
+      label={label}
+      expandable={canExpand}
+      expanded={expanded}
+      onToggle={() => setExpanded((value) => !value)}
+      collapsedToggleLabel={hiddenCount > 0 ? `+${hiddenCount} more` : "See More"}
+    >
+      <Pills items={visibleItems} kind={kind} />
+    </MetadataRowSection>
+  );
+};
+
+const ReasonText = ({ text, expanded }) => {
+  if (!text) return <span className="ibm-empty">No reasoning provided</span>;
+  const fullText = String(text);
+  const displayText =
+    expanded || fullText.length <= VISIBLE_REASON_CHARS
+      ? fullText
+      : `${fullText.slice(0, VISIBLE_REASON_CHARS).trim()}…`;
+  const parts = displayText.split(/('[^']+')/g);
+  return (
+    <span className="ibm-reason">
       {parts.map((part, i) =>
         /^'.+'$/.test(part) ? (
           <em key={i} className="query-highlight">'{part.slice(1, -1)}'</em>
@@ -85,7 +144,23 @@ const ReasonText = ({ text }) => {
           <React.Fragment key={i}>{part}</React.Fragment>
         )
       )}
-    </p>
+    </span>
+  );
+};
+
+const ReasonSection = ({ text }) => {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = String(text || "").length > VISIBLE_REASON_CHARS;
+
+  return (
+    <MetadataRowSection
+      label="Reasoning"
+      expandable={canExpand}
+      expanded={expanded}
+      onToggle={() => setExpanded((value) => !value)}
+    >
+      <ReasonText text={text} expanded={expanded} />
+    </MetadataRowSection>
   );
 };
 
@@ -94,22 +169,47 @@ const formatTokenValue = (value) => {
   return String(value);
 };
 
+const getTotalTokens = (tokenStats = {}) => {
+  if (tokenStats.total_tokens != null) return tokenStats.total_tokens;
+  const input = Number(tokenStats.input_tokens) || 0;
+  const output = Number(tokenStats.output_tokens) || 0;
+  if (input || output) return input + output;
+  return null;
+};
+
 const TokenUsageSection = ({ tokenStats }) => {
+  const [expanded, setExpanded] = useState(false);
   const entries = Object.entries(tokenStats || {});
   if (!entries.length) return null;
 
+  const totalTokens = getTotalTokens(tokenStats);
+  const detailEntries = entries.filter(([key]) => key !== "total_tokens");
+  const canExpand = detailEntries.length > 0;
+
   return (
-    <div className="ibm-section full">
-      <div className="ibm-section-label">Token Usage</div>
-      <div className="ibm-token-usage">
-        {entries?.map(([key, val]) => (
-          <div className="ibm-token-row" key={key}>
-            <span className="ibm-token-label">{key.replace(/_/g, " ")}</span>
-            <span className="ibm-token-value">{formatTokenValue(val)}</span>
+    <MetadataRowSection
+      label="Token Usage"
+      expandable={canExpand}
+      expanded={expanded}
+      onToggle={() => setExpanded((value) => !value)}
+      extra={
+        expanded ? (
+          <div className="ibm-token-details">
+            {detailEntries.map(([key, val]) => (
+              <div className="ibm-token-row" key={key}>
+                <span className="ibm-token-label">{key.replace(/_/g, " ")}</span>
+                <span className="ibm-token-value">{formatTokenValue(val)}</span>
+              </div>
+            ))}
           </div>
-        ))}
+        ) : null
+      }
+    >
+      <div className="ibm-token-inline">
+        <span className="ibm-token-label">Total tokens</span>
+        <span className="ibm-token-value">{formatTokenValue(totalTokens)}</span>
       </div>
-    </div>
+    </MetadataRowSection>
   );
 };
 
@@ -138,18 +238,13 @@ const InstantBIResponseMetadata = ({ sqlDetails = {}, vizDetails = {}, tokenUsag
   const entries = Object.entries(metadata);
   if (!entries.length) return null;
 
-  /*  SQL data */
   const isSqlInsight = SQL_KEYS.some((key) => key in metadata);
-  const tables  = asList(metadata.required_table);
+  const tables = asList(metadata.required_table);
   const columns = asList(metadata.required_column);
   const topics = asList(metadata.required_topic);
   const domains = asList(metadata.required_domain);
   const chartNames = asList(metadata.chart_name);
   const dialect = (metadata.dialect || "unknown").toString();
-  const joinVal = metadata.required_join;
-  const joinsCount = Array.isArray(joinVal)
-    ? joinVal.length
-    : joinVal && (typeof joinVal !== "string" || joinVal.trim()) ? 1 : 0;
 
   const tokenStats = metadata.token_usage;
   const extraEntries = entries.filter(
@@ -158,62 +253,44 @@ const InstantBIResponseMetadata = ({ sqlDetails = {}, vizDetails = {}, tokenUsag
 
   return (
     <div className="ibm-root">
-      <div className="ibm-card">
-          <div className="ibm-body">
-            {isSqlInsight && (
-              <>
-              <div className="ibm-section">
-                  <div className="ibm-section-label">Domain</div>
-                  <Pills items={domains} kind="domains" />
-                </div>
-                   <div className="ibm-section">
-                  <div className="ibm-section-label">Topic</div>
-                  <Pills items={topics} kind="topic" />
-                </div>
-                {/* Tables */}
-                <div className="ibm-section">
-                  <div className="ibm-section-label">Tables</div>
-                  <Pills items={tables} kind="table" />
-                </div>
-                {/* Columns */}
-                <div className="ibm-section">
-                  <div className="ibm-section-label">Columns</div>
-                  <Pills items={columns} kind="column" />
-                </div>
-
-                {metadata.reason && (
-                  <div className="ibm-section full">
-                    <div className="ibm-section-label">Reasoning</div>
-                    <ReasonText text={metadata.reason} />
-                  </div>
-                )}
-                {tokenStats && <TokenUsageSection tokenStats={tokenStats} />}
-              </>
-            )}
-            {!isSqlInsight && extraEntries.map(([key, value]) => (
-              <div className="ibm-kv-row ibm-kv-row-full" key={key}>
-                <div className="ibm-kv-label">{key.replace(/_/g, " ")}</div>
-                <GenericValue value={value} />
-              </div>
-            ))}
-            {!isSqlInsight && tokenStats && <TokenUsageSection tokenStats={tokenStats} />}
-          </div>
-
-          {(isSqlInsight || chartNames.length > 0) && (
-            <div className="ibm-footer">
-              {isSqlInsight && (
-                <>
-                  <span><strong>{tables.length}</strong> {tables.length === 1 ? "table" : "tables"}</span>
-                  <span><strong>{columns.length}</strong> {columns.length === 1 ? "column" : "columns"}</span>
-                  <span>dialect: <strong>{dialect}</strong></span>
-                </>
-              )}
-              {chartNames.length > 0 && (
-                <span>chart: <strong>{chartNames.join(", ")}</strong></span>
-              )}
+      <div className="ibm-body">
+        {isSqlInsight && (
+          <>
+            <div className="ibm-pair-row">
+              <PillSection label="Domain" items={domains} kind="domains" />
+              <PillSection label="Topic" items={topics} kind="topic" />
             </div>
-          )}
+            <div className="ibm-pair-row">
+              <PillSection label="Tables" items={tables} kind="table" />
+              <PillSection label="Columns" items={columns} kind="column" />
+            </div>
+            {metadata.reason && <ReasonSection text={metadata.reason} />}
+            {tokenStats && <TokenUsageSection tokenStats={tokenStats} />}
+          </>
+        )}
+        {!isSqlInsight && extraEntries.map(([key, value]) => (
+          <div className="ibm-kv-row" key={key}>
+            <div className="ibm-kv-label">{key.replace(/_/g, " ")}</div>
+            <GenericValue value={value} />
+          </div>
+        ))}
+        {!isSqlInsight && tokenStats && <TokenUsageSection tokenStats={tokenStats} />}
       </div>
+
+      {(isSqlInsight || chartNames.length > 0) && (
+        <div className="ibm-footer">
+          {isSqlInsight && (
+            <>
+              <span><strong>{tables.length}</strong> {tables.length === 1 ? "table" : "tables"}</span>
+              <span><strong>{columns.length}</strong> {columns.length === 1 ? "column" : "columns"}</span>
+              <span>dialect: <strong>{dialect}</strong></span>
+            </>
+          )}
+          {chartNames.length > 0 && (
+            <span>chart: <strong>{chartNames.join(", ")}</strong></span>
+          )}
+        </div>
+      )}
     </div>
   );
 };
