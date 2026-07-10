@@ -1,0 +1,25 @@
+.token-usage-dashboard {
+  padding: 8px 0 16px;
+
+  .token-usage-toolbar {
+    margin-bottom: 16px;
+  }
+
+  .token-usage-summary,
+  .token-usage-charts,
+  .token-usage-breakdown {
+    margin-bottom: 16px;
+  }
+
+  .token-usage-empty {
+    min-height: 220px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #8c8c8c;
+  }
+
+  .token-usage-details {
+    margin-top: 8px;
+  }
+}

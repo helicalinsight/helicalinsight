@@ -11,12 +11,13 @@ from bl.helpers import (
     domain_topics_from_chat_response,
     ensure_not_aborted,
     json_response,
+    log_endpoint_input,
     resolve_request_id,
 )
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug
-from helicalbi.common.auth import resolve_session_auth
+from helicalbi.common.auth import bind_request_identity
 from helicalbi.sql.SqlSanitizer import extract_sql, format_sql
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,10 @@ def register(flask_app) -> None:
     @flask_app.route("/load-chat", methods=["POST"])
     def load_chat():
         data = request.get_json()
+        log_endpoint_input("/load-chat", data)
         user_input = data["input"]
         user_query = user_input["inputString"]
-        session_cookie, username = resolve_session_auth(data, user_input)
+        session_cookie, username = bind_request_identity(data, user_input)
         agent_file_name = user_input["agent"]["file"]
         location = user_input["agent"]["dir"]
         helper = app().AgentLayerHelper(session_cookie, agent_file_name, location)
@@ -79,32 +81,49 @@ def register(flask_app) -> None:
                 )
                 ensure_not_aborted(request_id)
                 if api_response.get("status") != 1:
+                    sql_error = str(api_response.get("response", "SQL execution failed."))
                     logger.warning(
                         "Load-chat SQL execution failed thread=%s chat_seq_id=%s error=%s",
                         thread_id,
                         chat_seq_id,
-                        api_response.get("response"),
+                        sql_error,
                     )
-                    raise RuntimeError(api_response.get("response", "SQL execution failed."))
+                    chat_response_dict = build_chat_response_from_item(
+                        loaded_item,
+                        data=[],
+                        metadata=[],
+                        formatted_sql=display_sql,
+                        error=sql_error,
+                    )
+                    to_send["chat_response"] = chat_response_dict
+                    to_send["error"] = sql_error
+                else:
+                    response_payload = api_response.get("response") or {}
+                    if isinstance(response_payload, dict):
+                        data_rows = response_payload.get("data") or []
+                        metadata_rows = response_payload.get("metadata") or []
+                    logger.info(
+                        "Load-chat SQL executed thread=%s rows=%s metadata_cols=%s",
+                        thread_id,
+                        len(data_rows),
+                        len(metadata_rows),
+                    )
 
-                response_payload = api_response.get("response") or {}
-                if isinstance(response_payload, dict):
-                    data_rows = response_payload.get("data") or []
-                    metadata_rows = response_payload.get("metadata") or []
-                logger.info(
-                    "Load-chat SQL executed thread=%s rows=%s metadata_cols=%s",
-                    thread_id,
-                    len(data_rows),
-                    len(metadata_rows),
+                    chat_response_dict = build_chat_response_from_item(
+                        loaded_item,
+                        data=data_rows,
+                        metadata=metadata_rows,
+                        formatted_sql=display_sql,
+                    )
+                    to_send["chat_response"] = chat_response_dict
+            else:
+                chat_response_dict = build_chat_response_from_item(
+                    loaded_item,
+                    data=data_rows,
+                    metadata=metadata_rows,
+                    formatted_sql=display_sql,
                 )
-
-            chat_response_dict = build_chat_response_from_item(
-                loaded_item,
-                data=data_rows,
-                metadata=metadata_rows,
-                formatted_sql=display_sql,
-            )
-            to_send["chat_response"] = chat_response_dict
+                to_send["chat_response"] = chat_response_dict
 
             domain, topics = domain_topics_from_chat_response(loaded_item)
             chat_graph_memory.add_node(

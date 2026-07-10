@@ -1,6 +1,6 @@
 import "core-js/stable";
 import "regenerator-runtime/runtime";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import InstantBIResponseMetadata, {
   getInstantBIResponseMetadata,
 } from "../../components/hi-instant-bi/components/instant-bi-response-metadata";
@@ -15,6 +15,10 @@ const sampleSqlDetails = {
     "travel_details.destination",
     "travel_details.travel_medium",
   ],
+  required_cube_info: {
+    picked_dimensions: ["booking platform", "travel type"],
+    picked_metrics: ["cost of travel"],
+  },
   required_join: "",
   reason: "Group by destination to find popular travel patterns.",
 };
@@ -38,6 +42,24 @@ describe("getInstantBIResponseMetadata", () => {
     expect(metadata.dialect).toBe("postgresql");
     expect(metadata.required_domain).toEqual(["Sales Operation"]);
     expect(metadata.required_table).toHaveLength(2);
+  });
+
+  it("should include required_cube_info when dimensions or metrics are present", () => {
+    const metadata = getInstantBIResponseMetadata({ sqlDetails: sampleSqlDetails });
+    expect(metadata.required_cube_info).toEqual({
+      picked_dimensions: ["booking platform", "travel type"],
+      picked_metrics: ["cost of travel"],
+    });
+  });
+
+  it("should omit empty required_cube_info", () => {
+    const metadata = getInstantBIResponseMetadata({
+      sqlDetails: {
+        ...sampleSqlDetails,
+        required_cube_info: { picked_dimensions: [], picked_metrics: [] },
+      },
+    });
+    expect(metadata).not.toHaveProperty("required_cube_info");
   });
 
   it("should merges chart_name from vizDetails", () => {
@@ -97,6 +119,10 @@ describe("InstantBIResponseMetadata", () => {
     expect(screen.getByText("Topic")).toBeTruthy();
     expect(screen.getByText("Tables")).toBeTruthy();
     expect(screen.getByText("Columns")).toBeTruthy();
+    expect(screen.getByText("Dimensions")).toBeTruthy();
+    expect(screen.getByText("Metrics")).toBeTruthy();
+    expect(screen.getByText("booking platform")).toBeTruthy();
+    expect(screen.getByText("cost of travel")).toBeTruthy();
   });
 
   it("it should return null when there is no metadata to show", () => {
@@ -106,7 +132,7 @@ describe("InstantBIResponseMetadata", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("should render token usage in footer", () => {
+  it("should render total tokens with expandable details", () => {
     const fullTokenUsage = {
       ...sampleTokenUsage,
       input_cost: null,
@@ -121,11 +147,10 @@ describe("InstantBIResponseMetadata", () => {
       />
     );
     expect(screen.getByText("Token Usage")).toBeTruthy();
-    expect(screen.getByText("input tokens")).toBeTruthy();
+    expect(screen.getByText("Total tokens")).toBeTruthy();
     expect(screen.getByText("3548")).toBeTruthy();
-    expect(screen.getByText("input cost")).toBeTruthy();
-    expect(screen.getAllByText("—")).toHaveLength(3);
-    expect(screen.queryByText(/input tokens:/i)).toBeNull();
+    expect(screen.queryByText("input tokens")).toBeNull();
+
   });
 
   it("should sshows chart in footer when only viz chart_name is present", () => {

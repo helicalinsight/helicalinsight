@@ -11,14 +11,17 @@ from bl.helpers import (
     as_list,
     domain_topics_from_chat_response,
     ensure_not_aborted,
+    extract_token_usage_dict,
     json_response,
+    log_endpoint_input,
     resolve_request_id,
 )
+from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.ChatManager import add_insight, get_last_insight
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug, default_sql_limit
-from helicalbi.common.auth import resolve_role_profile, resolve_session_auth
+from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
@@ -194,12 +197,13 @@ def register(flask_app) -> None:
         """Execute SQL, sample result rows, and generate a Markdown insight."""
         logger.info("Data-insight endpoint invoked")
         data = request.get_json()
+        log_endpoint_input("/data-insight", data)
         logger.debug("Data-insight parsed request JSON keys=%s", list((data or {}).keys()))
 
         user_input = data.get("input", data)
         logger.debug("Data-insight resolved user_input keys=%s", list((user_input or {}).keys()))
 
-        session_cookie, username = resolve_session_auth(data, user_input)
+        session_cookie, username = bind_request_identity(data, user_input)
         profile = resolve_role_profile(data, user_input)
         logger.debug("Data-insight resolved session for user=%s", username)
         logger.debug(
@@ -256,6 +260,8 @@ def register(flask_app) -> None:
             logger.debug("Registered cancellation for data-insight requestId=%s", request_id)
 
         to_send: Dict[str, Any] = {}
+        request_status = "SUCCESS"
+        error_message: Optional[str] = None
         try:
             logger.info(
                 "Data insight request for user=%s thread=%s chat_seq_id=%s",
@@ -311,6 +317,7 @@ def register(flask_app) -> None:
                 to_send["insight"] = insight_msg.content
                 logger.debug("Data-insight set insight from SQL error response")
                 to_send["sql_error"] = sql_error
+                to_send["error"] = sql_error
                 logger.debug("Data-insight set sql_error in response")
                 to_send["token_usage"] = usage.model_dump(exclude_none=True)
                 logger.info(
@@ -354,7 +361,9 @@ def register(flask_app) -> None:
 
         except RequestAborted:
             logger.info("Data insight request aborted for requestId=%s", request_id)
-            to_send["error"] = "Request has been cancelled."
+            request_status = "ABORTED"
+            error_message = "Request has been cancelled."
+            to_send["error"] = error_message
             logger.debug("Data-insight set aborted error in response")
             to_send["aborted"] = True
             logger.debug("Data-insight set aborted=True in response")
@@ -362,10 +371,12 @@ def register(flask_app) -> None:
             logger.debug("Data-insight cleared insight after abort")
         except Exception as e:
             logger.exception("Error while generating data insight thread=%s chat_seq_id=%s", thread_id, chat_seq_id)
+            request_status = "ERROR"
+            error_message = str(e)
             to_send["insight"] = ""
             logger.debug("Data-insight cleared insight after exception")
-            to_send["error"] = str(e)
-            logger.debug("Data-insight set error=%s in response", str(e))
+            to_send["error"] = error_message
+            logger.debug("Data-insight set error=%s in response", error_message)
             if is_debug():
                 to_send["stack"] = traceback.format_exc()
                 logger.debug("Data-insight attached stack trace to response")
@@ -373,6 +384,22 @@ def register(flask_app) -> None:
             if request_id:
                 request_cancellation.clear(request_id)
                 logger.debug("Cleared cancellation for data-insight requestId=%s", request_id)
+            if to_send.get("error") and request_status == "SUCCESS":
+                request_status = "ERROR"
+                error_message = str(to_send.get("error"))
+            base_url = user_input.get("baseUrl") or ""
+            audit_llm_usage_async(
+                endpoint="/data-insight",
+                username=username,
+                session_cookie=session_cookie,
+                base_url=base_url,
+                user_query=user_question,
+                token_usage=extract_token_usage_dict(to_send),
+                request_status=request_status,
+                error_message=error_message,
+                chat_id=str(thread_id) if thread_id else None,
+                chat_seq_id=str(chat_seq_id) if chat_seq_id is not None else None,
+            )
 
         logger.info(
             "Data-insight returning response thread=%s has_insight=%s has_error=%s aborted=%s",

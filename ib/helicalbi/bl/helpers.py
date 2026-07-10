@@ -6,9 +6,11 @@ from typing import Any, List, Optional, Tuple
 from flask import request
 
 from helicalbi.common.ErrorMessages import extract_message_from_stack_trace
+from helicalbi.common import app_config
 
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.model.TokenUsage import TokenUsage
+from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.output.ChatResponse import (
     ChatResponse,
     SqlSection,
@@ -17,6 +19,8 @@ from helicalbi.model.output.ChatResponse import (
 )
 
 logger = logging.getLogger(__name__)
+
+_BORDER = "--------------"
 
 
 class RequestAborted(Exception):
@@ -62,6 +66,7 @@ def build_chat_response_from_item(
     data: list,
     metadata: list,
     formatted_sql: str,
+    error: str = "",
 ) -> dict:
     """Assemble a chat response payload from a pre-generated item plus query results."""
     logger.debug(
@@ -78,6 +83,10 @@ def build_chat_response_from_item(
     token_usage = TokenUsage(
         **{key: value for key, value in token_raw.items() if value is not None}
     )
+    time_raw = item.get("time_consumed") or {}
+    time_consumed = TimeConsumed(
+        **{key: value for key, value in time_raw.items() if value is not None}
+    )
 
     return ChatResponse(
         viz=VizSection(**(item.get("viz") or {})),
@@ -86,6 +95,8 @@ def build_chat_response_from_item(
         data=data,
         metadata=metadata,
         token_usage=token_usage,
+        time_consumed=time_consumed,
+        error=error,
     ).to_dict()
 
 
@@ -123,11 +134,44 @@ def turn_state_defaults() -> dict[str, Any]:
         "insight": "",
         "flow": [],
         "token_usage": {},
+        "time_consumed": {},
     }
 
 
 def json_response(payload: dict) -> str:
     return json.dumps(payload)
+
+
+def extract_token_usage_dict(response_payload: dict) -> dict:
+    """Read token_usage from top-level or chat_response.token_usage."""
+    if not response_payload:
+        return {}
+    top_level = response_payload.get("token_usage")
+    if isinstance(top_level, dict) and top_level:
+        return top_level
+    chat_response = response_payload.get("chat_response") or {}
+    nested = chat_response.get("token_usage")
+    if isinstance(nested, dict):
+        return nested
+    return {}
+
+
+def log_endpoint_input(endpoint: str, data: Any) -> None:
+    """Log the JSON payload received by an HTTP endpoint when enabled in config."""
+    if not app_config.show_endpoint_log:
+        return
+    payload_text = (
+        json.dumps(data, indent=2, default=str)
+        if isinstance(data, (dict, list))
+        else str(data)
+    )
+    logger.info(
+        "%s\nEndpoint %s Input:\n%s\n%s",
+        _BORDER,
+        endpoint,
+        payload_text,
+        _BORDER,
+    )
 
 
 def error_message_chain(exc: BaseException) -> list[str]:

@@ -8,11 +8,14 @@ from helicalbi.model.output.ChatResponse import ChatResponse
 from helicalbi.model.output.ColumnResponse import ColumnResponse
 from helicalbi.model.output.DomainTopicReason import DomainTopicReason
 from helicalbi.model.output.KpiData import KpiSchema
-from helicalbi.common.LlmInvokeHelper import merge_token_usage, read_token_usage
+from helicalbi.common.LlmInvokeHelper import merge_time_consumed, merge_token_usage, read_time_consumed, read_token_usage
 from helicalbi.integration.ollama.OllamaTokenUsageFactory import OllamaTokenUsageFactory
 from helicalbi.integration.openai.OpenAITokenUsageFactory import OpenAITokenUsageFactory
+from helicalbi.integration.anthropic.AnthropicTokenUsageFactory import AnthropicTokenUsageFactory
+from helicalbi.integration.gemeni.GeminiTokenUsageFactory import GeminiTokenUsageFactory
+from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
-from helicalbi.model.output.SqlGen import SqlGen
+from helicalbi.model.output.SqlGen import SqlGen, get_sql_gen_model
 from helicalbi.model.output.UpdateRephrase import UpdateRephrase
 from helicalbi.model.output.viz.VizResponse import (
     AntVisualizationResponse,
@@ -48,26 +51,44 @@ class TestTokenUsage:
     def ollama_factory(self):
         return OllamaTokenUsageFactory()
 
+    @pytest.fixture
+    def anthropic_factory(self):
+        return AnthropicTokenUsageFactory()
+
+    @pytest.fixture
+    def gemini_factory(self):
+        return GeminiTokenUsageFactory()
+
     def test_derives_total_when_omitted(self):
         usage = TokenUsage(input_tokens=10, output_tokens=5)
         assert usage.total_tokens == 15
 
     def test_from_usage_metadata(self, openai_factory):
         usage = openai_factory.from_usage_metadata(
-            {"input_tokens": 100, "output_tokens": 25, "total_tokens": 125}
+            {
+                "input_tokens": 100,
+                "output_tokens": 25,
+                "total_tokens": 125,
+                "model_name": "gpt-4o-mini",
+            }
         )
         assert usage.input_tokens == 100
         assert usage.output_tokens == 25
         assert usage.total_tokens == 125
+        assert usage.model_name == "gpt-4o-mini"
 
     def test_from_response_metadata_openai_shape(self, openai_factory):
         usage = openai_factory.from_response_metadata(
-            {"token_usage": {"prompt_tokens": 50, "completion_tokens": 10, "total_tokens": 60}}
+            {
+                "model_name": "gpt-4o",
+                "token_usage": {"prompt_tokens": 50, "completion_tokens": 10, "total_tokens": 60},
+            }
         )
         assert usage.input_tokens == 50
         assert usage.output_tokens == 10
         assert usage.total_tokens == 60
         assert usage.total_cost is None
+        assert usage.model_name == "gpt-4o"
 
     def test_from_response_metadata_ollama_shape(self, ollama_factory):
         usage = ollama_factory.from_response_metadata(
@@ -81,6 +102,121 @@ class TestTokenUsage:
         assert usage.input_tokens == 559
         assert usage.output_tokens == 95
         assert usage.total_tokens == 654
+        assert usage.model_name == "deepseek-coder-v2"
+
+    def test_from_response_metadata_anthropic_shape(self, anthropic_factory):
+        usage = anthropic_factory.from_response_metadata(
+            {
+                "model": "claude-opus-4-6",
+                "usage": {"input_tokens": 120, "output_tokens": 30},
+            }
+        )
+        assert usage.input_tokens == 120
+        assert usage.output_tokens == 30
+        assert usage.total_tokens == 150
+        assert usage.model_name == "claude-opus-4-6"
+
+    def test_from_response_metadata_gemini_shape(self, gemini_factory):
+        usage = gemini_factory.from_response_metadata(
+            {
+                "model_name": "gemini-2.5-flash",
+                "token_usage": {"prompt_tokens": 40, "completion_tokens": 10, "total_tokens": 50},
+            }
+        )
+        assert usage.input_tokens == 40
+        assert usage.output_tokens == 10
+        assert usage.total_tokens == 50
+        assert usage.model_name == "gemini-2.5-flash"
+
+    def test_from_ai_message_gemini_usage_and_response_metadata(self, gemini_factory):
+        class _GeminiMessage:
+            usage_metadata = {
+                "input_tokens": 11,
+                "output_tokens": 997,
+                "total_tokens": 1008,
+                "input_token_details": {"cache_read": 0},
+                "output_token_details": {"reasoning": 850},
+            }
+            response_metadata = {
+                "finish_reason": "STOP",
+                "model_name": "gemini-2.5-flash",
+                "safety_ratings": [],
+                "model_provider": "google_genai",
+            }
+
+        usage = gemini_factory.from_ai_message(_GeminiMessage())
+        assert usage.input_tokens == 11
+        assert usage.output_tokens == 997
+        assert usage.total_tokens == 1008
+        assert usage.model_name == "gemini-2.5-flash"
+
+    def test_from_ai_message_anthropic_usage_and_response_metadata(self, anthropic_factory):
+        class _AnthropicMessage:
+            usage_metadata = {
+                "input_tokens": 19,
+                "output_tokens": 177,
+                "total_tokens": 196,
+                "input_token_details": {
+                    "cache_read": 0,
+                    "cache_creation": 0,
+                    "ephemeral_5m_input_tokens": 0,
+                    "ephemeral_1h_input_tokens": 0,
+                },
+            }
+            response_metadata = {
+                "id": "msg_011CcqxMCbcbkixwetvXFxVv",
+                "model": "claude-sonnet-4-6",
+                "usage": {
+                    "cache_creation": {
+                        "ephemeral_1h_input_tokens": 0,
+                        "ephemeral_5m_input_tokens": 0,
+                    },
+                    "cache_creation_input_tokens": 0,
+                    "cache_read_input_tokens": 0,
+                    "input_tokens": 19,
+                    "output_tokens": 177,
+                },
+                "model_name": "claude-sonnet-4-6",
+                "model_provider": "anthropic",
+            }
+
+        usage = anthropic_factory.from_ai_message(_AnthropicMessage())
+        assert usage.input_tokens == 19
+        assert usage.output_tokens == 177
+        assert usage.total_tokens == 196
+        assert usage.model_name == "claude-sonnet-4-6"
+
+    def test_from_ai_message_openai_usage_and_response_metadata(self, openai_factory):
+        class _OpenAIMessage:
+            usage_metadata = {
+                "input_tokens": 15,
+                "output_tokens": 109,
+                "total_tokens": 124,
+                "input_token_details": {"audio": 0, "cache_read": 0},
+                "output_token_details": {"audio": 0, "reasoning": 0},
+            }
+            response_metadata = {
+                "token_usage": {
+                    "prompt_tokens": 15,
+                    "completion_tokens": 109,
+                    "total_tokens": 124,
+                    "prompt_tokens_details": {"audio_tokens": 0, "cached_tokens": 0},
+                    "completion_tokens_details": {
+                        "accepted_prediction_tokens": 0,
+                        "audio_tokens": 0,
+                        "reasoning_tokens": 0,
+                        "rejected_prediction_tokens": 0,
+                    },
+                },
+                "model_provider": "openai",
+                "model_name": "gpt-4o-mini-2024-07-18",
+            }
+
+        usage = openai_factory.from_ai_message(_OpenAIMessage())
+        assert usage.input_tokens == 15
+        assert usage.output_tokens == 109
+        assert usage.total_tokens == 124
+        assert usage.model_name == "gpt-4o-mini-2024-07-18"
 
     def test_from_ai_message_ollama_response_metadata(self, ollama_factory):
         class _OllamaMessage:
@@ -95,6 +231,7 @@ class TestTokenUsage:
         assert usage.input_tokens == 559
         assert usage.output_tokens == 95
         assert usage.total_tokens == 654
+        assert usage.model_name == "deepseek-coder-v2"
 
     def test_from_usage_metadata_includes_cost_when_available(self, openai_factory):
         usage = openai_factory.from_usage_metadata(
@@ -126,13 +263,20 @@ class TestTokenUsage:
         assert usage.total_cost == pytest.approx(0.00007)
 
     def test_add_aggregates_counts(self):
-        total = TokenUsage(input_tokens=1, output_tokens=2) + TokenUsage(
-            input_tokens=3, output_tokens=4
+        total = TokenUsage(input_tokens=1, output_tokens=2, model_name="gpt-4o-mini") + TokenUsage(
+            input_tokens=3, output_tokens=4, model_name="gpt-4o-mini"
         )
         assert total.input_tokens == 4
         assert total.output_tokens == 6
         assert total.total_tokens == 10
         assert total.total_cost is None
+        assert total.model_name == "gpt-4o-mini"
+
+    def test_add_preserves_model_name_when_other_side_missing(self):
+        total = TokenUsage(input_tokens=1, output_tokens=2, model_name="gpt-4o-mini") + TokenUsage(
+            input_tokens=3, output_tokens=4
+        )
+        assert total.model_name == "gpt-4o-mini"
 
     def test_add_aggregates_cost_when_available(self):
         total = TokenUsage(input_cost=0.001, output_cost=0.002, total_cost=0.003) + TokenUsage(
@@ -144,12 +288,35 @@ class TestTokenUsage:
 
     def test_merge_token_usage_in_state(self):
         state = {}
-        merge_token_usage(state, TokenUsage(input_tokens=10, output_tokens=5))
-        merge_token_usage(state, TokenUsage(input_tokens=3, output_tokens=2))
+        merge_token_usage(state, TokenUsage(input_tokens=10, output_tokens=5, model_name="gpt-4o-mini"))
+        merge_token_usage(state, TokenUsage(input_tokens=3, output_tokens=2, model_name="gpt-4o-mini"))
         usage = read_token_usage(state)
         assert usage.input_tokens == 13
         assert usage.output_tokens == 7
         assert usage.total_tokens == 20
+        assert usage.model_name == "gpt-4o-mini"
+
+
+class TestTimeConsumed:
+    def test_add_aggregates_llm_seconds(self):
+        total = TimeConsumed(llm_seconds=1.2) + TimeConsumed(llm_seconds=0.8)
+        assert total.llm_seconds == pytest.approx(2.0)
+
+    def test_merge_time_consumed_in_state(self):
+        state = {}
+        merge_time_consumed(state, TimeConsumed(llm_seconds=1.5))
+        merge_time_consumed(state, TimeConsumed(llm_seconds=0.5))
+        consumed = read_time_consumed(state)
+        assert consumed.llm_seconds == pytest.approx(2.0)
+
+    def test_set_total_time_in_state(self):
+        from helicalbi.common.LlmInvokeHelper import set_total_time_consumed
+
+        state = {"time_consumed": {"llm_seconds": 1.25}}
+        set_total_time_consumed(state, 3.456)
+        consumed = read_time_consumed(state)
+        assert consumed.llm_seconds == pytest.approx(1.25)
+        assert consumed.total_seconds == pytest.approx(3.456)
 
 
 class TestChatResponse:
@@ -161,13 +328,37 @@ class TestChatResponse:
                     "output_tokens": 20,
                     "total_tokens": 120,
                     "total_cost": 0.00042,
-                }
+                    "model_name": "gpt-4o-mini",
+                },
+                "time_consumed": {
+                    "llm_seconds": 2.5,
+                    "total_seconds": 8.75,
+                },
             }
         )
         assert response.token_usage.input_tokens == 100
         assert response.token_usage.output_tokens == 20
         assert response.token_usage.total_tokens == 120
         assert response.token_usage.total_cost == pytest.approx(0.00042)
+        assert response.token_usage.model_name == "gpt-4o-mini"
+        assert response.time_consumed.llm_seconds == pytest.approx(2.5)
+        assert response.time_consumed.total_seconds == pytest.approx(8.75)
+
+    def test_includes_required_cube_info_from_sql_agent(self):
+        response = ChatResponse.from_agent_state(
+            {
+                "sqlAgent": {
+                    "required_cube_info": {
+                        "picked_dimensions": ["booking platform"],
+                        "picked_metrics": ["cost of travel"],
+                    }
+                }
+            }
+        )
+        assert response.sql.required_cube_info == {
+            "picked_dimensions": ["booking platform"],
+            "picked_metrics": ["cost of travel"],
+        }
 
 
 class TestSqlGen:
@@ -184,6 +375,16 @@ class TestColumnResponse:
     def test_accepts_list_of_strings(self):
         m = ColumnResponse(columnName=["t.a", "t.b"], reason="x")
         assert m.columnName == ["t.a", "t.b"]
+
+    def test_accepts_picked_dimensions_and_metrics(self):
+        m = ColumnResponse(
+            columnName=["travel_details.booking_platform"],
+            pickedDimensions=["booking platform"],
+            pickedMetrics=["cost of travel"],
+            reason="x",
+        )
+        assert m.pickedDimensions == ["booking platform"]
+        assert m.pickedMetrics == ["cost of travel"]
 
 
 class TestKpiSchema:
@@ -221,6 +422,49 @@ class TestVisualizationResponses:
     def test_chart_filler_response(self):
         m = ChartFillerResponse(js_func_string="function(){}")
         assert m.js_func_string == "function(){}"
+
+
+class TestOptionalPromptReason:
+    def test_sql_gen_allows_missing_reason_when_flag_enabled(self, monkeypatch):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "optional_prompt_reason", True)
+        model = get_sql_gen_model()
+        parsed = model(sql="SELECT 1")
+        assert parsed.sql == "SELECT 1"
+        assert parsed.reason == ""
+
+    def test_chat_response_omits_reason_fields_when_flag_enabled(self, monkeypatch):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "optional_prompt_reason", True)
+        payload = ChatResponse.from_agent_state(
+            {
+                "viz_reason": "bar chart fits aggregates",
+                "sqlAgent": {"sql_reason": "needs grouping"},
+                "output2": "summary rationale",
+                "output": "insight text",
+            }
+        ).to_dict()
+        assert "vf_reason" not in payload["viz"]
+        assert "reason" not in payload["sql"]
+        assert "reason" not in payload["summary"]
+
+    def test_chat_response_includes_reason_fields_when_flag_disabled(self, monkeypatch):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "optional_prompt_reason", False)
+        payload = ChatResponse.from_agent_state(
+            {
+                "viz_reason": "bar chart fits aggregates",
+                "sqlAgent": {"sql_reason": "needs grouping"},
+                "output2": "summary rationale",
+                "output": "insight text",
+            }
+        ).to_dict()
+        assert payload["viz"]["vf_reason"] == "bar chart fits aggregates"
+        assert payload["sql"]["reason"] == "needs grouping"
+        assert payload["summary"]["reason"] == "summary rationale"
 
 
 class TestLoggedInUser:

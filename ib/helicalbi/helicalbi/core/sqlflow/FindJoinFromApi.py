@@ -10,6 +10,7 @@ from helicalbi.api.HttpCallService import fetch_service_api
 from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
 from helicalbi.api.Metadata import build_column
 from helicalbi.common.JsonToPara import iter_cube_entries
+from helicalbi.core.sqlflow.util.FallbackSqlHelpers import is_join_api_error
 from helicalbi.model.SQLAgent import SQLAgent
 
 logger = logging.getLogger(__name__)
@@ -68,8 +69,19 @@ class FindJoinFromApi:
             session_cookie, metadata_name, location, table_names, cube_metadata, state["dbname"]
         ) or {}
         logger.info(f"The output obtained for sql fetch {output}")
-        dummy_sql = output.get("query", "")
-        dummy_sql_join=""
+
+        if is_join_api_error(output):
+            logger.warning(
+                "Join API returned an error for tables=%s; continuing without joins: %s",
+                table_names,
+                output.get("message") or output.get("className") or output,
+            )
+            state["hi_sql"] = json.dumps(output)
+            state["required_joins"] = ""
+            return state
+
+        dummy_sql = output.get("query", "") or ""
+        dummy_sql_join = ""
         if dummy_sql:
             dummy_sql_join = self.extract_full_joins(dummy_sql, state.get("dialect"))
         if dummy_sql_join:
@@ -84,7 +96,6 @@ class FindJoinFromApi:
         tables = tables or []
         columns = []
         reduced_cubes = []
-        groupby = []
         for cube in iter_cube_entries(cube_metadata):
             source_table = cube.get("database_table")
             if source_table and source_table in tables:
@@ -102,10 +113,6 @@ class FindJoinFromApi:
             columns.append(
                 build_column(f"{table_name}.{column_name}", column_name, dbname=dbname)
             )
-            groupby.append({
-                "column": column_name,
-                "custom": True
-            })
 
         if not columns:
             logger.warning("No join columns resolved from cube_metadata; skipping join API call")
@@ -116,7 +123,7 @@ class FindJoinFromApi:
             "metadataFileName": metadata,
             "columns": columns,
             "limitBy": 1,
-            "prependTableNameToAlias": False
+            "prependTableNameToAlias": False,
         }
         payload_json = {
             "type": "adhoc",
@@ -125,6 +132,5 @@ class FindJoinFromApi:
             "formData": json.dumps(form_data),
             "requestId": uuid.uuid4().hex
         }
-        # print("final payload"+payload_json)
         api_response = fetch_service_api(session_cookie=session_cookie, service_json=payload_json)
         return (api_response or {}).get("response") or {}
