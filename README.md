@@ -1,5 +1,13 @@
 # Helical Insight
 
+[![GitHub release](https://img.shields.io/github/v/release/helicalinsight/helicalinsight)](https://github.com/helicalinsight/helicalinsight/releases)
+[![GitHub Downloads](https://img.shields.io/github/downloads/helicalinsight/helicalinsight/latest/total)](https://github.com/helicalinsight/helicalinsight/releases/latest)
+[![GitHub Stars](https://img.shields.io/github/stars/helicalinsight/helicalinsight)](https://github.com/helicalinsight/helicalinsight/stargazers)
+[![Backend Coverage](https://codecov.io/gh/helicalinsight/helicalinsight/branch/main/graph/badge.svg?flag=backend)](https://codecov.io/gh/helicalinsight/helicalinsight)
+[![Frontend Coverage](https://codecov.io/gh/helicalinsight/helicalinsight/branch/main/graph/badge.svg?flag=frontend)](https://codecov.io/gh/helicalinsight/helicalinsight)
+
+[![Docker Pulls](https://img.shields.io/docker/pulls/hiee/helicalinsight)](https://hub.docker.com/)
+
 [Helical Insight](https://www.helicalinsight.com/) is an open-source business intelligence (BI) and analytics platform. It lets teams connect to data sources, explore metadata, build ad hoc reports and dashboards, schedule deliveries, and export results — all from a modern web interface.
 
 ## Video Overview
@@ -26,7 +34,7 @@ This repository contains two components:
 
 | Component | Directory | Stack |
 |-----------|-----------|-------|
-| **Backend** | [`server/`](server/) | Java 21, Spring, Hibernate, Apache Tomcat (WAR) |
+| **Backend** | [`server/`](server/) | Java 25, Spring, Hibernate, Apache Tomcat (WAR) |
 | **Frontend** | [`client/`](client/) | React 17, Redux, Ant Design |
 
 ## Quick start
@@ -35,7 +43,7 @@ This repository contains two components:
 
 | Tool | Version |
 |------|---------|
-| JDK | 21+ |
+| JDK | 25+ |
 | Maven | 3.8+ |
 | Node.js | 18+ |
 | npm | 9+ |
@@ -70,7 +78,7 @@ docker compose -f docker-compose.dev.yml up --build
 | URL | Purpose |
 |-----|---------|
 | http://localhost:3000 | React frontend |
-| http://localhost:8080/hi-ce/hi.html | Backend (Tomcat) |
+| http://localhost:8080/hi-ee | Backend (Tomcat) |
 
 ### 3. Native development 
 
@@ -90,7 +98,7 @@ docker compose -f docker-compose.dev.yml up --build
 cd server
 mvn clean package -DskipTests
 # Deploy as hi-ce.war so the frontend context path matches:
-# copy presentation/target/hi-ce-7.0.0.war → $CATALINA_HOME/webapps/hi-ce.war
+# copy presentation/target/hi-ee-7.0.0.war → $CATALINA_HOME/webapps/hi-ee.war
 ```
 
 Run `./scripts/setup-dev.sh` (or `.\scripts\setup-dev.ps1`) before the first build to patch `hi-repository` paths. Database settings in `persistence.xml` come from Maven profiles (`dev`, `docker`, `production`) — use `mvn clean package -DskipTests` or `-Denv=docker` for PostgreSQL.

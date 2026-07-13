@@ -13,6 +13,7 @@ import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.model.Principal;
+import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
@@ -37,8 +38,12 @@ public class AiRecommendDomainServiceImplTest {
     HttpServletResponse response = mock(HttpServletResponse.class);
     when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
 
+    User loggedInUser = mock(User.class);
+    when(loggedInUser.getUsername()).thenReturn("hiadmin");
+
     Principal principal = mock(Principal.class);
     when(principal.getUsername()).thenReturn("tester");
+    when(principal.getLoggedInUser()).thenReturn(loggedInUser);
 
     IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
     when(httpService.callHttp(eq("/suggestDomain"), any(JsonObject.class))).thenReturn("sales");

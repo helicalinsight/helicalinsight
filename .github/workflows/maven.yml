@@ -10,19 +10,19 @@ name: Build HelicalInsight
 
 on:
   push:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "master" ]
 
 jobs:
   compile:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
@@ -37,16 +37,16 @@ jobs:
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
     - name: Prepare test environment
       run: bash scripts/setup-ci-test-env.sh
     - name: test
-      run: mvn test --file server/pom.xml
+      run: mvn test --file server/pom.xml -Denv=ci
       env:
         MAVEN_OPTS: -Xmx2g

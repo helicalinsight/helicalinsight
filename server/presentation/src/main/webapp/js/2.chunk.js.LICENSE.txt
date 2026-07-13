@@ -112,31 +112,11 @@ OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
 ***************************************************************************** */
 
-/*! Apply the style for chart */
-
-/*! Bind the Event handler */
-
-/*! Calculate column size */
-
-/*! Calculate row size */
-
-/*! Find the Events type */
-
-/*! Generate axis labels */
-
-/*! Generate axis range */
-
 /*! Hammer.JS - v2.0.7 - 2016-04-22
  * http://hammerjs.github.io/
  *
  * Copyright (c) 2016 Jorik Tangelder;
  * Licensed under the MIT license */
-
-/*! Set theme */
-
-/*! Set theme for accumulation chart */
-
-/*! UnBind the Event handler */
 
 /*! http://mths.be/fromcodepoint v0.1.0 by @mathias */
 

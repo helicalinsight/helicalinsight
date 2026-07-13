@@ -6,7 +6,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from helicalbi.common.ChatManager import add_viz_response, get_last_n_viz
-from helicalbi.common.LlmInvokeHelper import invoke_structured, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.AgentState import AgentState
 from helicalbi.model.output.viz.VizResponse import ChartFillerResponse
@@ -43,7 +43,7 @@ class Fallback:
                 input_variables=[ "user_question", "data_types", "viz_hint","previous_viz"],
                 partial_variables={"format_instructions": parser.get_format_instructions()},
             )
-            response, usage = invoke_structured(
+            response, _ = invoke_structured(
                 prompt,
                 llm,
                 parser,
@@ -55,8 +55,8 @@ class Fallback:
                     "data_types": data_md,
                     "viz_hint": viz_hint,
                 },
+                state=state,
             )
-            merge_token_usage(state, usage)
 
             state["vf_string"] = self.transform_chart_code(response.js_func_string)
             state["insight"] = response.js_func_string

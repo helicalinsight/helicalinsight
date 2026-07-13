@@ -512,8 +512,10 @@ const TableOutlinePanel = () => {
         selectedGroup,
         selectedParameter = [],
         selectedStyle = [],
+        category = ""
     } = selectedNode || {}
     let selectedSubDataSet = getSubDataSet(subDataSets, (selectedQueryID || id));
+    const isTable = category === "advancedTable";
     let copiedNodes = [];
     const { copy = [], cut = [] } = hcrTableClipboardData?.[id] || {}
     if (copy.length) copiedNodes = copy
@@ -641,8 +643,9 @@ const TableOutlinePanel = () => {
     }, [selectedKey])
 
     if ([active, canvasView].includes("canvas") || !selectedNode) return null;
+
     return (
-        <Card title="Table Outline" className="elements-card hcr-table-outline-container">
+        <Card title={isTable ? "Table Outline" : "Crosstab Outline"} className="elements-card hcr-table-outline-container">
             <Tree
                 switcherIcon={<DownOutlined />}
                 treeData={treeData}

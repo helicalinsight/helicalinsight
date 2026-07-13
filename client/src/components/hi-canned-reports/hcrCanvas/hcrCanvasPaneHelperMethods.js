@@ -282,73 +282,101 @@ const handleNodeSelection = (node, dispatch) => {
     paneTypes = dsPaneTypes;
   })
   const nodeData = getReqNodeData(node?.store?.data?.data || {});
-  if (["advancedTable"].includes(nodeData.category) && !isEmpty(nodeData)) {
+
+  if (!isEmpty(nodeData)) {
     const id = nodeData.id;
     let viewData = {}
-    switch (canvasView) {
-      case hcrCanvasViews.CANVAS:
-        viewData = {
-          id: id, label: "Table", key: id,
-        }
+    if (["advancedTable"].includes(nodeData.category)) {
+      switch (canvasView) {
+        case hcrCanvasViews.CANVAS:
+          viewData = {
+            id: id, label: "Table", key: id,
+          }
 
-        const propertiesToUpdate = {}
+          const propertiesToUpdate = {}
 
-        // update available band [8974]
-        const { bands = {}, cells = {}, columnOrder = [], selectedGroupFields = [], tableConfig = {} } = nodeData || {};
-        const bandConfig = getBandsConfig(tableConfig, selectedGroupFields);
-        const bandsToUpdate = {}, cellsToUpdate = {}, columnWidth = HCR_TABLE_DATA_CELL_WIDTH;
-        hcrTableBandOrder.forEach((bandType) => {
-          if (!bands[bandType]) {
-            const newBand = {
-              height: HCR_TABLE_DATA_CELL_HEIGHT,
-              styles: bandConfig[bandType].styles,
-              ...(bandConfig[bandType]?.groupFields ? { groupFields: bandConfig[bandType].groupFields || [] } : {})
-            }
-            bandsToUpdate[bandType] = newBand;
+          // update available band [8974]
+          const { bands = {}, cells = {}, columnOrder = [], selectedGroupFields = [], tableConfig = {} } = nodeData || {};
+          const bandConfig = getBandsConfig(tableConfig, selectedGroupFields);
+          const bandsToUpdate = {}, cellsToUpdate = {}, columnWidth = HCR_TABLE_DATA_CELL_WIDTH;
+          hcrTableBandOrder.forEach((bandType) => {
+            if (!bands[bandType]) {
+              const newBand = {
+                height: HCR_TABLE_DATA_CELL_HEIGHT,
+                styles: bandConfig[bandType].styles,
+                ...(bandConfig[bandType]?.groupFields ? { groupFields: bandConfig[bandType].groupFields || [] } : {})
+              }
+              bandsToUpdate[bandType] = newBand;
 
-            columnOrder.forEach((colId) => {
-              if (isGroupBand(bandType)) {
-                const groupFields = newBand.groupFields || [];
-                groupFields.forEach((field) => {
-                  const cell = createCell(colId, bandType, columnWidth, newBand.height, field);
+              columnOrder.forEach((colId) => {
+                if (isGroupBand(bandType)) {
+                  const groupFields = newBand.groupFields || [];
+                  groupFields.forEach((field) => {
+                    const cell = createCell(colId, bandType, columnWidth, newBand.height, field);
+                    cell.deleted = true;
+                    cellsToUpdate[cell.id] = cell;
+                  })
+                } else {
+                  const cell = createCell(colId, bandType, columnWidth, newBand.height);
                   cell.deleted = true;
                   cellsToUpdate[cell.id] = cell;
-                })
-              } else {
-                const cell = createCell(colId, bandType, columnWidth, newBand.height);
-                cell.deleted = true;
-                cellsToUpdate[cell.id] = cell;
-              }
-            })
+                }
+              })
+            }
+          })
+          if (!isEmpty(bandsToUpdate)) {
+            propertiesToUpdate.bands = { ...bands, ...bandsToUpdate }
           }
-        })
-        if (!isEmpty(bandsToUpdate)) {
-          propertiesToUpdate.bands = { ...bands, ...bandsToUpdate }
-        }
-        if (!isEmpty(cellsToUpdate)) {
-          propertiesToUpdate.cells = { ...cells, ...cellsToUpdate }
-        }
-        // end [8974]
+          if (!isEmpty(cellsToUpdate)) {
+            propertiesToUpdate.cells = { ...cells, ...cellsToUpdate }
+          }
+          // end [8974]
 
-        if (!isEmpty(propertiesToUpdate)) {
-          dispatch(hcrActions.editNode({ nodeId: id, multiple: true, propertiesToBeChange: propertiesToUpdate }))
-        }
+          if (!isEmpty(propertiesToUpdate)) {
+            dispatch(hcrActions.editNode({ nodeId: id, multiple: true, propertiesToBeChange: propertiesToUpdate }))
+          }
 
-        dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
-        break;
-      case hcrCanvasViews.TAB:
-        const present = tabViews.find(view => view.id === id);
-        if (present) {
-          dispatch(hcrActions.hcrUpdateCanvasView({ view: "updateActive", active: id }))
+          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
           break;
-        }
-        viewData = {
-          id: id, label: "Table", key: id,
-        }
-        dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
-        break;
-      default:
-        break;
+        case hcrCanvasViews.TAB:
+          const present = tabViews.find(view => view.id === id);
+          if (present) {
+            dispatch(hcrActions.hcrUpdateCanvasView({ view: "updateActive", active: id }))
+            break;
+          }
+          viewData = {
+            id: id, label: "Table", key: id,
+          }
+          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (nodeData.category === "crosstab") {
+      switch (canvasView) {
+        case hcrCanvasViews.CANVAS:
+          viewData = {
+            id: id, label: "Crosstab", key: id,
+          }
+          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
+          break;
+
+        case hcrCanvasViews.TAB:
+          const present = tabViews.find(view => view.id === id);
+          if (present) {
+            dispatch(hcrActions.hcrUpdateCanvasView({ view: "updateActive", active: id }))
+            break;
+          }
+          viewData = {
+            id: id, label: "Crosstab", key: id,
+          }
+          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
+          break;
+        default:
+          break;
+      }
     }
   }
 }

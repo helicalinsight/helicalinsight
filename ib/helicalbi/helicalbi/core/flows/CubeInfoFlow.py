@@ -2,7 +2,7 @@
 
 import logging
 
-from helicalbi.common.CubeInfoAgent import extract_domain_topics
+from helicalbi.common.CubeInfoAgent import domain_context_from_agent, extract_domain_topics
 from helicalbi.model.AgentState import AgentState
 from helicalbi.service.agentservice.AgentLayerHelper import AgentLayerHelper
 
@@ -28,6 +28,8 @@ class CubeInfoFlow:
 
         state["domain"] = domains or state.get("domain") or []
         state["topics"] = topics or state.get("topics") or []
+        if not state.get("domain_context"):
+            state["domain_context"] = domain_context_from_agent(agent_data)
         state["action"] = "none"
         state["sql_query"] = state.get("query", "") or ""
         state["viz_query"] = state.get("query", "") or ""
