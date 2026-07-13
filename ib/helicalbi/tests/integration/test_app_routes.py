@@ -6,6 +6,8 @@ that the routing, request parsing, and response shaping behaviour is
 verified end-to-end without hitting LLMs or back-end services.
 """
 import json
+import logging
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -56,7 +58,8 @@ class TestTopNQuestion:
         helper_mock.get_agent_semantic_layer.return_value = {"domain": []}
 
         kpi_mock = MagicMock()
-        kpi_mock.top_kpis.return_value = ["KPI A", "KPI B", "KPI C"]
+        kpi_mock.user_query = "Suggest KPIs"
+        kpi_mock.top_kpis.return_value = (["KPI A", "KPI B", "KPI C"], {"total_tokens": 0})
 
         with patch.object(app_module, "AgentLayerHelper", return_value=helper_mock), patch.object(
             app_module, "KpiProvider", return_value=kpi_mock
@@ -180,6 +183,123 @@ class TestInteractive:
         assert body["error"] == "boom"
         assert "RuntimeError" in body["stack"]
         assert body["messages"] == []
+
+    def test_empty_agent_structure_uses_metadata_fallback_and_logs_each_layer(
+        self, app_module, flask_client, session_auth, patch_graphs, caplog
+    ):
+        _, viz_mock = patch_graphs
+        metadata_fixture = (
+            Path(__file__).resolve().parents[1] / "fixtures" / "sample_metadata_response.json"
+        )
+        metadata_blob = json.loads(metadata_fixture.read_text(encoding="utf-8"))
+        metadata_payload = metadata_blob.get("response", metadata_blob)
+        metadata_payload.setdefault("joins", [])
+        metadata_payload.setdefault("databaseName", "sampletraveldata.public")
+
+        helper_mock = MagicMock()
+        # Simulate an empty semantic structure coming from the agent file.
+        helper_mock.get_agent_semantic_layer.return_value = {}
+        helper_mock.get_metadata_layerfile.return_value = "metadata.json"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+
+        sql_generator_mock = MagicMock()
+        sql_generator_mock.invoke.return_value = {
+            "query": "Top 5 travel cost by travel type and travel medium",
+            "sql": "",
+            "sqlAgent": {},
+            "sql_result": {},
+            "messages": [],
+            "flow": [],
+            "dialect": "postgres",
+        }
+
+        with caplog.at_level(logging.DEBUG, logger="bl.interactive"), patch.object(
+            app_module, "AgentLayerHelper", return_value=helper_mock
+        ), patch.object(
+            app_module, "get_json_data_metadata", return_value=metadata_payload
+        ), patch.object(
+            app_module, "get_db_function_of_metadata", return_value={"reference": "postgres"}
+        ), patch(
+            "bl.interactive.sql_generator_graph", sql_generator_mock
+        ), patch(
+            "bl.interactive.SqlExecutor.process_flow",
+            return_value={
+                "query": "Top 5 travel cost by travel type and travel medium",
+                "sql": "",
+                "sqlAgent": {},
+                "sql_result": {},
+                "messages": [],
+                "flow": [],
+                "dialect": "postgres",
+            },
+        ):
+            viz_mock.invoke.return_value = {
+                "query": "Top 5 travel cost by travel type and travel medium",
+                "sql": "",
+                "sqlAgent": {},
+                "sql_result": {},
+                "messages": [],
+                "flow": [],
+                "dialect": "postgres",
+            }
+            payload = self._build_payload(
+                session_auth, query="Top 5 travel cost by travel type and travel medium"
+            )
+            payload["input"]["chatid"] = "chat-empty-1"
+            payload["input"]["chat_seq_id"] = "1"
+            resp = flask_client.post(
+                "/interactive",
+                json=payload,
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "error" not in body
+        assert "chat_response" in body
+        assert body["chat_response"]["sql"]["raw_sql"] == ""
+        assert body["chat_response"]["sql"]["required_domain"] == []
+        assert body["chat_response"]["sql"]["required_topic"] == []
+        assert body["chat_response"]["data"] == []
+        assert body["chat_response"]["metadata"] == []
+
+        log_text = caplog.text
+        assert "Invoking main graph" in log_text
+        assert "Invoking SQL generator graph" in log_text
+        assert "Executing SQL" in log_text
+        assert "Invoking visualization graph" in log_text
+
+
+# ---------------------------------------------------------------------------
+# /clear-api-cache
+# ---------------------------------------------------------------------------
+class TestClearApiCache:
+    def test_clears_cached_api_responses(self, app_module, flask_client, session_cookie):
+        from helicalbi.api.ApiCallCache import set as cache_set
+        from helicalbi.common.auth import set_api_cache_identity
+
+        set_api_cache_identity("alice", "acme", user_id=1, org_id=5)
+        cache_set('{"metadataFileName":"meta.json"}', "alice", "acme", {"status": 1}, org_id=5)
+
+        resp = flask_client.post("/clear-api-cache", json={})
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert body["cleared"] == 1
+        assert body["message"] == "API cache cleared successfully"
+
+        from helicalbi.api.ApiCallCache import get as cache_get
+
+        assert cache_get('{"metadataFileName":"meta.json"}', "alice", "acme", org_id=5) is None
+
+    def test_clear_on_empty_cache_returns_zero(self, flask_client):
+        from helicalbi.api.ApiCallCache import clear as clear_api_cache
+
+        clear_api_cache()
+        resp = flask_client.post("/clear-api-cache", json={})
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert body["cleared"] == 0
 
 
 # ---------------------------------------------------------------------------

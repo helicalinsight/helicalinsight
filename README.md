@@ -4,8 +4,6 @@
 
 ## Video Overview
 [![Watch the Helical Insight Introduction](https://img.youtube.com/vi/hz07TO1gL9c/0.jpg)](https://youtu.be/hz07TO1gL9c?si=Tg0d2oJipahBeElL)
-<video src="https://raw.githubusercontent.com/helicalinsight/helicalinsight/master/docs/Helical-Insight-Open-Source-Business-Intelligence-Introduction-video.webm" autoplay loop muted playsinline width="100%">
-</video>
 
 ## Features
 
