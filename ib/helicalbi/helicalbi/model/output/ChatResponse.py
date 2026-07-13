@@ -7,12 +7,14 @@ client-friendly payload with the shape::
     chat_response: {
         viz:     { vf_template, chart_name, vf_title, vf_reason },
         sql:     { raw_sql, dialect, required_domain, required_topic,
-                   required_table, required_column, required_join, reason },
+                   required_table, required_column, required_join, required_cube_info,
+                   reason },
         summary: { insight, reason },
         data:    [],
         metadata:    [],
         token_usage: { input_tokens, output_tokens, total_tokens,
-                        input_cost?, output_cost?, total_cost? }
+                        input_cost?, output_cost?, total_cost?, model_name? },
+        time_consumed: { llm_seconds, total_seconds? }
     }
 """
 import base64
@@ -22,7 +24,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from helicalbi.common.LlmInvokeHelper import read_token_usage
+from helicalbi.common import app_config
+from helicalbi.common.LlmInvokeHelper import read_time_consumed, read_token_usage
+from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
 
 logger = logging.getLogger(__name__)
@@ -43,6 +47,10 @@ class SqlSection(BaseModel):
     required_table: list[Any] = Field(default_factory=list, description="Tables required by the SQL query.")
     required_column: list[Any] = Field(default_factory=list, description="Columns required by the SQL query.")
     required_join: Any = Field(default="", description="Joins required by the SQL query.")
+    required_cube_info: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Picked cube dimensions and measures from the query planner.",
+    )
     reason: str = Field(default="", description="LLM reasoning behind the generated SQL.")
 
 
@@ -62,6 +70,8 @@ class ChatResponse(BaseModel):
     data: list[Any] = Field(default_factory=list, description="Raw rows returned by the SQL execution.")
     metadata: list[Any] = Field(default_factory=list, description="Metadata returned by the SQL execution.")
     token_usage: TokenUsage = Field(default_factory=TokenUsage, description="Accumulated LLM token usage for the request.")
+    time_consumed: TimeConsumed = Field(default_factory=TimeConsumed, description="Elapsed time for LLM calls and the full request.")
+    error: str = Field(default="", description="SQL execution or flow error message from the query API.")
 
     @classmethod
     def from_agent_state(cls, state: dict) -> "ChatResponse":
@@ -142,6 +152,16 @@ class ChatResponse(BaseModel):
                 or state.get("topics")
             )
 
+        required_cube_info = (
+            required_details.get("required_cube_info")
+            if isinstance(required_details, dict)
+            else None
+        )
+        if not isinstance(required_cube_info, dict):
+            required_cube_info = sql_agent.get("required_cube_info")
+        if not isinstance(required_cube_info, dict):
+            required_cube_info = {}
+
         sql = SqlSection(
             raw_sql=_as_str(state.get("sql")),
             dialect=_as_str(state.get("dialect")),
@@ -150,6 +170,7 @@ class ChatResponse(BaseModel):
             required_table=_as_list(required_tables),
             required_column=required_columns,
             required_join=required_join or "",
+            required_cube_info=required_cube_info,
             reason=_as_str(sql_reason),
         )
 
@@ -169,13 +190,37 @@ class ChatResponse(BaseModel):
             data=data,
             metadata=metadata,
             token_usage=read_token_usage(state),
+            time_consumed=read_time_consumed(state),
+            error=_resolved_sql_error(state.get("sql_error") or state.get("error")),
         )
 
     def to_dict(self) -> dict:
         """Serialise to a plain ``dict`` (pydantic v1/v2 compatible)."""
         if hasattr(self, "model_dump"):
-            return self.model_dump()
-        return self.dict()
+            payload = self.model_dump()
+        else:
+            payload = self.dict()
+        if app_config.optional_prompt_reason:
+            _strip_reason_fields(payload)
+        return payload
+
+
+def _strip_reason_fields(payload: dict) -> None:
+    viz = payload.get("viz")
+    if isinstance(viz, dict):
+        viz.pop("vf_reason", None)
+    sql = payload.get("sql")
+    if isinstance(sql, dict):
+        sql.pop("reason", None)
+    summary = payload.get("summary")
+    if isinstance(summary, dict):
+        summary.pop("reason", None)
+
+
+def _resolved_sql_error(value: Any) -> str:
+    if value is None or value == "" or value == "Not Generated":
+        return ""
+    return _as_str(value)
 
 
 def _as_str(value: Any) -> str:
@@ -200,7 +245,8 @@ def _extract_required_columns(sql_agent: dict) -> list:
     if not query_plan:
         return []
     if isinstance(query_plan, dict):
-        return _as_list(query_plan.get("columnName"))
+        return [str(value) for value in query_plan.values()]
+        #return _as_list(query_plan.get("columnName"))
     if isinstance(query_plan, str):
         try:
             parsed = json.loads(query_plan)

@@ -2,7 +2,7 @@ import logging
 
 from helicalbi.api.QueryExecutor import execute_query
 from helicalbi.common.ChatManager import add_insight, get_last_insight
-from helicalbi.common.LlmInvokeHelper import invoke_llm, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_llm
 from helicalbi.common.configuration import llm
 from helicalbi.model.AgentState import AgentState
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
@@ -46,15 +46,15 @@ class SqlExecutor:
 
             if status != 1:
                 state["sql_error"] = response_string
-                error_insight, usage = invoke_llm(
+                error_insight, _ = invoke_llm(
                     llm,
                     error_prompt_formatted.format(
                         response_string=response_string,
                         user_query=user_query,
                         username=state["user_name"],
                     ),
+                    state=state,
                 )
-                merge_token_usage(state, usage)
                 state["output"] = error_insight.content
                 add_insight(state["thread_id"], error_insight.content)
                 state["skip"] = True
@@ -70,12 +70,11 @@ class SqlExecutor:
 
             formatted_format = success_prompt_formatted.format(user_query=user_query, sql_query=sql,
                                                                metadata=metadata_to_send, )
-            logger.info(">>>>>>>>>>>>>>>>>>Prompt: "+formatted_format)
-            insight, usage = invoke_llm(
+            insight, _ = invoke_llm(
                 llm,
                 formatted_format,
+                state=state,
             )
-            merge_token_usage(state, usage)
             state["output"] = insight.content
             add_insight(state["thread_id"], insight.content)
 

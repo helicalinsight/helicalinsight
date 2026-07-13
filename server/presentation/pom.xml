@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>hi-ce</artifactId>
+	<artifactId>hi-ee</artifactId>
 	<packaging>war</packaging>
-	<name>hi-ce</name>
+	<name>hi-ee</name>
 
 
 	<properties>
@@ -29,8 +29,8 @@
 				<dbDialect>org.hibernate.dialect.DerbyDialect</dbDialect>
 				<dbServer>localhost</dbServer>
 				<dbPort>1527</dbPort>
-				<dbName>hice</dbName>
-				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hice;create=true</dbUrl>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hiee;create=true</dbUrl>
 				<dbDriver>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriver>
 				<dbUrlQtz>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hischeduledata;create=true</dbUrlQtz>
 				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
@@ -52,8 +52,8 @@
 				<dbDialect>org.hibernate.dialect.DerbyDialect</dbDialect>
 				<dbServer>127.0.0.1</dbServer>
 				<dbPort>1527</dbPort>
-				<dbName>hice</dbName>
-				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hice;create=true</dbUrl>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hiee;create=true</dbUrl>
 				<dbDriver>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriver>
 				<dbUrlQtz>jdbc:derby:${maven.multiModuleProjectDirectory}/db/hischeduledata;create=true</dbUrlQtz>
 				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
@@ -77,8 +77,8 @@
 				<dbDialect>org.hibernate.dialect.PostgreSQLDialect</dbDialect>
 				<dbServer>postgres</dbServer>
 				<dbPort>5432</dbPort>
-				<dbName>hice</dbName>
-				<dbUrl>jdbc:postgresql://postgres:5432/hice</dbUrl>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:postgresql://postgres:5432/hiee</dbUrl>
 				<dbDriver>org.postgresql.Driver</dbDriver>
 				<dbUrlQtz>jdbc:postgresql://postgres:5432/hischeduledata</dbUrlQtz>
 				<dbDriverQtz>org.postgresql.Driver</dbDriverQtz>
@@ -91,6 +91,33 @@
 					<version>42.7.11</version>
 				</dependency>
 			</dependencies>
+		</profile>
+
+		<!-- GitHub Actions / Linux CI: matches hardcoded /home/helical/Performance paths in integration tests -->
+		<profile>
+			<id>ci</id>
+			<activation>
+				<property>
+					<name>env</name>
+					<value>ci</value>
+				</property>
+			</activation>
+			<properties>
+				<hiRepositoryPath>/home/helical/Performance/hi/hi-repository</hiRepositoryPath>
+				<dbBasePath>/home/helical/Performance/hi/db</dbBasePath>
+				<logLocation>${hiRepositoryPath}/System/Logs</logLocation>
+				<dbUser>hiuser</dbUser>
+				<dbPassword>hiuser</dbPassword>
+				<dbDialect>org.hibernate.dialect.DerbyDialect</dbDialect>
+				<dbServer>localhost</dbServer>
+				<dbPort>1527</dbPort>
+				<dbName>hiee</dbName>
+				<dbUrl>jdbc:derby:/home/helical/Performance/hi/db/hiee;create=true</dbUrl>
+				<dbDriver>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriver>
+				<dbUrlQtz>jdbc:derby:/home/helical/Performance/hi/db/hischeduledata;create=true</dbUrlQtz>
+				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
+				<delegateClass>org.quartz.impl.jdbcjobstore.StdJDBCDelegate</delegateClass>
+			</properties>
 		</profile>
 	</profiles>
 
@@ -182,6 +209,7 @@
 				<includes>
 					<include>META-INF/persistence.xml</include>
 					<include>application-context.xml</include>
+					<include>quartz.properties</include>
 				</includes>
 			</testResource>
 			<testResource>
@@ -190,6 +218,7 @@
 				<excludes>
 					<exclude>META-INF/persistence.xml</exclude>
 					<exclude>application-context.xml</exclude>
+					<exclude>quartz.properties</exclude>
 				</excludes>
 			</testResource>
 		</testResources>

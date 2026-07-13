@@ -17,11 +17,13 @@ import Dice from "./Components/Dice";
 import "./hi-management.scss";
 import { DiceStorage } from "./Components/dice-storage/DiceStorage";
 import ExportRepository from "./Components/ExportRepository";
+import TokenUsageDashboard from "./Components/TokenUsage/TokenUsageDashboard";
 
 const menuItems = [
   { label: "Middleware", key: "middleware", module: "middleware" },
   { label: "DICE", key: "dice", module: "dice" },
   { label: "DICE Storage", key: "diceStorage", module: "dice" },
+  { label: "Audit", key: "tokenUsage", module: "tokenUsage" },
   { label: "Import", key: "import", module: "import" },
   { label: "Export", key: "export", module: "export" }
   // { label: "Cube", key: "cube" },
@@ -124,6 +126,7 @@ const HIManagement = ({ apiRef, handleAbort }) => {
           {activeKey === "middleware" && <Middleware />}
           {activeKey === "dice" && <Dice getManagementAdvancedData={getManagementAdvancedData} />}
           {activeKey === "diceStorage" && <DiceStorage handleAbort={handleAbort} apiRef={apiRef} />}
+          {activeKey === "tokenUsage" && <TokenUsageDashboard handleAbort={handleAbort} apiRef={apiRef} />}
           {activeKey === "import" && <ImportFiles />}
           {activeKey === "export" && <ExportRepository />}
           {/* {activeKey === "cube" && <Cube />} */}
