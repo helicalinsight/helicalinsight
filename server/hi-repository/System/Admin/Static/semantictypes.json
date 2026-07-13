@@ -1,0 +1,380 @@
+{
+  "semanticTypes": [
+    {
+      "label": "Temporal",
+      "value": "TEMPORAL",
+      "options": [
+        {
+          "label": "Date",
+          "value": "DATE"
+        },
+        {
+          "label": "Time",
+          "value": "TIME"
+        },
+        {
+          "label": "Datetime",
+          "value": "DATETIME"
+        },
+        {
+          "label": "Timestamp",
+          "value": "TIMESTAMP"
+        },
+        {
+          "label": "Duration",
+          "value": "DURATION"
+        },
+        {
+          "label": "Time Zone",
+          "value": "TIME_ZONE"
+        }
+      ]
+    },
+    {
+      "label": "Numeric",
+      "value": "NUMERIC",
+      "options": [
+        {
+          "label": "Integer",
+          "value": "INTEGER"
+        },
+        {
+          "label": "Decimal",
+          "value": "DECIMAL"
+        },
+        {
+          "label": "Number",
+          "value": "NUMBER"
+        },
+        {
+          "label": "Currency",
+          "value": "CURRENCY"
+        },
+        {
+          "label": "Percentage",
+          "value": "PERCENTAGE"
+        },
+        {
+          "label": "Score",
+          "value": "SCORE"
+        },
+        {
+          "label": "Rating",
+          "value": "RATING"
+        },
+        {
+          "label": "Age",
+          "value": "AGE"
+        }
+      ]
+    },
+    {
+      "label": "Identifier",
+      "value": "IDENTIFIER",
+      "options": [
+        {
+          "label": "Identifier",
+          "value": "IDENTIFIER"
+        },
+        {
+          "label": "UUID",
+          "value": "UUID"
+        },
+        {
+          "label": "Primary Key",
+          "value": "PRIMARY_KEY"
+        },
+        {
+          "label": "Foreign Key",
+          "value": "FOREIGN_KEY"
+        },
+        {
+          "label": "Account Number",
+          "value": "ACCOUNT_NUMBER"
+        },
+        {
+          "label": "Employee ID",
+          "value": "EMPLOYEE_ID"
+        },
+        {
+          "label": "Customer ID",
+          "value": "CUSTOMER_ID"
+        },
+        {
+          "label": "Order ID",
+          "value": "ORDER_ID"
+        }
+      ]
+    },
+    {
+      "label": "Person",
+      "value": "PERSON",
+      "options": [
+        {
+          "label": "Person Name",
+          "value": "PERSON_NAME"
+        },
+        {
+          "label": "First Name",
+          "value": "FIRST_NAME"
+        },
+        {
+          "label": "Last Name",
+          "value": "LAST_NAME"
+        },
+        {
+          "label": "Gender",
+          "value": "GENDER"
+        },
+        {
+          "label": "Email",
+          "value": "EMAIL"
+        },
+        {
+          "label": "Phone Number",
+          "value": "PHONE_NUMBER"
+        },
+        {
+          "label": "Age",
+          "value": "AGE"
+        }
+      ]
+    },
+    {
+      "label": "Geographic",
+      "value": "GEOGRAPHIC",
+      "options": [
+        {
+          "label": "Address",
+          "value": "ADDRESS"
+        },
+        {
+          "label": "Country",
+          "value": "COUNTRY"
+        },
+        {
+          "label": "State / Province",
+          "value": "STATE_PROVINCE"
+        },
+        {
+          "label": "City",
+          "value": "CITY"
+        },
+        {
+          "label": "Postal Code",
+          "value": "POSTAL_CODE"
+        },
+        {
+          "label": "Latitude",
+          "value": "LATITUDE"
+        },
+        {
+          "label": "Longitude",
+          "value": "LONGITUDE"
+        },
+        {
+          "label": "Geo Point",
+          "value": "GEO_POINT"
+        }
+      ]
+    },
+    {
+      "label": "Organization",
+      "value": "ORGANIZATION",
+      "options": [
+        {
+          "label": "Company",
+          "value": "COMPANY"
+        },
+        {
+          "label": "Department",
+          "value": "DEPARTMENT"
+        },
+        {
+          "label": "Business Unit",
+          "value": "BUSINESS_UNIT"
+        },
+        {
+          "label": "Division",
+          "value": "DIVISION"
+        },
+        {
+          "label": "Branch",
+          "value": "BRANCH"
+        }
+      ]
+    },
+    {
+      "label": "Product & Business",
+      "value": "PRODUCT_BUSINESS",
+      "options": [
+        {
+          "label": "Product",
+          "value": "PRODUCT"
+        },
+        {
+          "label": "Category",
+          "value": "CATEGORY"
+        },
+        {
+          "label": "Status",
+          "value": "STATUS"
+        },
+        {
+          "label": "Enum",
+          "value": "ENUM"
+        },
+        {
+          "label": "Tags",
+          "value": "TAGS"
+        },
+        {
+          "label": "Version",
+          "value": "VERSION"
+        }
+      ]
+    },
+    {
+      "label": "Internet & Network",
+      "value": "INTERNET_NETWORK",
+      "options": [
+        {
+          "label": "URL",
+          "value": "URL"
+        },
+        {
+          "label": "Email",
+          "value": "EMAIL"
+        },
+        {
+          "label": "IP Address",
+          "value": "IP_ADDRESS"
+        },
+        {
+          "label": "Domain Name",
+          "value": "DOMAIN_NAME"
+        },
+        {
+          "label": "MAC Address",
+          "value": "MAC_ADDRESS"
+        },
+        {
+          "label": "File Path",
+          "value": "FILE_PATH"
+        }
+      ]
+    },
+    {
+      "label": "Documents & Content",
+      "value": "DOCUMENTS_CONTENT",
+      "options": [
+        {
+          "label": "Text",
+          "value": "TEXT"
+        },
+        {
+          "label": "Rich Text",
+          "value": "RICH_TEXT"
+        },
+        {
+          "label": "HTML",
+          "value": "HTML"
+        },
+        {
+          "label": "Markdown",
+          "value": "MARKDOWN"
+        },
+        {
+          "label": "JSON",
+          "value": "JSON"
+        },
+        {
+          "label": "XML",
+          "value": "XML"
+        },
+        {
+          "label": "SQL",
+          "value": "SQL"
+        },
+        {
+          "label": "Source Code",
+          "value": "SOURCE_CODE"
+        }
+      ]
+    },
+    {
+      "label": "Media",
+      "value": "MEDIA",
+      "options": [
+        {
+          "label": "Image",
+          "value": "IMAGE"
+        },
+        {
+          "label": "Audio",
+          "value": "AUDIO"
+        },
+        {
+          "label": "Video",
+          "value": "VIDEO"
+        },
+        {
+          "label": "Binary",
+          "value": "BINARY"
+        },
+        {
+          "label": "Document",
+          "value": "DOCUMENT"
+        }
+      ]
+    },
+    {
+      "label": "Logical",
+      "value": "LOGICAL",
+      "options": [
+        {
+          "label": "Boolean",
+          "value": "BOOLEAN"
+        },
+        {
+          "label": "Status",
+          "value": "STATUS"
+        },
+        {
+          "label": "Flag",
+          "value": "FLAG"
+        },
+        {
+          "label": "Enum",
+          "value": "ENUM"
+        }
+      ]
+    },
+    {
+      "label": "Collection",
+      "value": "COLLECTION",
+      "options": [
+        {
+          "label": "Array",
+          "value": "ARRAY"
+        },
+        {
+          "label": "List",
+          "value": "LIST"
+        },
+        {
+          "label": "Object",
+          "value": "OBJECT"
+        },
+        {
+          "label": "Map",
+          "value": "MAP"
+        },
+        {
+          "label": "Set",
+          "value": "SET"
+        }
+      ]
+    }
+  ]
+}

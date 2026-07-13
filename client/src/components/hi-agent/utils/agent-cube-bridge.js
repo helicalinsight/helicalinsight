@@ -94,6 +94,53 @@ const buildDimensionEntry = (child, sortOrder) => ({
   sortOrder,
 });
 
+const buildAgentLevelEntry = (child) => ({
+  levelName: (child.fields || child.columnName || "").trim(),
+  semanticType: child.semanticType || "",
+  tableId: asId(child.tableId ?? child.table?.id),
+  columnName: buildQualifiedColumnName(child),
+  columnId: asId(child.columnId),
+  defaultFunction: child.defaultFunction || child.column?.defaultFunction || "",
+  description: child.description || "",
+  metric: buildMetric(child.formula),
+});
+
+const buildAgentHierarchyDimension = (child, sortOrder) => {
+  const levels = (child.children || [])
+    .filter((level) => !level.isDelete)
+    .map(buildAgentLevelEntry);
+  const primaryLevel = levels[0] || buildAgentLevelEntry(child);
+  const hierarchyName = (child.fields || "").trim();
+  const tableId = asId(child.tableId ?? child.table?.id) || primaryLevel.tableId;
+  const columnId = asId(child.columnId) || primaryLevel.columnId;
+  const columnName = buildQualifiedColumnName(child) || primaryLevel.columnName;
+
+  return {
+    dimensionName: hierarchyName,
+    semanticType: child.semanticType || "",
+    tableId,
+    columnName,
+    columnId,
+    defaultFunction:
+      child.defaultFunction ||
+      child.column?.defaultFunction ||
+      primaryLevel.defaultFunction ||
+      "",
+    description: child.description || "",
+    metric: buildMetric(child.formula),
+    sortOrder,
+    hierarchies: [
+      {
+        hierarchyName,
+        primaryColumnId: columnId,
+        tableId,
+        columnName,
+        levels,
+      },
+    ],
+  };
+};
+
 const buildMeasureEntry = (child, sortOrder) => ({
   measureName: (child.fields || child.columnName || "").trim(),
   aggregator: child.aggregation?.value || "",
@@ -133,6 +180,94 @@ const createChildFromDimension = (dimension) => {
     table: { name: "" },
     column: { defaultFunction: dimension.defaultFunction || "" },
     agentSource: { kind: "column", table: "", columnName },
+  };
+};
+
+const createHierarchyChildFromLevel = (level, parentKey) => {
+  const columnName = level.columnName || level.levelName || "";
+  return {
+    key: uuidv4(),
+    fields: level.levelName || columnName,
+    columnName,
+    tableId: level.tableId || "",
+    columnId: level.columnId || "",
+    defaultFunction: level.defaultFunction || "",
+    semanticType: level.semanticType || "",
+    description: level.description || "",
+    formula: level.metric?.formula || "",
+    filter: "",
+    example: "",
+    synonyms: "",
+    fieldsDropdownOpen: false,
+    isHierarchyChild: true,
+    parentKey,
+    isDimensionCheck: true,
+    measure: { isMeasureCheck: false, DataType: "", Format: "" },
+    isVisible: true,
+    sort: { isSortCheck: true, value: "Ascending" },
+    aggregation: { isAggregationCheck: false, value: "" },
+    isPartitionCheck: false,
+    table: { name: "" },
+    column: { defaultFunction: level.defaultFunction || "" },
+    agentSource: { kind: "column", table: "", columnName },
+  };
+};
+
+const isSingleLevelHierarchyDimension = (dimension, hierarchy, levels) => {
+  if (levels.length !== 1) {
+    return false;
+  }
+  const hierarchyName = (hierarchy?.hierarchyName || dimension.dimensionName || "").trim();
+  const level = levels[0];
+  return (
+    hierarchyName === (level.levelName || "").trim() &&
+    asId(hierarchy?.primaryColumnId || dimension.columnId) === asId(level.columnId)
+  );
+};
+
+const createChildFromAgentDimension = (dimension) => {
+  const hierarchy = dimension.hierarchies?.[0];
+  const levels = hierarchy?.levels || [];
+
+  if (!levels.length) {
+    return createChildFromDimension(dimension);
+  }
+
+  if (isSingleLevelHierarchyDimension(dimension, hierarchy, levels)) {
+    const level = levels[0];
+    return createChildFromDimension({
+      ...dimension,
+      dimensionName: level.levelName || dimension.dimensionName,
+      columnId: level.columnId || dimension.columnId,
+      tableId: level.tableId || dimension.tableId,
+      columnName: level.columnName || dimension.columnName,
+      semanticType: level.semanticType ?? dimension.semanticType,
+      description: level.description ?? dimension.description,
+      defaultFunction: level.defaultFunction ?? dimension.defaultFunction,
+      metric: level.metric ?? dimension.metric,
+    });
+  }
+
+  const key = uuidv4();
+  const hierarchyName = (hierarchy.hierarchyName || dimension.dimensionName || "").trim();
+  return {
+    key,
+    fields: hierarchyName,
+    columnName: hierarchy.columnName || dimension.columnName || "",
+    tableId: hierarchy.tableId || dimension.tableId || "",
+    columnId: hierarchy.primaryColumnId || dimension.columnId || "",
+    defaultFunction: dimension.defaultFunction || "",
+    semanticType: dimension.semanticType || "",
+    description: dimension.description || "",
+    formula: dimension.metric?.formula || "",
+    filter: "",
+    example: "",
+    synonyms: "",
+    fieldsDropdownOpen: false,
+    isHierarchy: true,
+    children: levels.map((level) => createHierarchyChildFromLevel(level, key)),
+    table: { name: "" },
+    column: { defaultFunction: dimension.defaultFunction || "" },
   };
 };
 
@@ -398,6 +533,56 @@ export const normalizeAgentData = (agentData) => {
   return ensureShape(raw);
 };
 
+const mergeLevelList = (storedLevels = [], displayLevels = []) => {
+  const storedByKey = new Map(
+    storedLevels.map((item) => [
+      fieldKey(item.tableId, item.columnId, item.columnName),
+      item,
+    ]),
+  );
+
+  return displayLevels.map((item) => {
+    const key = fieldKey(item.tableId, item.columnId, item.columnName);
+    const previous = storedByKey.get(key) || {};
+    return {
+      ...previous,
+      ...item,
+      levelName: item.levelName || previous.levelName || "",
+      columnName: item.columnName || previous.columnName || "",
+      tableId: item.tableId || previous.tableId || "",
+      columnId: item.columnId || previous.columnId || "",
+      defaultFunction: item.defaultFunction || previous.defaultFunction || "",
+      metric: {
+        ...buildMetric(previous.metric?.formula),
+        ...item.metric,
+      },
+      sortOrder: item.sortOrder ?? previous.sortOrder,
+    };
+  });
+};
+
+const mergeDimensionHierarchies = (stored = [], display = []) => {
+  const storedHierarchy = stored[0] || {};
+  const displayHierarchy = display[0] || {};
+  return [
+    {
+      ...storedHierarchy,
+      ...displayHierarchy,
+      hierarchyName:
+        displayHierarchy.hierarchyName || storedHierarchy.hierarchyName || "",
+      primaryColumnId:
+        displayHierarchy.primaryColumnId || storedHierarchy.primaryColumnId || "",
+      tableId: displayHierarchy.tableId || storedHierarchy.tableId || "",
+      columnName:
+        displayHierarchy.columnName || storedHierarchy.columnName || "",
+      levels: mergeLevelList(
+        storedHierarchy.levels || [],
+        displayHierarchy.levels || [],
+      ),
+    },
+  ];
+};
+
 const mergeFieldList = (stored = [], display = [], kind) => {
   const storedByKey = new Map(
     stored.map((item) => [
@@ -410,7 +595,7 @@ const mergeFieldList = (stored = [], display = [], kind) => {
     const key = fieldKey(item.tableId, item.columnId, item.columnName);
     const previous = storedByKey.get(key) || {};
     if (kind === "dimension") {
-      return {
+      const merged = {
         ...previous,
         ...item,
         dimensionName: item.dimensionName || previous.dimensionName || "",
@@ -425,6 +610,13 @@ const mergeFieldList = (stored = [], display = [], kind) => {
         },
         sortOrder: item.sortOrder ?? previous.sortOrder,
       };
+      if (item.hierarchies?.length || previous.hierarchies?.length) {
+        merged.hierarchies = mergeDimensionHierarchies(
+          previous.hierarchies,
+          item.hierarchies,
+        );
+      }
+      return merged;
     }
     return {
       ...previous,
@@ -443,6 +635,14 @@ const mergeFieldList = (stored = [], display = [], kind) => {
   });
 };
 
+const registerDimensionInHierarchyData = (child, hierarchyData) => {
+  hierarchyData.hierarchyList.push({
+    hierarchyName: child.fields,
+    hierarchyKey: child.key,
+  });
+  hierarchyData.isHierarchyPresent = true;
+};
+
 export const convertAgentDataToCubeFieldsData = (agentData) => {
   const data = normalizeAgentData(agentData);
   const cubeEntry = data.cube_info[0] || {
@@ -450,14 +650,21 @@ export const convertAgentDataToCubeFieldsData = (agentData) => {
     dimensions: [],
     measures: [],
   };
+  const hierarchyData = {
+    isHierarchyPresent: false,
+    hierarchyList: [],
+  };
   const children = orderCubeFields(
     cubeEntry.dimensions || [],
     cubeEntry.measures || [],
-  ).map(({ kind, item }) =>
-    kind === "dimension"
-      ? createChildFromDimension(item)
-      : createChildFromMeasure(item),
-  );
+  ).map(({ kind, item }) => {
+    if (kind === "dimension") {
+      const child = createChildFromAgentDimension(item);
+      registerDimensionInHierarchyData(child, hierarchyData);
+      return child;
+    }
+    return createChildFromMeasure(item);
+  });
 
   return {
     id: "",
@@ -466,7 +673,7 @@ export const convertAgentDataToCubeFieldsData = (agentData) => {
     cubeTopic: resolveAgentTopicFromData(data),
     cubeName: "",
     children,
-    hierarchyData: { isHierarchyPresent: false, hierarchyList: [] },
+    hierarchyData,
   };
 };
 
@@ -477,10 +684,19 @@ export const convertCubeFieldsDataToAgentData = (
   const dimensions = [];
   const measures = [];
 
-  flattenCubeChildren(cubeFieldsData.children).forEach((child, sortOrder) => {
+  (cubeFieldsData.children || []).forEach((child, sortOrder) => {
+    if (child.isDelete) {
+      return;
+    }
+    if (child.isHierarchy) {
+      dimensions.push(buildAgentHierarchyDimension(child, sortOrder));
+      return;
+    }
     if (child.measure?.isMeasureCheck) {
       measures.push(buildMeasureEntry(child, sortOrder));
-    } else {
+      return;
+    }
+    if (child.isDimensionCheck) {
       dimensions.push(buildDimensionEntry(child, sortOrder));
     }
   });
@@ -511,10 +727,24 @@ const stripFieldSortOrder = (item = {}) => {
   return rest;
 };
 
+const stripSortOrderFromDimension = (dimension = {}) => {
+  const { sortOrder, hierarchies, ...rest } = dimension;
+  if (!Array.isArray(hierarchies) || !hierarchies.length) {
+    return rest;
+  }
+  return {
+    ...rest,
+    hierarchies: hierarchies.map((hierarchy) => ({
+      ...hierarchy,
+      levels: (hierarchy.levels || []).map(stripFieldSortOrder),
+    })),
+  };
+};
+
 const stripSortOrderFromCubeInfo = (cube = {}) => ({
   ...cube,
   cubeName: "",
-  dimensions: (cube.dimensions || []).map(stripFieldSortOrder),
+  dimensions: (cube.dimensions || []).map(stripSortOrderFromDimension),
   measures: (cube.measures || []).map(stripFieldSortOrder),
 });
 

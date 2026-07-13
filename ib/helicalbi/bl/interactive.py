@@ -1,20 +1,25 @@
 import logging
+import time
 import traceback
 from typing import Any
 
 from flask import request
 from langchain_core.messages import HumanMessage
 
-from GraphBuilderManger import sql_generator_graph
+from GraphBuilderManger import cube_info_sql_generator_graph, sql_generator_graph
 from bl.app_context import app
 from bl.helpers import (
     RequestAborted,
     ensure_not_aborted,
+    extract_token_usage_dict,
     graph_invoke_config,
     json_response,
+    log_endpoint_input,
+    resolve_audit_status_from_response,
     resolve_request_id,
     turn_state_defaults,
 )
+from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.ChatManager import add_message, get_last_n
 from helicalbi.common.CubeInfoAgent import is_cube_info_agent, prepare_cube_info_agent_data
@@ -22,8 +27,9 @@ from helicalbi.common.JsonToPara import has_table_column_info, prevalidate_cube_
 from helicalbi.core.flows.CubeInfoFlow import CubeInfoFlow
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug
-from helicalbi.common.auth import resolve_session_auth
+from helicalbi.common.auth import bind_request_identity
 from helicalbi.core.flows.SqlExecutor import SqlExecutor
+from helicalbi.common.LlmInvokeHelper import set_total_time_consumed
 from helicalbi.model.output.ChatResponse import ChatResponse
 from helicalbi.sql.SqlSanitizer import format_sql
 
@@ -34,9 +40,10 @@ def register(flask_app) -> None:
     @flask_app.route("/interactive", methods=["POST"])
     def interactive():
         data = request.get_json()
+        log_endpoint_input("/interactive", data)
         user_input = data["input"]
         user_query = user_input["inputString"]
-        session_cookie, username = resolve_session_auth(data, user_input)
+        session_cookie, username, user_id, _org_id = bind_request_identity(data, user_input)
         agent_file_name = user_input["agent"]["file"]
         location = user_input["agent"]["dir"]
         helper = app().AgentLayerHelper(session_cookie, agent_file_name, location)
@@ -93,6 +100,10 @@ def register(flask_app) -> None:
             "reduced_para": "",
             "cube_metadata": cube_metadata,
             "business_metrics": cube_info_prepared.get("business_metrics", []) if use_cube_info_flow else [],
+            "topic_mappings": cube_info_prepared.get("topic_mappings", []) if use_cube_info_flow else [],
+            "synonyms": cube_info_prepared.get("synonyms", []) if use_cube_info_flow else [],
+            "domain_context": cube_info_prepared.get("domain_context", "") if use_cube_info_flow else "",
+            "use_cube_info_sql_flow": use_cube_info_flow,
             "relationship_of_table": joins,
             "dbname": actual_md["databaseName"],
             "md_location": md_location,
@@ -109,6 +120,9 @@ def register(flask_app) -> None:
 
         result = {}
         to_send: dict[str, Any] = {}
+        request_status = "SUCCESS"
+        error_message: str | None = None
+        request_started = time.perf_counter()
         try:
             logger.info(
                 "Interactive request received user=%s thread=%s chat_seq_id=%s requestId=%s",
@@ -122,15 +136,43 @@ def register(flask_app) -> None:
                 logger.debug("Invoking cube_info flow for thread=%s", thread_id)
                 result = CubeInfoFlow().process_flow(state)
                 if cube_info_prepared:
+                    logger.info("cube info prepared")
                     result["domain"] = cube_info_prepared.get("domain") or result.get("domain") or []
                     result["topics"] = cube_info_prepared.get("topics") or result.get("topics") or []
+                    result["domain_context"] = (
+                        cube_info_prepared.get("domain_context")
+                        or result.get("domain_context")
+                        or ""
+                    )
+                    result["topic_mappings"] = (
+                        cube_info_prepared.get("topic_mappings")
+                        or result.get("topic_mappings")
+                        or []
+                    )
+                    result["synonyms"] = (
+                        cube_info_prepared.get("synonyms")
+                        or result.get("synonyms")
+                        or []
+                    )
+                    result["business_metrics"] = (
+                        cube_info_prepared.get("business_metrics")
+                        or result.get("business_metrics")
+                        or []
+                    )
+                    result["got_domain"] = True
+                    # Still run intent rephrase; domain/topic LLM discovery is skipped via got_domain.
+                    result = app().main_graph.invoke(result, config)
             else:
                 logger.debug("Invoking main graph for thread=%s", thread_id)
                 result = app().main_graph.invoke(state, config)
 
             ensure_not_aborted(request_id)
-            logger.debug("Invoking SQL generator graph for thread=%s", thread_id)
-            result = sql_generator_graph.invoke(result, config)
+            if use_cube_info_flow:
+                logger.debug("Invoking cube_info SQL generator for thread=%s", thread_id)
+                result = cube_info_sql_generator_graph.invoke(result, config)
+            else:
+                logger.debug("Invoking SQL generator graph for thread=%s", thread_id)
+                result = sql_generator_graph.invoke(result, config)
 
             ensure_not_aborted(request_id)
             logger.debug("Executing SQL for thread=%s", thread_id)
@@ -157,8 +199,11 @@ def register(flask_app) -> None:
             if sql:
                 result["sql"] = f"```sql\n{formatted_sql}"
 
+            set_total_time_consumed(result, time.perf_counter() - request_started)
             chat_response_dict = ChatResponse.from_agent_state(result).to_dict()
             to_send["chat_response"] = chat_response_dict
+            if chat_response_dict.get("error"):
+                to_send["error"] = chat_response_dict["error"]
 
             chat_graph_memory.add_node(
                 thread_id,
@@ -183,21 +228,49 @@ def register(flask_app) -> None:
 
         except RequestAborted:
             logger.info("Interactive request aborted for requestId=%s", request_id)
+            request_status = "ABORTED"
+            error_message = "Request has been cancelled."
             to_send["messages"] = []
-            to_send["error"] = "Request has been cancelled."
+            to_send["error"] = error_message
             to_send["aborted"] = True
-            to_send["chat_response"] = {}
+            if isinstance(result, dict):
+                to_send["chat_response"] = ChatResponse.from_agent_state(result).to_dict()
+            else:
+                to_send["chat_response"] = {}
         except Exception as e:
             logger.exception("Error while processing interactive request")
+            request_status = "ERROR"
+            error_message = str(e)
             to_send["messages"] = []
             result = result if isinstance(result, dict) else {}
-            to_send["error"] = str(e)
+            to_send["error"] = error_message
             if is_debug():
                 to_send["stack"] = traceback.format_exc()
-            to_send["chat_response"] = {}
+            if isinstance(result, dict):
+                to_send["chat_response"] = ChatResponse.from_agent_state(result).to_dict()
+            else:
+                to_send["chat_response"] = {}
         finally:
             if request_id:
                 request_cancellation.clear(request_id)
                 logger.debug("Cleared cancellation for interactive requestId=%s", request_id)
+            request_status, error_message = resolve_audit_status_from_response(
+                to_send,
+                request_status,
+                error_message,
+            )
+            base_url = user_input.get("baseUrl") or ""
+            audit_llm_usage_async(
+                endpoint="/interactive",
+                user_id=user_id,
+                session_cookie=session_cookie,
+                base_url=base_url,
+                user_query=user_query,
+                token_usage=extract_token_usage_dict(to_send),
+                request_status=request_status,
+                error_message=error_message,
+                chat_id=str(thread_id) if thread_id else None,
+                chat_seq_id=str(chat_seq_id) if chat_seq_id is not None else None,
+            )
 
         return json_response(to_send)

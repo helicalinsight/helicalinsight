@@ -7,6 +7,7 @@ import re
 from typing import Any, Iterable, List, Set, Tuple
 
 _IDENTIFIER = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+_QUALIFIED_REF = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)")
 
 
 def _normalize_query_plan(query_plan: Any) -> dict:
@@ -80,8 +81,14 @@ def _text_references_schema(
         if ref and ref in text:
             return True
 
+    for table_name, _ in _QUALIFIED_REF.findall(text):
+        if table_name in required_tables:
+            return True
+
     tokens = _identifiers(text)
-    if tokens & required_tables:
+    # When specific query-plan columns are known, bare table-token matches are
+    # too broad and pull unrelated same-table metrics into the final prompt.
+    if not required_columns and tokens & required_tables:
         return True
     if tokens & required_columns:
         return True
@@ -98,17 +105,28 @@ def metric_matches_required_schema(
     if not isinstance(metric, dict):
         return False
 
+    has_column_targets = bool(required_columns or required_table_columns)
     for table in metric.get("tables") or []:
-        if str(table) in required_tables:
+        if not has_column_targets and str(table) in required_tables:
             return True
 
     column_name = metric.get("column_name")
     if column_name and str(column_name) in required_columns:
         return True
 
+    all_parts: list[str] = []
     for part in iter_metric_parts(metric):
+        all_parts.append(part)
         if _text_references_schema(part, required_tables, required_columns, required_table_columns):
             return True
+
+    # Handle nested metrics where table/column tokens are split across keys.
+    if required_table_columns and all_parts:
+        tokens = _identifiers(" ".join(all_parts))
+        for ref in required_table_columns:
+            table_name, _, column_name = ref.partition(".")
+            if table_name and column_name and table_name in tokens and column_name in tokens:
+                return True
 
     return False
 

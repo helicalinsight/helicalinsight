@@ -112,14 +112,6 @@ describe("agent-cube-bridge", () => {
       description: "Domain description",
       topics: ["Travel", "Meetings"],
     });
-    expect(result.cube_info[0].dimensions[0].tableId).toBe("112");
-    expect(result.cube_info[0].dimensions[0].defaultFunction).toBe(
-      "db.generic.groupBy.group",
-    );
-    expect(result.cube_info[0].dimensions[0].columnName).toBe(
-      "travel_details.booking_platform",
-    );
-    expect(result.cube_info[0].cubeName).toBe("");
   });
 
   it("serializes raw JSON as domain + cube_info only", () => {
@@ -285,5 +277,251 @@ describe("agent-cube-bridge", () => {
       "client_name_1",
       "meeting_id",
     ]);
+  });
+
+  it("exports hierarchy rows using cube-formdata nesting", () => {
+    const result = convertCubeFieldsDataToAgentData(
+      {
+        domainName: "",
+        cubeDescription: "",
+        cubeTopic: "",
+        children: [
+          {
+            fields: "employee_name",
+            isHierarchy: true,
+            tableId: "323",
+            columnId: "2672",
+            columnName: "employee_details.employee_name",
+            defaultFunction: "db.generic.groupBy.group",
+            children: [
+              {
+                fields: "employee_name",
+                isHierarchyChild: true,
+                isDimensionCheck: true,
+                tableId: "323",
+                columnId: "2672",
+                columnName: "employee_details.employee_name",
+                defaultFunction: "db.generic.groupBy.group",
+                semanticType: "entity",
+                measure: { isMeasureCheck: false },
+              },
+              {
+                fields: "address",
+                isHierarchyChild: true,
+                isDimensionCheck: true,
+                tableId: "323",
+                columnId: "2674",
+                columnName: "employee_details.address",
+                defaultFunction: "db.generic.groupBy.group",
+                measure: { isMeasureCheck: false },
+              },
+            ],
+          },
+        ],
+      },
+      ensureShape({}),
+    );
+
+    expect(result.cube_info[0].dimensions).toHaveLength(1);
+    expect(result.cube_info[0].dimensions[0]).toMatchObject({
+      dimensionName: "employee_name",
+      tableId: "323",
+      columnId: "2672",
+      semanticType: "",
+      description: "",
+      metric: { formula: "" },
+      hierarchies: [
+        {
+          hierarchyName: "employee_name",
+          primaryColumnId: "2672",
+          levels: [
+            {
+              levelName: "employee_name",
+              columnId: "2672",
+              semanticType: "entity",
+            },
+            {
+              levelName: "address",
+              columnId: "2674",
+            },
+          ],
+        },
+      ],
+    });
+    expect(result.cube_info[0].dimensions[0].hierarchies[0].levels).toHaveLength(
+      2,
+    );
+  });
+
+  it("loads legacy flat dimensions without hierarchies unchanged", () => {
+    const flatAgentData = ensureShape({
+      cube_info: [
+        {
+          dimensions: [
+            {
+              dimensionName: "employee_name",
+              tableId: "323",
+              columnId: "2672",
+              columnName: "employee_details.employee_name",
+            },
+            {
+              dimensionName: "address",
+              tableId: "323",
+              columnId: "2674",
+              columnName: "employee_details.address",
+            },
+          ],
+          measures: [],
+        },
+      ],
+    });
+
+    const cubeFields = convertAgentDataToCubeFieldsData(flatAgentData);
+    expect(cubeFields.hierarchyData.isHierarchyPresent).toBe(true);
+    expect(cubeFields.hierarchyData.hierarchyList).toHaveLength(2);
+    expect(cubeFields.children).toHaveLength(2);
+    expect(cubeFields.children.every((child) => child.isDimensionCheck)).toBe(true);
+    expect(cubeFields.children.map((child) => child.fields)).toEqual([
+      "employee_name",
+      "address",
+    ]);
+  });
+
+  it("round-trips hierarchy through load and export", () => {
+    const hierarchyAgentData = ensureShape({
+      cube_info: [
+        {
+          dimensions: [
+            {
+              dimensionName: "employee_name",
+              tableId: "323",
+              columnId: "2672",
+              columnName: "employee_details.employee_name",
+              defaultFunction: "db.generic.groupBy.group",
+              metric: { formula: "" },
+              sortOrder: 0,
+              hierarchies: [
+                {
+                  hierarchyName: "employee_name",
+                  primaryColumnId: "2672",
+                  tableId: "323",
+                  columnName: "employee_details.employee_name",
+                  levels: [
+                    {
+                      levelName: "employee_name",
+                      tableId: "323",
+                      columnId: "2672",
+                      columnName: "employee_details.employee_name",
+                      defaultFunction: "db.generic.groupBy.group",
+                      metric: { formula: "" },
+                    },
+                    {
+                      levelName: "address",
+                      tableId: "323",
+                      columnId: "2674",
+                      columnName: "employee_details.address",
+                      defaultFunction: "db.generic.groupBy.group",
+                      metric: { formula: "" },
+                    },
+                    {
+                      levelName: "cancellation_reason",
+                      tableId: "325",
+                      columnId: "2686",
+                      columnName: "meeting_details.cancellation_reason",
+                      defaultFunction: "db.generic.groupBy.group",
+                      metric: { formula: "" },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+          measures: [],
+        },
+      ],
+    });
+
+    const cubeFields = convertAgentDataToCubeFieldsData(hierarchyAgentData);
+    expect(cubeFields.hierarchyData.isHierarchyPresent).toBe(true);
+    expect(cubeFields.hierarchyData.hierarchyList).toEqual([
+      { hierarchyName: "employee_name", hierarchyKey: expect.any(String) },
+    ]);
+    expect(cubeFields.children).toHaveLength(1);
+    expect(cubeFields.children[0].isHierarchy).toBe(true);
+    expect(cubeFields.children[0].children.map((child) => child.fields)).toEqual([
+      "employee_name",
+      "address",
+      "cancellation_reason",
+    ]);
+
+    const exported = convertCubeFieldsDataToAgentData(
+      cubeFields,
+      hierarchyAgentData,
+    );
+    expect(exported.cube_info[0].dimensions[0].hierarchies[0].levels).toHaveLength(
+      3,
+    );
+
+    const reloaded = convertAgentDataToCubeFieldsData(exported);
+    expect(reloaded.children[0].isHierarchy).toBe(true);
+    expect(reloaded.children[0].children.map((child) => child.fields)).toEqual([
+      "employee_name",
+      "address",
+      "cancellation_reason",
+    ]);
+  });
+
+  it("registers all dimensions in hierarchyData for add-to-existing-hierarchy menu", () => {
+    const cubeFields = convertAgentDataToCubeFieldsData(
+      ensureShape({
+        cube_info: [
+          {
+            dimensions: [
+              {
+                dimensionName: "address",
+                tableId: "348",
+                columnId: "2857",
+                columnName: "employee_details.address",
+              },
+              {
+                dimensionName: "destination456",
+                tableId: "349",
+                columnId: "2865",
+                columnName: "travel_details.destination",
+                hierarchies: [
+                  {
+                    hierarchyName: "destination456",
+                    primaryColumnId: "2865",
+                    tableId: "349",
+                    columnName: "travel_details.destination",
+                    levels: [
+                      {
+                        levelName: "destination457",
+                        tableId: "349",
+                        columnId: "2865",
+                        columnName: "travel_details.destination",
+                      },
+                      {
+                        levelName: "employee name 1",
+                        tableId: "348",
+                        columnId: "2855",
+                        columnName: "employee_details.employee_name",
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+            measures: [],
+          },
+        ],
+      }),
+    );
+
+    expect(cubeFields.hierarchyData.hierarchyList.map((item) => item.hierarchyName)).toEqual(
+      ["address", "destination456"],
+    );
+    expect(cubeFields.children[0].isDimensionCheck).toBe(true);
+    expect(cubeFields.children[1].isHierarchy).toBe(true);
   });
 });

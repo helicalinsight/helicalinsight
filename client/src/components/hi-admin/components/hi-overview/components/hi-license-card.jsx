@@ -72,12 +72,12 @@ const HILicenseCard = () => {
                     />
                   </Text>
                 </Col>
-                <Col span={24}>
+                {/* <Col span={24}>
                   <Text ellipsis="true">
                     License Type : {productData["License Type"]}
                   </Text>
-                </Col>
-                <Col span={24}>
+                </Col> */}
+                {/* <Col span={24}>
                   <Text ellipsis="true">
                     Expiration Date :{" "}
                     {`${productData["Expiration"]} ${
@@ -88,7 +88,7 @@ const HILicenseCard = () => {
                         : ""
                     }`}
                   </Text>
-                </Col>
+                </Col> */}
                 <Col span={24}>
                   <Button
                     href="http://www.helicalinsight.com/upgrade/"

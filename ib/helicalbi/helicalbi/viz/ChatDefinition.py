@@ -5,6 +5,7 @@ Rules:
 2) Keep `data` as-is; never inline sample data.
 3) Return valid JavaScript/JSX with proper braces and closing tags.
 4) Keep function name and component usage consistent with template.
+5) if the template contains value_column it  means the column name which is numeric type
 """
 
 
