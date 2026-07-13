@@ -27,6 +27,7 @@ class SQLAgent(MessagesState):
     required_joins: str
     business_metrics: list
     required_business_metrics: list
+    required_column_description: str
     last_chats: list
     query_plan: dict
     final_sql: str
@@ -43,4 +44,9 @@ class SQLAgent(MessagesState):
     dialect:str
     dbname:str
     token_usage: dict
+    time_consumed: dict
+    required_functions: str
+    required_cube_info: dict
+    domain_context: str
+    topic_mappings: list
 

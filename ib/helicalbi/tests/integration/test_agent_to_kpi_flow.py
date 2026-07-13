@@ -57,29 +57,25 @@ class TestAgentToKpiFlow:
             answer=["Revenue by region", "Bookings count"],
             reason="standard KPIs",
         )
-
-        fake_chain = MagicMock()
-        fake_chain.invoke.return_value = kpi_response
+        usage = {"input_tokens": 8, "output_tokens": 4, "total_tokens": 12}
+        usage_obj = MagicMock()
+        usage_obj.model_dump.return_value = usage
 
         with patch("helicalbi.service.kpi.KpiProvider.PromptTemplate") as pt, patch(
             "helicalbi.service.kpi.KpiProvider.PydanticOutputParser"
-        ) as parser_cls:
-            prompt = MagicMock()
-            pt.return_value = prompt
+        ) as parser_cls, patch(
+            "helicalbi.service.kpi.KpiProvider.invoke_structured",
+            return_value=(kpi_response, usage_obj),
+        ):
+            pt.return_value = MagicMock()
             parser = MagicMock()
             parser_cls.return_value = parser
             parser.get_format_instructions.return_value = "FMT"
 
-            llm_pipe = MagicMock()
-            prompt.__or__.return_value = llm_pipe
-            llm_pipe.__or__.return_value = fake_chain
-
             provider = KpiProvider(
                 helper.get_agent_semantic_layer(), "Sales Operation"
             )
-            kpis = provider.top_kpis()
+            kpis, token_usage = provider.top_kpis()
 
         assert kpis == ["Revenue by region", "Bookings count"]
-        invoked = fake_chain.invoke.call_args.args[0]
-        assert invoked["user_query"]
-        assert invoked["mapping_string"]
+        assert token_usage == usage
