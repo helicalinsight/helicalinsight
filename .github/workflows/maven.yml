@@ -61,7 +61,7 @@ jobs:
     - name: test
       run: |
         cd server 
-        mvn clean test -Dtest=HCRCrosstabTest -Dsurefire.failIfNoSpecifiedTests=false   -Denv=ci -Dedition=hice
+        mvn clean test -Denv=ci -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
         
