@@ -224,7 +224,7 @@ public class CacheUtils {
 	 * Retrieves cache configuration from cache.xml file and initializes cache settings.
 	 *  
 	 */
-	@PostConstruct
+	
 	public static void init() {
 		String systemDirectory = ApplicationProperties.getInstance().getSystemDirectory();
 		String cachePath = systemDirectory + File.separator + "Admin" + File.separator + "cache.xml";
@@ -238,6 +238,13 @@ public class CacheUtils {
 		durationUnit = cacheXmlJson.get("durationUnit").getAsString();
 
 	}
+
+	@PostConstruct
+	public void initialize() {
+		init();
+	}
+	
+	
 	/**
 	 * getRefreshUrl()
 	 * @return returns  refreshUrl property from the Xml json object in JsonArray format.
