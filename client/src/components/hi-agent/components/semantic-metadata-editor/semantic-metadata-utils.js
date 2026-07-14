@@ -21,6 +21,55 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+const normalizeAgentLevel = (level = {}) => ({
+  levelName: level.levelName || "",
+  semanticType: level.semanticType || "",
+  tableId: level.tableId == null ? "" : String(level.tableId),
+  columnName: level.columnName || "",
+  columnId: level.columnId == null ? "" : String(level.columnId),
+  defaultFunction: level.defaultFunction || "",
+  description: level.description || "",
+  metric: {
+    formula: level.metric?.formula || "",
+  },
+  ...(Number.isFinite(level.sortOrder) ? { sortOrder: level.sortOrder } : {}),
+});
+
+const normalizeAgentDimension = (dimension = {}) => {
+  const normalized = {
+    dimensionName: dimension.dimensionName || "",
+    semanticType: dimension.semanticType || "",
+    tableId: dimension.tableId == null ? "" : String(dimension.tableId),
+    columnName: dimension.columnName || "",
+    columnId: dimension.columnId == null ? "" : String(dimension.columnId),
+    defaultFunction: dimension.defaultFunction || "",
+    description: dimension.description || "",
+    metric: {
+      formula: dimension.metric?.formula || "",
+    },
+    ...(Number.isFinite(dimension.sortOrder)
+      ? { sortOrder: dimension.sortOrder }
+      : {}),
+  };
+
+  if (Array.isArray(dimension.hierarchies) && dimension.hierarchies.length) {
+    normalized.hierarchies = dimension.hierarchies.map((hierarchy) => ({
+      hierarchyName: hierarchy.hierarchyName || "",
+      primaryColumnId:
+        hierarchy.primaryColumnId == null
+          ? ""
+          : String(hierarchy.primaryColumnId),
+      tableId: hierarchy.tableId == null ? "" : String(hierarchy.tableId),
+      columnName: hierarchy.columnName || "",
+      levels: Array.isArray(hierarchy.levels)
+        ? hierarchy.levels.map(normalizeAgentLevel)
+        : [],
+    }));
+  }
+
+  return normalized;
+};
+
 export function ensureShape(d) {
   const next = d && typeof d === "object" ? d : {};
   const domain = Array.isArray(next.domain)
@@ -33,7 +82,9 @@ export function ensureShape(d) {
   const cube_info = Array.isArray(next.cube_info)
     ? next.cube_info.map((cube) => ({
         cubeName: "",
-        dimensions: Array.isArray(cube?.dimensions) ? cube.dimensions : [],
+        dimensions: Array.isArray(cube?.dimensions)
+          ? cube.dimensions.map(normalizeAgentDimension)
+          : [],
         measures: Array.isArray(cube?.measures) ? cube.measures : [],
       }))
     : [];

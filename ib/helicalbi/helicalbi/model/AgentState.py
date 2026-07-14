@@ -54,3 +54,10 @@ class AgentState(MessagesState):
     dialect:str
     dbname:str
     token_usage: dict
+    time_consumed: dict
+    got_domain: bool
+    domain_context: str
+    business_metrics: list
+    topic_mappings: list
+    synonyms: list
+    use_cube_info_sql_flow: bool

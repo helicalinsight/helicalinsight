@@ -59,7 +59,8 @@ class TomcatConfigurer {
         poolProperties.setMinEvictableIdleTimeMillis(tomcatPoolProperties.getMinEvictableIdleTimeMillis());
         poolProperties.setJmxEnabled(tomcatPoolProperties.isJmxEnabled());
         poolProperties.setJdbcInterceptors(tomcatPoolProperties.getJdbcInterceptors());
-        poolProperties.setDriverClassName(tomcatPoolProperties.getDriverClassName());
+        poolProperties.setDriverClassName(com.helicalinsight.efw.utility.DriverClassCompat.normalize(
+                tomcatPoolProperties.getDriverClassName()));
         String connectionProperties = tomcatPoolProperties.getConnectionProperties();
         if ( StringUtils.isNotBlank(connectionProperties)) {
         	poolProperties.setConnectionProperties(connectionProperties);
