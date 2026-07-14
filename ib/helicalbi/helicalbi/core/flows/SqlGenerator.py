@@ -4,7 +4,7 @@ from typing import Any
 from langgraph.graph import END, StateGraph
 
 from helicalbi.common.CommonAppender import append_to_workflow
-from helicalbi.common.LlmInvokeHelper import merge_token_usage, read_token_usage
+from helicalbi.common.LlmInvokeHelper import merge_time_consumed, merge_token_usage, read_time_consumed, read_token_usage
 from helicalbi.model.AgentState import AgentState
 from helicalbi.service.agentservice.AgentLayerHelper import AgentLayerHelper
 from helicalbi.sql.SqlSanitizer import extract_sql
@@ -66,6 +66,7 @@ class SqlGenerator:
             "synonyms": agent_data.get("synonyms") or [],
             "agent_file_name": state["agent_file_name"], "agent_location": state["agent_location"],
             "business_metrics": state.get("business_metrics") or agent_data.get("business_metrics") or [],
+            "domain_context": state.get("domain_context") or "",
             "required_joins": "",
             "required_tables": "",
             "action": state["action"],
@@ -87,6 +88,7 @@ class SqlGenerator:
         res["last_chats"] = []
         state["sqlAgent"] = res
         merge_token_usage(state, read_token_usage(res))
+        merge_time_consumed(state, read_time_consumed(res))
         state["sql"] = extract_sql(res["final_sql"], state["dialect"])
         state["sql_reason"] = res.get("sql_reason", "") or ""
         state["required_details"] = {
@@ -95,6 +97,7 @@ class SqlGenerator:
             "required_synonyms": res["required_synonyms"],
             "business_metrics": [],
             "required_business_metrics": res["required_business_metrics"],
+            "required_cube_info": res.get("required_cube_info") or {},
             "filters": res.get("filters", ""),
             "messages": [],
         }

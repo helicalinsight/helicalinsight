@@ -273,12 +273,19 @@ def render_sql_prompt(
     required_joins: str,
     required_metrics: list,
     dialect: str = "PostgreSQL",
+    required_column_description: str = "",
 ) -> str:
+    required_metrics_text = (
+        json.dumps(required_metrics, indent=2, default=str)
+        if required_metrics
+        else ""
+    )
     return final_sql_prompt.format(
         dialect=dialect,
         query_plan_json=query_plan_json,
         required_joins=required_joins,
-        required_metrics=required_metrics,
+        required_metrics=required_metrics_text,
+        required_column_description=required_column_description,
         prev_sql="",
         last_chats=[],
         user_question=user_question,
