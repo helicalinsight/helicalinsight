@@ -85,6 +85,7 @@ mkdir -p \
   "$REPO_SRC/System/Temp" \
   "$REPO_SRC/System/Reports/ExportTemplates" \
   "$DB_ROOT"
+mkdir -p "/home/helical/Performance/HITest"
 SETTING="$REPO_SRC/System/Admin/setting.xml"
 GLOBAL_CONN="$REPO_SRC/System/Admin/globalConnections.xml"
 REPO_ABS="$(cd "$REPO_LINK" && pwd)"
