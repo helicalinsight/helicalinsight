@@ -144,7 +144,7 @@ export const transformRecommendations = (arr, chunkSizes = [2, 3, 4, 2]) => {
      },
      {
        key: "metadata",
-       title: "Metadata",
+       title: "Semantic",
        icon: <DatabaseOutlined />,
      },
      {

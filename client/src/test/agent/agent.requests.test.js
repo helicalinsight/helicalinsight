@@ -1,5 +1,8 @@
 import agentRequests from "../../base/requests/agent.requests";
-import { setAgentMetadataTablesData } from "../../redux/actions/agent.actions";
+import {
+  setAgentMetadataTablesData,
+  setAgentSemanticTypes,
+} from "../../redux/actions/agent.actions";
 
 jest.mock("../../base/service", () => ({
   postRequest: jest.fn(),
@@ -8,6 +11,10 @@ jest.mock("../../base/service", () => ({
 jest.mock("../../redux/actions/agent.actions", () => ({
   setAgentMetadataTablesData: jest.fn((payload) => ({
     type: "AGENT_METADATA_TABLES_DATA",
+    payload,
+  })),
+  setAgentSemanticTypes: jest.fn((payload) => ({
+    type: "AGENT_SEMANTIC_TYPES",
     payload,
   })),
 }));
@@ -61,5 +68,33 @@ describe("agent.requests", () => {
     });
     expect(callback).toHaveBeenCalledWith({ tables: ["t1"] });
     expect(errback).toHaveBeenCalled();
+  });
+
+  it("getSemanticTypes fetches and stores grouped semantic type options", () => {
+    const semanticTypes = [
+      {
+        label: "Temporal",
+        value: "TEMPORAL",
+        options: [{ label: "Date", value: "DATE" }],
+      },
+    ];
+    const response = { semanticTypes };
+    postRequest.mockImplementation((dispatchArg, uri, formData, callback) => {
+      callback(response);
+      return apiInstance;
+    });
+    const { getSemanticTypes } = agentRequests(dispatch);
+    const callback = jest.fn();
+    const result = getSemanticTypes(callback);
+    expect(postRequest).toHaveBeenCalledWith(
+      dispatch,
+      "content/static/getContents",
+      { contentId: "Static/semantictypes" },
+      expect.any(Function),
+      expect.any(Function),
+    );
+    expect(result).toBe(apiInstance);
+    expect(dispatch).toHaveBeenCalledWith(setAgentSemanticTypes(semanticTypes));
+    expect(callback).toHaveBeenCalledWith(response);
   });
 });

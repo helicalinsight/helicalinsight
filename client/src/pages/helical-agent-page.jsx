@@ -22,6 +22,7 @@ import {
   saveAgentMetadataFileDetails,
   setAgentMode,
 } from "../redux/actions/agent.actions";
+import agentRequests from "../base/requests/agent.requests";
 import {
   getAgentStateForSave,
   validateAgentSaveInput,
@@ -64,6 +65,7 @@ export function HIAGENT({ urlObj = {} }) {
   const apiRef = useRef(null);
   const abortedRef = useRef(false);
   const semanticEditorRef = useRef(null);
+  const { getSemanticTypes } = agentRequests(dispatch);
   const { dir: urlDir, file: urlFile } = urlObj;
   const clearEditorLoading = () => {
     setIsLoading(false);
@@ -91,6 +93,9 @@ export function HIAGENT({ urlObj = {} }) {
       apiRef.current = null;
       dispatch(agentLocalResetter());
     };
+  }, []);
+  useEffect(() => {
+    getSemanticTypes();
   }, []);
   useEffect(() => {
     if (editorContent && editorContent.trim() !== "") {

@@ -20,6 +20,17 @@ class TokenUsage(BaseModel):
     total_cost: Optional[float] = Field(
         default=None, ge=0, description="Total request cost in USD, when reported by the provider."
     )
+    model_name: Optional[str] = Field(
+        default=None, description="LLM model identifier reported by the provider for this completion."
+    )
+
+    @staticmethod
+    def _merge_model_name(left: Optional[str], right: Optional[str]) -> Optional[str]:
+        if not left:
+            return right
+        if not right or left == right:
+            return left
+        return left
 
     @staticmethod
     def _add_optional_cost(left: Optional[float], right: Optional[float]) -> Optional[float]:
@@ -43,4 +54,5 @@ class TokenUsage(BaseModel):
             input_cost=self._add_optional_cost(self.input_cost, other.input_cost),
             output_cost=self._add_optional_cost(self.output_cost, other.output_cost),
             total_cost=self._add_optional_cost(self.total_cost, other.total_cost),
+            model_name=self._merge_model_name(self.model_name, other.model_name),
         )

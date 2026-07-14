@@ -1,17 +1,19 @@
 import {
   Typography,
-  Button,
   Space,
   Divider,
   Table,
+  Button,
   Input,
   Checkbox,
   List,
   Dropdown,
   Switch,
   Select,
+  TreeSelect,
   Tooltip,
 } from "antd";
+import { useSelector } from "react-redux";
 import { useCubeEditorBindings } from "./cubeEditorContext";
 import { memo, useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -33,6 +35,7 @@ import {
   EllipsisOutlined,
   CaretRightOutlined,
   InfoCircleOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import { useDrop } from "react-dnd";
 import { VList } from "virtuallist-antd";
@@ -148,6 +151,45 @@ const CubeSemanticListInput = memo(function CubeSemanticListInput({
 });
 
 const { Option } = Select;
+
+const SEMANTIC_NODE_SEPARATOR = "::";
+
+const isGroupedSemanticTypes = (types) =>
+  Array.isArray(types) &&
+  types.some((item) => item && typeof item === "object" && item.options);
+
+const buildSemanticTreeData = (groups) =>
+  groups.map((group) => {
+    const groupKey = group.value || group.label;
+    return {
+      title: group.label,
+      value: `grp${SEMANTIC_NODE_SEPARATOR}${groupKey}`,
+      selectable: false,
+      children: (group.options || []).map((opt) => ({
+        title: opt.label,
+        value: `${groupKey}${SEMANTIC_NODE_SEPARATOR}${opt.value}`,
+      })),
+    };
+  });
+
+const toSemanticNodeValue = (groups, storedValue) => {
+  if (!storedValue) return undefined;
+  for (const group of groups) {
+    const match = (group.options || []).find((opt) => opt.value === storedValue);
+    if (match) {
+      return `${group.value || group.label}${SEMANTIC_NODE_SEPARATOR}${storedValue}`;
+    }
+  }
+  return storedValue;
+};
+
+const fromSemanticNodeValue = (nodeValue) => {
+  if (!nodeValue) return "";
+  const separatorIndex = nodeValue.indexOf(SEMANTIC_NODE_SEPARATOR);
+  return separatorIndex >= 0
+    ? nodeValue.slice(separatorIndex + SEMANTIC_NODE_SEPARATOR.length)
+    : nodeValue;
+};
 const { Search, TextArea } = Input;
 
 const DESCRIPTION_FIELD_UI = {
@@ -167,6 +209,7 @@ export function CubeEditor() {
   const searchInput = useRef(null);
   const semanticMenuCommitsRef = useRef(new Map());
   const { cubeState, dispatch, variant } = useCubeEditorBindings();
+  const agentSemanticTypes = useSelector((store) => store.agent?.semanticTypes);
   const { agentName, onAgentNameChange } = useAgentName();
   const descriptionFieldUi =
     DESCRIPTION_FIELD_UI[variant] || DESCRIPTION_FIELD_UI.cube;
@@ -425,6 +468,66 @@ export function CubeEditor() {
       ),
   });
 
+  const semanticTypeOptions =
+    variant === "agent" && agentSemanticTypes?.length
+      ? agentSemanticTypes
+      : SEMANTIC_TYPES;
+  const grouped = isGroupedSemanticTypes(semanticTypeOptions);
+  const semanticTreeData = grouped
+    ? buildSemanticTreeData(semanticTypeOptions)
+    : [];
+
+  const handleSemanticTypeChange = (record, value) =>
+    dispatch(
+      updateFieldValues({
+        updateName: "semanticType",
+        checkVal: value || "",
+        recordKey: record.key,
+        isHierarchyChild: record.isHierarchyChild,
+        hierarchyKey: record.parentKey,
+      }),
+    );
+
+  const renderSemanticTypeField = (record) => {
+    if (grouped) {
+      return (
+        <TreeSelect
+          style={{ width: "100%" }}
+          disabled={isHierarchyChildFieldLocked(record)}
+          value={toSemanticNodeValue(semanticTypeOptions, record.semanticType)}
+          placeholder="Semantic type"
+          allowClear
+          showSearch
+          treeNodeFilterProp="title"
+          treeData={semanticTreeData}
+          dropdownStyle={{ maxHeight: 400, overflow: "auto" }}
+          dropdownMatchSelectWidth={false}
+          onChange={(val) =>
+            handleSemanticTypeChange(record, fromSemanticNodeValue(val))
+          }
+        />
+      );
+    }
+    return (
+      <Select
+        style={{ width: "100%" }}
+        disabled={isHierarchyChildFieldLocked(record)}
+        value={record.semanticType || undefined}
+        placeholder="Semantic type"
+        allowClear
+        showSearch
+        optionFilterProp="label"
+        onChange={(val) => handleSemanticTypeChange(record, val)}
+      >
+        {semanticTypeOptions.filter(Boolean).map((opt) => (
+          <Option key={opt} value={opt} label={opt}>
+            {opt}
+          </Option>
+        ))}
+      </Select>
+    );
+  };
+
   const inputColumns = [
     {
       title: columnTitleWithInfo("Semantic Type"),
@@ -432,32 +535,7 @@ export function CubeEditor() {
       key: "semantictype",
       width: "10%",
       render: (_, record) =>
-        !record.isHierarchy && (
-          <Select
-            style={{ width: "100%" }}
-            disabled={isHierarchyChildFieldLocked(record)}
-            value={record.semanticType || undefined}
-            placeholder="Semantic type"
-            allowClear
-            onChange={(val) =>
-              dispatch(
-                updateFieldValues({
-                  updateName: "semanticType",
-                  checkVal: val || "",
-                  recordKey: record.key,
-                  isHierarchyChild: record.isHierarchyChild,
-                  hierarchyKey: record.parentKey,
-                }),
-              )
-            }
-          >
-            {SEMANTIC_TYPES.filter(Boolean).map((opt) => (
-              <Option key={opt} value={opt}>
-                {opt}
-              </Option>
-            ))}
-          </Select>
-        ),
+        !record.isHierarchy && renderSemanticTypeField(record),
     },
     ...(variant !== "agent"
       ? [
@@ -761,7 +839,7 @@ export function CubeEditor() {
               dispatch(
                 updateFieldValues({
                   updateName: "domainName",
-                  checkVal: e.target.value,
+                  checkVal: e.target.value.split(",")[0],
                 }),
               )
             }
@@ -794,32 +872,54 @@ export function CubeEditor() {
               Topic
               <CubeFieldInfo label="Agent Topic" />
             </span>
-            <Input
-              className="cube-topic-input"
-              value={cubeFieldsData.cubeTopic || ""}
-              placeholder="e.g. Sales, Travel"
-              onChange={(e) =>
-                dispatch(
-                  updateFieldValues({
-                    updateName: "cubeTopic",
-                    checkVal: e.target.value,
-                  }),
-                )
-              }
-              onBlur={(e) => {
-                const normalized = formatArrayAsCommaSeparated(
-                  parseCommaSeparatedToArray(e.target.value ?? ""),
-                );
-                if (normalized !== (cubeFieldsData.cubeTopic || "")) {
+            <div className="cube-topic-input-row">
+              <Input
+                className="cube-topic-input"
+                value={cubeFieldsData.cubeTopic || ""}
+                placeholder="e.g. Sales, Travel"
+                onChange={(e) =>
                   dispatch(
                     updateFieldValues({
                       updateName: "cubeTopic",
-                      checkVal: normalized,
+                      checkVal: e.target.value,
                     }),
-                  );
+                  )
                 }
-              }}
-            />
+                onBlur={(e) => {
+                  const normalized = formatArrayAsCommaSeparated(
+                    parseCommaSeparatedToArray(e.target.value ?? ""),
+                  );
+                  if (normalized !== (cubeFieldsData.cubeTopic || "")) {
+                    dispatch(
+                      updateFieldValues({
+                        updateName: "cubeTopic",
+                        checkVal: normalized,
+                      }),
+                    );
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+        {variant === "agent" && (
+          <div className="cube-domain-description-field cube-add-metric-field">
+            <Tooltip title="Add Metric" placement="top">
+              <span
+                className="cube-add-metric-action"
+                onClick={handleAddManualMetric}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    handleAddManualMetric();
+                  }
+                }}
+              >
+                <PlusOutlined className="cube-add-metric-icon" />
+              </span>
+            </Tooltip>
           </div>
         )}
       </div>

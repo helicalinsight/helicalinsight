@@ -79,13 +79,13 @@ public class RecycleBinDatasourceExportImportTest {
 	static {
 		String os = System.getProperty("os.name");
 		if (os.toLowerCase().contains("linux")) {
-			dbName = String.join(File.separator, "/home", "helical", "Performance", "HITest", "hiee");
-			jdbcUrl = "jdbc:derby:" + String.join("/", "/home", "helical", "Performance", "HITest", "hiee");
+			dbName = String.join(File.separator, "/home", "helical", "Performance", "hi","db","SampleTravelData");
+			jdbcUrl = "jdbc:derby:" + String.join("/", "/home", "helical", "Performance", "hi","db","SampleTravelData");
 			TESTURL = String.join(File.separator, "/home", "helical", "Performance", "HITest");
 
 		} else if (os.toLowerCase().contains("windows")) {
-			dbName = String.join("/", "C:", "home", "helical", "Performance", "HITest", "hiee");
-			jdbcUrl = "jdbc:derby:" + String.join("/", "C:", "home", "helical", "Performance", "HITest", "hiee");
+			dbName = String.join("/", "C:", "home", "helical", "Performance", "hi","db","SampleTravelData");
+			jdbcUrl = "jdbc:derby:" + String.join("/", "C:", "home", "helical", "Performance", "hi","db","SampleTravelData");
 			TESTURL = String.join(File.separator, "C:", "home", "helical", "Performance", "HITest");
 		}
 	}
@@ -133,7 +133,7 @@ public class RecycleBinDatasourceExportImportTest {
 		String expandTables = "{\"id\":\"" + dataSourceId + "\",\"type\":\"dynamicDataSource\",\"parameters\":{\"fetchTables\":true,\"fetchData\":[{\"schemas\":[{\"name\":\"HIUSER\"}]}]}}";
 		testUtilitiy.expand(expandSchema);
 		testUtilitiy.expand(expandTables);
-		String metadataFormData =  "{\"database\":\"HIUSER\",\"classifier\":\"db.workflow\",\"duplicate\":{\"table\":[],\"column\":[]},\"joins\":[],\"access\":{\"expression\":[]},\"dataSource\":{\"id\":\"" + dataSourceId + "\",\"type\":\"dynamicDataSource\",\"baseType\":\"global.jdbc\",\"catSchemaPredicted\":false,\"sync\":false,\"catalog\":\"\",\"schema\":\"HIUSER\",\"connId\":\"cv7i3\",\"classifier\":\"db.workflow\",\"datasourceName\":\"SampleTravelData\",\"database\":\"HIUSER\",\"databaseType\":\"Derby\"},\"removeItem\":{\"tables\":[],\"columns\":[],\"views\":[]},\"addItem\":{\"tables\":[\"ed031d3decbf73c096c71a81e8e828b1\"],\"columns\":[],\"views\":[]},\"changeItem\":{\"tables\":[],\"columns\":[]},\"fileName\":\"SaveSelectAll\",\"location\":\"RecycleBinDatasourceExportImportTest\",\"metadataReload\":true}";
+		String metadataFormData =  "{\"database\":\"HIUSER\",\"classifier\":\"db.workflow\",\"duplicate\":{\"table\":[],\"column\":[]},\"joins\":[],\"access\":{\"expression\":[]},\"dataSource\":{\"id\":\"" + dataSourceId + "\",\"type\":\"dynamicDataSource\",\"baseType\":\"global.jdbc\",\"catSchemaPredicted\":false,\"sync\":false,\"catalog\":\"\",\"schema\":\"HIUSER\",\"connId\":\"cv7i3\",\"classifier\":\"db.workflow\",\"datasourceName\":\"SampleTravelData\",\"database\":\"HIUSER\",\"databaseType\":\"Derby\"},\"removeItem\":{\"tables\":[],\"columns\":[],\"views\":[]},\"addItem\":{\"tables\":[\"8a28627d07d04ef096d9935f12e0c7e9\"],\"columns\":[],\"views\":[]},\"changeItem\":{\"tables\":[],\"columns\":[]},\"fileName\":\"SaveSelectAll\",\"location\":\"RecycleBinDatasourceExportImportTest\",\"metadataReload\":true}";
 		testUtilitiy.createMetadata(metadataFormData);
 	}
 	
