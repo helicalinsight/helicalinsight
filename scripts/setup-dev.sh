@@ -64,7 +64,7 @@ fi
 echo ""
 echo "Setup complete. Build and run:"
 echo "  cd server && mvn clean package -DskipTests"
-echo "  # Deploy presentation/target/hi-ce-7.0.0.war as \$CATALINA_HOME/webapps/hi-ee.war"
+echo "  # Deploy presentation/target/hi-ee-7.0.0.war as \$CATALINA_HOME/webapps/hi-ee.war"
 echo "  cd client && npm ci --legacy-peer-deps && npm run start18"
 echo ""
 echo "Or use Docker:"

@@ -15,7 +15,6 @@ Input Schema:
 {table_column_description}
 
 
-{relationship_of_table}
 
 
 Below is chat history:
@@ -25,13 +24,19 @@ Current User Query:
 {user_query}
 
 
-Below is some synonyms for the table you can correlate
+Below is some synonyms for the table you can correlate (ignore if empty)
 {required_synonyms}
 
 
 Instructions
 1 in the column names determine the column that will be part of the sql
-2 Use exact column names from the schema; quote names that contain spaces (e.g. "Bill Qty")
+2 Use exact column names from the schema
+3. Pick qualified column name  (eg: table_name.column_name) 
+4. Pick all possible column that can be in any part say where clause , having clause 
+4. Dont add column beyond the list. 
+5. If it is derived from some formula/db function  then put the formula along with  the column name 
+6. When the schema lists cube dimensions and measures, also populate pickedDimensions with the dimension names used in the query
+7. When the schema lists cube measures, also populate pickedMetrics with the measure names used in the query
 """
 
 column_formatted = PromptTemplate.from_template(detect_column_prompt_string)
