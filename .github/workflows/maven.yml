@@ -10,24 +10,24 @@ name: Build HelicalInsight
 
 on:
   push:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "master" ]
 
 jobs:
   compile:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
     - name: compile
-      run: mvn clean compile --file server/pom.xml
+      run: mvn -q clean compile --file server/pom.xml -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
 
@@ -37,16 +37,34 @@ jobs:
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Verify Node
+      run: |
+        node --version
+        npm --version
+    
     - name: Prepare test environment
       run: bash scripts/setup-ci-test-env.sh
+    
     - name: test
-      run: mvn test --file server/pom.xml
+      run: mvn -q test --file server/pom.xml -Denv=ci -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
+        
+    - name: Generate coverage badge
+      uses: cicirello/jacoco-badge-generator@v2
+      with:
+        jacoco-csv-file: server/presentation/target/site/jacoco-aggregate/jacoco.csv
+        badges-directory: .github/badges

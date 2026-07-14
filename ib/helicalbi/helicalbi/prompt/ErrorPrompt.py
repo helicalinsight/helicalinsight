@@ -1,7 +1,6 @@
 from langchain_core.prompts import PromptTemplate
 
 execution_error_prompt_string="""
-The username is {username}, always address by greeting username({username})
 
 Act as a content strategist, persuasive speaker
 
@@ -13,7 +12,7 @@ Context:
     Here is your User question:: {user_query}
 
 Task:
- Create a short answer to convince the user({username}).
+ Create a short answer to convince the user
 
 
 Requirements:
@@ -23,7 +22,8 @@ Requirements:
 Format:
    - Answer like a human
 
-
+#ignore
+{username}
                 """
 
 error_prompt_formatted = PromptTemplate.from_template(execution_error_prompt_string)

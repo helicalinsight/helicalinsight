@@ -50,7 +50,12 @@ public class GenerateAgentFromMD implements IComponent {
         userInput.addProperty("location", directory);
         userInput.addProperty("fileName", fileName);
         userInput.addProperty("sessionCookie", resolveSessionCookie());
-        userInput.addProperty("username", userDetails.getUsername());
+        userInput.addProperty("username", userDetails.getLoggedInUser().getUsername());
+        userInput.addProperty("userId", userDetails.getLoggedInUser().getId());
+        Integer orgId = userDetails.getLoggedInUser().getOrg_id();
+        if (orgId != null) {
+            userInput.addProperty("orgId", orgId);
+        }
         js.add("input", userInput);
         return callHttp("/getSemanticData", js);
     }

@@ -87,11 +87,11 @@ public class DashboardExportImportTest {
 		String os = System.getProperty("os.name");
 		if (os.toLowerCase().contains("linux")) {
 			TESTURL = String.join(File.separator, "/home", "helical", "Performance", "HITest");
-			DSURL = String.join("/","/home","helical","Performance","HITest","hiee");
+			DSURL = String.join("/","/home","helical","Performance","hi","db","SampleTravelData");
 			
 		} else if (os.toLowerCase().contains("windows")) {
 			TESTURL = String.join(File.separator, "C:", "home", "helical", "Performance", "HITest");
-			DSURL = String.join("/","C:","home","helical","Performance","HITest","hiee");
+			DSURL = String.join("/","C:","home","helical","Performance","hi","db","SampleTravelData");
 		}
 	}
 

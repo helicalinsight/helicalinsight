@@ -2,116 +2,80 @@
 
 .ibm-root {
   color: $hi-text-color;
+  padding-right: 10px;
+  box-sizing: border-box;
 }
-
-.ibm-card {
-  background: $hi-white;
-  border: 1px solid #d9d9d9;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-// .ibm-header {
-//   display: flex;
-//   align-items: center;
-//   justify-content: space-between;
-//   gap: 12px;
-//   padding: 16px 20px;
-//   border-bottom: 1px solid #e8e8e8;
-//   background: linear-gradient(90deg, rgba(24, 144, 255, 0.1) 0%, rgba(24, 144, 255, 0.03) 100%);
-// }
-
-// .ibm-header-left {
-//   display: flex;
-//   align-items: center;
-//   gap: 12px;
-// }
-
-// .ibm-logo {
-//   width: 36px;
-//   height: 36px;
-//   border-radius: 10px;
-//   background: $hi-blue;
-//   display: flex;
-//   align-items: center;
-//   justify-content: center;
-//   color: $hi-white;
-//   font-size: 11px;
-//   font-weight: 700;
-//   letter-spacing: 0.6px;
-//   flex-shrink: 0;
-// }
-
-// .ibm-title {
-//   font-size: 14px;
-//   font-weight: 600;
-// }
-
-// .ibm-dialect-badge {
-//   display: inline-flex;
-//   align-items: center;
-//   gap: 7px;
-//   padding: 5px 12px;
-//   border-radius: 999px;
-//   background: rgba(82, 196, 26, 0.08);
-//   border: 1px solid rgba(82, 196, 26, 0.24);
-//   color: #389e0d;
-//   font-size: 11px;
-//   font-weight: 700;
-//   letter-spacing: 0.8px;
-//   text-transform: uppercase;
-// }
-
-// .ibm-dialect-dot {
-//   width: 7px;
-//   height: 7px;
-//   border-radius: 50%;
-//   background: $hi-green;
-// }
 
 .ibm-body {
-  padding: 8px 9px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.ibm-pair-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 16px;
+  padding: 3px 0;
 }
 
 .ibm-section {
-  background: #fafafa;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  padding: 14px 16px;
+  padding: 0;
+  min-width: 0;
 }
 
-.ibm-section.full {
-  // grid-column: 1 / -1;
+.ibm-body > .ibm-section {
+  padding: 3px 0;
+}
+
+.ibm-section-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
 }
 
 .ibm-section-label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-bottom: 10px;
-  color: #595959;
-  font-size: 9px;
+  flex-shrink: 0;
+  width: 72px;
+  margin: 0;
+  color: #8c8c8c;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 1px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.ibm-section-label::before {
-  content: "";
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: $hi-blue;
-  flex-shrink: 0;
+.ibm-section-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.ibm-pill-content {
+  position: relative;
+  min-width: 0;
 }
 
 .ibm-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 4px;
+}
+
+.ibm-pills-nowrap {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.ibm-pills-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .ibm-pills-compact {
@@ -121,186 +85,55 @@
 .ibm-pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: 999px;
-  border: 1px solid transparent;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #595959;
   font-size: 10px;
   font-weight: 500;
+  line-height: 1.2;
 }
 
-.ibm-pill.table {
-  background: rgba(24, 144, 255, 0.08);
-  color: #0050b3;
-  border-color: rgba(24, 144, 255, 0.18);
-}
-
-.ibm-pill.column {
-  background: rgba(24, 144, 255, 0.12);
-  color: $hi-blue;
-  border-color: rgba(24, 144, 255, 0.24);
-}
-.ibm-pill.topic {
-  background: rgba(250, 173, 20, 0.12);
-  color: #d48806;
-}
-
-.ibm-pill.domains {
-  background: rgba(114, 46, 209, 0.12);
-  color: #531dab;
-}
 .ibm-pill-ico {
-  font-size: 10px;
+  font-size: 9px;
+  color: #8c8c8c;
   opacity: 1 !important;
 }
 
 .ibm-empty {
   color: #8c8c8c;
   font-size: 10px;
-}
-
-.ibm-joins {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ibm-join {
-  display: grid;
-  grid-template-columns: auto 1fr auto 1fr;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  background: $hi-white;
-  font-size: 12px;
-}
-
-.ibm-join-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba(24, 144, 255, 0.22);
-  background: rgba(24, 144, 255, 0.08);
-  color: #0050b3;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.ibm-join-type.inner {
-  border-color: rgba(24, 144, 255, 0.22);
-  background: rgba(24, 144, 255, 0.08);
-  color: #0050b3;
-}
-
-.ibm-join-type.left {
-  border-color: rgba(82, 196, 26, 0.22);
-  background: rgba(82, 196, 26, 0.08);
-  color: #389e0d;
-}
-
-.ibm-join-type.right {
-  border-color: rgba(250, 173, 20, 0.28);
-  background: rgba(250, 173, 20, 0.1);
-  color: #d48806;
-}
-
-.ibm-join-type.full,
-.ibm-join-type.outer {
-  border-color: rgba(114, 46, 209, 0.22);
-  background: rgba(114, 46, 209, 0.08);
-  color: #531dab;
-}
-
-.ibm-join-type.cross {
-  border-color: rgba(245, 34, 45, 0.22);
-  background: rgba(245, 34, 45, 0.08);
-  color: #cf1322;
-}
-
-.ibm-join-side {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 1px;
-  min-width: 0;
-  overflow: hidden;
-  padding: 5px 10px;
-  border: 1px solid rgba(24, 144, 255, 0.18);
-  border-radius: 8px;
-  background: rgba(24, 144, 255, 0.06);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ibm-join-side.right {
-  border-color: rgba(24, 144, 255, 0.24);
-  background: rgba(24, 144, 255, 0.1);
-}
-
-.ibm-join-side .tbl {
-  color: #0050b3;
-  font-weight: 600;
-}
-
-.ibm-join-side.right .tbl {
-  color: $hi-blue;
-}
-
-.ibm-join-side .sep {
-  color: #8c8c8c;
-  padding: 0 2px;
-}
-
-.ibm-join-side .col {
-  color: $hi-blue;
-}
-
-.ibm-join-side.right .col {
-  color: #0050b3;
-}
-
-.ibm-join-op {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: $hi-background-blue;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $hi-blue;
-  font-size: 12px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.ibm-join-code {
-  grid-column: 2 / -1;
-  display: block;
-  padding: 6px 10px;
-  border-radius: 6px;
-  background: #f5f5f5;
-  color: #262626;
-  white-space: pre-wrap;
-  word-break: break-word;
+  line-height: 1.2;
 }
 
 .ibm-reason {
   margin: 0;
   color: $hi-text-color;
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.ibm-reason-content {
+  min-width: 0;
+  position: relative;
+}
+
+.ibm-reason-measure {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  height: 0;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .ibm-reason .query-highlight {
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: rgba(250, 173, 20, 0.12);
+  padding: 0 2px;
+  border-radius: 2px;
+  background: rgba(250, 173, 20, 0.08);
   color: #ad6800;
   font-style: normal !important;
   font-weight: 600;
@@ -309,97 +142,102 @@
 .ibm-kv-row {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 10px 14px;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  background: #fafafa;
-  font-size: 12px;
-}
-
-.ibm-kv-row-full {
-  grid-column: 1 / -1;
+  gap: 6px;
+  padding: 3px 0;
+  font-size: 10px;
 }
 
 .ibm-kv-label {
-  min-width: 120px;
-  padding-top: 2px;
-  color: #595959;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  min-width: 52px;
+  color: #8c8c8c;
+  font-size: 10px;
+  font-weight: 600;
   white-space: nowrap;
 }
 
 .ibm-kv-value {
   color: $hi-text-color;
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 10px;
+  line-height: 1.35;
   word-break: break-word;
 }
 
 .ibm-kv-value-pre {
   margin: 0;
   white-space: pre-wrap;
-  font-size: 11.5px;
+  font-size: 10px;
 }
 
-.ibm-token-usage {
+.ibm-token-stack {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
 
+.ibm-token-inline,
 .ibm-token-row {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 4px;
   font-size: 10px;
+  line-height: 1.2;
+}
+
+.ibm-token-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .ibm-token-label {
   text-transform: capitalize;
+  color: #8c8c8c;
 }
 
 .ibm-token-value {
   font-weight: 600;
 }
 
+.ibm-show-more {
+  flex-shrink: 0;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #8c8c8c;
+  font-size: 10px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+
+  &:hover {
+    color: #595959;
+  }
+}
+
 .ibm-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  border-top: 1px solid #e8e8e8;
-  background: #fafafa;
-  color: #595959;
+  gap: 8px;
+  margin-top: 2px;
+  padding-top: 2px;
+  color: #8c8c8c;
   font-size: 10px;
+  line-height: 1.2;
 }
 
 .ibm-footer strong {
-  color: #262626;
+  color: #595959;
   font-weight: 600;
 }
 
 @media (max-width: 640px) {
-  .ibm-body {
+  .ibm-pair-row {
     grid-template-columns: 1fr;
-  }
-
-  // .ibm-header {
-  //   flex-direction: column;
-  //   align-items: flex-start;
-  // }
-
-  .ibm-join {
-    grid-template-columns: 1fr;
-  }
-
-  .ibm-join-code {
-    grid-column: auto;
+    gap: 6px;
   }
 
   .ibm-kv-row {
@@ -410,4 +248,3 @@
     flex-wrap: wrap;
   }
 }
-

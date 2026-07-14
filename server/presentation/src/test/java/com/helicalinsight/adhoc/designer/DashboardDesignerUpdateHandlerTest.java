@@ -73,7 +73,7 @@ public class DashboardDesignerUpdateHandlerTest {
 		formJson.addProperty("icon", "icon");
 		formJson.addProperty("description", "description");
 
-		String path = ApplicationProperties.INSTANCE.getSystemDirectory() + File.separator+"uuid.designer";
+		String path = ApplicationProperties.INSTANCE.getSolutionDirectory() + File.separator+"uuid.designer";
 		File file = new File(path);
 		file.createNewFile();
 
@@ -100,10 +100,10 @@ public class DashboardDesignerUpdateHandlerTest {
 		formJson.addProperty("icon", "icon");
 		formJson.addProperty("description", "description");
 
-		String path = ApplicationProperties.INSTANCE.getSystemDirectory() + File.separator+"uuid.designer";
+		String path = ApplicationProperties.INSTANCE.getSolutionDirectory() + File.separator+"uuid.designer";
 		File file = new File(path);
 		file.createNewFile();
-		String path2 = ApplicationProperties.INSTANCE.getSystemDirectory() + File.separator+"uuid.efw";
+		String path2 = ApplicationProperties.INSTANCE.getSettingPath() + File.separator+"uuid.efw";
 		File file2 = new File(path2);
 		file2.createNewFile();
 

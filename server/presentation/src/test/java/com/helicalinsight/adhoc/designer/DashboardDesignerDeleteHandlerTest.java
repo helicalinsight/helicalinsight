@@ -42,7 +42,7 @@ public class DashboardDesignerDeleteHandlerTest {
 		JsonObject formData = new JsonObject();
 		formData.addProperty("dir", "System");
 		formData.addProperty("file", "file.txt");
-		String path =  ApplicationProperties.INSTANCE.getSystemDirectory() + File.separator+"file.txt";
+		String path =  ApplicationProperties.INSTANCE.getSolutionDirectory() + File.separator+"file.txt";
 		File file = new File(path);
 		file.createNewFile();
 		String executeComponent = dashboardDesignerDeleteHandler.executeComponent(formData.toString());

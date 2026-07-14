@@ -145,19 +145,35 @@
 			flex-shrink: 0;
 		}
 		.cube-domain-description-bar--agent {
-			display: grid;
-			grid-template-columns: repeat(4, minmax(0, 1fr));
+			display: flex;
+			flex-wrap: nowrap;
+			align-items: flex-start;
+			overflow: visible;
 			gap: 12px 16px;
-			align-items: start;
+			padding-right: 16px;
 
-			.cube-domain-description-field {
+			.cube-agent-name-field,
+			.cube-domain-description-field:not(.cube-description-field):not(.cube-topic-field):not(.cube-add-metric-field),
+			.cube-topic-field {
+				flex: 1 1 0;
+				min-width: 0;
+			}
+
+			.cube-description-field {
+				flex: 2 1 0;
+				min-width: 0;
+				overflow: visible;
+			}
+
+			.cube-domain-description-field:not(.cube-add-metric-field) {
 				flex-direction: column;
 				align-items: stretch;
 				gap: 4px;
 				min-width: 0;
-			}
-			.cube-domain-label {
-				padding-top: 0;
+				.cube-domain-label {
+					padding-top: 0;
+					min-height: 20px;
+				}
 			}
 			.cube-domain-input,
 			.cube-topic-input {
@@ -165,11 +181,42 @@
 				max-width: none;
 				min-width: 0;
 			}
-			.cube-description-input {
+
+			.cube-topic-input-row {
+				display: block;
+				min-width: 0;
+			}
+
+			textarea.cube-description-input.ant-input {
+				flex: 0 0 auto;
+				width: 100%;
 				min-width: 0;
 				max-width: none;
+				height: auto;
 				resize: vertical;
 				overflow: auto;
+				max-height: none;
+			}
+			.cube-add-metric-field {
+				flex: 0 0 auto;
+				align-self: flex-start;
+				margin-top: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding-bottom: 0;
+				padding-right: 4px;
+				min-width: 50px;
+			}
+			.cube-add-metric-action {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				height: 32px;
+				width: 24px;
+				cursor: pointer;
+				line-height: 1;
 			}
 		}
 		.cube-domain-description-field {
@@ -200,6 +247,20 @@
 			flex: 1;
 			min-width: 200px;
 			max-width: 480px;
+			resize: vertical;
+			overflow: auto;
+		}
+		.cube-topic-field {
+			flex-shrink: 0;
+		}
+		.cube-topic-input {
+			width: 180px;
+			flex-shrink: 0;
+		}
+		.cube-add-metric-icon {
+			font-size: 18px;
+			line-height: 1;
+			color: black;
 		}
 		.cube-topic-field {
 			flex-shrink: 0;
