@@ -59,7 +59,9 @@ jobs:
       run: bash scripts/setup-ci-test-env.sh
     
     - name: test
-      run: cd server &&  mvn clean -q -Dtest=HCRCrosstabTest -Dsurefire.failIfNoSpecifiedTests=false   -Denv=ci -Dedition=hice
+      run: |
+        cd server 
+        mvn clean test -Dtest=HCRCrosstabTest -Dsurefire.failIfNoSpecifiedTests=false   -Denv=ci -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
         
