@@ -133,11 +133,8 @@
 		<profile>
 			<id>hice</id>
 			<activation>
-				<property>
-					<name>edition</name>
-					<value>hice</value>
-				</property>
-			</activation>
+					<activeByDefault>true</activeByDefault>
+				</activation>
 			<properties>
 				<parent.version>7.0.0</parent.version>
 			</properties>
