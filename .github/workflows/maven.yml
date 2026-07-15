@@ -90,4 +90,6 @@ jobs:
         run: npm ci --legacy-peer-deps
   
       - name: Run unit tests
-        run: npm test -- --ci
+        working-directory: client
+        run: npm test -- --coverage --watch=false
+        
