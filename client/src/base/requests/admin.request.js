@@ -14,6 +14,7 @@ export const uriConfig = {
 	coreDataSourceShutdown: 'core/dataSource/shutdown',
 	monitorSystemReportStats: 'monitor/system/reportStats',
 	monitorSystemdatasourceCount: 'monitor/system/datasourceCount',
+	monitorSystemLlmUsageStats: 'monitor/system/llmUsageStats',
 	contentStaticgetContents: 'content/static/getContents',
 	monitorSamlSaveMD: 'monitor/saml/saveMD',
 	monitorSystemRelease:"monitor/system/release",

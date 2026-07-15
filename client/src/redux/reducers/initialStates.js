@@ -310,6 +310,7 @@ const agentInitialState = {
   metadataTablesData: {},
   agentMode: "create",
   agentDataAfterSave: {},
+  semanticTypes: [],
 };
 
 const getInitialIBChatState = () => {

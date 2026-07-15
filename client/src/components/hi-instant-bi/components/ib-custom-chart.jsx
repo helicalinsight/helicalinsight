@@ -3,7 +3,6 @@ import * as Plots from "@ant-design/plots";
 import muze from "@chartshq/muze";
 import Muze, { Canvas, Layer } from "@chartshq/react-muze/components";
 import * as MuzeConfig from "@chartshq/react-muze/configurations";
-import * as PivotCharts from "@syncfusion/ej2-react-pivotview";
 import * as AntdComponents from "antd";
 import React, { useContext, useLayoutEffect } from "react";
 import { LiveContext, LivePreview, LiveProvider } from "react-live";
@@ -97,7 +96,6 @@ const IBCustomChart = (props) => {
       ...mapComponents,
       ...plotComponents,
       ...AntdComponents,
-      ...PivotCharts,
       ...MuzeCharts,
       GridTable,
     },

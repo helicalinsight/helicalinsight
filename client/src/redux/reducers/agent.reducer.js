@@ -43,6 +43,9 @@ export const agentReducer = (state = initialStates.agentInitialState, action) =>
             const data = { ...action.payload, uid: uuidv4() };
             return { ...state, metadataTablesData: data || {} };
         }
+        case actionTypes.AGENT_SEMANTIC_TYPES: {
+            return { ...state, semanticTypes: action.payload || [] };
+        }
         default:
             return { ...state };
     }

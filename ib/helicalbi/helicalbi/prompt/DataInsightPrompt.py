@@ -1,5 +1,8 @@
 from langchain_core.prompts import PromptTemplate
 
+from helicalbi.prompt.SqlSuccessPrompty import success_response_method
+
+success_response_method
 data_insight_prompt = """
 The username is {username}, always address by greeting username({username})
 Act as a content strategist, persuasive speaker
@@ -12,7 +15,7 @@ Context:
     SQL (do not explain the SQL in your response):
     {sql}
 
-    User profile:
+    Here is the User profile:
     {userProfile}
 
     Selected domain:
@@ -21,7 +24,7 @@ Context:
     Selected topics:
     {topics}
     
-    Here is your extracted data: 
+    Here is your extracted data for which insight is required: 
      {sample_data}
 
     Here is the previous responses (if any)
@@ -30,17 +33,17 @@ Context:
 Task:
  Create a short answer to convince the user({username}).
 
-Requirements:
+Requirements: 
 
-   - Use The Observatoin to impact for explanatioin. 
-    
+Use the below method
+"""+success_response_method+"""
+
      Response should be natural
-
     -Follow the flow and intent of the given strategy internally while writing the response
     -Do NOT explicitly mention the method name or its steps in the output
     * Use a natural, professional tone.
     * Explain what business question the analysis helps answer and why it matters.
-    * Focus on analytical intent and business impact, not results.
+    
 """
 
 data_insight_prompt_formatted = PromptTemplate.from_template(data_insight_prompt)

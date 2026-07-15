@@ -5,10 +5,10 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from helicalbi.common.ChatManager import get_last_n_viz, add_viz_response
-from helicalbi.common.LlmInvokeHelper import invoke_structured, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.AgentState import AgentState
-from helicalbi.model.output.viz.VizResponse import VisualizationResponse, AntVisualizationResponse
+from helicalbi.model.output.viz.VizResponse import get_ant_visualization_response_model
 from helicalbi.prompt.AntdVizPrompt import antd_viz_prompt
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.prompt.VizPrompt import viz_prompt
@@ -39,14 +39,14 @@ class AntdVisualization:
         try:
             previous_viz = get_last_n_viz(state["thread_id"])
 
-            parser = PydanticOutputParser(pydantic_object=AntVisualizationResponse)
+            parser = PydanticOutputParser(pydantic_object=get_ant_visualization_response_model())
             prompt = PromptTemplate(
                 template=antd_viz_prompt + format_instruction_string,
                 input_variables=["domain", "topics", "user_question", "sql",
                                  "data_types"],
                 partial_variables={"format_instructions": parser.get_format_instructions()},
             )
-            response, usage = invoke_structured(
+            response, _ = invoke_structured(
                 prompt,
                 llm,
                 parser,
@@ -59,8 +59,8 @@ class AntdVisualization:
                     "previous_viz": previous_viz,
                     "chat_history": [],
                 },
+                state=state,
             )
-            merge_token_usage(state, usage)
 
 
             state["visualization"] = response.visualization_type

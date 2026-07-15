@@ -1,8 +1,10 @@
 package com.helicalinsight.adhoc.security;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
+import com.helicalinsight.efw.utility.PropertiesFileReader;
 import net.sf.jsqlparser.expression.AnalyticExpression;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.ExpressionVisitorAdapter;
@@ -33,13 +35,33 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Validates raw SQL queries against the tables and columns exposed by metadata service response.
  */
 public final class SqlQueryMetadataValidator {
 
+    private static final String IDENTIFIER_REGEX_PREFIX_KEY = "sql.query.identifier.regex.prefix";
+    private static final String IDENTIFIER_REGEX_SUFFIX_KEY = "sql.query.identifier.regex.suffix";
+    private static final String DEFAULT_IDENTIFIER_REGEX_PREFIX = "(?<![A-Za-z0-9_])[\"`\\[]?";
+    private static final String DEFAULT_IDENTIFIER_REGEX_SUFFIX = "[\"`\\]]?(?![A-Za-z0-9_])";
+
+    private static final String IDENTIFIER_REGEX_PREFIX = resolveIdentifierRegexPart(
+            IDENTIFIER_REGEX_PREFIX_KEY, DEFAULT_IDENTIFIER_REGEX_PREFIX);
+    private static final String IDENTIFIER_REGEX_SUFFIX = resolveIdentifierRegexPart(
+            IDENTIFIER_REGEX_SUFFIX_KEY, DEFAULT_IDENTIFIER_REGEX_SUFFIX);
+
     private SqlQueryMetadataValidator() {
+    }
+
+    private static String resolveIdentifierRegexPart(String propertyKey, String defaultValue) {
+        Map<String, String> properties = new PropertiesFileReader().read("Admin", "defaults.properties");
+        if (properties == null) {
+            return defaultValue;
+        }
+        String configuredValue = properties.get(propertyKey);
+        return StringUtils.isNotBlank(configuredValue) ? configuredValue : defaultValue;
     }
 
     /**
@@ -118,6 +140,234 @@ public final class SqlQueryMetadataValidator {
         QueryReferences references = new QueryReferences();
         collectSelectReferences((Select) statement, references);
         validateReferences(references, allowedTablesColumns, sqlUtils);
+    }
+
+    /**
+     * Cross-checks the SELECT clause of a query against tables/columns that security has hidden.
+     * <p>
+     * {@code metadataFileJson} is the full metadata (all tables and columns) as stored in the metadata
+     * file (structure {@code database.tables.tableList[].columns.column[]}), while
+     * {@code metadataServiceData} is the security-filtered response that contains only the tables and
+     * columns the current user is allowed to see. The set difference between the two yields the
+     * <em>restricted</em> tables and columns.
+     * <p>
+     * The SELECT-clause expressions are then scanned (aliases are ignored) and, for every restricted
+     * table/column name, quote- and qualifier-aware regexes are matched against them. This catches
+     * references such as {@code "tablename"."columnname"}, {@code tablename.columnname},
+     * {@code tablename.} (any column of a restricted table), or a bare {@code columnname}. If any
+     * restricted identifier is present, a {@link SecurityException} is raised.
+     *
+     * @param sql                 the raw SQL query to inspect.
+     * @param metadataFileJson    the full metadata JSON carrying every table and column.
+     * @param metadataServiceData the security-filtered metadata JSON carrying only allowed items.
+     */
+    public static void validateSelectAgainstRestrictedMetadata(String sql, JsonObject metadataFileJson,
+                                                               JsonObject metadataServiceData) {
+        if (StringUtils.isBlank(sql) || metadataFileJson == null) {
+            return;
+        }
+
+        Map<String, Set<String>> allTablesColumns = buildAllTablesColumnsFromMetadataFile(metadataFileJson);
+        if (allTablesColumns.isEmpty()) {
+            return;
+        }
+
+        Map<String, Set<String>> allowedTablesColumns = buildAllowedTablesColumns(metadataServiceData);
+        if (allowedTablesColumns.isEmpty()) {
+            // Nothing is marked as allowed; treat as "no security applied" to avoid rejecting every query.
+            return;
+        }
+
+        Set<String> restrictedIdentifiers = collectRestrictedIdentifiers(allTablesColumns, allowedTablesColumns);
+        if (restrictedIdentifiers.isEmpty()) {
+            return;
+        }
+
+        String selectClause = extractSelectClause(sql);
+        if (StringUtils.isBlank(selectClause)) {
+            return;
+        }
+
+        for (String identifier : restrictedIdentifiers) {
+            if (containsIdentifier(selectClause, identifier)) {
+                throw new SecurityException(
+                        "The table or column you are trying to access is out of scope or not found in the metadata");
+            }
+        }
+    }
+
+    /**
+     * Builds a map of every table (name and originalName) to its column names from the full metadata file JSON.
+     */
+    static Map<String, Set<String>> buildAllTablesColumnsFromMetadataFile(JsonObject metadataFileJson) {
+        Map<String, Set<String>> all = new LinkedHashMap<>();
+        if (metadataFileJson == null) {
+            return all;
+        }
+
+        JsonObject database = GsonUtility.optJsonObject(metadataFileJson, "database");
+        if (database == null) {
+            return all;
+        }
+        JsonObject tables = GsonUtility.optJsonObject(database, "tables");
+        if (tables == null || !tables.has("tableList") || !tables.get("tableList").isJsonArray()) {
+            return all;
+        }
+
+        JsonArray tableList = tables.getAsJsonArray("tableList");
+        for (JsonElement tableElement : tableList) {
+            if (!tableElement.isJsonObject()) {
+                continue;
+            }
+            JsonObject tableJson = tableElement.getAsJsonObject();
+
+            Set<String> columns = new HashSet<>();
+            JsonObject columnsHolder = GsonUtility.optJsonObject(tableJson, "columns");
+            if (columnsHolder != null && columnsHolder.has("column") && columnsHolder.get("column").isJsonArray()) {
+                for (JsonElement columnElement : columnsHolder.getAsJsonArray("column")) {
+                    if (!columnElement.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject columnJson = columnElement.getAsJsonObject();
+                    addIfNotBlank(columns, GsonUtility.optString(columnJson, "name"));
+                    addIfNotBlank(columns, GsonUtility.optString(columnJson, "originalName"));
+                }
+            }
+
+            registerTable(all, GsonUtility.optString(tableJson, "name"), columns);
+            registerTable(all, GsonUtility.optString(tableJson, "originalName"), columns);
+        }
+        return all;
+    }
+
+    /**
+     * Computes the difference between the full metadata and the allowed scope. The result contains the
+     * restricted table names (including their simple, unqualified form) and the restricted column names.
+     * A column is treated as restricted only when it is not allowed under any allowed table, so that a
+     * column that is still exposed by another table does not cause a false positive.
+     */
+    private static Set<String> collectRestrictedIdentifiers(Map<String, Set<String>> allTablesColumns,
+                                                            Map<String, Set<String>> allowedTablesColumns) {
+        Set<String> restricted = new HashSet<>();
+
+        for (String tableName : allTablesColumns.keySet()) {
+            if (!isAllowedTable(tableName, allowedTablesColumns)) {
+                restricted.add(tableName);
+                restricted.add(simpleTableName(tableName));
+            }
+        }
+
+        Set<String> allowedColumns = flattenColumns(allowedTablesColumns);
+        for (Set<String> columns : allTablesColumns.values()) {
+            for (String column : columns) {
+                String normalizedColumn = normalizeIdentifier(column);
+                if (!allowedColumns.contains(normalizedColumn)) {
+                    restricted.add(normalizedColumn);
+                }
+            }
+        }
+
+        restricted.remove("");
+        return restricted;
+    }
+
+    private static Set<String> flattenColumns(Map<String, Set<String>> tablesColumns) {
+        Set<String> flattened = new HashSet<>();
+        for (Set<String> columns : tablesColumns.values()) {
+            for (String column : columns) {
+                flattened.add(normalizeIdentifier(column));
+            }
+        }
+        return flattened;
+    }
+
+    /**
+     * Extracts the SELECT-clause expressions (aliases excluded) as a single searchable string. Projections
+     * of sub-selects in the FROM clause are included so their exposed columns are covered too.
+     */
+    private static String extractSelectClause(String sql) {
+        SqlUtils sqlUtils = new SqlUtils();
+        String normalizedSql = sqlUtils.modifedSql(sql);
+        Statement statement;
+        try {
+            statement = CCJSqlParserUtil.parse(normalizedSql);
+        } catch (Exception exception) {
+            return "";
+        }
+        if (!(statement instanceof Select)) {
+            return "";
+        }
+
+        StringBuilder selectClause = new StringBuilder();
+        appendSelectItems(((Select) statement).getSelectBody(), selectClause);
+        return selectClause.toString();
+    }
+
+    private static void appendSelectItems(SelectBody selectBody, StringBuilder builder) {
+        if (selectBody instanceof PlainSelect) {
+            appendPlainSelectItems((PlainSelect) selectBody, builder);
+        } else if (selectBody instanceof SetOperationList) {
+            for (SelectBody body : ((SetOperationList) selectBody).getSelects()) {
+                appendSelectItems(body, builder);
+            }
+        } else if (selectBody instanceof SubSelect) {
+            appendSelectItems(((SubSelect) selectBody).getSelectBody(), builder);
+        }
+    }
+
+    private static void appendPlainSelectItems(PlainSelect plainSelect, StringBuilder builder) {
+        if (plainSelect.getSelectItems() != null) {
+            for (SelectItem selectItem : plainSelect.getSelectItems()) {
+                appendSelectItem(selectItem, builder);
+            }
+        }
+        appendFromItemSelects(plainSelect.getFromItem(), builder);
+        if (plainSelect.getJoins() != null) {
+            for (Join join : plainSelect.getJoins()) {
+                appendFromItemSelects(join.getRightItem(), builder);
+            }
+        }
+    }
+
+    private static void appendSelectItem(SelectItem selectItem, StringBuilder builder) {
+        if (selectItem instanceof SelectExpressionItem) {
+            // getExpression().toString() intentionally excludes the AS alias, so aliases are ignored.
+            Expression expression = ((SelectExpressionItem) selectItem).getExpression();
+            if (expression != null) {
+                builder.append(' ').append(expression).append(' ');
+            }
+        } else if (selectItem instanceof AllTableColumns) {
+            Table table = ((AllTableColumns) selectItem).getTable();
+            if (table != null) {
+                builder.append(' ').append(table.getFullyQualifiedName()).append(' ');
+            }
+        }
+        // AllColumns (*) exposes nothing identifiable by name and is skipped.
+    }
+
+    private static void appendFromItemSelects(FromItem fromItem, StringBuilder builder) {
+        if (fromItem instanceof SubSelect) {
+            appendSelectItems(((SubSelect) fromItem).getSelectBody(), builder);
+        }
+    }
+
+    /**
+     * Matches {@code identifier} as a standalone SQL identifier inside {@code text}. The identifier may be
+     * wrapped in double quotes, back-ticks or square brackets and may be preceded by a qualifier dot
+     * (e.g. {@code table.column}). Matching is case-insensitive and never matches a larger identifier.
+     */
+    private static boolean containsIdentifier(String text, String identifier) {
+        if (StringUtils.isBlank(identifier)) {
+            return false;
+        }
+        String regex = IDENTIFIER_REGEX_PREFIX + Pattern.quote(identifier) + IDENTIFIER_REGEX_SUFFIX;
+        return Pattern.compile(regex, Pattern.CASE_INSENSITIVE).matcher(text).find();
+    }
+
+    private static void addIfNotBlank(Set<String> target, String value) {
+        if (StringUtils.isNotBlank(value)) {
+            target.add(normalizeIdentifier(value));
+        }
     }
 
     private static void collectSelectReferences(Select select, QueryReferences references) {
