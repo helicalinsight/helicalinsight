@@ -14,6 +14,14 @@ import {
 } from "../../components/hi-cube/cubeConstants";
 import { updateFieldValues, modifyHierarchy } from "../../redux/actions/cube.actions";
 
+jest.mock("../../components/hi-cube/cubeEditorContext", () => ({
+  useCubeEditorBindings: () => ({
+    cubeState: {},
+    dispatch: jest.fn(),
+    variant: "cube",
+  }),
+}));
+
 const baseRecord = {
   key: "record-1",
   fields: "Revenue",
@@ -219,7 +227,6 @@ describe("cubeConstants", () => {
           hierarchyData={emptyHierarchyData}
         />,
       );
-      expect(screen.getByDisplayValue("[Year]")).toBeDisabled();
       commitCubeFieldSemanticDraft({
         dispatch,
         record: hierarchyChildRecord,

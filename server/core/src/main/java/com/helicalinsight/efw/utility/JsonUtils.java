@@ -850,7 +850,7 @@ public class JsonUtils {
             throw new MalformedJsonException("The json is malformed as there is no " + "driverName or " +
                     "driverClassName parameter");
         }
-        return driverName;
+        return DriverClassCompat.normalize(driverName);
     }
 
 

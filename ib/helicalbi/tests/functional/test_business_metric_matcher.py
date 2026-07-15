@@ -84,3 +84,23 @@ class TestBusinessMetricMatcher:
         )
         result = filter_required_business_metrics([metric], ["meeting_details"], query_plan)
         assert result == [metric]
+
+    def test_excludes_same_table_unrelated_metrics_when_column_is_specific(self):
+        related = {
+            "metric": "booking_platform",
+            "tables": ["travel_details"],
+            "column_name": "booking_platform",
+            "formula": "concat('Traveled With', booking_platform)",
+        }
+        unrelated = {
+            "metric": "travel_cost",
+            "tables": ["travel_details"],
+            "column_name": "travel_cost",
+            "formula": "sum(travel_cost)",
+        }
+        result = filter_required_business_metrics(
+            [related, unrelated],
+            ["travel_details"],
+            {"columnName": ["travel_details.booking_platform"]},
+        )
+        assert result == [related]
