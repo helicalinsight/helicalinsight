@@ -123,7 +123,11 @@ public class InstantBIUtilsTest {
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "abc123")});
 
         Principal principal = mock(Principal.class);
-        when(principal.getUsername()).thenReturn("tester");
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getOrg_id()).thenReturn(5);
+        when(principal.getLoggedInUser()).thenReturn(user);
 
         try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
             auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
@@ -133,6 +137,8 @@ public class InstantBIUtilsTest {
 
             assertEquals("abc123", target.get("sessionCookie").getAsString());
             assertEquals("tester", target.get("username").getAsString());
+            assertEquals(42, target.get("userId").getAsInt());
+            assertEquals(5, target.get("orgId").getAsInt());
         }
     }
 

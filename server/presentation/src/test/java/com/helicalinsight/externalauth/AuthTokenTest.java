@@ -18,19 +18,20 @@ public class AuthTokenTest {
 		assertEquals(token, "token");
 	}
 	
-	@Test
-	public void testSetIssuedAt() {
-		AuthToken authToken = new AuthToken();
-		authToken.setIssuedAt(new Date());
-		Date issuedAt = authToken.getIssuedAt();
-		assertEquals(issuedAt, new Date());
-	}
 	
 	@Test
+	public void testSetIssuedAt() {
+	    AuthToken authToken = new AuthToken();
+	    Date now = new Date();
+	    authToken.setIssuedAt(now);
+	    assertEquals(now, authToken.getIssuedAt());
+	}
+
+	@Test
 	public void testSetExpiration() {
-		AuthToken authToken = new AuthToken("token",new Date(),new Date());
-		authToken.setExpiration(new Date());
-		Date expiration = authToken.getExpiration();
-		assertEquals(expiration, new Date());
+	    Date now = new Date();
+	    AuthToken authToken = new AuthToken("token", new Date(), new Date());
+	    authToken.setExpiration(now);
+	    assertEquals(now, authToken.getExpiration());
 	}
 }

@@ -15,10 +15,10 @@ RUN curl -fsSL "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin
     && mkdir /opt/tomcat11 \
     && tar -xzf /tmp/tomcat11.tar.gz -C /opt/tomcat11 --strip-components=1 \
     && rm /tmp/tomcat11.tar.gz \
-    && cp /build/presentation/target/hi-ce.war /opt/tomcat11/webapps/hi-ce.war
+    && cp /build/presentation/target/hi-ee-*.war /opt/tomcat11/webapps/hi-ee.war
 
 RUN mkdir -p extracted && cd extracted \
-    && jar -xf /opt/tomcat11/webapps/hi-ce.war \
+    && jar -xf /opt/tomcat11/webapps/hi-ee.war \
     && jdeps --ignore-missing-deps -q --recursive --multi-release 25 \
         --print-module-deps --class-path "WEB-INF/lib/*" WEB-INF/classes > deps.info \
     && jlink --add-modules $(cat deps.info),jdk.management,jdk.crypto.ec \
@@ -54,7 +54,7 @@ RUN chmod +x /entrypoint.sh \
         ${CATALINA_HOME}/logs/* ${CATALINA_HOME}/temp/* ${CATALINA_HOME}/work/*
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-  CMD curl -f http://localhost:8080/hi-ce/applicationSettings || exit 1
+  CMD curl -f http://localhost:8080/hi-ee/applicationSettings || exit 1
 
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]

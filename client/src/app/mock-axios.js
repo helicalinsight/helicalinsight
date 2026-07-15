@@ -161,6 +161,40 @@ export const hiMockAxios = () => {
                 ),
               });
             }
+            if (contentId === "Static/semantictypes") {
+              return resolve({
+                data: JSON.stringify({
+                  semanticTypes: [
+                    {
+                      label: "Temporal",
+                      value: "TEMPORAL",
+                      options: [
+                        { label: "Date", value: "DATE" },
+                        { label: "Time", value: "TIME" },
+                        { label: "Datetime", value: "DATETIME" },
+                      ],
+                    },
+                    {
+                      label: "Numeric",
+                      value: "NUMERIC",
+                      options: [
+                        { label: "Integer", value: "INTEGER" },
+                        { label: "Decimal", value: "DECIMAL" },
+                        { label: "Currency", value: "CURRENCY" },
+                      ],
+                    },
+                    {
+                      label: "Person",
+                      value: "PERSON",
+                      options: [
+                        { label: "Person Name", value: "PERSON_NAME" },
+                        { label: "Email", value: "EMAIL" },
+                      ],
+                    },
+                  ],
+                }),
+              });
+            }
             return resolve({
               data: JSON.stringify(getDatasourceGetContentsResponse(formData)),
             });
