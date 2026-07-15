@@ -4,7 +4,7 @@
 #   docker compose -f docker-compose.dev.yml up --build
 #
 # Then open:
-#   Backend:  http://localhost:8080/hi-ce/hi.html
+#   Backend:  http://localhost:8080/hi-ee/
 #
 # Login: hiadmin / hiadmin
 
@@ -15,14 +15,14 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hiuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiuser}
-      POSTGRES_DB: ${POSTGRES_DB:-hice}
+      POSTGRES_DB: ${POSTGRES_DB:-hiee}
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./server/docker/init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hice}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
       interval: 10s
       timeout: 5s
       retries: 10
