@@ -11,7 +11,7 @@ ARG MAVEN_OPTS="-Xmx2g"
 RUN mvn clean package -DskipTests -Denv=docker -q
 
 ARG TOMCAT_VERSION=11.0.22
-RUN curl -fsSL "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" -o /tmp/tomcat11.tar.gz \
+RUN curl -fsSL "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" -o /tmp/tomcat11.tar.gz \
     && mkdir /opt/tomcat11 \
     && tar -xzf /tmp/tomcat11.tar.gz -C /opt/tomcat11 --strip-components=1 \
     && rm /tmp/tomcat11.tar.gz \
