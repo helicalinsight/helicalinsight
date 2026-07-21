@@ -14,20 +14,23 @@
 --    limitations under the License.
 --
 
-CREATE DATABASE IF NOT EXISTS SampleTravelData;
-USE SampleTravelData;
+--CREATE DATABASE IF NOT EXISTS SampleTravelData;
+--USE SampleTravelData;
+-- Apache Derby query to create SampleTravelData
 
-CREATE TABLE IF NOT EXISTS employee_details (
-  employee_id int NOT NULL,
-  employee_name varchar(50) DEFAULT NULL,
-  age int DEFAULT NULL,
-  address varchar(50) DEFAULT NULL,
-  PRIMARY KEY (employee_id)
-)ENGINE=InnoDB DEFAULT CHARSET=latin1;
+-- Dumping structure for table SampleTravelData.employee_details
+CREATE TABLE "employee_details" (
+  "employee_id" int NOT NULL,
+  "employee_name" varchar(50) DEFAULT NULL,
+  "age" int DEFAULT NULL,
+  "address" varchar(50) DEFAULT NULL,
+  PRIMARY KEY ("employee_id")
+); 
+--ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
--- Dumping data for table SampleTravelData.employee_details: ~49 rows (approximately)
-DELETE FROM employee_details;
-INSERT INTO employee_details (employee_id, employee_name, age, address) VALUES
+-- Dumping data for table SampleTravelData.employee_details: ~49 rows (approximately);
+DELETE FROM "employee_details";
+INSERT INTO "employee_details" ("employee_id", "employee_name", "age", "address") VALUES
 	(1, 'Mike Cannon-Brookes', 22, 'Ahmedabad'),
 	(2, 'Scott Farquhar', 30, 'Bangalore'),
 	(3, 'Matt Barrie', 34, 'Bhubaneshwar'),
@@ -78,19 +81,19 @@ INSERT INTO employee_details (employee_id, employee_name, age, address) VALUES
 	(48, 'Karl Trouchet', 23, 'Guwahati'),
 	(49, 'Luke Trouchet', 52, 'Hyderabad');
 
--- Dumping structure for table SampleTravelData.geo_cordinates
-CREATE TABLE IF NOT EXISTS geo_cordinates (
-  location_id int NOT NULL,
-  location varchar(50) DEFAULT NULL,
-  latitude double DEFAULT NULL,
-  longitude double DEFAULT NULL,
-  PRIMARY KEY (location_id)
-)
-ENGINE=InnoDB DEFAULT CHARSET=latin1;
+-- Dumping structure for table SampleTravelData.geo_cordinates;
+CREATE TABLE "geo_cordinates" (
+  "location_id" int NOT NULL,
+  "location" varchar(50) DEFAULT NULL,
+  "latitude" double DEFAULT NULL,
+  "longitude" double DEFAULT NULL,
+  PRIMARY KEY ("location_id")
+);
+--ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
--- Dumping data for table SampleTravelData.geo_cordinates: ~76 rows (approximately)
-DELETE FROM geo_cordinates;
-INSERT INTO geo_cordinates (location_id, location, latitude, longitude) VALUES
+-- Dumping data for table SampleTravelData.geo_cordinates: ~76 rows (approximately);
+DELETE FROM "geo_cordinates";
+INSERT INTO "geo_cordinates" ("location_id", "location", "latitude", "longitude") VALUES
 	(1, 'Agra', 27.17667, 78.008075),
 	(2, 'Ahmedabad', 23.022505, 72.571362),
 	(3, 'Ambala', 30.378179, 76.776697),
@@ -169,22 +172,22 @@ INSERT INTO geo_cordinates (location_id, location, latitude, longitude) VALUES
 	(76, 'Toronto', 43.653226, -79.383184);
 
 -- Dumping structure for table SampleTravelData.meeting_details
-CREATE TABLE IF NOT EXISTS meeting_details (
-  meeting_id int DEFAULT NULL,
-  meeting_date datetime  DEFAULT NULL,
-  meeting_by int DEFAULT NULL,
-  client_name varchar(50) DEFAULT NULL,
-  meeting_purpose varchar(50) DEFAULT NULL,
-  meeting_impact varchar(50) DEFAULT NULL,
-  meet_cancellation_status varchar(50) DEFAULT NULL,
-  cancellation_reason varchar(50) DEFAULT NULL,
-  FOREIGN KEY (meeting_by)
-  REFERENCES employee_details (employee_id)
-)
-ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE "meeting_details" (
+  "meeting_id" int DEFAULT NULL,
+  "meeting_date" TIMESTAMP DEFAULT NULL,
+  "meeting_by" int DEFAULT NULL,
+  "client_name" varchar(50) DEFAULT NULL,
+  "meeting_purpose" varchar(50) DEFAULT NULL,
+  "meeting_impact" varchar(50) DEFAULT NULL,
+  "meet_cancellation_status" varchar(50) DEFAULT NULL,
+  "cancellation_reason" varchar(50) DEFAULT NULL,
+  FOREIGN KEY ("meeting_by")
+  REFERENCES "employee_details" ("employee_id")
+); 
+--ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
-DELETE FROM meeting_details;
-INSERT INTO meeting_details (meeting_id, meeting_date, meeting_by, client_name, meeting_purpose, meeting_impact, meet_cancellation_status, cancellation_reason) VALUES
+DELETE FROM "meeting_details";
+INSERT INTO "meeting_details" ("meeting_id", "meeting_date", "meeting_by", "client_name", "meeting_purpose", "meeting_impact", "meet_cancellation_status", "cancellation_reason") VALUES
 	(1, '2015-09-04 08:22:00', 29, 'CA technologies', 'Event', 'Payment Released', 'Yes', 'Delay in Project'),
 	(2, '2015-09-25 10:22:00', 11, 'Tata Comm', 'MOU Signing', 'Vendor selection process', 'No', 'NA'),
 	(3, '2015-09-25 14:13:00', 11, 'CA technologies', 'MOU Signing', 'Tender Released', 'No', 'NA'),
@@ -1187,31 +1190,31 @@ INSERT INTO meeting_details (meeting_id, meeting_date, meeting_by, client_name, 
 	(1000, '2015-07-25 09:47:00', 21, 'Fractal', 'Client Visit', 'Not Interested', 'No', 'NA'),
 	(1001, '2015-09-12 14:26:00', 46, 'Predikto', 'Client Escalation', 'Tender Released', 'No', 'NA');
 
-CREATE TABLE IF NOT EXISTS travel_details (
-  travel_id int NOT NULL,
-  travel_date datetime  DEFAULT NULL,
-  travel_type varchar(50) DEFAULT NULL,
-  travel_medium varchar(50) DEFAULT NULL,
-  source_id int DEFAULT NULL,
-  source varchar(50) DEFAULT NULL,
-  destination_id int DEFAULT NULL,
-  destination varchar(50) DEFAULT NULL,
-  travel_cost int DEFAULT NULL,
-  mode_of_payment varchar(50) DEFAULT NULL,
-  booking_platform varchar(50) DEFAULT NULL,
-  travelled_by int DEFAULT NULL,
-  PRIMARY KEY (travel_id),
-  FOREIGN KEY (travelled_by)
-  REFERENCES employee_details (employee_id),
-  FOREIGN KEY (source_id)
-  REFERENCES geo_cordinates (location_id),
-  FOREIGN KEY (destination_id)
-  REFERENCES geo_cordinates (location_id)
-)
-ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE "travel_details" (
+  "travel_id" int NOT NULL,
+  "travel_date" TIMESTAMP DEFAULT NULL,
+  "travel_type" varchar(50) DEFAULT NULL,
+  "travel_medium" varchar(50) DEFAULT NULL,
+  "source_id" int DEFAULT NULL,
+  "source" varchar(50) DEFAULT NULL,
+  "destination_id" int DEFAULT NULL,
+  "destination" varchar(50) DEFAULT NULL,
+  "travel_cost" int DEFAULT NULL,
+  "mode_of_payment" varchar(50) DEFAULT NULL,
+  "booking_platform" varchar(50) DEFAULT NULL,
+  "travelled_by" int DEFAULT NULL,
+  PRIMARY KEY ("travel_id"),
+  FOREIGN KEY ("travelled_by")
+  REFERENCES "employee_details" ("employee_id"),
+  FOREIGN KEY ("source_id")
+  REFERENCES "geo_cordinates" ("location_id"),
+  FOREIGN KEY ("destination_id")
+  REFERENCES "geo_cordinates" ("location_id")
+);
+--ENGINE=InnoDB DEFAULT CHARSET=latin1;
 -- Dumping data for table SampleTravelData.travel_details: ~949 rows (approximately)
-DELETE FROM travel_details;
-INSERT INTO travel_details (travel_id, travel_date, travel_type, travel_medium, source_id, source, destination_id, destination, travel_cost, mode_of_payment, booking_platform, travelled_by) VALUES
+DELETE FROM "travel_details";
+INSERT INTO "travel_details" ("travel_id", "travel_date", "travel_type", "travel_medium", "source_id", "source", "destination_id", "destination", "travel_cost", "mode_of_payment", "booking_platform", "travelled_by") VALUES
 	(1, '2015-09-04 08:22:00', 'Domestic', 'Bus', 8, 'Bangalore', 16, 'Chennai', 1350, 'Credit', 'Makemytrip', 29),
 	(2, '2015-09-25 10:22:00', 'Domestic', 'Bus', 57, 'New Delhi', 31, 'Jaipur', 1200, 'Credit', 'Website', 11),
 	(3, '2015-09-25 14:13:00', 'Domestic', 'Bus', 57, 'New Delhi', 31, 'Jaipur', 1200, 'Credit', 'Website', 11),
@@ -2213,25 +2216,28 @@ INSERT INTO travel_details (travel_id, travel_date, travel_type, travel_medium, 
 	(999, '2015-11-18 08:53:00', 'International', 'Flight', 2, 'Ahmedabad', 21, 'Dubai', 80000, 'Cheque', 'Agent', 13),
 	(1000, '2015-07-25 09:47:00', 'International', 'Flight', 24, 'Goa', 68, 'San Francisco', 90000, 'Net Banking', 'Makemytrip', 21),
 	(1001, '2015-09-12 14:26:00', 'Domestic', 'Bus', 57, 'New Delhi', 31, 'Jaipur', 826, 'Cash', 'Agent', 46);
+	
+-- Dumping structure for table SampleTravelData.
 
-CREATE TABLE IF NOT EXISTS dimdate(
-	dim_id int NOT NULL,
-	fiscal_year DATE DEFAULT NULL, 
-	modified_date datetime  DEFAULT NULL, 
-	date_key VARCHAR(50) DEFAULT NULL, 
-    day_number VARCHAR(50) DEFAULT NULL, 
-	fiscal_month_name VARCHAR(50) DEFAULT NULL, 
-	fiscal_month_label VARCHAR(50) DEFAULT NULL, 
-	created_date VARCHAR(50) DEFAULT NULL, 
-	created_time VARCHAR(50) DEFAULT NULL,  
-	rating VARCHAR(50) DEFAULT NULL,
-	FOREIGN KEY (dim_id)
-	REFERENCES geo_cordinates (location_id)
-	)ENGINE=InnoDB DEFAULT CHARSET=latin1;
+CREATE TABLE "dimdate" (
+	"dim_id" int NOT NULL,
+	"fiscal_year" DATE DEFAULT NULL, 
+	"modified_date" TIMESTAMP DEFAULT NULL, 
+	"date_key" VARCHAR(50) DEFAULT NULL, 
+	"day_number" VARCHAR(50) DEFAULT NULL, 
+	"fiscal_month_name" VARCHAR(50) DEFAULT NULL, 
+	"fiscal_month_label" VARCHAR(50) DEFAULT NULL, 
+	"created_date" VARCHAR(50) DEFAULT NULL, 
+	"created_time" VARCHAR(50) DEFAULT NULL,  
+	"rating" VARCHAR(50) DEFAULT NULL,
+	FOREIGN KEY ("dim_id")
+	REFERENCES "geo_cordinates" ("location_id")
+	);
+--ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 
-DELETE FROM dimdate;
-INSERT INTO dimdate(dim_id, fiscal_year,modified_date,date_key,day_number,fiscal_month_name,fiscal_month_label,created_date, created_time, rating) VALUES
+DELETE FROM "dimdate";
+INSERT INTO "dimdate" ("dim_id", "fiscal_year", "modified_date", "date_key", "day_number", "fiscal_month_name", "fiscal_month_label", "created_date", "created_time", "rating") VALUES
 
 (1,'2013-01-01','2018-06-01 09:07:21.10','2013-01-01','1','3','FY2013-Jan','2018-06-01 01:56:47','09:01:24','0.1'),
 (2,'2013-01-02','2018-06-07 19:07:21.10','2013-01-02','2','3','FY2013-Jan','2018-06-07 11:56:47','19:07:21','0.2'),

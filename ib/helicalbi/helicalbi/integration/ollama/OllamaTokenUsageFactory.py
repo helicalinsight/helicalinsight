@@ -18,5 +18,5 @@ class OllamaTokenUsageFactory(BaseTokenUsageFactory):
 
         cost = self._read_cost(metadata)
         if any(cost.values()):
-            return TokenUsage(**cost)
+            return self._build_cost_only(metadata)
         return TokenUsage()

@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": null,
+  "instruction": "Trend where cumulative magnitude/volume must be stressed.",
+  "aliases": [
+    "area chart",
+    "filled area",
+    "area plot"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "Area. Config: xField=ordered dim, yField=measure; seriesField + isStack for stacked area.\nPolish: autoFit; soft areaStyle fillOpacity~0.6; line on top; axis titles; legend if series; point false unless sparse; interactions element-active.",
+  "code": "\nfunction DrawArea() {\n  const { Area } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    },\n    areaStyle: {\n      fill: \"l(270) 0:#ffffff 0.5:#69b2f8 1:#0050b3\"\n    }\n  };\n  return <div><Area {...config} /></div>;\n}\n"
+}

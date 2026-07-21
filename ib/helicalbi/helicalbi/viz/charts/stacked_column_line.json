@@ -1,0 +1,16 @@
+{
+  "dims_min": 2,
+  "dims_max": 2,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Stacked composition plus a separate line measure.",
+  "aliases": [
+    "stacked column line",
+    "stacked combo",
+    "stacked column + line"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "DualAxes stacked column+line. Config: geometryOptions column isStack+seriesField; line + seriesField.\nPolish: stack for composition, line for trend; legend top; autoFit; clear series names.",
+  "code": "\nfunction DrawStackedColumnLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      {\n        geometry: \"column\",\n        isStack: true,\n        seriesField: \"stack_column\"\n      },\n      { geometry: \"line\", seriesField: \"line_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+}

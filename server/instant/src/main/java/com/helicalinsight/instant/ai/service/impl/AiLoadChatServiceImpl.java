@@ -56,7 +56,7 @@ public class AiLoadChatServiceImpl implements IAiLoadChatService {
 
                 JsonObject stateJson = GsonUtility.parseString(state, JsonObject.class);
 
-                userInput.add("agent", stateJson.get("subject").getAsJsonObject().get("agent"));
+                userInput.add("model", stateJson.get("subject").getAsJsonObject().get("model"));
                 userInput.addProperty("inputString", input);
                 userInput.addProperty("chatid", GsonUtility.optString(stateJson, "activeChatId"));
 

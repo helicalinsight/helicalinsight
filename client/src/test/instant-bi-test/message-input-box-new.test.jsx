@@ -56,7 +56,7 @@ const defaultActiveReport = {
   loadingRecommendation: false,
   recommendations: [],
   inputValue: "",
-  subject: { agent: { file: "sample.agent" } },
+  subject: { model: { file: "sample.agent" } },
 };
 
 const defaultProps = {

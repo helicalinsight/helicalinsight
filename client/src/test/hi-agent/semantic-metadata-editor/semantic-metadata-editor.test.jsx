@@ -5,9 +5,21 @@ import { Provider } from "react-redux";
 import SemanticMetadataEditor from "../../../components/hi-agent/components/semantic-metadata-editor";
 import { ensureShape } from "../../../components/hi-agent/components/semantic-metadata-editor/semantic-metadata-utils";
 
-jest.mock("../../../components/hi-cube/cube", () => ({
-  Cube: () => <div data-testid="cube-editor">Cube Editor</div>,
-}));
+jest.mock(
+  "../../../components/hi-agent/components/semantic-metadata-editor/agent-shelves",
+  () => ({
+    AgentWorkspace: ({ onCopyJson, onPasteJson }) => (
+      <div data-testid="agent-workspace">
+        <button type="button" data-testid="workspace-copy-json" onClick={onCopyJson}>
+          Copy JSON
+        </button>
+        <button type="button" data-testid="workspace-paste-json" onClick={onPasteJson}>
+          Paste JSON
+        </button>
+      </div>
+    ),
+  }),
+);
 
 jest.mock("../../../components/hi-cube/cubeEditorContext", () => ({
   CubeEditorProvider: ({ children }) => <>{children}</>,
@@ -94,7 +106,7 @@ describe("SemanticMetadataEditor", () => {
     });
   });
 
-  it("renders cube editor by default", () => {
+  it("renders agent workspace by default", () => {
     renderWithStore(
       {},
       <SemanticMetadataEditor
@@ -103,7 +115,7 @@ describe("SemanticMetadataEditor", () => {
         dispatch={jest.fn()}
       />,
     );
-    expect(screen.getByTestId("cube-editor")).toBeInTheDocument();
+    expect(screen.getByTestId("agent-workspace")).toBeInTheDocument();
   });
 
   it("shows loading UI when isLoading is true", () => {
@@ -168,11 +180,29 @@ describe("SemanticMetadataEditor", () => {
     expect(copied.metadata).toBeUndefined();
     expect(copied.state).toBeUndefined();
     expect(copied.domain).toBeDefined();
-    expect(copied.cube_info).toBeDefined();
+    expect(copied.cube).toBeDefined();
     expect(copied.business_metrics).toBeUndefined();
 
     ref.current.handleOpenPaste();
-    expect(screen.getByText("Paste JSON")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Paste JSON" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Paste a metadata JSON/i)).toBeInTheDocument();
+  });
+
+  it("wires workspace Copy/Paste actions to clipboard handlers", async () => {
+    renderWithStore(
+      {},
+      <SemanticMetadataEditor
+        agentData={sampleAgentData}
+        dispatch={jest.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByTestId("workspace-copy-json"));
+    await waitFor(() => {
+      expect(navigator.clipboard.writeText).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByTestId("workspace-paste-json"));
     expect(screen.getByPlaceholderText(/Paste a metadata JSON/i)).toBeInTheDocument();
   });
 

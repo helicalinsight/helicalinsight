@@ -2,7 +2,7 @@
   "name": "HelicalInsight",
   "version": "0.1.0",
   "private": true,
-  "proxy": "your-proxy-target",
+  "proxy": "http://localhost:8080",
   "dependencies": {
     "--legacy-peer-deps": "^0.0.1-security.6",
     "@ant-design/flowchart": "^1.2.2",
@@ -22,8 +22,6 @@
     "@pmmmwh/react-refresh-webpack-plugin": "0.4.3",
     "@reduxjs/toolkit": "1.6.2",
     "@svgr/webpack": "5.5.0",
-    "@syncfusion/ej2-react-diagrams": "19.4.50",
-    "@syncfusion/ej2-react-pivotview": "19.4.42",
     "@testing-library/jest-dom": "5.14.1",
     "@testing-library/react": "11.2.7",
     "@testing-library/user-event": "12.8.3",
@@ -152,6 +150,7 @@
     "start": "node --max_old_space_size=5096 scripts/start",
     "build": "node --max_old_space_size=5096 scripts/build",
     "test": "node scripts/test.js --max_old_space_size=8096 --watchAll=false --silent",
+    "test:coverage": "node scripts/test.js --max_old_space_size=8096 --watchAll=false --coverage",
     "test:dev": "node scripts/test.js",
     "analyze": "source-map-explorer 'build/static/js/*.js'",
     "proxy": "nodemon proxy",
@@ -173,6 +172,13 @@
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}",
       "!src/**/*.d.ts"
+    ],
+    "coverageDirectory": "<rootDir>/coverage",
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html",
+      "json-summary"
     ],
     "setupFiles": [
       "react-app-polyfill/jsdom",

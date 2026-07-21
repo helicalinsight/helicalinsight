@@ -1,0 +1,16 @@
+{
+  "dims_min": 2,
+  "dims_max": 2,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Grouped comparison plus a separate line measure.",
+  "aliases": [
+    "grouped column line",
+    "grouped combo",
+    "grouped column + line"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "DualAxes grouped column+line. Config: column isGroup+seriesField; line seriesField.\nPolish: group for comparison + trend line; legend; autoFit; avoid overlapping colors.",
+  "code": "\nfunction DrawGroupedColumnLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      {\n        geometry: \"column\",\n        isGroup: true,\n        seriesField: \"group_column\"\n      },\n      { geometry: \"line\", seriesField: \"line_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+}

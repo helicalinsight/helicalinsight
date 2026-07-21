@@ -14,4 +14,4 @@
 --    limitations under the License.
 --
 
-CREATE DATABASE hice;
+CREATE DATABASE hiee;

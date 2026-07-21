@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": null,
+  "instruction": "Trend over time or another continuous ordered dimension.",
+  "aliases": [
+    "line chart",
+    "trend line",
+    "line plot"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "Line. Config: xField=ordered dim, yField=measure; seriesField if multi; smooth optional.\nPolish: autoFit; point size 3-5 (circle/diamond) sparingly; axis titles; legend top if series; slider if many points; interactions; avoid heavy area fill unless asked.",
+  "code": "\nfunction DrawLine() {\n  const { Line } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    },\n    point: {\n      size: 5,\n      shape: \"diamond\"\n    }\n  };\n  return <div><Line {...config} /></div>;\n}\n"
+}

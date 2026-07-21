@@ -7,7 +7,8 @@ const Watermark = (props) => {
         text = "Helical Insight",
         link,
         placement = "bottom-right", // "bottom-right" | "bottom-left" | "top-right" | "top-left"
-        tooltip = null
+        tooltip = null,
+        right = "5%" // % or px
     } = props || {
 
     }
@@ -17,8 +18,8 @@ const Watermark = (props) => {
     const wrapperStyle = {
         position: "absolute",
         [isBottom ? "bottom" : "top"]: isBottom ? 2 : 0,
-        [isRight ? "right" : "left"]: isRight ? "5%" : 0,
-        zIndex: 1000,
+        [isRight ? "right" : "left"]: isRight ? right : 0,
+        zIndex: 10,
         pointerEvents: "none",
     };
 

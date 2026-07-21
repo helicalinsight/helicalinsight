@@ -33,6 +33,14 @@ class BaseTokenUsageFactory(TokenUsageFactory):
     """Shared helpers for normalizing LangChain usage and cost fields."""
 
     @staticmethod
+    def _read_model_name(metadata: dict[str, Any]) -> Optional[str]:
+        for key in ("model_name", "model", "model_id"):
+            value = metadata.get(key)
+            if value is not None and str(value).strip():
+                return str(value)
+        return None
+
+    @staticmethod
     def _read_cost(metadata: dict[str, Any]) -> dict[str, Optional[float]]:
         def _as_float(value: Any) -> Optional[float]:
             if value is None:
@@ -73,6 +81,13 @@ class BaseTokenUsageFactory(TokenUsageFactory):
             input_tokens=input_tokens,
             output_tokens=output_tokens,
             total_tokens=total_tokens,
+            model_name=self._read_model_name(metadata),
+            **self._read_cost(metadata),
+        )
+
+    def _build_cost_only(self, metadata: dict[str, Any]) -> TokenUsage:
+        return TokenUsage(
+            model_name=self._read_model_name(metadata),
             **self._read_cost(metadata),
         )
 

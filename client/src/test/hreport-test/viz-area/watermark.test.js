@@ -34,52 +34,56 @@ describe("Watermark", () => {
         render(<Watermark text="Corner Test" />);
         const badge = screen.getByText("Corner Test");
         const wrapper = badge.parentElement;
+        const parent = wrapper.parentElement;
 
-        expect(wrapper).toHaveStyle({ position: "absolute", bottom: "2px", right: "5%" });
-        expect(badge).toHaveStyle({ borderTopLeftRadius: "4px" });
+        expect(parent).toHaveStyle({ position: "absolute", bottom: "2px", right: "5%" });
+        expect(wrapper).toHaveStyle({ borderTopLeftRadius: "4px" });
     });
 
     test("positions correctly for the bottom-left corner", () => {
         render(<Watermark text="Corner Test" placement="bottom-left" />);
         const badge = screen.getByText("Corner Test");
         const wrapper = badge.parentElement;
+        const parent = wrapper.parentElement;
 
-        expect(wrapper).toHaveStyle({ position: "absolute", bottom: "2px", left: "0px" });
-        expect(badge).toHaveStyle({ borderTopRightRadius: "4px" });
+        expect(parent).toHaveStyle({ position: "absolute", bottom: "2px", left: "0px" });
+        expect(wrapper).toHaveStyle({ borderTopRightRadius: "4px" });
     });
 
     test("positions correctly for the top-right placement", () => {
         render(<Watermark text="Corner Test" placement="top-right" />);
         const badge = screen.getByText("Corner Test");
         const wrapper = badge.parentElement;
+        const parent = wrapper.parentElement;
 
-        expect(wrapper).toHaveStyle({ position: "absolute", top: "0px", right: "5%" });
-        expect(badge).toHaveStyle({ borderBottomLeftRadius: "4px" });
+        expect(parent).toHaveStyle({ position: "absolute", top: "0px", right: "5%" });
+        expect(wrapper).toHaveStyle({ borderBottomLeftRadius: "4px" });
     });
 
     test("positions correctly for the top-left placement", () => {
         render(<Watermark text="Corner Test" placement="top-left" />);
         const badge = screen.getByText("Corner Test");
         const wrapper = badge.parentElement;
-
-        expect(wrapper).toHaveStyle({ position: "absolute", top: "0px", left: "0px" });
-        expect(badge).toHaveStyle({ borderBottomRightRadius: "4px" });
+        const parent = wrapper.parentElement;
+        expect(parent).toHaveStyle({ position: "absolute", top: "0px", left: "0px" });
+        expect(wrapper).toHaveStyle({ borderBottomRightRadius: "4px" });
     });
 
     test("wrapper ignores pointer events so it never blocks the map underneath", () => {
         render(<Watermark text="Pointer Test" />);
         const badge = screen.getByText("Pointer Test");
         const wrapper = badge.parentElement;
-
-        expect(wrapper).toHaveStyle({ pointerEvents: "none" });
-        expect(badge).toHaveStyle({ pointerEvents: "auto" });
+        const topParent = wrapper.parentElement;
+        expect(topParent).toHaveStyle({ pointerEvents: "none" });
+        expect(wrapper).toHaveStyle({ pointerEvents: "auto" });
     });
 
     test("wrapper has a high z-index so it stacks above map content", () => {
         render(<Watermark text="Z-Index Test" />);
         const badge = screen.getByText("Z-Index Test");
         const wrapper = badge.parentElement;
+        const parent = wrapper.parentElement;
 
-        expect(wrapper).toHaveStyle({ zIndex: 1000 });
+        expect(parent).toHaveStyle({ zIndex: 10 });
     });
 });

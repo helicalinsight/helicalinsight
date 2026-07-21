@@ -18,3 +18,4 @@ class DataInsightState(TypedDict, total=False):
     skip: bool
     insight: str
     token_usage: dict
+    time_consumed: dict

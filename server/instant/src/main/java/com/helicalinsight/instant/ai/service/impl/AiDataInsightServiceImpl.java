@@ -57,8 +57,8 @@ public class AiDataInsightServiceImpl implements IAiDataInsightService {
                 if (StringUtils.isNotBlank(subjectString)) {
                     String decodedSubject = InstantBIUtils.getEncodedElseNormal(subjectString);
                     JsonObject subjectJson = GsonUtility.parseString(decodedSubject, JsonObject.class);
-                    JsonObject agentJson = subjectJson.get("agent").getAsJsonObject();
-                    userInput.add("agent", agentJson);
+                    JsonObject modelJson = subjectJson.get("model").getAsJsonObject();
+                    userInput.add("model", modelJson);
                     userInput.addProperty("inputString", input);
                     userInput.addProperty("chatid", chatid);
                 } else {
@@ -113,7 +113,7 @@ public class AiDataInsightServiceImpl implements IAiDataInsightService {
 
         JsonObject stateJson = GsonUtility.parseString(state, JsonObject.class);
 
-        userInput.add("agent", stateJson.get("subject").getAsJsonObject().get("agent"));
+        userInput.add("model", stateJson.get("subject").getAsJsonObject().get("model"));
         userInput.addProperty("inputString", formDataJson.get("input").getAsString());
         userInput.addProperty("chatid", GsonUtility.optString(stateJson, "activeChatId"));
 

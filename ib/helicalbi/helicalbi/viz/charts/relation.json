@@ -1,0 +1,16 @@
+{
+  "dims_min": 2,
+  "dims_max": null,
+  "measures_min": 1,
+  "measures_max": null,
+  "instruction": "General relationship/hierarchy view is requested.",
+  "aliases": [
+    "relationship",
+    "hierarchy chart",
+    "relation chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Hierarchy as Treemap. Config: nest data {name, children[{name,value}]}; colorField name; label fields.\nPolish: readable labels; muted palette; interactions element-active; avoid deep nesting >2 levels unless data requires.",
+  "code": "\nfunction DrawRelation() {\n  const { Treemap } = components;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const chartData = {\n    name: \"root\",\n    children: data.map((item) => ({\n      name: item[dimensionField],\n      value: item[measureField],\n      ...item\n    }))\n  };\n  const config = {\n    data: chartData,\n    colorField: \"name\",\n    label: {\n      fields: [dimensionField]\n    }\n  };\n  return <div><Treemap {...config} /></div>;\n}\n"
+}

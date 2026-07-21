@@ -3,8 +3,9 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Provider } from "react-redux";
 import { HIAGENT } from "../../pages";
-import { agentSaveAPI, agentEditServiceAPI } from "../../components/hi-instant-bi/utils/instant-bi-requests";
-import actionTypes from "../../redux/actions/actionTypes";
+import {
+  agentEditServiceAPI,
+} from "../../components/hi-instant-bi/utils/instant-bi-requests";
 
 const createMatchMediaMock = (query) => ({
   matches: false,
@@ -57,21 +58,7 @@ jest.mock("../../components", () => ({
     </div>
   ),
 }));
-jest.mock("../../components/hi-agent/components/agentSidebar", () => ({
-  AgentSidebar: ({ onResetAgentEditor, onAgentDataLoaded }) => (
-    <div data-testid="agent-sidebar">
-      <button data-testid="reset-editor-button" onClick={onResetAgentEditor}>
-        Reset
-      </button>
-      <button
-        data-testid="load-agent-button"
-        onClick={() => onAgentDataLoaded?.({ test: "data" }, "TestAgent")}
-      >
-        Load Agent
-      </button>
-    </div>
-  ),
-}));
+
 jest.mock("../../components/hi-fileBrowser/SaveItems", () => {
   return function MockSaveItems({ formHeading, onFormSumbit, inputValue }) {
     return (
@@ -88,10 +75,11 @@ jest.mock("../../components/hi-fileBrowser/SaveItems", () => {
     );
   };
 });
+
 jest.mock("../../components/hi-agent/components/semantic-metadata-editor", () => {
   const React = require("react");
   return React.forwardRef(function MockSemanticMetadataEditor(
-    { onContentChange, isLoading, handleAbort, isRawJsonView },
+    { onContentChange, isLoading, handleAbort, isRawJsonView, metadataShelfProps },
     ref,
   ) {
     React.useImperativeHandle(ref, () => ({
@@ -119,6 +107,13 @@ jest.mock("../../components/hi-agent/components/semantic-metadata-editor", () =>
         ) : (
           <div data-testid="cube-editor-view">Cube Editor</div>
         )}
+        <button
+          type="button"
+          data-testid="reset-editor-button"
+          onClick={() => metadataShelfProps?.onResetAgentEditor?.()}
+        >
+          Reset
+        </button>
         {isLoading && (
           <button data-testid="abort-button" onClick={handleAbort}>
             Abort
@@ -128,14 +123,22 @@ jest.mock("../../components/hi-agent/components/semantic-metadata-editor", () =>
     );
   });
 });
+
 jest.mock("../../components/hi-instant-bi/utils/instant-bi-requests", () => ({
   agentSaveAPI: jest.fn(() => ({ abort: jest.fn() })),
   agentEditServiceAPI: jest.fn(() => ({ abort: jest.fn() })),
 }));
+
+jest.mock("../../base/requests/agent.requests", () => () => ({
+  getAgentMetadataTablesData: jest.fn(() => ({ abort: jest.fn() })),
+  getSemanticTypes: jest.fn(() => ({ abort: jest.fn() })),
+}));
+
 jest.mock("../../components/hi-notifications/notify", () => () => ({
   error: jest.fn(),
   success: jest.fn(),
 }));
+
 function createStore(initialState) {
   return {
     getState: () => initialState,
@@ -143,12 +146,17 @@ function createStore(initialState) {
     subscribe: () => () => {},
   };
 }
+
 describe("HIAGENT Page", () => {
   let store;
   let initialState;
+
   beforeEach(() => {
     initialState = {
-      app: { editModeInfo: null },
+      app: {
+        editModeInfo: null,
+        showNavbar: true,
+      },
       agent: {
         agentMode: "create",
         metadataDetails: { path: "meta-dir", fileName: "Sample.metadata" },
@@ -164,6 +172,7 @@ describe("HIAGENT Page", () => {
     jest.clearAllMocks();
     window.matchMedia.mockImplementation(createMatchMediaMock);
   });
+
   it("renders cube editor by default", () => {
     render(
       <Provider store={store}>
@@ -172,16 +181,34 @@ describe("HIAGENT Page", () => {
     );
     expect(screen.getByTestId("cube-editor-view")).toBeInTheDocument();
   });
-  it("resets editor via sidebar", () => {
+
+  it("does not show Copy JSON or Paste JSON in the global taskbar", () => {
     render(
       <Provider store={store}>
         <HIAGENT urlObj={{}} />
       </Provider>,
     );
-    fireEvent.click(screen.getByTestId("load-agent-button"));
+    expect(screen.getByTestId("hi-navbar")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("taskbar-item-Copy JSON"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("taskbar-item-Paste JSON"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("taskbar-item-Save")).toBeInTheDocument();
+    expect(screen.getByTestId("taskbar-item-Layout")).toBeInTheDocument();
+  });
+
+  it("resets editor via metadata shelf reset callback", () => {
+    render(
+      <Provider store={store}>
+        <HIAGENT urlObj={{}} />
+      </Provider>,
+    );
     fireEvent.click(screen.getByTestId("reset-editor-button"));
     expect(screen.getByTestId("cube-editor-view")).toBeInTheDocument();
   });
+
   it("loads agent editor when editModeInfo is for agent edit", async () => {
     agentEditServiceAPI.mockImplementationOnce(({ successCB }) => {
       successCB({
@@ -193,9 +220,9 @@ describe("HIAGENT Page", () => {
       return { abort: jest.fn() };
     });
     initialState.app.editModeInfo = {
-      dir: "agents/EditAgent.agent",
-      file: "EditAgent.agent",
-      extension: "agent",
+      dir: "agents/EditAgent.model",
+      file: "EditAgent.model",
+      extension: "model",
       title: "EditAgent",
     };
     store = createStore(initialState);

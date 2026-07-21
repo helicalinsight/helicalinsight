@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Compact discrete comparison without full axes.",
+  "aliases": [
+    "sparkline column",
+    "mini column",
+    "tiny column chart"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "TinyColumn sparkline. Config: xField, yField; autoFit.\nPolish: no axes/legend; compact bars; discrete comparison only.",
+  "code": "\nfunction DrawTinyColumn() {\n  const { TinyColumn } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    autoFit: true\n  };\n  return <div><TinyColumn {...config} /></div>;\n}\n"
+}

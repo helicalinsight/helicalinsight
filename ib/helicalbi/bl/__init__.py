@@ -1,6 +1,7 @@
 """Business-layer route handlers for the HelicalBI Flask app."""
 
 from bl.abort import register as register_abort
+from bl.clear_api_cache import register as register_clear_api_cache
 from bl.data_insight import register as register_data_insight
 from bl.get_semantic_data import register as register_get_semantic_data
 from bl.hello import register as register_hello
@@ -18,5 +19,6 @@ def register_routes(app) -> None:
     register_interactive(app)
     register_load_chat(app)
     register_abort(app)
+    register_clear_api_cache(app)
     register_data_insight(app)
     register_get_semantic_data(app)

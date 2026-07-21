@@ -8,6 +8,7 @@ import ErrorFallback from "../../../errorBoundry/ErrorFallback.jsx";
 import { loadReportData, setAbortRequest, setHReportEditLoading, setHReportLoading, setHreportStylesId, updateReportModal } from "../../../redux/actions/hreport.actions.js";
 import {
   getRelativeCacheTime,
+  isOpenSource,
   modifyFilters,
 } from "../../../utils/utilities.js";
 import LoadingBar from "../../common/components/hi-loading-bar.jsx";
@@ -58,7 +59,8 @@ const VizArea = (props) => {
   const userData = useSelector(
     (state) => state.app.applicationSettingsData.userData
   );
-  const metaInfo = useSelector((state) => (state.app.applicationSettingsData.meta || null));
+  const metaInfo = useSelector((state) => (state.app.applicationSettingsData.meta || {}));
+  const openSource = isOpenSource(metaInfo);
 
   let { serverTime, clientTime } = userData || {}
   let {
@@ -429,10 +431,10 @@ const VizArea = (props) => {
         id="hi-editing-area-container"
       >
         {content}
-        {metaInfo ?
+        {openSource ?
           <Watermark
-            text={`Powered by ${metaInfo.productName}©${metaInfo.version}` || "Powered by Helical Insight"}
-            link={metaInfo.link}
+            text={`Powered by ${metaInfo.productName}©${metaInfo.version}`}
+            link={metaInfo.link || "https://www.helicalinsight.com/"}
             placement="bottom-right"
             tooltip="Please upgrade your license to remove this watermark."
           />

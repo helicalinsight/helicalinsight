@@ -123,10 +123,13 @@ public class DatabaseQueryExecutor implements IComponent {
              query = formJson.get("query").getAsString();
              JsonObject metadataServiceData = fetchMetadataFromService(location, metadataFileName);
              if(GsonUtility.optBoolean(formJson, "runtimeView")){
-                 Map<String, Set<String>> allowedTablesColumns =
+                 /*Map<String, Set<String>> allowedTablesColumns =
                          SqlQueryMetadataValidator.buildAllowedTablesColumns(metadataServiceData);
                  SqlQueryMetadataValidator.validateQueryAgainstMetadata(query, allowedTablesColumns);
-
+*/
+                 JsonObject metadataFileJson = GsonUtility.optJsonObject(formJson, "metadataFileJson");
+                 SqlQueryMetadataValidator.validateSelectAgainstRestrictedMetadata(
+                         query, metadataFileJson, metadataServiceData);
              }
              query = handleSecurityConstraint(metadata, query);
              if (GsonUtility.optBoolean(formJson, "replaceView")) {

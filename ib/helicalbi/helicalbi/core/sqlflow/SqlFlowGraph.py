@@ -7,11 +7,11 @@ from helicalbi.core.sqlflow.GetColumnNames import GetColumnNames
 from helicalbi.core.sqlflow.GetExamples import GetExamples
 from helicalbi.core.sqlflow.GetRequiredMetrics import GetRequiredMetrics
 from helicalbi.core.sqlflow.GetRequiredSynonyms import GetRequiredSynonyms
-from helicalbi.model.SQLAgent import SQLAgent
+from helicalbi.model.SQLModel import SQLModel
 
 
 def build_sql_graph():
-    workflow = StateGraph(SQLAgent)
+    workflow = StateGraph(SQLModel)
 
     workflow.add_node("FindTablesFromTopics", FindTablesFromTopics().process_flow)
     workflow.add_node("GetRequiredSynonyms", GetRequiredSynonyms().process_flow)

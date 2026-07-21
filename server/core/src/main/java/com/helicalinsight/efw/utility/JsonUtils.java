@@ -32,7 +32,6 @@ import org.springframework.core.io.FileSystemResource;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -281,11 +280,11 @@ public class JsonUtils {
         }
         return report;
     }
-    public static String getAiAgentExtension() {
+    public static String getAiModelExtension() {
         JSONObject settingsJson = getSettingsJson();
         String report;
         try {
-            report = settingsJson.getJSONObject("Extentions").getJSONObject("agent").getString("#text");
+            report = settingsJson.getJSONObject("Extentions").getJSONObject("model").getString("#text");
         } catch (Exception e) {
             throw new ConfigurationException("The key report is not configured in application " + "settings.", e);
         }
@@ -850,7 +849,7 @@ public class JsonUtils {
             throw new MalformedJsonException("The json is malformed as there is no " + "driverName or " +
                     "driverClassName parameter");
         }
-        return driverName;
+        return DriverClassCompat.normalize(driverName);
     }
 
 

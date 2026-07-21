@@ -22,8 +22,11 @@ public class HILlmUsageAudit implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username")
-    private String username;
+    @Column(name = "user_id")
+    private Integer userId;
+
+    @Column(name = "org_id")
+    private Integer organizationId;
 
     @Column(name = "endpoint")
     private String endpoint;

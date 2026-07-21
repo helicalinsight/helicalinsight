@@ -774,6 +774,7 @@ monitor/system/readProperty
 monitor/system/noSqlConfig
 monitor/system/updateNoSql
 monitor/system/mailStats
+monitor/system/llmUsageStats
 
 util/io/getExtensions
 util/io/getTypesDetails

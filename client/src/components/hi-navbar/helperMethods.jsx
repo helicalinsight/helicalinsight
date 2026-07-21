@@ -13,7 +13,6 @@ import {
   EyeOutlined,
   FundProjectionScreenOutlined,
   RedoOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { Menu, Tooltip } from "antd";
 import { routesUrl } from "../../app/constants";
@@ -62,7 +61,7 @@ export function routeIcon(route) {
     case instantBIUrl:
       return <HIIcon className="hi-navbar-icon" name="hi-instant-bi-svg" />;
     case agentUrl:
-      return <UserOutlined className="hi-navbar-icon" />;
+      return <CustomIcon name="Cube" />;
     case "default":
       return <EditFilled className="hi-navbar-icon" />;
   }

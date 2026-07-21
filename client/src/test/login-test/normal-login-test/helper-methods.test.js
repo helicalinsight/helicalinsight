@@ -16,7 +16,7 @@ const expectedTitles = [
   "HI: Cube",
   "HI: User",
   "HI: Instant",
-  "HI: Agent",
+  "HI: Semantic Model",
   "HI: Community Report",
   "HI: Workflow",
   "HI: Admin",

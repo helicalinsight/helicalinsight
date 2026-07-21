@@ -35,7 +35,7 @@ const Taskbar = ({ activeRoute, taskbar, hideToggleSidebar = false }) => {
       activeRoute.match(/metadata/) ||
       activeRoute.match(/hcr/) ||
       activeRoute.match(/cube/) ||
-      activeRoute.match(/agent/)) && !hideToggleSidebar
+      activeRoute.match(/semantic-model/)) && !hideToggleSidebar
   ) {
     leftMenu = [
       ...leftMenu,

@@ -211,24 +211,30 @@ const ViewModeHOC = ({
         <ExpandIcon />
       </Tooltip>,
       onClick: () => setExpanded((prev) => !prev)
-    }, {
-      key: "Email/Schedule",
-      label: "Email/Schedule",
-      icon: <Tooltip title={"Email/Schedule"}>
-        <MailOutlined />
-      </Tooltip>,
-      className: 'report-viewer-menu-item',
-      children: items.map((e) => {
-        return {
-          className: 'report-viewer-sub-menu-item',
-          label: e.label,
-          key: e.label,
-          onClick: e.onClick,
-          icon: e.icon,
-          disabled: e.disabled
-        }
-      })
-    }, {
+    }];
+
+    if (viewModeInfo.extension !== "instant") {
+      taskEles.push({
+        key: "Email/Schedule",
+        label: "Email/Schedule",
+        icon: <Tooltip title={"Email/Schedule"}>
+          <MailOutlined />
+        </Tooltip>,
+        className: 'report-viewer-menu-item',
+        children: items.map((e) => {
+          return {
+            className: 'report-viewer-sub-menu-item',
+            label: e.label,
+            key: e.label,
+            onClick: e.onClick,
+            icon: e.icon,
+            disabled: e.disabled
+          }
+        })
+      });
+    }
+
+    taskEles.push({
       key: "Save Report",
       label: "Save Report",
       className: 'report-viewer-menu-item pad-0-0-0-12',
@@ -237,8 +243,7 @@ const ViewModeHOC = ({
         <Tooltip title={"Save Report"}>
           <SaveOutlined />
         </Tooltip>
-    }
-    ]
+    });
   }
 
   return (

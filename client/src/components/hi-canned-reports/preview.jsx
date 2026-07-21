@@ -5,6 +5,7 @@ import { isEqual } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { getCanvasDimensions } from '../common/custom-icons/CustomSkeletons/cannedReports/customCannedSkeleton';
 import Watermark from '../hi-reports/hi-viz-area/watermark/watermark';
+import { isOpenSource } from '../../utils/utilities';
 
 const PreviewArea = ({ previewTag, flowchartInstance, setIsPreviewLoading, isPreviewLoading, reportMode, setAppliedFilters, urlParameters }) => {
     // const [filterDragObj, setFilterDragObj] = useState({ x: 0, y: (window.screen.availHeight - 45) / 2 });
@@ -13,7 +14,8 @@ const PreviewArea = ({ previewTag, flowchartInstance, setIsPreviewLoading, isPre
     const hcrTabData = useSelector(state => state.cannedReports.present.hcrTabData);
     const canvasProperties = useSelector(state => state.cannedReports.present.hcrTabData?.panes?.find(pane => pane.key === hcrTabData.activeKey)?.canvasProperties || {});
     const dimensions = getCanvasDimensions(canvasProperties);
-    const metaInfo = useSelector((state) => (state.app.applicationSettingsData.meta || null));
+    const metaInfo = useSelector((state) => (state.app.applicationSettingsData.meta || {}));
+    const openSource = isOpenSource(metaInfo)
 
     return (
         <div>
@@ -27,10 +29,10 @@ const PreviewArea = ({ previewTag, flowchartInstance, setIsPreviewLoading, isPre
                             style={{ width: `${dimensions.width}px`, height: `${dimensions.height}px` }}
                         />
                     )}
-                    {metaInfo ?
+                    {openSource ?
                         <Watermark
-                            text={`Powered by ${metaInfo.productName}©${metaInfo.version}` || "Powered by Helical Insight"}
-                            link={"https://www.helicalinsight.com/"}
+                            text={`Powered by ${metaInfo.productName}©${metaInfo.version}`}
+                            link={metaInfo.link || "https://www.helicalinsight.com/"}
                             placement="bottom-right"
                             tooltip="Please upgrade your license to remove this watermark."
                         />

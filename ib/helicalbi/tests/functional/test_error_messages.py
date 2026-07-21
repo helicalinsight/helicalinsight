@@ -23,6 +23,6 @@ class TestErrorMessages:
 
     def test_normalize_service_error_message_strips_error_prefix(self):
         message = normalize_service_error_message(
-            "Error: The file missing.agent doesn't exists. Aborting operation."
+            "Error: The file missing.model doesn't exists. Aborting operation."
         )
-        assert message == "The file missing.agent doesn't exists. Aborting operation."
+        assert message == "The file missing.model doesn't exists. Aborting operation."

@@ -1,6 +1,6 @@
 # Helical Insight — Frontend (Client)
 
-The Helical Insight frontend is a React 17 single-page application that provides the report designer, dashboard builder, metadata explorer, administration console, and all end-user BI workflows. It communicates with the Java backend (`hi-ce` WAR) over HTTP/HTTPS.
+The Helical Insight frontend is a React 17 single-page application that provides the report designer, dashboard builder, metadata explorer, administration console, and all end-user BI workflows. It communicates with the Java backend (`hi-ee` WAR) over HTTP/HTTPS.
 
 ## Table of contents
 
@@ -64,7 +64,7 @@ The frontend requires a running Helical Insight backend deployed on Tomcat. See 
 Default backend URL (Tomcat):
 
 ```
-http://localhost:8080/hi-ce/
+http://localhost:8080/hi-ee/
 ```
 
 ## Connecting to the backend
@@ -170,7 +170,7 @@ npm ci --legacy-peer-deps
 
 ### Configure Nginx for your backend
 
-The included `nginx.conf` proxies `/hi-ce/` to the backend service (`http://backend:8080/hi-ce/`) when using `docker-compose.dev.yml`. For other deployments, update the `proxy_pass` target:
+The included `nginx.conf` proxies `/hi-ee/` to the backend service (`http://backend:8080/hi-ee/`) when using `docker-compose.dev.yml`. For other deployments, update the `proxy_pass` target:
 
 ```nginx
 server {
@@ -181,8 +181,8 @@ server {
     index index.html;
 
     # Proxy API calls to the Helical Insight backend (Tomcat)
-    location /hi-ce/ {
-        proxy_pass http://backend:8080/hi-ce/;
+    location /hi-ee/ {
+        proxy_pass http://backend:8080/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -205,7 +205,7 @@ server {
 If the backend runs in a Docker container on the same network, use the service or container name:
 
 ```nginx
-proxy_pass http://hi-backend:8080/hi-ce/;
+proxy_pass http://hi-backend:8080/hi-ee/;
 ```
 
 If Tomcat runs on the host machine and the frontend container uses Docker's default bridge network:
@@ -236,7 +236,7 @@ Open [http://localhost:3000](http://localhost:3000).
 A typical containerized production setup:
 
 ```
-┌─────────────────┐     /hi-ce/*      ┌──────────────────────┐
+┌─────────────────┐     /hi-ee/*      ┌──────────────────────┐
 │  Nginx (client  │ ────────────────► │  Tomcat (server      │
 │  Docker image)  │                   │  Docker image)       │
 │  port 80/443    │                   │  port 8080           │
@@ -244,8 +244,8 @@ A typical containerized production setup:
 ```
 
 1. Build and run the backend image ([server README](../server/README.md#docker)).
-2. Build and run the frontend image with `nginx.conf` pointing at `http://hi-backend:8080/hi-ce/`.
-3. Users access the app through the frontend URL; API traffic is proxied to `/hi-ce/`.
+2. Build and run the frontend image with `nginx.conf` pointing at `http://hi-backend:8080/hi-ee/`.
+3. Users access the app through the frontend URL; API traffic is proxied to `/hi-ee/`.
 
 ## Testing
 
@@ -266,7 +266,7 @@ Test results are also written to `jest-stare/` when using the default Jest repor
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| `ECONNREFUSED` on API calls | Backend not running or wrong proxy target | Verify backend at `http://localhost:8080/hi-ce` and update `proxy` in `package.json` |
+| `ECONNREFUSED` on API calls | Backend not running or wrong proxy target | Verify backend at `http://localhost:8080/hi-ee` and update `proxy` in `package.json` |
 | `error:0308010C:digital envelope routines::unsupported` | Node 17+ OpenSSL change | Use `npm run start18` |
 | `npm ci` peer dependency errors | Strict peer resolution | Use `npm ci --legacy-peer-deps` |
 | Out of memory during build | Large bundle | Build already sets `--max_old_space_size=5096`; increase if needed |

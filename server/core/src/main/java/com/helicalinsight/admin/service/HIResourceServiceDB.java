@@ -264,7 +264,7 @@ public interface HIResourceServiceDB {
     List<HIResource> getHIResourcesByIds(List<Integer> resourceIds, Boolean applyFilter);
     
     Map<Integer, List<HIResource>> findAllReportsByMetadataResourceIds(List<Integer> metadataResourceIds);
-    Map<Integer, List<HIResource>> findAllInstantReportsByAgentResourceIds(List<Integer> agentResourceIds);
+    Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds);
     void restoreResourcesByIds(List<Integer> resourceIds);
 
 }

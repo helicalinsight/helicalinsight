@@ -17,11 +17,11 @@ import { hiMockAxios } from "../../../../app/mock-axios";
 const crypto = require("crypto");
 
 const agentRecord = {
-  path: "agents/MyAgent.agent",
-  extension: "agent",
+  path: "agents/MyAgent.model",
+  extension: "model",
   permissionLevel: "5",
-  name: "MyAgent.agent",
-  description: "MyAgent.agent",
+  name: "MyAgent.model",
+  description: "MyAgent.model",
   type: "file",
   title: "MyAgent",
 };
@@ -68,7 +68,7 @@ describe("Agent Interact context menu", () => {
     expect(agentInteractContextMenuOption).toMatchObject({
       id: "intr",
       name: "Interact",
-      extensions: ["agent"],
+      extensions: ["model"],
     });
     expect(AGENT_INTERACT_ACTION).toBe("interact");
     expect(allContextMenuOptions.some((option) => option.id === "intr")).toBe(
@@ -93,7 +93,7 @@ describe("Agent Interact context menu", () => {
       dir: agentRecord.path,
       file: agentRecord.name,
       title: agentRecord.title,
-      extension: "agent",
+      extension: "model",
       action: AGENT_INTERACT_ACTION,
     });
     expect(state.fileBrowser.showFileBrowser).toBe(false);

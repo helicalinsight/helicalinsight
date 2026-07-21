@@ -1,0 +1,16 @@
+{
+  "dims_min": 2,
+  "dims_max": 2,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "A two-dimensional matrix should encode value by color.",
+  "aliases": [
+    "heat map",
+    "heat-map",
+    "matrix heatmap"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Heatmap matrix. Config: xField, yField cats; colorField=measure; meta type cat.\nPolish: color MUST be a hex array (e.g. [\"#B8E1FF\", \"#5B8FF9\", \"#00318A\"]); never color: { type: \"sequential\" }. Legend bottom; element-active; readable axis ticks; tooltip with value. Apply Excel format strings to measure tooltip/legend when provided.",
+  "code": "\nfunction DrawHeatmap() {\n  const { Heatmap } = components;\n  const config = {\n    data,\n    xField: \"x_field\",\n    yField: \"y_field\",\n    colorField: \"measure_column\",\n    color: [\"#B8E1FF\", \"#9AC5FF\", \"#7DAAFF\", \"#5B8FF9\", \"#3D76DD\", \"#085EC0\", \"#0047A5\", \"#00318A\", \"#001D70\"],\n    meta: {\n      x_field: { type: \"cat\" },\n      y_field: { type: \"cat\" }\n    },\n    legend: {\n      position: \"bottom\"\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Heatmap {...config} /></div>;\n}\n"
+}

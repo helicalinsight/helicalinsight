@@ -1,9 +1,9 @@
+import * as Icons from "@ant-design/icons";
 import * as MapCharts from "@ant-design/maps";
 import * as Plots from "@ant-design/plots";
 import muze from "@chartshq/muze";
 import Muze, { Canvas, Layer } from "@chartshq/react-muze/components";
 import * as MuzeConfig from "@chartshq/react-muze/configurations";
-import * as PivotCharts from "@syncfusion/ej2-react-pivotview";
 import * as AntdComponents from "antd";
 import React, { useContext, useLayoutEffect } from "react";
 import { LiveContext, LivePreview, LiveProvider } from "react-live";
@@ -29,6 +29,7 @@ const MuzeCharts = {
   ...MuzeConfig,
   muze,
 };
+const MuzeTooltip = MuzeConfig.Tooltip;
 
 const REACT_FORWARD_REF = Symbol.for("react.forward_ref");
 const REACT_MEMO = Symbol.for("react.memo");
@@ -96,10 +97,11 @@ const IBCustomChart = (props) => {
     components: {
       ...mapComponents,
       ...plotComponents,
-      ...AntdComponents,
-      ...PivotCharts,
       ...MuzeCharts,
+      ...AntdComponents,
+      ...Icons,
       GridTable,
+      MuzeTooltip,
     },
     data,
     report: { ...props, dispatch, autoFit },

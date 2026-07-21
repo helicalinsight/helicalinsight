@@ -5,13 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d865ea7c-88bc-4b7f-b5e4-010f49231ef3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../../client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../client/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bl/data_insight.py" beforeDir="false" afterPath="$PROJECT_DIR$/bl/data_insight.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/api/DataProfiler.py" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/api/DataProfiler.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/api/QueryExecutor.py" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/api/QueryExecutor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../server/hi-repository/System/Admin/setting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../server/hi-repository/System/Admin/setting.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -47,25 +41,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;Flask server.Flask (app.py).executor&quot;: &quot;Run&quot;,
-    &quot;Flask server.helicalbi.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Metadata.executor&quot;: &quot;Run&quot;,
-    &quot;Python.testpy.executor&quot;: &quot;Debug&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;ch-8739-aiagent-build-be-changes&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/hi7/ib/helicalbi&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "Flask server.Flask (app.py).executor": "Run",
+    "Flask server.helicalbi.executor": "Run",
+    "Python.Metadata.executor": "Run",
+    "Python.testpy.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "ch-8739-aiagent-build-be-changes",
+    "last_opened_file_path": "D:/hi7/ib/helicalbi",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Python.testpy">
     <configuration name="Metadata" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="helicalbi" />
@@ -210,7 +204,7 @@
     <option name="ADD_EXTERNAL_FILES_SILENTLY" value="true" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/helicalbi$testpy.coverage" NAME="testpy Coverage Results" MODIFIED="1783013729820" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/helicalbi$testpy.coverage" NAME="testpy Coverage Results" MODIFIED="1783576542739" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/helicalbi$Metadata.coverage" NAME="Metadata Coverage Results" MODIFIED="1778591587654" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/helicalbi/api" />
     <SUITE FILE_PATH="coverage/helicalbi$helicalbi.coverage" NAME="helicalbi Coverage Results" MODIFIED="1782979266670" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
     <SUITE FILE_PATH="coverage/helicalbi$Flask__app_py_.coverage" NAME="Flask (app.py) Coverage Results" MODIFIED="1778504307441" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />

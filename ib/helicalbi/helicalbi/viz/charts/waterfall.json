@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Sequential positive/negative contributions to a total.",
+  "aliases": [
+    "waterfall chart",
+    "bridge chart",
+    "waterfall plot"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "Waterfall. Config: xField=ordered stages, yField=delta; total.label; linkStyle dashed.\nPolish: autoFit; rising/falling colors if available; axis titles; label middle for values; clear Total; element-active.",
+  "code": "\nfunction DrawWaterfall() {\n  const { Waterfall } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    linkStyle: {\n      lineDash: [4, 2],\n      stroke: \"#ccc\"\n    },\n    total: {\n      label: \"Total\"\n    },\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    }\n  };\n  return <div><Waterfall {...config} /></div>;\n}\n"
+}

@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Cyclical/radial category comparison is meaningful.",
+  "aliases": [
+    "rose",
+    "rose chart",
+    "polar bar",
+    "coxcomb"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Rose. Config: xField=category, yField=measure; seriesField optional; radius~0.9; label offset -15.\nPolish: element-active; legend if series; limit categories; soft palette; autoFit.",
+  "code": "\nfunction DrawRoseChart() {\n  const { Rose } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    seriesField: \"series_column\",\n    radius: 0.9,\n    label: { offset: -15 },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Rose {...config} /></div>;\n}\n"
+}

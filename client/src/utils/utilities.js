@@ -1,6 +1,6 @@
 import moment from "moment";
 import { fromJS } from "immutable";
-import _ from "lodash";
+import _, { isEmpty } from "lodash";
 import types from "../constants/metadata";
 import produce from "immer";
 import { generateReport } from "../components/hi-reports/utils/base";
@@ -855,3 +855,7 @@ export const checkForAnchorRelativeParameters = (parameters) => {
 
   return result;
 };
+
+export const isOpenSource = (metaInfo = {}) => {
+  return metaInfo?.licenseType === "Community"
+}
