@@ -10,6 +10,9 @@ import { updateManagementData } from "../../../../../redux/actions/admin.actions
 
 const { Option } = Select;
 
+const HostIP = "127.0.0.1"; // your host ip address
+
+
 const Settings = () => {
   const managementData = useSelector((store) => store.admin.managementData);
   const dataWarehouseInputValue =
@@ -49,7 +52,7 @@ const Settings = () => {
     const { dataWarehousePath, storageImplementation } = values;
 
     const urlConfig = {
-      host: "192.168.2.57",
+      host: HostIP,
       port: "8047",
       dbPort: "31010",
       extraParam: [],
@@ -74,7 +77,7 @@ const Settings = () => {
       sftp: {
         description:
           " Use SFTP When the drill/middleware is installed in separate server and Helical Insight is installed in different Server. The files will be uploaded to the server where drill is running. Incase drill/middleware is installed in the Windows machine, please use linux sytle path in Datawarehouse path. Example /C:/Users/Helical/your/path/to/datawarehouse",
-        host: "192.168.2.57",
+        host: HostIP,
         password: "helical",
         port: "22",
         username: "helical",

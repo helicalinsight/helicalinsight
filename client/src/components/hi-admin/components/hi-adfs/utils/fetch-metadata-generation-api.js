@@ -4,12 +4,14 @@ import { updateIsFetched, storeMetadataGenerationData } from '../../../../../red
 import '../index.scss';
 import notify from '../../../../hi-notifications/notify';
 
+const BaseUrlIP = "127.0.0.1:8085"; // your ip address and port number
+
 const fetchMetadataGeneration = (refresh = false, isFetched, dispatch) => {
 	(!isFetched || refresh) &&
 		requests.admin(dispatch).postAdminRequest(
 			{
 				contentId: 'Static/samlData',
-				hiBaseURL: 'http://192.168.2.58:8085/hi-ee/'
+				hiBaseURL: `http://${BaseUrlIP}/hi-ee/`
 			},
 			uriConfig.contentStaticgetContents,
 			(res) => {

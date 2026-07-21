@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Compact trend emphasizing magnitude without full axes.",
+  "aliases": [
+    "sparkline area",
+    "mini area",
+    "tiny area chart"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "TinyArea sparkline. Config: xField, yField; smooth; autoFit.\nPolish: soft fill; no axes/legend; compact; trend emphasis.",
+  "code": "\nfunction DrawTinyArea() {\n  const { TinyArea } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    smooth: true,\n    autoFit: true\n  };\n  return <div><TinyArea {...config} /></div>;\n}\n"
+}

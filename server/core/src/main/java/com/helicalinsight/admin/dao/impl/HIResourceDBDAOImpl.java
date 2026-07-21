@@ -1048,9 +1048,9 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			String resourceType = "";
 			for (Integer resId : resourceIdToDelete) {
 				
-				Query delQuery = currentSession.createQuery("from HIResource where resourceId=:id");
+				SelectionQuery<HIResource> delQuery = currentSession.createSelectionQuery("from HIResource where resourceId=:id", HIResource.class);
 				delQuery.setParameter("id", resId);
-				HIResource delResource = (HIResource) ((org.hibernate.query.Query) delQuery).getSingleResult();
+				HIResource delResource =  delQuery.getSingleResultOrNull();
 				
 				MutationQuery deleteShare = currentSession.createMutationQuery("delete HIResourceSecurityDB rs where rs.hiResource.id=:id");
 				deleteShare.setParameter("id", resId);
@@ -2133,36 +2133,43 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 	@SuppressWarnings("unchecked")
 	public List<Integer> findHReportIdsByMetadataResourceId(List<Integer> metadataList) {
-
-		List<Integer> ids = new ArrayList<>();
 		try {
-			String sql = "SELECT hr.RESOURCE_ID FROM HI_RESOURCE_HREPORT as hr where  METADATA_RESOURCE_ID IN (:metadataList)";
+			String sql = """
+						select distinct r.id
+						from HIResource r
+						join r.hiResourceHReport hr
+						where hr.hiResourceMetadata in (:metadataList)
+					""";
+					
 			Session currentSession = this.getSession();
-			Query query = (Query) currentSession.createNativeQuery(sql);
+			SelectionQuery query =  currentSession.createSelectionQuery(sql, Integer.class);
 			query.setParameter("metadataList", metadataList);
-			ids = query.getResultList();
+			List<Integer> ids = query.getResultList();
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error("Error occurred while fetching hreport ids by metadata resourceId");
 		}
-		return ids;
+		return Collections.emptyList();
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Integer> findMetadataResourcesByGlobalConnectionId(int globalId) {
-		List<Integer> result = new ArrayList<Integer>();
 		try {
 			Session currentSession = this.getSession();
-			String sql = "select mdc.METADATA_ID  FROM HI_METADATA_CONNECTIONS as mdc\r\n"
-					+ "INNER JOIN HI_METADATA_CONNECTION_GLOBAL as mdg\r\n"
-					+ "on mdg.CONNECTION_ID = mdc.CONNECTION_ID\r\n" + "INNER JOIN DS_GLOBAL_CONNECTIONS as  dgc\r\n"
-					+ "on mdg.GLOBAL_CONNECTION_ID = dgc.GLOBAL_ID where  dgc.GLOBAL_ID =" + globalId;
-			Query query = currentSession.createNativeQuery(sql);
-			result = query.getResultList();
+			String hql = """	
+							select mdc.hiResourceMetadata.id  
+							FROM HIMetadataConnectionGlobal mcg
+							join mcg.hiMetadataConnections mdc
+							where mcg.globalConnections.globalId = :globalId
+						""";
+			SelectionQuery<Integer> query = currentSession.createSelectionQuery(hql,Integer.class);
+			query.setParameter("globalId", globalId);
+			List<Integer> result = query.getResultList();
+			logger.info("Metadata Data IDS :: {} matching Global Connection ID :: {}", result, globalId);
+			return result;
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("Error occurred while fetching metadata ids by global connection ids, Root cause : ", e);
 		}
-		logger.info("Metadata Data IDS :: {} matching Global Connection ID :: {}", result, globalId);
-		return result;
+		return Collections.emptyList();
 	}
 
 	@SuppressWarnings("unchecked")
@@ -2835,8 +2842,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					+ " from HIResource r inner join r.hiResourceHReport h"
 					+ " where h.hiResourceMetadata in (:resourceIds)";
 
-			String hqlAgent = "select " + RESOURCE_PROJECTION + ", h.hiResourceMetadata"
-					+ " from HIResource r inner join r.aiAgent h"
+			String hqlModel = "select " + RESOURCE_PROJECTION + ", h.hiResourceMetadata"
+					+ " from HIResource r inner join r.aiModel h"
 					+ " where h.hiResourceMetadata in (:resourceIds)";
 
 			SelectionQuery<Object[]> query = getSession().createSelectionQuery(hql, Object[].class);
@@ -2847,9 +2854,9 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				reportsByMetadataId.computeIfAbsent(metadataId, id -> new ArrayList<>()).add(report);
 			}
 
-			SelectionQuery<Object[]> queryAgent = getSession().createSelectionQuery(hqlAgent, Object[].class);
-			queryAgent.setParameterList("resourceIds", metadataResourceIds);
-			for (Object[] row : queryAgent.getResultList()) {
+			SelectionQuery<Object[]> queryModel = getSession().createSelectionQuery(hqlModel, Object[].class);
+			queryModel.setParameterList("resourceIds", metadataResourceIds);
+			for (Object[] row : queryModel.getResultList()) {
 				HIResource report = (HIResource) row[0];
 				Integer metadataId = (Integer) row[1];
 				reportsByMetadataId.computeIfAbsent(metadataId, id -> new ArrayList<>()).add(report);
@@ -2864,30 +2871,30 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	}
 
 	@Override
-	public Map<Integer, List<HIResource>> findAllInstantReportsByAgentResourceIds(List<Integer> agentResourceIds) {
-		Map<Integer, List<HIResource>> instantReportsByAgentId = new HashMap<>();
-		if (agentResourceIds == null || agentResourceIds.isEmpty()) {
-			return instantReportsByAgentId;
+	public Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds) {
+		Map<Integer, List<HIResource>> instantReportsByModelId = new HashMap<>();
+		if (modelResourceIds == null || modelResourceIds.isEmpty()) {
+			return instantReportsByModelId;
 		}
 		try {
-			String hql = "select " + RESOURCE_PROJECTION + ", ir.hiResourceAgent"
+			String hql = "select " + RESOURCE_PROJECTION + ", ir.hiResourceModel"
 					+ " from HIResource r inner join r.hiResourceInstantReport ir"
-					+ " where ir.hiResourceAgent in (:resourceIds)";
+					+ " where ir.hiResourceModel in (:resourceIds)";
 
 			SelectionQuery<Object[]> query = getSession().createSelectionQuery(hql, Object[].class);
-			query.setParameterList("resourceIds", agentResourceIds);
+			query.setParameterList("resourceIds", modelResourceIds);
 			for (Object[] row : query.getResultList()) {
 				HIResource instantReport = (HIResource) row[0];
-				Integer agentId = (Integer) row[1];
-				instantReportsByAgentId.computeIfAbsent(agentId, id -> new ArrayList<>()).add(instantReport);
+				Integer modelId = (Integer) row[1];
+				instantReportsByModelId.computeIfAbsent(modelId, id -> new ArrayList<>()).add(instantReport);
 			}
 		} catch (Exception e) {
 			if (logger.isErrorEnabled() || logger.isDebugEnabled()) {
 				e.printStackTrace();
 			}
-			logger.error("Error fetching instant reports by agent resource ids, root cause {}", e.getMessage());
+			logger.error("Error fetching instant reports by model resource ids, root cause {}", e.getMessage());
 		}
-		return instantReportsByAgentId;
+		return instantReportsByModelId;
 	}
 
 	@Override

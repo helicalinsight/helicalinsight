@@ -39,8 +39,8 @@ public class AiInteractiveChatServiceImpl implements IAiInteractiveChatService {
                 if (StringUtils.isNotBlank(subject)) {
                     String decodedSubject = InstantBIUtils.getEncodedElseNormal(subject);
                     JsonObject subjectJson = GsonUtility.parseString(decodedSubject, JsonObject.class);
-                    JsonObject agentJson = subjectJson.get("agent").getAsJsonObject();
-                    userInput.add("agent", agentJson);
+                    JsonObject modelJson = subjectJson.get("model").getAsJsonObject();
+                    userInput.add("model", modelJson);
                     userInput.addProperty("reportId", InstantBIUtils.extractJsessionId(request));
                 }
                 JsonObject settingsJson = JsonUtils.newGetSettingsJson();

@@ -19,12 +19,12 @@ public class AiRecommendDomainServiceImpl implements IAiRecommendDomainService {
     }
 
     @Override
-    public void execute(String agent, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(String model, HttpServletRequest request, HttpServletResponse response) throws IOException {
         boolean isAjax = ControllerUtils.isAjax(request);
-        agent = InstantBIUtils.getEncodedElseNormal(agent);
-        JsonObject agentPathJson = GsonUtility.parseString(agent, JsonObject.class);
+        model = InstantBIUtils.getEncodedElseNormal(model);
+        JsonObject modelPathJson = GsonUtility.parseString(model, JsonObject.class);
         JsonObject js = new JsonObject();
-        js.add("agent", agentPathJson);
+        js.add("model", modelPathJson);
         InstantBIUtils.addSessionContext(request, js);
         String domain = InstantBIServiceFactory.getHttpService().callHttp("/suggestDomain", js);
         JsonObject responseObj = new JsonObject();

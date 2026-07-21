@@ -26,19 +26,19 @@ public class AiRecommendAnalystServiceImpl implements IAiRecommendAnalystService
     }
 
     @Override
-    public void execute(String agent, String domain, HttpServletRequest request, HttpServletResponse response)
+    public void execute(String model, String domain, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         boolean isAjax = ControllerUtils.isAjax(request);
-        agent = InstantBIUtils.getEncodedElseNormal(agent);
+        model = InstantBIUtils.getEncodedElseNormal(model);
         domain = InstantBIUtils.getEncodedElseNormal(domain);
-        JsonObject agentJson = GsonUtility.parseString(agent, JsonObject.class);
+        JsonObject modelJson = GsonUtility.parseString(model, JsonObject.class);
 
         JsonObject js = new JsonObject();
         String topN = request.getParameter("topN");
         if (topN == null || topN.isEmpty()) {
             topN = "10";
         }
-        js.add("agent", agentJson);
+        js.add("model", modelJson);
         js.addProperty("domain", domain);
         js.addProperty("topN", Integer.valueOf(topN));
 

@@ -49,6 +49,7 @@ import { ImageNode, LineNode, PageBreakNode, TextNode } from "./nodes";
 import PageBreakProperties from "./pageBreakProperties";
 import HCRShapeSearch from "./shapeSearch";
 import TextProperties from "./textProperties";
+import HCRCrosstabEditMode from "./advanceComponents/crosstab/hcrCrosstabEditMode";
 setLang("en_US");
 
 const {
@@ -1307,7 +1308,7 @@ const HCRFlowchart = ({
           },
           controlMapService,
           formSchemaService,
-          className:"hcr-flowchart-details-panel"
+          className: "hcr-flowchart-details-panel"
         }}
         onReady={(graph) => {
           flowchartInstance.current = graph;
@@ -1345,7 +1346,12 @@ const HCRFlowchart = ({
     if (active === hcrCanvasViews.CANVAS) return null;
     const tab = tabs.find((tab) => tab.id === active);
     const node = hcrDiagramNodesData.find((node) => node.id === tab.id);
-    return <HCRAdvancedTableEdit data={node} lastSelectedNodeRef={lastSelectedNodeRef} />
+    const { category = "" } = node || {};
+    if (!category) return null;
+    return {
+      "advancedTable": <HCRAdvancedTableEdit data={node} lastSelectedNodeRef={lastSelectedNodeRef} />,
+      "crosstab": <HCRCrosstabEditMode data={node} lastSelectedNodeRef={lastSelectedNodeRef} />
+    }[category]
   }
 
   const flowchartWrapperStyles = { display: "block" }

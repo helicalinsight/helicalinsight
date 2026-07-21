@@ -535,14 +535,26 @@ export const getStylesOutline = (tableStyles, tableData) => {
     })
 }
 
-const getHcrTableOutlineData = (tableNode = {}, subDataSetOptions, selectedSubDataSet = {}, name, tableStyles = []) => {
-    const { id: tableId } = tableNode;
-    const tableData = getTableOutlinedata(tableNode);
+const getHcrTableOutlineData = (selectedNode = {}, subDataSetOptions, selectedSubDataSet = {}, name, tableStyles = []) => {
+    const { id: selectedNodeId, category } = selectedNode;
+    const isTable = category === "advancedTable",
+        isCrosstab = category === "crosstab";
+
+    const title = isTable ? "Table" : isCrosstab ? "Crosstab" : "";
+    const selectedKey = isTable ? "table" : isCrosstab ? "crosstab" : "";
+    let selectedNodeData = []
+    if (isTable) {
+        selectedNodeData = getTableOutlinedata(selectedNode);
+    }
+    if (isCrosstab) {
+        selectedNodeData = []
+    }
+
     return [
         {
             title: "Styles",
             key: "styles",
-            children: getStylesOutline(tableStyles, tableNode),
+            children: getStylesOutline(tableStyles, selectedNode),
             selectable: false,
             dsContextMenu: true,
             menuType: "table-styles",
@@ -551,16 +563,16 @@ const getHcrTableOutlineData = (tableNode = {}, subDataSetOptions, selectedSubDa
         {
             title: `Dataset ${name ? "(" + name + ")" : ""}`,
             key: "dataset",
-            children: getDatasetOutlineData(subDataSetOptions, tableNode, selectedSubDataSet),
+            children: getDatasetOutlineData(subDataSetOptions, selectedNode, selectedSubDataSet),
             selectable: false,
             selectKey: "sub-dataset"
         },
         {
-            title: "Table",
-            key: tableId,
-            children: tableData,
+            title: title,
+            key: selectedNodeId,
+            children: selectedNodeData,
             selectable: true,
-            selectKey: "table"
+            selectKey: selectedKey
         }
     ]
 }

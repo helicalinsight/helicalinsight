@@ -1,0 +1,16 @@
+{
+  "dims_min": 0,
+  "dims_max": 1,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Correlation also needs size and optional category color.",
+  "aliases": [
+    "bubble",
+    "bubble chart",
+    "bubble plot"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Bubble Scatter. Config: xField, yField measures; sizeField; colorField dim; size:[4,30]; shape circle.\nPolish: autoFit; legend for color; opacity if dense; interactions element-active; axis titles.",
+  "code": "\nfunction DrawBubbleChart() {\n  const { Scatter } = components;\n  const config = {\n    data,\n    xField: \"x_measure_column\",\n    yField: \"y_measure_column\",\n    sizeField: \"size_measure_column\",\n    colorField: \"dimension_column\",\n    size: [4, 30],\n    shape: \"circle\",\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Scatter {...config} /></div>;\n}\n"
+}

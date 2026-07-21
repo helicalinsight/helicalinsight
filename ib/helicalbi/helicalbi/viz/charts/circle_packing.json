@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 2,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Hierarchical magnitude using nested circles.",
+  "aliases": [
+    "circle packing",
+    "packed circles",
+    "circle pack"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "CirclePacking. Config: root children[{name,value}]; colorField name; label field name.\nPolish: element-active; value=measure; clear names; soft colors; no overlapping text clutter.",
+  "code": "\nfunction DrawCirclePacking() {\n  const { CirclePacking } = components;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const chartData = {\n    name: \"root\",\n    children: data.map((item) => ({\n      name: String(item[dimensionField]),\n      value: Number(item[measureField]) || 0\n    }))\n  };\n  const config = {\n    data: chartData,\n    colorField: \"name\",\n    label: { field: \"name\" },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><CirclePacking {...config} /></div>;\n}\n"
+}

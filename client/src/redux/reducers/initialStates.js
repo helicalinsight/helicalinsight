@@ -292,6 +292,7 @@ const cubeInitialState = {
     cubeTopic: "",
     cubeName: "",
     children: [],
+    businessViewEntries: [],
     // key: '',
     hierarchyData: { isHierarchyPresent: false, hierarchyList: [] },
   },
@@ -310,6 +311,7 @@ const agentInitialState = {
   metadataTablesData: {},
   agentMode: "create",
   agentDataAfterSave: {},
+  semanticTypes: [],
 };
 
 const getInitialIBChatState = () => {

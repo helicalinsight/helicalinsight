@@ -97,13 +97,13 @@ public class DataSourceExportImportConfigTest {
 	static {
 		String os = System.getProperty("os.name");
 		if (os.toLowerCase().contains("linux")) {
-			dbName = String.join(File.separator, "/home", "helical", "Performance", "HITest", "hiee");
-			jdbcUrl = "jdbc:derby:" + String.join("/", "/home", "helical", "Performance", "HITest", "hiee");
+			dbName = String.join(File.separator, "/home", "helical", "Performance", "hi","db","SampleTravelData");
+			jdbcUrl = "jdbc:derby:" + String.join("/", "/home", "helical", "Performance", "hi","db","SampleTravelData");
 			TESTURL = String.join(File.separator, "/home", "helical", "Performance", "HITest");
 
 		} else if (os.toLowerCase().contains("windows")) {
-			dbName = String.join("\\\\", "C:", "home", "helical", "Performance", "HITest", "hiee");
-			jdbcUrl = "jdbc:derby:" + String.join("/", "C:", "home", "helical", "Performance", "HITest", "hiee");
+			dbName = String.join("\\\\", "C:", "home", "helical", "Performance", "hi","db","SampleTravelData");
+			jdbcUrl = "jdbc:derby:" + String.join("/", "C:", "home", "helical", "Performance", "hi","db","SampleTravelData");
 			TESTURL = String.join(File.separator, "C:", "home", "helical", "Performance", "HITest");
 
 		}

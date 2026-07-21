@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Default part-to-whole/share comparison with few slices.",
+  "aliases": [
+    "pie",
+    "pie chart",
+    "share chart",
+    "part to whole"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Pie (default part-to-whole). Config: Pie; angleField=measure, colorField=category; radius~0.8.\nPolish: label type outer content '{name}: {percentage}'; legend right if >5 slices; appendPadding 10; interactions element-active; <=8 slices preferred (group rest).",
+  "code": "\nfunction DrawArc() {\n  const { Pie } = components;\n  const config = {\n    appendPadding: 10,\n    data,\n    angleField: \"measure_column\",\n    colorField: \"dimension_column\",\n    radius: 0.8,\n    label: {\n      type: \"outer\",\n      content: \"{name}: {percentage}\"\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Pie {...config} /></div>;\n}\n"
+}

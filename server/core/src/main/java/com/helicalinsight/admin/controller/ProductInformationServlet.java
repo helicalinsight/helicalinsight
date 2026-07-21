@@ -55,6 +55,10 @@ public class ProductInformationServlet extends HttpServlet {
 					details.put("Expiration", DateUtils.convertDateToString(licenseMetadata.lastDate(), "dd/MM/yyyy"));
 				}
 			}
+			else {
+				details.put("License Type", productInfo.getSourceCodeType());
+				details.put("Expiration","NA");
+			}
 		}
 
         jsonObject.putAll(details);

@@ -43,12 +43,10 @@ public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
             }
 
             JsonObject payload = GsonUtility.parseString(body, JsonObject.class);
-            String payloadUsername = GsonUtility.optString(payload, "username");
-            String authenticatedUsername = AuthenticationUtils.getUserName();
+            int payloadUserId = GsonUtility.optIntValue(payload, "userId", 0);
+            int authenticatedUserId = Integer.parseInt(AuthenticationUtils.getUserId());
 
-            if (StringUtils.isBlank(payloadUsername)
-                    || StringUtils.isBlank(authenticatedUsername)
-                    || !payloadUsername.equals(authenticatedUsername)) {
+            if (payloadUserId <= 0 || payloadUserId != authenticatedUserId) {
                 mainObject.addProperty("status", 0);
                 mainObject.addProperty("message", "Authenticated user does not match audit payload.");
                 InstantBIUtils.sendResponse(response, ControllerUtils.isAjax(request), mainObject);
@@ -79,7 +77,8 @@ public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
 
     private static HILlmUsageAudit buildAuditRecord(JsonObject payload, JsonObject tokenUsage, int totalTokens) {
         HILlmUsageAudit audit = new HILlmUsageAudit();
-        audit.setUsername(GsonUtility.optString(payload, "username"));
+        audit.setUserId(GsonUtility.optIntValue(payload, "userId", 0));
+        audit.setOrganizationId(AuthenticationUtils.getLoggedInUserOrganizationId());
         audit.setEndpoint(GsonUtility.optString(payload, "endpoint"));
         audit.setUserQuery(GsonUtility.optString(payload, "userQuery"));
         audit.setInputTokens(GsonUtility.optIntValue(tokenUsage, "input_tokens", 0));

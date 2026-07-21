@@ -37,6 +37,7 @@ public class ApplicationInformation {
      * format
      */
     private final String build;
+    private final String sourceCodeType;
 
     /**
      * Singleton class. So a private constructor. Reads the properties file
@@ -50,6 +51,7 @@ public class ApplicationInformation {
         Map<String, String> messagesMap = propertyFileReader.read("message.properties");
         this.version = messagesMap.get("version");
         this.build = messagesMap.get("build");
+        this.sourceCodeType = messagesMap.get("SOURCE_CODE_TYPE");
     }
 
     /**
@@ -103,5 +105,9 @@ public class ApplicationInformation {
      */
     public String getBuild() {
         return build;
+    }
+    
+    public String getSourceCodeType() {
+    	return sourceCodeType;
     }
 }

@@ -11,6 +11,7 @@ import com.helicalinsight.adhoc.metadata.jaxb.Metadata;
 import com.helicalinsight.adhoc.security.SqlUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.utility.DialectHelper;
+import com.helicalinsight.efw.utility.PropertiesFileReader;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Pattern;
 
 /**
  * Replaces metadata view references in the FROM clause of a raw SQL query with view SQL
@@ -42,7 +44,22 @@ public final class DerivedTableViewReplacer {
 
     private static final DerivedTableFetchHandler VIEW_FETCH_HANDLER = new DerivedTableFetchHandler();
 
+    private static final String IDENTIFIER_QUOTE_REGEX_KEY = "sql.query.identifier.quote.regex";
+    private static final String DEFAULT_IDENTIFIER_QUOTE_REGEX = "[\"`\\[\\]]";
+
+    private static final Pattern IDENTIFIER_QUOTE_PATTERN = Pattern.compile(resolveIdentifierRegexPart(
+            IDENTIFIER_QUOTE_REGEX_KEY, DEFAULT_IDENTIFIER_QUOTE_REGEX));
+
     private DerivedTableViewReplacer() {
+    }
+
+    private static String resolveIdentifierRegexPart(String propertyKey, String defaultValue) {
+        Map<String, String> properties = new PropertiesFileReader().read("Admin", "defaults.properties");
+        if (properties == null) {
+            return defaultValue;
+        }
+        String configuredValue = properties.get(propertyKey);
+        return StringUtils.isNotBlank(configuredValue) ? configuredValue : defaultValue;
     }
 
     /**
@@ -187,10 +204,10 @@ public final class DerivedTableViewReplacer {
     }
 
     private static void collectReferencedViewName(FromItem fromItem, Map<String, MetadataView> viewLookup,
-                                                  List<String> referencedViews) {
+                                                    List<String> referencedViews) {
         if (fromItem instanceof Table) {
             Table table = (Table) fromItem;
-            String tableName = SqlUtils.modifiedString(table.getName());
+            String tableName = stripIdentifierQuotes(SqlUtils.modifiedString(table.getName()));
             if (viewLookup.containsKey(normalizeIdentifier(tableName))
                     || viewLookup.containsKey(normalizeIdentifier(simpleTableName(tableName)))) {
                 referencedViews.add(tableName);
@@ -320,7 +337,7 @@ public final class DerivedTableViewReplacer {
     }
 
     private static String findResolvedQuery(Table table, Map<String, String> resolvedViewQueries) {
-        String tableName = normalizeIdentifier(SqlUtils.modifiedString(table.getName()));
+        String tableName = normalizeIdentifier(table.getName());
         String resolvedQuery = resolvedViewQueries.get(tableName);
         if (resolvedQuery != null) {
             return resolvedQuery;
@@ -353,7 +370,20 @@ public final class DerivedTableViewReplacer {
     }
 
     private static String normalizeIdentifier(String identifier) {
-        return SqlUtils.modifiedString(StringUtils.strip(identifier, "\"")).toLowerCase(Locale.ROOT);
+        return stripIdentifierQuotes(identifier).toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Strips optional SQL identifier quotes (double quotes, back-ticks, square brackets) using the regex
+     * configured via {@code sql.query.identifier.quote.regex}, matching the quote handling used by
+     * {@link com.helicalinsight.adhoc.security.SqlQueryMetadataValidator}.
+     */
+    private static String stripIdentifierQuotes(String identifier) {
+        if (StringUtils.isBlank(identifier)) {
+            return identifier;
+        }
+        String unquoted = SqlUtils.modifiedString(identifier);
+        return IDENTIFIER_QUOTE_PATTERN.matcher(unquoted).replaceAll("");
     }
 
     private static String simpleTableName(String tableName) {

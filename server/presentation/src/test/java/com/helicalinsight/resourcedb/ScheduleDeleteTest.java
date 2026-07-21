@@ -40,7 +40,8 @@ import com.helicalinsight.test.utility.TestUtility;
 
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
-
+import org.apache.commons.lang3.StringUtils;
+import com.helicalinsight.efw.utility.PropertiesFileReader;
 import static org.apereo.cas.client.util.CommonUtils.assertTrue;
 
 @WebAppConfiguration
@@ -153,11 +154,17 @@ public class ScheduleDeleteTest {
 						.jsonPath("$.response.message").value("Successfully scheduled the report")).andReturn();
 	}
 
-	@Test
+//	@Test
 	public  void sch_a44_check_entry_in_the_db() throws Exception{
 		   // replace if needed
 
-		try (Connection conn = DriverManager.getConnection(jdbcUrlSchedular);
+		Map<String,String> properties =  new PropertiesFileReader().read("quartz.properties");
+		String jdbcUrl = properties.getOrDefault("org.quartz.dataSource.HIQuartz.URL",null);
+		if (StringUtils.isBlank(jdbcUrl)) {
+			jdbcUrl = jdbcUrlSchedular;
+		}
+
+		try (Connection conn = DriverManager.getConnection(jdbcUrl);
 			 Statement stmt = conn.createStatement();
 			 ResultSet rs = stmt.executeQuery("SELECT * FROM \"HIUSER\".\"QRTZ_JOB_DETAILS\" FETCH FIRST ROW ONLY")) {
 

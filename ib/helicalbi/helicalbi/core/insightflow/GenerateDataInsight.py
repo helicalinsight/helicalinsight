@@ -2,7 +2,7 @@ import json
 import logging
 
 from helicalbi.common.ChatManager import add_insight, get_last_insight
-from helicalbi.common.LlmInvokeHelper import invoke_llm, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_llm
 from helicalbi.common.configuration import llm
 from helicalbi.model.DataInsightState import DataInsightState
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
@@ -29,20 +29,21 @@ class GenerateDataInsight:
         selected_topics = memory.get("topics") or []
 
         if state.get("skip"):
-            insight, usage = invoke_llm(
+            insight, _ = invoke_llm(
                 llm,
                 error_prompt_formatted.format(
                     response_string=state.get("sql_error", ""),
                     user_query=user_question,
                     username=username,
                 ),
+                state=state,
             )
         else:
             sample_data = state.get("data") or []
             if len(sample_data) > _MAX_SAMPLE_ROWS:
                 sample_data = sample_data[:_MAX_SAMPLE_ROWS]
 
-            insight, usage = invoke_llm(
+            insight, _ = invoke_llm(
                 llm,
                 data_insight_prompt_formatted.format(
                     username=username,
@@ -54,9 +55,9 @@ class GenerateDataInsight:
                     sample_data=json.dumps(sample_data, default=str),
                     prev_responses=prev_responses,
                 ),
+                state=state,
             )
 
-        merge_token_usage(state, usage)
         state["insight"] = insight.content
 
         if thread_id:

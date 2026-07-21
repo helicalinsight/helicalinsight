@@ -96,7 +96,7 @@ export const openMetadataAPI = ({ formData, dispatch, displayNotification = true
                   // dateFunctions: dateFunctions || {},
                 )
               );
-              displayNotification && Notify.success({ type: "Frontend", message: "Agent connected successfully." });
+              displayNotification && Notify.success({ type: "Frontend", message: "Semantic model connected successfully." });
               recommendations && fetchRecommendationsAPI({ metadata, formData, dispatch, activeReportId, chatId });
       //     },
       //     errback: (e) => {
@@ -469,7 +469,7 @@ export const instantDataInsightAPI = ({
     dispatch,
     uri: uriConfig.instantDataInsight,
     input,
-    subject: subject || (agent ? { agent } : undefined),
+    subject: subject || (agent ? { model: agent } : undefined),
     chatId,
     chatSequenceId,
     requestId,
@@ -637,14 +637,14 @@ export const agentGenerateAPI = ({ dir, file, dispatch, successCB, errorCB }) =>
   });
 };
 
-export const agentSaveAPI = ({ dir, file, agentDir, agentName, uuid,content, dispatch, successCB, errorCB }) => {
+export const agentSaveAPI = ({ dir, file, agentDir, modelName, uuid,content, dispatch, successCB, errorCB }) => {
   const parsedState =
     typeof content === "string" ? JSON.parse(content) : content;
   const formData = {
     metadata: { location: dir, metadataFileName: file },
     location: agentDir,
     state: parsedState,
-    agentName: agentName,
+    modelName: modelName,
   };
   if (uuid) {
     formData.uuid = uuid;
@@ -701,7 +701,7 @@ export const fetchRecommendationsAPI = ({
   recommendationsRequestsByReportId.set(activeReportId, abortController);
 
   const formData = {
-    agent: {
+    model: {
       file: originalFormData.metadataFileName,
       dir: originalFormData.location,
     },

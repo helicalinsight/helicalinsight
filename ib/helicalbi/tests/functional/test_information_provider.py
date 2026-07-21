@@ -1,15 +1,15 @@
-"""Functional tests for ``helicalbi.service.agentservice.InformationProvider``."""
+"""Functional tests for ``helicalbi.service.modelservice.InformationProvider``."""
 import pytest
 
-from helicalbi.service.agentservice.InformationProvider import InformationProvider
+from helicalbi.service.modelservice.InformationProvider import InformationProvider
 
 
 pytestmark = pytest.mark.functional
 
 
 @pytest.fixture
-def provider(sample_agent_data):
-    return InformationProvider(agent_data=sample_agent_data)
+def provider(sample_model_data):
+    return InformationProvider(model_data=sample_model_data)
 
 
 class TestFormatDomainInfo:

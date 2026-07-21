@@ -1,0 +1,14 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "User explicitly uses the 'donut' spelling.",
+  "aliases": [
+    "donut chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Donut (alias). Config: Pie + innerRadius~0.6; angleField, colorField; statistic center total.\nPolish: same as doughnut-clean center, sparse labels, legend if many slices, element-active.",
+  "code": "\nfunction DrawDonut() {\n  const { Pie } = components;\n  const measureField = \"measure_column\";\n  const config = {\n    appendPadding: 10,\n    data,\n    angleField: measureField,\n    colorField: \"dimension_column\",\n    radius: 0.8,\n    innerRadius: 0.6,\n    statistic: {\n      title: {\n        style: { color: \"#000\", fontSize: 14 },\n        formatter: () => \"title_text\"\n      },\n      content: {\n        style: { fontSize: 14 },\n        content: String(\n          data.reduce((sum, row) => sum + (row[measureField] || 0), 0)\n        )\n      }\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Pie {...config} /></div>;\n}\n"
+}

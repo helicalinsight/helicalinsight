@@ -66,7 +66,7 @@ if (-not (Test-Path $EnvFile) -and (Test-Path $EnvExample)) {
 Write-Host ""
 Write-Host "Setup complete. Build and run:" -ForegroundColor Green
 Write-Host "  cd server; mvn clean package -DskipTests"
-Write-Host "  # Deploy presentation\target\hi-ce-7.0.0.war as %CATALINA_HOME%\webapps\hi-ee.war"
+Write-Host "  # Deploy presentation\target\hi-ee-7.0.0.war as %CATALINA_HOME%\webapps\hi-ee.war"
 Write-Host "  cd client; npm ci --legacy-peer-deps; npm run start18"
 Write-Host ""
 Write-Host "Or use Docker:"

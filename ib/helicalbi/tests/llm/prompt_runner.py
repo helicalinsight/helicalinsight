@@ -1,7 +1,7 @@
 """Runners that drive HelicalBI's prompts for deepeval test cases.
 
 Each public function takes a user query plus the relevant slices of the
-TravelDetails agent schema and returns the *string* that the LLM produced
+TravelDetails model schema and returns the *string* that the LLM produced
 (or, in ``stub`` mode, the canned response we'd expect a competent model
 to produce).  Returning plain strings keeps the runners trivially
 composable with :class:`deepeval.test_case.LLMTestCase`.
@@ -30,8 +30,7 @@ from helicalbi.prompt.DomainTopicPrompt import (
 )
 from helicalbi.common.app_config import default_sql_limit
 from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
-from helicalbi.prompt.VizPrompt import viz_prompt
-from helicalbi.service.agentservice.InformationProvider import InformationProvider
+from helicalbi.service.modelservice.InformationProvider import InformationProvider
 from helicalbi.sql.GetContextForSQL import get_table_col_description
 
 
@@ -104,8 +103,8 @@ _DOMAIN_TOPIC_STUBS: dict[str, dict[str, Any]] = {
 }
 
 
-def render_domain_topic_prompt(agent_data: dict, user_query: str) -> str:
-    info_provider = InformationProvider(agent_data=agent_data)
+def render_domain_topic_prompt(model_data: dict, user_query: str) -> str:
+    info_provider = InformationProvider(model_data=model_data)
     domain_topic_string = info_provider.format_domain_info("Sales Operation")
     topics = info_provider.get_topics("Sales Operation")
     semantic_string = info_provider.format_semantic_layer(topics)
@@ -127,8 +126,8 @@ def render_domain_topic_prompt(agent_data: dict, user_query: str) -> str:
     )
 
 
-def run_domain_topic(agent_data: dict, user_query: str, *, mode: str) -> RenderedPrompt:
-    rendered = render_domain_topic_prompt(agent_data, user_query)
+def run_domain_topic(model_data: dict, user_query: str, *, mode: str) -> RenderedPrompt:
+    rendered = render_domain_topic_prompt(model_data, user_query)
     if mode == "live":
         output = _invoke(_live_llm(), rendered)
     else:
@@ -186,7 +185,7 @@ _COLUMN_STUBS: dict[str, dict[str, Any]] = {
 
 
 def render_column_prompt(
-    agent_data: dict,
+    model_data: dict,
     cube_metadata: list,
     synonyms_list: list,
     relationships_list: list,
@@ -204,7 +203,7 @@ def render_column_prompt(
 
 
 def run_column_detection(
-    agent_data: dict,
+    model_data: dict,
     cube_metadata: list,
     synonyms_list: list,
     relationships_list: list,
@@ -214,7 +213,7 @@ def run_column_detection(
     mode: str,
 ) -> RenderedPrompt:
     rendered = render_column_prompt(
-        agent_data,
+        model_data,
         cube_metadata,
         synonyms_list,
         relationships_list,
@@ -273,12 +272,22 @@ def render_sql_prompt(
     required_joins: str,
     required_metrics: list,
     dialect: str = "PostgreSQL",
+    required_column_description: str = "",
 ) -> str:
+    required_metrics_text = (
+        json.dumps(required_metrics, indent=2, default=str)
+        if required_metrics
+        else ""
+    )
     return final_sql_prompt.format(
         dialect=dialect,
         query_plan_json=query_plan_json,
         required_joins=required_joins,
-        required_metrics=required_metrics,
+        required_metrics=required_metrics_text,
+        required_column_description=required_column_description,
+        required_functions="",
+        column_sort_orders="",
+        domain_context="",
         prev_sql="",
         last_chats=[],
         user_question=user_question,

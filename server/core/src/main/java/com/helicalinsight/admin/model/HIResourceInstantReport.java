@@ -30,15 +30,15 @@ public class HIResourceInstantReport implements Serializable {
     private Integer createdBy;
 
 
-    @Column(name = "agent_id", table = "hi_resource_instant")
-    private Integer hiResourceAgent;
+    @Column(name = "model_id", table = "hi_resource_instant")
+    private Integer hiResourceModel;
 
-    public Integer getHiResourceAgent() {
-        return hiResourceAgent;
+    public Integer getHiResourceModel() {
+        return hiResourceModel;
     }
 
-    public void setHiResourceAgent(Integer hiResourceAgent) {
-        this.hiResourceAgent = hiResourceAgent;
+    public void setHiResourceModel(Integer hiResourceModel) {
+        this.hiResourceModel = hiResourceModel;
     }
 
 

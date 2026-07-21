@@ -1,0 +1,17 @@
+{
+  "dims_min": 0,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 2,
+  "instruction": "User explicitly asks for a gauge/dial against a target.",
+  "aliases": [
+    "gauge chart",
+    "dial",
+    "speedometer",
+    "meter"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Gauge. Config: percent [0,1]; range.color; indicator pointer/pin muted.\nPolish: actual/target -> percent; soft track color; no noisy ticks; keep label minimal.",
+  "code": "\nfunction DrawGauge() {\n  const { Gauge } = components;\n  const measureField = \"measure_column\";\n  const targetField = \"target_column\";\n  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);\n  const target = data[0]?.[targetField] ?? total;\n  const percent = target > 0 ? total / target : 0;\n  const config = {\n    percent,\n    range: {\n      color: [\"#5B8FF9\", \"#E8EDF3\"]\n    },\n    indicator: {\n      pointer: { style: { stroke: \"#D0D0D0\" } },\n      pin: { style: { stroke: \"#D0D0D0\" } }\n    }\n  };\n  return <div><Gauge {...config} /></div>;\n}\n"
+}

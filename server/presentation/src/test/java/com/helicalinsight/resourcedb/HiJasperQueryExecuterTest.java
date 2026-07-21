@@ -290,7 +290,7 @@
 //		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
 //				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1));
 //	}
-//	
+//
 //    @Test
 //    public void hi_jasper_b3_deleteFile() throws Exception {
 //    	deleteSavedFile("test123.hcr");
@@ -312,7 +312,7 @@
 //		int status = jsonObject.getInt("status");
 //		Assert.assertEquals(1, status);
 //	}
-//	
+//
 //	@Test
 //	public void hi_jasper_b5_saveHCRWithPlainJDBCConnection() throws Exception {
 //		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders.post("/services");
@@ -340,12 +340,12 @@
 //		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
 //				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1));
 //	}
-//	
+//
 //    @Test
 //    public void hi_jasper_b7_deleteFile() throws Exception {
 //    	deleteSavedFile("test1234.hcr");
 //    }
-//    
+//
 //	@Test
 //	public void hi_jasper_b8_groovyPlainJDBCDataSourceCreation() throws Exception {
 //		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders.post("/services");

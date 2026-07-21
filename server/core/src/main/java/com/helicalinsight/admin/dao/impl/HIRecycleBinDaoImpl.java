@@ -709,17 +709,17 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		collectFolderIds(hiResource, descendants, folders);
 		
 		List<Integer> metadataIds = collectMetadataResourceIds(hiResource, descendants);
-		List<Integer> agentIds = collectAgentResourceIds(hiResource, descendants);
+		List<Integer> modelIds = collectModelResourceIds(hiResource, descendants);
 		Map<Integer, List<HIResource>> reportsByMetadataId = metadataIds.isEmpty()
 				? Collections.emptyMap()
 				: serviceDb.findAllReportsByMetadataResourceIds(metadataIds);
-		Map<Integer, List<HIResource>> instantReportsByAgentId = agentIds.isEmpty()
+		Map<Integer, List<HIResource>> instantReportsByModelId = modelIds.isEmpty()
 				? Collections.emptyMap()
-				: serviceDb.findAllInstantReportsByAgentResourceIds(agentIds);
+				: serviceDb.findAllInstantReportsByModelResourceIds(modelIds);
 
 		
 		Set<Integer> seedMappingChildIds = collectSeedMappingChildIds(hiResource, descendants, reportsByMetadataId,
-				instantReportsByAgentId);
+				instantReportsByModelId);
 		Map<Integer, List<HIResource>> mappingsByChildId = loadAllMappingsForSubtree(seedMappingChildIds);
 		Map<Integer, List<HIResourceDTO>> mappingDtosByChildId = buildMappingDtosByChildId(mappingsByChildId);
 		
@@ -727,7 +727,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		Map<Integer, Integer> securityMap = serviceDb.getSecurityMap();
 		
 		getHIResourceTreeHelper(hiResource, itemMap, allResources, securityMap, descendants, reportsByMetadataId,
-				instantReportsByAgentId, mappingDtosByChildId, includeParent, userId);
+				instantReportsByModelId, mappingDtosByChildId, includeParent, userId);
 		
 		return new ArrayList<>(itemMap.values());
 
@@ -759,17 +759,17 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		return metadataIds;
 	}
 
-	private List<Integer> collectAgentResourceIds(HIResource hiResource, List<HIResource> descendants) {
-		List<Integer> agentIds = new ArrayList<>();
-		if (isAiAgentResource(hiResource)) {
-			agentIds.add(hiResource.getResourceId());
+	private List<Integer> collectModelResourceIds(HIResource hiResource, List<HIResource> descendants) {
+		List<Integer> modelIds = new ArrayList<>();
+		if (isAiModelResource(hiResource)) {
+			modelIds.add(hiResource.getResourceId());
 		}
 		for (HIResource descendant : descendants) {
-			if (isAiAgentResource(descendant)) {
-				agentIds.add(descendant.getResourceId());
+			if (isAiModelResource(descendant)) {
+				modelIds.add(descendant.getResourceId());
 			}
 		}
-		return agentIds;
+		return modelIds;
 	}
 
 	private boolean isMetadataResource(HIResource resource) {
@@ -779,13 +779,13 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 
 
 
-	private boolean isAiAgentResource(HIResource resource) {
+	private boolean isAiModelResource(HIResource resource) {
 		return resource.getResourceType() != null
-				&& resource.getResourceType().getExtension().contains("agent");
+				&& resource.getResourceType().getExtension().contains("model");
 	}
 	private final void getHIResourceTreeHelper(HIResource hiResource, Map<Integer, RecycleBinResourceItem> itemMap,
 			HIResourceOfActiveUser allResources, Map<Integer, Integer> securityMap, List<HIResource> descendantResources,
-			Map<Integer, List<HIResource>> reportsByMetadataId, Map<Integer, List<HIResource>> instantReportsByAgentId,
+			Map<Integer, List<HIResource>> reportsByMetadataId, Map<Integer, List<HIResource>> instantReportsByModelId,
 			Map<Integer, List<HIResourceDTO>> mappingDtosByChildId,
 			boolean includeParent, Integer userId) {
 		
@@ -817,8 +817,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		hiResource.setResourceType(resourceTypeService.getResourceTypeByTypeAndExtension("folder", "." + JsonUtils.getFolderFileExtension()));
 		
 		}
-		else if (isAiAgentResource(hiResource)) {
-			reports = new ArrayList<>(instantReportsByAgentId.getOrDefault(hiResource.getResourceId(), Collections.emptyList()));
+		else if (isAiModelResource(hiResource)) {
+			reports = new ArrayList<>(instantReportsByModelId.getOrDefault(hiResource.getResourceId(), Collections.emptyList()));
 			reports.forEach(report -> {
 				reportParentIdMap.put(report.getResourceId(), report.getParentId());
 				report.setParentId(hiResource.getResourceId());
@@ -831,7 +831,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		}
 		else if (Boolean.TRUE.equals(isFolder)) {
 			attachReportsForMetadataDescendants(descendantResources, hiResources, reportsByMetadataId, reportParentIdMap);
-			attachInstantReportsForAgentDescendants(descendantResources, hiResources, instantReportsByAgentId,
+			attachInstantReportsForModelDescendants(descendantResources, hiResources, instantReportsByModelId,
 					reportParentIdMap);
 		}
 		
@@ -852,7 +852,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		
 		restoreReportParentIds(reports, reportParentIdMap);
 		restoreReportParentIdsFromMap(reportsByMetadataId, reportParentIdMap);
-		restoreReportParentIdsFromMap(instantReportsByAgentId, reportParentIdMap);
+		restoreReportParentIdsFromMap(instantReportsByModelId, reportParentIdMap);
 
 		Set<Integer> visitedResourceIds = new HashSet<>();
 		for (HIResourceDTO dto : resources) {
@@ -958,13 +958,13 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		}
 	}
 
-	private void attachInstantReportsForAgentDescendants(List<HIResource> descendants, List<HIResource> hiResources,
-			Map<Integer, List<HIResource>> instantReportsByAgentId, Map<Integer, Integer> reportsParentIdMap) {
+	private void attachInstantReportsForModelDescendants(List<HIResource> descendants, List<HIResource> hiResources,
+			Map<Integer, List<HIResource>> instantReportsByModelId, Map<Integer, Integer> reportsParentIdMap) {
 		for (HIResource resource : descendants) {
-			if (!isAiAgentResource(resource)) {
+			if (!isAiModelResource(resource)) {
 				continue;
 			}
-			List<HIResource> instantReports = instantReportsByAgentId.get(resource.getResourceId());
+			List<HIResource> instantReports = instantReportsByModelId.get(resource.getResourceId());
 			if (instantReports == null || instantReports.isEmpty()) {
 				continue;
 			}
@@ -1087,7 +1087,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	}
 	
 	private Set<Integer> collectSeedMappingChildIds(HIResource hiResource, List<HIResource> descendants,
-			Map<Integer, List<HIResource>> reportsByMetadataId, Map<Integer, List<HIResource>> instantReportsByAgentId) {
+			Map<Integer, List<HIResource>> reportsByMetadataId, Map<Integer, List<HIResource>> instantReportsByModelId) {
 		Set<Integer> resourceIds = new HashSet<>();
 		resourceIds.add(hiResource.getResourceId());
 		for (HIResource descendant : descendants) {
@@ -1098,7 +1098,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 				resourceIds.add(report.getResourceId());
 			}
 		}
-		for (List<HIResource> instantReports : instantReportsByAgentId.values()) {
+		for (List<HIResource> instantReports : instantReportsByModelId.values()) {
 			for (HIResource instantReport : instantReports) {
 				resourceIds.add(instantReport.getResourceId());
 			}

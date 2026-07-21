@@ -95,10 +95,10 @@ public class MetadataErrorLogs7825Test {
         String os = System.getProperty("os.name").toLowerCase();
         if (os.contains("linux")) {
             TESTURL = "/home/helical/Performance/HITest";
-            jdbcUrl = "jdbc:derby:/home/helical/Performance/HITest/hiee";
+            jdbcUrl = "jdbc:derby:/home/helical/Performance/hi/db/SampleTravelData";
         } else if (os.contains("windows")) {
             TESTURL = "C:\\home\\helical\\Performance\\HITest";
-            jdbcUrl = "jdbc:derby:/C:/home/helical/Performance/HITest/hiee";
+            jdbcUrl = "jdbc:derby:/C:/home/helical/Performance/hi/db/SampleTravelData";
         }
     }
 

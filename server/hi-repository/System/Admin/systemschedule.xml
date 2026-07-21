@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<systemSchedules>
+    <schedule id="llmUsageAuditPurge" enabled="true">
+        <task class="com.helicalinsight.admin.scheduling.LlmUsageAuditPurgeJob"/>
+        <retentionDays>365</retentionDays>
+        <scheduledTime>00:05:00</scheduledTime>
+        <timeZone></timeZone>
+        <exportPath>Audit/LLM</exportPath>
+    </schedule>
+</systemSchedules>

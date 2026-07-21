@@ -22,17 +22,17 @@ public class InstantBIController {
     private StatusValidator statusValidator;
 
     @RequestMapping("/recommendation/domain")
-    public void aiRecommend(@RequestParam("agent") String agent, HttpServletRequest request,
+    public void aiRecommend(@RequestParam("model") String model, HttpServletRequest request,
                                          HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getRecommendDomainService().execute(agent, request, response);
+        InstantBIServiceFactory.getRecommendDomainService().execute(model, request, response);
     }
 
     @RequestMapping("/recommendation/analyst")
-    public void aiRecommendAnalyst(@RequestParam("agent") String agent, @RequestParam("domain") String domain,
+    public void aiRecommendAnalyst(@RequestParam("model") String model, @RequestParam("domain") String domain,
                                                 HttpServletRequest request, HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getRecommendAnalystService().execute(agent, domain, request, response);
+        InstantBIServiceFactory.getRecommendAnalystService().execute(model, domain, request, response);
     }
 
     @RequestMapping("/interactive-chat")
@@ -93,4 +93,4 @@ public class InstantBIController {
         }
     }
 }
-
+

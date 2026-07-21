@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Compact trend/sparkline without full axes.",
+  "aliases": [
+    "sparkline",
+    "mini line",
+    "tiny line chart"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "TinyLine sparkline. Config: xField, yField; smooth; autoFit; minimal chrome.\nPolish: no axes/legend/labels unless asked; height compact; focus trend only.",
+  "code": "\nfunction DrawTinyLine() {\n  const { TinyLine } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    smooth: true,\n    autoFit: true\n  };\n  return <div><TinyLine {...config} /></div>;\n}\n"
+}

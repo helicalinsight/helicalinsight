@@ -30,7 +30,7 @@ import java.util.Set;
  */
 public final class ExportWatermarkHelper {
 
-    private static final Set<String> WATERMARK_LICENSE_TYPES = Set.of("TRIAL", "DEVELOPER", "Trial", "");
+    private static final Set<String> WATERMARK_LICENSE_TYPES = Set.of("COMMUNITY","Community","");
     private static final Color IMAGE_WATERMARK_COLOR = new Color(73, 143, 222);
 
     private ExportWatermarkHelper() {

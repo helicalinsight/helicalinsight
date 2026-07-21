@@ -1,0 +1,14 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "User explicitly requests a pie chart.",
+  "aliases": [
+    "pie chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Pie (explicit). Config: angleField, colorField; radius~0.8.\nPolish: outer labels + %; legend right if crowded; appendPadding; element-active; avoid 3D/explode; <=8 categories.",
+  "code": "\nfunction DrawPie() {\n  const { Pie } = components;\n  const config = {\n    appendPadding: 10,\n    data,\n    angleField: \"measure_column\",\n    colorField: \"dimension_column\",\n    radius: 0.8,\n    label: {\n      type: \"outer\",\n      content: \"{name}: {percentage}\"\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Pie {...config} /></div>;\n}\n"
+}

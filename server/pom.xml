@@ -34,16 +34,14 @@
 	</modules>
 
 	<properties>
-		<parent.version>7.0.0</parent.version>
+		<parent.version>7.0.0-SNAPSHOT</parent.version>
 
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
 		<!-- All properties are placed here to manage the versions -->
 
-		<jdk.version>21</jdk.version>
-
-
+		<jdk.version>25</jdk.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-security-web.version>6.5.10</spring-security-web.version>
 		<spring.security.cas.version>6.5.10</spring.security.cas.version>
@@ -99,13 +97,49 @@
 		<commons-configuration.version>1.10</commons-configuration.version>
 		<jersey-server.version>1.2</jersey-server.version>
 		<javax.xml.version>2.3.1</javax.xml.version>
-		<maven.compiler.source>21</maven.compiler.source>
-		<maven.compiler.target>21</maven.compiler.target>
+		<maven.compiler.source>${jdk.version}</maven.compiler.source>
+		<maven.compiler.target>${jdk.version}</maven.compiler.target>
 
 		<aspectj.version>1.9.25</aspectj.version>
-		<aspectj.skip>false</aspectj.skip>
+		<aspectj.skip>true</aspectj.skip>
 
 	</properties>
+	
+	<profiles>
+		<profile>
+			<id>hiee</id>
+			<modules>
+					<module>elj</module>
+			</modules>
+			<activation>
+				<property>
+					<name>edition</name>
+					<value>hiee</value>
+				</property>
+			</activation>
+			<dependencies>
+				<dependency>
+					<groupId>com.helicalinsight</groupId>
+					<artifactId>elj2</artifactId>
+					<version>${parent.version}</version>
+				</dependency>
+			</dependencies>
+			<properties>
+				<aspectj.skip>false</aspectj.skip>
+			</properties>
+			
+		</profile>
+		
+		<profile>
+			<id>hice</id>
+				<activation>
+					<activeByDefault>true</activeByDefault>
+				</activation>
+			<properties>
+				<parent.version>7.0.0</parent.version>
+			</properties>
+		</profile>
+	</profiles>
 
 	<dependencies>
 
@@ -214,21 +248,8 @@
 		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-core</artifactId>
-			<version>5.4.0</version>
+			<version>5.23.0</version>
 			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-			<version>5.2.0</version>
-			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.mockito</groupId>
-					<artifactId>mockito-core</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 
 
@@ -1274,7 +1295,6 @@
 			<version>1.0.1</version>
 		</dependency>
 
-		
 		<!-- Project reactor -->
 			
 			<dependency>
@@ -1682,7 +1702,7 @@
 				<plugin>
 					<groupId>org.jacoco</groupId>
 					<artifactId>jacoco-maven-plugin</artifactId>
-					<version>0.8.12</version>
+					<version>0.8.15</version>
 					<executions>
 						<execution>
 							<goals>
@@ -1712,10 +1732,42 @@
 
 					</configuration>
 				</plugin>
-
-
-
 				
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>aspectj-maven-plugin</artifactId>
+					<version>1.15.0</version>
+
+					<dependencies>
+						<dependency>
+							<groupId>org.aspectj</groupId>
+							<artifactId>aspectjtools</artifactId>
+							<version>${aspectj.version}</version>
+						</dependency>
+					</dependencies>
+
+					<configuration>
+						<complianceLevel>21</complianceLevel>
+						<showWeaveInfo>true</showWeaveInfo>
+						<verbose>true</verbose>
+						<Xlint>default</Xlint>
+						<encoding>UTF-8</encoding>
+						<aspectLibraries>
+							<aspectLibrary>
+								<groupId>com.helicalinsight</groupId>
+								<artifactId>elj2</artifactId>
+							</aspectLibrary>
+						</aspectLibraries>
+					</configuration>
+					<executions>
+						<execution>
+							<goals>
+								<goal>compile</goal>
+								<goal>test-compile</goal>
+							</goals>
+						</execution>
+					</executions>
+				</plugin>
 
 			</plugins>
 		</pluginManagement>

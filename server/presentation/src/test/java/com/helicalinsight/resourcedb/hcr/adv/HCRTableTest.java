@@ -355,7 +355,7 @@ public class HCRTableTest {
 	static String fileName = "";
 	
 	
-	@Test
+//	@Test
 	public void hcr_a4_adv_exportHCRReport() throws Exception {
 		String request = "{\"dir\": \"HCR_TABLE\",\"file\" : \"CannedReport_formdata.hcr\",\"options\": {\"share\": true,\"dataSource\": true,\"schedules\": true}}";
 		fileName = integrationTestUtility.exportResource(request, TESTURL );

@@ -1,0 +1,17 @@
+{
+  "dims_min": 0,
+  "dims_max": null,
+  "measures_min": 0,
+  "measures_max": null,
+  "instruction": "Exact row-level values or many columns matter most.",
+  "aliases": [
+    "data table",
+    "flat table",
+    "row table",
+    "tabular"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Table. Config: columns from Object.keys(data[0]); dataSource=data; rowKey index; pagination.\nPolish: humanize headers (underscore->space); pagination true; no fake sorts unless asked; wrap in div.",
+  "code": "\nfunction DrawTable() {\n  const { Table } = components;\n  const columns =\n    data.length > 0\n      ? Object.keys(data[0]).map((key) => ({\n          title: key.replace(/_/g, \" \"),\n          dataIndex: key,\n          key\n        }))\n      : [];\n  return (\n    <div>\n      <Table\n        columns={columns}\n        dataSource={data}\n        rowKey={(record, index) => index}\n        pagination={true}\n      />\n    </div>\n  );\n}\n"
+}

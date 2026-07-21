@@ -1,0 +1,15 @@
+{
+  "dims_min": 3,
+  "dims_max": 3,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Both grouping and stacking plus a separate line measure.",
+  "aliases": [
+    "stacked grouped column line",
+    "stack group combo"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "DualAxes stack+group column + line. Config: column isStack+isGroup+seriesField+groupField; line seriesField.\nPolish: only when 3 dims needed; legend compact; autoFit; keep line visually distinct.",
+  "code": "\nfunction DrawStackedGroupedColumnLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      {\n        geometry: \"column\",\n        isStack: true,\n        isGroup: true,\n        seriesField: \"stack_column\",\n        groupField: \"group_column\"\n      },\n      { geometry: \"line\", seriesField: \"line_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+}
