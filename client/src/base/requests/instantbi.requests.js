@@ -119,9 +119,9 @@ function instantBI(dispatch) {
     callback = () => { },
     errback = () => { },
   }) => {
-    let { agent } = formData || {}
-    agent = Base64.encode(JSON.stringify(agent))
-    formData = { ...formData, agent }
+    let { model } = formData || {}
+    model = Base64.encode(JSON.stringify(model))
+    formData = { ...formData, model }
     return instantBIPostRequest(dispatch, uri, formData, callback, errback);
   }
 
@@ -131,9 +131,9 @@ function instantBI(dispatch) {
     callback = () => { },
     errback = () => { },
   }) => {
-    let { agent } = formData || {}
-    agent = Base64.encode(JSON.stringify(agent))
-    formData = { ...formData, agent }
+    let { model } = formData || {}
+    model = Base64.encode(JSON.stringify(model))
+    formData = { ...formData, model }
     return instantBIPostRequest(dispatch, uri, formData, callback, errback);
   }
 

@@ -73,7 +73,7 @@ public final class ResponseMetadataEnricher {
         try {
             LicenseMetadata licenseMetadata = ApplicationProperties.getInstance().getLicenseMetadata();
             if (licenseMetadata == null || licenseMetadata.licenseKeyType() == null) {
-                return "";
+                return ApplicationInformation.getInstance().getSourceCodeType();
             }
             return licenseMetadata.licenseKeyType();
         } catch (Throwable throwable) {

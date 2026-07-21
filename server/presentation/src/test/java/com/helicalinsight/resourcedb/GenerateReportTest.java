@@ -102,7 +102,7 @@ public class GenerateReportTest {
         this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1));
     }
-    
+
     @Test
     public void hcr_3_fetch_hcr_for_managed() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders
@@ -118,8 +118,8 @@ public class GenerateReportTest {
         int status = jsonObject.getInt("status");
         Assert.assertEquals(1, status);
     }
-    
-    
+
+
     @Test
     public void hcr_4_generate_report_for_managed_after_save() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders
@@ -135,7 +135,7 @@ public class GenerateReportTest {
         int status = jsonObject.getInt("status");
         Assert.assertEquals(1, status);
     }
-    
+
     @Test
     public void hcr_5_save_hcr_with_generate_report_data_for_plain_jdbc() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders
@@ -149,7 +149,7 @@ public class GenerateReportTest {
         this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1));
     }
-    
+
     @Test
     public void hcr_6_fetch_hcr_for_plain_jdbc() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders
@@ -166,7 +166,7 @@ public class GenerateReportTest {
         Assert.assertEquals(1, status);
     }
 
-    
+
     @Test
     public void hcr_7_generate_report_for_plain_jdbc_after_save() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders
@@ -183,7 +183,7 @@ public class GenerateReportTest {
         Assert.assertEquals(1, status);
     }
 
-    
+
     @Test
     public void hcr_8_save_hcr_with_generate_report_data_for_groovy_plain_jdbc() throws Exception {
         MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders

@@ -10,19 +10,18 @@ import com.helicalinsight.export.dto.Manifest;
 import com.helicalinsight.export.dto.ResourceExtension;
 import com.helicalinsight.export.dto.ResourceOptions;
 import com.helicalinsight.export.exception.ResourceExportException;
-import com.helicalinsight.export.utils.InstantAgentUtils;
 import com.helicalinsight.resourcedb.Deleted;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 
 /**
  * Handles the writing of Instant BI report resources during the export process.
- * Instant reports depend on an AI Agent referenced inside the state JSON at {@code subject.agent}.
+ * Instant reports depend on an AI Model referenced inside the state JSON at {@code subject.model}.
  */
 @Component("instantWriterHandler")
 public class InstantWriterHandler extends AbstractResourceWriterHandler {
 
 	@Autowired
-	private AgentWriterHandler agentWriterHandler;
+	private ModelWriterHandler modelWriterHandler;
 
 	@Autowired
 	private FolderWriterHandler folderWriterHandlerHandler;
@@ -33,9 +32,9 @@ public class InstantWriterHandler extends AbstractResourceWriterHandler {
 		HIResourceInstantReport instantReport = hResource.getHiResourceInstantReport();
 
 
-		HIResource agentResource = serviceDB.getResourceByIdIgnoreFilter(instantReport.getHiResourceAgent());
-		if (agentResource == null) {
-			throw new ResourceExportException("Agent resource not found for the Instant Report : "+hResource.getResourceURL());
+		HIResource modelResource = serviceDB.getResourceByIdIgnoreFilter(instantReport.getHiResourceModel());
+		if (modelResource == null) {
+			throw new ResourceExportException("Model resource not found for the Instant Report : "+hResource.getResourceURL());
 		}
 
 		String[] dirArr = StringUtils.split(hResource.getResourceURL(), "/");
@@ -51,13 +50,13 @@ public class InstantWriterHandler extends AbstractResourceWriterHandler {
 			}
 		}
 
-		HIResourceDTO agentDTO = dtoMapper.map(agentResource);
-		if (agentDTO != null && !manifestUtils.pathExists(agentDTO.getPath(), manifest)) {
-			agentWriterHandler.write(agentDTO, dir, manifest, options);
+		HIResourceDTO modelDTO = dtoMapper.map(modelResource);
+		if (modelDTO != null && !manifestUtils.pathExists(modelDTO.getPath(), manifest)) {
+			modelWriterHandler.write(modelDTO, dir, manifest, options);
 		}
-		String agentUrl = agentResource.getResourceURL();
+		String modelUrl = modelResource.getResourceURL();
 
-		String csv = agentUrl.concat(",").concat(depFolderUrl);
+		String csv = modelUrl.concat(",").concat(depFolderUrl);
 		instantReport.setCreatedBy(hResource.getCreatedBy());
 		dataWriter.write(this.addOwner(instantReport, instantReport.getCreatedBy()), dir, report, "");
 		manifestUtils.insertPath(report.getPath(), manifest);

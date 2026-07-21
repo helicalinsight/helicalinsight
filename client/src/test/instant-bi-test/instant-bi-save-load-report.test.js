@@ -21,7 +21,7 @@ const buildActiveReportForSave = () => ({
     },
   },
   subject: {
-    agent: {
+    model: {
       dir: "agents",
       file: "sales.metadata",
     },

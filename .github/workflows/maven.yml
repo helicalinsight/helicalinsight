@@ -10,43 +10,145 @@ name: Build HelicalInsight
 
 on:
   push:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "*" ]
   pull_request:
-    branches: [ "helicalinsight-ce-7.0" ]
+    branches: [ "master" ]
 
 jobs:
   compile:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
     - name: compile
-      run: mvn clean compile --file server/pom.xml
+      run: mvn -q clean compile --file server/pom.xml -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
-
-  test:
+  
+  backend-test:
+    name: Backend Test
     runs-on: ubuntu-latest
     needs: compile
     timeout-minutes: 60
     steps:
     - uses: actions/checkout@v4
-    - name: Set up JDK 21
+    - name: Set up JDK 25
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '25'
         distribution: 'temurin'
         cache: maven
         cache-dependency-path: server/pom.xml
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+
+    - name: Verify Node
+      run: |
+        node --version
+        npm --version
+    
     - name: Prepare test environment
       run: bash scripts/setup-ci-test-env.sh
+    
     - name: test
-      run: mvn test --file server/pom.xml
+      run: mvn -q test --file server/pom.xml -Denv=ci -Dedition=hice
       env:
         MAVEN_OPTS: -Xmx2g
+        
+        
+    - name: Generate coverage badge
+      uses: cicirello/jacoco-badge-generator@v2
+      with:
+        jacoco-csv-file: server/presentation/target/site/jacoco-aggregate/jacoco.csv
+        badges-directory: .github/badges
+
+  backend-docker:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    needs: backend-test
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up JDK 25
+      uses: actions/setup-java@v4
+      with:
+        java-version: '25'
+        distribution: 'temurin'
+        cache: maven
+        cache-dependency-path: server/pom.xml
+    
+    - name: Build Docker Image
+      run: |
+        VERSION=${{ github.ref_name }}
+        docker build -t helicalinsight:${VERSION} -f server/Dockerfile .
+        docker images
+  
+  # frontend-tests:
+  #   name: Frontend Test
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 60
+  #   defaults:
+  #     run:
+  #       working-directory: client
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Setup Node.js
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: npm
+  #         cache-dependency-path: client/package-lock.json
+  
+  #     - name: Install dependencies
+  #       run: npm ci --legacy-peer-deps
+  
+  #     - name: Run unit tests
+  #       run: npm run test:coverage
+        
+  #     - name: Generate frontend coverage badge
+  #       run: |
+  #         COVERAGE=$(node -e "
+  #           const coverage=require('./client/coverage/coverage-summary.json');
+  #           console.log(Math.round(coverage.total.lines.pct));
+  #         ")
+
+  #         mkdir -p public
+  #         echo "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='20'>
+  #           <rect width='180' height='20' fill='#555'/>
+  #           <rect x='90' width='90' height='20' fill='#4c1'/>
+  #           <text x='45' y='14' fill='#fff' font-size='11' text-anchor='middle'>frontend</text>
+  #           <text x='135' y='14' fill='#fff' font-size='11' text-anchor='middle'>${COVERAGE}%</text>
+  #         </svg>" > public/frontend-coverage.svg
+  
+  frontend-docker:
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    # needs: frontend-tests
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
+
+      - name: Build Docker Image
+        run: |
+          VERSION=${{ github.ref_name }}
+          docker build -t helicalinsight:${VERSION} -f Dockerfile .
+          docker images
+        

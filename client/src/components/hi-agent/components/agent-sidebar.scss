@@ -1,5 +1,13 @@
 @import "../../../styles/variables.scss";
 
+.agent-metadata-shelf {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .agent-sidebar-shell {
   display: flex;
   flex-direction: column;

@@ -20,7 +20,7 @@ public class CopyHandlerProvider {
 	private static final String HCR="hcr";
 	private static final String IMAGE="image";
 	private static final String INSTANT="instant";
-	private static final String AIAGENT="agent";
+	private static final String MODEL="model";
 
 	 /**
      * Gets an instance of {@link HiResourceCopyHandler} based on the resource type.
@@ -41,7 +41,7 @@ public class CopyHandlerProvider {
 			case EFWD: return getBean(EfwdPlainConCopyHandler.class);
 			case IMAGE: return getBean(ImageCopyHandler.class);
 			case INSTANT: return getBean(InstantBICopyHandler.class);
-			case AIAGENT: return getBean(AIAgentCopyHandler.class);
+			case MODEL: return getBean(AIModelCopyHandler.class);
 			default:
 				throw new EfwServiceException("Could not find Handler for "+resourceType);
 		}

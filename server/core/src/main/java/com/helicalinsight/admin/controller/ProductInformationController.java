@@ -1,6 +1,7 @@
 package com.helicalinsight.admin.controller;
 
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,8 +40,15 @@ public class ProductInformationController {
 				.productType(appInfo.getProductType());
 			
 		String licenseKeyType = licenseMetadata.licenseKeyType();
-		builder.licenseType(licenseKeyType);
-			
+		
+		if ( StringUtils.isBlank(licenseKeyType) || "NA".equalsIgnoreCase(licenseKeyType)) {
+			builder.licenseType(appInfo.getSourceCodeType());
+			builder.expiration("NA");
+		}
+		else {
+			builder.licenseType(licenseKeyType);
+		}
+		
 		if (!"Unlimited".equalsIgnoreCase(licenseKeyType)) {
 			builder.expiration(DateUtils.convertDateToString(licenseMetadata.lastDate(),"dd/MM/yyyy"));
 		}
@@ -49,4 +57,6 @@ public class ProductInformationController {
 			
 		return ResponseEntity.ok(productInformation);
 	}
+	
+	
 }

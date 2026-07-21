@@ -1,6 +1,6 @@
 """DeepEval-driven LLM prompt test cases for HelicalBI.
 
-The agent schema under evaluation is the Travel + Meetings cube defined in
+The model schema under evaluation is the Travel + Meetings cube defined in
 ``helicalbi.api.TravelDetailsCube``.  For each major LLM-driven flow
 (domain/topic identification, column detection, SQL generation, viz
 selection) we build a :class:`deepeval.test_case.LLMTestCase`, feed it
@@ -312,13 +312,13 @@ class TestDomainTopicPrompt:
     )
     def test_domain_and_topic_identified(
         self,
-        travel_agent_data,
+        travel_model_data,
         travel_domain,
         llm_mode,
         user_query,
         expected_topics,
     ):
-        result = run_domain_topic(travel_agent_data, user_query, mode=llm_mode)
+        result = run_domain_topic(travel_model_data, user_query, mode=llm_mode)
 
         test_case = LLMTestCase(
             input=user_query,
@@ -391,7 +391,7 @@ class TestColumnDetectionPrompt:
     )
     def test_columns_drawn_from_schema(
         self,
-        travel_agent_data,
+        travel_model_data,
         travel_cube_metadata,
         travel_synonyms,
         travel_relationships,
@@ -401,7 +401,7 @@ class TestColumnDetectionPrompt:
         expected_columns,
     ):
         result = run_column_detection(
-            travel_agent_data,
+            travel_model_data,
             travel_cube_metadata,
             travel_synonyms,
             travel_relationships,

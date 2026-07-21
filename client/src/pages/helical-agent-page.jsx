@@ -1,13 +1,13 @@
 import { HINavbar } from "../components";
 import SemanticMetadataEditor from "../components/hi-agent/components/semantic-metadata-editor";
 import HILayout from "../layouts/hi-layout";
+import AgentLayout from "../layouts/agent-layout";
 import {
   SaveOutlined,
   SaveFilled,
   SettingOutlined,
-  CopyOutlined,
-  SnippetsOutlined,
-  FileTextOutlined,
+  LayoutOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import {
   agentSaveAPI,
@@ -22,6 +22,7 @@ import {
   saveAgentMetadataFileDetails,
   setAgentMode,
 } from "../redux/actions/agent.actions";
+import agentRequests from "../base/requests/agent.requests";
 import {
   getAgentStateForSave,
   validateAgentSaveInput,
@@ -30,9 +31,11 @@ import { stripInternalTableRefsFromAgentState } from "../components/hi-agent/uti
 import SaveItems from "../components/hi-fileBrowser/SaveItems";
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { AgentSidebar } from "../components/hi-agent/components/agentSidebar";
+import Watermark from "../components/hi-reports/hi-viz-area/watermark/watermark";
+import { isOpenSource } from "../utils/utilities";
 
-const AGENT_FILE_EXTENSION = ".agent";
+const AGENT_FILE_EXTENSION = ".model";
+const DEFAULT_AGENT_NAME = "Model_1";
 
 const toAgentFileUuid = (fileName = "") => {
   const trimmed = String(fileName).trim();
@@ -46,6 +49,10 @@ export function HIAGENT({ urlObj = {} }) {
   const agentState = useSelector((store) => store.agent);
   const { agentMode, metadataDetails, agentDataAfterSave } = agentState;
   const editModeInfo = useSelector((store) => store.app.editModeInfo);
+  const metaInfo = useSelector(
+    (store) => store.app.applicationSettingsData?.meta || {},
+  );
+  const openSource = isOpenSource(metaInfo);
   const dispatch = useDispatch();
   const [filebrowserFor, setFilebrowserFor] = useState("");
   const [agentData, setAgentData] = useState(null);
@@ -53,21 +60,27 @@ export function HIAGENT({ urlObj = {} }) {
   const [isJsonValid, setIsJsonValid] = useState(true);
   const [jsonError, setJsonError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveDetails, setSaveDetails] = useState({});
   const [doubleClickedFile, setDoubleClickedFile] = useState(null);
-  const [agentName, setAgentName] = useState("Agent_1");
+  const [agentName, setAgentName] = useState(DEFAULT_AGENT_NAME);
   const [isRawJsonView, setIsRawJsonView] = useState(false);
   const [isTableModeNormal, setIsTableModeNormal] = useState(true);
+  const [shelfLayout, setShelfLayout] = useState({
+    metadataShelf: true,
+    fieldsShelf: true,
+    toolsShelf: true,
+  });
+  const toggleShelf = (pane) =>
+    setShelfLayout((prev) => ({ ...prev, [pane]: !prev[pane] }));
 
   const apiRef = useRef(null);
   const abortedRef = useRef(false);
   const semanticEditorRef = useRef(null);
+  const { getSemanticTypes } = agentRequests(dispatch);
   const { dir: urlDir, file: urlFile } = urlObj;
   const clearEditorLoading = () => {
     setIsLoading(false);
-    setIsEditing(false);
     setIsSaving(false);
   };
   const handleAbort = () => {
@@ -91,6 +104,9 @@ export function HIAGENT({ urlObj = {} }) {
       apiRef.current = null;
       dispatch(agentLocalResetter());
     };
+  }, []);
+  useEffect(() => {
+    getSemanticTypes();
   }, []);
   useEffect(() => {
     if (editorContent && editorContent.trim() !== "") {
@@ -140,7 +156,6 @@ export function HIAGENT({ urlObj = {} }) {
     abortedRef.current = false;
     setFilebrowserFor("edit");
     dispatch(setAgentMode("edit"));
-    setIsEditing(true);
     const Notify = notify(dispatch);
     const editInstance = agentEditServiceAPI({
       dir,
@@ -151,17 +166,17 @@ export function HIAGENT({ urlObj = {} }) {
           abortedRef.current = false;
           return;
         }
-        setIsEditing(false);
         apiRef.current = null;
         Notify.success({
           type: "Frontend",
-          message: "Agent loaded successfully",
+          message: "Semantic model loaded successfully",
         });
         if (response?.data?.state) {
           setAgentData(response.data.state);
         }
-        if (response?.data?.agentName) {
-          setAgentName(response.data.agentName);
+        const responseAgentName = response?.data?.agentName || response?.data?.modelName;
+        if (responseAgentName) {
+          setAgentName(responseAgentName);
         }
         if (response?.data?.metadata) {
           const { location, metadataFileName } = response.data.metadata;
@@ -174,14 +189,13 @@ export function HIAGENT({ urlObj = {} }) {
         }
         setDoubleClickedFile({ path: dir, fileName: file, title });
         dispatch(agentFileDataAfterSave({ dir, file }));
-        document.title = `${title || file.split(".")[0]} | HI:Agent`;
+        document.title = `${title || file.split(".")[0]} | HI: Semantic Model`;
       },
       errorCB: () => {
         if (abortedRef.current) {
           abortedRef.current = false;
           return;
         }
-        setIsEditing(false);
         apiRef.current = null;
       },
     });
@@ -191,7 +205,7 @@ export function HIAGENT({ urlObj = {} }) {
   useEffect(() => {
     if (
       editModeInfo &&
-      editModeInfo.extension === "agent" &&
+      editModeInfo.extension === "model" &&
       editModeInfo.action !== AGENT_INTERACT_ACTION
     ) {
       const fileDtls = editModeInfo.dir.split("/");
@@ -205,7 +219,7 @@ export function HIAGENT({ urlObj = {} }) {
   useEffect(() => {
     if (Object.keys(urlObj).length && urlDir && urlFile) {
       const extension = urlFile.split(".").pop();
-      if (extension === "agent") {
+      if (extension === "model") {
         handleAgentEdit({ dir: urlDir, file: urlFile });
       }
     }
@@ -229,7 +243,7 @@ export function HIAGENT({ urlObj = {} }) {
     const dir = metadataDetails?.path;
     const file = metadataDetails?.fileName;
     const Notify = notify(dispatch);
-    const finalName = name || agentName || "Agent_1";
+    const finalName = name || agentName || DEFAULT_AGENT_NAME;
     let content;
 
     try {
@@ -248,7 +262,7 @@ export function HIAGENT({ urlObj = {} }) {
       dir,
       file,
       agentDir: onSaveData.path,
-      agentName: finalName,
+      modelName: finalName,
       content,
       dispatch,
       successCB: (response) => {
@@ -263,7 +277,7 @@ export function HIAGENT({ urlObj = {} }) {
         dispatch(fileBrowserActions.setShowFileBrowser(false));
         setFilebrowserFor("");
         setAgentName(finalName);
-        document.title = `${finalName} | HI:Agent`;
+        document.title = `${finalName} | HI: Semantic Model`;
         setSaveDetails({
           location: savedDir,
           uuid: savedUuid,
@@ -350,16 +364,17 @@ export function HIAGENT({ urlObj = {} }) {
       form: (
         <SaveItems
           key={filebrowserFor}
-          formHeading="Agent file name"
+          formHeading="Semantic model file name"
           onFormSumbit={onFormSumbit}
           saveButtonText={filebrowserFor === "saveAs" ? "Save As" : "Save"}
           cancelButtonText="Cancel"
-          inputValue={agentName || "Agent_1"}
+          inputValue={agentName || DEFAULT_AGENT_NAME}
+          onNameChange={setAgentName}
         />
       ),
     };
   } else if (filebrowserFor === "edit") {
-    fbProperties.extensionOptions = ["agent"];
+    fbProperties.extensionOptions = ["model"];
     fbProperties.showEditOnTop = true;
     fbProperties.contextMenuOptions = {
       append: true,
@@ -371,7 +386,7 @@ export function HIAGENT({ urlObj = {} }) {
           merge: true,
           disabled: false,
           types: ["file"],
-          extensions: ["agent"],
+          extensions: ["model"],
           callback: (record) => {
             dispatch(
               appActions.setEditModeInfo({
@@ -391,7 +406,7 @@ export function HIAGENT({ urlObj = {} }) {
     semanticEditorRef.current?.resetEditor?.();
     setAgentData(null);
     setEditorContent("");
-    setAgentName("Agent_1");
+    setAgentName(DEFAULT_AGENT_NAME);
     setDoubleClickedFile(null);
     setSaveDetails({});
   };
@@ -437,20 +452,6 @@ export function HIAGENT({ urlObj = {} }) {
 
   const taskBarItems = [
     {
-      tooltip: "Copy JSON",
-      icon: <CopyOutlined />,
-      callBack: () => {
-        semanticEditorRef.current?.handleCopy?.();
-      },
-    },
-    {
-      tooltip: "Paste JSON",
-      icon: <SnippetsOutlined />,
-      callBack: () => {
-        semanticEditorRef.current?.handleOpenPaste?.();
-      },
-    },
-    {
       tooltip: "Save",
       icon: <SaveOutlined />,
       dropdown: [
@@ -471,52 +472,77 @@ export function HIAGENT({ urlObj = {} }) {
       ],
     },
     {
-      tooltip: isRawJsonView ? "Switch To Editor" : "Raw JSON",
-      icon: <FileTextOutlined />,
-      callBack: () => setIsRawJsonView((prev) => !prev),
-    },
-    {
       tooltip: isTableModeNormal ? "Switch To Advance" : "Switch To Normal",
       icon: <SettingOutlined />,
       callBack: () => semanticEditorRef.current?.toggleTableMode?.(),
+    },
+    {
+      tooltip: "Layout",
+      icon: <LayoutOutlined />,
+      dropdown: [
+        {
+          tooltip: "Metadata Shelf",
+          name: "Metadata Shelf",
+          icon: shelfLayout.metadataShelf ? <CheckOutlined /> : null,
+          callBack: () => toggleShelf("metadataShelf"),
+        },
+        {
+          tooltip: "Fields Shelf",
+          name: "Fields Shelf",
+          icon: shelfLayout.fieldsShelf ? <CheckOutlined /> : null,
+          callBack: () => toggleShelf("fieldsShelf"),
+        },
+        {
+          tooltip: "Tools Shelf",
+          name: "Tools Shelf",
+          icon: shelfLayout.toolsShelf ? <CheckOutlined /> : null,
+          callBack: () => toggleShelf("toolsShelf"),
+        },
+      ],
     },
   ];
 
   return (
     <HILayout
-      customClass="hi-agent-page"
-      header={<HINavbar taskbar={taskBarItems} />}
+      customClass="hi-agent-page hi-p0"
+      header={<HINavbar taskbar={taskBarItems} hideToggleSidebar />}
       content={
-        <SemanticMetadataEditor
-          ref={semanticEditorRef}
-          agentData={agentData}
-          agentName={agentName}
-          onAgentNameChange={setAgentName}
-          onContentChange={setEditorContent}
-          isLoading={isLoading || isEditing}
-          handleAbort={handleAbort}
-          dispatch={dispatch}
-          isRawJsonView={isRawJsonView}
-          onTableModeChange={setIsTableModeNormal}
-        />
+        <AgentLayout>
+          <div className="height100percent" style={{ position: "relative" }}>
+            <SemanticMetadataEditor
+              ref={semanticEditorRef}
+              agentData={agentData}
+              agentName={agentName}
+              onAgentNameChange={setAgentName}
+              onContentChange={setEditorContent}
+              isLoading={isLoading}
+              handleAbort={handleAbort}
+              dispatch={dispatch}
+              isRawJsonView={isRawJsonView}
+              onTableModeChange={setIsTableModeNormal}
+              shelfLayout={shelfLayout}
+              metadataShelfProps={{
+                onResetAgentEditor: resetAgentEditor,
+                urlObj,
+                shareRef,
+                fbProperties,
+                setFilebrowserFor,
+                filebrowserFor,
+              }}
+            />
+            {openSource ? (
+              <Watermark
+                text={`Powered by ${metaInfo.productName}©${metaInfo.version}`}
+                link={metaInfo.link || "https://www.helicalinsight.com/"}
+                placement="bottom-right"
+                tooltip="Please upgrade your license to remove this watermark."
+                right={10}
+              />
+            ) : null}
+          </div>
+        </AgentLayout>
       }
       defaultSidebar={false}
-      customSidebar={
-        <AgentSidebar
-          onResetAgentEditor={resetAgentEditor}
-          urlObj={urlObj}
-          shareRef={shareRef}
-          fbProperties={fbProperties}
-          setFilebrowserFor={setFilebrowserFor}
-          filebrowserFor={filebrowserFor}
-          onAgentDataLoaded={(stateData, agentNameFromResponse) => {
-            setAgentData(stateData);
-            if (agentNameFromResponse) {
-              setAgentName(agentNameFromResponse);
-            }
-          }}
-        />
-      }
     />
   );
 }

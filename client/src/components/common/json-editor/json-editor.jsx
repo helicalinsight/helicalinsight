@@ -130,7 +130,10 @@ export function JsonEditorShell({
         style={{
           height: "100%",
           width: "100%",
-          display: isRawJsonView ? "none" : "block",
+          display: isRawJsonView ? "none" : "flex",
+          flexDirection: "column",
+          minHeight: 0,
+          overflow: "auto",
         }}
       >
         {children}

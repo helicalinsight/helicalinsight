@@ -11,7 +11,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>HI: Login</title>
     <link rel="stylesheet" href="fonts/questrial/questrial.css" />
-    <link rel="stylesheet" href="css/syncfusion.css">
     <script>window.baseURL = "${baseURL}"</script>
     <link href="css/2.chunk.css" rel="stylesheet">
     <link href="css/main.chunk.css" rel="stylesheet">

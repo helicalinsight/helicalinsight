@@ -271,7 +271,7 @@ public interface HIResourceDBDAO {
     HIResource findResourceByUrl(String url);
     List<Integer> getChildrenResourceByParentIds(List<Integer> parentIds);
 	Map<Integer, List<HIResource>> findAllReportsByMetadataResourceIds(List<Integer> metadataResourceIds);
-	Map<Integer, List<HIResource>> findAllInstantReportsByAgentResourceIds(List<Integer> agentResourceIds);
+	Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds);
 	List<HIResource> getHIResourcesByIds(List<Integer> resourceIds, Boolean applyFilter);
 	
 	void restoreResourcesByIds(List<Integer> resourceIds);

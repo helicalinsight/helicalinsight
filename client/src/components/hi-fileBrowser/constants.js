@@ -21,7 +21,6 @@ import {
 	ScissorOutlined,
 	ImportOutlined,
 	FileImageOutlined,
-	UserOutlined 
 } from '@ant-design/icons';
 import HIIcon from '../../components/common/icons/hi-icons';
 import { routesUrl, roleTypes } from '../../app/constants';
@@ -98,9 +97,9 @@ const filterByOptions = [
 		icon: <FileImageOutlined />
 	},
 	{
-		value: 'agent',
-		label: 'Agent',
-		icon: <UserOutlined  />
+		value: 'model',
+		label: 'Semantic Model',
+		icon: <CustomIcon name="Cube" />
 	}
 ];
 
@@ -201,12 +200,12 @@ const allContextMenuOptions = [
 		name: 'Edit',
 		types: [ 'file' ],
 		icon: <HIIcon name="hi-edit-box" />,
-		extensions: [ 'metadata', 'hr', 'efwdd', 'cube', 'instant', 'hcr', 'image', 'agent' ],
+		extensions: [ 'metadata', 'hr', 'efwdd', 'cube', 'instant', 'hcr', 'image', 'model' ],
 		disabled: false,
 		permission: [ 3, 4, 5 ],
 		userRoles: {
 			[roleUser]: [ 'hr', 'efwdd', 'hcr', 'image', 'instant', ], // added efwdd dashboard designer edit for user as well  bug id : 6652
-			[roleAdmin]: [ 'metadata', 'hr', 'efwdd', 'cube', 'instant', 'hcr', 'image', 'agent' ]
+			[roleAdmin]: [ 'metadata', 'hr', 'efwdd', 'cube', 'instant', 'hcr', 'image', 'model' ]
 		}
 	},
 	{
@@ -365,7 +364,7 @@ const contextMenuEditOptions = [
 		routeTo: cannedReportsUrl
 	},
 	{
-		extension: 'agent',
+		extension: 'model',
 		routeTo: agentUrl
 	}
 ];
@@ -374,13 +373,13 @@ const agentInteractContextMenuOption = {
 	id: 'intr',
 	name: 'Interact',
 	types: [ 'file' ],
-	extensions: [ 'agent' ],
+	extensions: [ 'model' ],
 	icon: <HIIcon name="hi-instant-bi-svg" />,
 	disabled: false,
 	permission: [ 2, 3, 4, 5 ],
 	userRoles: {
-		[roleUser]: [ 'agent' ],
-		[roleAdmin]: [ 'agent' ]
+		[roleUser]: [ 'model' ],
+		[roleAdmin]: [ 'model' ]
 	}
 };
 

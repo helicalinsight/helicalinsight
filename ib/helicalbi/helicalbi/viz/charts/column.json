@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Default categorical comparison with short labels.",
+  "aliases": [
+    "column chart",
+    "vertical bar",
+    "vertical bar chart",
+    "bar column"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Column (vertical). Config: xField=category, yField=measure; seriesField + isGroup|isStack if needed; meta aliases optional.\nPolish: autoFit; label middle/white when few cats; axis titles; legend only if series; columnWidthRatio 0.6; interactions element-active; clean tick labels (rotate if long).",
+  "code": "\nfunction DrawColumn() {\n  const { Column } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    label: {\n      position: \"middle\",\n      style: {\n        fill: \"#FFFFFF\",\n        opacity: 0.6\n      }\n    },\n    xAxis: {\n      title: {\n        text: \"Label for dimension axis\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"Label for measure axis\"\n      }\n    },\n    meta: {\n      dimension_column: { alias: \"dimension_column\" },\n      measure_column: { alias: \"measure_column\" }\n    }\n  };\n  return <div><Column {...config} /></div>;\n}\n"
+}

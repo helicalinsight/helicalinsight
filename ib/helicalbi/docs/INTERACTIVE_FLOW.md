@@ -1,6 +1,6 @@
 # Interactive Flow (`POST /interactive`)
 
-This document describes the end-to-end flow for the **interactive** chat endpoint implemented in [`bl/interactive.py`](../bl/interactive.py). It covers request handling, agent-file branching, LangGraph orchestration, SQL execution, visualization, response shaping, and all supported use cases.
+This document describes the end-to-end flow for the **interactive** chat endpoint implemented in [`bl/interactive.py`](../bl/interactive.py). It covers request handling, model-file branching, LangGraph orchestration, SQL execution, visualization, response shaping, and all supported use cases.
 
 ---
 
@@ -8,13 +8,13 @@ This document describes the end-to-end flow for the **interactive** chat endpoin
 
 The `/interactive` endpoint turns a natural-language question into:
 
-1. Resolved **domain** and **topics** (or reads them from the agent file)
+1. Resolved **domain** and **topics** (or reads them from the model file)
 2. Generated **SQL**
 3. Executed **data** and **metadata**
 4. A natural-language **insight** summary
 5. A **visualization** configuration
 
-The route is the main “ask a question, get SQL + chart + answer” entry point for the HelicalBI agent layer.
+The route is the main “ask a question, get SQL + chart + answer” entry point for the HelicalBI model layer.
 
 ---
 
@@ -23,24 +23,24 @@ The route is the main “ask a question, get SQL + chart + answer” entry point
 ```mermaid
 flowchart TD
     A[POST /interactive] --> B[Parse request + auth]
-    B --> C[Load agent semantic layer]
+    B --> C[Load model semantic layer]
     C --> D[Load metadata API: tables, joins, dialect]
-    D --> E{Agent has cube_info?}
+    D --> E{Model has cube_info?}
 
-    E -->|Yes| F[prepare_cube_info_agent_data]
+    E -->|Yes| F[prepare_cube_info_model_data]
     F --> F1[cube_metadata from dimensions/measures]
     F --> F2[business_metrics from measures]
-    F --> F3[domain + topics from agent file]
+    F --> F3[domain + topics from model file]
 
     E -->|No| G[prevalidate_cube_metadata]
-    G --> G1[Use agent cube_metadata if columns exist]
+    G --> G1[Use model cube_metadata if columns exist]
     G --> G2[Else fallback to metadata API tables]
 
-    F --> H[Build AgentState]
+    F --> H[Build ModelState]
     G --> H
     H --> I[Register requestId for cancellation]
 
-    I --> J{cube_info agent?}
+    I --> J{cube_info model?}
     J -->|Yes| K[CubeInfoFlow]
     J -->|No| L[main_graph]
 
@@ -63,19 +63,19 @@ flowchart TD
 flowchart LR
     subgraph Setup["Setup (bl/interactive.py)"]
         S1[resolve_session_auth]
-        S2[AgentLayerHelper]
+        S2[ModelLayerHelper]
         S3[get_json_data_metadata]
         S4[get_db_function_of_metadata]
         S5[get_last_n + add_message]
         S6[turn_state_defaults]
     end
 
-    subgraph Branch["Agent branch"]
+    subgraph Branch["Model branch"]
         B1[CubeInfoFlow]
         B2[main_graph]
     end
 
-    subgraph MainGraph["main_graph (legacy agents)"]
+    subgraph MainGraph["main_graph (legacy models)"]
         M1[UpdateIntentRephrase]
         M2[FindDomainAndTopics]
         M1 --> M2
@@ -104,7 +104,7 @@ flowchart LR
     subgraph PostSql["Post-SQL"]
         P1[SqlExecutor]
         P2[viz_graph]
-        P3[ChatResponse.from_agent_state]
+        P3[ChatResponse.from_model_state]
     end
 
     subgraph VizGraph["viz_graph"]
@@ -132,57 +132,57 @@ flowchart LR
 | Input field | Purpose |
 |-------------|---------|
 | `input.inputString` | User question |
-| `input.agent.file` / `input.agent.dir` | Agent semantic layer location |
+| `input.model.file` / `input.model.dir` | Model semantic layer location |
 | `input.chatid` | Chat thread id |
 | `input.chat_seq_id` | Turn id within the thread |
 | `input.last_chats` | Optional chat history fallback |
 | `requestId` | Optional cancellation key (query param or JSON) |
 | Session auth | `sessionCookie` + `username` |
 
-The handler resolves authentication, loads the agent file, and fetches the linked metadata definition (tables, joins, database name, dialect).
+The handler resolves authentication, loads the model file, and fetches the linked metadata definition (tables, joins, database name, dialect).
 
-### 2. Agent file detection and schema preparation
+### 2. Model file detection and schema preparation
 
-Two agent shapes are supported.
+Two model shapes are supported.
 
-#### A. Legacy agent (`cube_metadata`)
+#### A. Legacy model (`cube_metadata`)
 
-Used when the agent file has `cube_metadata` (and typically `topic_mappings`, `business_metrics`, `synonyms`, `examples`).
+Used when the model file has `cube_metadata` (and typically `topic_mappings`, `business_metrics`, `synonyms`, `examples`).
 
-- `prevalidate_cube_metadata()` keeps agent `cube_metadata` when it already lists columns.
-- If the agent only lists tables without columns, schema is **backfilled from the metadata API**.
+- `prevalidate_cube_metadata()` keeps model `cube_metadata` when it already lists columns.
+- If the model only lists tables without columns, schema is **backfilled from the metadata API**.
 
-#### B. Cube-info agent (`cube_info`)
+#### B. Cube-info model (`cube_info`)
 
-Used when `is_cube_info_agent()` finds a non-empty `cube_info` array with dimensions and/or measures.
+Used when `is_cube_info_model()` finds a non-empty `cube_info` array with dimensions and/or measures.
 
-`prepare_cube_info_agent_data()` produces:
+`prepare_cube_info_model_data()` produces:
 
 | Output | Source |
 |--------|--------|
 | `cube_metadata` | Converted from `cube_info` dimensions/measures; `tableId`/`columnId` resolved via metadata API |
-| `domain` / `topics` | Read directly from the agent `domain` block |
+| `domain` / `topics` | Read directly from the model `domain` block |
 | `business_metrics` | Derived from measures (`measureName`, `metric`, `formula`, `filter`, `aggregator`) merged with any top-level `business_metrics` |
 
 This path **skips LLM domain/topic discovery**.
 
-### 3. Agent state initialization
+### 3. Model state initialization
 
 `turn_state_defaults()` resets ephemeral per-turn fields (`sql`, `sql_result`, `visualization`, token usage, etc.).
 
 The state also carries:
 
 - `cube_metadata`, `relationship_of_table` (joins), `dialect`, `dbname`
-- `business_metrics` (cube_info path only, on state; legacy path loads from agent inside `SqlGenerator`)
+- `business_metrics` (cube_info path only, on state; legacy path loads from model inside `SqlGenerator`)
 - `last_chats` from `ChatManager.get_last_n(thread_id)` or request payload
 
 ### 4. Domain / intent branch
 
 ```mermaid
 flowchart TD
-    A[Agent state] --> B{cube_info?}
+    A[Model state] --> B{cube_info?}
     B -->|Yes| C[CubeInfoFlow]
-    C --> C1[domain/topics from agent file]
+    C --> C1[domain/topics from model file]
     C --> C2[action = none]
 
     B -->|No| D[main_graph]
@@ -210,7 +210,7 @@ flowchart TD
 
 1. `init_sql_state` — sets `sql = "Not generated"`
 2. If `state.skip` is true → skip SQL generation
-3. Else `run_sql_subgraph` → invokes `sql_graph` and folds results back into `AgentState`
+3. Else `run_sql_subgraph` → invokes `sql_graph` and folds results back into `ModelState`
 
 Inner SQL pipeline:
 
@@ -254,7 +254,7 @@ Unless `skip` is set:
 ### 8. Response assembly
 
 - SQL is pretty-printed and wrapped in a ` ```sql ` fence for the client
-- `ChatResponse.from_agent_state()` builds `chat_response` with `viz`, `sql`, `summary`, `data`, `metadata`, `token_usage`
+- `ChatResponse.from_model_state()` builds `chat_response` with `viz`, `sql`, `summary`, `data`, `metadata`, `token_usage`
 - `chat_graph_memory.add_node()` persists the turn for later load/insight flows
 
 ---
@@ -271,9 +271,9 @@ Unless `skip` is set:
     "inputString": "Show total travel cost by destination",
     "chatid": "thread-001",
     "chat_seq_id": 1,
-    "agent": {
-      "file": "travel-agent.json",
-      "dir": "/agents"
+    "model": {
+      "file": "travel-model.json",
+      "dir": "/models"
     }
   }
 }
@@ -320,11 +320,11 @@ Unless `skip` is set:
 
 ---
 
-## Agent file use cases
+## Model file use cases
 
-### UC-1: Full legacy semantic agent
+### UC-1: Full legacy semantic model
 
-**When:** Agent has `cube_metadata`, `topic_mappings`, `domain`, `business_metrics`, `synonyms`, `examples`.
+**When:** Model has `cube_metadata`, `topic_mappings`, `domain`, `business_metrics`, `synonyms`, `examples`.
 
 **Flow:** `main_graph` → full SQL pipeline → execute → visualize.
 
@@ -339,9 +339,9 @@ Unless `skip` is set:
 
 ---
 
-### UC-2: Bare-minimum legacy agent
+### UC-2: Bare-minimum legacy model
 
-**When:** Agent has `cube_metadata` but **no** `topic_mappings`.
+**When:** Model has `cube_metadata` but **no** `topic_mappings`.
 
 **Flow:** Same as UC-1, but `InformationProvider` and `GetContextForSQL` use **bare-minimum schema context** (all tables/columns listed for the LLM).
 
@@ -354,21 +354,21 @@ Unless `skip` is set:
 
 ---
 
-### UC-3: Legacy agent with empty cube columns (metadata API fallback)
+### UC-3: Legacy model with empty cube columns (metadata API fallback)
 
-**When:** Agent `cube_metadata` lists `database_table` but no `column_name` entries.
+**When:** Model `cube_metadata` lists `database_table` but no `column_name` entries.
 
 **Flow:** `prevalidate_cube_metadata()` replaces schema with metadata API tables/columns before graphs run.
 
 **Example question:** “Count rows in orders.”
 
-**Behavior:** Column discovery uses live metadata, not the sparse agent file.
+**Behavior:** Column discovery uses live metadata, not the sparse model file.
 
 ---
 
-### UC-4: Cube-info agent
+### UC-4: Cube-info model
 
-**When:** Agent has `cube_info` with `dimensions` and `measures` (see structure below).
+**When:** Model has `cube_info` with `dimensions` and `measures` (see structure below).
 
 **Flow:** `CubeInfoFlow` → SQL pipeline → execute → visualize. **No** `FindDomainAndTopics` LLM call.
 
@@ -415,11 +415,11 @@ Unless `skip` is set:
 
 - `tableId`/`columnId` resolved to physical names via metadata API
 - Measures become `business_metrics` for `FinalSqlGen`
-- Domain/topics taken from agent file as-is
+- Domain/topics taken from model file as-is
 
 ---
 
-### UC-5: Cube-info agent with formula/filter metrics
+### UC-5: Cube-info model with formula/filter metrics
 
 **When:** Measure or top-level `business_metrics` include `formula` and/or `filter` referencing tables/columns not listed in `tables`.
 
@@ -469,7 +469,7 @@ Unless `skip` is set:
 
 **When:** User asks an unrelated question in the same `chatid`.
 
-**Behavior:** Intent rephrase keeps the raw query; domain/topics rediscovered (legacy) or re-read from agent (cube_info).
+**Behavior:** Intent rephrase keeps the raw query; domain/topics rediscovered (legacy) or re-read from model (cube_info).
 
 ---
 
@@ -537,7 +537,7 @@ Used by intent rephrase, column detection, and SQL generation prompts.
 |------|------|
 | HTTP route | [`bl/interactive.py`](../bl/interactive.py) |
 | Cancellation | [`bl/abort.py`](../bl/abort.py) |
-| Cube-info detection/conversion | [`helicalbi/common/CubeInfoAgent.py`](../helicalbi/common/CubeInfoAgent.py) |
+| Cube-info detection/conversion | [`helicalbi/common/CubeInfoModel.py`](../helicalbi/common/CubeInfoModel.py) |
 | Cube-info flow | [`helicalbi/core/flows/CubeInfoFlow.py`](../helicalbi/core/flows/CubeInfoFlow.py) |
 | Legacy main graph | [`helicalbi/core/flows/MainFlowGraph.py`](../helicalbi/core/flows/MainFlowGraph.py) |
 | SQL wrapper graph | [`helicalbi/core/flows/SqlGenerator.py`](../helicalbi/core/flows/SqlGenerator.py) |
@@ -556,9 +556,9 @@ Used by intent rephrase, column detection, and SQL generation prompts.
 |----------|--------------|
 | `POST /abort` | Cancels in-flight `/interactive` by `requestId` |
 | `POST /loadChat` | Loads persisted chat graph memory |
-| `POST /suggestDomain` | Returns suggested domain from agent file |
+| `POST /suggestDomain` | Returns suggested domain from model file |
 | `POST /topNQuestion` | KPI suggestions using business metrics context |
-| `POST /getSemanticData` | Builds blank semantic layer from metadata (agent authoring) |
+| `POST /getSemanticData` | Builds blank semantic layer from metadata (model authoring) |
 
 ---
 
@@ -568,7 +568,7 @@ Integration tests for the route live in [`tests/integration/test_app_routes.py`]
 
 Functional tests for cube-info and business-metric matching:
 
-- [`tests/functional/test_cube_info_agent.py`](../tests/functional/test_cube_info_agent.py)
+- [`tests/functional/test_cube_info_model.py`](../tests/functional/test_cube_info_model.py)
 - [`tests/functional/test_business_metric_matcher.py`](../tests/functional/test_business_metric_matcher.py)
 
 See also [`TESTING.md`](../TESTING.md) for how to run the test suite.

@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Ranked comparison or long category labels need space.",
+  "aliases": [
+    "bar chart",
+    "horizontal bar",
+    "horizontal bar chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Bar (horizontal). Config: xField=measure, yField=category; seriesField + isGroup|isStack if multi-series.\nPolish: autoFit; axis titles from fields; legend top-left only if series; label left when <=12 cats else omit; maxBarWidth~40; interactions element-active; muted grid; no decorative junk.",
+  "code": "\nfunction DrawBar() {\n  const { Bar } = components;\n  const config = {\n    data,\n    xField: \"measure_column\",\n    yField: \"dimension_column\",\n    title: {\n      visible: true,\n      text: \"title_text\",\n      align: \"center\"\n    },\n    xAxis: {\n      title: {\n        text: \"Label for measure axis\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"Label for dimension axis\"\n      }\n    },\n    seriesField: \"series_field\",\n    legend: {\n      position: \"top-left\"\n    }\n  };\n  return <div><Bar {...config} /></div>;\n}\n"
+}

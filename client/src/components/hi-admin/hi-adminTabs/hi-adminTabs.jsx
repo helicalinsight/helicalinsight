@@ -19,6 +19,7 @@ import {
   HIAdfs,
   HIRecycleBin
 } from "..";
+import TokenUsageDashboard from "../components/hi-management/Components/TokenUsage/TokenUsageDashboard";
 import "./hi-adminTabs.scss";
 
 const { adminHomeUrl } = routesUrl;
@@ -90,6 +91,11 @@ const HIAdminTabs = () => {
       tab: "Plugins",
       tabPath: "/plugins",
       tutorialElementKey: "hi-plugins",
+    },
+    {
+      tab: "Audit",
+      tabPath: "/audit",
+      tutorialElementKey: "hi-audit",
     }
   ];
 
@@ -145,7 +151,7 @@ const HIAdminTabs = () => {
                     "menu-first-item":
                       eachData.tab === "Overview" ||
                       (organization && eachData.tab === "User Management"),
-                    "menu-last-item": eachData.tab === "Plugins" || eachData.tab === "Adfs",
+                    "menu-last-item": eachData.tab === "Audit" || eachData.tab === "Adfs",
                   })}
                 >
                   <NavLink
@@ -183,6 +189,9 @@ const HIAdminTabs = () => {
           </Route>
           <Route path={`${path}/plugins`}>
             <HIPlugins apiRef={apiRef} handleAbort={handleAbort} />
+          </Route>
+          <Route path={`${path}/audit`}>
+            <TokenUsageDashboard apiRef={apiRef} handleAbort={handleAbort} />
           </Route>
           <Route path={`${path}/schedule`}>
             <HIScheduling apiRef={apiRef} handleAbort={handleAbort} />
