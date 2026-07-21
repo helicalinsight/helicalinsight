@@ -25,15 +25,15 @@
         <hwfd>hwfd</hwfd>
         <hcr rule="com.helicalinsight.efw.resourceloader.rules.impl.HCRRule" visible="true">hcr</hcr>
         <metadata rule="com.helicalinsight.efw.resourceloader.rules.impl.MetadataRule" visible="true">metadata</metadata>
-        <report rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="true">report</report>
+        <report rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="false">report</report>
         <hr rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="true">hr</hr>
         <efwScript visible="false">script</efwScript>
         <efwdd rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardDesignerRule" visible="true">efwdd</efwdd>
         <efwce rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardRule" visible="true">efwce</efwce>
         <cube rule="com.helicalinsight.efw.resourceloader.rules.impl.CubeRule" visible="true">cube</cube>
         <instant rule="com.helicalinsight.efw.resourceloader.rules.impl.InstantRule" visible="true">instant</instant>
-        <agent rule="com.helicalinsight.efw.resourceloader.rules.impl.AiAgentRule" visible="true">agent</agent>
-        <hwf visible="true">hwf</hwf>
+        <model rule="com.helicalinsight.efw.resourceloader.rules.impl.AiAgentRule" visible="true">model</model>
+        <hwf visible="false">hwf</hwf>
         <folder visible="true">
             <efwFolder rule="com.helicalinsight.efw.resourceloader.rules.impl.IndexFileRuleDB">efwfolder</efwFolder>
         </folder>
@@ -59,6 +59,7 @@
         <xml name="services.xml" type="services"/>
         <xml name="components.xml" type="components"/>
         <xml name="globalConnections.xml" type="globalConnections"/>
+        <xml name="systemschedule.xml" type="system"/>
     </import>
     <!-- The following tag is read as string and should be without any attributes-->
     <enableSavedResult>false</enableSavedResult>
@@ -413,6 +414,7 @@
         <job class="com.helicalinsight.scheduling.EnhancedScheduleJob" type="hr"/>
         <job class="com.helicalinsight.scheduling.EnhancedHwfScheduler" type="hwf"/>
         <job class="com.helicalinsight.scheduling.EnhancedHCRScheduler" type="hcr"/>
+        <job class="com.helicalinsight.scheduling.SystemScheduleLoader" type="system"/>
     </schedule>
 
     <DataMaps>
@@ -556,6 +558,7 @@
         <bean name="applicationDefaultUsersInitializer"></bean>
         <bean name="dataSourceMigrator"></bean>
         <bean name="initializeScheduleData"></bean>
+        <bean name="initializeSystemScheduleData"></bean>
         <bean name="hIPhasesInitializer"></bean>
     </loadOrder>
 

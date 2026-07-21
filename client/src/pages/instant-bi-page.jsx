@@ -1,4 +1,3 @@
-import { UserOutlined } from "@ant-design/icons";
 import { Skeleton } from "antd";
 import { isEqual } from "lodash-es";
 import React, { useEffect, useRef, useState } from "react";
@@ -9,6 +8,7 @@ import { ShareFinalModal } from "../components/hi-fileBrowser/components";
 import SaveItems from "../components/hi-fileBrowser/SaveItems";
 import getInstantBIOpenTaskbarItems from "../components/hi-instant-bi/instant-bi-open-taskbar-items";
 import getInstantBITaskBarItems from "../components/hi-instant-bi/instant-bi-taskbar-items";
+import { CustomIcon } from "../components/common/custom-icons/CustomIcon";
 import {
   fetchInstantBIReportAPI,
   connectAgentToReport,
@@ -251,7 +251,7 @@ const HIInstantBI = (props) => {
   useEffect(() => {
     if (
       isEditMode &&
-      editModeInfo?.extension === "agent" &&
+      editModeInfo?.extension === "model" &&
       editModeInfo?.action === AGENT_INTERACT_ACTION
     ) {
       dispatch((thunkDispatch, getState) => {
@@ -289,16 +289,16 @@ const HIInstantBI = (props) => {
           { id: "opn", merge: true, hide: true },
           { id: "onw", merge: true, hide: true },
           {
-            name: "Use This Agent",
+            name: "Use This Semantic Model",
             types: ["file"],
-            icon: <UserOutlined />,
-            extensions: ["agent"],
+            icon: <CustomIcon name="Cube" />,
+            extensions: ["model"],
             callback: storeMetadata,
             id: "use",
           },
         ],
       },
-      extensionOptions: ["agent"],
+      extensionOptions: ["model"],
     });
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };

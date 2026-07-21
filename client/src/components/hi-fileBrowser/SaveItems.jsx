@@ -13,6 +13,7 @@ const SaveItems = ({
   saveButtonText,
   cancelButtonText,
   inputValue,
+  onNameChange,
   validateName = null
 }) => {
   const dispatch = useDispatch();
@@ -33,6 +34,17 @@ const SaveItems = ({
       inputFocus.current.focus();
     }
   }, []);
+
+  useEffect(() => {
+    const nextValue = inputValue || "";
+    setDefaultInput(nextValue);
+    saveForm.current?.setFieldsValue?.({ name: nextValue });
+  }, [inputValue]);
+
+  const handleNameChange = (value) => {
+    setDefaultInput(value);
+    onNameChange?.(value);
+  };
 
   const onCancelClick = () => dispatch(fileBrowserActions.setShowFileBrowser(false));
   const saveToRedux = (savedFile) => {
@@ -103,7 +115,7 @@ const SaveItems = ({
           <Input
             value={defaultInput}
             ref={inputFocus}
-            onChange={(e) => setDefaultInput(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
           />
         </Form.Item>
         <Form.Item>

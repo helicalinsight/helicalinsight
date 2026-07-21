@@ -81,7 +81,8 @@ class HikariConfigurer {
 
         hikariConfig.setConnectionTestQuery(hikariProperties.getConnectionTestQuery());
         hikariConfig.setPoolName(hikariProperties.getPoolName());
-        String driverName = JsonUtils.getKeyFromJson(json, "driverName");
+        String driverName = com.helicalinsight.efw.utility.DriverClassCompat.normalize(
+                JsonUtils.getKeyFromJson(json, "driverName"));
         hikariConfig.setDriverClassName(driverName);
 
         try {

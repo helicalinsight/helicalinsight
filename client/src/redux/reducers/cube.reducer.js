@@ -13,6 +13,13 @@ import {
 	uniqueHierarchyTitle
 } from '../../components/hi-cube/helperMethods';
 import { cubeEditorMeasureData } from '../../components/hi-cube/cubeConstants';
+import {
+	addBusinessTopicAssignment,
+	clearBusinessTopicsMatching,
+	remapBusinessTopicDomain,
+	remapBusinessTopicName,
+	removeBusinessTopicAssignment
+} from '../../components/hi-cube/agentBusinessTopicMembership';
 // import tutorialItems from "../../components/common/hi-tutorial/tutorial-items";
 
 export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
@@ -278,7 +285,7 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 			return { ...state, cubeVisibleIndeterminate: cloneDeep(action.payload) };
 		}
 		case actionTypes.CUBE_FIELDS_DATA: {
-			const { mode, title, child, value, key } = action.payload;
+			const { mode, title, child, value, key, field, domain } = action.payload;
 			if (mode === 'reset') {
 				return {
 					...state,
@@ -287,8 +294,289 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 						domainName: '',
 						cubeDescription: '',
 						children: [],
+						businessViewEntries: [],
 						key: '',
 						hierarchyData: { isHierarchyPresent: false, hierarchyList: [] }
+					}
+				};
+			} else if (mode === 'addBusinessEntry') {
+				const initialTopics = Array.isArray(action.payload.topics)
+					? action.payload.topics
+					: [{ key: uuidv4(), name: '', description: '' }];
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: [
+							...(state.cubeFieldsData.businessViewEntries || []),
+							{
+								key: uuidv4(),
+								domain: domain ?? '',
+								businessDescription: '',
+								topics: initialTopics
+							}
+						]
+					}
+				};
+			} else if (mode === 'updateBusinessEntry') {
+				const entries = state.cubeFieldsData.businessViewEntries || [];
+				const previous = entries.find((entry) => entry.key === key);
+				const nextEntries = entries.map((entry) =>
+					entry.key === key ? { ...entry, [field]: value } : entry
+				);
+				let nextChildren = state.cubeFieldsData.children || [];
+				if (field === 'domain' && previous) {
+					const oldDomain = (previous.domain || '').trim();
+					const nextDomain = (value || '').trim();
+					const remapDomain = (nodes = []) =>
+						nodes.map((child) => {
+							const nextChild = remapBusinessTopicDomain(
+								child,
+								oldDomain,
+								nextDomain
+							);
+							if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+								return {
+									...nextChild,
+									children: remapDomain(nextChild.children)
+								};
+							}
+							return nextChild;
+						});
+					nextChildren = remapDomain(nextChildren);
+				}
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: nextEntries,
+						children: nextChildren
+					}
+				};
+			} else if (mode === 'addBusinessTopic') {
+				const topicName = action.payload.name ?? '';
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: (state.cubeFieldsData.businessViewEntries || []).map((entry) =>
+							entry.key === key
+								? {
+										...entry,
+										topics: [
+											...(entry.topics || []),
+											{ key: uuidv4(), name: topicName, description: '' }
+										]
+								  }
+								: entry
+						)
+					}
+				};
+			} else if (mode === 'updateBusinessTopic') {
+				const { topicKey } = action.payload;
+				const entries = state.cubeFieldsData.businessViewEntries || [];
+				const parentEntry = entries.find((entry) => entry.key === key);
+				const previousTopic = (parentEntry?.topics || []).find(
+					(topic) => topic.key === topicKey
+				);
+				const nextEntries = entries.map((entry) =>
+					entry.key === key
+						? {
+								...entry,
+								topics: (entry.topics || []).map((topic) =>
+									topic.key === topicKey ? { ...topic, [field]: value } : topic
+								)
+						  }
+						: entry
+				);
+				let nextChildren = state.cubeFieldsData.children || [];
+				if (field === 'name' && previousTopic && parentEntry) {
+					const domainName = (parentEntry.domain || '').trim();
+					const oldTopic = (previousTopic.name || '').trim();
+					const nextTopic = (value || '').trim();
+					const remapTopic = (nodes = []) =>
+						nodes.map((child) => {
+							const nextChild = remapBusinessTopicName(
+								child,
+								domainName,
+								oldTopic,
+								nextTopic
+							);
+							if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+								return {
+									...nextChild,
+									children: remapTopic(nextChild.children)
+								};
+							}
+							return nextChild;
+						});
+					nextChildren = remapTopic(nextChildren);
+				}
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: nextEntries,
+						children: nextChildren
+					}
+				};
+			} else if (mode === 'deleteBusinessTopic') {
+				const { topicKey } = action.payload;
+				const entries = state.cubeFieldsData.businessViewEntries || [];
+				const parentEntry = entries.find((entry) => entry.key === key);
+				const removedTopic = (parentEntry?.topics || []).find(
+					(topic) => topic.key === topicKey
+				);
+				const domainName = (parentEntry?.domain || '').trim();
+				const topicName = (removedTopic?.name || '').trim();
+				const clearTopic = (nodes = []) =>
+					nodes.map((child) => {
+						const nextChild =
+							domainName && topicName
+								? removeBusinessTopicAssignment(child, domainName, topicName)
+								: child;
+						if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+							return {
+								...nextChild,
+								children: clearTopic(nextChild.children)
+							};
+						}
+						return nextChild;
+					});
+				const nextChildren = clearTopic(state.cubeFieldsData.children || []);
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: entries.map((entry) =>
+							entry.key === key
+								? {
+										...entry,
+										topics: (entry.topics || []).filter((topic) => topic.key !== topicKey)
+								  }
+								: entry
+						),
+						children: nextChildren
+					}
+				};
+			} else if (mode === 'deleteBusinessEntry') {
+				const entries = state.cubeFieldsData.businessViewEntries || [];
+				const removed = entries.find((entry) => entry.key === key);
+				const domainName = (removed?.domain || '').trim();
+				const topicNames = new Set(
+					(removed?.topics || [])
+						.map((topic) => (topic.name || '').trim())
+						.filter(Boolean)
+				);
+				const clearDomain = (nodes = []) =>
+					nodes.map((child) => {
+						const nextChild = domainName
+							? clearBusinessTopicsMatching(
+									child,
+									(assignment) =>
+										assignment.domain === domainName &&
+										(!topicNames.size || topicNames.has(assignment.topic))
+							  )
+							: child;
+						if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+							return {
+								...nextChild,
+								children: clearDomain(nextChild.children)
+							};
+						}
+						return nextChild;
+					});
+				const nextChildren = clearDomain(state.cubeFieldsData.children || []);
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						businessViewEntries: entries.filter((entry) => entry.key !== key),
+						children: nextChildren
+					}
+				};
+			} else if (mode === 'assignChildToBusinessTopic') {
+				const { childKey, childKeys, domain: nextDomain, topic: nextTopic } =
+					action.payload;
+				const keysToAssign = new Set(
+					Array.isArray(childKeys) && childKeys.length
+						? childKeys
+						: childKey
+							? [ childKey ]
+							: []
+				);
+				if (!keysToAssign.size) {
+					return state;
+				}
+				const assignOnTree = (nodes = []) =>
+					nodes.map((child) => {
+						const nextChild = keysToAssign.has(child.key)
+							? addBusinessTopicAssignment(child, nextDomain, nextTopic)
+							: child;
+						if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+							return {
+								...nextChild,
+								children: assignOnTree(nextChild.children)
+							};
+						}
+						return nextChild;
+					});
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						children: assignOnTree(state.cubeFieldsData.children || [])
+					}
+				};
+			} else if (mode === 'clearChildBusinessTopic') {
+				const {
+					childKey,
+					childKeys,
+					domain: clearDomainName,
+					topic: clearTopicName
+				} = action.payload;
+				const keysToClear = new Set(
+					Array.isArray(childKeys) && childKeys.length
+						? childKeys
+						: childKey
+							? [ childKey ]
+							: []
+				);
+				if (!keysToClear.size) {
+					return state;
+				}
+				const clearOnTree = (nodes = []) =>
+					nodes.map((child) => {
+						let nextChild = child;
+						if (keysToClear.has(child.key)) {
+							if (clearDomainName && clearTopicName) {
+								nextChild = removeBusinessTopicAssignment(
+									child,
+									clearDomainName,
+									clearTopicName
+								);
+							} else {
+								nextChild = {
+									...child,
+									businessTopics: [],
+									domain: '',
+									topic: ''
+								};
+							}
+						}
+						if (nextChild.isHierarchy && Array.isArray(nextChild.children)) {
+							return {
+								...nextChild,
+								children: clearOnTree(nextChild.children)
+							};
+						}
+						return nextChild;
+					});
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						children: clearOnTree(state.cubeFieldsData.children || [])
 					}
 				};
 			} else if (mode === 'setChild') {
@@ -483,13 +771,16 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 					} else {
 						if (selectedHierarchy === ele.fields) {
 							if (!ele.isHierarchy) {
+								const levelColumnId = ele.columnId;
 								ele = {
 									key: ele.key,
 									fields: ele.fields,
 									isHierarchy: true,
 									fieldsDropdownOpen: false,
 									tableId: ele.tableId,
-									columnId: ele.columnId,
+									// Hierarchy identity is generated (same pattern as manual metric columnId),
+									// while the first level keeps the original metadata columnId.
+									columnId: uuidv4(),
 									resHierarchyId: ele.resHierarchyId,
 									resDimensionId: ele.resDimensionId,
 									table: ele.table,
@@ -501,6 +792,7 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 										{
 											...ele,
 											key: uuidv4(),
+											columnId: levelColumnId,
 											fieldsDropdownOpen: false,
 											isHierarchyChild: true,
 											parentKey: ele.key
@@ -540,6 +832,16 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 							parentKey: hierarchyRecord.key
 						});
 					});
+				}
+				// If an older hierarchy still reused a level's metadata columnId, regenerate identity.
+				if (hierarchyRecord?.isHierarchy) {
+					const firstLevelColumnId = hierarchyRecord.children?.[0]?.columnId;
+					if (
+						!hierarchyRecord.columnId ||
+						hierarchyRecord.columnId === firstLevelColumnId
+					) {
+						hierarchyRecord.columnId = uuidv4();
+					}
 				}
 			}
 			return {

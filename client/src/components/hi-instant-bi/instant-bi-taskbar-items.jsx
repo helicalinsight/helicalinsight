@@ -1,5 +1,6 @@
-import { SaveOutlined, SaveFilled, LoadingOutlined, EyeOutlined, TableOutlined, LayoutOutlined, CheckOutlined, UndoOutlined, RedoOutlined, SettingOutlined, UserOutlined, FolderOpenOutlined } from "@ant-design/icons";
+import { SaveOutlined, SaveFilled, LoadingOutlined, EyeOutlined, TableOutlined, LayoutOutlined, CheckOutlined, UndoOutlined, RedoOutlined, SettingOutlined, FolderOpenOutlined } from "@ant-design/icons";
 import HIIcon from "../common/icons/hi-icons";
+import { CustomIcon } from "../common/custom-icons/CustomIcon";
 import { updateInstantBILayout } from "../../redux/actions/instant-bi.actions";
 import "./index.scss"
 const getInstantBITaskBarItems = ({
@@ -90,9 +91,13 @@ const getInstantBITaskBarItems = ({
       callBack: openInstantFileBrowser,
     },
     {
-      tooltip: 'Connect Agent',
+      tooltip: 'Connect Semantic Model',
       tutorialKey: 'hi-instant-bi-metadata',
-      icon: <UserOutlined className={!isMetadataPresent ? "" : "instant-bi-metadata-selected"} />,
+      icon: (
+        <span className={!isMetadataPresent ? "" : "instant-bi-metadata-selected"}>
+          <CustomIcon name="Cube" />
+        </span>
+      ),
       callBack: openFileBrowser
     },
     {

@@ -6,6 +6,7 @@ import {
   CUBE_FIELD_SEMANTIC_MENU_KEY,
   CUBE_FIELD_MENU_TEXT_KEYS,
   commitCubeFieldSemanticDraft,
+  applyFieldMeasureRoleChange,
   cubeEditorMeasureData,
   CubeFieldsMenu,
   cubeSortMenu,
@@ -13,6 +14,15 @@ import {
   cubeAggregationMenu,
 } from "../../components/hi-cube/cubeConstants";
 import { updateFieldValues, modifyHierarchy } from "../../redux/actions/cube.actions";
+import { getDefaultSemanticTypeForRole } from "../../components/hi-cube/cubeSemanticTypeField";
+
+jest.mock("../../components/hi-cube/cubeEditorContext", () => ({
+  useCubeEditorBindings: () => ({
+    cubeState: {},
+    dispatch: jest.fn(),
+    variant: "cube",
+  }),
+}));
 
 const baseRecord = {
   key: "record-1",
@@ -48,6 +58,7 @@ describe("cubeConstants", () => {
       ]);
       expect(CUBE_FIELD_SEMANTIC_MENU_KEY).toBe("semantic-fields");
       expect(CUBE_FIELD_MENU_TEXT_KEYS).toContain(CUBE_FIELD_SEMANTIC_MENU_KEY);
+      expect(CUBE_FIELD_MENU_TEXT_KEYS).toContain("agent-role-options");
     });
 
     it("it should defines measure editor data types and formats", () => {
@@ -55,6 +66,100 @@ describe("cubeConstants", () => {
         { dataType: "Number", format: ["0.00", "00.00"] },
         { dataType: "Date", format: ["DD-MM-YY", "YYYY-MM-DD"] },
       ]);
+    });
+  });
+
+  describe("applyFieldMeasureRoleChange", () => {
+    it("updates semantic type to Number when converting to measure in agent variant", () => {
+      const dispatch = jest.fn();
+      const record = {
+        ...baseRecord,
+        semanticType: "Text",
+        measure: { isMeasureCheck: false, DataType: "", Format: "" },
+        isDimensionCheck: true,
+      };
+      const semanticTypeOptions = [
+        {
+          label: "Numeric",
+          value: "NUMERIC",
+          options: [{ label: "Number", value: "NUMBER" }],
+        },
+      ];
+
+      applyFieldMeasureRoleChange(
+        dispatch,
+        record,
+        true,
+        "agent",
+        semanticTypeOptions,
+      );
+
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "semanticType",
+          checkVal: "Number",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+    });
+
+    it("updates semantic type to Text when converting to dimension in agent variant", () => {
+      const dispatch = jest.fn();
+      const record = {
+        ...baseRecord,
+        semanticType: "Number",
+        measure: { isMeasureCheck: true, DataType: "Number", Format: "0.00" },
+      };
+      const semanticTypeOptions = [
+        {
+          label: "Categorical",
+          value: "CATEGORICAL",
+          options: [{ label: "Text", value: "TEXT" }],
+        },
+      ];
+
+      applyFieldMeasureRoleChange(
+        dispatch,
+        record,
+        false,
+        "agent",
+        semanticTypeOptions,
+      );
+
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "semanticType",
+          checkVal: "Text",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+    });
+
+    it("uses cube semantic type defaults for cube variant", () => {
+      expect(getDefaultSemanticTypeForRole(true, "cube")).toBe("numeric");
+      expect(getDefaultSemanticTypeForRole(false, "cube")).toBe("text");
+      expect(
+        getDefaultSemanticTypeForRole(true, "agent", [
+          {
+            label: "Numeric",
+            value: "NUMERIC",
+            options: [{ label: "Number", value: "NUMBER" }],
+          },
+        ]),
+      ).toBe("Number");
+      expect(
+        getDefaultSemanticTypeForRole(false, "agent", [
+          {
+            label: "Categorical",
+            value: "CATEGORICAL",
+            options: [{ label: "Text", value: "TEXT" }],
+          },
+        ]),
+      ).toBe("Text");
     });
   });
 
@@ -103,7 +208,7 @@ describe("cubeConstants", () => {
   describe("cubeSortMenu", () => {
     it("it shoould dispatches sort value when a sort option is chosen", () => {
       const dispatch = jest.fn();
-      const record = { ...baseRecord, sort: { isSortCheck: true, value: "None" } };
+      const record = { ...baseRecord, sort: { isSortCheck: false, value: "Natural" } };
       render(cubeSortMenu({ dispatch, record }));
       fireEvent.click(screen.getByText("Descending"));
       expect(dispatch).toHaveBeenCalledWith(
@@ -111,6 +216,25 @@ describe("cubeConstants", () => {
           updateName: "sort",
           key: "value",
           value: "Descending",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+    });
+
+    it("shows Natural instead of None and disables explicit sorting", () => {
+      const dispatch = jest.fn();
+      const record = { ...baseRecord, sort: { isSortCheck: true, value: "Ascending" } };
+      render(cubeSortMenu({ dispatch, record }));
+
+      expect(screen.queryByText("None")).not.toBeInTheDocument();
+      fireEvent.click(screen.getByText("Natural"));
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "sort",
+          key: "isSortCheck",
+          value: false,
           recordKey: record.key,
           isHierarchyChild: record.isHierarchyChild,
           hierarchyKey: record.parentKey,
@@ -139,6 +263,42 @@ describe("cubeConstants", () => {
           updateName: "aggregation",
           key: "value",
           value: "Avg",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+    });
+
+    it("includes None and clears aggregation behavior", () => {
+      const dispatch = jest.fn();
+      const record = {
+        ...baseRecord,
+        aggregation: { isAggregationCheck: true, value: "Sum" },
+      };
+      render(
+        cubeAggregationMenu({
+          dispatch,
+          record,
+          hierarchyData: emptyHierarchyData,
+        }),
+      );
+
+      fireEvent.click(screen.getByText("None"));
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "aggregation",
+          key: "isAggregationCheck",
+          value: false,
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "defaultFunction",
+          checkVal: "db.generic.aggregate.none",
           recordKey: record.key,
           isHierarchyChild: record.isHierarchyChild,
           hierarchyKey: record.parentKey,
@@ -219,42 +379,12 @@ describe("cubeConstants", () => {
           hierarchyData={emptyHierarchyData}
         />,
       );
-      expect(screen.getByDisplayValue("[Year]")).toBeDisabled();
       commitCubeFieldSemanticDraft({
         dispatch,
         record: hierarchyChildRecord,
         draft: { formula: "new", filter: "", example: "", description: "" },
       });
       expect(dispatch).not.toHaveBeenCalled();
-    });
-
-    it("should registers semanticCommitsRef callback that commits draft changes", () => {
-      const dispatch = jest.fn();
-      const semanticCommitsRef = { current: new Map() };
-      const record = { ...baseRecord, formula: "", description: "" };
-      const { container } = render(
-        <CubeFieldsMenu
-          dispatch={dispatch}
-          record={record}
-          hierarchyData={emptyHierarchyData}
-          semanticCommitsRef={semanticCommitsRef}
-        />,
-      );
-      expect(typeof semanticCommitsRef.current.get(record.key)).toBe("function");
-      const formulaInput = container.querySelector(
-        'textarea[placeholder="Add Formula. Ex: [Measures]."]',
-      );
-      fireEvent.change(formulaInput, { target: { value: "SUM([Amount])" } });
-      semanticCommitsRef.current.get(record.key)();
-      expect(dispatch).toHaveBeenCalledWith(
-        updateFieldValues({
-          updateName: "formula",
-          checkVal: "SUM([Amount])",
-          recordKey: record.key,
-          isHierarchyChild: record.isHierarchyChild,
-          hierarchyKey: record.parentKey,
-        }),
-      );
     });
   });
 });

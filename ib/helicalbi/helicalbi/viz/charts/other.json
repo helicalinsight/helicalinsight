@@ -1,0 +1,16 @@
+{
+  "dims_min": 0,
+  "dims_max": null,
+  "measures_min": 0,
+  "measures_max": null,
+  "instruction": "Only when no listed type can represent the request.",
+  "aliases": [
+    "custom",
+    "fallback",
+    "custom chart"
+  ],
+  "requires_ordered": false,
+  "base": "other",
+  "instructions": "Fallback chart. Choose best @ant-design/charts@1.4.2 plot for viz_hint.\nPolish: autoFit; axis titles; legend only if series/color; labels if <=12 cats; interactions; professional muted palette; no unused props.",
+  "code": "\nfunction DrawOther() {\n  const { ChartComponent } = components;\n  const { getTooltip, enableInteractivity, getPropertiesConfig } = helperFunctions;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const config = {\n    data,\n    xField: dimensionField,\n    yField: measureField,\n    xAxis: {\n      title: {\n        text: dimensionField\n      }\n    },\n    yAxis: {\n      title: {\n        text: measureField\n      }\n    },\n    label: {\n      position: \"middle\",\n      content: (item) => item[measureField]\n    },\n    legend: {\n      position: \"top-left\"\n    },\n  \n  };\n  return <div><ChartComponent {...config} /></div>;\n}\n"
+}

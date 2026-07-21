@@ -1,7 +1,7 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { CubeSidebar } from "../../components/hi-cube/CubeSidebar";
+import { CubeSidebar } from "../../components/hi-cube/cubeSidebar";
 import { HIFileBrowser } from "../../components";
 import { ShareFinalModal } from "../../components/hi-fileBrowser/components";
 import hiMetadataArea from "../../components/hi-sidebar/hr-hreportSidebar/hi-metadata-area";

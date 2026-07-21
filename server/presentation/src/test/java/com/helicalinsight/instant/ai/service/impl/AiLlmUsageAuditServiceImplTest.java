@@ -37,7 +37,7 @@ public class AiLlmUsageAuditServiceImplTest {
     public void executePersistsAuditWhenPayloadIsValid() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        String body = "{\"username\":\"tester\",\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
+        String body = "{\"userId\":42,\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
                 + "\"tokenUsage\":{\"input_tokens\":10,\"output_tokens\":5,\"total_tokens\":15},"
                 + "\"requestStatus\":\"SUCCESS\"}";
         when(request.getReader()).thenReturn(new BufferedReader(new StringReader(body)));
@@ -48,7 +48,8 @@ public class AiLlmUsageAuditServiceImplTest {
              MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
              MockedStatic<ApplicationContextAccessor> context = mockStatic(ApplicationContextAccessor.class)) {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
-            auth.when(AuthenticationUtils::getUserName).thenReturn("tester");
+            auth.when(AuthenticationUtils::getUserId).thenReturn("42");
+            auth.when(AuthenticationUtils::getLoggedInUserOrganizationId).thenReturn(1);
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 
@@ -66,7 +67,7 @@ public class AiLlmUsageAuditServiceImplTest {
     public void executeSkipsPersistWhenTotalTokensAreZero() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        String body = "{\"username\":\"tester\",\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
+        String body = "{\"userId\":42,\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
                 + "\"tokenUsage\":{\"total_tokens\":0},\"requestStatus\":\"SUCCESS\"}";
         when(request.getReader()).thenReturn(new BufferedReader(new StringReader(body)));
 
@@ -76,7 +77,7 @@ public class AiLlmUsageAuditServiceImplTest {
              MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
              MockedStatic<ApplicationContextAccessor> context = mockStatic(ApplicationContextAccessor.class)) {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
-            auth.when(AuthenticationUtils::getUserName).thenReturn("tester");
+            auth.when(AuthenticationUtils::getUserId).thenReturn("42");
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 
@@ -91,10 +92,10 @@ public class AiLlmUsageAuditServiceImplTest {
     }
 
     @Test
-    public void executeRejectsUsernameMismatch() throws Exception {
+    public void executeRejectsUserIdMismatch() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        String body = "{\"username\":\"alice\",\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
+        String body = "{\"userId\":99,\"endpoint\":\"/interactive\",\"userQuery\":\"show sales\","
                 + "\"tokenUsage\":{\"total_tokens\":10},\"requestStatus\":\"SUCCESS\"}";
         when(request.getReader()).thenReturn(new BufferedReader(new StringReader(body)));
 
@@ -104,7 +105,7 @@ public class AiLlmUsageAuditServiceImplTest {
              MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
              MockedStatic<ApplicationContextAccessor> context = mockStatic(ApplicationContextAccessor.class)) {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
-            auth.when(AuthenticationUtils::getUserName).thenReturn("tester");
+            auth.when(AuthenticationUtils::getUserId).thenReturn("42");
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 

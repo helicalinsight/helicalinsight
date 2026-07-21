@@ -181,7 +181,7 @@ export const admin_data = {
     overviewItems: [
       "To run applications distributed across a cluster, DICE requires a cluster manager.",
       "DICE requires atleast Java 8+",
-      "The master URL passed to Spark can be in one of the following formats: spark://192.168.0.5:8899",
+      "The master URL passed to Spark can be in one of the following formats: spark://127.0.0.1:8899",
       "Configuration tab: Helps you to add configuration. You may also override an existing configuration",
       "Advanced tab- This tab helps you to start stop services related to Master, Worker, Application and JDBC driver",
     ],
@@ -1222,7 +1222,7 @@ export const export_data = {
     overviewItems: [
       "To run applications distributed across a cluster, DICE requires a cluster manager.",
       "DICE requires atleast Java 8+",
-      "The master URL passed to Spark can be in one of the following formats: spark://192.168.0.5:8899",
+      "The master URL passed to Spark can be in one of the following formats: spark://127.0.0.1:8899",
       "Configuration tab: Helps you to add configuration. You may also override an existing configuration",
       "Advanced tab- This tab helps you to start stop services related to Master, Worker, Application and JDBC driver",
     ],

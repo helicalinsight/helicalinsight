@@ -21,27 +21,88 @@ export function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+const normalizeDomainTopic = (topicEntry) => {
+  if (typeof topicEntry === "string") {
+    const topic = topicEntry.trim();
+    return topic ? { topic, description: "" } : null;
+  }
+  if (!topicEntry || typeof topicEntry !== "object") {
+    return null;
+  }
+  if (Array.isArray(topicEntry.topics)) {
+    return topicEntry.topics
+      .filter(Boolean)
+      .map((topic) => ({
+        topic: String(topic).trim(),
+        description: topicEntry.description || "",
+      }));
+  }
+  const topic = String(topicEntry.topic || topicEntry.name || "").trim();
+  const description = topicEntry.description || "";
+  const components = Array.isArray(topicEntry.components)
+    ? topicEntry.components
+        .map((component) => ({
+          id:
+            component?.id == null || component?.id === ""
+              ? ""
+              : String(component.id),
+          name: String(component?.name || "").trim(),
+        }))
+        .filter((component) => component.id || component.name)
+    : [];
+  if (!topic && !description.trim() && !components.length) {
+    return null;
+  }
+  return {
+    topic,
+    description,
+    ...(components.length ? { components } : {}),
+  };
+};
+
+const normalizeDomainTopics = (topics = []) =>
+  (Array.isArray(topics) ? topics : [])
+    .flatMap((entry) => {
+      const normalized = normalizeDomainTopic(entry);
+      if (!normalized) {
+        return [];
+      }
+      return Array.isArray(normalized) ? normalized : [normalized];
+    })
+    .filter((entry) => entry.topic || entry.description || entry.components?.length);
+
 export function ensureShape(d) {
   const next = d && typeof d === "object" ? d : {};
+  const legacyTopics = Array.isArray(next.topics) ? next.topics : [];
   const domain = Array.isArray(next.domain)
-    ? next.domain.map((entry) => ({
-        domain_name: entry?.domain_name || "",
-        description: entry?.description || "",
-        topics: Array.isArray(entry?.topics) ? entry.topics : [],
-      }))
+    ? next.domain.map((entry, index) => {
+        let topics = normalizeDomainTopics(entry?.topics);
+        // Migrate legacy parallel top-level topics array by index.
+        if (!topics.length && legacyTopics[index]) {
+          topics = normalizeDomainTopics([legacyTopics[index]]);
+        }
+        return {
+          domain_name: entry?.domain_name || "",
+          description: entry?.description || "",
+          topics,
+        };
+      })
     : [];
-  const cube_info = Array.isArray(next.cube_info)
-    ? next.cube_info.map((cube) => ({
+  const cubeSource = Array.isArray(next.cube)
+    ? next.cube
+    : Array.isArray(next.cube_info)
+      ? next.cube_info
+      : [];
+  const cube = cubeSource.map((entry) => ({
         cubeName: "",
-        dimensions: Array.isArray(cube?.dimensions) ? cube.dimensions : [],
-        measures: Array.isArray(cube?.measures) ? cube.measures : [],
-      }))
-    : [];
+        dimensions: Array.isArray(entry?.dimensions) ? entry.dimensions : [],
+        measures: Array.isArray(entry?.measures) ? entry.measures : [],
+      }));
 
   return {
     domain,
-    cube_info: cube_info.length
-      ? cube_info
+    cube: cube.length
+      ? cube
       : [{ cubeName: "", dimensions: [], measures: [] }],
   };
 }
@@ -49,7 +110,11 @@ export function ensureShape(d) {
 export function collectDomainTopics(data) {
   const topics = new Set();
   (data.domain || []).forEach((entry) => {
-    (entry.topics || []).forEach((topic) => {
+    (entry.topics || []).forEach((topicEntry) => {
+      const topic =
+        typeof topicEntry === "string"
+          ? topicEntry
+          : topicEntry?.topic || topicEntry?.name || "";
       if (topic) {
         topics.add(topic);
       }
@@ -59,15 +124,7 @@ export function collectDomainTopics(data) {
 }
 
 export function allTopics(data) {
-  const topics = new Set();
-  (data.domain || []).forEach((entry) => {
-    (entry.topics || []).forEach((topic) => {
-      if (topic) {
-        topics.add(topic);
-      }
-    });
-  });
-  return Array.from(topics).sort();
+  return Array.from(collectDomainTopics(data)).sort();
 }
 
 export function highlightJSON(text) {

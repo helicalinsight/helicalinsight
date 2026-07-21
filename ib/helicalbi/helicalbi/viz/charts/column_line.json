@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 2,
+  "measures_max": 2,
+  "instruction": "One measure is bars and another is a trend line.",
+  "aliases": [
+    "column line",
+    "combo chart",
+    "bar line",
+    "column + line"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "DualAxes column+line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions [{geometry:'column'},{geometry:'line', lineStyle:{lineWidth:2}}].\nPolish: bars for volume, line for trend; dual y titles; legend; autoFit.",
+  "code": "\nfunction DrawColumnLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      { geometry: \"column\" },\n      { geometry: \"line\", lineStyle: { lineWidth: 2 } }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+}

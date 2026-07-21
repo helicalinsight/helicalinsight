@@ -1,0 +1,399 @@
+{
+  "business_metrics": [
+    {
+      "metric": "canceled_meetings",
+      "description": "Total number of meetings marked as canceled",
+      "formula": "COUNT(meeting_details.meeting_id)",
+      "filter": "meeting_details.meet_cancellation_status = 'Yes'",
+      "tables": [
+        "meeting_details"
+      ]
+    },
+    {
+      "metric": "meeting_cancellation_rate",
+      "description": "Percentage of all meetings that were canceled",
+      "formula": "COUNT(CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 END) * 100.0 / COUNT(meeting_details.meeting_id)",
+      "tables": [
+        "meeting_details"
+      ]
+    },
+    {
+      "metric": "meetings_per_employee",
+      "description": "Average number of meetings conducted per employee",
+      "formula": "COUNT(meeting_details.meeting_id) / COUNT(DISTINCT employee_details.employee_id)",
+      "tables": [
+        "employee_details",
+        "meeting_details"
+      ]
+    },
+    {
+      "metric": "successful meetings",
+      "description": "Total number of meetings completed without cancellation",
+      "formula": "COUNT(meeting_details.meeting_id)",
+      "filter": "meeting_details.meet_cancellation_status = 'No'",
+      "tables": [
+        "meeting_details"
+      ]
+    }
+  ],
+  "synonyms": [
+    {
+      "database_table": "employee_details",
+      "synonyms": [
+        "employee",
+        "employees",
+        "staff",
+        "staff details",
+        "employee information",
+        "employee records",
+        "worker details",
+        "personnel",
+        "people"
+      ]
+    },
+    {
+      "database_table": "meeting_details",
+      "synonyms": [
+        "client",
+        "client name",
+        "meeting",
+        "meetings",
+        "meeting info",
+        "meeting records",
+        "failure",
+        "successful",
+        "cancellation",
+        "discussion details"
+      ]
+    },
+    {
+      "database_table": "travel_details",
+      "synonyms": [
+        "travel",
+        "travel info",
+        "travel records",
+        "journey",
+        "travel expenses",
+        "travel history",
+        "expenses",
+        "cost to company"
+      ]
+    },
+    {
+      "database_table": "geo_cordinates",
+      "synonyms": [
+        "geo_coordinates",
+        "coordinates",
+        "location",
+        "latitude_longitude",
+        "geo_location",
+        "gps_coordinates",
+        "map_coordinates",
+        "position"
+      ]
+    }
+  ],
+  "examples": [
+    {
+      "database_table": "meeting_details",
+      "eg": [
+        "Canceled → meet_cancellation_status = 'Yes'",
+        "Success → meet_cancellation_status = 'No'",
+        "Client → client_name",
+        "client → meeting_details.client_name",
+        "employee → meeting_by (join employee_details.employee_id)",
+        "meeting → meeting_details",
+        "Success meeting → meet_cancellation_status = 'No'",
+        "Failed meeting → meet_cancellation_status = 'Yes'",
+        "Canceled meeting → meet_cancellation_status = 'Yes'"
+      ]
+    }
+  ],
+  "metadata_info": {
+    "metadata": {
+      "domain": [
+        "Travel Management",
+        "Business Travel"
+      ],
+      "description": "This metadata belongs to the Travel domain. It covers employees in the travel organization, their business trips across transportation modes, client meetings with MNC companies (status in meeting_details), geographic coordinates (geo_cordinates) for travel locations, and travel costs in travel_details."
+    }
+  },
+  "domain": [
+    {
+      "domain_name": "Sales Operation",
+      "topics": [
+        "Travel",
+        "Meetings"
+      ]
+    }
+  ],
+  "topic_mappings": [
+    {
+      "topic_name": "Meetings",
+      "component": [
+        "Employee",
+        "Client"
+      ]
+    },
+    {
+      "topic_name": "Travel",
+      "component": [
+        "Travel",
+        "Location"
+      ]
+    }
+  ],
+  "cube_metadata": [
+    {
+      "dimension_name": [
+        "Employee"
+      ],
+      "unique_identifier_of_table": "employee_id",
+      "description": "Represents core information about employees in the travel organization.",
+      "database_table": "employee_details",
+      "refresh_frequency": "daily",
+      "columns": [
+        {
+          "column_name": "employee_id",
+          "semantic_type": "entity",
+          "description": "Unique identifier for each employee"
+        },
+        {
+          "column_name": "employee_name",
+          "dimension": "true",
+          "semantic_type": "person",
+          "description": "Full name of the employee"
+        },
+        {
+          "column_name": "address",
+          "semantic_type": "location",
+          "description": "City or locality where the employee resides"
+        },
+        {
+          "column_name": "age",
+          "semantic_type": "numeric",
+          "description": "Age of the employee in years"
+        }
+      ]
+    },
+    {
+      "dimension_name": [
+        "Meeting"
+      ],
+      "unique_identifier_of_table": "meeting_id",
+      "description": "Client meetings conducted by employees, including purpose, impact, scheduling, and cancellation status.",
+      "database_table": "meeting_details",
+      "refresh_frequency": "daily",
+      "columns": [
+        {
+          "column_name": "meeting_id",
+          "semantic_type": "entity",
+          "description": "Unique identifier for each meeting"
+        },
+        {
+          "column_name": "client_name",
+          "semantic_type": "organization",
+          "description": "Name of the client or company in the meeting"
+        },
+        {
+          "column_name": "meeting_purpose",
+          "semantic_type": "category",
+          "description": "Objective or reason for the meeting"
+        },
+        {
+          "column_name": "meeting_impact",
+          "semantic_type": "category",
+          "description": "Expected or observed business impact of the meeting"
+        },
+        {
+          "column_name": "meeting_date",
+          "type": "temporal",
+          "semantic_type": "datetime",
+          "description": "Scheduled date and time of the meeting"
+        },
+        {
+          "column_name": "meeting_by",
+          "semantic_type": "entity",
+          "description": "Employee ID who conducted the meeting; foreign key to employee_details.employee_id"
+        },
+        {
+          "column_name": "meet_cancellation_status",
+          "semantic_type": "category",
+          "description": "Meeting outcome flag: 'Yes' = canceled or failed meeting, 'No' = successful or completed meeting. Use exact string literals in SQL."
+        },
+        {
+          "column_name": "cancellation_reason",
+          "semantic_type": "text",
+          "description": "Free-text reason when meet_cancellation_status is 'Yes'"
+        }
+      ]
+    },
+    {
+      "dimension_name": [
+        "Travel"
+      ],
+      "unique_identifier_of_table": "travel_id",
+      "description": "Employee travel activities including routes, costs, payment methods, and booking details.",
+      "database_table": "travel_details",
+      "columns": [
+        {
+          "column_name": "travel_id",
+          "semantic_type": "entity",
+          "description": "Unique identifier for a travel event"
+        },
+        {
+          "column_name": "travel_type",
+          "semantic_type": "category",
+          "description": "Type of travel; case-sensitive values are 'International' or 'Domestic'"
+        },
+        {
+          "column_name": "travel_medium",
+          "semantic_type": "category",
+          "description": "Mode of travel (e.g., Flight, Bus); use exact literals when filtering"
+        },
+        {
+          "column_name": "source_id",
+          "semantic_type": "entity",
+          "description": "Origin location ID; foreign key to geo_cordinates.location_id"
+        },
+        {
+          "column_name": "source",
+          "semantic_type": "geography",
+          "description": "Human-readable name of the travel origin location"
+        },
+        {
+          "column_name": "travel_cost",
+          "semantic_type": "currency",
+          "description": "Total travel cost incurred for the trip"
+        },
+        {
+          "column_name": "destination_id",
+          "semantic_type": "entity",
+          "description": "Destination location ID; foreign key to geo_cordinates.location_id"
+        },
+        {
+          "column_name": "destination",
+          "semantic_type": "geography",
+          "description": "Human-readable name of the travel destination"
+        },
+        {
+          "column_name": "mode_of_payment",
+          "semantic_type": "category",
+          "description": "Payment method used (e.g., credit card, cash)"
+        },
+        {
+          "column_name": "booking_platform",
+          "semantic_type": "category",
+          "description": "Platform used to book travel (e.g., website, agent)"
+        },
+        {
+          "column_name": "travelled_by",
+          "semantic_type": "entity",
+          "description": "Employee ID of the traveler; foreign key to employee_details.employee_id"
+        },
+        {
+          "column_name": "travel_date",
+          "type": "temporal",
+          "semantic_type": "date",
+          "description": "Date on which the travel occurred"
+        }
+      ]
+    },
+    {
+      "dimension_name": [
+        "Client"
+      ],
+      "unique_identifier_of_table": "client_name",
+      "description": "Client or company dimension derived from meeting records.",
+      "database_table": "meeting_details",
+      "refresh_frequency": "daily",
+      "columns": [
+        {
+          "column_name": "client_name",
+          "semantic_type": "organization",
+          "description": "Name of the client or company in the meeting"
+        }
+      ]
+    },
+    {
+      "dimension_name": [
+        "Location"
+      ],
+      "unique_identifier_of_table": "location_id",
+      "description": "Geographic location data with city names and coordinates for mapping and travel analysis.",
+      "database_table": "geo_cordinates",
+      "columns": [
+        {
+          "column_name": "location_id",
+          "semantic_type": "entity",
+          "description": "Unique identifier for each location"
+        },
+        {
+          "column_name": "location",
+          "semantic_type": "geography",
+          "description": "Human-readable name of the location"
+        },
+        {
+          "column_name": "latitude",
+          "semantic_type": "geography_latitude",
+          "description": "Latitude coordinate in decimal degrees"
+        },
+        {
+          "column_name": "longitude",
+          "semantic_type": "geography_longitude",
+          "description": "Longitude coordinate in decimal degrees"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "type": "inner",
+      "operator": "=",
+      "left": {
+        "table": "employee_details",
+        "column": "employee_id"
+      },
+      "right": {
+        "table": "meeting_details",
+        "column": "meeting_by"
+      }
+    },
+    {
+      "type": "inner",
+      "operator": "=",
+      "left": {
+        "table": "employee_details",
+        "column": "employee_id"
+      },
+      "right": {
+        "table": "travel_details",
+        "column": "travelled_by"
+      }
+    },
+    {
+      "type": "inner",
+      "operator": "=",
+      "left": {
+        "table": "geo_cordinates",
+        "column": "location_id"
+      },
+      "right": {
+        "table": "travel_details",
+        "column": "destination_id"
+      }
+    },
+    {
+      "type": "inner",
+      "operator": "=",
+      "left": {
+        "table": "geo_cordinates",
+        "column": "location_id"
+      },
+      "right": {
+        "table": "travel_details",
+        "column": "source_id"
+      }
+    }
+  ]
+}

@@ -7,5 +7,5 @@ import java.io.IOException;
 
 public interface IAiRecommendDomainService extends IInstantBIService {
 
-    void execute(String agent, HttpServletRequest request, HttpServletResponse response) throws IOException;
+    void execute(String model, HttpServletRequest request, HttpServletResponse response) throws IOException;
 }

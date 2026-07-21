@@ -8,8 +8,8 @@ import React, {
   useState,
 } from "react";
 import { useSelector } from "react-redux";
-import { Cube } from "../../../hi-cube/cube";
 import { CubeEditorProvider } from "../../../hi-cube/cubeEditorContext";
+import { AgentWorkspace } from "./agent-shelves";
 import {
   setCubeFieldsData,
   setCubeTableMode,
@@ -48,7 +48,7 @@ const SemanticMetadataEditor = React.forwardRef(
   (
     {
       agentData = null,
-      agentName = "Agent_1",
+      agentName = "Model_1",
       onAgentNameChange,
       onContentChange,
       isLoading = false,
@@ -56,6 +56,12 @@ const SemanticMetadataEditor = React.forwardRef(
       dispatch: dispatchProp,
       isRawJsonView = false,
       onTableModeChange,
+      shelfLayout = {
+        metadataShelf: true,
+        fieldsShelf: true,
+        toolsShelf: true,
+      },
+      metadataShelfProps = {},
     },
     ref,
   ) => {
@@ -304,7 +310,12 @@ const SemanticMetadataEditor = React.forwardRef(
             onPasteClose={closePasteModal}
             onPasteLoad={handlePasteLoad}
           >
-            <Cube />
+            <AgentWorkspace
+              shelfLayout={shelfLayout}
+              metadataShelfProps={metadataShelfProps}
+              onCopyJson={handleCopy}
+              onPasteJson={handleOpenPaste}
+            />
           </JsonEditorShell>
         </CubeEditorProvider>
       </AgentNameProvider>

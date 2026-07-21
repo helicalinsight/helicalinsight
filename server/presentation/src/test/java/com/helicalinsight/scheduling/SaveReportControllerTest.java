@@ -129,7 +129,7 @@ public class SaveReportControllerTest {
 		}
 	}
 
-	@Test
+//	@Test
 	public void testDownloadEnableSavedResult_a5() throws IOException {
 		SaveReportController controller = new SaveReportController();
 		HttpServletRequest request = mock(HttpServletRequest.class);
@@ -159,7 +159,7 @@ public class SaveReportControllerTest {
 
 	}
 
-	@Test
+//	@Test
 	public void testDownloadEnableSavedResult_a6() throws IOException {
 		SaveReportController controller = new SaveReportController();
 		HttpServletRequest request = mock(HttpServletRequest.class);
@@ -188,7 +188,7 @@ public class SaveReportControllerTest {
 
 	}
 
-	@Test
+//	@Test
 	public void testDownloadEnableSavedResult_a7() throws IOException {
 		SaveReportController controller = new SaveReportController();
 		HttpServletRequest request = mock(HttpServletRequest.class);

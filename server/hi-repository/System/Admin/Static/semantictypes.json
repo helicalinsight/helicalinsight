@@ -1,0 +1,509 @@
+{
+  "semanticTypes": [
+    {
+      "label": "Generic",
+      "value": "GENERIC",
+      "options": [
+        {
+          "label": "String",
+          "value": "generic.string",
+          "formats": []
+        },
+        {
+          "label": "Character",
+          "value": "generic.character",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Temporal",
+      "value": "TEMPORAL",
+      "options": [
+        {
+          "label": "Date",
+          "value": "temporal.date",
+          "formats": [
+            "yyyy-mm-dd",
+            "dd/mm/yyyy",
+            "mm/dd/yyyy",
+            "dd-mmm-yyyy",
+            "mmm dd, yyyy"
+          ]
+        },
+        {
+          "label": "Time",
+          "value": "temporal.time",
+          "formats": [
+            "hh:mm:ss",
+            "hh:mm",
+            "hh:mm:ss AM/PM"
+          ]
+        },
+        {
+          "label": "Datetime",
+          "value": "temporal.datetime",
+          "formats": [
+            "yyyy-mm-dd hh:mm:ss",
+            "dd/mm/yyyy hh:mm",
+            "mm/dd/yyyy hh:mm:ss"
+          ]
+        },
+        {
+          "label": "Timestamp",
+          "value": "temporal.timestamp",
+          "formats": [
+            "yyyy-mm-dd hh:mm:ss",
+            "yyyy-mm-dd\"T\"hh:mm:ss"
+          ]
+        },
+        {
+          "label": "Duration",
+          "value": "temporal.duration",
+          "formats": [
+            "[h]:mm:ss",
+            "[mm]:ss"
+          ]
+        },
+        {
+          "label": "Time Zone",
+          "value": "temporal.time_zone",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Numeric",
+      "value": "NUMERIC",
+      "options": [
+        {
+          "label": "Integer",
+          "value": "numeric.integer",
+          "formats": [
+            "0",
+            "#,##0",
+            "#,##0;(#,##0)"
+          ]
+        },
+        {
+          "label": "Decimal",
+          "value": "numeric.decimal",
+          "formats": [
+            "0.00",
+            "#,##0.00",
+            "0.000"
+          ]
+        },
+        {
+          "label": "Number",
+          "value": "numeric.number",
+          "formats": [
+            "General",
+            "0",
+            "0.00",
+            "#,##0.00"
+          ]
+        },
+        {
+          "label": "Currency",
+          "value": "numeric.currency",
+          "formats": [
+            "$#,##0.00",
+            "₹#,##0.00",
+            "€#,##0.00",
+            "£#,##0.00"
+          ]
+        },
+        {
+          "label": "Percentage",
+          "value": "numeric.percentage",
+          "formats": [
+            "0%",
+            "0.00%"
+          ]
+        },
+        {
+          "label": "Score",
+          "value": "numeric.score",
+          "formats": [
+            "0",
+            "0.0",
+            "0.00"
+          ]
+        },
+        {
+          "label": "Rating",
+          "value": "numeric.rating",
+          "formats": [
+            "0",
+            "0.0",
+            "0.00"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Identifier",
+      "value": "IDENTIFIER",
+      "options": [
+        {
+          "label": "Identifier",
+          "value": "identifier.identifier",
+          "formats": []
+        },
+        {
+          "label": "UUID",
+          "value": "identifier.uuid",
+          "formats": []
+        },
+        {
+          "label": "Primary Key",
+          "value": "identifier.primary_key",
+          "formats": []
+        },
+        {
+          "label": "Foreign Key",
+          "value": "identifier.foreign_key",
+          "formats": []
+        },
+        {
+          "label": "Account Number",
+          "value": "identifier.account_number",
+          "formats": []
+        },
+        {
+          "label": "Employee ID",
+          "value": "identifier.employee_id",
+          "formats": []
+        },
+        {
+          "label": "Customer ID",
+          "value": "identifier.customer_id",
+          "formats": []
+        },
+        {
+          "label": "Order ID",
+          "value": "identifier.order_id",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Person",
+      "value": "PERSON",
+      "options": [
+        {
+          "label": "Person Name",
+          "value": "person.person_name",
+          "formats": []
+        },
+        {
+          "label": "First Name",
+          "value": "person.first_name",
+          "formats": []
+        },
+        {
+          "label": "Last Name",
+          "value": "person.last_name",
+          "formats": []
+        },
+        {
+          "label": "Gender",
+          "value": "person.gender",
+          "formats": []
+        },
+        {
+          "label": "Email",
+          "value": "person.email",
+          "formats": []
+        },
+        {
+          "label": "Phone Number",
+          "value": "person.phone_number",
+          "formats": []
+        },
+        {
+          "label": "Age",
+          "value": "person.age",
+          "formats": [
+            "0"
+          ]
+        }
+      ]
+    },
+    {
+      "label": "Geographic",
+      "value": "GEOGRAPHIC",
+      "options": [
+        {
+          "label": "Address",
+          "value": "geographic.address",
+          "formats": []
+        },
+        {
+          "label": "Country",
+          "value": "geographic.country",
+          "formats": []
+        },
+        {
+          "label": "State / Province",
+          "value": "geographic.state_province",
+          "formats": []
+        },
+        {
+          "label": "City",
+          "value": "geographic.city",
+          "formats": []
+        },
+        {
+          "label": "Postal Code",
+          "value": "geographic.postal_code",
+          "formats": []
+        },
+        {
+          "label": "Latitude",
+          "value": "geographic.latitude",
+          "formats": [
+            "0.000000",
+            "0.00"
+          ]
+        },
+        {
+          "label": "Longitude",
+          "value": "geographic.longitude",
+          "formats": [
+            "0.000000",
+            "0.00"
+          ]
+        },
+        {
+          "label": "Geo Point",
+          "value": "geographic.geo_point",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Organization",
+      "value": "ORGANIZATION",
+      "options": [
+        {
+          "label": "Company",
+          "value": "organization.company",
+          "formats": []
+        },
+        {
+          "label": "Department",
+          "value": "organization.department",
+          "formats": []
+        },
+        {
+          "label": "Business Unit",
+          "value": "organization.business_unit",
+          "formats": []
+        },
+        {
+          "label": "Division",
+          "value": "organization.division",
+          "formats": []
+        },
+        {
+          "label": "Branch",
+          "value": "organization.branch",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Product & Business",
+      "value": "PRODUCT_BUSINESS",
+      "options": [
+        {
+          "label": "Product",
+          "value": "product_business.product",
+          "formats": []
+        },
+        {
+          "label": "Category",
+          "value": "product_business.category",
+          "formats": []
+        },
+        {
+          "label": "Tags",
+          "value": "product_business.tags",
+          "formats": []
+        },
+        {
+          "label": "Version",
+          "value": "product_business.version",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Internet & Network",
+      "value": "INTERNET_NETWORK",
+      "options": [
+        {
+          "label": "URL",
+          "value": "internet_network.url",
+          "formats": []
+        },
+        {
+          "label": "IP Address",
+          "value": "internet_network.ip_address",
+          "formats": []
+        },
+        {
+          "label": "Domain Name",
+          "value": "internet_network.domain_name",
+          "formats": []
+        },
+        {
+          "label": "MAC Address",
+          "value": "internet_network.mac_address",
+          "formats": []
+        },
+        {
+          "label": "File Path",
+          "value": "internet_network.file_path",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Documents & Content",
+      "value": "DOCUMENTS_CONTENT",
+      "options": [
+        {
+          "label": "Text",
+          "value": "documents_content.text",
+          "formats": []
+        },
+        {
+          "label": "Rich Text",
+          "value": "documents_content.rich_text",
+          "formats": []
+        },
+        {
+          "label": "HTML",
+          "value": "documents_content.html",
+          "formats": []
+        },
+        {
+          "label": "Markdown",
+          "value": "documents_content.markdown",
+          "formats": []
+        },
+        {
+          "label": "JSON",
+          "value": "documents_content.json",
+          "formats": []
+        },
+        {
+          "label": "XML",
+          "value": "documents_content.xml",
+          "formats": []
+        },
+        {
+          "label": "SQL",
+          "value": "documents_content.sql",
+          "formats": []
+        },
+        {
+          "label": "Source Code",
+          "value": "documents_content.source_code",
+          "formats": []
+        },
+        {
+          "label": "Document",
+          "value": "documents_content.document",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Media",
+      "value": "MEDIA",
+      "options": [
+        {
+          "label": "Image",
+          "value": "media.image",
+          "formats": []
+        },
+        {
+          "label": "Audio",
+          "value": "media.audio",
+          "formats": []
+        },
+        {
+          "label": "Video",
+          "value": "media.video",
+          "formats": []
+        },
+        {
+          "label": "Binary",
+          "value": "media.binary",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Logical",
+      "value": "LOGICAL",
+      "options": [
+        {
+          "label": "Boolean",
+          "value": "logical.boolean",
+          "formats": []
+        },
+        {
+          "label": "Status",
+          "value": "logical.status",
+          "formats": []
+        },
+        {
+          "label": "Flag",
+          "value": "logical.flag",
+          "formats": []
+        },
+        {
+          "label": "Enum",
+          "value": "logical.enum",
+          "formats": []
+        }
+      ]
+    },
+    {
+      "label": "Collection",
+      "value": "COLLECTION",
+      "options": [
+        {
+          "label": "Array",
+          "value": "collection.array",
+          "formats": []
+        },
+        {
+          "label": "List",
+          "value": "collection.list",
+          "formats": []
+        },
+        {
+          "label": "Object",
+          "value": "collection.object",
+          "formats": []
+        },
+        {
+          "label": "Map",
+          "value": "collection.map",
+          "formats": []
+        },
+        {
+          "label": "Set",
+          "value": "collection.set",
+          "formats": []
+        }
+      ]
+    }
+  ]
+}

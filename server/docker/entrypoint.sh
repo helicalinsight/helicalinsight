@@ -12,7 +12,7 @@ mkdir -p "${INSTALLATION_LOCATION}/hi/db"
 
 if [ -f "$SETTING_XML" ]; then
   sed -i "s|<efwSolution>.*</efwSolution>|<efwSolution>${INSTALLATION_LOCATION}/hi/hi-repository</efwSolution>|" "$SETTING_XML"
-  sed -i "s|<BaseUrl>.*</BaseUrl>|<BaseUrl>http://${HOST_IP}:8080/hi-ce/hi.html</BaseUrl>|" "$SETTING_XML"
+  sed -i "s|<BaseUrl>.*</BaseUrl>|<BaseUrl>http://${HOST_IP}:8080/hi-ee/hi.html</BaseUrl>|" "$SETTING_XML"
   sed -i "s|<defaultBaseurl>.*</defaultBaseurl>|<defaultBaseurl>false</defaultBaseurl>|" "$SETTING_XML"
 fi
 

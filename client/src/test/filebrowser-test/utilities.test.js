@@ -26,7 +26,7 @@ describe("Filebrowser Utilities", () => {
         test("excludes frontend options not present in API response", () => {
             const options = getFilterOptionsForExtensions(apiExtensions);
             expect(options.find((op) => op.value === "efw")).toBeUndefined();
-            expect(options.find((op) => op.value === "agent")).toBeUndefined();
+            expect(options.find((op) => op.value === "model")).toBeUndefined();
         });
 
         test("intersects API extensions with page extensionOptions", () => {
@@ -35,11 +35,11 @@ describe("Filebrowser Utilities", () => {
         });
 
         test("maps known extensionOptions when API extensions are not loaded", () => {
-            const options = getFilterOptionsForExtensions(null, ["agent"]);
+            const options = getFilterOptionsForExtensions(null, ["model"]);
             expect(options).toEqual([
                 expect.objectContaining({
-                    value: "agent",
-                    label: "Agent",
+                    value: "model",
+                    label: "Semantic Model",
                 }),
             ]);
         });

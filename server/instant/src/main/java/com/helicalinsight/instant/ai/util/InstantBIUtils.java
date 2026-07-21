@@ -125,12 +125,18 @@ public final class InstantBIUtils {
 
     public static void addSessionContext(HttpServletRequest request, JsonObject target) {
         Principal userDetails = AuthenticationUtils.getUserDetails();
+        User loggedInUser = userDetails.getLoggedInUser();
         String sessionCookie = extractJsessionId(request);
         if (StringUtils.isBlank(sessionCookie)) {
             throw new EfwServiceException("Session cookie not found.");
         }
         target.addProperty("sessionCookie", sessionCookie);
-        target.addProperty("username", userDetails.getUsername());
+        target.addProperty("username", loggedInUser.getUsername());
+        target.addProperty("userId", loggedInUser.getId());
+        Integer orgId = loggedInUser.getOrg_id();
+        if (orgId != null) {
+            target.addProperty("orgId", orgId);
+        }
     }
 
     @Nullable

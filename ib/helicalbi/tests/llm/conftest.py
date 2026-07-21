@@ -1,10 +1,10 @@
 """Fixtures for LLM prompt tests.
 
-The agent schema under test is the one defined in
+The model schema under test is the one defined in
 ``helicalbi.api.TravelDetailsCube`` (Travel + Meetings domain).  We expose
 the raw lists/dicts as pytest fixtures along with a fully-assembled
-``agent_data`` payload that mirrors what
-``AgentLayerHelper.get_agent_semantic_layer()`` returns at runtime so the
+``model_data`` payload that mirrors what
+``ModelLayerHelper.get_model_semantic_layer()`` returns at runtime so the
 existing :class:`InformationProvider` plumbing can be reused inside the
 tests.
 
@@ -74,7 +74,7 @@ def travel_relationships():
 
 
 @pytest.fixture(scope="session")
-def travel_agent_data(
+def travel_model_data(
     travel_domain,
     travel_topic_mappings,
     travel_business_metrics,
@@ -83,7 +83,7 @@ def travel_agent_data(
     travel_examples,
     travel_relationships,
 ):
-    """Agent semantic layer shaped like the runtime ``agent_data`` payload."""
+    """Model semantic layer shaped like the runtime ``model_data`` payload."""
     return {
         "domain": travel_domain,
         "topic_mappings": travel_topic_mappings,
