@@ -15,7 +15,7 @@ SQL: {sql_query}
 Metadata: {metadata}
 
 Task:
-Generate a short metadata insight explaining the purpose and business value of the analysis.
+Generate a short insight explaining the purpose and business value of the analysis.
 
 Requirements:
 

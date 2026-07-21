@@ -14,19 +14,19 @@ import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceUtils;
 import com.helicalinsight.export.exception.ResourceImportException;
 import com.helicalinsight.export.service.ResourceIOHandler;
-import com.helicalinsight.export.utils.InstantAgentUtils;
+import com.helicalinsight.export.utils.InstantModelUtils;
 import com.helicalinsight.resourcedb.Deleted;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 
 /**
  * Handles the import of Instant BI report resources.
- * Instant reports depend on an AI Agent referenced inside the state JSON at {@code subject.agent}.
+ * Instant reports depend on an AI Model referenced inside the state JSON at {@code subject.model}.
  */
 @Component("instantImportHandler")
 @Scope("prototype")
 public class InstantImportHandler extends AbstractResourceImportHandler {
 
-	private static final String AGENT_EXTENSION = "." + JsonUtils.getAiAgentExtension();
+	private static final String AGENT_EXTENSION = "." + JsonUtils.getAiModelExtension();
 
 	@Override
 	public HIResource importResource(String resourceUrl) {
@@ -43,7 +43,7 @@ public class InstantImportHandler extends AbstractResourceImportHandler {
 
 				HIResourceInstantReport dbReport = resource.getHiResourceInstantReport();
 				dbReport.setReportName(report.getReportName());
-				applyAgentReference(dbReport, report.getState(), resourceUrl);
+				applyModelReference(dbReport, report.getState(), resourceUrl);
 
 				Date date = context.getDate();
 				dbReport.setLastUpdatedTime(date);
@@ -94,45 +94,45 @@ public class InstantImportHandler extends AbstractResourceImportHandler {
 		report.setCreatedBy(resource.getCreatedBy());
 		report.setLastUpdatedTime(context.getDate());
 		report.setCreatedDate(context.getDate());
-		applyAgentReference(report, report.getState(), resourceUrl);
+		applyModelReference(report, report.getState(), resourceUrl);
 		resource.setHiResourceInstantReport(report);
 		serviceDb.addHIResource(resource);
 		return resource;
 	}
 
 	/**
-	 * Resolves the agent from {@code subject.agent} in state, links the imported agent resource,
-	 * and rewrites the agent path in state to match the imported location.
+	 * Resolves the model from {@code subject.model} in state, links the imported model resource,
+	 * and rewrites the model path in state to match the imported location.
 	 */
-	private void applyAgentReference(HIResourceInstantReport report, String state, String resourceUrl) {
-		String originalAgentUrl = InstantAgentUtils.getAgentUrl(state);
-		if (StringUtils.isBlank(originalAgentUrl)) {
-			throw new ResourceImportException("Agent reference not found in state for Instant Report : " + resourceUrl);
+	private void applyModelReference(HIResourceInstantReport report, String state, String resourceUrl) {
+		String originalModelUrl = InstantModelUtils.getModelUrl(state);
+		if (StringUtils.isBlank(originalModelUrl)) {
+			throw new ResourceImportException("Model reference not found in state for Instant Report : " + resourceUrl);
 		}
 
-		HIResource agentResource = resolveImportedAgent(originalAgentUrl, resourceUrl);
-		report.setHiResourceAgent(agentResource.getResourceId());
-		report.setState(InstantAgentUtils.updateAgentPath(state, agentResource.getResourceURL()));
+		HIResource modelResource = resolveImportedModel(originalModelUrl, resourceUrl);
+		report.setHiResourceModel(modelResource.getResourceId());
+		report.setState(InstantModelUtils.updateModelPath(state, modelResource.getResourceURL()));
 	}
 
-	private HIResource resolveImportedAgent(String originalAgentUrl, String resourceUrl) {
-		HIResource agentResource = context.getResourceUrlMap().get(context.addDestination(originalAgentUrl));
-		if (agentResource != null) {
-			return agentResource;
+	private HIResource resolveImportedModel(String originalModelUrl, String resourceUrl) {
+		HIResource modelResource = context.getResourceUrlMap().get(context.addDestination(originalModelUrl));
+		if (modelResource != null) {
+			return modelResource;
 		}
 
 		List<String> dependencies = context.getManifest().getDependencies().get(context.removeDestination(resourceUrl));
 		if (dependencies != null) {
 			for (String dependency : dependencies) {
 				if (StringUtils.endsWithIgnoreCase(dependency, AGENT_EXTENSION)) {
-					agentResource = context.getResourceUrlMap().get(context.addDestination(dependency));
-					if (agentResource != null) {
-						return agentResource;
+					modelResource = context.getResourceUrlMap().get(context.addDestination(dependency));
+					if (modelResource != null) {
+						return modelResource;
 					}
 				}
 			}
 		}
 
-		throw new ResourceImportException("Imported agent not found for Instant Report : " + originalAgentUrl);
+		throw new ResourceImportException("Imported model not found for Instant Report : " + originalModelUrl);
 	}
 }

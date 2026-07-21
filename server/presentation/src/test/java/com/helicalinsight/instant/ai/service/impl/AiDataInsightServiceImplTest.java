@@ -52,7 +52,7 @@ public class AiDataInsightServiceImplTest {
         JsonObject settings = new JsonObject();
         settings.addProperty("BaseUrl", "http://localhost/hi.html");
 
-        String subject = "{\"agent\":{\"path\":\"/agent\"}}";
+        String subject = "{\"model\":{\"path\":\"/model\"}}";
 
         try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class);
              MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
@@ -91,7 +91,7 @@ public class AiDataInsightServiceImplTest {
 
         JsonObject settings = new JsonObject();
         settings.addProperty("BaseUrl", "http://localhost/hi.html");
-        String subject = "{\"agent\":{\"path\":\"/agent\"}}";
+        String subject = "{\"model\":{\"path\":\"/model\"}}";
 
         try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class);
              MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);

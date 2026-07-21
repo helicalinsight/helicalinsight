@@ -14,14 +14,14 @@ describe("Instant BI Domain API Tests", () => {
       metadataFileName: "sample.agent",
       location: "sample-dir",
     };
-    const expectedAgentPayload = {
-      agent: {
+    const expectedModelPayload = {
+      model: {
         file: "sample.agent",
         dir: "sample-dir",
       },
     };
-    expect(expectedAgentPayload.agent.file).toBe(testFormData.metadataFileName);
-    expect(expectedAgentPayload.agent.dir).toBe(testFormData.location);
+    expect(expectedModelPayload.model.file).toBe(testFormData.metadataFileName);
+    expect(expectedModelPayload.model.dir).toBe(testFormData.location);
   });
 
   test("should getFunctions and getDateFunctions APIs should be commented out", () => {

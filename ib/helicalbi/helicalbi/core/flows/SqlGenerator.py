@@ -4,9 +4,9 @@ from typing import Any
 from langgraph.graph import END, StateGraph
 
 from helicalbi.common.CommonAppender import append_to_workflow
-from helicalbi.common.LlmInvokeHelper import merge_token_usage, read_token_usage
-from helicalbi.model.AgentState import AgentState
-from helicalbi.service.agentservice.AgentLayerHelper import AgentLayerHelper
+from helicalbi.common.LlmInvokeHelper import merge_time_consumed, merge_token_usage, read_time_consumed, read_token_usage
+from helicalbi.model.ModelState import ModelState
+from helicalbi.service.modelservice.ModelLayerHelper import ModelLayerHelper
 from helicalbi.sql.SqlSanitizer import extract_sql
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 class SqlGenerator:
     """Orchestrates the inner SQL sub-graph and folds its output back into the
-    outer ``AgentState``.
+    outer ``ModelState``.
 
     The previous version short-circuited inline with ``if state.get("skip")``
     checks. That control flow is now expressed as a LangGraph conditional
@@ -25,7 +25,7 @@ class SqlGenerator:
     def __init__(self, sql_graph=None):
         self._sql_graph = sql_graph
 
-    def init_sql_state(self, state: AgentState) -> AgentState:
+    def init_sql_state(self, state: ModelState) -> ModelState:
         """Entry node — always runs.
 
         Initializes the default ``sql`` placeholder so downstream consumers
@@ -35,7 +35,7 @@ class SqlGenerator:
         state["sql"] = "Not generated"
         return state
 
-    def run_sql_subgraph(self, state: AgentState, config=None) -> AgentState:
+    def run_sql_subgraph(self, state: ModelState, config=None) -> ModelState:
         """Branch executed only when ``skip`` is falsy.
 
         Builds the sub-state expected by the inner SQL graph, invokes it,
@@ -48,24 +48,25 @@ class SqlGenerator:
         return self._apply_sql_result(state, sql_res)
 
     @staticmethod
-    def _build_sql_state(state: AgentState) -> dict[str, Any]:
+    def _build_sql_state(state: ModelState) -> dict[str, Any]:
         relationship_of_table = state["relationship_of_table"]
         last_chats = state["last_chats"]
-        helper = AgentLayerHelper(state["session_cookie"], state["agent_file_name"], state["agent_location"])
-        agent_data = helper.get_agent_semantic_layer() or {}
-        cube_metadata = state.get("cube_metadata") or agent_data.get("cube_metadata") or []
+        helper = ModelLayerHelper(state["session_cookie"], state["model_file_name"], state["model_location"])
+        model_data = helper.get_model_semantic_layer() or {}
+        cube_metadata = state.get("cube_metadata") or model_data.get("cube_metadata") or []
         sub_state: dict[str, Any] = {
             "query": state["query"], "table_columns": [], "template_selected": "",
             "session_cookie": state["session_cookie"], "last_chats": last_chats,
             "messages": [],
             "user_name": state["user_name"],
             "cube_metadata": cube_metadata,
-            "topic_mappings": agent_data.get("topic_mappings") or [],
+            "topic_mappings": model_data.get("topic_mappings") or [],
             "relationship_of_table": relationship_of_table,
-            "examples": agent_data.get("examples") or [],
-            "synonyms": agent_data.get("synonyms") or [],
-            "agent_file_name": state["agent_file_name"], "agent_location": state["agent_location"],
-            "business_metrics": state.get("business_metrics") or agent_data.get("business_metrics") or [],
+            "examples": model_data.get("examples") or [],
+            "synonyms": model_data.get("synonyms") or [],
+            "model_file_name": state["model_file_name"], "model_location": state["model_location"],
+            "business_metrics": state.get("business_metrics") or model_data.get("business_metrics") or [],
+            "domain_context": state.get("domain_context") or "",
             "required_joins": "",
             "required_tables": "",
             "action": state["action"],
@@ -78,15 +79,16 @@ class SqlGenerator:
         return sub_state
 
     @staticmethod
-    def _apply_sql_result(state: AgentState, res: dict) -> AgentState:
+    def _apply_sql_result(state: ModelState, res: dict) -> ModelState:
         res["cube_metadata"] = []
         res["relationship_of_table"] = []
         res["topic_graph"] = {}
         logger.debug("SQL graph messages: %s", res.get("messages", []))
         res["messages"] = []
         res["last_chats"] = []
-        state["sqlAgent"] = res
+        state["sqlModel"] = res
         merge_token_usage(state, read_token_usage(res))
+        merge_time_consumed(state, read_time_consumed(res))
         state["sql"] = extract_sql(res["final_sql"], state["dialect"])
         state["sql_reason"] = res.get("sql_reason", "") or ""
         state["required_details"] = {
@@ -95,6 +97,7 @@ class SqlGenerator:
             "required_synonyms": res["required_synonyms"],
             "business_metrics": [],
             "required_business_metrics": res["required_business_metrics"],
+            "required_cube_info": res.get("required_cube_info") or {},
             "filters": res.get("filters", ""),
             "messages": [],
         }
@@ -104,7 +107,7 @@ class SqlGenerator:
         return state
 
 
-def route_on_skip(state: AgentState) -> str:
+def route_on_skip(state: ModelState) -> str:
     """Conditional edge: route based on the ``skip`` flag in state."""
     return "skip" if state.get("skip") else "run"
 
@@ -127,7 +130,7 @@ def build_sql_generator_graph(sql_graph):
     """
     generator = SqlGenerator(sql_graph=sql_graph)
 
-    workflow = StateGraph(AgentState)
+    workflow = StateGraph(ModelState)
     workflow.add_node("init_sql_state", generator.init_sql_state)
     workflow.add_node("run_sql_subgraph", generator.run_sql_subgraph)
 

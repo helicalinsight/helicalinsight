@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Compare several metrics for one/few entities radially.",
+  "aliases": [
+    "radar chart",
+    "spider chart",
+    "web chart",
+    "radar plot"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Radar. Config: xField=metric/category, yField=measure; seriesField if multi entities; area fillOpacity~0.2-0.5.\nPolish: autoFit; shared scale; legend top; thin line; avoid >8 axes; element-active.",
+  "code": "\nfunction DrawRadar() {\n  const { Radar } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    area: {\n      style: {\n        fillOpacity: 0.5\n      }\n    },\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    }\n  };\n  return <div><Radar {...config} /></div>;\n}\n"
+}

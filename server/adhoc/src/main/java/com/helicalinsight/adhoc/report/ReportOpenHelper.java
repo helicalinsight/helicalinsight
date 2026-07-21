@@ -6,8 +6,6 @@ import com.helicalinsight.admin.model.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -204,7 +202,7 @@ public class ReportOpenHelper {
 
         HIResourceInstantReport hiResourceHReport = hiResource.getHiResourceInstantReport();
         adhocReport.setReportName(hiResourceHReport.getReportName());
-        Integer hiResourceMetadata = hiResourceHReport.getHiResourceAgent();
+        Integer hiResourceMetadata = hiResourceHReport.getHiResourceModel();
         if (hiResourceMetadata != null) {
             HIResource hiResourceById = serviceDB.getHIResourceById(hiResourceMetadata);
             String resourcePath = hiResourceById.getResourcePath();
@@ -224,17 +222,17 @@ public class ReportOpenHelper {
         return adhocReport;
     }
 
-    public static IResource getAgentStateDb(String dir, String fileName) {
+    public static IResource getModelStateDb(String dir, String fileName) {
         HIResourceServiceDB serviceDB = ApplicationContextAccessor.getBean(HIResourceServiceDB.class);
 
         HIResource hiResource = serviceDB.getResourceByUrl(dir + "/" + fileName);
 
 
         if (hiResource == null) {
-            throw new ReportFileNotFoundException("The agent file does not exists.");
+            throw new ReportFileNotFoundException("The model file does not exists.");
         }
 
-        String hr = JsonUtils.getAiAgentExtension();
+        String hr = JsonUtils.getAiModelExtension();
         String extensionOfFile = FileUtils.getExtensionOfFile(new File(fileName));
 
         if (!hr.equalsIgnoreCase(extensionOfFile)) {
@@ -246,8 +244,8 @@ public class ReportOpenHelper {
         AdhocReport adhocReport = ApplicationContextAccessor.getBean(AdhocReport.class);
         MetadataReference metadataReference = ApplicationContextAccessor.getBean(MetadataReference.class);
 
-        HIResourceAIAgent hiResourceHReport = hiResource.getAiAgent();
-        adhocReport.setReportName(hiResourceHReport.getAgentName());
+        HIResourceAIModel hiResourceHReport = hiResource.getAiModel();
+        adhocReport.setReportName(hiResourceHReport.getAiModelName());
         Integer hiResourceMetadata = hiResourceHReport.getHiResourceMetadata();
         if (hiResourceMetadata != null) {
             HIResource hiResourceById = serviceDB.getHIResourceById(hiResourceMetadata);
@@ -364,13 +362,13 @@ public class ReportOpenHelper {
 
 
     @NotNull
-    public static JsonObject getAgentContentAsJson(@NotNull AdhocReport adhocReport) {
+    public static JsonObject getModelContentAsJson(@NotNull AdhocReport adhocReport) {
         JsonObject response = new JsonObject();
         JsonObject data = new JsonObject();
 
 
 
-        GsonUtility.accumulate(data, "agentName", adhocReport.getReportName());
+        GsonUtility.accumulate(data, "modelName", adhocReport.getReportName());
 
         JsonObject metadata = new JsonObject();
 

@@ -780,13 +780,15 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 	public HIResource getResourceByIdIgnoreFilter(Integer id) {
 		return hiResourceDBDAO.getHIResourceById(id,false);
 	}
-
+	
+	@Transactional
 	@Override
 	public boolean hardDelete(HIResource hiResource) {
 		return hiResourceDBDAO.hardDelete(hiResource);
 	}
 
 	@Override
+	@Transactional
 	public List<HIResource> getHIResourceByCreatedBy(Integer createdBy, boolean includeFilter) {
 		return hiResourceDBDAO.getHIResourceByCreatedBy(createdBy,includeFilter);
 	}
@@ -950,8 +952,8 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 
 	@Transactional
 	@Override
-	public Map<Integer, List<HIResource>> findAllInstantReportsByAgentResourceIds(List<Integer> agentResourceIds) {
-		return hiResourceDBDAO.findAllInstantReportsByAgentResourceIds(agentResourceIds);
+	public Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds) {
+		return hiResourceDBDAO.findAllInstantReportsByModelResourceIds(modelResourceIds);
 	}
 
 

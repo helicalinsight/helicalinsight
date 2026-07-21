@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 2,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Hierarchical part-to-whole using nested rectangles.",
+  "aliases": [
+    "tree map",
+    "tree-map",
+    "treemap chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Treemap. Config: hierarchical data root+children; colorField; label fields=[dim].\nPolish: value=measure; clear parent/child names; element-active; limited colors; skip tiny-label clutter.",
+  "code": "\nfunction DrawTreemap() {\n  const { Treemap } = components;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const chartData = {\n    name: \"root\",\n    children: data.map((item) => ({\n      name: item[dimensionField],\n      value: item[measureField],\n      ...item\n    }))\n  };\n  const config = {\n    data: chartData,\n    colorField: \"name\",\n    label: {\n      fields: [dimensionField]\n    }\n  };\n  return <div><Treemap {...config} /></div>;\n}\n"
+}

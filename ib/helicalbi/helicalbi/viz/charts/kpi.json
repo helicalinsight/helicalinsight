@@ -1,0 +1,18 @@
+{
+  "dims_min": 0,
+  "dims_max": 0,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "User explicitly asks for a KPI or compact statistic.",
+  "aliases": [
+    "KPI",
+    "statistic",
+    "big number",
+    "metric card",
+    "single value"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "KPI Statistic in Card. Config: title; value=data[0][measure]; valueStyle; Card border 0.\nPolish: one primary number; short title; strong color (#262626 or brand); width flexible; no chart chrome.",
+  "code": "\nfunction DrawKPI() {\n  const { Card, Statistic } = components;\n  \n  <Card loading={false} style={{ width: 200, border: 0 }}>\n      <Statistic\n        title=\"Put the title here\"\n        value={data[0]?.[\"value_column\"]}\n        valueStyle={{ color: \"#999\" }}\n      />\n    </Card>\n  );\n}\n"
+}

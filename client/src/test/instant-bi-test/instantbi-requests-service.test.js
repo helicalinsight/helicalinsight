@@ -39,17 +39,17 @@ describe("Instant BI Requests Service Tests", () => {
     expect(uriConfig.adhocInstantGetReportForEdit).toBe("instantbi/instant/getReportForEdit");
     expect(uriConfig.adhocInstantGetReport).toBe("instantbi/instant/getReport");
   });
-  test("should base64 encoding should work correctly for agent payload", () => {
-    const agentPayload = {
+  test("should base64 encoding should work correctly for model payload", () => {
+    const modelPayload = {
       file: "pg_sample_travel_data.agent",
       dir: "test",
     };
-    const encoded = Base64.encode(JSON.stringify(agentPayload));
+    const encoded = Base64.encode(JSON.stringify(modelPayload));
     expect(encoded).toBeDefined();
     expect(typeof encoded).toBe("string");
     const decoded = JSON.parse(Base64.decode(encoded));
-    expect(decoded.file).toBe(agentPayload.file);
-    expect(decoded.dir).toBe(agentPayload.dir);
+    expect(decoded.file).toBe(modelPayload.file);
+    expect(decoded.dir).toBe(modelPayload.dir);
   });
 
   test("it should instantBI should return all required methods", () => {

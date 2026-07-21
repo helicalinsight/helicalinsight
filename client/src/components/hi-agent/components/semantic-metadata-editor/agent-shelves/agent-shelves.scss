@@ -1,0 +1,434 @@
+@import "../../../../../styles/variables.scss";
+
+%agent-compact-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  height: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  border-bottom: 1px solid #ebebeb;
+
+  .cube-add-metric-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    line-height: 1;
+
+    &:hover {
+      background-color: transparent;
+    }
+  }
+
+  .cube-add-metric-icon {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.75);
+  }
+}
+
+.agent-workspace {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  background: $hi-white;
+  overflow: auto;
+}
+
+/* Same viewport height shell Metadata uses (hi-metadata-container / body / section). */
+.hi-agent-grid-container {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  overflow: auto;
+
+  .hi-agent-grid-body,
+  .hi-agent-grid-section {
+    height: calc(100vh - #{$navbar-height});
+    min-height: calc(100vh - #{$navbar-height});
+    overflow: auto;
+  }
+
+  .height100percent {
+    height: 100%;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+  .agent-layout.metadata-layout,
+  .metadata-layout.agent-layout {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+  .grid-height-99 {
+    height: 99% !important;
+  }
+
+  .metadata-sidebar,
+  .metadata-section,
+  .metadata-editor {
+    top: -7px !important;
+  }
+
+  // Let react-grid-layout own width; do not lock Metadata-style %.
+  .react-grid-item {
+    > .metadata-sidebar,
+    > .metadata-section,
+    > .metadata-editor,
+    > .agent-workspace-metadata-shelf,
+    > .agent-workspace-cube-shelf,
+    > .agent-workspace-right-area {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+    }
+  }
+
+  .metadata-sidebar.agent-workspace-metadata-shelf {
+    margin-left: 1px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: $hi-white;
+
+    .agent-metadata-shelf,
+    .agent-sidebar-shell,
+    .agent-sidebar-content {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .hr-metadata-container {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .hr-metadata-table {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+  }
+
+  .metadata-section.agent-workspace-cube-shelf {
+    margin-left: 2px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: $hi-white;
+    border: 1px solid #ebebeb;
+
+    .cube-shelf {
+      height: 100%;
+      min-height: 0;
+    }
+
+    .cube-shelf-cube-area {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+
+      .cube-content,
+      .cube-editor {
+        display: flex;
+        flex-direction: column;
+        height: 100% !important;
+        min-height: 0;
+        overflow: hidden;
+        padding-top: 0;
+      }
+
+      .cube-domain-description-bar,
+      .cube-editor-header {
+        flex-shrink: 0;
+      }
+
+      .cube-editor-drop-surface {
+        flex: 0 0 0;
+        height: 0;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .ant-table-wrapper,
+      .schedule-table {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .ant-table-body {
+        overflow-y: auto !important;
+      }
+
+      .ant-table-thead > tr > th {
+        padding-top: 4px;
+        padding-bottom: 4px;
+      }
+    }
+  }
+
+  .metadata-editor.agent-workspace-right-area {
+    padding-left: 8px;
+    height: 100%;
+    width: 100%;
+    display: flex;
+    overflow: hidden;
+  }
+
+  .agent-workspace-right-inner {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .agent-workspace-tool-shelf {
+    flex: 0 0 52px;
+    width: 80px;
+    min-width: 80px;
+    max-width: 100px;
+    min-height: 0;
+    border: 1px solid #ebebeb;
+    overflow: hidden;
+  }
+
+  .agent-workspace-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: $hi-white;
+    border: 1px solid #ebebeb;
+    overflow: hidden;
+
+    .cube-content,
+    .cube-editor {
+      height: 100%;
+      min-height: 0;
+      padding-top: 0;
+    }
+
+    .cube-business-view-toolbar {
+      @extend %agent-compact-toolbar;
+      height: 20px !important;
+      min-height: 20px !important;
+      padding: 0 8px !important;
+    }
+
+    .agent-json-toolbar {
+      @extend %agent-compact-toolbar;
+      height: 28px;
+      min-height: 28px;
+    }
+
+    .business-view-hierarchy-body {
+      padding: 4px 8px 8px;
+    }
+
+    .business-view-empty {
+      margin: 8px 8px 0;
+    }
+
+    .cube-editor-drop-surface {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .ant-table-body {
+      overflow-y: auto !important;
+    }
+  }
+
+  .agent-workspace-business-view {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .display-none {
+    display: none;
+  }
+
+  .react-resizable-handle {
+    z-index: 3;
+  }
+}
+
+.agent-workspace {
+  .agent-workspace-layout,
+  .react-grid-layout {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+// ── Cube Shelf───────────────────────────────
+.cube-shelf {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+
+  .cube-shelf-cube-area {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cube-shelf-name-bar {
+    flex-shrink: 0;
+    height: 20px;
+    min-height: 20px;
+    padding: 0 5px;
+    overflow: hidden;
+  }
+
+  .metadata-name-edit {
+    height: 20px;
+
+    .metadata-name-edit-row {
+      align-items: center;
+      height: 20px;
+      flex-wrap: nowrap;
+    }
+
+    .metadata-name-edit-icon {
+      color: #fff;
+      font-size: 11px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+
+      svg {
+        width: 11px;
+        height: 11px;
+      }
+    }
+
+    .metadata-name-edit-name {
+      min-width: 0;
+      overflow: hidden;
+
+      .ant-typography {
+        color: #fff;
+        padding: 0 0 0 6px;
+        margin-bottom: 0;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        overflow: hidden;
+      }
+
+      .ant-typography-edit {
+        color: #fff;
+        font-size: 11px;
+        flex-shrink: 0;
+        margin-left: 4px;
+      }
+
+      .ant-typography-edit-content {
+        left: unset;
+        margin: 0;
+
+        .ant-input {
+          top: 0;
+          height: 18px !important;
+          min-height: 18px !important;
+          padding: 0 4px;
+          font-size: 12px;
+          line-height: 16px;
+          resize: none;
+        }
+      }
+    }
+  }
+}
+
+// ── Tool Shelf ──────────────────────────────────────────────────────────────
+.tool-shelf {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0px;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+
+  .tool-shelf-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 2px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #666;
+    transition: color 0.15s ease;
+
+    &:hover {
+      background: transparent;
+      color: $hi-blue;
+    }
+
+    &.is-active {
+      background: #e6f7ff;
+      color: #1890ff;
+    }
+  }
+
+  .tool-shelf-icon {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .tool-shelf-label {
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.2;
+  }
+}
+
+// ── Agent JSON panel (reuses the Raw JSON Monaco editor UI) ──────────────────
+.agent-json-panel {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .agent-json-toolbar {
+    @extend %agent-compact-toolbar;
+  }
+
+  .monaco-json-editor {
+    flex: 1;
+    min-height: 0;
+  }
+}

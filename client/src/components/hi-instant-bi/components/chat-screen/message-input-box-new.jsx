@@ -1,4 +1,4 @@
-import { LoadingOutlined, SendOutlined, UserOutlined } from '@ant-design/icons';
+import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
 import { Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { changeIBInputValue, updateInstantBILayout, updateRecommendationsVisibility } from '../../../../redux/actions/instant-bi.actions';
@@ -9,7 +9,7 @@ import InstantBITooltip from '../../instant-bi-tooltip-title';
 import notify from '../../../hi-notifications/notify';
 import AiDisclaimer from './ai-disclaimer';
 import TutorialInfo from '../../../common/hi-tutorial';
-
+import { CustomIcon } from '../../../common/custom-icons/CustomIcon';
 
 const MessageInputBoxNew = (props = {}) => {
     const {
@@ -58,7 +58,7 @@ const MessageInputBoxNew = (props = {}) => {
          if (!isMetadataPresent) {
            Notify.warning({
              type: "Frontend",
-             message: "Please select/connect an agent before sending message.",
+             message: "Please select/connect a semantic model before sending message.",
            });
            return;
          }
@@ -69,7 +69,7 @@ const MessageInputBoxNew = (props = {}) => {
             handleChangeRecommendation("")
         }
     }
-    const connectedAgentName = subject?.agent?.file ?? metadata?.data?.agentName ?? "";
+    const connectedAgentName = subject?.model?.file ?? subject?.agent?.file ?? metadata?.data?.modelName ?? "";
     const metadataContainer = (
       <div className="left-icons-container">
         {!isOpenMode && (
@@ -78,7 +78,7 @@ const MessageInputBoxNew = (props = {}) => {
               <InstantBITooltip
                 title={
                   !isMetadataPresent
-                    ? "Connect your Agent to start using Instant BI"
+                    ? "Connect your Semantic Model to start using Instant BI"
                     : `Chatting with: ${connectedAgentName}`
                 }
               >
@@ -98,11 +98,13 @@ const MessageInputBoxNew = (props = {}) => {
                     <div className="ib-metadata-not-present-dot" />
                   )}
                   {!metadataLoading ? (
-                    <UserOutlined
+                    <span
                       className={
                         !isMetadataPresent ? "" : "instant-bi-metadata-selected"
                       }
-                    />
+                    >
+                      <CustomIcon name="Cube" />
+                    </span>
                   ) : (
                     <LoadingOutlined />
                   )}

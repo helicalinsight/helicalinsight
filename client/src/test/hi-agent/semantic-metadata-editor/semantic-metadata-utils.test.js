@@ -23,10 +23,10 @@ describe("semantic-metadata-utils", () => {
   });
 
   describe("ensureShape", () => {
-    it("normalizes null and non-object input to domain and cube_info only", () => {
+    it("normalizes null and non-object input to domain and cube only", () => {
       expect(ensureShape(null)).toEqual({
         domain: [],
-        cube_info: [{ cubeName: "", dimensions: [], measures: [] }],
+        cube: [{ cubeName: "", dimensions: [], measures: [] }],
       });
     });
   });
@@ -55,7 +55,7 @@ describe("semantic-metadata-utils", () => {
   describe("metadata clipboard payload", () => {
     const agentState = ensureShape({
       domain: [{ domain_name: "Sales", description: "", topics: [] }],
-      cube_info: [
+      cube: [
         {
           cubeName: "",
           dimensions: [],
@@ -76,14 +76,14 @@ describe("semantic-metadata-utils", () => {
         location: "team/folder",
         metadataFileName: "Sales.metadata",
       });
-      expect(payload.state.cube_info[0].measures[0].measureName).toBe("revenue");
+      expect(payload.state.cube[0].measures[0].measureName).toBe("revenue");
       expect(payload.state.business_metrics).toBeUndefined();
     });
 
     it("returns plain state when metadata is not connected", () => {
       const payload = JSON.parse(buildAgentClipboardPayload(agentState, {}));
       expect(payload.metadata).toBeUndefined();
-      expect(payload.cube_info[0].measures[0].measureName).toBe("revenue");
+      expect(payload.cube[0].measures[0].measureName).toBe("revenue");
       expect(payload.business_metrics).toBeUndefined();
     });
 
@@ -99,7 +99,7 @@ describe("semantic-metadata-utils", () => {
         JSON.stringify(wrapped),
       );
 
-      expect(parsedState.cube_info[0].measures[0].measureName).toBe("revenue");
+      expect(parsedState.cube[0].measures[0].measureName).toBe("revenue");
       expect(metadataRef).toEqual({
         path: "team/folder",
         fileName: "Sales.metadata",
@@ -128,7 +128,7 @@ describe("semantic-metadata-utils", () => {
       };
       const saved = parseAgentPayloadForSave(JSON.stringify(wrapped));
 
-      expect(saved.cube_info[0].measures[0].measureName).toBe("revenue");
+      expect(saved.cube[0].measures[0].measureName).toBe("revenue");
       expect(saved.metadata).toBeUndefined();
       expect(saved.business_metrics).toBeUndefined();
     });

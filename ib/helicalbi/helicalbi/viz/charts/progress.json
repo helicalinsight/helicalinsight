@@ -1,0 +1,17 @@
+{
+  "dims_min": 0,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 2,
+  "instruction": "Completion/attainment with an actual and optional target.",
+  "aliases": [
+    "progress ring",
+    "ring progress",
+    "completion",
+    "progress chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "RingProgress. Config: percent in [0,1] from actual/target; color [progress, track]; statistic content as %.\nPolish: clamp percent; 2-color palette; fontSize~14; no fake axes; title via statistic if needed.",
+  "code": "\nfunction DrawProgress() {\n  const { RingProgress } = components;\n  const measureField = \"measure_column\";\n  const targetField = \"target_column\";\n  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);\n  const target = data[0]?.[targetField] ?? total;\n  const percent = target > 0 ? total / target : 0;\n  const config = {\n    percent,\n    color: [\"#5B8FF9\", \"#E8EDF3\"],\n    statistic: {\n      content: {\n        style: { fontSize: 14 },\n        content: `${(percent * 100).toFixed(2)}%`\n      }\n    }\n  };\n  return <div><RingProgress {...config} /></div>;\n}\n"
+}

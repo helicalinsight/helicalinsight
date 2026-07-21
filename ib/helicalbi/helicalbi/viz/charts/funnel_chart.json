@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Ordered stages and conversion/drop-off are being shown.",
+  "aliases": [
+    "funnel",
+    "funnel chart",
+    "conversion funnel"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "Funnel. Config: xField=stage, yField=measure; dynamicHeight; conversionTag; label middle.\nPolish: ordered stages descending; element-active; clear stage names; autoFit.",
+  "code": "\nfunction DrawFunnelChart() {\n  const { Funnel } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    dynamicHeight: true,\n    label: { position: \"middle\" },\n    conversionTag: {},\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Funnel {...config} /></div>;\n}\n"
+}

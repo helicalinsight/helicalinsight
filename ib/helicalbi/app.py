@@ -13,10 +13,10 @@ from bl import register_routes
 from helicalbi.api.Metadata import get_db_function_of_metadata, get_json_data_metadata
 from helicalbi.api.QueryExecutor import execute_query
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
-from helicalbi.common.ConvertToBlankAgent import transform_json
+from helicalbi.common.ConvertToBlankModel import transform_json
 from helicalbi.common.LlmInvokeHelper import invoke_llm
 from helicalbi.common.RequestCancellation import request_cancellation
-from helicalbi.service.agentservice.AgentLayerHelper import AgentLayerHelper
+from helicalbi.service.modelservice.ModelLayerHelper import ModelLayerHelper
 from helicalbi.service.kpi.KpiProvider import KpiProvider
 from helicalbi.common.app_config import app_env, is_debug, is_production
 from helicalbi.common.logging_config import configure_logging
@@ -26,6 +26,11 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 configure_logging()
+
+# Load viz chart definitions after logging is ready so the decision table is visible.
+from helicalbi.viz._charts import get_charts
+
+get_charts()
 
 app.config["ENV"] = "production" if is_production() else "development"
 app.config["DEBUG"] = is_debug()

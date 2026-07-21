@@ -468,7 +468,7 @@ const FbTable = (props) => {
               );
               dispatch(updateRoute(routesUrl.cubeUrl));
             }
-            if (record.extension === "agent") {
+            if (record.extension === "model") {
               dispatch(
                 appActions.setEditModeInfo({
                   dir: record.path,

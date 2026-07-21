@@ -33,7 +33,7 @@ import java.util.List;
                 @SecondaryTable(name = "hi_resource_result", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
                 @SecondaryTable(name = "hi_resource_hreport", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
                 @SecondaryTable(name = "hi_resource_instant", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
-                @SecondaryTable(name = "hi_resource_aiagent", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
+                @SecondaryTable(name = "hi_resource_model", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
                 @SecondaryTable(name = "hi_resource_hcr", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
                 @SecondaryTable(name = "hi_resource_images", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id")),
                 @SecondaryTable(name = "hi_resource_report", pkJoinColumns = @PrimaryKeyJoinColumn(name = "resource_id"))
@@ -157,19 +157,19 @@ public class HIResource implements Serializable {
     @Embedded
     private HIResourceHReport hiResourceHReport;
 
-    public HIResourceAIAgent getAiAgent() {
-        return aiAgent;
+    public HIResourceAIModel getAiModel() {
+        return aiModel;
     }
 
-    public void setAiAgent(HIResourceAIAgent aiAgent) {
-        this.aiAgent = aiAgent;
+    public void setAiModel(HIResourceAIModel aiModel) {
+        this.aiModel = aiModel;
     }
 
     @Embedded
     private HIResourceInstantReport hiResourceInstantReport;
 
     @Embedded
-    private HIResourceAIAgent aiAgent;
+    private HIResourceAIModel aiModel;
 
     @Embedded
     private HIResourceReport hiResourceReport;

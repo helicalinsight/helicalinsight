@@ -4,54 +4,71 @@
 #   docker compose -f docker-compose.dev.yml up --build
 #
 # Then open:
-#   Backend:  http://localhost:8080/hi-ce/hi.html
+#   Backend:  http://localhost:8080/hi-ee/
 #
 # Login: hiadmin / hiadmin
 
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15.8-alpine3.20
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hiuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiuser}
-      POSTGRES_DB: ${POSTGRES_DB:-hice}
-    ports:
-      - "5432:5432"
+      POSTGRES_DB: ${POSTGRES_DB:-hiee}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./server/docker/init-scripts:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hice}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
       interval: 10s
       timeout: 5s
       retries: 10
     networks:
-      - hi-dev
+      - hinet
 
-  backend:
+  hiee:
     build:
       context: ./server
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       HOST_IP: ${HOST_IP:-localhost}
       INSTALL_CHROME: ${INSTALL_CHROME:-false}
+    healthcheck: 
+      test: ["CMD-SHELL", "curl http://localhost:8080/hi-ee/applicationSettings || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
     ports:
       - "8080:8080"
     volumes:
       - ./server/hi-repository:/usr/local/Helical Insight/hi/hi-repository
-      - hi-db:/usr/local/Helical Insight/hi/db
     networks:
-      - hi-dev
+      - hinet 
+
+  instantbi:
+    image: python:3.9-slim
+    # ports:
+      # - 80:80
+      # - 8000:8000
+    healthcheck:
+      test: ["CMD-SHELL","python","-c","import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./ib/helicalbi:/app
+    working_dir: /app
+    command: bash -c "pip install -r requirements.txt && python app.py"      
+    networks:
+      - hinet
 
 networks:
-  hi-dev:
+  hinet:
     driver: bridge
 
 volumes:
   pgdata:
-  hi-db:

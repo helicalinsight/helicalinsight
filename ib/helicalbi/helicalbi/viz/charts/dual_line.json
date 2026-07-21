@@ -1,0 +1,17 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 2,
+  "measures_max": 2,
+  "instruction": "Two measures need separate line scales on one dimension.",
+  "aliases": [
+    "dual line",
+    "dual axis line",
+    "twin line",
+    "two line chart"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "DualAxes dual line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions two line (+seriesField if needed).\nPolish: autoFit; distinct line colors; shared x; legend; axis titles per measure; element-active.",
+  "code": "\nfunction DrawDualLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      { geometry: \"line\", seriesField: \"series_column\" },\n      { geometry: \"line\", seriesField: \"secondary_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+}

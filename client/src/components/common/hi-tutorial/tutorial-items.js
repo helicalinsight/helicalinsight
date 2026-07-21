@@ -43,7 +43,7 @@ const navbarItems = [
     key: "hi-navbar-instant-bi",
     title: "Instant",
     description:
-      "Instant BI lets you ask natural language questions about your data and generate visualizations using AI-powered agents.",
+      "Instant BI lets you ask natural language questions about your data and generate visualizations using AI-powered semantic models.",
   },
 ];
 
@@ -131,6 +131,13 @@ const adminItems = [
     title: "Plugins",
     description:
       "The Plugin section allows you to add and manage additional functionality to your system. You can install, activate, deactivate, and delete plugins as needed.",
+    moduleKey: "admin",
+  },
+  {
+    key: "hi-audit",
+    title: "Audit",
+    description:
+      "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
     moduleKey: "admin",
   },
   {
@@ -261,6 +268,13 @@ const adminWithOrgItems = [
     title: "Plugins",
     description:
       "The Plugin section allows you to add and manage additional functionality to your system. You can install, activate, deactivate, and delete plugins as needed.",
+    moduleKey: "adminWithOrg",
+  },
+  {
+    key: "hi-audit",
+    title: "Audit",
+    description:
+      "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
     moduleKey: "adminWithOrg",
   },
   {
@@ -592,9 +606,9 @@ const instantBIItems = [
   },
   {
     key: "hi-instant-bi-metadata",
-    title: "Connect Agent",
+    title: "Connect Semantic Model",
     description:
-      "Select an agent from the file browser to connect your data source. The agent provides the metadata context for AI-powered analysis.",
+      "Select a semantic model from the file browser to connect your data source. The semantic model provides the metadata context for AI-powered analysis.",
     moduleKey: "instantBI",
   },
   {
@@ -607,14 +621,14 @@ const instantBIItems = [
     key: "hi-instant-bi-editor-pane",
     title: "Input Pane",
     description:
-      "Type your natural language questions about your data here. Ask anything and the connected agent will analyze your data and generate insights.",
+      "Type your natural language questions about your data here. Ask anything and the connected semantic model will analyze your data and generate insights.",
     moduleKey: "instantBI",
   },
   {
     key: "hi-instant-bi-agent-icon",
-    title: "Agent",
+    title: "Semantic Model",
     description:
-      "Click the agent icon to connect or view your connected agent. An agent must be connected before you can send queries and receive AI-powered insights.",
+      "Click the semantic model icon to connect or view your connected semantic model. A semantic model must be connected before you can send queries and receive AI-powered insights.",
     moduleKey: "instantBI",
   },
   {

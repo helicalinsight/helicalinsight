@@ -1,0 +1,17 @@
+{
+  "dims_min": 2,
+  "dims_max": null,
+  "measures_min": 1,
+  "measures_max": null,
+  "instruction": "Cross-tab summary across row and column dimensions.",
+  "aliases": [
+    "pivot",
+    "pivot table",
+    "crosstab table",
+    "PivotView"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "PivotViewComponent. Config: dataSourceSettings columns/values/rows from metadata; dataSource=data; expandAll.\nPolish: map dims->rows/columns, measures->values; keep filters []; clear field names; minimal chrome.",
+  "code": "\nfunction DemoPivot() {\n  const { PivotViewComponent } = components;\n  const dataSourceSettings = {\n    columns: [{ name: \"column_fields\" }],\n    values: [{ name: \"values_fields\" }],\n    dataSource: data,\n    rows: [],\n    formatSettings: [],\n    expandAll: true,\n    filters: []\n  };\n  return (\n    <div>\n      <PivotViewComponent\n        id=\"PivotView\"\n        dataSourceSettings={dataSourceSettings}\n      />\n    </div>\n  );\n}\n"
+}

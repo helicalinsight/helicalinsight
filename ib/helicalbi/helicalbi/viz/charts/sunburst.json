@@ -1,0 +1,16 @@
+{
+  "dims_min": 2,
+  "dims_max": null,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Multi-level hierarchy using concentric rings.",
+  "aliases": [
+    "sunburst chart",
+    "radial hierarchy",
+    "sun burst"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Sunburst. Config: nest {name,children}; innerRadius~0.2; build from primary+secondary dim + measure.\nPolish: element-active; readable leaf labels; muted root; avoid >3 depth.",
+  "code": "\nfunction DrawSunburst() {\n  const { Sunburst } = components;\n  const primaryDimension = \"dimension_column\";\n  const secondaryDimension = \"secondary_dimension_column\";\n  const measureField = \"measure_column\";\n  const grouped = data.reduce((result, item) => {\n    const primary = String(item[primaryDimension]);\n    let parent = result.find((node) => node.name === primary);\n    if (!parent) {\n      parent = { name: primary, children: [] };\n      result.push(parent);\n    }\n    parent.children.push({\n      name: String(item[secondaryDimension] ?? primary),\n      value: Number(item[measureField]) || 0\n    });\n    return result;\n  }, []);\n  const config = {\n    data: { name: \"root\", children: grouped },\n    innerRadius: 0.2,\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Sunburst {...config} /></div>;\n}\n"
+}

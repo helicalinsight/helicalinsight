@@ -20,27 +20,19 @@ import com.google.gson.JsonObject;
 public class ExportWatermarkHelperTest {
 
     @Test
-    public void shouldApplyWatermark_whenAdhocAndTrialLicense() {
+    public void shouldApplyWatermark_whenAdhocAndCommunityLicense() {
         JsonObject conversionOptions = new JsonObject();
         conversionOptions.addProperty("isAdhoc", true);
 
-        assertTrue(ExportWatermarkHelper.shouldApplyWatermark(conversionOptions, "TRIAL"));
+        assertTrue(ExportWatermarkHelper.shouldApplyWatermark(conversionOptions, "Community"));
     }
 
-    @Test
-    public void shouldApplyWatermark_whenAdhocAndDeveloperLicense() {
-        JsonObject conversionOptions = new JsonObject();
-        conversionOptions.addProperty("isAdhoc", true);
-
-        assertTrue(ExportWatermarkHelper.shouldApplyWatermark(conversionOptions, "DEVELOPER"));
-    }
 
     @Test
     public void shouldNotApplyWatermark_whenNotAdhoc() {
         JsonObject conversionOptions = new JsonObject();
         conversionOptions.addProperty("isAdhoc", false);
-
-        assertFalse(ExportWatermarkHelper.shouldApplyWatermark(conversionOptions, "TRIAL"));
+        assertFalse(ExportWatermarkHelper.shouldApplyWatermark(conversionOptions, "Community"));
     }
 
     @Test
@@ -60,11 +52,13 @@ public class ExportWatermarkHelperTest {
     }
 
     @Test
-    public void isWatermarkLicense_acceptsTrialAndDeveloperOnly() {
-        assertTrue(ExportWatermarkHelper.isWatermarkLicense("TRIAL"));
-        assertTrue(ExportWatermarkHelper.isWatermarkLicense("DEVELOPER"));
+    public void isWatermarkLicense_acceptsCommunityOnly() {
+        assertFalse(ExportWatermarkHelper.isWatermarkLicense("TRIAL"));
+        assertFalse(ExportWatermarkHelper.isWatermarkLicense("DEVELOPER"));
         assertFalse(ExportWatermarkHelper.isWatermarkLicense("COMMERCIAL"));
         assertTrue(ExportWatermarkHelper.isWatermarkLicense(""));
+        assertTrue(ExportWatermarkHelper.isWatermarkLicense("Community"));
+        assertTrue(ExportWatermarkHelper.isWatermarkLicense("COMMUNITY"));
     }
 
     @Test
@@ -83,10 +77,11 @@ public class ExportWatermarkHelperTest {
     }
 
     @Test
-    public void shouldApplyPrintWatermark_forTrialAndDeveloperOnly() {
-        assertTrue(ExportWatermarkHelper.shouldApplyPrintWatermark("TRIAL"));
-        assertTrue(ExportWatermarkHelper.shouldApplyPrintWatermark("DEVELOPER"));
+    public void shouldApplyPrintWatermark_forCommunityOnly() {
+        assertFalse(ExportWatermarkHelper.shouldApplyPrintWatermark("TRIAL"));
+        assertFalse(ExportWatermarkHelper.shouldApplyPrintWatermark("DEVELOPER"));
         assertFalse(ExportWatermarkHelper.shouldApplyPrintWatermark("COMMERCIAL"));
+        assertTrue(ExportWatermarkHelper.shouldApplyPrintWatermark("Community"));
     }
 
     @Test
@@ -95,8 +90,8 @@ public class ExportWatermarkHelperTest {
     }
 
     @Test
-    public void getPrintWatermarkLabel_containsPoweredByForTrialLicense() {
-        String label = ExportWatermarkHelper.getPrintWatermarkLabel("TRIAL");
+    public void getPrintWatermarkLabel_containsPoweredByForCommunity() {
+        String label = ExportWatermarkHelper.getPrintWatermarkLabel("Community");
         assertTrue(label.startsWith("Powered By "));
         assertTrue(label.contains("\u00A9"));
     }
@@ -126,9 +121,9 @@ public class ExportWatermarkHelperTest {
     }
 
     @Test
-    public void applyImageWatermark_forTrialLicense_preservesImageSize() {
+    public void applyImageWatermark_forCommunity_preservesImageSize() {
         BufferedImage source = new BufferedImage(400, 300, BufferedImage.TYPE_INT_RGB);
-        BufferedImage watermarked = ExportWatermarkHelper.applyImageWatermark(source, "TRIAL");
+        BufferedImage watermarked = ExportWatermarkHelper.applyImageWatermark(source, "Community");
 
         assertEquals(400, watermarked.getWidth());
         assertEquals(300, watermarked.getHeight());
@@ -141,11 +136,11 @@ public class ExportWatermarkHelperTest {
     }
 
     @Test
-    public void writeWatermarkedImage_writesPngWithMetadataForTrialLicense() throws Exception {
+    public void writeWatermarkedImage_writesPngWithMetadataForCommunity() throws Exception {
         BufferedImage source = new BufferedImage(200, 150, BufferedImage.TYPE_INT_RGB);
         File outputFile = File.createTempFile("watermark-test", ".png");
 
-        ExportWatermarkHelper.writeWatermarkedImage(source, outputFile, "png", "TRIAL");
+        ExportWatermarkHelper.writeWatermarkedImage(source, outputFile, "png", "Community");
 
         assertTrue(outputFile.exists());
         assertTrue(outputFile.length() > 0);
