@@ -96,11 +96,11 @@ public class PlainJDBCConnectionTest {
 		String os = System.getProperty("os.name");
 		if (os.toLowerCase().contains("linux")) {
 			TESTURL = String.join(File.separator, "/home", "helical", "Performance", "HITest");
-			jdbcUrl = "jdbc:derby:"+ String.join("/","/home","helical","Performance","HITest","hiee");
+			jdbcUrl = "jdbc:derby:"+ String.join("/","/home","helical","Performance","hi","db","SampleTravelData");
 
 			} else if (os.toLowerCase().contains("windows")) {
 			TESTURL = String.join("\\\\", "C:", "home", "helical", "Performance", "HITest");
-			jdbcUrl = "jdbc:derby:"+ String.join("/", "C:","home","helical","Performance","HITest","hiee");
+			jdbcUrl = "jdbc:derby:"+ String.join("/", "C:","home","helical","Performance","hi","db","SampleTravelData");
 		}
 	}
 	

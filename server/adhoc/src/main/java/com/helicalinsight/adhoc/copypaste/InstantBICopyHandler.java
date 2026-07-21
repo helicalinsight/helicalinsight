@@ -63,7 +63,7 @@ public class InstantBICopyHandler extends HiResourceCopyHandler {
         HIResourceInstantReport sourceInstant = sourceHiResource.getHiResourceInstantReport();
 
         newHIResourceBI.setReportName(sourceInstant.getReportName());
-        newHIResourceBI.setHiResourceAgent(sourceInstant.getHiResourceAgent());
+        newHIResourceBI.setHiResourceModel(sourceInstant.getHiResourceModel());
         newHIResourceBI.setCreatedBy(Integer.valueOf(AuthenticationUtils.getUserId()));
         newHIResourceBI.setLastUpdatedTime(new Date());
         newHIResourceBI.setCreatedDate(new Date());

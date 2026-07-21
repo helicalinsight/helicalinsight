@@ -1,0 +1,16 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 0,
+  "measures_max": 1,
+  "instruction": "Values/events must be arranged by calendar date.",
+  "aliases": [
+    "calendar heatmap",
+    "calendar chart",
+    "date heatmap"
+  ],
+  "requires_ordered": true,
+  "base": "default",
+  "instructions": "Calendar heatmap. Config: Heatmap; meta week_day/month cats; color sequential blues.\nPolish: xField/yField from date parts in data; legend continuous bottom; element-active; consistent month/weekday order.",
+  "code": "\nfunction DrawCalendar() {\n  const { Heatmap } = components;\n  const config = {\n    data,\n    xField: \"\",\n    yField: \"month\",\n    color: [\"#B8E1FF\", \"#9AC5FF\", \"#7DAAFF\", \"#5B8FF9\", \"#3D76DD\", \"#085EC0\", \"#0047A5\", \"#00318A\", \"#001D70\"],\n    meta: {\n      week_day: {\n        type: \"cat\",\n        values: [\"Sunday\", \"Monday\", \"Tuesday\", \"Wednesday\", \"Thursday\", \"Friday\", \"Saturday\"]\n      },\n      month: {\n        type: \"cat\",\n        values: [\"Jan\", \"Feb\", \"Mar\", \"Apr\", \"May\", \"Jun\", \"Jul\", \"Aug\", \"Sep\", \"Oct\", \"Nov\", \"Dec\"]\n      }\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Heatmap {...config} /></div>;\n}\n"
+}

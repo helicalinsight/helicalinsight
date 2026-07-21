@@ -1,10 +1,10 @@
 import logging
 
-from helicalbi.model.SQLAgent import SQLAgent
+from helicalbi.model.SQLModel import SQLModel
 
 logger = logging.getLogger(__name__)
 class GetExamples:
-    def process_flow(self, state: SQLAgent):
+    def process_flow(self, state: SQLModel):
         logger.info("GetExamples flow started")
         table_names = state["required_tables"]
         examples = state["examples"]

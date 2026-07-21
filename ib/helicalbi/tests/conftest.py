@@ -147,7 +147,7 @@ def sample_cube_metadata():
 
 
 @pytest.fixture
-def sample_agent_data(sample_cube_metadata):
+def sample_model_data(sample_cube_metadata):
     return {
         "domain": [
             {"domain_name": "Sales Operation", "topics": ["Travel", "Meetings"]},

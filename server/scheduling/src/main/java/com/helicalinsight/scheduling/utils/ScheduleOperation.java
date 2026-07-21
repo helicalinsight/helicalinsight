@@ -730,27 +730,27 @@ public class ScheduleOperation {
 
     /**
      * insertDefaultDataForSchedule()
-     * This method adds default resource types for scheduling data based on setting.xml and extensions.
+     * Ensures every visible extension from setting.xml has a matching ResourceType row.
+     * Inserts only names that are not already present; existing rows are left unchanged.
      */
     public void insertDefaultDataForSchedule() {
         List<ResourceType> allResourceTypes = resourceTypeService.getAllResourceTypes();
         RenameOperationHandler handler = new RenameOperationHandler();
         List<String> listOfExtensionsFromSettings = handler.getListOfExtensionsFromSettings();
-        Set<String> existingExtensions = allResourceTypes.stream().map(ResourceType::getName).collect(Collectors.toSet());
+        Set<String> existingNames = allResourceTypes.stream()
+                .map(ResourceType::getName)
+                .collect(Collectors.toSet());
 
-        if (allResourceTypes.isEmpty() || allResourceTypes.size()<listOfExtensionsFromSettings.size()) {
+        String folderFileExtension = JsonUtils.getFolderFileExtension();
 
-            String folderFileExtension = JsonUtils.getFolderFileExtension();
-
-            for (String extension : listOfExtensionsFromSettings) {
-                if(!existingExtensions.contains(extension)) {
-                    ResourceType hcr = new ResourceType();
-                    hcr.setExtension("." + ("folder".equals(extension)?folderFileExtension:extension));
-                    hcr.setName(extension);
-                    resourceTypeService.addResourceType(hcr);
-                }
+        for (String extension : listOfExtensionsFromSettings) {
+            if (!existingNames.contains(extension)) {
+                ResourceType resourceType = new ResourceType();
+                resourceType.setExtension("." + ("folder".equals(extension) ? folderFileExtension : extension));
+                resourceType.setName(extension);
+                resourceTypeService.addResourceType(resourceType);
+                logger.debug("Inserted missing ResourceType for extension: {}", extension);
             }
-
         }
     }
 

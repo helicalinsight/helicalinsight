@@ -2,11 +2,11 @@ from langgraph.graph import StateGraph, END
 
 from helicalbi.core.flows.FindDomainAndTopics import FindDomainAndTopics
 from helicalbi.core.flows.UpdateIntentRephrase import UpdateIntentRephrase
-from helicalbi.model.AgentState import AgentState
+from helicalbi.model.ModelState import ModelState
 
 
 def build_main_graph():
-    workflow = StateGraph(AgentState)
+    workflow = StateGraph(ModelState)
 
     workflow.add_node("UpdateIntentRephrase", UpdateIntentRephrase().process_flow)
     workflow.add_node("FindDomainAndTopics", FindDomainAndTopics().process_flow)

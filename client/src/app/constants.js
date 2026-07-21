@@ -18,7 +18,7 @@ export const routesUrl = {
   cubeUrl: "/cube",
   hiUrl: "/hi",
   instantBIUrl: "/instant-bi",
-  agentUrl:"/agent",
+  agentUrl:"/semantic-model",
   hiceUrl: "/hice",
   hwfUrl: "/hwf"
 };
@@ -56,7 +56,7 @@ export const defaultRoutes = [
   },
    {
     expId: "agent",
-    title: "Agent",
+    title: "Semantic Model",
     url: routesUrl.agentUrl,
     addInNavbar: true,
     roles: ["ROLE_ADMIN"],

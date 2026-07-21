@@ -1,0 +1,16 @@
+{
+  "dims_min": 0,
+  "dims_max": 0,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "Distribution/bins of one raw numeric field.",
+  "aliases": [
+    "hist",
+    "distribution chart",
+    "bin chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Histogram. Config: binField=measure; binWidth sensible; columnStyle stroke #fff.\nPolish: autoFit; element-active; no fake category axis; choose binWidth from data range.",
+  "code": "\nfunction DrawHistogram() {\n  const { Histogram } = components;\n  const config = {\n    data,\n    binField: \"measure_column\",\n    binWidth: 1,\n    columnStyle: { stroke: \"#FFFFFF\" },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Histogram {...config} /></div>;\n}\n"
+}

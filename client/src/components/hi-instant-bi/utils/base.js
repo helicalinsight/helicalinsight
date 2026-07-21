@@ -282,9 +282,9 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
     };
   })
   
-  const agentSubject = getInstantBIAgentSubject(activeReport) || {};
-  const subject = agentSubject.file && agentSubject.dir
-    ? { agent: agentSubject }
+  const modelSubject = getInstantBIAgentSubject(activeReport) || {};
+  const subject = modelSubject.file && modelSubject.dir
+    ? { model: modelSubject }
     : {}
 
   let data = {
@@ -292,8 +292,8 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
     reportName: saveFileInfo.reportName,
     location: saveFileInfo.location,
     metadata: {
-      location: agentSubject.dir,
-      metadataFileName: agentSubject.file,
+      location: modelSubject.dir,
+      metadataFileName: modelSubject.file,
     },
     state: {
       inputs,

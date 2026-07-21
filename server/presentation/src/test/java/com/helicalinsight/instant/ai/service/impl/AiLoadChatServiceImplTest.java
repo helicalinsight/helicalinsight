@@ -89,9 +89,9 @@ public class AiLoadChatServiceImplTest {
     private String buildReportState() {
         JsonObject state = new JsonObject();
         JsonObject subject = new JsonObject();
-        JsonObject agent = new JsonObject();
-        agent.addProperty("path", "/agent");
-        subject.add("agent", agent);
+        JsonObject model = new JsonObject();
+        model.addProperty("path", "/model");
+        subject.add("model", model);
         state.add("subject", subject);
         state.addProperty("activeChatId", "chat-1");
 

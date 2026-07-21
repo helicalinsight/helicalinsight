@@ -3,9 +3,9 @@ import logging
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
-from helicalbi.common.LlmInvokeHelper import invoke_structured, merge_token_usage
+from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
-from helicalbi.model.AgentState import AgentState
+from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.UpdateRephrase import UpdateRephrase
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.prompt.UpdateRephrasePrompt import update_rephrase_prompt
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateIntentRephrase:
-    def process_flow(self, state: AgentState):
+    def process_flow(self, state: ModelState):
         if state.get("skip"):
             return state
 
@@ -29,7 +29,7 @@ class UpdateIntentRephrase:
         )
         logger.info("UpdateIntentRephrase started query_len=%s", len(user_query))
         response: UpdateRephrase
-        response, usage = invoke_structured(
+        response, _ = invoke_structured(
             prompt,
             llm,
             parser,
@@ -37,8 +37,8 @@ class UpdateIntentRephrase:
                 "current_user_query": user_query,
                 "chat_history": chat_history,
             },
+            state=state,
         )
-        merge_token_usage(state, usage)
 
         action = response.action
 

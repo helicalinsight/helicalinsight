@@ -15,6 +15,14 @@ describe("isIbKpiChart", () => {
     expect(isIbKpiChart("", "function DrawKPI() { return null; }")).toBe(true);
   });
 
+  it("should detect kpi from DrawOther vf code", () => {
+    expect(isIbKpiChart("", "function DrawOther() { return null; }")).toBe(true);
+  });
+
+  it("should detect kpi from other chart name", () => {
+    expect(isIbKpiChart("other", "")).toBe(true);
+  });
+
   it("should return false for non-kpi charts", () => {
     expect(isIbKpiChart("bar", "function DrawBar() {}")).toBe(false);
   });

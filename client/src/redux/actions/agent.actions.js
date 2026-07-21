@@ -40,3 +40,10 @@ export const onExpandAgentTable = (data) => {
 		payload: data
 	};
 };
+
+export const setAgentSemanticTypes = (data = []) => {
+	return {
+		type: actionTypes.AGENT_SEMANTIC_TYPES,
+		payload: data
+	};
+};

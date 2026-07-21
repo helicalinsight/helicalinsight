@@ -144,7 +144,7 @@ export const transformRecommendations = (arr, chunkSizes = [2, 3, 4, 2]) => {
      },
      {
        key: "metadata",
-       title: "Metadata",
+       title: "Semantic",
        icon: <DatabaseOutlined />,
      },
      {
@@ -157,9 +157,9 @@ export const transformRecommendations = (arr, chunkSizes = [2, 3, 4, 2]) => {
 export const getInstantBIAgentSubject = (activeReport = {}) => {
     const { metadata = {}, subject = {} } = activeReport;
     const { formData: metadataFormData = {} } = metadata || {};
-    const subjectAgent = subject?.agent || {};
-    if (subjectAgent.file && subjectAgent.dir) {
-        return { file: subjectAgent.file, dir: subjectAgent.dir };
+    const subjectModel = subject?.model || subject?.agent || {};
+    if (subjectModel.file && subjectModel.dir) {
+        return { file: subjectModel.file, dir: subjectModel.dir };
     }
     if (metadataFormData.metadataFileName && metadataFormData.location) {
         return {
@@ -212,8 +212,9 @@ const useChartContainerSize = (containerRef, { width, height, observe }) => {
 };
 
 export const isIbKpiChart = (chartName = "", vf = "") => {
-  if (String(chartName).toLowerCase() === "kpi") return true;
-  return /function\s+DrawKPI\b/.test(String(vf));
+  const name = String(chartName).toLowerCase();
+  if (name === "kpi" || name === "other") return true;
+  return /function\s+Draw(?:KPI|Other)\b/.test(String(vf));
 };
 
 export const isIbTableChart = (chartName = "", vf = "") => {

@@ -7,6 +7,8 @@ import { abortRecommendationsRequest, instantBiChatAPI } from '../../utils/insta
 import "./chat-screen.scss";
 import MessageInputBoxNew from './message-input-box-new';
 import MessageList from './message-list';
+import Watermark from '../../../hi-reports/hi-viz-area/watermark/watermark';
+import { isOpenSource } from '../../../../utils/utilities';
 
 const InstantBIChatScreen = (props = {}) => {
     const {
@@ -31,6 +33,8 @@ const InstantBIChatScreen = (props = {}) => {
     const { layout } = useSelector((state) => state.instantBI);
     const { metadataShelf, previewShelf } = layout || {};
     const [recommendation, setRecommendation] = useState('')
+    const metaInfo = useSelector((state) => (state.app.applicationSettingsData.meta || {}));
+    const openSource = isOpenSource(metaInfo)
 
     const isFullWidth = (metadataShelf && previewShelf) || previewShelf;
 
@@ -74,14 +78,14 @@ const InstantBIChatScreen = (props = {}) => {
         if (abortedRequest) return;
         let message = prepareIBChatNewMessage(aiResponse)
         let newId = uuidv4();
-        let newMessage = { 
-            ...message, 
-            data, 
-            vf, 
-            vf_title, 
-            metadata, 
-            id: newId, 
-            error, 
+        let newMessage = {
+            ...message,
+            data,
+            vf,
+            vf_title,
+            metadata,
+            id: newId,
+            error,
             sql,
             userInput,
             chatSequenceId,
@@ -115,9 +119,9 @@ const InstantBIChatScreen = (props = {}) => {
             input: message,
         }
         if (isMetadataPresent) {
-            const agent = getInstantBIAgentSubject(activeReport);
-            if (agent) {
-                formData.subject = { agent };
+            const model = getInstantBIAgentSubject(activeReport);
+            if (model) {
+                formData.subject = { model };
             }
         }
         abortedRef.current = false;
@@ -211,6 +215,15 @@ const InstantBIChatScreen = (props = {}) => {
                     </div>
                 )}
             </div>
+            {openSource ?
+                <Watermark
+                    text={`Powered by ${metaInfo.productName}©${metaInfo.version}`}
+                    link={metaInfo.link || "https://www.helicalinsight.com/"}
+                    placement="bottom-right"
+                    tooltip="Please upgrade your license to remove this watermark."
+                    right={10}
+                />
+                : null}
         </div>
     )
 }

@@ -60,10 +60,10 @@ public class InstantReportCreatorDb implements IComponent {
             throw new IncompleteFormDataException("The report state parameter is null.");
         }
         String state = formDataJson.get("state").toString();
-        String agentLocation = getAgentLocation(formDataJson);
-        HIResource agentResource = serviceDB.getResourceByUrl(agentLocation);
-        if (agentResource == null) {
-            throw new EfwServiceException("The agent does not exists for this report");
+        String modelLocation = getModelLocation(formDataJson);
+        HIResource modelResource = serviceDB.getResourceByUrl(modelLocation);
+        if (modelResource == null) {
+            throw new EfwServiceException("The model does not exists for this report");
         }
 
         String requiredExtension = "." + (JsonUtils.getInstantReportExtension());
@@ -74,7 +74,7 @@ public class InstantReportCreatorDb implements IComponent {
             if (hiResource == null) {
                 throw new IllegalStateException("No such report exists");
             }
-            instantReportEdit(hiResource, createdDate, formDataJson, state, agentResource);
+            instantReportEdit(hiResource, createdDate, formDataJson, state, modelResource);
             hiResource.setLastUpdatedTime(createdDate);
             serviceDB.editHIResource(hiResource);
             GsonUtility.accumulate(result, "uuid", existingName);
@@ -113,7 +113,7 @@ public class InstantReportCreatorDb implements IComponent {
             hiResource.setTitle(reportName);
             String resourcePath = DBProcessor.checkAndReplaceSpecialChars(reportName).trim();
             hiResource.setResourceType(resourceTypeServiceDB.getResourceTypeByTypeAndExtension("instant", ".instant"));
-            saveHReport(hiResource, createdDate, formDataJson, state, agentResource, createdBy, reportName);
+            saveHReport(hiResource, createdDate, formDataJson, state, modelResource, createdBy, reportName);
             String resourceUrl = location + "/" + newName;
             hiResource.setResourcePath(resourcePath);
             hiResource.setResourceURL(resourceUrl);
@@ -143,16 +143,16 @@ public class InstantReportCreatorDb implements IComponent {
      * @param createdDate      The date when the report is created.
      * @param formDataJson     The JSON data containing form parameters for the report.
      * @param state            The state of the report.
-     * @param agentResource The agentResource resource associated with the report.
+     * @param modelResource The modelResource resource associated with the report.
      * @param createdBy        The user ID who created the report.
      * @param reportName       The name of the report.
      */
-    private void saveHReport(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource agentResource, String createdBy, String reportName) {
+    private void saveHReport(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource modelResource, String createdBy, String reportName) {
         HIResourceInstantReport hReport = new HIResourceInstantReport();
         hReport.setCreatedDate(createdDate);
         hReport.setCreatedBy(Integer.valueOf(createdBy));
         hReport.setReportName(reportName);
-        coreSave(hReport, createdDate, formDataJson, state, agentResource);
+        coreSave(hReport, createdDate, formDataJson, state, modelResource);
         hiResource.setHiResourceInstantReport(hReport);
     }
 
@@ -163,31 +163,31 @@ public class InstantReportCreatorDb implements IComponent {
      * @param createdDate   The date when the report is edited.
      * @param formDataJson  The JSON data containing form parameters for the report.
      * @param state         The state of the report.
-     * @param agentResource The agentResource resource associated with the report.
+     * @param modelResource The modelResource resource associated with the report.
      */
-    private void instantReportEdit(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource agentResource) {
+    private void instantReportEdit(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource modelResource) {
         HIResourceInstantReport adhocReport = hiResource.getHiResourceInstantReport();
-        coreSave(adhocReport, createdDate, formDataJson, state, agentResource);
+        coreSave(adhocReport, createdDate, formDataJson, state, modelResource);
     }
 
     /**
-     * Gets the agentResource location from the provided JSON form data.
+     * Gets the modelResource location from the provided JSON form data.
      *
      * @param formDataJson JSON data containing form parameters for the report.
-     * @return The agentResource location.
-     * @throws IncompleteFormDataException If the agentResource location or agentResource is missing in the form data.
+     * @return The modelResource location.
+     * @throws IncompleteFormDataException If the modelResource location or modelResource is missing in the form data.
      */
     @NotNull
-    private String getAgentLocation(JsonObject formDataJson) {
-        JsonObject agentResource = null;
+    private String getModelLocation(JsonObject formDataJson) {
+        JsonObject modelResource = null;
         if (formDataJson.has("metadata")) {
-            agentResource = formDataJson.getAsJsonObject("metadata");
-            if (!agentResource.has("location") || !agentResource.has("metadataFileName")) {
+            modelResource = formDataJson.getAsJsonObject("metadata");
+            if (!modelResource.has("location") || !modelResource.has("metadataFileName")) {
                 throw new IncompleteFormDataException("The metadata has no location or metadataFileName");
             }
         }
 
-        String metadataLocation = agentResource.get("location").getAsString() + "/" + agentResource.get("metadataFileName").getAsString();
+        String metadataLocation = modelResource.get("location").getAsString() + "/" + modelResource.get("metadataFileName").getAsString();
         return metadataLocation;
     }
 
@@ -198,13 +198,13 @@ public class InstantReportCreatorDb implements IComponent {
      * @param createdDate   The date when the report is created or edited.
      * @param formDataJson  The JSON data containing form parameters for the report.
      * @param state         The state of the report.
-     * @param agentResource The agentResource resource associated with the report.
+     * @param modelResource The modelResource resource associated with the report.
      */
-    private void coreSave(HIResourceInstantReport hReport, Date createdDate, JsonObject formDataJson, String state, HIResource agentResource) {
+    private void coreSave(HIResourceInstantReport hReport, Date createdDate, JsonObject formDataJson, String state, HIResource modelResource) {
         hReport.setState(state);
         hReport.setLastUpdatedTime(createdDate);
-        if (agentResource != null) {
-            hReport.setHiResourceAgent(agentResource.getResourceId());
+        if (modelResource != null) {
+            hReport.setHiResourceModel(modelResource.getResourceId());
         }
     }
 

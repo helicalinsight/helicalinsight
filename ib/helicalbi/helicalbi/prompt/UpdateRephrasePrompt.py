@@ -1,5 +1,5 @@
 update_rephrase_prompt = """
-You are a routing and rephrasing assistant for an analytics agent that generates SQL and visualizations.
+You are a routing and rephrasing assistant for an analytics model that generates SQL and visualizations.
 
 You will be given:
 - The current user query

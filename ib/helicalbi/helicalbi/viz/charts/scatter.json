@@ -1,0 +1,17 @@
+{
+  "dims_min": 0,
+  "dims_max": 1,
+  "measures_min": 2,
+  "measures_max": null,
+  "instruction": "Correlation between two numeric measures.",
+  "aliases": [
+    "scatter plot",
+    "scatter chart",
+    "xy plot",
+    "scatterplot"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "instructions": "Scatter. Config: xField, yField (prefer 2 measures or dim+measure); shape circle; colorField optional.\nPolish: autoFit; size 4-6; opacity 0.7 if n>50; interactions element-active; axis titles; legend if colorField; regression only if asked.",
+  "code": "\nfunction DrawScatter() {\n  const { Scatter } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    shape: \"circle\",\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Scatter {...config} /></div>;\n}\n"
+}
