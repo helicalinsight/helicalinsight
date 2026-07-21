@@ -59,8 +59,8 @@ jobs:
     - name: Prepare test environment
       run: bash scripts/setup-ci-test-env.sh
     
-    - name: test
-      run: mvn -q test --file server/pom.xml -Denv=ci -Dedition=hice
+    - name: test 
+      run: mvn test --file server/pom.xml -Denv=ci -Dedition=hice -Dsurefire.skipAfterFailureCount=1 -T 2
       env:
         MAVEN_OPTS: -Xmx2g
         
