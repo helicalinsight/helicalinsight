@@ -44,24 +44,6 @@ const App = () => {
 };
 
 describe("Rendering ValidatedTable component", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-  
-  afterAll(() => {
-    global.gc && global.gc()
-  })
   
   test("ValidatedTable component", async () => {
     await waitFor(() => render(<App />));

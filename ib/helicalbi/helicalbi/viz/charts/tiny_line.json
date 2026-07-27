@@ -11,6 +11,61 @@
   ],
   "requires_ordered": true,
   "base": "default",
-  "instructions": "TinyLine sparkline. Config: xField, yField; smooth; autoFit; minimal chrome.\nPolish: no axes/legend/labels unless asked; height compact; focus trend only.",
-  "code": "\nfunction DrawTinyLine() {\n  const { TinyLine } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    smooth: true,\n    autoFit: true\n  };\n  return <div><TinyLine {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "tiny",
+    "component": "TinyLine",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "TinyLine sparkline. Config: xField, yField; smooth; autoFit; minimal chrome.",
+    "Polish: no axes/legend/labels unless asked; height compact; focus trend only."
+  ],
+  "code": [
+    "function DrawTinyLine() {",
+    "  const { TinyLine } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'dimension_column',",
+    "    yField: 'measure_column',",
+    "    smooth: true,",
+    "    autoFit: true,",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><TinyLine {...config} /></div>;",
+    "}"
+  ]
 }

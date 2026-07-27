@@ -1,0 +1,55 @@
+{
+    "id":  "hiResourcePhases",
+    "title":  "Resource Phases",
+    "description":  "Metadata and cube processing phase names.",
+    "file":  "hiResourcePhases.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "Metadata Process",
+                         "key":  "metadata",
+                         "description":  "First metadata phase entries",
+                         "fields":  [
+                                        {
+                                            "name":  "metaPhase1Name",
+                                            "path":  "HIResourcePhases/metadata/process/phase/@name",
+                                            "label":  "First Phase Name",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Name of the first metadata phase (usually INITIATED)."
+                                        },
+                                        {
+                                            "name":  "metaPhase1Id",
+                                            "path":  "HIResourcePhases/metadata/process/phase/@id",
+                                            "label":  "First Phase Id",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Id of the first metadata phase."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Cube Process",
+                         "key":  "cube",
+                         "fields":  [
+                                        {
+                                            "name":  "cubePhase1Name",
+                                            "path":  "HIResourcePhases/cube/process/phase/@name",
+                                            "label":  "First Cube Phase Name",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Name of the first cube phase."
+                                        },
+                                        {
+                                            "name":  "cubePhase1Id",
+                                            "path":  "HIResourcePhases/cube/process/phase/@id",
+                                            "label":  "First Cube Phase Id",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Id of the first cube phase."
+                                        }
+                                    ]
+                     }
+                 ]
+}

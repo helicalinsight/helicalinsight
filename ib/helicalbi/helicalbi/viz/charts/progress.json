@@ -12,6 +12,45 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "RingProgress. Config: percent in [0,1] from actual/target; color [progress, track]; statistic content as %.\nPolish: clamp percent; 2-color palette; fontSize~14; no fake axes; title via statistic if needed.",
-  "code": "\nfunction DrawProgress() {\n  const { RingProgress } = components;\n  const measureField = \"measure_column\";\n  const targetField = \"target_column\";\n  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);\n  const target = data[0]?.[targetField] ?? total;\n  const percent = target > 0 ? total / target : 0;\n  const config = {\n    percent,\n    color: [\"#5B8FF9\", \"#E8EDF3\"],\n    statistic: {\n      content: {\n        style: { fontSize: 14 },\n        content: `${(percent * 100).toFixed(2)}%`\n      }\n    }\n  };\n  return <div><RingProgress {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "percent",
+    "component": "RingProgress",
+    "fields": {
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "target_column": {
+        "role": "measure",
+        "index": 1,
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "RingProgress. Config: percent in [0,1] from actual/target; color [progress, track]; statistic content as %.",
+    "Polish: clamp percent; 2-color palette; fontSize~14; no fake axes; title via statistic if needed."
+  ],
+  "code": [
+    "function DrawProgress() {",
+    "  const { RingProgress } = components;",
+    "  const measureField = 'measure_column';",
+    "  const targetField = 'target_column';",
+    "  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);",
+    "  const target = data[0]?.[targetField] ?? total;",
+    "  const percent = target > 0 ? total / target : 0;",
+    "  const config = {",
+    "    percent,",
+    "    color: ['#5B8FF9', '#E8EDF3'],",
+    "    statistic: {",
+    "      content: {",
+    "        style: { fontSize: 14 },",
+    "        content: `${((typeof percent === 'number' && Number.isFinite(percent) ? percent : Number(percent)) * 100).toFixed(2)}%`",
+    "      }",
+    "    }",
+    "  };",
+    "  return <div><RingProgress {...config} /></div>;",
+    "}"
+  ]
 }

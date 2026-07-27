@@ -2,6 +2,8 @@ package com.helicalinsight.efw.components;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.customauth.CipherUtils;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DsOperation;
 import com.helicalinsight.datasource.GlobalJdbcType;
@@ -17,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -36,6 +39,10 @@ public class TomcatJdbcDataSourcePropertiesDB implements DsOperation {
 
     @Autowired
     private GlobalConnectionService globalConnectionService;
+    
+    @Autowired
+    @Qualifier(value = "userDetailsService")
+    private UserService userService;
 
 
     @NotNull
@@ -178,7 +185,8 @@ public class TomcatJdbcDataSourcePropertiesDB implements DsOperation {
         globalConnection.setType(GlobalJdbcType.DYNAMIC_DATASOURCE);
         globalConnection.setBaseType(GlobalJdbcType.TYPE);
         globalConnection.setName(formData.get("name").getAsString());
-        globalConnection.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
         globalConnection.setCreatedDate(new Date());
         globalConnection.setLastUpdatedTime(new Date());

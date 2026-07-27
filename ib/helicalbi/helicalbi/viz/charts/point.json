@@ -11,6 +11,74 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Point/Scatter marks. Config: Scatter; xField, yField; shape circle|diamond; size optional.\nPolish: autoFit; low opacity if dense; interactions element-active; axis titles; no fake series colors unless colorField present.",
-  "code": "\nfunction DrawPoint() {\n  const { Scatter } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    shape: \"circle\",\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Scatter {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "cartesian",
+    "component": "Scatter",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Point/Scatter marks. Config: Scatter; xField, yField; shape circle|diamond; size optional.",
+    "Polish: autoFit; low opacity if dense; interactions element-active; axis titles; no fake series colors unless colorField present."
+  ],
+  "code": [
+    "function DrawPoint() {",
+    "  const { Scatter } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'dimension_column',",
+    "    yField: 'measure_column',",
+    "    shape: 'circle',",
+    "    xAxis: {",
+    "      title: {",
+    "        text: 'dimension_column'",
+    "      }",
+    "    },",
+    "    yAxis: {",
+    "      title: {",
+    "        text: 'measure_column'",
+    "      },",
+    "      label: {",
+    "        formatter: (v) => formatMeasure(v, 'measure_column')",
+    "      }",
+    "    },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Scatter {...config} /></div>;",
+    "}"
+  ]
 }

@@ -4,11 +4,16 @@ import {
   collectDomainTopics,
 } from "../components/semantic-metadata-editor/semantic-metadata-utils";
 import { formatArrayAsCommaSeparated } from "../../hi-cube/cubeSemanticFields";
-import { cubeEditorMeasureData } from "../../hi-cube/cubeConstants";
+import { cubeEditorMeasureData, getDefaultFunctionForAggregator } from "../../hi-cube/cubeConstants";
 import {
   addBusinessTopicAssignment,
   childMatchesBusinessTopic,
 } from "../../hi-cube/agentBusinessTopicMembership";
+import {
+  getDefaultFormatForSemanticType,
+  getDefaultSemanticTypeForRole,
+  resolveFormatForSemanticType,
+} from "../../hi-cube/cubeSemanticTypeField";
 
 const asId = (value) => (value == null ? "" : String(value));
 
@@ -115,7 +120,7 @@ export const getFieldSourceTableTooltip = (record = {}) => {
     return "";
   }
   if (isManualMetricChild(record)) {
-    return "Metric (not from a source table)";
+    return "Metric";
   }
   const qualifiedName = buildQualifiedColumnName(record);
   if (qualifiedName) {
@@ -285,7 +290,7 @@ const buildDimensionEntry = (child, sortOrder) => ({
   columnId: asId(child.columnId),
   defaultFunction:
     child.defaultFunction || child.column?.defaultFunction || "",
-  description: collapseNewlines(child.description || ""),
+  formatString: child.measure?.Format || "",
   ...buildAiContextForExport(child),
   metric: buildMetric(child.formula),
   sort: toSortValue(child.sort),
@@ -299,7 +304,7 @@ const buildAgentLevelEntry = (child) => ({
   columnName: buildQualifiedColumnName(child),
   columnId: asId(child.columnId),
   defaultFunction: child.defaultFunction || child.column?.defaultFunction || "",
-  description: collapseNewlines(child.description || ""),
+  formatString: child.measure?.Format || "",
   metric: buildMetric(child.formula),
   sort: toSortValue(child.sort),
 });
@@ -325,7 +330,7 @@ const buildAgentHierarchyDimension = (child, sortOrder) => {
       child.column?.defaultFunction ||
       primaryLevel.defaultFunction ||
       "",
-    description: collapseNewlines(child.description || ""),
+    formatString: child.measure?.Format || "",
     metric: buildMetric(child.formula),
     sort: toSortValue(child.sort),
     sortOrder,
@@ -347,20 +352,21 @@ const buildMeasureEntry = (child, sortOrder) => {
     !child.aggregation?.isAggregationCheck ||
     aggregationValue === "None" ||
     aggregationValue === "";
+  const isManualMetric = isManualMetricChild(child);
   return {
     measureName: (child.fields || child.columnName || "").trim(),
     aggregator: isNoneAggregation ? "None" : aggregationValue,
-    ...(isManualMetricChild(child)
+    ...(isManualMetric
       ? { metricId: asId(child.metricId || child.columnId) }
       : { columnId: asId(child.columnId) }),
     tableId: asId(child.tableId ?? child.table?.id),
-    defaultFunction: isNoneAggregation
-      ? "db.generic.aggregate.none"
-      : child.defaultFunction || child.column?.defaultFunction || "",
+    defaultFunction:
+      isManualMetric || isNoneAggregation
+        ? ""
+        : child.defaultFunction || child.column?.defaultFunction || "",
     formatString: child.measure?.Format || "",
     semanticType: child.semanticType || "",
     columnName: buildQualifiedColumnName(child),
-    description: collapseNewlines(child.description || ""),
     ...buildAiContextForExport(child),
     metric: buildMetric(child.formula),
     sortOrder,
@@ -375,7 +381,7 @@ const buildLevelEntry = (child) => ({
   columnId: asId(child.columnId),
   defaultFunction:
     child.defaultFunction || child.column?.defaultFunction || "",
-  description: collapseNewlines(child.description || ""),
+  formatString: child.measure?.Format || "",
   ...buildAiContextForExport(child),
   metric: buildMetric(child.formula),
   sort: toSortValue(child.sort),
@@ -405,7 +411,7 @@ const buildHierarchyDimensionEntry = (hierarchyChild, sortOrder) => {
       primary.defaultFunction ||
       primary.column?.defaultFunction ||
       "",
-    description: collapseNewlines(hierarchyChild.description || ""),
+    formatString: hierarchyChild.measure?.Format || "",
     ...buildAiContextForExport(hierarchyChild),
     metric: buildMetric(hierarchyChild.formula),
     sort: toSortValue(hierarchyChild.sort),
@@ -436,7 +442,6 @@ const createChildFromLevel = (level, parentKey) => {
     defaultFunction: level.defaultFunction || "",
     semanticType: level.semanticType || "",
     domain: level.business?.domain ?? level.domain ?? "",
-    description: level.description || "",
     businessDescription: level.business?.description ?? "",
     isBusinessView: isBusinessEntry(level),
     formula: level.metric?.formula || "",
@@ -444,7 +449,11 @@ const createChildFromLevel = (level, parentKey) => {
     ...readAiContextFromEntry(level),
     topic: level.business?.topic ?? level.topic ?? "",
     isDimensionCheck: true,
-    measure: { isMeasureCheck: false, DataType: "", Format: "" },
+    measure: {
+      isMeasureCheck: false,
+      DataType: "",
+      Format: level.formatString || "",
+    },
     isVisible: true,
     sort: toSortState(level.sort),
     aggregation: { isAggregationCheck: false, value: "" },
@@ -503,7 +512,6 @@ const createChildFromDimension = (dimension) => {
     semanticType: dimension.semanticType || "",
     domain: dimension.business?.domain ?? dimension.domain ?? "",
     topic: dimension.business?.topic ?? dimension.topic ?? "",
-    description: dimension.description || "",
     businessDescription: dimension.business?.description ?? "",
     isBusinessView: isBusinessEntry(dimension),
     formula: dimension.metric?.formula || "",
@@ -511,7 +519,11 @@ const createChildFromDimension = (dimension) => {
     ...readAiContextFromEntry(dimension),
     fieldsDropdownOpen: false,
     isDimensionCheck: true,
-    measure: { isMeasureCheck: false, DataType: "", Format: "" },
+    measure: {
+      isMeasureCheck: false,
+      DataType: "",
+      Format: dimension.formatString || "",
+    },
     isVisible: true,
     sort: toSortState(dimension.sort),
     aggregation: { isAggregationCheck: false, value: "" },
@@ -532,7 +544,6 @@ const createHierarchyChildFromLevel = (level, parentKey) => {
     columnId: level.columnId || "",
     defaultFunction: level.defaultFunction || "",
     semanticType: level.semanticType || "",
-    description: level.description || "",
     formula: level.metric?.formula || "",
     filter: "",
     example: "",
@@ -541,7 +552,11 @@ const createHierarchyChildFromLevel = (level, parentKey) => {
     isHierarchyChild: true,
     parentKey,
     isDimensionCheck: true,
-    measure: { isMeasureCheck: false, DataType: "", Format: "" },
+    measure: {
+      isMeasureCheck: false,
+      DataType: "",
+      Format: level.formatString || "",
+    },
     isVisible: true,
     sort: toSortState(level.sort),
     aggregation: { isAggregationCheck: false, value: "" },
@@ -581,7 +596,6 @@ const createChildFromAgentDimension = (dimension) => {
       tableId: level.tableId || dimension.tableId,
       columnName: level.columnName || dimension.columnName,
       semanticType: level.semanticType ?? dimension.semanticType,
-      description: level.description ?? dimension.description,
       defaultFunction: level.defaultFunction ?? dimension.defaultFunction,
       metric: level.metric ?? dimension.metric,
       sort: level.sort ?? dimension.sort,
@@ -598,7 +612,6 @@ const createChildFromAgentDimension = (dimension) => {
     columnId: hierarchy.primaryColumnId || dimension.columnId || "",
     defaultFunction: dimension.defaultFunction || "",
     semanticType: dimension.semanticType || "",
-    description: dimension.description || "",
     formula: dimension.metric?.formula || "",
     filter: "",
     example: "",
@@ -616,6 +629,12 @@ const createChildFromMeasure = (measure) => {
   const columnName = isManualMetric
     ? ""
     : measure.columnName || measure.measureName || "";
+  const aggregator = measure.aggregator || "Sum";
+  const isNoneAggregation = aggregator === "None" || aggregator === "";
+  const defaultFunction = getDefaultFunctionForAggregator(
+    aggregator,
+    isManualMetric,
+  );
   return {
     key: uuidv4(),
     fields: measure.measureName || columnName,
@@ -623,11 +642,10 @@ const createChildFromMeasure = (measure) => {
     tableId: measure.tableId || "",
     columnId: isManualMetric ? "" : measure.columnId || "",
     metricId: isManualMetric ? measure.metricId || measure.columnId || "" : "",
-    defaultFunction: measure.defaultFunction || "",
+    defaultFunction,
     semanticType: measure.semanticType || "",
     domain: measure.business?.domain ?? measure.domain ?? "",
     topic: measure.business?.topic ?? measure.topic ?? "",
-    description: measure.description || "",
     businessDescription: measure.business?.description ?? "",
     isBusinessView: isBusinessEntry(measure),
     formula: measure.metric?.formula || "",
@@ -638,17 +656,17 @@ const createChildFromMeasure = (measure) => {
     measure: {
       isMeasureCheck: true,
       DataType: cubeEditorMeasureData[0].dataType,
-      Format: measure.formatString || cubeEditorMeasureData[0].format[0],
+      Format: measure.formatString || "",
     },
     isVisible: true,
     sort: { isSortCheck: false, value: "" },
     aggregation: {
-      isAggregationCheck: true,
-      value: measure.aggregator || "Sum",
+      isAggregationCheck: !isNoneAggregation,
+      value: isNoneAggregation ? "None" : aggregator,
     },
     isPartitionCheck: false,
     table: { name: "" },
-    column: { defaultFunction: measure.defaultFunction || "" },
+    column: { defaultFunction },
     agentSource: isManualMetric
       ? { kind: "manual-metric", metricName: measure.measureName || "" }
       : { kind: "metric", metricName: measure.measureName || columnName },
@@ -668,9 +686,20 @@ export const getNextManualMetricName = (children = []) => {
   return `metric_${index}`;
 };
 
-export const createColumnChildFromDropRecord = (record = {}) => {
+export const createColumnChildFromDropRecord = (
+  record = {},
+  semanticTypeOptions,
+) => {
   const isNumeric = record.dataType === "numeric";
   const isDateOrText = ["date", "dateTime", "text"].includes(record.dataType);
+  const semanticType = getDefaultSemanticTypeForRole(
+    isNumeric,
+    "agent",
+    semanticTypeOptions,
+  );
+  const defaultFormat =
+    getDefaultFormatForSemanticType(semanticTypeOptions, semanticType) ||
+    (isNumeric ? cubeEditorMeasureData[0].format[0] : "");
   return {
     key: uuidv4(),
     columnId: record.columnId,
@@ -681,7 +710,7 @@ export const createColumnChildFromDropRecord = (record = {}) => {
     measure: {
       isMeasureCheck: isNumeric,
       DataType: isNumeric ? cubeEditorMeasureData[0].dataType : "",
-      Format: isNumeric ? cubeEditorMeasureData[0].format[0] : "",
+      Format: defaultFormat,
     },
     isVisible: true,
     sort: {
@@ -709,7 +738,7 @@ export const createColumnChildFromDropRecord = (record = {}) => {
       table: record.tableName,
       columnName: record.columnName,
     },
-    semanticType: isNumeric ? "Number" : "Text",
+    semanticType,
     synonyms: "",
     domain: "",
     topic: "",
@@ -717,13 +746,20 @@ export const createColumnChildFromDropRecord = (record = {}) => {
     filter: "",
     example: "",
     instructions: "",
-    description: "",
     businessDescription: "",
   };
 };
 
-export const createManualMetricChild = (children = []) => {
+export const createManualMetricChild = (children = [], semanticTypeOptions) => {
   const metricName = getNextManualMetricName(children);
+  const semanticType = getDefaultSemanticTypeForRole(
+    true,
+    "agent",
+    semanticTypeOptions,
+  );
+  const defaultFormat =
+    getDefaultFormatForSemanticType(semanticTypeOptions, semanticType) ||
+    cubeEditorMeasureData[0].format[0];
   return {
     key: uuidv4(),
     fields: metricName,
@@ -732,9 +768,8 @@ export const createManualMetricChild = (children = []) => {
     columnId: "",
     metricId: uuidv4(),
     defaultFunction: "",
-    semanticType: "Number",
+    semanticType,
     domain: "",
-    description: "",
     businessDescription: "",
     formula: "",
     filter: "",
@@ -747,7 +782,7 @@ export const createManualMetricChild = (children = []) => {
     measure: {
       isMeasureCheck: true,
       DataType: cubeEditorMeasureData[0].dataType,
-      Format: cubeEditorMeasureData[0].format[0],
+      Format: defaultFormat,
     },
     isVisible: true,
     sort: { isSortCheck: false, value: "" },
@@ -827,7 +862,6 @@ const migrateLegacyAgentData = (data) => {
         tableId: table.table_id || table.tableId || "",
         columnId: column.column_id || column.columnId || "",
         semanticType: column.semantic_type || column.semanticType || "",
-        description: metric?.description || "",
         formula: metric?.formula || "",
         measure: { isMeasureCheck: false, Format: "" },
         aggregation: { value: "" },
@@ -848,7 +882,6 @@ const migrateLegacyAgentData = (data) => {
       tableId: "",
       columnId: "",
       semanticType: "",
-      description: metric.description || "",
       formula: metric.formula || "",
       measure: { isMeasureCheck: true, Format: "" },
       aggregation: { value: "Sum" },
@@ -909,6 +942,98 @@ export const normalizeAgentData = (agentData) => {
     return ensureShape(migrateLegacyAgentData(raw));
   }
   return ensureShape(raw);
+};
+
+const findMatchingFieldEntry = (list = [], entry = {}, nameKey) =>
+  list.find(
+    (item) =>
+      (entry.columnName && item.columnName === entry.columnName) ||
+      (entry[nameKey] && item[nameKey] === entry[nameKey]) ||
+      (entry.columnId && asId(item.columnId) === asId(entry.columnId)) ||
+      (entry.metricId && asId(item.metricId) === asId(entry.metricId)),
+  );
+
+const resolveEntryFormat = (entry, previousEntry, semanticTypeOptions) => {
+  if (!semanticTypeOptions?.length) {
+    return entry;
+  }
+  const semanticType = entry.semanticType || "";
+  const typeChanged =
+    previousEntry && semanticType !== (previousEntry.semanticType || "");
+  return {
+    ...entry,
+    formatString: typeChanged
+      ? getDefaultFormatForSemanticType(semanticTypeOptions, semanticType)
+      : resolveFormatForSemanticType(
+          semanticTypeOptions,
+          semanticType,
+          entry.formatString || "",
+        ),
+  };
+};
+
+const resolveMeasureAggregator = (measure = {}) => {
+  const aggregator = measure.aggregator || "Sum";
+  return {
+    ...measure,
+    aggregator,
+    defaultFunction: getDefaultFunctionForAggregator(
+      aggregator,
+      isManualMetricEntry(measure),
+    ),
+  };
+};
+
+export const normalizeAgentFieldFormats = (
+  agentData,
+  semanticTypeOptions,
+  previousAgentData,
+) => {
+  const data = normalizeAgentData(agentData);
+  const prevCube = normalizeAgentData(previousAgentData || {}).cube?.[0] || {};
+  const prevDimensions = prevCube.dimensions || [];
+  const prevMeasures = prevCube.measures || [];
+  const normalizeDimension = (dimension) => {
+    const previous = findMatchingFieldEntry(
+      prevDimensions,
+      dimension,
+      "dimensionName",
+    );
+    const next = resolveEntryFormat(dimension, previous, semanticTypeOptions);
+    if (!next.hierarchies?.length) {
+      return next;
+    }
+    const prevLevels = previous?.hierarchies?.[0]?.levels || [];
+    return {
+      ...next,
+      hierarchies: next.hierarchies.map((hierarchy) => ({
+        ...hierarchy,
+        levels: (hierarchy.levels || []).map((level) =>
+          resolveEntryFormat(
+            level,
+            findMatchingFieldEntry(prevLevels, level, "levelName"),
+            semanticTypeOptions,
+          ),
+        ),
+      })),
+    };
+  };
+  return {
+    ...data,
+    cube: (data.cube || []).map((cube) => ({
+      ...cube,
+      dimensions: (cube.dimensions || []).map(normalizeDimension),
+      measures: (cube.measures || []).map((measure) =>
+        resolveMeasureAggregator(
+          resolveEntryFormat(
+            measure,
+            findMatchingFieldEntry(prevMeasures, measure, "measureName"),
+            semanticTypeOptions,
+          ),
+        ),
+      ),
+    })),
+  };
 };
 
 const mergeLevelList = (storedLevels = [], displayLevels = []) => {

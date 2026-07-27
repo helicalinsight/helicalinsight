@@ -1,4 +1,3 @@
-import "core-js/stable";
 import { configureStore } from "@reduxjs/toolkit";
 import { render, screen, waitFor } from "@testing-library/react";
 import { sidebar_data } from "./mocks/adminSidebar.mock";
@@ -33,25 +32,7 @@ const App = ({ useractions_initial_view_state }) => {
 };
 
 describe("Rendering HIAdminSidebarContent", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-  
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
+ 
   test("HIAdminSidebarContent component", async () => {
     await flushPromises( render(<App sidebar_data={sidebar_data} />));
     expect(screen.queryByTestId(/hi-admin-sidebar/i)).toBeTruthy();

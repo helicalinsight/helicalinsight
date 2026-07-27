@@ -3,10 +3,13 @@ package com.helicalinsight.efw.components;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.service.UserService;
+import com.helicalinsight.admin.utils.DialectSupport;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.utility.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.hibernate.SessionFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -30,9 +33,13 @@ public class DataSourceMigrateController implements ApplicationContextAware {
     @Autowired
     @Qualifier(value = "userDetailsService")
     private UserService userService;
+    
+    @Autowired
+    private SessionFactory sessionFactory;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        DialectSupport.initialize(sessionFactory);
         JsonArray jsonArray = JsonUtils.newLoadOrder();
         if (jsonArray == null) {
             logger.warn("loadOrder is not configured; skipping application value initializers");

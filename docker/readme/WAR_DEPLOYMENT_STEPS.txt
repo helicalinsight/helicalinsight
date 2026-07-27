@@ -1,0 +1,232 @@
+Please note that there is no official release for manual installer. 
+For installing manually this docker zip is sufficient as this contains the binary and System folder. 
+
+
+============================================================
+                HELICAL INSIGHT DEPLOYMENT GUIDE
+============================================================
+
+Application: hi-ee.war
+Purpose: Manual deployment and configuration guide for Helical Insight on Apache Tomcat
+
+------------------------------------------------------------
+PRE-REQUISITES
+------------------------------------------------------------
+1. Java should be installed (Version 21 recommended).
+   - Ensure JAVA_HOME is correctly set and available in the system PATH.
+
+2. Minimum 4 GB RAM or higher is recommended for stable operation.
+
+3. Apache Tomcat 10 should be installed, configured, and running.
+   - Verify by accessing: http://localhost:8080
+
+4. Google Chrome browser must be installed.
+   - Chrome is required for export functionalities such as report download or PDF export.
+
+------------------------------------------------------------
+PACKAGE CONTENTS
+------------------------------------------------------------
+The provided installation package "helicalinsight-ee-6.0.0J25.611GA-docker.zip" 
+contains the following directories and files:
+
+    hi\hi-repository
+    hi-ee.war
+
+- The "hi-repository" folder contains all system configurations, 
+  report definitions, plugins, and administrative settings.
+
+- The "hi-ee.war" file is the deployable application archive 
+  to be placed inside Tomcat’s webapps folder.
+
+------------------------------------------------------------
+1. PREREQUISITES
+------------------------------------------------------------
+- Java: JDK/JRE 21 or higher
+- Tomcat: 10.x
+- Database: Apache Derby (or configured RDBMS)
+- OS: Windows / Linux
+- Ensure required ports (default 8080) are open
+
+------------------------------------------------------------
+2. EDIT SETTING.XML
+------------------------------------------------------------
+File Path:
+    hi\hi-repository\System\Admin\setting.xml
+
+a) Update <efwSolution>
+   By default, the <efwSolution> tag has no value.
+   Update it to your installation path:
+       <efwSolution>INSTALLATIONPATH\hi\hi-repository</efwSolution>
+
+   Example:
+       <efwSolution>E:\hi\hi-repository</efwSolution> Full path to the hi-repository
+
+b) Update <BaseUrl>
+   By default, the <BaseUrl> tag is empty.
+   Set it to your application URL depending on your deployment type.
+
+   Example (Domain based):
+       <BaseUrl>http://www.yourdomain.com/hi-ee/</BaseUrl>
+
+   Example (IP based):
+       <BaseUrl>http://192.168.2.1:8080/hi-ee/</BaseUrl>
+
+   Save and close the file after changes.
+
+------------------------------------------------------------
+3. UPDATE GLOBALCONNECTIONS.XML
+------------------------------------------------------------
+File Path:
+    hi\hi-repository\System\Admin\globalConnections.xml
+
+Find the <url> tag and update it according to your local database path.
+
+Example:
+    <url>jdbc:derby:e:/hi/db/SampleTravelData</url>
+
+Save and close the file.
+
+------------------------------------------------------------
+4. DEPLOY THE WAR FILE
+------------------------------------------------------------
+1. Copy hi-ee.war into the Tomcat webapps folder:
+       {TOMCAT_HOME}\webapps\
+
+2. Start Tomcat:
+       Windows: {TOMCAT_HOME}\bin\startup.bat
+       Linux:   $TOMCAT_HOME/bin/startup.sh
+
+3. Tomcat will create an exploded folder:
+       {TOMCAT_HOME}\webapps\hi-ee\
+
+4. Stop Tomcat before making further configuration changes.
+
+------------------------------------------------------------
+5. CONFIGURE DATABASE AND APPLICATION SETTINGS
+------------------------------------------------------------
+
+a) application-context.xml
+   Path:
+       {TOMCAT_HOME}\webapps\hi-ee\WEB-INF\classes\application-context.xml
+
+   Update the JDBC URL:
+       <property name="jdbcUrl" value="jdbc:derby:E:/hi/db/hiee;create=true"/>
+
+   Update the Hibernate dialect:
+       <prop key="hibernate.dialect">org.hibernate.dialect.DerbyDialect</prop>
+
+
+b) persistence.xml
+   Path:
+       {TOMCAT_HOME}\webapps\hi-ee\WEB-INF\classes\META-INF\persistence.xml
+
+   Change Hibernate dialect:
+       <property name="hibernate.dialect" value="org.hibernate.dialect.DerbyDialect"/>
+
+   Change JDBC driver:
+       <property name="jakarta.persistence.jdbc.driver" value="org.apache.derby.jdbc.EmbeddedDriver"/>
+
+   Change JDBC URL:
+       <property name="jdbcUrl" value="jdbc:derby:E:/hi/db/hiee;create=true"/>
+
+
+c) project.properties
+   Path:
+       {TOMCAT_HOME}\webapps\hi-ee\WEB-INF\classes\project.properties
+
+   Update paths according to your installation directory:
+
+       settingPath=\hi\hi-repository\System\Admin\setting.xml
+       pluginPath=\hi\hi-repository\System\Plugins
+
+   Save the file after editing.
+
+
+d) log4j2.properties
+   Path:
+       {TOMCAT_HOME}\webapps\hi-ee\WEB-INF\classes\log4j2.properties
+
+   Update the log file location:
+       log4j.appender.file.File=\hi\logs\helical-insight.log
+
+   Save the file.
+
+====================================================================
+NOTE: Update quartz.properties in Helical Insight hi-ee module
+====================================================================
+
+1. Navigate to the following file location:
+
+   <INSTALL_DIR>\hi\apache-tomcat-10\webapps\hi-ee\WEB-INF\classes\quartz.properties
+
+   Replace <INSTALL_DIR> with your actual Helical Insight installation path.
+
+   Example:
+   C:\Program Files\Helical Insight\hi\apache-tomcat-10\webapps\hi-ee\WEB-INF\classes\quartz.properties
+
+2. Open the file quartz.properties in a text editor.
+
+3. Uncomment and/or add the following configuration values:
+
+   org.quartz.threadPool.class=org.quartz.simpl.SimpleThreadPool
+   org.quartz.threadPool.threadCount=10
+   org.quartz.threadPool.threadPriority=5
+   org.quartz.threadPool.threadsInheritContextClassLoaderOfInitializingThread=true
+
+   org.quartz.scheduler.instanceId = AUTO
+
+   org.quartz.jobStore.class = org.quartz.impl.jdbcjobstore.JobStoreTX
+   org.quartz.jobStore.driverDelegateClass = org.quartz.impl.jdbcjobstore.StdJDBCDelegate
+   org.quartz.jobStore.dataSource = HIQuartz
+   org.quartz.jobStore.isClustered = false
+   org.quartz.jobStore.misfireThreshold = 60000
+   org.quartz.jobStore.tablePrefix = qrtz_
+
+   org.quartz.dataSource.HIQuartz.driver = org.apache.derby.jdbc.EmbeddedDriver
+   org.quartz.dataSource.HIQuartz.URL = jdbc:derby:<INSTALL_DIR>\hi\db\hischeduledata;create=true
+   org.quartz.dataSource.HIQuartz.user = hiuser
+   org.quartz.dataSource.HIQuartz.password = hiuser
+   org.quartz.dataSource.HIQuartz.maxConnections = 30
+
+4. Save the file and restart the Helical Insight service or Tomcat server for the changes to take effect.
+
+
+
+------------------------------------------------------------
+6. UPDATE CHROME DRIVER
+------------------------------------------------------------
+Path:
+    hi-repository\System\Reports\
+
+Run the following command:
+    java -jar helical.reportdownload.service-0.0.1.jar
+
+------------------------------------------------------------
+7. RESTART THE SERVER
+------------------------------------------------------------
+After completing all configuration changes:
+1. Stop Tomcat if it is running.
+2. Start Tomcat again.
+
+------------------------------------------------------------
+8. ACCESS THE APPLICATION
+------------------------------------------------------------
+URL Format:
+    http://<machine-ip>:<port>/hi-ee
+
+Example:
+    http://192.168.2.184:8080/hi-ee
+
+------------------------------------------------------------
+DEPLOYMENT COMPLETED SUCCESSFULLY
+------------------------------------------------------------
+Once accessible, log in using your credentials and verify repository and database connectivity.
+
+------------------------------------------------------------
+SUPPORT / CONTACT
+------------------------------------------------------------
+For assistance or troubleshooting, contact your system administrator or the Helical Insight support team.
+
+============================================================
+END OF FILE
+============================================================

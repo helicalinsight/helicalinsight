@@ -55,7 +55,7 @@ npm ci --legacy-peer-deps
 
 Requires `package-lock.json` in the `client/` directory. The `--legacy-peer-deps` flag is required due to peer dependency constraints in the dependency tree.
 
-> **Quick start:** From the repo root, run `docker compose -f docker-compose.dev.yml up --build` to start backend + frontend together without a local Tomcat install.
+> **Quick start:** From the repo, run the shared Docker package: `cd docker && cp .env.example .env && docker compose up -d` — then open https://localhost.
 
 ### 2. Ensure the backend is running
 
@@ -157,7 +157,9 @@ npm run analyze
 
 ## Docker
 
-The frontend includes a multi-stage `Dockerfile` that builds the React app with Node 18 and serves it with Nginx. Pair it with the [backend Docker image](../server/README.md#docker) or a Tomcat deployment on the host.
+**Recommended product run:** use [`docker/`](../docker/) (Nginx + app + Postgres). See [docker/readme/readme.md](../docker/readme/readme.md).
+
+The frontend also includes a multi-stage `Dockerfile` that builds the React app with Node 18 and serves it with Nginx — useful when you host the UI separately from the main Docker package.
 
 ### Prerequisites for Docker build
 
@@ -170,7 +172,7 @@ npm ci --legacy-peer-deps
 
 ### Configure Nginx for your backend
 
-The included `nginx.conf` proxies `/hi-ee/` to the backend service (`http://backend:8080/hi-ee/`) when using `docker-compose.dev.yml`. For other deployments, update the `proxy_pass` target:
+The included `nginx.conf` proxies `/hi-ee/` to the backend service. Update the `proxy_pass` target for your deployment:
 
 ```nginx
 server {
@@ -289,4 +291,5 @@ Test results are also written to `jest-stare/` when using the default Jest repor
 ## Related documentation
 
 - [Backend README](../server/README.md)
-- [Root README](../README.md)
+- [Instant BI README](../ib/README.md)
+- [Root README](../README.md) — pick your path (run vs develop)

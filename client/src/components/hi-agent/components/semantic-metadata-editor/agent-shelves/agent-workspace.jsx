@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Row } from "antd";
+import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
 import { Responsive, WidthProvider } from "react-grid-layout";
+import { useDispatch, useSelector } from "react-redux";
 import { Cube } from "../../../../hi-cube/cube";
 import { useWindowSize } from "../../../../../customHooks/useWindowSize";
+import { updateAgentGridItemsLayout } from "../../../../../redux/actions/agent.actions";
 import { AgentMetadataShelf } from "../../agent-metadata-shelf";
 import { CubeShelf } from "./cube-shelf";
 import {
@@ -16,6 +19,7 @@ import "react-resizable/css/styles.css";
 import "./agent-shelves.scss";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
+const BPS = ["lg", "md", "sm", "xs", "xxs"];
 
 const DEFAULT_SHELF_LAYOUT = {
   metadataShelf: true,
@@ -23,17 +27,18 @@ const DEFAULT_SHELF_LAYOUT = {
   toolsShelf: true,
 };
 
+const mapLayouts = (layouts, fn) =>
+  Object.fromEntries(BPS.map((bp) => [bp, layouts[bp].map(fn)]));
+
 function buildShelfLayouts(calculatedH, { showMetadata, showFields }) {
   const bp = (sidebar, fields, editing) => [
-    { i: "sidebar-area", ...sidebar },
-    { i: "metadata-area", ...fields },
-    { i: "editing-area", ...editing },
+    { i: "sidebar-area", isDraggable: false, isResizable: false, ...sidebar },
+    { i: "metadata-area", isDraggable: false, isResizable: false, ...fields },
+    { i: "editing-area", isDraggable: false, isResizable: false, ...editing },
   ];
-
   const hidden = { w: 0, h: 0, x: 0, y: 0 };
   const fullH = (w, x = 0, y = 0) => ({ w, h: calculatedH, x, y });
 
-  // All shelves visible — same proportions as Metadata (17 / 20 / 63).
   if (showMetadata && showFields) {
     return {
       xxs: bp(fullH(100, 0, 0), fullH(100, 0, calculatedH), fullH(100, 0, 2 * calculatedH)),
@@ -43,8 +48,6 @@ function buildShelfLayouts(calculatedH, { showMetadata, showFields }) {
       lg: bp(fullH(17, 0, 0), fullH(20, 17, 0), fullH(63, 37, 0)),
     };
   }
-
-  // Metadata only — main expands to remaining width (like HReport).
   if (showMetadata && !showFields) {
     return {
       xxs: bp(fullH(100, 0, 0), hidden, fullH(100, 0, calculatedH)),
@@ -54,8 +57,6 @@ function buildShelfLayouts(calculatedH, { showMetadata, showFields }) {
       lg: bp(fullH(30, 0, 0), hidden, fullH(70, 30, 0)),
     };
   }
-
-  // Fields only — main expands to remaining width.
   if (!showMetadata && showFields) {
     return {
       xxs: bp(hidden, fullH(100, 0, 0), fullH(100, 0, calculatedH)),
@@ -65,8 +66,6 @@ function buildShelfLayouts(calculatedH, { showMetadata, showFields }) {
       lg: bp(hidden, fullH(30, 0, 0), fullH(70, 30, 0)),
     };
   }
-
-  // All left shelves off — main pane occupies full width (HReport-style).
   return {
     xxs: bp(hidden, hidden, fullH(100, 0, 0)),
     xs: bp(hidden, hidden, fullH(100, 0, 0)),
@@ -75,99 +74,119 @@ function buildShelfLayouts(calculatedH, { showMetadata, showFields }) {
     lg: bp(hidden, hidden, fullH(100, 0, 0)),
   };
 }
+
+const PinButton = ({ className, pinned, onClick }) => (
+  <div className={className} onClick={onClick}>
+    {pinned ? <PushpinFilled /> : <PushpinOutlined />}
+  </div>
+);
+
 export function AgentWorkspace({
   shelfLayout = DEFAULT_SHELF_LAYOUT,
   metadataShelfProps = {},
+  jsonText = "",
+  onJsonChange,
+  onSaveJson,
   onCopyJson,
-  onPasteJson,
+  hasUnsavedJsonChanges = false,
 }) {
+  const dispatch = useDispatch();
+  const layouts = useSelector((state) => state.agent.gridItemsLayout);
+  const metadataDetails = useSelector(
+    (state) => state.agent.metadataDetails || {},
+  );
+  const isMetadataLoaded = Boolean(
+    metadataDetails.path && metadataDetails.fileName,
+  );
   const [activeTool, setActiveTool] = useState(TOOL_BUSINESS_VIEW);
   const [, offsetHeight] = useWindowSize();
   const [savedLayout, setSavedLayout] = useState(null);
-  const [resizeByArea, setResizeByArea] = useState({
-    "sidebar-area": false,
-    "metadata-area": false,
-    "editing-area": false,
-  });
+  const [resizeByArea, setResizeByArea] = useState({});
 
-  const {
-    metadataShelf = true,
-    fieldsShelf = true,
-    toolsShelf = true,
-  } = shelfLayout;
-
-  const showMetadata = Boolean(metadataShelf);
-  const showFields = Boolean(fieldsShelf);
+  const showMetadata = Boolean(shelfLayout.metadataShelf ?? true);
+  const showFields = Boolean(shelfLayout.fieldsShelf ?? true);
+  const toolsShelf = Boolean(shelfLayout.toolsShelf ?? true);
   const layoutKey = `${showMetadata ? 1 : 0}-${showFields ? 1 : 0}`;
+  const calculatedH = offsetHeight / 12 || 52;
 
   useEffect(() => {
+    if (!isMetadataLoaded && activeTool === TOOL_AGENT_JSON) {
+      setActiveTool(TOOL_BUSINESS_VIEW);
+    }
+  }, [isMetadataLoaded, activeTool]);
+
+  // Fallback until Redux is initialized (same default as before)
+  const activeLayouts =
+    layouts ||
+    buildShelfLayouts(52, { showMetadata: true, showFields: true });
+
+  useEffect(() => {
+    dispatch(
+      updateAgentGridItemsLayout(
+        buildShelfLayouts(calculatedH, { showMetadata, showFields }),
+      ),
+    );
     setSavedLayout(null);
-    setResizeByArea({
-      "sidebar-area": false,
-      "metadata-area": false,
-      "editing-area": false,
-    });
+    setResizeByArea({});
   }, [layoutKey]);
 
   useEffect(() => {
-    savedLayout &&
-      savedLayout.prev &&
-      savedLayout.current.forEach((ele) => {
-        const prevRow = savedLayout.prev.find((j) => j.i === ele.i);
-        if (JSON.stringify(ele) !== JSON.stringify(prevRow)) {
-          const obj = { ...resizeByArea };
-          if (!obj[ele.i]) {
-            obj[ele.i] = true;
-            setResizeByArea(obj);
-          }
-        }
-      });
+    if (!savedLayout?.prev) return;
+    savedLayout.current.forEach((ele) => {
+      const prevRow = savedLayout.prev.find((j) => j.i === ele.i);
+      if (JSON.stringify(ele) !== JSON.stringify(prevRow) && !resizeByArea[ele.i]) {
+        setResizeByArea((prev) => ({ ...prev, [ele.i]: true }));
+      }
+    });
   }, [savedLayout]);
 
-  let calculatedH = 0;
-  try {
-    calculatedH = offsetHeight / 12 || 52;
-  } catch (e) {
-    calculatedH = 52;
-  }
-
-  const storedLayouts = buildShelfLayouts(calculatedH, {
-    showMetadata,
-    showFields,
-  });
-
-  const layoutProps = {
-    cols: { lg: 100, md: 100, sm: 100, xs: 100, xxs: 100 },
-    className: "layout",
-    rowHeight: 1,
-    colWidth: 1,
-    isDraggable: false,
-    isResizable: true,
-    preventCollision: false,
-    measureBeforeMount: true,
-    breakpoints: { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 },
-    compactType: "vertical",
-    margin: [0, 10],
+  const handlePin = (key) => {
+    if (!layouts) return;
+    dispatch(
+      updateAgentGridItemsLayout(
+        mapLayouts(layouts, (item) =>
+          item.i === key ? { ...item, isResizable: !item.isResizable } : item,
+        ),
+      ),
+    );
   };
+
+  const isPinned = (key) =>
+    !activeLayouts.lg.find((item) => item.i === key)?.isResizable;
 
   return (
     <Row className="height100percent agent-workspace-row">
       <ResponsiveGridLayout
         key={layoutKey}
-        {...layoutProps}
-        layouts={storedLayouts}
+        cols={{ lg: 100, md: 100, sm: 100, xs: 100, xxs: 100 }}
+        className="metadata-layout agent-layout layout"
+        rowHeight={1}
+        isDraggable={false}
+        isResizable
+        measureBeforeMount
+        breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+        compactType="vertical"
+        margin={[0, 10]}
+        layouts={activeLayouts}
         onLayoutChange={(layout) => {
-          if (!savedLayout) {
-            setSavedLayout({ prev: undefined, current: layout });
-          }
+          if (!savedLayout) setSavedLayout({ prev: undefined, current: layout });
         }}
         onResizeStop={(layout) => {
-          if (savedLayout && savedLayout.current) {
+          if (!layouts) return;
+          dispatch(
+            updateAgentGridItemsLayout(
+              mapLayouts(layouts, (item) => {
+                const cur = layout.find((u) => u.i === item.i);
+                return cur
+                  ? { ...item, x: cur.x, y: cur.y, h: cur.h, w: cur.w }
+                  : item;
+              }),
+            ),
+          );
+          if (savedLayout?.current) {
             setSavedLayout({ prev: savedLayout.current, current: layout });
           }
         }}
-        onBreakpointChange={() => {}}
-        className="metadata-layout agent-layout"
       >
         <div
           key="sidebar-area"
@@ -177,9 +196,16 @@ export function AgentWorkspace({
               : "display-none"
           } ${resizeByArea["sidebar-area"] ? "" : "grid-height-99"}`}
         >
-          {showMetadata ? (
-            <AgentMetadataShelf {...metadataShelfProps} />
-          ) : null}
+          {showMetadata && (
+            <>
+              <AgentMetadataShelf {...metadataShelfProps} />
+              <PinButton
+                className="hr-resize-pin"
+                pinned={isPinned("sidebar-area")}
+                onClick={() => handlePin("sidebar-area")}
+              />
+            </>
+          )}
         </div>
 
         <div
@@ -188,7 +214,16 @@ export function AgentWorkspace({
             showFields ? "" : "display-none"
           } ${resizeByArea["metadata-area"] ? "" : "grid-height-99"}`}
         >
-          {showFields ? <CubeShelf showBusinessFields={false} /> : null}
+          {showFields && (
+            <>
+              <CubeShelf showBusinessFields={false} />
+              <PinButton
+                className="hr-resize-pin"
+                pinned={isPinned("metadata-area")}
+                onClick={() => handlePin("metadata-area")}
+              />
+            </>
+          )}
         </div>
 
         <div
@@ -203,13 +238,32 @@ export function AgentWorkspace({
                 toolsShelf ? "" : " display-none"
               }`}
             >
-              {toolsShelf ? (
-                <ToolShelf activeTool={activeTool} onSelect={setActiveTool} />
-              ) : null}
+              {toolsShelf && (
+                <ToolShelf
+                  activeTool={activeTool}
+                  onSelect={setActiveTool}
+                  disabledTools={{
+                    [TOOL_BUSINESS_VIEW]: !isMetadataLoaded,
+                    [TOOL_AGENT_JSON]: !isMetadataLoaded,
+                  }}
+                  disabledToolTips={{
+                    [TOOL_BUSINESS_VIEW]:
+                      "Connect a metadata file to enable Business View",
+                    [TOOL_AGENT_JSON]:
+                      "Connect a metadata file before opening JSON",
+                  }}
+                />
+              )}
             </div>
             <div className="agent-workspace-main">
               {activeTool === TOOL_AGENT_JSON ? (
-                <AgentJsonPanel onCopy={onCopyJson} onPaste={onPasteJson} />
+                <AgentJsonPanel
+                  value={jsonText}
+                  onChange={onJsonChange}
+                  onSave={onSaveJson}
+                  onCopy={onCopyJson}
+                  hasUnsavedChanges={hasUnsavedJsonChanges}
+                />
               ) : (
                 <div className="agent-workspace-business-view">
                   <Cube showBusinessFields />
@@ -217,6 +271,11 @@ export function AgentWorkspace({
               )}
             </div>
           </div>
+          <PinButton
+            className="hr-resize-pin-editing"
+            pinned={isPinned("editing-area")}
+            onClick={() => handlePin("editing-area")}
+          />
         </div>
       </ResponsiveGridLayout>
     </Row>

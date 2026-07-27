@@ -1,0 +1,48 @@
+name: Question / How do I...?
+description: Ask for help using the product or the repo setup.
+title: "[Question] "
+labels:
+  - question
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please avoid filing questions as bugs.
+        If you have a reproducible issue, use **Bug report** instead.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What are you trying to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: what_you_tried
+    attributes:
+      label: What you tried
+      placeholder: "Setup-dev.sh, Docker compose up -d, then open ... "
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_or_result
+    attributes:
+      label: Result / error you got
+      placeholder: "Paste the exact error message and any relevant stack traces."
+    validations:
+      required: false
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:
+        Deployment: Docker package / native Tomcat / dev
+        Browser (if relevant):
+        Backend URL:
+    validations:
+      required: false
+
