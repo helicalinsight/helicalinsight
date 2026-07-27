@@ -388,10 +388,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 	public void deleteEFConnectionecurityByConnectionId(Integer connectionId, Integer userId, Integer roleId,
 														Integer orgId) {
 		try {
-			String userVal = null == userId ? "userId.id=NULL" : "userId.id = :userId";
-			String roleVal = null == roleId ? "roleId.id=NULL" : "roleId.id = :roleId";
-			String orgVal = null == orgId ? "orgId.id=NULL" : "orgId.id= :orgId";
-			String hql = "DELETE  HIEfwdConnSecurity  where hiEfwdConnection.id = :connectionId" + " and " + userVal
+			String userVal = userId != null ? "userId.id = :userId" : "userId IS NULL";
+			String roleVal = roleId != null ? "roleId.id = :roleId" : "roleId IS NULL";
+			String orgVal = orgId != null ? "orgId.id = :orgId" : "orgId IS NULL";
+			String hql = "DELETE HIEfwdConnSecurity where hiEfwdConnection.id = :connectionId and " + userVal
 					+ " and " + roleVal + " and " + orgVal;
 
 			Session session = getSession();
