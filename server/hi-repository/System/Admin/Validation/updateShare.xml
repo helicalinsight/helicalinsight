@@ -4,61 +4,56 @@
     <dir type="directory"/>
     <file type="fileName"/>
 
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-    import net.sf.json.JSONObject;
-    import net.sf.json.JSONArray;
+    <jsFunction name="validate" language="groovy"><![CDATA[
+    def addError(response, key, msg) {
+        if (response[key] == null) response[key] = msg
+        else if (response[key] instanceof List) response[key] << msg
+        else response[key] = [response[key], msg]
+    }
 
-    public class Validate {
-        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-
-
-			if(requestJson.has("revoke")){
-				JSONArray userArray = requestJson.getJSONObject("revoke").optJSONArray("user")
-				JSONArray roleArray = requestJson.getJSONObject("revoke").optJSONArray("role")
-				JSONArray organizationArray = requestJson.getJSONObject("revoke").optJSONArray("organization")
-					if(userArray==null && roleArray==null && organizationArray==null){
-				responseJson.accumulate("revoke.user", "Please select a user/role/organization for revoke");
-				return responseJson;
-				}
-				checkArrayPermission(userArray,responseJson,"user. ");
-				checkArrayPermission(roleArray,responseJson,"role. ");
-				checkArrayPermission(organizationArray,responseJson,"organization. ");
-
-			}
-			 if(requestJson.has("share")){
-				JSONArray userArray = requestJson.getJSONObject("share").optJSONArray("user")
-				JSONArray roleArray = requestJson.getJSONObject("share").optJSONArray("role")
-				JSONArray organizationArray = requestJson.getJSONObject("share").optJSONArray("organization")
-				
-				if(userArray==null && roleArray==null && organizationArray==null){
-				responseJson.accumulate("revoke.user", "Please select a user/role/organization for  share");
-				return responseJson;
-				}
-				checkArrayPermission(userArray,responseJson,"user. ");
-				checkArrayPermission(roleArray,responseJson,"role. ");
-				checkArrayPermission(organizationArray,responseJson,"organization.");
-				
-			}
-			if((!requestJson.has("share"))&&(!requestJson.has("revoke"))){
-				responseJson.accumulate("shareOrRevoke", "Please select the checkbox to share or revoke");
-
+    def checkArrayPermission(array, response, what) {
+        if (array == null) return
+        array.each {
+            if (!it.permission) {
+                addError(response, "revoke.permission", "Please select a Permission for " + what)
             }
-            return responseJson;
         }
-		
-		
-		def checkArrayPermission(array,responseJson,what){
-				array.each{
-                                if(it.permission==""){
-                                responseJson.accumulate("revoke.permission", "Please select a Permission for "+what);
-                                }
-                            }
-		}
-		
-		
+    }
+
+    def validate(request, response = [:]) {
+
+        if (request.containsKey("revoke")) {
+            def userArray = request.revoke?.user
+            def roleArray = request.revoke?.role
+            def organizationArray = request.revoke?.organization
+            if (userArray == null && roleArray == null && organizationArray == null) {
+                addError(response, "revoke.user", "Please select a user/role/organization for revoke")
+                return response
+            }
+            checkArrayPermission(userArray, response, "user. ")
+            checkArrayPermission(roleArray, response, "role. ")
+            checkArrayPermission(organizationArray, response, "organization. ")
+        }
+        if (request.containsKey("share")) {
+            def userArray = request.share?.user
+            def roleArray = request.share?.role
+            def organizationArray = request.share?.organization
+
+            if (userArray == null && roleArray == null && organizationArray == null) {
+                addError(response, "revoke.user", "Please select a user/role/organization for  share")
+                return response
+            }
+            checkArrayPermission(userArray, response, "user. ")
+            checkArrayPermission(roleArray, response, "role. ")
+            checkArrayPermission(organizationArray, response, "organization.")
+        }
+        if (!request.containsKey("share") && !request.containsKey("revoke")) {
+            addError(response, "shareOrRevoke", "Please select the checkbox to share or revoke")
+        }
+        return response
     }
     ]]>
-    </jsFunction>-->
+    </jsFunction>
 
 
 </formData>

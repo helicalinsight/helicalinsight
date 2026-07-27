@@ -45,7 +45,7 @@ class ModelState(MessagesState):
     context: str
     preferences: str
     viz_reason:str
-    viz_config:dict
+    similar_chart:list
     agg_cols:str
     non_agg_cols:str
     action:str
@@ -63,5 +63,9 @@ class ModelState(MessagesState):
     use_cube_info_sql_flow: bool
     format_strings: dict
     column_format_strings: str
+    ai_instructions: dict
+    column_ai_instructions: str
     sort_orders: list
     column_sort_orders: str
+    sql_domain_context: str
+    viz_column_context: dict

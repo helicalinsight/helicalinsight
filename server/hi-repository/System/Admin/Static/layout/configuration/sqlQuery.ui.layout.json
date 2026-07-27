@@ -1,0 +1,80 @@
+{
+    "id":  "sqlQuery",
+    "title":  "SQL Query Templates",
+    "description":  "Generic aggregate and clause templates.",
+    "file":  "sqlQuery.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Aggregates \u0026 Clauses",
+                         "key":  "aggregates",
+                         "fields":  [
+                                        {
+                                            "name":  "avg",
+                                            "path":  "db.generic.aggregate.avg",
+                                            "label":  "Avg",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Average function name."
+                                        },
+                                        {
+                                            "name":  "count",
+                                            "path":  "db.generic.aggregate.count",
+                                            "label":  "Count",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Count function name."
+                                        },
+                                        {
+                                            "name":  "max",
+                                            "path":  "db.generic.aggregate.max",
+                                            "label":  "Max",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Max function name."
+                                        },
+                                        {
+                                            "name":  "min",
+                                            "path":  "db.generic.aggregate.min",
+                                            "label":  "Min",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Min function name."
+                                        },
+                                        {
+                                            "name":  "sum",
+                                            "path":  "db.generic.aggregate.sum",
+                                            "label":  "Sum",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Sum function name."
+                                        },
+                                        {
+                                            "name":  "distinct",
+                                            "path":  "db.generic.aggregate.distinct",
+                                            "label":  "Distinct",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Distinct keyword."
+                                        },
+                                        {
+                                            "name":  "orderBy",
+                                            "path":  "db.generic.orderBy.order",
+                                            "label":  "Order By",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Order by clause keyword."
+                                        },
+                                        {
+                                            "name":  "groupBy",
+                                            "path":  "db.generic.groupBy.group",
+                                            "label":  "Group By",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Group by clause keyword."
+                                        }
+                                    ]
+                     }
+                 ]
+}

@@ -25,27 +25,25 @@
   <reportDirectory type="directory"/>
   <reportFile type="fileName"/>
   <reportName maxLength="60" required="true" type="fileName"/>
-   <!--<jsFunction name="validate" language="groovy"><![CDATA[
-        import net.sf.json.JSONObject;
-        import net.sf.json.JSONArray;
-        import org.apache.commons.codec.binary.Base64;
+   <jsFunction name="validate" language="groovy"><![CDATA[
+        def addError(response, key, msg) {
+            if (response[key] == null) response[key] = msg
+            else if (response[key] instanceof List) response[key] << msg
+            else response[key] = [response[key], msg]
+        }
 
-        public class Validate {
+        def validate(request, response = [:]) {
+            def schOp = request.ScheduleOptions ?: [:]
+            def frequency = schOp.Frequency
+            def repeatsEvery = (schOp.RepeatsEvery ?: 0) as int
+            def daysOfWeek = schOp.DaysofWeek
 
-            def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-				def schOp=requestJson.ScheduleOptions
-				if(schOp.Frequency!="Monthly" && schOp.Frequency!="Daily" && schOp.Frequency!="Yearly" && schOp.RepeatsEvery>2 && schOp.DaysofWeek.size()>0){
-					responseJson.accumulate("RepeatsEvery", "The combination of repeat and Repeat On is not possible.");
-				}
-			
-			
-              
-                return responseJson;
+            if (frequency != "Monthly" && frequency != "Daily" && frequency != "Yearly" && repeatsEvery > 2 && daysOfWeek != null && daysOfWeek.size() > 0) {
+                addError(response, "RepeatsEvery", "The combination of repeat and Repeat On is not possible.")
             }
 
-
-            
+            return response
         }
         ]]>
-    </jsFunction>-->
+    </jsFunction>
 </formData>

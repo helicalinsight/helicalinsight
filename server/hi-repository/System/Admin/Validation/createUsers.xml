@@ -1,14 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <formData>
 	<action type="text"/>
-	<!--<name condition="=" requiredIf="action" type="userName" value="add"/>-->
-	<password type="userPassword" condition="=" maxLength="60" minLength="6" requiredIf="action" value="add"  
-			errorMessage="Invalid password" />
-	<email condition="=" maxLength="60" requiredIf="action" type="email" value="add"/>
+	<!-- id is required only when updating; for action=add it may be blank -->
+	<id condition="=" requiredIf="action" type="number" value="update"/>
+	<name condition="=" requiredIf="action" type="userName" value="add"
+			errorMessage="Invalid user name"/>
+	<password type="userPassword" condition="=" maxLength="60" minLength="6" requiredIf="action" value="add"
+			errorMessage="Invalid password"/>
+	<email condition="=" maxLength="60" requiredIf="action" type="email" value="add"
+			errorMessage="Invalid email"/>
 	<enabled type="boolean"/>
+	<!-- organisation may be blank/null or an integer (see regex.properties organisation) -->
 	<organisation type="organisation"/>
 	<limit type="number"/>
 	<offset type="number"/>
 	<!--searchPhrase type="searchPhrase"/-->
 	<searchOn type="searchOn"/>
+
+	<jsFunction name="validate" language="groovy"><![CDATA[
+		def validate(request, response = [:]) {
+			def action = request?.action
+			if (action?.equalsIgnoreCase("add")) {
+				def id = request.id
+				if (id != null && id.toString().trim().length() > 0 && !"null".equalsIgnoreCase(id.toString())) {
+					response.id = "id must be blank when action is add"
+				}
+			}
+			return response
+		}
+	]]>
+	</jsFunction>
 </formData>

@@ -1,0 +1,10 @@
+{
+    "id":  "validation",
+    "file":  "validation.xml",
+    "title":  "Validation",
+    "description":  "Validation service wiring and validation configuration entry points.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/validation.ui.layout",
+    "fallbackEditor":  "xml"
+}

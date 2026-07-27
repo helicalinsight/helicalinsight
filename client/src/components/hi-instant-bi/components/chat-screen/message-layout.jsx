@@ -1,5 +1,5 @@
 import { Row, Space, Typography, Modal, Popover } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import LoadingBar from '../../../common/components/hi-loading-bar'
@@ -25,7 +25,9 @@ import notify from '../../../hi-notifications/notify'
 import { ChartView, cleanSQL, getInstantBIAgentSubject, tabItems } from '../../utils/common-utils'
 import CommonMarkdownTable from '../../utils/common-markdown-table'
 import InstantBIResponseMetadata from '../instant-bi-response-metadata'
-import { loadInstantBIDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import IbChartPreferences from '../ib-chart-preferences'
+import { loadInstantBIDataInsight, convertInstantBIChart, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import { updateIBVizPreference } from '../../../../redux/actions/instant-bi.actions'
 
 const { Text } = Typography
 
@@ -108,6 +110,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     const [isMaximized, setIsMaximized] = useState(false);
     const [hasPreviewError, setHasPreviewError] = useState(false);
     const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
+    const [isConvertingChart, setIsConvertingChart] = useState(false);
+    const [vfEditorLaunch, setVfEditorLaunch] = useState(null); // { code } | null
     const messageRef = useRef(null);
     const dataInsightApiRef = useRef(null);
     const dataInsightAbortedRef = useRef(false);
@@ -147,6 +151,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     const resolvedFullChatResponse = effectiveLoadedChatResponse || fullChatResponse;
     const sqlDetails = resolvedFullChatResponse?.sql || {}
     const vizDetails = resolvedFullChatResponse?.viz || {}
+    const chartSettings = vizDetails?.settings || {}
+    const similarChart = vizDetails?.similar_chart || []
     const tokenUsage = resolvedFullChatResponse?.token_usage || {}
     const dataInsightContent =
       resolvedFullChatResponse?.data_insight?.insight || messageDataInsight || "";
@@ -171,6 +177,13 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       Boolean(resolvedVf?.trim()) ||
       (Array.isArray(resolvedData) && resolvedData.length > 0);
     const hasValidVf = Boolean(resolvedVf?.trim());
+    const canEditPreferences =
+      !isOpenMode &&
+      hasValidVf &&
+      !chatItem?.error &&
+      !isFailedSequence &&
+      !isPendingScrollLoad &&
+      !isLoadingChat;
     const showMaximizeButton =
       activeTab === "preview" &&
       hasValidVf &&
@@ -246,6 +259,54 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       dataInsightApiRef.current?.abort();
       dataInsightApiRef.current = null;
       setIsLoadingDataInsight(false);
+    };
+
+    const handleSelectSimilarChart = (chartType) => {
+      if (
+        !chartType ||
+        !dispatch ||
+        !reportId ||
+        !chatSequenceId ||
+        !activeChatID ||
+        isConvertingChart
+      ) {
+        return;
+      }
+      const currentName = vizDetails?.chart_name || "";
+      if (
+        String(currentName).toLowerCase().replace(/\s+/g, "_") ===
+        String(chartType).toLowerCase().replace(/\s+/g, "_")
+      ) {
+        return;
+      }
+
+      const vfTemplate =
+        vizDetails?.vf_template ||
+        loadedViz?.vf_template ||
+        (resolvedVf ? btoa(resolvedVf) : "");
+
+      if (!vfTemplate) {
+        Notify.error({
+          type: "Frontend",
+          message: "Required convert chart data is missing.",
+        });
+        return;
+      }
+
+      setIsConvertingChart(true);
+      convertInstantBIChart({
+        dispatch,
+        reportId,
+        chatSequenceId,
+        chatId: activeChatID,
+        vfTemplate,
+        selectedChart: chartType,
+        Notify,
+        onComplete: ({ openVfEditor, vfCode } = {}) => {
+          setIsConvertingChart(false);
+          if (openVfEditor) setVfEditorLaunch({ code: vfCode || "" });
+        },
+      });
     };
 
     const handleDataInsight = () => {
@@ -415,16 +476,52 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                               </button>
                             </InstantBITooltip>
                           )}
+                          {!isOpenMode && similarChart.length > 0 && (
+                            <div className="chart-preview-section__prefs">
+                              <IbChartPreferences
+                                chartName={vizDetails?.chart_name}
+                                similarChart={similarChart}
+                                editable={canEditPreferences}
+                                converting={isConvertingChart}
+                                vfCode={vfEditorLaunch?.code ?? resolvedVf}
+                                openVfEditor={Boolean(vfEditorLaunch)}
+                                onVfEditorOpened={() => setVfEditorLaunch(null)}
+                                onSelectSimilarChart={handleSelectSimilarChart}
+                                onApplyVf={(code) => {
+                                  if (!dispatch || !reportId || !chatSequenceId) return;
+                                  dispatch(
+                                    updateIBVizPreference({
+                                      reportId,
+                                      chatSequenceId,
+                                      vf: code,
+                                      vf_template: btoa(code),
+                                    })
+                                  );
+                                }}
+                              />
+                            </div>
+                          )}
                           <ChartView
                             compact
                             data={resolvedData}
                             vf={resolvedVf}
-                            id={`${id}-${chatItem.time || ""}`}
+                            id={id}
                             chartName={vizDetails?.chart_name}
+                            chartSettings={chartSettings}
+                            plotConfig={vizDetails?.plot_config}
                             className="chart-wrapper--message"
                             onPreviewError={setHasPreviewError}
                             backendError={resolvedFullChatResponse?.error}
                           />
+                          {isConvertingChart && (
+                            <div
+                              className="chart-preview-section__converting"
+                              data-testid="ib-convert-chart-loading"
+                            >
+                              <LoadingBar />
+                              <Text type="secondary">Converting chart…</Text>
+                            </div>
+                          )}
                         </div>
                         {(isLoadingDataInsight || dataInsightContent) && (
                           <div
@@ -494,6 +591,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                         vf={resolvedVf}
                         id={id}
                         chartName={vizDetails?.chart_name}
+                        chartSettings={chartSettings}
+                        plotConfig={vizDetails?.plot_config}
                         className="chart-wrapper--modal"
                       />
                     </Modal>
@@ -510,4 +609,20 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     );
 }
 
-export default MessageLayout
+// Don't re-render completed mesgs
+export default React.memo(MessageLayout, (prev, next) => {
+  const seq = prev.chatSequenceId;
+  return (
+    prev.chatItem === next.chatItem &&
+    prev.isFullWidth === next.isFullWidth &&
+    prev.isOpenMode === next.isOpenMode &&
+    prev.isEditMode === next.isEditMode &&
+    (prev.loadingChatSequenceId === seq) === (next.loadingChatSequenceId === seq) &&
+    prev.skippedSequenceIds?.includes(seq) === next.skippedSequenceIds?.includes(seq) &&
+    prev.abortedSequenceIds?.includes(seq) === next.abortedSequenceIds?.includes(seq) &&
+    prev.activeReport?.loadedChatResponses?.[seq] ===
+      next.activeReport?.loadedChatResponses?.[seq] &&
+    prev.activeReport?.loadedChatResponseSources?.[seq] ===
+      next.activeReport?.loadedChatResponseSources?.[seq]
+  );
+});

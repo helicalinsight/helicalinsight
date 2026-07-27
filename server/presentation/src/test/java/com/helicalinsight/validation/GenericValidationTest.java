@@ -30,7 +30,6 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
-import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.PropertiesFileReader;
 import com.helicalinsight.validation.form.GenericValidation;
 import com.helicalinsight.validation.form.GroovyCodeExecutionManager;
@@ -40,7 +39,6 @@ public class GenericValidationTest {
 
 	@Test
 	public void testJsonNavigator() {
-		// Arrange
 		JsonObject jsonObject = new JsonObject();
 		jsonObject.addProperty("name", "John");
 		jsonObject.addProperty("age", 30);
@@ -50,26 +48,15 @@ public class GenericValidationTest {
 		jsonArray.add("item2");
 		jsonObject.add("items", jsonArray);
 
-		GenericValidation genericValidation = new GenericValidation();
-
-		// Act
-		String result1 = GenericValidation.jsonNavigator(jsonObject, "name");
-		String result2 = GenericValidation.jsonNavigator(jsonObject, "items[0]");
-		String result3 = GenericValidation.jsonNavigator(jsonObject, "items[1]");
-		String result4 = GenericValidation.jsonNavigator(jsonObject, "age");
-
-		// Assert
-		assertNotNull(result1);
-		assertNotNull(result2);
-		assertNotNull(result3);
-		assertNotNull(result4);
+		assertEquals("John", GenericValidation.jsonNavigator(jsonObject, "name"));
+		assertEquals("item1", GenericValidation.jsonNavigator(jsonObject, "items[0]"));
+		assertEquals("item2", GenericValidation.jsonNavigator(jsonObject, "$.items[1]"));
+		assertEquals("30", GenericValidation.jsonNavigator(jsonObject, "age"));
+		assertEquals(null, GenericValidation.jsonNavigator(jsonObject, "missing"));
 	}
 
 	@Test
 	public void testJsonNavigatorWithJsonObject() {
-		// Arrange
-		JsonArray jsonArray = new JsonArray();
-		jsonArray.add("item1");
 		JsonObject innerObject = new JsonObject();
 		innerObject.addProperty("key", "value");
 
@@ -78,12 +65,9 @@ public class GenericValidationTest {
 		jsonObject.addProperty("age", 30);
 		jsonObject.add("inner", innerObject);
 
-		// Act
-		String result1 = GenericValidation.jsonNavigator(jsonObject, "inner.key");
-		GenericValidation.jsonNavigator(jsonObject, "items[0]");
-		// Assert
-		assertNotNull(result1);
-
+		assertEquals("value", GenericValidation.jsonNavigator(jsonObject, "inner.key"));
+		assertEquals("value", GenericValidation.jsonNavigator(jsonObject, "$.inner.key"));
+		assertEquals(null, GenericValidation.jsonNavigator(jsonObject, "items[0]"));
 	}
 
 	@Test
@@ -318,196 +302,185 @@ public class GenericValidationTest {
 	}
 
 	@Test
-	public void testRecursiveValidation_a1() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "value");
+	public void testCreateUserAddBlankPasswordProducesMessage() {
+		// Mirrors createUsers.xml password rule for action=add
+		JsonObject passwordRule = new JsonObject();
+		passwordRule.addProperty("type", "userPassword");
+		passwordRule.addProperty("condition", "=");
+		passwordRule.addProperty("maxLength", 60);
+		passwordRule.addProperty("minLength", 6);
+		passwordRule.addProperty("requiredIf", "action");
+		passwordRule.addProperty("value", "add");
+		passwordRule.addProperty("errorMessage", "Invalid password");
+
+		JsonObject emailRule = new JsonObject();
+		emailRule.addProperty("condition", "=");
+		emailRule.addProperty("maxLength", 60);
+		emailRule.addProperty("requiredIf", "action");
+		emailRule.addProperty("type", "email");
+		emailRule.addProperty("value", "add");
+
+		JsonObject nameRule = new JsonObject();
+		nameRule.addProperty("condition", "=");
+		nameRule.addProperty("requiredIf", "action");
+		nameRule.addProperty("type", "userName");
+		nameRule.addProperty("value", "add");
+
+		JsonObject organisationRule = new JsonObject();
+		organisationRule.addProperty("type", "organisation");
+
 		JsonObject formValidation = new JsonObject();
-		JsonObject record = new JsonObject();
-		record.addProperty("required", "required");
-		record.addProperty("requiredIf", "requiredIf");
-		record.addProperty("condition", "conditon");
-		record.addProperty("value", "value");
+		formValidation.add("password", passwordRule);
+		formValidation.add("email", emailRule);
+		formValidation.add("name", nameRule);
+		formValidation.add("organisation", organisationRule);
 
-		formValidation.add("key2", record);
+		// Same shape as /admin/users after newHttpRequestToFormData merges action + formData
+		JsonObject request = new JsonObject();
+		request.addProperty("action", "add");
+		request.addProperty("id", "");
+		request.addProperty("email", "test@gmail.com");
+		request.addProperty("name", "Test");
+		request.addProperty("enabled", true);
+		request.addProperty("password", "");
+		request.addProperty("organisation", 1);
+
 		JsonObject errorMessages = new JsonObject();
-		JsonObject requestJsonObject = new JsonObject();
+		GenericValidation validation = new GenericValidation();
+		boolean valid = validation.validateWithJsonPath(formValidation, errorMessages, request);
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("123");
-
-				// Call the method under test
-				boolean result = genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages,
-						requestJsonObject);
-
-				assertTrue(result);
-				assertTrue(errorMessages.has("key1"));
-				
-
-				// Verify the static method was called
-				mockedStatic.verify(() -> JsonUtils.getKeys(formValidation));
-			}
-		}
+		assertFalse("Blank password on action=add must fail validation", valid);
+		assertTrue("Expected password error key", errorMessages.has("password"));
+		assertEquals("Please enter the mandatory field password",
+				errorMessages.get("password").getAsString());
 	}
 
 	@Test
-	public void testRecursiveValidation_a2() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "");
+	public void testCreateUserAddValidPasswordPassesRequired() {
+		JsonObject passwordRule = new JsonObject();
+		passwordRule.addProperty("condition", "=");
+		passwordRule.addProperty("requiredIf", "action");
+		passwordRule.addProperty("value", "add");
+		passwordRule.addProperty("minLength", 6);
+
+		JsonObject formValidation = new JsonObject();
+		formValidation.add("password", passwordRule);
+
+		JsonObject request = new JsonObject();
+		request.addProperty("action", "add");
+		request.addProperty("password", "test123");
+
+		JsonObject errorMessages = new JsonObject();
+		assertTrue(new GenericValidation().validateWithJsonPath(formValidation, errorMessages, request));
+		assertTrue(errorMessages.entrySet().isEmpty());
+	}
+
+
+	@Test
+	public void testValidateWithJsonPathNested() {
+		JsonObject requestJsonObject = new JsonObject();
+		JsonObject emailSettings = new JsonObject();
+		emailSettings.addProperty("Subject", "Hello");
+		requestJsonObject.add("EmailSettings", emailSettings);
+
+		JsonObject subjectRule = new JsonObject();
+		subjectRule.addProperty("required", "true");
+		JsonObject emailRules = new JsonObject();
+		emailRules.add("Subject", subjectRule);
+		JsonObject formValidation = new JsonObject();
+		formValidation.add("EmailSettings", emailRules);
+
+		JsonObject errorMessages = new JsonObject();
+		GenericValidation genericValidation = new GenericValidation();
+
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+
+		assertTrue(result);
+		assertTrue(errorMessages.entrySet().isEmpty());
+	}
+
+	@Test
+	public void testValidateWithJsonPath_a2() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
-		record.addProperty("requiredIf", "requiredIf");
+		record.addProperty("requiredIf", "threshold");
 		record.addProperty("condition", "<");
 		record.addProperty("value", "123");
-		record.addProperty("type", "custom");	
+		record.addProperty("type", "custom");
 		record.addProperty("expression", "");
 		formValidation.add("key2", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key2", "");
+		requestJsonObject.addProperty("threshold", "1234");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("1234");
-
-				genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			}
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertFalse(result);
 	}
-	
+
 	@Test
-	public void testRecursiveValidation_a3() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "value");
+	public void testValidateWithJsonPath_a3() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
 		record.addProperty("requiredIf", "");
-		record.addProperty("condition", "<");
-		record.addProperty("value", "123");
-		record.addProperty("type", "custom");	
+		record.addProperty("type", "custom");
 		record.addProperty("expression", "");
 		formValidation.add("key2", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key2", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("1234");
-
-				genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			}
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertFalse(result);
 	}
+
 	@Test
-	public void testRecursiveValidation_a3_if_condition1() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "value");
+	public void testValidateWithJsonPath_a3_if_condition1() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
 		record.addProperty("requiredIf", "");
-		record.addProperty("condition", "<");
-		record.addProperty("value", "123");
-		record.addProperty("type", "custom");	
+		record.addProperty("type", "custom");
 		record.addProperty("expression", "value");
 		formValidation.add("key2", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key2", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("1234");
-
-				genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			}
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertTrue(result);
 	}
+
 	@Test
-	public void testRecursiveValidation_a3_if_condition2() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "value");
+	public void testValidateWithJsonPath_a3_if_condition2() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "");
 		record.addProperty("requiredIf", "");
-		record.addProperty("condition", "<");
-		record.addProperty("value", "123");
-		record.addProperty("type", "");	
+		record.addProperty("type", "");
 		record.addProperty("expression", "value");
 		formValidation.add("key2", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key2", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("1234");
-
-				genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			}
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertTrue(result);
 	}
 
-
-	
 	@Test
-	public void testRecursiveValidation_a4() {
-		JsonObject jsonCopy = new JsonObject();
-		JsonObject sampleObject = new JsonObject();
-		sampleObject.addProperty("key", "value");
-		jsonCopy.add("key1", sampleObject);
-		jsonCopy.addProperty("key2", "value");
+	public void testValidateWithJsonPath_a4() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
 		record.addProperty("requiredIf", "");
-		record.addProperty("condition", "<");
-		record.addProperty("value", "123");
-		record.addProperty("type", "value,null");	
+		record.addProperty("type", "value,null");
 		record.addProperty("expression", "");
 		record.addProperty("maxLength", 3);
 		record.addProperty("minLength", 10);
@@ -515,77 +488,52 @@ public class GenericValidationTest {
 		formValidation.add("key2", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key2", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			try (MockedStatic<GenericValidation> mockedStaticValidation = mockStatic(GenericValidation.class)) {
-				mockedStaticValidation.when(() -> GenericValidation.jsonNavigator(any(), anyString()))
-						.thenReturn("1234");
-
-				genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			}
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertFalse(result);
 	}
 
-
-	@Test(expected = NullPointerException.class)
-	public void testRecursiveValidation_a5() {
-		JsonObject jsonCopy = new JsonObject();
-		
-		jsonCopy.addProperty("key1", "value");
+	@Test
+	public void testValidateWithJsonPath_a5() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
 		record.addProperty("requiredIf", "");
-		record.addProperty("type", "");	
+		record.addProperty("type", "");
 		record.addProperty("maxLength", 3);
 		record.addProperty("minLength", 10);
 		record.addProperty("length", 10);
 		formValidation.add("key1", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key1", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertFalse(result);
+		assertTrue(errorMessages.has("key1"));
 	}
 
-	@Test(expected = NullPointerException.class)
-	public void testRecursiveValidation_a6() {
-		JsonObject jsonCopy = new JsonObject();
-		
-		jsonCopy.addProperty("key1", "value");
+	@Test
+	public void testValidateWithJsonPath_a6() {
 		JsonObject formValidation = new JsonObject();
 		JsonObject record = new JsonObject();
 		record.addProperty("required", "required");
 		record.addProperty("requiredIf", "");
-		record.addProperty("type", "");	
+		record.addProperty("type", "");
 		record.addProperty("maxLength", 5);
 		record.addProperty("minLength", 5);
 		record.addProperty("length", 5);
 		formValidation.add("key1", record);
 		JsonObject errorMessages = new JsonObject();
 		JsonObject requestJsonObject = new JsonObject();
+		requestJsonObject.addProperty("key1", "value");
 
-		try (MockedStatic<JsonUtils> mockedStatic = mockStatic(JsonUtils.class)) {
-			List<String> keys = Arrays.asList("key1", "key2");
-			mockedStatic.when(() -> JsonUtils.getKeys(formValidation)).thenReturn(keys);
-			GenericValidation genericValidation = new GenericValidation();
-
-			genericValidation.recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-
-			
-		}
+		GenericValidation genericValidation = new GenericValidation();
+		boolean result = genericValidation.validateWithJsonPath(formValidation, errorMessages, requestJsonObject);
+		assertTrue(result);
 	}
 
 

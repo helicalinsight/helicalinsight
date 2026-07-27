@@ -5,8 +5,8 @@ import muze from "@chartshq/muze";
 import Muze, { Canvas, Layer } from "@chartshq/react-muze/components";
 import * as MuzeConfig from "@chartshq/react-muze/configurations";
 import * as AntdComponents from "antd";
-import React, { useContext, useLayoutEffect } from "react";
-import { LiveContext, LivePreview, LiveProvider } from "react-live";
+import React, { useLayoutEffect, useMemo } from "react";
+import { generateElement } from "react-live";
 import { useDispatch } from "react-redux";
 import { getPreviewStyles } from "../../hi-reports/hi-viz-area/utils/utillities";
 import {
@@ -19,16 +19,11 @@ import {
   changePageSize,
 } from "../../hi-reports/hi-viz-area/custom-charts/utilities";
 import GridTable from "../../hi-reports/hi-viz-area/s2-charts/s2chart";
+import { buildGridTableReport } from "../../hi-reports/hi-viz-area/s2-charts/build-grid-table-report";
 import "../../hi-reports/hi-viz-area/table/table.scss";
 import { applyIbCompactPlotTheme } from "../utils/ib-plot-theme";
 
-const MuzeCharts = {
-  Muze,
-  Canvas,
-  Layer,
-  ...MuzeConfig,
-  muze,
-};
+const MuzeCharts = { Muze, Canvas, Layer, ...MuzeConfig, muze };
 const MuzeTooltip = MuzeConfig.Tooltip;
 
 const REACT_FORWARD_REF = Symbol.for("react.forward_ref");
@@ -58,103 +53,130 @@ const withAutoFitPlots = (plots, useCompactTheme = false) =>
     ]),
   );
 
+const autoFitLibs = {
+  compact: {
+    plots: withAutoFitPlots(Plots, true),
+    maps: withAutoFitPlots(MapCharts, true),
+  },
+  default: {
+    plots: withAutoFitPlots(Plots, false),
+    maps: withAutoFitPlots(MapCharts, false),
+  },
+};
+
+const HELPER_FUNCTIONS = {
+  getTooltip,
+  getPropertiesConfig,
+  enableInteractivity,
+  getGridChartLabels,
+  getTableColumns,
+  getGridChartConfig,
+  changePageSize,
+  applyIbCompactPlotTheme,
+  buildGridTableReport,
+};
+
+const chartCache = new Map();
+
 export const IB_CHART_RENDER_ERROR = "Something went wrong. Please try again.";
-
-const PreviewErrorObserver = ({ onPreviewError }) => {
-  const { error } = useContext(LiveContext);
-  useLayoutEffect(() => {
-    onPreviewError?.(Boolean(error));
-  }, [error, onPreviewError]);
-  return null;
-};
-
-const IBChartRenderFallback = ({ onPreviewError }) => {
-  useLayoutEffect(() => {
-    onPreviewError?.(true);
-    return () => onPreviewError?.(false);
-  }, [onPreviewError]);
-  return null;
-};
+export const IB_VF_TEMPLATE_ERROR = "Something went wrong in vf_template";
 
 const IBCustomChart = (props) => {
   const dispatch = useDispatch();
   const {
     customChart = {},
     data,
+    dataId,
     autoFit = true,
     compact = false,
     isKpiChart = false,
     onPreviewError,
   } = props;
+  const code = customChart.code || "";
   const useCompactTheme = Boolean(compact);
-  const plotComponents = autoFit
-    ? withAutoFitPlots(Plots, useCompactTheme)
-    : Plots;
-  const mapComponents = autoFit
-    ? withAutoFitPlots(MapCharts, useCompactTheme)
-    : MapCharts;
-  const scope = {
-    components: {
-      ...mapComponents,
-      ...plotComponents,
-      ...MuzeCharts,
-      ...AntdComponents,
-      ...Icons,
-      GridTable,
-      MuzeTooltip,
-    },
-    data,
-    report: { ...props, dispatch, autoFit },
-    helperFunctions: {
-      getTooltip,
-      getPropertiesConfig,
-      enableInteractivity,
-      getGridChartLabels,
-      getTableColumns,
-      getGridChartConfig,
-      changePageSize,
-      applyIbCompactPlotTheme,
-    },
-  };
-  const chartCode = customChart.code || "";
-  if (!chartCode.trim()) {
-    return <IBChartRenderFallback onPreviewError={onPreviewError} />;
-  }
+  const cacheKey = `${dataId}::${code}::${compact ? "c" : "d"}`;
+
+  const Element = useMemo(() => {
+    if (!code.trim()) return null;
+    if (chartCache.has(cacheKey)) return chartCache.get(cacheKey);
+
+    const libs = autoFit
+      ? autoFitLibs[compact ? "compact" : "default"]
+      : { plots: Plots, maps: MapCharts };
+
+    try {
+      const el = generateElement(
+        {
+          code,
+          scope: {
+            components: {
+              ...libs.maps,
+              ...libs.plots,
+              ...MuzeCharts,
+              ...AntdComponents,
+              ...Icons,
+              GridTable,
+              MuzeTooltip,
+            },
+            data,
+            report: { ...props, dispatch, autoFit },
+            helperFunctions: HELPER_FUNCTIONS,
+          },
+        },
+        () => {
+        },
+      );
+      chartCache.set(cacheKey, el);
+      return el;
+    } catch {
+      return null;
+    }
+  }, [cacheKey]);
+
+  useLayoutEffect(() => {
+    if (!code.trim()) {
+      onPreviewError?.(true);
+      return;
+    }
+    if (!Element) return;
+    onPreviewError?.(false);
+  }, [code, Element, onPreviewError]);
 
   const previewClassName = [
     "ib-live-preview",
-    isKpiChart ? "ib-live-preview--kpi" : "",
-    useCompactTheme && !isKpiChart ? "ib-live-preview--chart" : "",
+    isKpiChart && "ib-live-preview--kpi",
+    useCompactTheme && !isKpiChart && "ib-live-preview--chart",
   ]
     .filter(Boolean)
     .join(" ");
 
+  const previewStyle = isKpiChart
+    ? { width: "100%", height: useCompactTheme ? "auto" : "100%" }
+    : getPreviewStyles({ ...props, autoFit });
+
+  if (!code.trim()) return null;
+
+  if (!Element) {
+    return (
+      <div className="ib-response-error" data-testid="ib-vf-template-error">
+        {IB_VF_TEMPLATE_ERROR}
+      </div>
+    );
+  }
+
   return (
-    <LiveProvider code={chartCode} scope={scope}>
-      {onPreviewError && <PreviewErrorObserver onPreviewError={onPreviewError} />}
-      <LivePreview
-        className={previewClassName}
-        style={
-          isKpiChart
-            ? { width: "100%", height: useCompactTheme ? "auto" : "100%" }
-            : getPreviewStyles({ ...props, autoFit })
-        }
-      />
-    </LiveProvider>
+    <div className={previewClassName} style={previewStyle}>
+      <Element />
+    </div>
   );
 };
 
-const areEqual = (prevProps, nextProps) => {
-  const { dataId, chartAreaHeight, chartAreaWidth, customChart = {}, compact } = prevProps;
-  const isSameCode =
-    (customChart.code || "") === (nextProps.customChart?.code || "");
-  return (
-    dataId === nextProps.dataId &&
-    chartAreaHeight === nextProps.chartAreaHeight &&
-    chartAreaWidth === nextProps.chartAreaWidth &&
-    compact === nextProps.compact &&
-    isSameCode
-  );
-};
-
-export default React.memo(IBCustomChart, areEqual);
+export default React.memo(
+  IBCustomChart,
+  (prev, next) =>
+    prev.dataId === next.dataId &&
+    prev.data === next.data &&
+    prev.compact === next.compact &&
+    Boolean(prev.isKpiChart) === Boolean(next.isKpiChart) &&
+    (prev.customChart?.code || "") === (next.customChart?.code || ""),
+);

@@ -11,6 +11,76 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Bubble Scatter. Config: xField, yField measures; sizeField; colorField dim; size:[4,30]; shape circle.\nPolish: autoFit; legend for color; opacity if dense; interactions element-active; axis titles.",
-  "code": "\nfunction DrawBubbleChart() {\n  const { Scatter } = components;\n  const config = {\n    data,\n    xField: \"x_measure_column\",\n    yField: \"y_measure_column\",\n    sizeField: \"size_measure_column\",\n    colorField: \"dimension_column\",\n    size: [4, 30],\n    shape: \"circle\",\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Scatter {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "bubble",
+    "component": "Scatter",
+    "fields": {
+      "x_measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "y_measure_column": {
+        "role": "measure",
+        "index": 1
+      },
+      "size_measure_column": {
+        "role": "measure",
+        "index": 2,
+        "optional": true
+      },
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0,
+        "optional": true
+      }
+    },
+    "omit_when_missing": [
+      "dimension_column"
+    ]
+  },
+  "instructions": [
+    "Bubble Scatter. Config: xField, yField measures; sizeField; colorField dim; size:[4,30]; shape circle.",
+    "Polish: autoFit; legend for color; opacity if dense; interactions element-active; axis titles."
+  ],
+  "code": [
+    "function DrawBubbleChart() {",
+    "  const { Scatter } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'x_measure_column',",
+    "    yField: 'y_measure_column',",
+    "    sizeField: 'size_measure_column',",
+    "    colorField: 'dimension_column',",
+    "    size: [4, 30],",
+    "    shape: 'circle',",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Scatter {...config} /></div>;",
+    "}"
+  ]
 }

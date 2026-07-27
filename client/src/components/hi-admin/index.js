@@ -6,3 +6,4 @@ export * from "./components/hi-management/hi-management";
 export * from "./components/hi-scheduling/hi-scheduling";
 export * from "./components/hi-adfs";
 export * from "./components/hi-recycle-bin/hi-recycle-bin";
+export * from "./components/hi-configurations";

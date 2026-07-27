@@ -21,6 +21,9 @@ import { useCubeEditorBindings } from './cubeEditorContext';
 import {
 	AgentSemanticTypeSubmenuRow,
 	getDefaultSemanticTypeForRole,
+	getDefaultFormatForSemanticType,
+	getFormatsForSemanticType,
+	isGroupedSemanticTypes,
 } from './cubeSemanticTypeField';
 
 const { TextArea } = Input;
@@ -56,7 +59,6 @@ export const CUBE_FIELD_SEMANTIC_TEXT_FIELDS = [
 	{ fieldName: 'formula', label: 'Formula', placeholder: 'Add Formula (e.g., COUNT(table_name.column_name))' },
 	{ fieldName: 'filter', label: 'Filter (optional)', placeholder: "Add filter. Ex: status = 'completed'." },
 	{ fieldName: 'example', label: 'Example', placeholder: 'Add Example. Ex: term -> column or value.' },
-	{ fieldName: 'description', label: 'Description', placeholder: 'Add Description. Ex:Business description.' },
 ];
 
 const AGENT_HIDDEN_SEMANTIC_FIELDS = new Set(['filter', 'example']);
@@ -133,16 +135,48 @@ const withCubeFieldsMenuText = (text) => (
 	<span className="cube-fields-menu-action-label">{text}</span>
 );
 
-export function getAgentMeasureMenuItems({ dispatch, record }) {
+const getAgentFormatValues = ({ record, semanticTypeOptions }) => {
+	const semanticFormats = getFormatsForSemanticType(
+		semanticTypeOptions,
+		record.semanticType,
+	);
+	if (semanticFormats.length) {
+		return semanticFormats;
+	}
+	if (isGroupedSemanticTypes(semanticTypeOptions)) {
+		return [];
+	}
 	const dataType =
 		record.measure?.DataType || cubeEditorMeasureData[0].dataType;
-	const formats =
-		buildCubeMeasureFormats({ dispatch, record })[dataType] ||
-		buildCubeMeasureFormats({ dispatch, record })[
-			cubeEditorMeasureData[0].dataType
-		] ||
-		[];
-	const selectedFormat = record.measure?.Format || formats[0]?.value || "";
+	const legacy = cubeEditorMeasureData.find((item) => item.dataType === dataType);
+	return [...(legacy?.format || cubeEditorMeasureData[0].format)];
+};
+
+const dispatchMeasureFormatUpdate = ({ dispatch, record, formatValue }) => {
+	dispatch(
+		updateFieldValues({
+			updateName: "measure",
+			key: "Format",
+			value: formatValue,
+			recordKey: record.key,
+			isHierarchyChild: record.isHierarchyChild,
+			hierarchyKey: record.parentKey,
+		}),
+	);
+};
+
+export function getAgentMeasureMenuItems({
+	dispatch,
+	record,
+	semanticTypeOptions,
+}) {
+	const formatValues = getAgentFormatValues({ record, semanticTypeOptions });
+	if (!formatValues.length) {
+		return [];
+	}
+	const selectedFormat = formatValues.includes(record.measure?.Format)
+		? record.measure.Format
+		: formatValues[0];
 
 	const formatMenu = (
 		<Menu
@@ -150,59 +184,80 @@ export function getAgentMeasureMenuItems({ dispatch, record }) {
 			selectedKeys={
 				selectedFormat ? [`measure-format-${selectedFormat}`] : []
 			}
-			items={formats.map((ele) => ({
-				label: withCubeFieldsMenuText(ele.value),
-				key: `measure-format-${ele.value}`,
+			items={formatValues.map((formatType) => ({
+				label: withCubeFieldsMenuText(formatType),
+				key: `measure-format-${formatType}`,
 				onClick: ({ domEvent }) => {
 					domEvent?.stopPropagation?.();
-					if (!record.measure?.DataType) {
-						dispatch(
-							updateFieldValues({
-								updateName: "measure",
-								key: "DataType",
-								value: dataType,
-								recordKey: record.key,
-								isHierarchyChild: record.isHierarchyChild,
-								hierarchyKey: record.parentKey,
-							}),
-						);
-					}
-					ele.callBack();
+					dispatchMeasureFormatUpdate({
+						dispatch,
+						record,
+						formatValue: formatType,
+					});
 				},
 			}))}
 		/>
 	);
 
 	return [
-		{
-			key: "agent-measure-format",
-			label: (
-				<div
-					className="cube-agent-format-menu-row"
-					onClick={(e) => e.stopPropagation()}
-					onMouseDown={(e) => e.stopPropagation()}
-				>
-					<span className="cube-fields-menu-action-label">Format</span>
-					<Dropdown
-						overlay={formatMenu}
-						trigger={["click"]}
-						placement="rightTop"
-						overlayClassName="cube-agent-format-submenu-overlay"
-						getPopupContainer={() => document.body}
-					>
-						<span className="cube-agent-format-trigger">
-							{selectedFormat ? (
-								<span className="cube-agent-format-value">
-									{selectedFormat}
-								</span>
-							) : null}
-							<RightOutlined className="cube-agent-format-arrow" />
-						</span>
-					</Dropdown>
-				</div>
-			),
-		},
+		renderAgentRightSubmenuItem({
+			itemKey: "agent-measure-format",
+			label: "Format",
+			selectedValue: selectedFormat,
+			menu: formatMenu,
+		}),
 	];
+}
+
+function AgentRightSubmenuDropdown({
+	itemKey,
+	label,
+	selectedValue,
+	menu,
+	openKey = null,
+	onOpenKeyChange,
+}) {
+	const [localOpen, setLocalOpen] = useState(false);
+	const isControlled = typeof onOpenKeyChange === "function";
+	const open = isControlled ? openKey === itemKey : localOpen;
+
+	return (
+		<Dropdown
+			overlay={menu}
+			trigger={["click"]}
+			placement="rightTop"
+			open={open}
+			onOpenChange={(nextOpen) => {
+				if (isControlled) {
+					onOpenKeyChange(nextOpen ? itemKey : null);
+				} else {
+					setLocalOpen(nextOpen);
+				}
+			}}
+			overlayClassName="cube-agent-format-submenu-overlay"
+			getPopupContainer={() => document.body}
+		>
+			<div
+				className="cube-agent-format-menu-row"
+				onClick={(e) => e.stopPropagation()}
+				onMouseDown={(e) => e.stopPropagation()}
+			>
+				<span className="cube-fields-menu-action-label">{label}</span>
+				<span className="cube-agent-format-trigger">
+					{selectedValue ? (
+						<span className="cube-agent-format-value">
+							{selectedValue}
+						</span>
+					) : null}
+					{open ? (
+						<DownOutlined className="cube-agent-format-arrow" />
+					) : (
+						<RightOutlined className="cube-agent-format-arrow" />
+					)}
+				</span>
+			</div>
+		</Dropdown>
+	);
 }
 
 const renderAgentRightSubmenuItem = ({
@@ -212,31 +267,10 @@ const renderAgentRightSubmenuItem = ({
 	menu,
 }) => ({
 	key: itemKey,
-	label: (
-		<div
-			className="cube-agent-format-menu-row"
-			onClick={(e) => e.stopPropagation()}
-			onMouseDown={(e) => e.stopPropagation()}
-		>
-			<span className="cube-fields-menu-action-label">{label}</span>
-			<Dropdown
-				overlay={menu}
-				trigger={["click"]}
-				placement="rightTop"
-				overlayClassName="cube-agent-format-submenu-overlay"
-				getPopupContainer={() => document.body}
-			>
-				<span className="cube-agent-format-trigger">
-					{selectedValue ? (
-						<span className="cube-agent-format-value">
-							{selectedValue}
-						</span>
-					) : null}
-					<RightOutlined className="cube-agent-format-arrow" />
-				</span>
-			</Dropdown>
-		</div>
-	),
+	itemKey,
+	label,
+	selectedValue,
+	menu,
 });
 
 export function applyFieldMeasureRoleChange(
@@ -265,6 +299,17 @@ export function applyFieldMeasureRoleChange(
 			hierarchyKey: record.parentKey,
 		}),
 	);
+	dispatch(
+		updateFieldValues({
+			updateName: "defaultFunction",
+			checkVal: checked
+				? "db.generic.aggregate.sum"
+				: "db.generic.groupBy.group",
+			recordKey: record.key,
+			isHierarchyChild: record.isHierarchyChild,
+			hierarchyKey: record.parentKey,
+		}),
+	);
 	if (checked && variant === 'agent') {
 		if (!record.measure?.DataType) {
 			dispatch(
@@ -278,33 +323,34 @@ export function applyFieldMeasureRoleChange(
 				}),
 			);
 		}
-		if (!record.measure?.Format) {
-			dispatch(
-				updateFieldValues({
-					updateName: "measure",
-					key: "Format",
-					value: cubeEditorMeasureData[0].format[0],
-					recordKey: record.key,
-					isHierarchyChild: record.isHierarchyChild,
-					hierarchyKey: record.parentKey,
-				}),
-			);
-		}
 	}
 	if (!record.isHierarchy) {
+		const nextSemanticType = getDefaultSemanticTypeForRole(
+			checked,
+			variant,
+			semanticTypeOptions,
+		);
 		dispatch(
 			updateFieldValues({
 				updateName: 'semanticType',
-				checkVal: getDefaultSemanticTypeForRole(
-					checked,
-					variant,
-					semanticTypeOptions,
-				),
+				checkVal: nextSemanticType,
 				recordKey: record.key,
 				isHierarchyChild: record.isHierarchyChild,
 				hierarchyKey: record.parentKey,
 			}),
 		);
+		if (variant === 'agent') {
+			const nextFormat =
+				getDefaultFormatForSemanticType(
+					semanticTypeOptions,
+					nextSemanticType,
+				) || (checked ? cubeEditorMeasureData[0].format[0] : "");
+			dispatchMeasureFormatUpdate({
+				dispatch,
+				record,
+				formatValue: nextFormat,
+			});
+		}
 	}
 }
 
@@ -318,11 +364,29 @@ function toggleAgentFieldMeasure(dispatch, record, checked, semanticTypeOptions)
 	);
 }
 
-function AgentRoleMenuTree({ roleLabel, childItems }) {
+function AgentRoleMenuTree({
+	roleLabel,
+	childItems,
+	leadingContent = null,
+	openKey = null,
+	onOpenKeyChange,
+}) {
 	const [expanded, setExpanded] = useState(false);
 	const { variant } = useCubeEditorBindings();
 	const stop = (e) => e.stopPropagation();
 	const roleTooltip = getCubeEditorTooltipText("Dimension/Measure", variant);
+
+	useEffect(() => {
+		if (expanded || !onOpenKeyChange || !openKey) {
+			return;
+		}
+		const ownsOpenKey =
+			openKey === "semanticType" ||
+			childItems.some((item) => item.itemKey === openKey);
+		if (ownsOpenKey) {
+			onOpenKeyChange(null);
+		}
+	}, [expanded, openKey, childItems, onOpenKeyChange]);
 
 	return (
 		<div
@@ -358,27 +422,30 @@ function AgentRoleMenuTree({ roleLabel, childItems }) {
 			</div>
 			{expanded ? (
 				<div className="cube-field-agent-role-tree-children">
+					{leadingContent ? (
+						<div className="cube-field-agent-role-tree-item">
+							{leadingContent}
+						</div>
+					) : null}
 					{childItems.map((item) => (
 						<div
 							key={item.key}
 							className="cube-field-agent-role-tree-item"
 						>
-							{item.label}
+							<AgentRightSubmenuDropdown
+								itemKey={item.itemKey}
+								label={item.label}
+								selectedValue={item.selectedValue}
+								menu={item.menu}
+								openKey={openKey}
+								onOpenKeyChange={onOpenKeyChange}
+							/>
 						</div>
 					))}
 				</div>
 			) : null}
 		</div>
 	);
-}
-
-function renderAgentRoleMenuItem({ roleLabel, childItems }) {
-	return {
-		key: AGENT_ROLE_MENU_KEY,
-		label: (
-			<AgentRoleMenuTree roleLabel={roleLabel} childItems={childItems} />
-		),
-	};
 }
 
 function renderAgentConvertRoleMenuItem({
@@ -461,14 +528,25 @@ export function getCubeSortMenuItems({ dispatch, record }) {
 	];
 }
 
+export function getDefaultFunctionForAggregator(
+	aggregator,
+	isManualMetric = false,
+) {
+	const value = String(aggregator || "").trim();
+	if (isManualMetric || !value || value === "None") {
+		return "";
+	}
+	return `db.generic.aggregate.${value.toLowerCase().replace(/\s+/g, "")}`;
+}
+
 export function getCubeAggregationMenuItems({ dispatch, record }) {
 	const applyAggregationValue = (value) => {
+		const isManualMetric = record?.agentSource?.kind === "manual-metric";
+		const defaultFunction = getDefaultFunctionForAggregator(
+			value,
+			isManualMetric,
+		);
 		const isNone = value === "None";
-		const defaultFunction = isNone
-			? "db.generic.aggregate.none"
-			: `db.generic.aggregate.${value
-					.toLowerCase()
-					.replace(/\s+/g, "")}`;
 		dispatch(
 			updateFieldValues({
 				updateName: "aggregation",
@@ -1167,6 +1245,8 @@ function CubeFieldSemanticMenuPanel({
   dispatch,
   record,
   menuVisible = true,
+  agentRoleMenu = null,
+  semanticTypeOptions,
 }) {
   const { variant } = useCubeEditorBindings();
   const clearFieldTooltip = getCubeEditorTooltipText("Clear field values", variant);
@@ -1229,28 +1309,39 @@ function CubeFieldSemanticMenuPanel({
             }
           />
         ))}
+      </div>
 
-        <AgentSemanticTypeSubmenuRow
-          label={<CubeFieldSemanticLabel label="Semantic Type" />}
-          disabled={disabled}
-          value={draft.semanticType ?? ""}
-          clearFieldTooltip={clearFieldTooltip}
+      {agentRoleMenu ? (
+        <AgentRoleMenuTree
+          roleLabel={agentRoleMenu.roleLabel}
+          childItems={agentRoleMenu.childItems}
           openKey={openKey}
           onOpenKeyChange={setOpenKey}
-          onChange={(nextValue) => {
-            const nextDraft = { ...draft, semanticType: nextValue || "" };
-            onDraftChange(nextDraft);
-            if (dispatch && record) {
-              commitCubeFieldSemanticDraft({
-                dispatch,
-                record,
-                draft: nextDraft,
-                variant,
-              });
-            }
-          }}
+          leadingContent={
+            <AgentSemanticTypeSubmenuRow
+              label={<CubeFieldSemanticLabel label="Semantic Type" />}
+              disabled={disabled}
+              value={draft.semanticType ?? ""}
+              clearFieldTooltip={clearFieldTooltip}
+              openKey={openKey}
+              onOpenKeyChange={setOpenKey}
+              onChange={(nextValue) => {
+                const nextDraft = { ...draft, semanticType: nextValue || "" };
+                onDraftChange(nextDraft);
+                if (dispatch && record) {
+                  commitCubeFieldSemanticDraft({
+                    dispatch,
+                    record,
+                    draft: nextDraft,
+                    variant,
+                    semanticTypeOptions,
+                  });
+                }
+              }}
+            />
+          }
         />
-      </div>
+      ) : null}
 
       <AgentAiContextTree
         draft={draft}
@@ -1264,7 +1355,13 @@ function CubeFieldSemanticMenuPanel({
   );
 }
 
-export function commitCubeFieldSemanticDraft({ dispatch, record, draft, variant = 'cube' }) {
+export function commitCubeFieldSemanticDraft({
+	dispatch,
+	record,
+	draft,
+	variant = 'cube',
+	semanticTypeOptions,
+}) {
 	if (record.isHierarchyChild && variant !== 'agent') {
 		return;
 	}
@@ -1306,6 +1403,17 @@ export function commitCubeFieldSemanticDraft({ dispatch, record, draft, variant 
 					hierarchyKey: record.parentKey,
 				}),
 			);
+			const nextFormat = getDefaultFormatForSemanticType(
+				semanticTypeOptions,
+				nextSemanticType,
+			);
+			if ((record.measure?.Format || '') !== nextFormat) {
+				dispatchMeasureFormatUpdate({
+					dispatch,
+					record,
+					formatValue: nextFormat,
+				});
+			}
 		}
 	}
 }
@@ -1396,6 +1504,7 @@ function buildCubeFieldsMenuItems({
         },
       ];
 
+	let agentRoleMenu = null;
 	if (variant === "agent" && !record.isHierarchy) {
 		const insertAt = Math.min(1, menu.length);
 		const isMeasure = Boolean(record.measure?.isMeasureCheck);
@@ -1408,21 +1517,30 @@ function buildCubeFieldsMenuItems({
 				isMeasure,
 				semanticTypeOptions,
 			}),
-			isMeasure
-				? renderAgentRoleMenuItem({
-						roleLabel: "Measure",
-						childItems: [
-							...getAgentMeasureMenuItems({ dispatch, record }),
-							...getAgentAggregationMenuItems({ dispatch, record }),
-						],
-					})
-				: renderAgentRoleMenuItem({
-						roleLabel: "Dimension",
-						childItems: [
-							...getAgentSortMenuItems({ dispatch, record }),
-						],
-					}),
 		);
+		agentRoleMenu = isMeasure
+			? {
+					roleLabel: "Measure",
+					childItems: [
+						...getAgentMeasureMenuItems({
+							dispatch,
+							record,
+							semanticTypeOptions,
+						}),
+						...getAgentAggregationMenuItems({ dispatch, record }),
+					],
+				}
+			: {
+					roleLabel: "Dimension",
+					childItems: [
+						...getAgentMeasureMenuItems({
+							dispatch,
+							record,
+							semanticTypeOptions,
+						}),
+						...getAgentSortMenuItems({ dispatch, record }),
+					],
+				};
 	}
 
 	if (!record.isHierarchy) {
@@ -1436,6 +1554,8 @@ function buildCubeFieldsMenuItems({
 					dispatch={dispatch}
 					record={record}
 					menuVisible={menuVisible}
+					agentRoleMenu={agentRoleMenu}
+					semanticTypeOptions={semanticTypeOptions}
 				/>
 			),
 		});
@@ -1469,16 +1589,22 @@ function buildCubeFieldsMenuItems({
 			return acc;
 		}, [])
 		if (hierarchyData.isHierarchyPresent && (record.isDimensionCheck || record.isHierarchy) && existingHierarchyChildren.length) {
+			const hierarchyMenu = (
+				<Menu
+					className="cube-agent-format-submenu"
+					items={existingHierarchyChildren}
+				/>
+			);
 			menu.splice(1, 0, {
-				label: (
-					<span className="cube-fields-menu-action-label">
-						Add to an existing Hierarchy
-					</span>
-				),
 				key: "Add to an existing Hierarchy",
 				className: "cube-fields-menu-hierarchy-item",
-				popupClassName: "cube-fields-context-submenu",
-				children: existingHierarchyChildren,
+				label: (
+					<AgentRightSubmenuDropdown
+						itemKey="add-to-existing-hierarchy"
+						label="Add to an existing Hierarchy"
+						menu={hierarchyMenu}
+					/>
+				),
 			});
 		}
 	}
@@ -1545,6 +1671,7 @@ export function CubeFieldsMenu({
 			!CUBE_FIELD_MENU_TEXT_KEYS.includes(e.key) &&
 			e.key !== "deleteFromHierarchy" &&
 			e.key !== "agent-measure-format" &&
+			e.key !== "Add to an existing Hierarchy" &&
 			!isMeasureFormatPick
 		) {
 			commitCubeFieldSemanticDraft({

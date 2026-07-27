@@ -27,6 +27,7 @@ import com.helicalinsight.admin.model.HIMetadataConnectionGlobal;
 import com.helicalinsight.admin.model.HIMetadataConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
+import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.model.DSTypeHikari;
 import com.helicalinsight.datasource.model.DSTypeJndi;
 import com.helicalinsight.datasource.model.DSTypeNoSQL;
@@ -46,6 +47,7 @@ import com.helicalinsight.export.service.GlobalDSHandler;
 import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.utils.JsonMapperUtils;
 import com.helicalinsight.export.utils.ManifestUtils;
+import com.helicalinsight.export.utils.ResourceShareUtils;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 
 
@@ -75,6 +77,8 @@ public class GlobalDSHandlerTest {
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -92,6 +96,13 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -127,6 +138,8 @@ public class GlobalDSHandlerTest {
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -143,6 +156,14 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -184,6 +205,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeJndi dsTypeJndi = mock(DSTypeJndi.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -200,6 +223,15 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -236,6 +268,9 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeJndi dsTypeJndi = mock(DSTypeJndi.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
+
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -252,6 +287,15 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -289,6 +333,9 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeNoSQL dsTypeNoSQL = mock(DSTypeNoSQL.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
+
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -305,6 +352,14 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -342,6 +397,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeNoSQL dsTypeNoSQL = mock(DSTypeNoSQL.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -358,6 +415,14 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -395,6 +460,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeTomcat dsTypeTomcat = mock(DSTypeTomcat.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -411,6 +478,14 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -447,6 +522,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeTomcat dsTypeTomcat = mock(DSTypeTomcat.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -463,6 +540,14 @@ public class GlobalDSHandlerTest {
 		Field field3 = DatasourceHandler.class.getDeclaredField("shareHandler");
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
+		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;

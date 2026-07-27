@@ -14,6 +14,7 @@ public class Manifest implements Serializable {
 	private static final long serialVersionUID = 1L;
 	
 	private String version;
+	private String appVersion;
 	private List<String> resourcePaths = new ArrayList<>();
 	private Map<String, String> shares = new HashMap<>();
 	private Map<String,String> schedules = new HashMap<>();
@@ -96,5 +97,13 @@ public class Manifest implements Serializable {
 	
 	public void setVersion(String version) {
 		this.version = version;
+	}
+	
+	public String getAppVersion() {
+		return appVersion;
+	}
+	
+	public void setAppVersion(String appVersion) {
+		this.appVersion = appVersion;
 	}
 }

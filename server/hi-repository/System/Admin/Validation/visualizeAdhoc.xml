@@ -1,32 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <formData>
     <location type="directory"/>
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-        import net.sf.json.JSONObject;
-		import net.sf.json.JSONArray;
-        import org.apache.commons.codec.binary.Base64;
+    <jsFunction name="validate" language="groovy"><![CDATA[
+        import groovy.json.JsonSlurper
 
-        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-            if (requestJson.isEmpty() || !requestJson.has("columns")) {
-                return responseJson;
-            }
-			
-            columns = requestJson.getString("columns");
-            columnValue = new String(Base64.decodeBase64(columns));
-
-            if ("[]".equals(columnValue)) {
-                responseJson.accumulate("columns", "No columns are selected.");
-            }
-			JSONArray columns = JSONArray.fromObject(columnValue);
-			if(columns.size()==1){
-					JSONObject firstJsonObject =columns[0];
-					if(firstJsonObject."hidden"){
-						responseJson.accumulate("columns", "Please select atleast one unhidden column to generate report.");
-						return responseJson;
-					}
-				
-			}
-            return responseJson;
+        def addError(response, key, msg) {
+            if (response[key] == null) response[key] = msg
+            else if (response[key] instanceof List) response[key] << msg
+            else response[key] = [response[key], msg]
         }
-        ]]></jsFunction>-->
+
+        def validate(request, response = [:]) {
+            if (!request || !request.containsKey("columns")) {
+                return response
+            }
+
+            def columns = request.columns
+            def columnValue = new String(columns.decodeBase64())
+
+            if ("[]" == columnValue) {
+                addError(response, "columns", "No columns are selected.")
+            }
+            def columnsArray = new JsonSlurper().parseText(columnValue)
+            if (columnsArray.size() == 1) {
+                if (columnsArray[0]?.hidden) {
+                    addError(response, "columns", "Please select atleast one unhidden column to generate report.")
+                    return response
+                }
+            }
+            return response
+        }
+        ]]></jsFunction>
 </formData>

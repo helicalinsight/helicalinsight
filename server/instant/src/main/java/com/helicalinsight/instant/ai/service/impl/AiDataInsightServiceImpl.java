@@ -36,7 +36,8 @@ public class AiDataInsightServiceImpl implements IAiDataInsightService {
 
     @Override
     public void execute(String chatSeqId, String chatid, String inputParam, String formData, String subjectString,
-                        HttpServletRequest request, HttpServletResponse response) throws IOException {
+                        String downstreamEndpoint, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         try {
             String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
                 JsonObject js = new JsonObject();
@@ -84,7 +85,7 @@ public class AiDataInsightServiceImpl implements IAiDataInsightService {
 
                 js.add("input", userInput);
                 return js;
-            }, "/data-insight");
+            }, downstreamEndpoint);
             JsonObject responseObject = InstantBIUtils.prepareDataInsightResponse(botResponse);
 
             JsonObject mainObject = new JsonObject();
@@ -94,7 +95,8 @@ public class AiDataInsightServiceImpl implements IAiDataInsightService {
             InstantBIUtils.sendResponse(response, ControllerUtils.isAjax(request), mainObject);
         } catch (EfwServiceException exception) {
             if (InstantBIUtils.isAbortException(exception)) {
-                logger.info("Data insight request aborted for requestId={}", InstantBIUtils.resolveRequestId(request));
+                logger.info("Request aborted for endpoint={} requestId={}",
+                        downstreamEndpoint, InstantBIUtils.resolveRequestId(request));
                 return;
             }
             ControllerUtils.handleFailure(response, ControllerUtils.isAjax(request), exception);

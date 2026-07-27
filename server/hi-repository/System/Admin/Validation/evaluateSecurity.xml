@@ -1,41 +1,37 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <formData mandatory="true">
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-        import net.sf.json.JSONArray
-        import net.sf.json.JSONObject
+    <jsFunction name="validate" language="groovy"><![CDATA[
+        def validate(request, response = [:]) {
 
-        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-
-            if (!requestJson.has("executionType")) {
-                responseJson.put("executionType", "The required executionType in the formData is missing")
-                return responseJson;
+            if (!request.containsKey("executionType")) {
+                response.executionType = "The required executionType in the formData is missing"
+                return response
             }
-            if (!requestJson.has("data") || (!requestJson.get("data") instanceof JSONObject)) {
-                responseJson.put("data", "The required 'data'  in the formData is missing")
-                return responseJson;
+            if (!(request.data instanceof Map)) {
+                response.data = "The required 'data'  in the formData is missing"
+                return response
             }
 
-
-            def object = requestJson.getJSONObject("data")
-            if ((!object.has("condition"))) {
-                responseJson.put("condition", "The required 'condition'  in the 'data' of formData is missing")
-                return responseJson;
+            def object = request.data
+            if (!object.containsKey("condition")) {
+                response.condition = "The required 'condition'  in the 'data' of formData is missing"
+                return response
             }
 
             def maliciousCode = "Malicious code 'System' class detected"
 
-            if (object.getString("condition").contains("System")) {
-                responseJson.put("condition", maliciousCode + " on condition");
-                return responseJson;
+            if (object.condition?.contains("System")) {
+                response.condition = maliciousCode + " on condition"
+                return response
             }
 
-            if (object.has("filter") && object.getString("filter").contains("System")) {
-                responseJson.put("filter", maliciousCode + " on filter");
-                return responseJson;
+            if (object.containsKey("filter") && object.filter?.contains("System")) {
+                response.filter = maliciousCode + " on filter"
+                return response
             }
 
-            return responseJson;
+            return response
         }
         ]]>
-    </jsFunction>-->
+    </jsFunction>
 </formData>

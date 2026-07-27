@@ -5,32 +5,28 @@
 	<limitBy type="text"/>
 	<encloser type="enclosure"/>
 	<provideQuery type="boolean"/>
-	<!--<jsFunction name="validate" language="groovy"><![CDATA[
-    import net.sf.json.JSONObject;
-    import net.sf.json.JSONArray;
-    
-    public class Validate {
-        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-            if (requestJson.isEmpty()) {
-                return responseJson;
-            }
-            JSONArray columns = requestJson.getJSONArray("columns");
-            if (columns.isEmpty()) {
-                responseJson.accumulate("columns", "No columns are selected.");
-                return responseJson;
-            }else if(columns.size()==1){
-					JSONObject firstJsonObject = columns[0];
-					if(firstJsonObject."hidden"){
-						responseJson.accumulate("columns", "Please select atleast one unhidden column to generate report.");
-						return responseJson;
-					}else{
-						return responseJson;
-					}
-				
-			} else {
-                return responseJson;
+	<jsFunction name="validate" language="groovy"><![CDATA[
+    def addError(response, key, msg) {
+        if (response[key] == null) response[key] = msg
+        else if (response[key] instanceof List) response[key] << msg
+        else response[key] = [response[key], msg]
+    }
+
+    def validate(request, response = [:]) {
+        if (!request) {
+            return response
+        }
+        def columns = request.columns ?: []
+        if (columns.size() == 0) {
+            addError(response, "columns", "No columns are selected.")
+            return response
+        } else if (columns.size() == 1) {
+            if (columns[0]?.hidden) {
+                addError(response, "columns", "Please select atleast one unhidden column to generate report.")
+                return response
             }
         }
+        return response
     }
-    ]]></jsFunction>-->
+    ]]></jsFunction>
 </formData>

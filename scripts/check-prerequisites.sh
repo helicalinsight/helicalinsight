@@ -23,15 +23,25 @@ check_cmd() {
 echo "Prerequisite check"
 echo "====================================="
 
-check_cmd "Java" "java" "Install JDK 21+ and set JAVA_HOME."
+check_cmd "Java" "java" "Install JDK 25+ and set JAVA_HOME."
 check_cmd "Maven" "mvn" "Install Maven 3.8+ (https://maven.apache.org/)."
 check_cmd "Node.js" "node" "Install Node.js 18 LTS (https://nodejs.org/)."
 check_cmd "npm" "npm" "npm ships with Node.js; reinstall Node if missing."
 
+if command -v python3 >/dev/null 2>&1 || command -v python >/dev/null 2>&1; then
+  if command -v python3 >/dev/null 2>&1; then
+    echo "[OK]   Python: $(python3 --version 2>&1)"
+  else
+    echo "[OK]   Python: $(python --version 2>&1)"
+  fi
+else
+  echo "[WARN] Python not found (needed only for native Instant BI; Docker covers it)."
+fi
+
 if command -v docker >/dev/null 2>&1; then
   echo "[OK]   Docker: $(docker --version)"
 else
-  echo "[WARN] Docker not found (optional for docker-compose.dev.yml)."
+  echo "[WARN] Docker not found (optional — fastest full-stack / product run)."
 fi
 
 NODE_MAJOR=""
@@ -50,5 +60,5 @@ fi
 
 echo "All required tools found. Next steps:"
 echo "  ./scripts/setup-dev.sh"
-echo "  cd server && mvn clean package -DskipTests"
-echo "  cd client && npm ci --legacy-peer-deps && npm run start18"
+echo "  # Full stack:  cd docker && docker compose up -d"
+echo "  # Or per component — see README.md (Backend / Frontend / Instant BI)"

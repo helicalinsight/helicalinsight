@@ -26,7 +26,7 @@ DB_ABS="$(cd "$DB" && pwd)"
 if [ -f "$SETTING" ]; then
   if grep -q '\${INSTALL_PATH}' "$SETTING"; then
     sed -i.bak "s|<efwSolution>.*</efwSolution>|<efwSolution>${REPO_ABS}</efwSolution>|" "$SETTING"
-    sed -i.bak "s|<BaseUrl>.*</BaseUrl>|<BaseUrl>http://localhost:8080/hi-ee/hi.html</BaseUrl>|" "$SETTING"
+    sed -i.bak "s|<BaseUrl>.*</BaseUrl>|<BaseUrl>http://localhost:8080/hi-ee/</BaseUrl>|" "$SETTING"
     rm -f "${SETTING}.bak"
     echo "[OK]   Patched setting.xml (efwSolution, BaseUrl)"
   else
@@ -61,11 +61,36 @@ if [ ! -f "$ROOT/.env" ] && [ -f "$ROOT/.env.example" ]; then
   echo "[OK]   Created .env from .env.example"
 fi
 
+DOCKER_ENV_EXAMPLE="$ROOT/docker/.env.example"
+DOCKER_ENV="$ROOT/docker/.env"
+if [ ! -f "$DOCKER_ENV" ] && [ -f "$DOCKER_ENV_EXAMPLE" ]; then
+  cp "$DOCKER_ENV_EXAMPLE" "$DOCKER_ENV"
+  echo "[OK]   Created docker/.env from docker/.env.example"
+fi
+
+# Link Instant BI into the shared Docker layout (same path the package uses)
+INSTANTBI_LINK="$ROOT/docker/instantbi/helicalbi"
+INSTANTBI_SRC="$ROOT/ib/helicalbi"
+mkdir -p "$ROOT/docker/instantbi"
+if [ -d "$INSTANTBI_SRC" ] && [ ! -e "$INSTANTBI_LINK" ]; then
+  ln -sfn "$INSTANTBI_SRC" "$INSTANTBI_LINK"
+  echo "[OK]   Linked docker/instantbi/helicalbi → ib/helicalbi"
+elif [ -e "$INSTANTBI_LINK" ]; then
+  echo "[SKIP] docker/instantbi/helicalbi already present"
+fi
+
 echo ""
-echo "Setup complete. Build and run:"
-echo "  cd server && mvn clean package -DskipTests"
-echo "  # Deploy presentation/target/hi-ee-7.0.0.war as \$CATALINA_HOME/webapps/hi-ee.war"
-echo "  cd client && npm ci --legacy-peer-deps && npm run start18"
+echo "Setup complete. See README.md for full paths."
 echo ""
-echo "Or use Docker:"
+echo "Recommended (full stack — first start can take a few minutes):"
+echo "  cd docker && docker compose up -d"
+echo "  # Open https://localhost  (login: hiadmin / hiadmin)"
+echo ""
+echo "Per component:"
+echo "  Backend:    cd server && mvn clean package -DskipTests"
+echo "              # Deploy presentation/target/hi-ee-7.0.0.war as \$CATALINA_HOME/webapps/hi-ee.war"
+echo "  Frontend:   cd client && npm ci --legacy-peer-deps && npm run start18"
+echo "  Instant BI: cd ib/helicalbi && pip install -r requirements.txt && python app.py"
+echo ""
+echo "Build backend from source in Docker:"
 echo "  docker compose -f docker-compose.dev.yml up --build"

@@ -166,14 +166,16 @@ const S2Chart = (props) => {
     width = props.chartAreaWidth;
   }
 
-  let { show, value } = title;
-  let { show: subTitleShow, value: subTitleValue } = title;
+  let { show, value, fontSize, padding } = title;
+  let { show: subTitleShow, value: subTitleValue, fontSize: subTitleFontSize, padding: subTitlePadding, } = subTitle;
 
-  if ((show, value)) {
+  if (show && value) {
     titleStyle = getPropertyStyle(title);
+    height = height - 30 - fontSize - 2 * padding;
   }
   if (subTitleShow && subTitleValue) {
     subTitleStyle = getPropertyStyle(subTitle);
+    height = height - 30 - subTitleFontSize - 2 * subTitlePadding;
   }
   //this is a constructor function
 

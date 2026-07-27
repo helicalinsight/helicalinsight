@@ -1,177 +1,176 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <formData mandatory="true">
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-        import net.sf.json.JSONArray
-        import net.sf.json.JSONObject
-
-        boolean valid(String elementCheck, JSONObject responseJson, String keyName) {
-            String validString = '[a-zA-Z0-9\\s-_\\*\\\$\\(\\[\\]\\)\\.,\']*';
+    <jsFunction name="validate" language="groovy"><![CDATA[
+        def valid(response, elementCheck, keyName, regexMap = [:]) {
+            def validString = regexMap?.aliasName
+            if (!validString) {
+                response.invalidString = " regex 'aliasName' is not configured in regex.properties"
+                return false
+            }
             if (!elementCheck.matches(validString)) {
-                responseJson.put("invalidString", " " + keyName + ' contains invalid characters. only .$()[]\'_-* allowed');
-                return false;
+                response.invalidString = " " + keyName + ' contains invalid characters. only .$()[]\'_-* allowed'
+                return false
             }
             if (elementCheck.startsWith(" ")) {
-                responseJson.put("invalidString", " " + keyName + " should not start with space");
-                return false;
+                response.invalidString = " " + keyName + " should not start with space"
+                return false
             }
 
             if (elementCheck.length() > 100) {
-                responseJson.put("invalidString", " " + keyName + " should not be more than 100 characters");
-                return false;
+                response.invalidString = " " + keyName + " should not be more than 100 characters"
+                return false
             }
 
-            return true;
+            return true
         }
 
-        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+        def validate(request, response = [:], regexMap = [:]) {
 
-            if (!requestJson.has("uuid")) {
-                responseJson.put("uuid", "The required uuid in the formData is missing")
-                return responseJson;
+            if (!request?.uuid) {
+                response.uuid = "The required uuid in the formData is missing"
+                return response
             }
-            if (!requestJson.has("expression") || (!requestJson.get("expression") instanceof JSONArray)) {
-                responseJson.put("expression", "The required 'expression' array in the formData is missing")
-                return responseJson;
+            if (!(request.expression instanceof List)) {
+                response.expression = "The required 'expression' array in the formData is missing"
+                return response
             }
-            JSONArray expressionArray = requestJson.getJSONArray("expression");
+            def expressionArray = request.expression
 
-            if (expressionArray.isEmpty()) {
-                responseJson.put("expression", "The required 'expression' array  in formData should not be empty");
-                return responseJson;
+            if (expressionArray.size() == 0) {
+                response.expression = "The required 'expression' array  in formData should not be empty"
+                return response
             }
 
-            for (Object expression : expressionArray) {
-                JSONObject expressionJson = (JSONObject) expression;
+            for (expressionJson in expressionArray) {
 
                 if (!(
-                        expressionJson.has("action")
-                                && expressionJson.has('on')
-                                && expressionJson.has("executionType")
-                                && expressionJson.has("expressionName")
-                                && expressionJson.has("accessType")
-                                && expressionJson.has("expressionType")
-                                && expressionJson.has("condition")
+                        expressionJson.containsKey("action")
+                                && expressionJson.containsKey('on')
+                                && expressionJson.containsKey("executionType")
+                                && expressionJson.containsKey("expressionName")
+                                && expressionJson.containsKey("accessType")
+                                && expressionJson.containsKey("expressionType")
+                                && expressionJson.containsKey("condition")
                 )) {
-                    responseJson.put("expression", "The required key  'action', 'expressionType', 'on', 'executionType', 'accessType','expressionName', 'condition' in formData is missing ");
-                    return responseJson;
+                    response.expression = "The required key  'action', 'expressionType', 'on', 'executionType', 'accessType','expressionName', 'condition' in formData is missing "
+                    return response
                 }
 
-
-
                 if (!(
-                        (expressionJson.get("action") instanceof String)
-                                || (expressionJson.get("executionType") instanceof String)
-                                || (expressionJson.get("expressionName") instanceof String)
-                                || (expressionJson.get("accessType") instanceof String)
-                                || (expressionJson.get("expressionType") instanceof String)
-                                || (expressionJson.get("condition") instanceof String)
+                        expressionJson.action instanceof String
+                                && expressionJson.executionType instanceof String
+                                && expressionJson.expressionName instanceof String
+                                && expressionJson.accessType instanceof String
+                                && expressionJson.expressionType instanceof String
+                                && expressionJson.condition instanceof String
                 )) {
-                    responseJson.put("expression", "The required key  'action', 'expressionType',  'executionType', 'accessType','expressionName', 'condition' should be of String type");
-                    return responseJson;
+                    response.expression = "The required key  'action', 'expressionType',  'executionType', 'accessType','expressionName', 'condition' should be of String type"
+                    return response
                 }
 
                 def maliciousCode = "Malicious code 'System' class detected"
 
-                String system = "System"
+                def system = "System"
                 if ((
-                        expressionJson.getString("action").isEmpty()
-                                || expressionJson.getString("executionType").isEmpty()
-                                || expressionJson.getString("expressionName").isEmpty()
-                                || expressionJson.getString("accessType").isEmpty()
-                                || expressionJson.getString("expressionType").isEmpty()
-                                || expressionJson.getString("condition").isEmpty()
+                        expressionJson.action.isEmpty()
+                                || expressionJson.executionType.isEmpty()
+                                || expressionJson.expressionName.isEmpty()
+                                || expressionJson.accessType.isEmpty()
+                                || expressionJson.expressionType.isEmpty()
+                                || expressionJson.condition.isEmpty()
                 )) {
-                    responseJson.put("expression", "The required key  'action', 'expressionType',  'executionType', 'accessType','expressionName', 'condition' should not be empty");
-                    return responseJson;
+                    response.expression = "The required key  'action', 'expressionType',  'executionType', 'accessType','expressionName', 'condition' should not be empty"
+                    return response
                 } else {
                     if (!(
-                            valid(expressionJson.getString("executionType"), responseJson, "executionType") &&
-                                    valid(expressionJson.getString("expressionName"), responseJson, "expressionName") &&
-                                    valid(expressionJson.getString("accessType"), responseJson, "accessType") &&
-                                    valid(expressionJson.getString("expressionType"), responseJson, "expressionType")
+                            valid(response, expressionJson.executionType, "executionType", regexMap) &&
+                                    valid(response, expressionJson.expressionName, "expressionName", regexMap) &&
+                                    valid(response, expressionJson.accessType, "accessType", regexMap) &&
+                                    valid(response, expressionJson.expressionType, "expressionType", regexMap)
                     )) {
 
-                        return responseJson;
+                        return response
 
                     }
-                    if (expressionJson.getString("accessType").contains("grant")) {
-                        if (!expressionJson.has("filter")) {
-                            responseJson.put("filter", "The filter key is required when grant is selected");
-                            return responseJson;
+                    if (expressionJson.accessType.contains("grant")) {
+                        if (!expressionJson.containsKey("filter")) {
+                            response.filter = "The filter key is required when grant is selected"
+                            return response
                         }
 
-                        if (expressionJson.getString("filter").isEmpty()) {
-                            responseJson.put("filter", "The filter should not be empty");
+                        if (expressionJson.filter.isEmpty()) {
+                            response.filter = "The filter should not be empty"
 
-                            return responseJson;
+                            return response
                         }
                     }
 
-                    if (expressionJson.getString("condition").contains(system)) {
-                        responseJson.put("condition", maliciousCode);
-                        return responseJson;
+                    if (expressionJson.condition.contains(system)) {
+                        response.condition = maliciousCode
+                        return response
                     }
 
-                    String action = expressionJson.getString("action");
-                    if (expressionJson.has("expressionId")) {
+                    def action = expressionJson.action
+                    if (expressionJson.containsKey("expressionId")) {
                         if (!"edit".equalsIgnoreCase(action)) {
-                            responseJson.put("expression", "Expected action 'edit' with the expression that has 'expressionId'");
-                            return responseJson;
+                            response.expression = "Expected action 'edit' with the expression that has 'expressionId'"
+                            return response
                         }
-                        if (!valid(expressionJson.getString("expressionId"), responseJson, "expressionId")) {
-                            return responseJson;
+                        if (!valid(response, expressionJson.expressionId, "expressionId", regexMap)) {
+                            return response
                         }
                     } else {
                         if (!"add".equalsIgnoreCase(action)) {
-                            responseJson.put("expression", "Expected action 'add' with the expression that has no 'expressionId'");
-                            return responseJson;
+                            response.expression = "Expected action 'add' with the expression that has no 'expressionId'"
+                            return response
                         }
 
                     }
 
-                    if (!(expressionJson.get("on") instanceof JSONArray)) {
-                        responseJson.put("on", "Expected 'on' key value should be an array");
-                        return responseJson;
+                    if (!(expressionJson.on instanceof List)) {
+                        response.on = "Expected 'on' key value should be an array"
+                        return response
 
                     }
-                    if ((expressionJson.getJSONArray("on").isEmpty())) {
-                        responseJson.put("on", "Expected 'on' array should not be empty");
-                        return responseJson;
+                    if (expressionJson.on.size() == 0) {
+                        response.on = "Expected 'on' array should not be empty"
+                        return response
                     }
 
 
-                    for (Object string : expressionJson.getJSONArray("on")) {
-                        String entity = (String) string;
-                        if(entity.isEmpty()){
-                            responseJson.put("on","One of the on values are empty")
-                            return responseJson;
+                    for (onElement in expressionJson.on) {
+                        def entity = onElement
+                        if (entity.isEmpty()) {
+                            response.on = "One of the on values are empty"
+                            return response
                         }
 
-                        if (!valid(entity, responseJson, "on")) {
-                            return responseJson;
+                        if (!valid(response, entity, "on", regexMap)) {
+                            return response
                         }
 
-                        //if ("column".equalsIgnoreCase(expressionJson.getString("expressionType")) && !string.contains(".")) {
-                        //    responseJson.put("on", "Columns " + entity + " has no table information. Hint: Column names should have table name separated by dot (.) ");
-                        //    return responseJson;
+                        //if ("column".equalsIgnoreCase(expressionJson.expressionType) && !entity.contains(".")) {
+                        //    response.on = "Columns " + entity + " has no table information. Hint: Column names should have table name separated by dot (.) "
+                        //    return response
                         //}
 
-                        if (!valid(entity, responseJson, "on")) {
-                            return responseJson;
+                        if (!valid(response, entity, "on", regexMap)) {
+                            return response
                         }
                     }
 
                 }
 
-                if (expressionJson.has("filter") && expressionJson.getString("filter").contains(system)) {
-                    responseJson.put("condition", maliciousCode);
-                    return responseJson;
+                if (expressionJson.containsKey("filter") && expressionJson.filter?.contains(system)) {
+                    response.condition = maliciousCode
+                    return response
                 }
 
-                return responseJson;
+                return response
             }
 
+            return response
         }
         ]]>
-    </jsFunction>-->
+    </jsFunction>
 </formData>

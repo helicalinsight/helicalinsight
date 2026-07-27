@@ -1,29 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <formData mandatory="true">
-   <!--<jsFunction name="validate" language="groovy"><![CDATA[
-    import net.sf.json.JSONObject;
-    import net.sf.json.JSONArray;
+   <jsFunction name="validate" language="groovy"><![CDATA[
+    def addError(response, key, msg) {
+        if (response[key] == null) response[key] = msg
+        else if (response[key] instanceof List) response[key] << msg
+        else response[key] = [response[key], msg]
+    }
 
-    public class Validate {
-        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-	
-		   if(requestJson.isEmpty()){
-		    responseJson.accumulate("data", "The data/formData key is required");
-                    return responseJson;
-		   }
-            JSONObject data = requestJson.getJSONObject("data");
-            if (!data.has("isAdhoc")) {
-                return responseJson;
+    def validate(request, response = [:]) {
+
+        if (!request) {
+            addError(response, "data", "The data/formData key is required")
+            return response
+        }
+        def data = request.data ?: [:]
+        if (!data.containsKey("isAdhoc")) {
+            return response
+        } else {
+            def columns = data.columns ?: []
+            if (columns.size() == 0) {
+                addError(response, "columns", "No columns are selected.")
+                return response
             } else {
-                JSONArray columns = data.getJSONArray("columns");
-                if (columns.isEmpty()) {
-                    responseJson.accumulate("columns", "No columns are selected.");
-                    return responseJson;
-                } else {
-                    return responseJson;
-                }
+                return response
             }
         }
     }
-    ]]></jsFunction>-->
+    ]]></jsFunction>
 </formData>

@@ -141,6 +141,13 @@ const adminItems = [
     moduleKey: "admin",
   },
   {
+    key: "hi-configurations",
+    title: "Configurations",
+    description:
+      "Browse and edit System/Admin configuration files. Properties files open as key/value forms; XML and JSON files open as searchable editable trees.",
+    moduleKey: "admin",
+  },
+  {
     key: "hi-disk-space",
     title: "Disk Space",
     description: "View and refresh the availaible and free disk space.",
@@ -278,13 +285,19 @@ const adminWithOrgItems = [
     moduleKey: "adminWithOrg",
   },
   {
+    key: "hi-configurations",
+    title: "Configurations",
+    description:
+      "Browse and edit System/Admin configuration files. Properties files open as key/value forms; XML and JSON files open as searchable editable trees.",
+    moduleKey: "adminWithOrg",
+  },
+  {
     key: "hi-license-details",
     title: "License Details",
     description: "Details of the Helical Insight license currently deployed.",
     moduleKey: "adminWithOrg",
   },
-];
-const roleUserItems = [
+];const roleUserItems = [
   {
     key: "hi-admin-sidebar",
     title: "Discover",

@@ -1,0 +1,84 @@
+{
+    "id":  "regex",
+    "title":  "Validation Regex",
+    "description":  "Common input validation patterns.",
+    "file":  "regex.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common Patterns",
+                         "key":  "common",
+                         "fields":  [
+                                        {
+                                            "name":  "email",
+                                            "path":  "email",
+                                            "label":  "Email",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Email validation regex.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "url",
+                                            "path":  "url",
+                                            "label":  "URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "URL validation regex.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "text",
+                                            "path":  "text",
+                                            "label":  "Text",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Generic text validation regex.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "password",
+                                            "path":  "password",
+                                            "label":  "Password",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Password validation regex.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "number",
+                                            "path":  "number",
+                                            "label":  "Number",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Number validation regex."
+                                        },
+                                        {
+                                            "name":  "boolean",
+                                            "path":  "boolean",
+                                            "label":  "Boolean",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Boolean validation regex."
+                                        },
+                                        {
+                                            "name":  "userName",
+                                            "path":  "userName",
+                                            "label":  "User Name",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Username validation regex."
+                                        },
+                                        {
+                                            "name":  "fileName",
+                                            "path":  "fileName",
+                                            "label":  "File Name",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "File name validation regex."
+                                        }
+                                    ]
+                     }
+                 ]
+}

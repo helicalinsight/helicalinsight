@@ -1,26 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <formData>
-    <id required="true" type="number"/>
-    <dir condition="=" requiredIf="formData.classifier" type="directory" value="efwd"/>
-    <type required="true" type="text"/>
-    <classifier required="true" type="text"/>
-
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-		import net.sf.json.JSONObject;
-
-		def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-			if (requestJson.isEmpty() || !requestJson.has("classifier")) {
-				responseJson.put("classifier", "The required key 'classifier' is missing in formData")
-				return responseJson;
-			}
-
-            if (requestJson.getString("classifier").equalsIgnoreCase("efwd") && !requestJson.has("dir")) {
-                responseJson.put("dir", "The required key 'dir' is missing in formData when classifier is efwd")
-                return responseJson;
-            }
-
-            return responseJson;
-		}
-	 ]]>
-    </jsFunction>-->
+	<id required="true" type="number"/>
+	<dir condition="=" requiredIf="classifier" type="directory" value="efwd"
+			requiredMessage="The required key 'dir' is missing in formData when classifier is efwd"/>
+	<type required="true" type="text"/>
+	<classifier required="true" type="text"
+			requiredMessage="The required key 'classifier' is missing in formData"/>
 </formData>

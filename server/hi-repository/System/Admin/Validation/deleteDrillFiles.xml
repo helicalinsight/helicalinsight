@@ -1,34 +1,25 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <formData mandatory="true">
     
-    <!--<jsFunction name="validate" language="groovy"><![CDATA[
-        import net.sf.json.JSONObject;
-        import net.sf.json.JSONArray;
-        
-            def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
-			
-                if (requestJson.has("listOfFilesToBeDeleted")) {
-				JSONArray filesListArray = requestJson.getJSONArray("listOfFilesToBeDeleted");
-					if(filesListArray.size()!=0){
-					      for(int index=0; index<filesListArray.size(); index++){
-						  JSONObject eachObject = filesListArray.getJSONObject(index);
-							if(!eachObject.has("fileName")){
-								responseJson.put("message", "Please Provide Mandatory field: 'fileName'.");
-							}
-						  }
-					}else{
-					responseJson.put("message", "Please select atleast one file to perform delete operation.");
-					}
-                    
-                }else{
-				responseJson.put("message", "Please provide the file(s) to be deleted.");
-				}
-
-                return responseJson;
+    <jsFunction name="validate" language="groovy"><![CDATA[
+        def validate(request, response = [:]) {
+            if (request.containsKey("listOfFilesToBeDeleted")) {
+                def filesListArray = request.listOfFilesToBeDeleted
+                if (filesListArray.size() != 0) {
+                    filesListArray.each { eachObject ->
+                        if (!eachObject.containsKey("fileName")) {
+                            response.message = "Please Provide Mandatory field: 'fileName'."
+                        }
+                    }
+                } else {
+                    response.message = "Please select atleast one file to perform delete operation."
+                }
+            } else {
+                response.message = "Please provide the file(s) to be deleted."
             }
 
-
-        
+            return response
+        }
         ]]>
-    </jsFunction>-->
+    </jsFunction>
 </formData>

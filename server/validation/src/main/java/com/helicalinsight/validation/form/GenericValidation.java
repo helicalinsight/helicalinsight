@@ -1,15 +1,16 @@
 package com.helicalinsight.validation.form;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
-import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.PropertiesFileReader;
 import com.helicalinsight.validation.IValidation;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.Option;
 
 import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -24,10 +25,12 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.AbstractMap;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * This class is used to valid formData which implements<p>IValidation</p>
@@ -39,48 +42,72 @@ public class GenericValidation implements IValidation {
 
     private static final Logger logger = LoggerFactory.getLogger(GenericValidation.class);
 
-    private static Map<String, String> regexMap = new PropertiesFileReader().read("Admin", "regex.properties");
-   
-    /**
-     * jsonNavigator(JsonObject json, String expression)
-     * @param json				fromData
-     * @param expression		array of key-List 
-     * {@return  object in string format }{@code null} if object is not instance of json data.
-     */
-    public static String jsonNavigator(JsonObject json, String expression) {
-        String[] keyList = expression.split("\\.");
+    private static final Configuration JSON_PATH_CONF = Configuration.defaultConfiguration()
+            .addOptions(Option.SUPPRESS_EXCEPTIONS);
 
-        Object object = null;
-        for (String key : keyList) {
-            int index;
-            if (key.endsWith("]")) {
-                index = getIndex(key);
-                key = key.substring(0, key.indexOf("["));
-                object = json.get(key);
-                if (object instanceof JsonArray) {
-                    JsonArray jsonArray = ((JsonElement) object).getAsJsonArray();
-                    object = jsonArray.get(index);
+    private static Map<String, String> regexMap;
+
+    private static Map<String, String> regexMap() {
+        if (regexMap == null) {
+            synchronized (GenericValidation.class) {
+                if (regexMap == null) {
+                    try {
+                        regexMap = new PropertiesFileReader().read("Admin", "regex.properties");
+                    } catch (Throwable ex) {
+                        logger.warn("Could not load regex.properties; type checks will be skipped until init()", ex);
+                        regexMap = new java.util.HashMap<>();
+                    }
+                    if (regexMap == null) {
+                        regexMap = new java.util.HashMap<>();
+                    }
                 }
-            } else object = json.get(key);
-
-            if (object instanceof JsonObject) {
-                json = (JsonObject) new Gson().toJsonTree(object);
             }
         }
+        return regexMap;
+    }
 
-        return object != null ? object.toString() : null;
-    }
     /**
-     * getIndex(String array)
-     * @param array       it is key in string format
-     * @return key index
+     * Returns an unmodifiable view of the validation regex map loaded from
+     * {@code System/Admin/regex.properties}. Available to Groovy validators as {@code regexMap}.
      */
-    public static int getIndex(String array) {
-        int begin = array.indexOf("[");
-        int end = array.indexOf("]");
-        String index = array.substring(begin + 1, end);
-        return Integer.parseInt(index);
+    public static Map<String, String> getRegexMap() {
+        return java.util.Collections.unmodifiableMap(new LinkedHashMap<>(regexMap()));
     }
+
+    /**
+     * Resolves a value from {@code json} using Jayway JsonPath.
+     * Accepts dotted paths ({@code a.b[0].c}) or full JsonPath ({@code $.a.b[0].c}).
+     *
+     * @param json       form data
+     * @param expression path to the target key
+     * @return value as string, or {@code null} if missing
+     */
+    public static String jsonNavigator(JsonObject json, String expression) {
+        if (json == null || StringUtils.isBlank(expression)) {
+            return null;
+        }
+        String path = toJsonPath(expression);
+        Object value = JsonPath.using(JSON_PATH_CONF).parse(json.toString()).read(path);
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Map || value instanceof List) {
+            return new Gson().toJson(value);
+        }
+        return String.valueOf(value);
+    }
+
+    /**
+     * Normalizes a dotted / bracket path into a JsonPath expression.
+     */
+    static String toJsonPath(String expression) {
+        String trimmed = expression.trim();
+        if (trimmed.startsWith("$")) {
+            return trimmed;
+        }
+        return "$." + trimmed;
+    }
+
     /**
      * init()
      * This method is used to read a property file with in the EFW solution
@@ -94,11 +121,12 @@ public class GenericValidation implements IValidation {
     public boolean isThreadSafeToCache() {
         return false;
     }
+
     /**
      * isValid(JsonObject formData, JsonObject xmlRuleJson)
      * @param formData           formData
 	 * @param xmlRuleJson        xml data in JsonObject
-	 * {@return True if validation is successful}{@code false} if data is not correct.
+	 * {@return True if validation is successful} {@code false} if data is not correct.
 	 */
     public boolean isValid(JsonObject formData, JsonObject xmlRuleJson) {
         //Made a copy
@@ -113,34 +141,67 @@ public class GenericValidation implements IValidation {
         if (validationRulesJson == null) {
             return false;
         }
-        JsonObject formValidation = validationRulesJson;
+        // XmlMapper typically unwraps <formData>; keep a safety unwrap if the root remains.
+        JsonObject formValidation = unwrapFormData(validationRulesJson);
 
         JsonObject requestJsonObject = jsonCopy.getAsJsonObject();
 
-        if (formValidation.has("jsFunction")) {
-            JsonObject jsFunction = formValidation.getAsJsonObject("jsFunction");
-            formValidation.remove("jsFunction");
-            formValidation.remove("mandatory");
-            overallResult = validateJson(jsFunction, requestJsonObject, errorMessages);
-            JsonObject result = errorMessages.getAsJsonObject("result");
-            xmlRuleJson.add("message", result);
+        JsonObject evaluator = extractEvaluator(formValidation);
+        if (evaluator != null) {
+            overallResult = validateJson(evaluator, requestJsonObject, errorMessages);
+            if (errorMessages.has("result") && errorMessages.get("result").isJsonObject()) {
+                xmlRuleJson.add("message", errorMessages.getAsJsonObject("result"));
+                return false;
+            }
         }
 
-        if (errorMessages.entrySet().isEmpty()) {
-            overallResult = recursiveValidation(jsonCopy, formValidation, errorMessages, requestJsonObject);
-            xmlRuleJson.add("message", errorMessages);
-        }
-
+        JsonObject fieldErrors = new JsonObject();
+        boolean fieldResult = validateWithJsonPath(formValidation, fieldErrors, requestJsonObject);
+        overallResult = overallResult && fieldResult;
+        xmlRuleJson.add("message", fieldErrors);
         return overallResult;
     }
+
+    /**
+     * Prefer the inner {@code formData} object when the XML root was preserved.
+     */
+    private JsonObject unwrapFormData(JsonObject validationRulesJson) {
+        if (validationRulesJson.has("formData") && validationRulesJson.get("formData").isJsonObject()
+                && validationRulesJson.entrySet().size() == 1) {
+            return validationRulesJson.getAsJsonObject("formData");
+        }
+        return validationRulesJson;
+    }
+
+    /**
+     * Supports both {@code jsFunction} and {@code jsValidator} complex evaluators.
+     * Removes the evaluator element so it is not treated as a field rule.
+     */
+    private JsonObject extractEvaluator(JsonObject formValidation) {
+        String key = null;
+        if (formValidation.has("jsValidator")) {
+            key = "jsValidator";
+        } else if (formValidation.has("jsFunction")) {
+            key = "jsFunction";
+        }
+        if (key == null) {
+            return null;
+        }
+        JsonObject evaluator = formValidation.getAsJsonObject(key);
+        formValidation.remove(key);
+        formValidation.remove("mandatory");
+        return evaluator;
+    }
+
     /**
      * isRequired(String value)
      * @param value      it is validationKeys value
-     * {@return true if value is present in formdata} {@code false}  if value is null or empty.     
+     * {@return true if value is present in formdata} {@code false}  if value is null or empty.
      */
     public boolean isRequired(String value) {
         return !(value == null || value.trim().length() == 0 || "[]".equals(value));
     }
+
     /**
      * minLength(String value, int length)
      * @param value        it is validationKeys value
@@ -151,6 +212,7 @@ public class GenericValidation implements IValidation {
         return value != null && value.length() >= length;
 
     }
+
     /**
      * maxLength(String value, int length)
      * @param value        it is validationKeys value
@@ -161,11 +223,12 @@ public class GenericValidation implements IValidation {
         return value != null && value.length() <= length;
 
     }
+
     /**
      * isOfType(String value, String type)
      * @param value       		validation value
      * @param type				type of validation value
-     * {@return true if type matches} {@code false} if not match and null. 
+     * {@return true if type matches} {@code false} if not match and null.
      */
     public boolean isOfType(String value, String type) {
         String typeRegex = typeResolver(type);
@@ -176,6 +239,7 @@ public class GenericValidation implements IValidation {
         	return false;
         }
     }
+
     /**
      * typeResolver(String type)
      * @param type      type of validation value
@@ -183,137 +247,229 @@ public class GenericValidation implements IValidation {
      *         {@code null} if this map contains no mapping for the key
      */
     public String typeResolver(String type) {
-        return regexMap.get(type);
+        return regexMap().get(type);
     }
+
     /**
-     * recursiveValidation(JsonObject jsonCopy, JsonObject formValidation, JsonObject errorMessages,
-                                       JsonObject requestJsonObject)
-     * @param jsonCopy               validation details in json format
-     * @param formValidation         List of keys
-     * @param errorMessages          stores the validation-keys and object
-     * @param requestJsonObject      formData
-     *{@return True if key value is correct}{@code false} if value length, value is invalid ,value type is wrong.
+     * Validates form data by resolving each leaf rule through JsonPath.
+     * Nested rule containers are flattened to dotted paths (e.g. {@code EmailSettings.Subject}).
+     *
+     * @param formValidation    validation rules (flat or nested)
+     * @param errorMessages     accumulates validation errors
+     * @param requestJsonObject root form data for JsonPath lookups
+     * @return true if all rules pass
      */
     @SuppressWarnings("ConstantConditions")
-    public boolean recursiveValidation(JsonObject jsonCopy, JsonObject formValidation, JsonObject errorMessages,
-                                       JsonObject requestJsonObject) {
+    public boolean validateWithJsonPath(JsonObject formValidation, JsonObject errorMessages,
+                                        JsonObject requestJsonObject) {
         boolean overallResult = true;
-        List<String> validationKeys = JsonUtils.getKeys(formValidation);
-        for (String validationKey : validationKeys) {
-             JsonElement sampleObject = jsonCopy.get(validationKey);
+        if (formValidation == null) {
+            return true;
+        }
 
-            if (sampleObject instanceof JsonObject) {
-                JsonObject errorJson = new JsonObject();
-                overallResult = overallResult & recursiveValidation(jsonCopy.getAsJsonObject(validationKey),
-                        formValidation.getAsJsonObject(validationKey), errorJson, requestJsonObject);
-                errorMessages.add(validationKey, errorJson);
-            } else {
-                boolean result = true;
-                String sampleString = GsonUtility.optString(jsonCopy,validationKey);
-                boolean sampleNotEmpty = false;
-                if (sampleString.length() > 0) {
-                    sampleNotEmpty = true;
-                }
+        Map<String, JsonObject> leafRules = flattenLeafRules(formValidation);
+        for (Map.Entry<String, JsonObject> entry : leafRules.entrySet()) {
+            String fieldPath = entry.getKey();
+            JsonObject record = entry.getValue();
+            String validationKey = fieldPath.contains(".")
+                    ? fieldPath.substring(fieldPath.lastIndexOf('.') + 1)
+                    : fieldPath;
 
-                JsonObject record = formValidation.getAsJsonObject(validationKey);
-                String required = GsonUtility.optString(record,"required");
-                String requiredIf = GsonUtility.optString(record,"requiredIf");
-                boolean reqIf = false;
-                if (requiredIf.length() > 0) {
-                    String condition = record.get("condition").getAsString();
-                    String rhsValue = record.get("value").getAsString();
+            boolean result = true;
+            String sampleString = jsonNavigator(requestJsonObject, fieldPath);
+            if (sampleString == null) {
+                sampleString = "";
+            }
+            boolean sampleNotEmpty = sampleString.length() > 0;
 
-                    String val = jsonNavigator(requestJsonObject, requiredIf);
-                    String completeExpression;
-                    if (!(NumberUtils.isNumber(val) && NumberUtils.isNumber(rhsValue))) {
-                        //if the requiredIf parameter is not in the request than required if has
-                        // to be false
-                        reqIf = val != null && val.equalsIgnoreCase(rhsValue);
-                    } else {
-                        ExpressionParser parser = new SpelExpressionParser();
-                        completeExpression = val + condition + rhsValue;
-                        Expression exp = parser.parseExpression(completeExpression);
-                        reqIf = exp.getValue(Boolean.class);
+            String required = GsonUtility.optString(record, "required");
+            String requiredIf = GsonUtility.optString(record, "requiredIf");
+            boolean reqIf = false;
+            if (requiredIf.length() > 0) {
+                String condition = GsonUtility.optString(record, "condition");
+                String rhsValue = GsonUtility.optString(record, "value");
 
+                String val = jsonNavigator(requestJsonObject, requiredIf);
+                if (!(NumberUtils.isNumber(val) && NumberUtils.isNumber(rhsValue))) {
+                    // if the requiredIf parameter is not in the request then requiredIf is false
+                    reqIf = val != null && (condition.isEmpty() || "=".equals(condition) || "==".equals(condition))
+                            && val.equalsIgnoreCase(rhsValue);
+                    if ("!=".equals(condition) || "<>".equals(condition)) {
+                        reqIf = val != null && !val.equalsIgnoreCase(rhsValue);
                     }
+                } else if (!condition.isEmpty()) {
+                    ExpressionParser parser = new SpelExpressionParser();
+                    Expression exp = parser.parseExpression(val + condition + rhsValue);
+                    Boolean evaluated = exp.getValue(Boolean.class);
+                    reqIf = evaluated != null && evaluated;
+                }
+            }
 
+            String type = GsonUtility.optString(record, "type");
+            Integer maxLength = GsonUtility.optInt(record, "maxLength");
+            Integer minLength = GsonUtility.optInt(record, "minLength");
+            Integer length = GsonUtility.optInt(record, "length");
+
+            if (isTruthy(required) || reqIf) {
+                if (!isRequired(sampleString)) {
+                    String message = GsonUtility.optStringValue(record, "requiredMessage",
+                            "Please enter the mandatory field " + validationKey);
+                    errorBucketForPath(errorMessages, fieldPath).addProperty(validationKey, message);
+                    overallResult = overallResult && false;
+                    continue;
+                }
+            }
+
+            if (sampleNotEmpty) {
+                if (type.length() > 0) {
+                    if ("custom".equals(type)) {
+                        if (!sampleString.matches(GsonUtility.optString(record, "expression"))) {
+                            String errorMessage = GsonUtility.optStringValue(record, "errorMessage",
+                                    "The custom type is invalid");
+                            errorBucketForPath(errorMessages, fieldPath).addProperty(validationKey, errorMessage);
+                            result = false;
+                        }
+                    } else {
+                        String[] typeArray = type.split(",");
+                        for (String typeEntries : typeArray) {
+                            if (!isOfType(sampleString, typeEntries)) {
+                                String errorMessage = GsonUtility.optStringValue(record, "errorMessage", " is invalid ");
+                                GsonUtility.accumulate(errorBucketForPath(errorMessages, fieldPath),
+                                        validationKey, errorMessage);
+                                result = false;
+                            }
+                        }
+                    }
                 }
 
-                String type = GsonUtility.optString(record,"type");
-                Integer maxLength = GsonUtility.optInt(record,"maxLength");
-                Integer minLength = GsonUtility.optInt(record,"minLength");
-                Integer length = GsonUtility.optInt(record,"length");
-
-                if (required.length() > 0 || reqIf) {
-                    if (!isRequired(sampleString)) {
-                        errorMessages.addProperty(validationKey, "Please enter the mandatory " +
-                                "field " + validationKey);
+                if (maxLength > 0) {
+                    if (!maxLength(sampleString, maxLength)) {
+                        errorBucketForPath(errorMessages, fieldPath).addProperty(validationKey,
+                                "max-length of this field is " + maxLength);
                         result = false;
                     }
                 }
 
-                if (sampleNotEmpty) {
-                    if (type.length() > 0) {
-                        if ("custom".equals(type)) {
-                            if (!sampleString.matches(GsonUtility.optString(record,"expression"))) {
-                                errorMessages.addProperty(validationKey, "The custom type is " + "invalid ");
-                                result = false;
-                            }
-                        } else {
-                            String typeArray[] = type.split(",");
-                            for (String typeEntries : typeArray) {
-                                if (!isOfType(sampleString, typeEntries)) {
-                                	String errorMessage = GsonUtility.optStringValue(record,"errorMessage"," is invalid ");
-                                    GsonUtility.accumulate(errorMessages,validationKey, errorMessage);
-                                    result = false;
-
-                                }
-                            }
-                        }
-                    }
-
-                    if (maxLength > 0) {
-                        if (!maxLength(sampleString, maxLength)) {
-                            errorMessages.addProperty(validationKey, "max-length of this field is " +
-                                    "" + maxLength);
-                            result = false;
-                        }
-                    }
-
-                    if (minLength > 0) {
-                        if (!minLength(sampleString, minLength)) {
-                            errorMessages.addProperty(validationKey, "minLength of this field is " +
-                                    "" + minLength);
-                            result = false;
-                        }
-                    }
-
-                    if (length > 0) {
-                        if (length != sampleString.length()) {
-                            errorMessages.addProperty(validationKey, "length of this field is " +
-                                    "" + length);
-                            result = false;
-                        }
+                if (minLength > 0) {
+                    if (!minLength(sampleString, minLength)) {
+                        errorBucketForPath(errorMessages, fieldPath).addProperty(validationKey,
+                                "minLength of this field is " + minLength);
+                        result = false;
                     }
                 }
-                overallResult = overallResult && result;
+
+                if (length > 0) {
+                    if (length != sampleString.length()) {
+                        errorBucketForPath(errorMessages, fieldPath).addProperty(validationKey,
+                                "length of this field is " + length);
+                        result = false;
+                    }
+                }
             }
+            overallResult = overallResult && result;
         }
         return overallResult;
     }
-   
+
+    /**
+     * Flattens nested validation rule containers into dotted JsonPath keys mapped to leaf rules.
+     */
+    private Map<String, JsonObject> flattenLeafRules(JsonObject formValidation) {
+        Map<String, JsonObject> leafRules = new LinkedHashMap<>();
+        Deque<Map.Entry<String, JsonObject>> stack = new ArrayDeque<>();
+        stack.push(new AbstractMap.SimpleEntry<>("", formValidation));
+
+        while (!stack.isEmpty()) {
+            Map.Entry<String, JsonObject> current = stack.pop();
+            String parentPath = current.getKey();
+            JsonObject rules = current.getValue();
+            if (rules == null) {
+                continue;
+            }
+
+            for (Map.Entry<String, JsonElement> entry : rules.entrySet()) {
+                String ruleKey = entry.getKey();
+                if ("jsFunction".equals(ruleKey) || "jsValidator".equals(ruleKey) || "mandatory".equals(ruleKey)) {
+                    continue;
+                }
+                JsonElement value = entry.getValue();
+                if (value == null || !value.isJsonObject()) {
+                    continue;
+                }
+                JsonObject record = value.getAsJsonObject();
+                String fieldPath = StringUtils.isBlank(parentPath) ? entry.getKey() : parentPath + "." + entry.getKey();
+
+                if (isNestedRuleContainer(record)) {
+                    stack.push(new AbstractMap.SimpleEntry<>(fieldPath, record));
+                } else {
+                    leafRules.put(fieldPath, record);
+                }
+            }
+        }
+        return leafRules;
+    }
+
+    /**
+     * Returns the error object that should hold messages for the leaf of {@code fieldPath},
+     * creating nested objects for parent path segments when needed.
+     */
+    private JsonObject errorBucketForPath(JsonObject errorMessages, String fieldPath) {
+        if (!fieldPath.contains(".")) {
+            return errorMessages;
+        }
+        String[] parts = fieldPath.split("\\.");
+        JsonObject current = errorMessages;
+        for (int i = 0; i < parts.length - 1; i++) {
+            if (!current.has(parts[i]) || !current.get(parts[i]).isJsonObject()) {
+                current.add(parts[i], new JsonObject());
+            }
+            current = current.getAsJsonObject(parts[i]);
+        }
+        return current;
+    }
+
+    /**
+     * Treats common truthy attribute values as required ({@code true}, {@code yes}, {@code required}, {@code 1}).
+     */
+    private boolean isTruthy(String value) {
+        if (StringUtils.isBlank(value)) {
+            return false;
+        }
+        String normalized = value.trim().toLowerCase();
+        return "true".equals(normalized) || "yes".equals(normalized)
+                || "required".equals(normalized) || "1".equals(normalized);
+    }
+
+    /**
+     * A nested rule container has child objects; a leaf rule only has primitive attributes
+     * (required, type, maxLength, etc.).
+     */
+    private boolean isNestedRuleContainer(JsonObject record) {
+        for (Map.Entry<String, JsonElement> entry : record.entrySet()) {
+            JsonElement value = entry.getValue();
+            if (value != null && value.isJsonObject()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * validateJson(JsonObject jsFunction, JsonObject requestJsonObject, JsonObject errorMessage)
      * it validate the form data with groovy
      * @param jsFunction    				formData
      * @param requestJsonObject				copy of formData
-     * @param errorMessage					messages for which type of value and value length  
+     * @param errorMessage					messages for which type of value and value length
      * {@return true if passed parameter is saved in groovy object} {@code false} otherwise,
      * {@code false} if error message already present in object,
      */
 	private boolean validateJson(JsonObject jsFunction, JsonObject requestJsonObject, JsonObject errorMessage) {
-        String code = jsFunction.get("").getAsString();
-        String functionName = jsFunction.get("name").getAsString();
+        String code = extractEvaluatorCode(jsFunction);
+        if (StringUtils.isBlank(code)) {
+            logger.error("Complex validator has no script body");
+            return true;
+        }
+        String functionName = GsonUtility.optStringValue(jsFunction, "name", "validate");
         if (jsFunction.has("language")) {
             String language = jsFunction.get("language").getAsString();
             if ("groovy".equalsIgnoreCase(language)) {
@@ -344,5 +500,17 @@ public class GenericValidation implements IValidation {
             Context.exit();
         }
         return true;
+    }
+
+    /**
+     * Xml→JSON converters place CDATA / text under {@code ""}, {@code #cdata}, or {@code #text}.
+     */
+    private String extractEvaluatorCode(JsonObject jsFunction) {
+        for (String key : new String[]{"", "#cdata", "#text"}) {
+            if (jsFunction.has(key) && jsFunction.get(key).isJsonPrimitive()) {
+                return jsFunction.get(key).getAsString();
+            }
+        }
+        return "";
     }
 }
