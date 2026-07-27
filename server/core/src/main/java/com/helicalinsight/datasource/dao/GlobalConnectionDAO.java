@@ -122,7 +122,7 @@ public interface GlobalConnectionDAO {
 
 	GlobalConnections getDeletedGlobalConnectionById(Integer id);
 
-	List<GlobalConnections> findConnectionsByCreatedBy(String userId);
+	List<GlobalConnections> findConnectionsByCreatedBy(Integer userId);
 	
 	boolean hardDelete(GlobalConnections globalConnections);
 	String getDataSourceProvider(Integer globalId,String tableName);

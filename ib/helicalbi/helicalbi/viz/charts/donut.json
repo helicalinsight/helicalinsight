@@ -9,6 +9,80 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Donut (alias). Config: Pie + innerRadius~0.6; angleField, colorField; statistic center total.\nPolish: same as doughnut-clean center, sparse labels, legend if many slices, element-active.",
-  "code": "\nfunction DrawDonut() {\n  const { Pie } = components;\n  const measureField = \"measure_column\";\n  const config = {\n    appendPadding: 10,\n    data,\n    angleField: measureField,\n    colorField: \"dimension_column\",\n    radius: 0.8,\n    innerRadius: 0.6,\n    statistic: {\n      title: {\n        style: { color: \"#000\", fontSize: 14 },\n        formatter: () => \"title_text\"\n      },\n      content: {\n        style: { fontSize: 14 },\n        content: String(\n          data.reduce((sum, row) => sum + (row[measureField] || 0), 0)\n        )\n      }\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Pie {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "pie",
+    "component": "Pie",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "title_text": {
+        "role": "title",
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Donut (alias). Config: Pie + innerRadius~0.6; angleField, colorField; statistic center total.",
+    "Polish: same as doughnut-clean center, sparse labels, legend if many slices, element-active."
+  ],
+  "code": [
+    "function DrawDonut() {",
+    "  const { Pie } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const measureField = 'measure_column';",
+    "  const config = {",
+    "    appendPadding: 10,",
+    "    data,",
+    "    angleField: measureField,",
+    "    colorField: 'dimension_column',",
+    "    radius: 0.8,",
+    "    innerRadius: 0.6,",
+    "    statistic: {",
+    "      title: {",
+    "        style: { color: '#000', fontSize: 14 },",
+    "        formatter: () => 'title_text'",
+    "      },",
+    "      content: {",
+    "        style: { fontSize: 14 },",
+    "        content: String(",
+    "          data.reduce((sum, row) => sum + (row[measureField] || 0), 0)",
+    "        )",
+    "      }",
+    "    },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Pie {...config} /></div>;",
+    "}"
+  ]
 }

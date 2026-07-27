@@ -47,7 +47,8 @@ const toAgentFileUuid = (fileName = "") => {
 
 export function HIAGENT({ urlObj = {} }) {
   const agentState = useSelector((store) => store.agent);
-  const { agentMode, metadataDetails, agentDataAfterSave } = agentState;
+  const { agentMode, metadataDetails, agentDataAfterSave, metadataTablesData } =
+    agentState;
   const editModeInfo = useSelector((store) => store.app.editModeInfo);
   const metaInfo = useSelector(
     (store) => store.app.applicationSettingsData?.meta || {},
@@ -321,13 +322,14 @@ export function HIAGENT({ urlObj = {} }) {
   }, [agentData]);
 
   const validateBeforeSave = () => {
-    const { cubeFieldsData, agentState } =
+    const { cubeFieldsData, agentState: editorAgentState } =
       semanticEditorRef.current?.getSaveState?.() || {};
     return validateAgentSaveInput({
       cubeFieldsData,
-      agentState,
+      agentState: editorAgentState,
       editorContent,
       isRawJsonView,
+      metadataTablesData,
       dispatch,
     });
   };
@@ -471,11 +473,12 @@ export function HIAGENT({ urlObj = {} }) {
         },
       ],
     },
-    {
-      tooltip: isTableModeNormal ? "Switch To Advance" : "Switch To Normal",
-      icon: <SettingOutlined />,
-      callBack: () => semanticEditorRef.current?.toggleTableMode?.(),
-    },
+    // As per the discussion, we are removing the table mode toggle from the taskbar for now. It can be added back later if needed.
+    // {
+    //   tooltip: isTableModeNormal ? "Switch To Advance" : "Switch To Normal",
+    //   icon: <SettingOutlined />,
+    //   callBack: () => semanticEditorRef.current?.toggleTableMode?.(),
+    // },
     {
       tooltip: "Layout",
       icon: <LayoutOutlined />,

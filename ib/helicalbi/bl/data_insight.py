@@ -16,6 +16,7 @@ from bl.helpers import (
     log_endpoint_input,
     resolve_audit_status_from_response,
     resolve_request_id,
+    resolve_sql_from_request,
 )
 from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
@@ -26,7 +27,6 @@ from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
-from helicalbi.sql.SqlSanitizer import extract_sql
 
 logger = logging.getLogger(__name__)
 
@@ -76,70 +76,6 @@ def _resolve_memory_for_data_insight(
         chat_seq_id,
     )
     return memory
-
-
-def _resolve_sql_for_data_insight(
-    user_input: dict,
-    thread_id: str,
-    chat_seq_id: Any,
-) -> str:
-    """Resolve SQL for ``/data-insight`` from memory, input, or saved chat item."""
-
-    def _clean_sql(raw_sql: str, dialect: str = "") -> str:
-        if not raw_sql:
-            return ""
-        if "```" in raw_sql:
-            raw_sql = extract_sql(raw_sql, dialect)
-        return raw_sql.replace("```sql", "").replace("```", "").strip()
-
-    if thread_id and chat_seq_id is not None:
-        if chat_graph_memory.has_node(thread_id, chat_seq_id):
-            memory_node = chat_graph_memory.get_node(thread_id, chat_seq_id)
-            if memory_node:
-                sql = _clean_sql(
-                    memory_node.get("sql", ""),
-                    memory_node.get("dialect", ""),
-                )
-                if sql:
-                    logger.info(
-                        "Resolved SQL for data-insight from memory chatid=%s chat_seq_id=%s",
-                        thread_id,
-                        chat_seq_id,
-                    )
-                    return sql
-                logger.debug(
-                    "Memory node found but SQL empty for chatid=%s chat_seq_id=%s",
-                    thread_id,
-                    chat_seq_id,
-                )
-        else:
-            logger.debug(
-                "No memory node for data-insight chatid=%s chat_seq_id=%s",
-                thread_id,
-                chat_seq_id,
-            )
-
-    sql = user_input.get("sql", "")
-    if sql:
-        resolved = _clean_sql(sql)
-        logger.info("Resolved SQL for data-insight from request input")
-        return resolved
-
-    chat_response_item = user_input.get("chat_response_item") or {}
-    if chat_response_item:
-        sql_section = chat_response_item.get("sql") or {}
-        dialect = sql_section.get("dialect", "")
-        resolved = _clean_sql(sql_section.get("raw_sql", ""), dialect)
-        if resolved:
-            logger.info("Resolved SQL for data-insight from chat_response_item")
-            return resolved
-
-    logger.warning(
-        "No SQL resolved for data-insight chatid=%s chat_seq_id=%s",
-        thread_id,
-        chat_seq_id,
-    )
-    return ""
 
 
 def _generate_data_insight_from_rows(
@@ -247,7 +183,9 @@ def register(flask_app) -> None:
             md_location = helper.get_metadata_layerlocation()
             logger.debug("Data-insight resolved md_location from model=%s", md_location)
 
-        sql = _resolve_sql_for_data_insight(user_input, thread_id, chat_seq_id)
+        sql = resolve_sql_from_request(
+            user_input, thread_id, chat_seq_id, context="data-insight"
+        )
         last_chats = user_input.get("last_chats", [])
 
         memory = _resolve_memory_for_data_insight(user_input, thread_id, chat_seq_id)

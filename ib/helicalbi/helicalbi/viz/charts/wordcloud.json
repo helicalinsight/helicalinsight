@@ -11,6 +11,38 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "WordCloud. Config: map dim->name, weight=value|count; wordField name; weightField value.\nPolish: single color or soft palette; interactions element-active; avoid tiny unreadable words; no extra axes.",
-  "code": "\nfunction DrawWordCloud() {\n  const { WordCloud } = components;\n  const dimensionField = \"dimension_column\";\n  const cloudData = data.map((item) => ({\n    ...item,\n    name: item[dimensionField],\n    value: 1\n  }));\n  const config = {\n    data: cloudData,\n    wordField: \"name\",\n    weightField: \"value\",\n    color: \"rgba(76, 132, 238, 1)\",\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><WordCloud {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "other",
+    "component": "WordCloud",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "WordCloud. Config: map dim->name, weight=value|count; wordField name; weightField value.",
+    "Polish: single color or soft palette; interactions element-active; avoid tiny unreadable words; no extra axes."
+  ],
+  "code": [
+    "function DrawWordCloud() {",
+    "  const { WordCloud } = components;",
+    "  const dimensionField = 'dimension_column';",
+    "  const cloudData = data.map((item) => ({",
+    "    ...item,",
+    "    name: item[dimensionField],",
+    "    value: 1",
+    "  }));",
+    "  const config = {",
+    "    data: cloudData,",
+    "    wordField: 'name',",
+    "    weightField: 'value',",
+    "    color: 'rgba(76, 132, 238, 1)',",
+    "    interactions: [{ type: 'element-active' }]",
+    "  };",
+    "  return <div><WordCloud {...config} /></div>;",
+    "}"
+  ]
 }

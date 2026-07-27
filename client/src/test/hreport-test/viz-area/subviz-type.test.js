@@ -23,28 +23,6 @@ const App = ({ store }) => {
 };
 
 describe("Hreport visualisation", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.createObjectURL = jest.fn();
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = arr => crypto.randomBytes(arr.length)
-    });
-
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-        
     test("to test subviz type avialable for viz type", async () => {
         const store = configureStore({
             reducer: reducers,

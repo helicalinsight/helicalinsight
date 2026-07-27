@@ -183,7 +183,7 @@ const InstantBIChatScreen = (props = {}) => {
                             isMetadataPresent,
                             isFullWidth,
                             isOpenMode,
-                            isEditMode
+                            isEditMode,
                         }}
                         onClick={handleChangeRecommendation}
                     />

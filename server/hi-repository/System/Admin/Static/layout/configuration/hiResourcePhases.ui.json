@@ -1,0 +1,10 @@
+{
+    "id":  "hiResourcePhases",
+    "file":  "hiResourcePhases.xml",
+    "title":  "HI Resource Phases",
+    "description":  "Defines resource processing phases for the Helical Insight resource pipeline.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/hiResourcePhases.ui.layout",
+    "fallbackEditor":  "xml"
+}

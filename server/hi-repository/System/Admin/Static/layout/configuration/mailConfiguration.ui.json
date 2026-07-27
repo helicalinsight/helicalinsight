@@ -1,0 +1,11 @@
+{
+  "id": "mailConfiguration",
+  "file": "mailConfiguration.properties",
+  "path": "Mail",
+  "title": "Mail Configuration",
+  "description": "SMTP host, authentication, TLS, and connection pool settings for outbound email.",
+  "category": "mail",
+  "editor": "layout",
+  "layout": "Static/layout/configuration/mailConfiguration.ui.layout",
+  "fallbackEditor": "properties"
+}

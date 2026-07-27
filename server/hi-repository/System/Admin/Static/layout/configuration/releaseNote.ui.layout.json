@@ -1,0 +1,60 @@
+{
+    "id":  "releaseNote",
+    "title":  "Release Notes",
+    "description":  "What\u0027s New heading and highlight bullets.",
+    "file":  "releaseNote.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "What\u0027s New",
+                         "key":  "notes",
+                         "fields":  [
+                                        {
+                                            "name":  "heading",
+                                            "path":  "hi.heading",
+                                            "label":  "Heading",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "Release notes heading shown in UI."
+                                        },
+                                        {
+                                            "name":  "a",
+                                            "path":  "hi.a_li",
+                                            "label":  "Item A",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "First release note bullet.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "b",
+                                            "path":  "hi.b_li",
+                                            "label":  "Item B",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Second release note bullet.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "c",
+                                            "path":  "hi.c_li",
+                                            "label":  "Item C",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Third release note bullet.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "d",
+                                            "path":  "hi.d_li",
+                                            "label":  "Item D",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Fourth release note bullet.",
+                                            "rows":  2
+                                        }
+                                    ]
+                     }
+                 ]
+}

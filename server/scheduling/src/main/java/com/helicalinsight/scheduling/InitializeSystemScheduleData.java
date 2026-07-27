@@ -7,7 +7,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 /**
- * Initializes system-level Quartz schedules from systemschedule.xml at application startup.
+ * Initializes system-level Quartz schedules from System/Admin/SystemSchedule/systemschedule.json at startup.
  */
 @Component("initializeSystemScheduleData")
 public class InitializeSystemScheduleData implements ApplicationValuesInitializer {

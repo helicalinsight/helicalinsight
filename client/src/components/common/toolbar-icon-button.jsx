@@ -14,24 +14,37 @@ export function ToolbarIconButton({
   onClick,
   className = "cube-add-metric-action",
   stopPropagation = false,
+  disabled = false,
+  showIndicator = false,
   children,
 }) {
+  const runAction = (e) => {
+    if (disabled) return;
+    onClick?.(e);
+  };
+
   return (
     <Tooltip title={title} placement={placement}>
       <span
-        className={className}
+        className={`${className}${disabled ? " is-disabled" : ""}${
+          showIndicator ? " has-unsaved-indicator" : ""
+        }`}
         role="button"
-        tabIndex={0}
+        tabIndex={disabled ? -1 : 0}
+        aria-disabled={disabled}
         aria-label={ariaLabel || title}
         onClick={(e) => {
           if (stopPropagation) e.stopPropagation();
-          onClick?.(e);
+          runAction(e);
         }}
         onKeyDown={(e) =>
-          activateOnEnterOrSpace(e, onClick, { stopPropagation })
+          activateOnEnterOrSpace(e, runAction, { stopPropagation })
         }
       >
         {children}
+        {showIndicator ? (
+          <span className="toolbar-unsaved-dot" aria-hidden="true" />
+        ) : null}
       </span>
     </Tooltip>
   );

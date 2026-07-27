@@ -6,6 +6,8 @@ import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.helicalinsight.serializer.UserDTODeserializer;
 
 /**
  * Created by Helical on 5/28/2021.
@@ -29,7 +31,10 @@ public class GlobalConnectionDTO implements Serializable {
     private String name;
     private String type;
     private String baseType;
-    private String createdBy;
+    
+    @JsonDeserialize(using = UserDTODeserializer.class)
+    private UserDTO createdBy;
+    
     private Date createdDate;
     private Date lastUpdatedTime;
     
@@ -151,11 +156,11 @@ public class GlobalConnectionDTO implements Serializable {
         this.baseType = baseType;
     }
 
-    public String getCreatedBy() {
+    public UserDTO getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(UserDTO createdBy) {
         this.createdBy = createdBy;
     }
 

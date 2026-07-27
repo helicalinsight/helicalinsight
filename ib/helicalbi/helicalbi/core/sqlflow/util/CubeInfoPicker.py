@@ -191,11 +191,14 @@ def build_required_cube_info(
     query_plan: Any,
     required_business_metrics: list | None = None,
 ) -> dict:
-    """Build picked dimension/metric names for SqlSection.required_cube_info.
+    """Build picked dimension/metric names and full cube items for SQL.
 
-    Only semantic names from the model JSON dimensions/measures sections
-    (exposed as cube_metadata column/measure alias_name) are returned.
+    Returns semantic names plus the full metadata array items (dimensions,
+    hierarchies, measures, blank-column computed measures) arranged by table.
+    ``formatString`` is stripped from those items — formatting is viz-only.
     """
+    from helicalbi.sql.GetContextForSQL import collect_picked_column_items
+
     plan = _normalize_query_plan(query_plan)
     known_dimensions, known_measures, canonical = _known_dimension_and_measure_names(
         cube_metadata
@@ -225,7 +228,9 @@ def build_required_cube_info(
         known_measures,
         canonical,
     )
+    picked_by_table = collect_picked_column_items(cube_metadata, plan)
     return {
         "picked_dimensions": picked_dimensions,
         "picked_metrics": picked_metrics,
+        "picked_by_table": picked_by_table,
     }

@@ -2,6 +2,8 @@ package com.helicalinsight.efw.components;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.customauth.CipherUtils;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DsOperation;
 import com.helicalinsight.datasource.GlobalJdbcType;
@@ -19,6 +21,7 @@ import com.helicalinsight.resourcesecurity.jaxb.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -36,6 +39,10 @@ public class NoSqlDataSourcePropertiesDB implements DsOperation {
 
     @Autowired
     private GlobalConnectionService globalConnectionService;
+    
+    @Autowired
+    @Qualifier(value = "userDetailsService")
+    private UserService userService;
 
     public static String returnMessage(String message, Integer maxId) {
         JsonObject result;
@@ -157,9 +164,9 @@ public class NoSqlDataSourcePropertiesDB implements DsOperation {
             }
             globalConnection.setName(name);
         }
-
-
-        globalConnection.setCreatedBy(createdBy);
+        
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
 
         globalConnection.setLastUpdatedTime(new Date());
@@ -207,7 +214,6 @@ public class NoSqlDataSourcePropertiesDB implements DsOperation {
     }
 
     private int addDataSource(JsonObject formData, String mode, String createdBy) {
-        int globalId;
         GlobalConnections globalConnection = new GlobalConnections();
         String driverName = null;
         if (formData.has("driverName")) {
@@ -227,7 +233,8 @@ public class NoSqlDataSourcePropertiesDB implements DsOperation {
             globalConnection.setName(name);
         }
 
-        globalConnection.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
         globalConnection.setCreatedDate(new Date());
         if (driverName != null && driverName.contains("nosql")) {

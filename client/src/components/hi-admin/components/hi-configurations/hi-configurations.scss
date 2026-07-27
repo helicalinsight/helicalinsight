@@ -1,0 +1,220 @@
+@import "../../../../styles/variables.scss";
+
+.hi-configurations {
+  height: 100%;
+  min-height: 520px;
+
+  .hi-config-file-panel,
+  .hi-config-editor-panel {
+    background: $hi-white;
+    border: 1px solid $hi-light-gray;
+    border-radius: 4px;
+    height: calc(100vh - 160px);
+    min-height: 480px;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .hi-config-file-panel-header,
+  .hi-config-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+
+    h5 {
+      margin: 0;
+    }
+  }
+
+  .hi-config-file-panel {
+    .ant-spin-nested-loading,
+    .ant-spin-container {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .hi-config-layout-description {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .hi-config-file-search {
+    margin-bottom: 8px;
+  }
+
+  .hi-config-category-collapse {
+    flex: 1;
+    overflow: auto;
+
+    .ant-collapse-header {
+      padding: 6px 0 !important;
+      align-items: center !important;
+    }
+
+    .ant-collapse-content-box {
+      padding: 0 0 8px !important;
+    }
+  }
+
+  .hi-config-category-header {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+  }
+
+  .hi-config-category-count {
+    margin: 0;
+    font-size: 11px;
+    line-height: 18px;
+  }
+
+  .hi-config-category-info {
+    color: $hi-text-color;
+    opacity: 0.55;
+    font-size: 12px;
+  }
+
+  .hi-config-file-list {
+    .hi-config-file-item {
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 4px;
+
+      &:hover {
+        background: $hi-background-blue;
+      }
+
+      &.active {
+        background: $hi-light-blue;
+      }
+
+      .ant-list-item-meta-title {
+        font-size: 13px;
+        margin-bottom: 2px;
+        word-break: break-word;
+      }
+
+      .ant-list-item-meta-description {
+        margin-top: 0;
+      }
+    }
+  }
+
+  .hi-config-file-description {
+    display: block;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .hi-config-editor-body {
+    flex: 1;
+    overflow: hidden;
+    padding-top: 8px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hi-config-layout-form-editor {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+    padding-right: 4px;
+
+    .hi-config-layout-form {
+      .ui-form-generator-section {
+        background: $hi-white;
+      }
+    }
+  }
+
+  .hi-config-code-editor {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .hi-config-code-editor-body {
+    flex: 1;
+    min-height: 320px;
+    border: 1px solid $hi-light-gray;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .hi-config-editor-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 240px;
+  }
+
+  .hi-config-editor-actions {
+    margin-top: 16px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .hi-config-tree-toolbar {
+    margin-bottom: 12px;
+  }
+
+  .hi-config-tree {
+    background: $hi-white;
+    padding: 8px;
+    border: 1px solid $hi-light-gray;
+    border-radius: 4px;
+    min-height: 280px;
+  }
+
+  .hi-config-tree-node {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: calc(100% - 24px);
+    justify-content: space-between;
+  }
+
+  .hi-config-tree-node-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 70%;
+  }
+
+  .hi-config-tree-node-value {
+    margin-left: 4px;
+  }
+
+  .hi-config-tree-node-actions {
+    opacity: 0.75;
+  }
+
+  .hi-config-properties-form {
+    .hi-config-property-field {
+      margin-bottom: 12px;
+    }
+
+    .hi-config-property-label {
+      display: block;
+      margin-bottom: 4px;
+      color: $hi-text-color;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .hi-config-raw-editor {
+    height: 100%;
+  }
+}
