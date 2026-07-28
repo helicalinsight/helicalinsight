@@ -4,7 +4,6 @@
   "private": true,
   "proxy": "http://localhost:8080",
   "dependencies": {
-    "--legacy-peer-deps": "^0.0.1-security.6",
     "@ant-design/flowchart": "^1.2.2",
     "@ant-design/icons": "^5.1.4",
     "@ant-design/maps": "^1.0.6",
