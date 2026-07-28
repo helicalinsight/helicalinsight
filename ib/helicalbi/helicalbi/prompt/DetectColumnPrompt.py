@@ -10,6 +10,9 @@ Identify the important business entities mentioned in the user query.
 Consider all the possible column, of the sql query parts 
 
 Use below Input Schema to determine the required column
+The schema may include domain / topic mappings where each topic lists components by id and name.
+Those components may be dimensions, measures, hierarchy levels, or blank-column (formula) measures.
+Prefer columns / measures / hierarchy levels that match the mapped topic components.
 Consider the full sql query, not only select clause. 
 Input Schema:
 {table_column_description}
@@ -37,7 +40,8 @@ Instructions
 5. If it is derived from some formula/db function  then put the formula along with  the column name 
 6. When the schema lists cube dimensions, populate pickedDimensions with those dimension names only (from the Dimensions section / alias labels) — never quoted SQL forms
 7. When the schema lists cube measures, populate pickedMetrics with those measure names only (from the Measures section / alias labels) — never quoted SQL forms
-8. If the user asks for a specific number of rows (e.g. top 10, first 5, limit 50, show 20), set limit to that number. Otherwise leave limit null/empty.
+8. Prefer topic-mapped components (by id/name) when choosing dimensions, hierarchy levels, and measures — including blank-column computed measures
+9. If the user asks for a specific number of rows (e.g. top 10, first 5, limit 50, show 20), set limit to that number. Otherwise leave limit null/empty.
 """
 
 column_formatted = PromptTemplate.from_template(detect_column_prompt_string)

@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { VList } from "virtuallist-antd";
-import { Row, Col, Button, Table, Popconfirm, Tooltip, Skeleton, Card, Popover } from "antd";
+import {
+  Row,
+  Col,
+  Button,
+  Table,
+  Popconfirm,
+  Tooltip,
+  Skeleton,
+  Card,
+  Popover,
+} from "antd";
 import requests from "../../../../base/requests";
 import { updateScheduledList } from "../../../../redux/actions/admin.actions";
 import notify from "../../../hi-notifications/notify";
@@ -21,7 +31,18 @@ import {
 import MoreSchedulingInfo from "./MoreSchedulingInfo";
 import LoadingBar from "../../../common/components/hi-loading-bar";
 import PopconfirmBody from "../../../common/components/Hi-Popconfirm";
-import ScheduleSkeleton from "../../../common/custom-icons/CustomSkeletons/schedule/ScheduleSkeleton"
+import ScheduleSkeleton from "../../../common/custom-icons/CustomSkeletons/schedule/ScheduleSkeleton";
+import {
+  SystemScheduleActionsCard,
+  SystemScheduleRowActions,
+  SystemScheduleToggle,
+} from "./SystemScheduleActions";
+import { useSystemScheduleEditors } from "./SystemScheduleEditors";
+import {
+  fetchSystemScheduledList,
+  isSystemScheduleRecord,
+  runSystemScheduleAction,
+} from "./system-schedule.utils";
 
 let tableVirtualProps = {};
 
@@ -41,26 +62,12 @@ const icons = {
 };
 
 const typeFilters = [
-  {
-    text: "Helical Report",
-    value: "hr",
-  },
-  {
-    text: "Dashboard",
-    value: "efwdd",
-  },
-  {
-    text: "Other",
-    value: "hwf",
-  },
-  {
-    text: "Canned Report",
-    value: "hcr",
-  },
-  {
-    text: "Report",
-    value: "efw",
-  },
+  { text: "Helical Report", value: "hr" },
+  { text: "Dashboard", value: "efwdd" },
+  { text: "Other", value: "hwf" },
+  { text: "Canned Report", value: "hcr" },
+  { text: "Report", value: "efw" },
+  { text: "System", value: "system" },
 ];
 
 const scheduleTypes = {
@@ -69,35 +76,53 @@ const scheduleTypes = {
   efw: "Report",
   hwf: "Other",
   hcr: "Canned Report",
+  system: "System",
 };
 
 const dateFormat = "DD/MM/YYYY hh:mm A";
 
 const HIScheduling = ({ apiRef, handleAbort }) => {
   const schedulingData = useSelector((store) => store.admin.schedulingList);
+  const { organization } =
+    useSelector((store) => store.app?.applicationSettingsData?.userData?.user) || {};
+  const isSuperAdmin = !organization;
   const [visible, setVisible] = useState(false);
   const [moreInfo, setMoreInfo] = useState([]);
   const [loading, setLoading] = useState(schedulingData === null ? true : false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [clickedRowId, setclickedRowId] = useState("");
   const [schedulingList, setSchedulingList] = useState(schedulingData);
+  const [showSystemSchedules, setShowSystemSchedules] = useState(false);
 
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
 
   const uri = "monitor/scheduling/schedule";
 
+  const {
+    editorsUi,
+    openAdd,
+    openEdit,
+    openScriptEditor,
+    openJsonEditor,
+  } = useSystemScheduleEditors({
+    dispatch,
+    Notify,
+    onSaved: () => fetchSchedulingDetails(true),
+  });
+
   useEffect(() => {
     if (process.env.NODE_ENV === "test") {
       return null;
-    } else {
-      fetchSchedulingDetails();
     }
-  }, []);
+    fetchSchedulingDetails(true);
+  }, [showSystemSchedules]);
 
   useEffect(() => {
-    if (schedulingData && schedulingData.length > 0) setSchedulingList(schedulingData);
-  }, [schedulingData]);
+    if (!showSystemSchedules && schedulingData && schedulingData.length > 0) {
+      setSchedulingList(schedulingData);
+    }
+  }, [schedulingData, showSystemSchedules]);
 
   if (schedulingList !== null) {
     if (schedulingList.length >= 8) {
@@ -121,16 +146,27 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
     if (schedulingList === null || refresh) {
       dispatch(updateScheduledList(null));
       setLoading(true);
+      if (showSystemSchedules) {
+        fetchSystemScheduledList({
+          dispatch,
+          apiRef,
+          onSuccess: (list) => {
+            setSchedulingList(list);
+            setLoading(false);
+          },
+          onError: () => setLoading(false),
+        });
+        return;
+      }
       apiRef.current = requests.admin(dispatch).postSchedulingData(
         { action: "list" },
         uri,
         (res) => {
           dispatch(updateScheduledList(res.scheduledList));
+          setSchedulingList(res.scheduledList || []);
           setLoading(false);
         },
-        (e) => {
-          setLoading(false);
-        }
+        () => setLoading(false)
       );
     }
   };
@@ -141,6 +177,7 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
         return {
           ...eachData,
           triggerState: eachData.triggerState === "PAUSED" ? "NORMAL" : "PAUSED",
+          paused: eachData.triggerState !== "PAUSED",
         };
       }
       if (type) {
@@ -155,41 +192,34 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
   };
 
   const schedulingActions = (formData) => {
-    requests.admin(dispatch).postSchedulingData(
+    requests.admin(dispatch).postSchedulingData(formData, uri, () => {}, () => {});
+  };
+
+  const handleSystemAction = (formData, record) => {
+    if (record?.jobId) {
+      setclickedRowId(record.jobId);
+    }
+    setDeleteLoading(true);
+    runSystemScheduleAction({
+      dispatch,
       formData,
-      uri,
-      (res) => {
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
+      onSuccess: (res) => {
+        setDeleteLoading(false);
+        if (res?.message) {
+          Notify.success({ type: "System Schedule", message: res.message });
+        }
+        fetchSchedulingDetails(true);
       },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
-    );
+      onError: () => setDeleteLoading(false),
+    });
   };
 
   const onPauseAll = () => {
     requests.admin(dispatch).postSchedulingData(
       { action: "pauseAll" },
       uri,
-      (res) => {
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
-        getData("", "NORMAL");
-      },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => getData("", "NORMAL"),
+      () => {}
     );
   };
 
@@ -197,19 +227,8 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
     requests.admin(dispatch).postSchedulingData(
       { action: "resumeAll" },
       uri,
-      (res) => {
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
-        getData("", "NORMAL");
-      },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => getData("", "NORMAL"),
+      () => {}
     );
   };
 
@@ -234,11 +253,10 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
       } else if (schedulingKey === "Report Parameters") {
         schedulingValue = JSON.stringify(record[key]);
       } else {
-        schedulingValue = record[key].toString();
+        schedulingValue = record[key]?.toString?.() ?? String(record[key]);
       }
 
       convertedMoreDetails = [...convertedMoreDetails, { schedulingKey, schedulingValue }];
-
       setMoreInfo(convertedMoreDetails);
     });
   };
@@ -246,24 +264,14 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
   const onDeleteSingleTask = (record) => {
     setclickedRowId(record.jobId);
     setDeleteLoading(true);
-
     requests.admin(dispatch).postSchedulingData(
       { action: "delete", jobId: record.jobId },
       uri,
-      (res) => {
+      () => {
         setDeleteLoading(false);
-        fetchSchedulingDetails({ refresh: true });
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
+        fetchSchedulingDetails(true);
       },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => setDeleteLoading(false)
     );
   };
 
@@ -272,20 +280,11 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
     requests.admin(dispatch).postSchedulingData(
       { action: "execute", jobId: record.jobId },
       uri,
-      (res) => {
+      () => {
         setDeleteLoading(false);
-        fetchSchedulingDetails({ refresh: true });
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
+        fetchSchedulingDetails(true);
       },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => {}
     );
   };
 
@@ -293,20 +292,11 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
     requests.admin(dispatch).postSchedulingData(
       { action: "pause", jobId: record.jobId },
       uri,
-      (res) => {
+      () => {
         setDeleteLoading(false);
         getData(record);
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
       },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => {}
     );
   };
 
@@ -314,24 +304,15 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
     requests.admin(dispatch).postSchedulingData(
       { action: "resume", jobId: record.jobId },
       uri,
-      (res) => {
+      () => {
         setDeleteLoading(false);
         getData(record);
-        // Notify.success({
-        //   type: "Network Call",
-        //   ...res,
-        // });
       },
-      (e) => {
-        // Notify.error({
-        //   type: "Network Call",
-        //   ...e,
-        // });
-      }
+      () => {}
     );
   };
 
-  const renderActions = (record) => {
+  const renderUserActions = (record) => {
     if (!record.inMemoryStatus) {
       return (
         <Popconfirm
@@ -390,7 +371,9 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
         </Tooltip>
 
         <Popconfirm
-          title={<PopconfirmBody width="300px" intent="delete" description={"Deleting a scheduled job is temporary"} />}
+          title={
+            <PopconfirmBody width="300px" intent="delete" description={"Deleting a scheduled job is temporary"} />
+          }
           placement="left"
           onConfirm={() => onDeleteSingleTask(record)}
         >
@@ -420,46 +403,51 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
       className: "table-ellipsis",
       width: 150,
       render: (_, record) => {
-        return record.type ? <span>{scheduleTypes[record.type]}</span> : "";
+        return record.type ? <span>{scheduleTypes[record.type] || record.type}</span> : "";
       },
       filters: typeFilters,
-      onFilter: (value, record) => record.type.indexOf(value) === 0,
+      onFilter: (value, record) => (record.type || "").indexOf(value) === 0,
     },
     {
       title: "Job Id",
       dataIndex: "jobId",
       className: "table-ellipsis",
-      width: 100,
-      sorter: (a, z) => a.jobId - z.jobId,
+      width: 160,
+      sorter: (a, z) => String(a.jobId).localeCompare(String(z.jobId)),
     },
-    {
-      title: "Actions",
-      className: "table-ellipsis",
-      render: (_, record) => {
-        if (record.inMemoryStatus === true) {
-          return renderActions(record);
-        }
-        return (
-          <>
-            <span className="expired"> Schedule Expired </span>
-            {renderActions(record)}
-          </>
-        );
-      },
-    },
+    ...(!showSystemSchedules
+      ? [
+          {
+            title: "Actions",
+            className: "table-ellipsis",
+            render: (_, record) => {
+              if (isSystemScheduleRecord(record)) {
+                return null;
+              }
+              if (record.inMemoryStatus === true) {
+                return renderUserActions(record);
+              }
+              return (
+                <>
+                  <span className="expired"> Schedule Expired </span>
+                  {renderUserActions(record)}
+                </>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Days of Week",
       dataIndex: "daysofWeek",
       className: "table-ellipsis",
       render: (text, record) => {
-        const is_days_present = record.daysofWeek.length > 0;
+        const days = record.daysofWeek || [];
+        const is_days_present = days.length > 0;
         return (
-          <Tooltip
-            title={is_days_present ? record.daysofWeek : record.frequency}
-            placement="topLeft"
-          >
+          <Tooltip title={is_days_present ? days : record.frequency} placement="topLeft">
             {is_days_present ? (
-              record.daysofWeek.map((eachDay) => <span> {eachDay} </span>)
+              days.map((eachDay) => <span key={eachDay}> {eachDay} </span>)
             ) : (
               <span>{record.frequency}</span>
             )}
@@ -467,41 +455,73 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
         );
       },
     },
-
     {
       title: "Email Recipients",
       dataIndex: "emailRecipients",
       className: "table-ellipsis scheduling-email-recipients",
       render: (text) => (
-        <Tooltip placement="topLeft" title={text?.join("") || ""}>
-          <span>{text?.join("") || null}</span>
+        <Tooltip placement="topLeft" title={text?.join?.("") || ""}>
+          <span>{text?.join?.("") || null}</span>
         </Tooltip>
       ),
     },
     {
-      title: "Schedule Details",
+      title: showSystemSchedules ? "Actions" : "Schedule Details",
       className: "table-ellipsis",
-      render: (_, record) => (
-        <Tooltip data-testid="hi-scheduling-more-info" title="More Info">
-          <Button type="link" onClick={() => onClickMoreInfo(record)}>
-            More Info
-          </Button>
-        </Tooltip>
-      ),
+      render: (_, record) => {
+        if (showSystemSchedules || isSystemScheduleRecord(record)) {
+          if (!record.inMemoryStatus && record.expired) {
+            return (
+              <>
+                <span className="expired"> Schedule Expired </span>
+                <SystemScheduleRowActions
+                  record={record}
+                  loading={deleteLoading}
+                  clickedRowId={clickedRowId}
+                  onAction={handleSystemAction}
+                  onEdit={openEdit}
+                  onEditScript={openScriptEditor}
+                />
+              </>
+            );
+          }
+          return (
+            <SystemScheduleRowActions
+              record={record}
+              loading={deleteLoading}
+              clickedRowId={clickedRowId}
+              onAction={handleSystemAction}
+              onEdit={openEdit}
+              onEditScript={openScriptEditor}
+            />
+          );
+        }
+        return (
+          <Tooltip data-testid="hi-scheduling-more-info" title="More Info">
+            <Button type="link" onClick={() => onClickMoreInfo(record)}>
+              More Info
+            </Button>
+          </Tooltip>
+        );
+      },
     },
   ];
 
   const ActionsCard = () => {
+    if (showSystemSchedules) {
+      return (
+        <SystemScheduleActionsCard
+          onRefresh={() => fetchSchedulingDetails(true)}
+          onAdd={openAdd}
+          onEditJson={openJsonEditor}
+        />
+      );
+    }
     return (
       <Card hoverable className="actions-card">
         <Row justify="center" align="middle">
           <Col span={5}>
-            <Button
-              data-testid="pause-all"
-              type="text"
-              icon={icons.pause}
-              onClick={() => onPauseAll()}
-            >
+            <Button data-testid="pause-all" type="text" icon={icons.pause} onClick={() => onPauseAll()}>
               Pause All
             </Button>
           </Col>
@@ -541,7 +561,7 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
                 data-testid="refresh"
                 type="text"
                 icon={icons.refresh}
-                onClick={() => fetchSchedulingDetails({ refresh: true })}
+                onClick={() => fetchSchedulingDetails(true)}
               >
                 Refresh
               </Button>
@@ -559,8 +579,8 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
       <Row className="hi-admin-scheduling-container">
         <Col span={24} className="scheduling-header-container">
           <Row className="scheduling-header-data-container">
-            <Col span={4}>
-              <Row align="middle">
+            <Col span={isSuperAdmin ? 8 : 4}>
+              <Row align="middle" gutter={12}>
                 <Col className="scheduling-title">
                   <span data-testid="hi-scheduling-text">Schedule</span>
                 </Col>
@@ -569,26 +589,36 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
                     content={content}
                     placement="right"
                     trigger="hover"
-                    overlayStyle={{
-                      width: "70vw",
-                    }}
+                    overlayStyle={{ width: "70vw" }}
                   >
                     <span>
                       <InfoCircleOutlined className="scheduling-alert-icon" />
                     </span>
                   </Popover>
                 </Col>
+                {isSuperAdmin && (
+                  <Col>
+                    <SystemScheduleToggle
+                      checked={showSystemSchedules}
+                      onChange={setShowSystemSchedules}
+                    />
+                  </Col>
+                )}
               </Row>
             </Col>
-            <Col lg={14} sm={20}>
+            <Col lg={isSuperAdmin ? 16 : 14} sm={20}>
               <ActionsCard />
             </Col>
           </Row>
         </Col>
         <Col span={24} className="scheduling-table-container">
           <Card bordered={false} hoverable>
-            {(loading && !["test"].includes(process.env.NODE_ENV)) ? <><LoadingBar handleClick={handleAbort} />
-              <ScheduleSkeleton /></> :
+            {loading && !["test"].includes(process.env.NODE_ENV) ? (
+              <>
+                <LoadingBar handleClick={handleAbort} />
+                <ScheduleSkeleton />
+              </>
+            ) : (
               <Table
                 data-testid="scheduling-table"
                 dataSource={schedulingList}
@@ -596,23 +626,25 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
                 columns={
                   loading
                     ? schedulingDataColumns.map((column) => {
-                      return { ...column, render: renderSkeleton };
-                    })
+                        return { ...column, render: renderSkeleton };
+                      })
                     : schedulingDataColumns
                 }
                 pagination={false}
-                rowKey="id"
+                rowKey="jobId"
                 bordered
                 {...tableVirtualProps}
                 rowClassName={(record, index) => {
                   let className = index % 2 && "table-row-color";
                   return className;
                 }}
-              />}
+              />
+            )}
           </Card>
         </Col>
       </Row>
       <MoreSchedulingInfo visible={visible} moreInfo={moreInfo} onCloseDrawer={onCloseDrawer} />
+      {showSystemSchedules ? editorsUi : null}
     </>
   );
 };

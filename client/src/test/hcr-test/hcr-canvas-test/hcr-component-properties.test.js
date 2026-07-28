@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { render, screen } from "@testing-library/react";
-import "core-js/stable";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from "react-redux";

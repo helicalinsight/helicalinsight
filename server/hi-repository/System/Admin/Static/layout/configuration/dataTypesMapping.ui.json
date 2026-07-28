@@ -1,0 +1,10 @@
+{
+    "id":  "dataTypesMapping",
+    "file":  "dataTypesMapping.properties",
+    "title":  "Data Types Mapping",
+    "description":  "Maps JDBC / vendor data types to Helical Insight types.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/dataTypesMapping.ui.layout",
+    "fallbackEditor":  "properties"
+}

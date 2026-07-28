@@ -212,7 +212,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 					hql = "SELECT " +
 							"gc.globalId as resourceId, " +
 							"gc.name as name, " +
-							"gc.createdBy as createdBy, " +
+							"gc.createdBy.id as createdBy, " +
 							"rbin.id as recycleBinId " +
 							"FROM HIRecycleBinDSGlobalConnections rb " +
 							"JOIN rb.globalConnection gc " +
@@ -572,7 +572,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	private <T> Map<String,List<T>> findAllResourceOfUser(Integer userId) {
 
 		List<HIResource> resourceList =  serviceDb.getHIResourceByCreatedBy(userId);
-		List<GlobalConnections> connections =  globalConnectionService.findConnectionsByCreatedBy(String.valueOf(userId));
+		List<GlobalConnections> connections =  globalConnectionService.findConnectionsByCreatedBy(userId);
 		Map<String,List<T>> resourceMap = new HashMap<>();
 		Map<String,List<T>> globals =  findResourcesOfGlobalConnections(connections,userId);
 		Map<String,List<T>> resourcesWithPlains = getResourceOf(resourceList,userId);

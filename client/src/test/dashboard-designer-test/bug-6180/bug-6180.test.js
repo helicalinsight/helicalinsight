@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "../../../utils/polyfill/url";
 import { configureStore } from "@reduxjs/toolkit";
@@ -33,27 +32,6 @@ const App = ({ refresh }) => {
 };
 
 describe("Dashboard Designer Test", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
   test("rendering of designer", async () => {
     await waitFor(() => {
       const {rerender}=render(<App refresh={new Date()}/>);

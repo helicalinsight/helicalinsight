@@ -195,7 +195,53 @@ chat_sequence_id=2&formData={"input":"Explain the trend","location":"MyReports",
 
 ---
 
-## 5. Load Past Chat
+## 5. Convert Chart
+
+**`GET | POST`** `/ai/convert-chart`
+
+Converts an existing InstantBI visualization template to another Ant Design Charts type **without** calling the LLM. Proxies to the Python `/convert-chart` service.
+
+### Request Parameters
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `vf_template` | Yes* | string | Base64-encoded Draw* JS/JSX template (`vftemplate` alias accepted) |
+| `selected_chart` | Yes | string | Target visualization type, e.g. `bar`, `pie`, `line` |
+| `chat_id` | No | string | Chat / thread id (`chatid` alias accepted) |
+| `chat_sequence_id` | No | string | Chat turn sequence |
+| `requestId` | No | string | Used for cancellable requests |
+
+\*Provide `vf_template` or `vftemplate`.
+
+### Example Request
+
+```http
+POST /ai/convert-chart
+Content-Type: application/x-www-form-urlencoded
+
+vf_template=<base64>&selected_chart=bar&chat_id=abc123&chat_sequence_id=1
+```
+
+### Response
+
+```json
+{
+  "status": 1,
+  "response": {
+    "viz": {
+      "vf_template": "<base64>",
+      "chart_name": "bar",
+      "vf_title": "...",
+      "vf_reason": "...",
+      "similar_chart": [{"vf.column": "column"}, {"vf.pie": "pie"}]
+    }
+  }
+}
+```
+
+---
+
+## 6. Load Past Chat
 
 **`GET | POST`** `/ai/load-chat`
 
@@ -241,7 +287,7 @@ chat_sequence_id=1&formData={"input":"Show sales by region","location":"MyReport
 
 ---
 
-## 6. Chat Context
+## 7. Chat Context
 
 **`GET | POST`** `/ai/chat-context`
 
@@ -325,6 +371,8 @@ Each endpoint forwards to the Instant BI Python service (`instantbiConfig.servic
 | `/ai/recommendation/analyst` | `/topNQuestion` |
 | `/ai/interactive-chat` | `/interactive` |
 | `/ai/data-insight` | `/data-insight` |
+| `/ai/convert-chart` | `/convert-chart` |
+| `/ai/convert-hreport` | `/instant-to-hr` |
 | `/ai/load-chat` | `/load-chat` |
 | `/ai/chat-context` | `/chat` (+ `/metadataInsight` when context is metadata) |
 

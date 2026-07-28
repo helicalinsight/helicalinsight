@@ -20,6 +20,10 @@ public final class InstantBIServiceFactory {
             "com.helicalinsight.instant.ai.service.impl.AiChatContextServiceImpl";
     private static final String LLM_USAGE_AUDIT_SERVICE_IMPL =
             "com.helicalinsight.instant.ai.service.impl.AiLlmUsageAuditServiceImpl";
+    private static final String CONVERT_CHART_SERVICE_IMPL =
+            "com.helicalinsight.instant.ai.service.impl.AiConvertChartServiceImpl";
+    private static final String LIST_CHARTS_SERVICE_IMPL =
+            "com.helicalinsight.instant.ai.service.impl.AiListChartsServiceImpl";
 
     private InstantBIServiceFactory() {
     }
@@ -54,5 +58,13 @@ public final class InstantBIServiceFactory {
 
     public static IAiLlmUsageAuditService getLlmUsageAuditService() {
         return FactoryMethodWrapper.getTypedInstance(LLM_USAGE_AUDIT_SERVICE_IMPL, IAiLlmUsageAuditService.class);
+    }
+
+    public static IAiConvertChartService getConvertChartService() {
+        return FactoryMethodWrapper.getTypedInstance(CONVERT_CHART_SERVICE_IMPL, IAiConvertChartService.class);
+    }
+
+    public static IAiListChartsService getListChartsService() {
+        return FactoryMethodWrapper.getTypedInstance(LIST_CHARTS_SERVICE_IMPL, IAiListChartsService.class);
     }
 }

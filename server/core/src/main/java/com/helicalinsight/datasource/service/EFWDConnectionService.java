@@ -1,7 +1,6 @@
 package com.helicalinsight.datasource.service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.helicalinsight.admin.dto.EFWDConnGroovyDTO;
@@ -26,10 +25,13 @@ public interface EFWDConnectionService {
 	// save
 	HIEFWD saveHIResourceEFWD(HIEFWD hiefwd, String directory);
 	HIEfwdConnection saveEFWDConnection(HIEfwdConnection hiEfwdConnection);
+	
+	@Deprecated(forRemoval =  true)
 	EFWDConnSqlJDBC save(EFWDConnSqlJDBC efwdConnSqlJDBC);
 	EFWDConnGroovy save(EFWDConnGroovy efwdConnSqlJDBC);
 
 	// update
+	@Deprecated(forRemoval = true)
 	EFWDConnSqlJDBC editEFWDConnection(EFWDConnSqlJDBC connection);
 	EFWDConnGroovy editEFWDConnection(EFWDConnGroovy connection);
 	Integer edit(HIEfwdConnection connection);
@@ -44,9 +46,12 @@ public interface EFWDConnectionService {
 	List<PlainConnDTO> findAllFEWDConnectionByType(String type);
 
 	// read
+	@Deprecated(forRemoval = true)
 	EFWDConnSqlJDBC findConnectionByID(Integer connectionId);
+	@Deprecated(forRemoval = true)
 	EFWDConnSqlJDBCDTO findSqlConnectionByID(Integer connectionId);
 	EFWDConnGroovyDTO findGroovyConnectionById(Integer connectionId);
+	@Deprecated(forRemoval = true)
 	List<EFWDConnSqlJDBCDTO> findConnectionByParentId(int parentId);
 	List<EFWDConnGroovyDTO> findGroovyByParentId(int parentId);
 	

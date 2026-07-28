@@ -1,0 +1,10 @@
+{
+    "id":  "whitelist-keywords",
+    "file":  "whitelist-keywords.xml",
+    "title":  "Whitelist Keywords",
+    "description":  "Allowed SQL keywords used by SQL security validation.",
+    "category":  "sql security",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/whitelist-keywords.ui.layout",
+    "fallbackEditor":  "xml"
+}

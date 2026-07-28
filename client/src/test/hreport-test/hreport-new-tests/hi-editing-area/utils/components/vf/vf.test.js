@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import "core-js/stable";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Provider } from "react-redux";
@@ -25,21 +24,7 @@ const App = (props) => {
 };
 
 describe('Test VF Editor', () => {
-    beforeAll(() => {
-        delete window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        });
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-    });
-
+   
     const store = configureStore({
         reducer: reducers,
         middleware: (getDefaultMiddleware) =>

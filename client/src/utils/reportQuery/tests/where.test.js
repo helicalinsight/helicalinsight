@@ -1,6 +1,4 @@
-import ReportQuery from '../index'
-import 'core-js';
-import { groupBy } from 'lodash';
+import ReportQuery from '../index';
 let arg = {
     column: 'HIUSER.travel_details.destination',
     alias: 'destination'

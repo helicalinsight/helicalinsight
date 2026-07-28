@@ -16,6 +16,7 @@ import com.helicalinsight.adhoc.exception.OwnershipTransferException;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,7 +58,13 @@ public class GlobalConnectionOwnershipChangeHandler extends AbstractOwnershipCha
 			throw new OwnershipTransferException("Datasource not found.");
 		}
 		
-		Integer currentOwnerId = Integer.valueOf(globalConnections.getCreatedBy());
+		User currentOwner = globalConnections.getCreatedBy();
+		
+		if ( currentOwner == null ) {
+			throw new OwnershipTransferException("Public resources can not be transfered.");
+		}
+		
+		Integer currentOwnerId = currentOwner.getId();
 		
 		if(currentOwnerId.equals(ownerId)) {
 			throw new OwnershipTransferException("The ownership of the resource(s) cannot be changed to the same user, as it is already assigned. The ownership will remain unchanged.");
@@ -68,7 +75,7 @@ public class GlobalConnectionOwnershipChangeHandler extends AbstractOwnershipCha
 			throw new OwnershipTransferException("The user doesn't have admin rights. Please grant them admin privileges and try again.");
 		}
 
-		Map<String, List<Object>> associatedFiles = recycleBinDao.getGlobalConnectionResources(globalId, Integer.valueOf(globalConnections.getCreatedBy()));
+		Map<String, List<Object>> associatedFiles = recycleBinDao.getGlobalConnectionResources(globalId, globalConnections.getCreatedBy().getId());
 		if (associatedFiles == null) {
 			throw new OwnershipTransferException("Failed to retrieve associated files for the Global connection.");
 		}
@@ -98,7 +105,7 @@ public class GlobalConnectionOwnershipChangeHandler extends AbstractOwnershipCha
 			throw new OwnershipTransferException("Ownership transfer failed. Not all associated files are available for the new owner.");
 		}
 
-		globalConnections.setCreatedBy(""+user.getId());
+		globalConnections.setCreatedBy(user);
 		globalConnectionService.editGlobalConnections(globalConnections);
 		return true;
 	}

@@ -36,25 +36,7 @@ const App = ({ useractions_initial_view_state }) => {
 };
 
 describe("Rendering SidebarFooter", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-  
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
+ 
   test("SidebarFooter component", async () => {
     await waitFor(() => render(<App sidebar_data={sidebar_data} />));
     expect(screen.queryByTestId(/hi-sidebar-footer-row/i)).toBeTruthy();

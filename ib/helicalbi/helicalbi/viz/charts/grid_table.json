@@ -14,6 +14,52 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "GridTable (AntV S2). Config: build fields + metadata from real column keys; dims->addedAs row|column with floatingType discrete; measures->addedAs row with floatingType continous (spelling as-is); nest report.reportData.properties with crosstab defaults; override data/fields/metadata/marksList on props.\nPolish: first dim as row, remaining dims as column when 2+ dims; keep data as-is; wrap in div; do not use Ant Design Table or PivotViewComponent.",
-  "code": "\nfunction DrawGridTable() {\n  const { GridTable } = components;\n  const dimensionFields = [\"dimension_column\"];\n  const measureFields = [\"measure_column\"];\n  const fields = [\n    ...dimensionFields.map((name, i) => ({\n      label: name,\n      id: String(i + 1),\n      addedAs: i === 0 ? \"row\" : \"column\",\n      floatingType: \"discrete\"\n    })),\n    ...measureFields.map((name, i) => ({\n      label: name,\n      id: String(dimensionFields.length + i + 1),\n      addedAs: \"row\",\n      floatingType: \"continous\"\n    }))\n  ];\n  const metadataEntry = {};\n  fields.forEach((field, i) => {\n    metadataEntry[i + 1] = {\n      name: field.label,\n      type: field.floatingType === \"continous\" ? \"numeric\" : \"text\"\n    };\n  });\n  const marksList = [\n    {\n      value: \"_all_\",\n      id: \"marks-all\",\n      color: { fields: [] },\n      size: { fields: [] },\n      label: { fields: [] },\n      tooltip: { fields: [] },\n      shape: { fields: [] },\n      detail: { fields: [] }\n    }\n  ];\n  const nestedReport = report.report || report;\n  const gridTableProps = {\n    ...report,\n    data,\n    fields,\n    metadata: [metadataEntry],\n    marksList,\n    report: {\n      ...nestedReport,\n      reportData: {\n        ...(nestedReport.reportData || {}),\n        properties: {\n          title: { show: false, value: \"\", position: \"top\" },\n          subTitle: { show: false, value: \"\", position: \"top\" },\n          format: {},\n          formatColor: {},\n          tooltip: { showTooltip: true },\n          crosstab: {\n            showGrandTotals: false,\n            showRowGrandTotals: false,\n            showColumnGrandTotals: false,\n            showSubTotals: false,\n            showRowSubTotals: false,\n            showColumnSubTotals: false,\n            grandTotalsPosition: \"Bottom\",\n            crosstabCollapse: \"None\"\n          },\n          ...((nestedReport.reportData && nestedReport.reportData.properties) || {})\n        }\n      }\n    }\n  };\n  return (\n    <div>\n      <GridTable {...gridTableProps} />\n    </div>\n  );\n}\n"
+  "conversion": {
+    "family": "table",
+    "component": "GridTable",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0,
+        "optional": true
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0,
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "GridTable = AntV S2 wrapper (NOT Ant Design Table). Keep the VF SHORT — use helperFunctions.buildGridTableReport.",
+    "1) Replace dimensions/measures with real result-column keys from data/SQL (must match Object.keys(data[0])).",
+    "2) First dim -> row, remaining dims -> column; measures are values. Pass formatStrings when Excel formats are provided.",
+    "3) Do not inline a full report/properties blob (it truncates under max_tokens). Never use <Table />.",
+    "4) Keep crosstab totals on unless the user asks to disable (showTotals: true)."
+  ],
+  "code": [
+    "function DrawGridTable() {",
+    "  const { GridTable } = components;",
+    "  const { buildGridTableReport } = helperFunctions;",
+    "  const minReport = buildGridTableReport({",
+    "    dimensions: ['dimension_column'],",
+    "    measures: ['measure_column'],",
+    "    formatStrings: { measure_column: '0.00' },",
+    "    showTotals: true",
+    "  });",
+    "  return (",
+    "    <div>",
+    "      <GridTable",
+    "        {...report}",
+    "        data={data}",
+    "        fields={minReport.fields}",
+    "        metadata={minReport.metadata}",
+    "        marksList={minReport.marksList}",
+    "        report={minReport}",
+    "      />",
+    "    </div>",
+    "  );",
+    "}"
+  ]
 }

@@ -8,17 +8,24 @@ providers:
   openai:
     model: gpt-5.4-mini
     temperature: 0.1
-    max_tokens: 1000
+    # ChartFiller returns structured JSON wrapping a full JS VF; grid/pivot need headroom.
+    max_tokens: 4000
     api_key:
 
   anthropic:
     model: claude-opus-4-6
     temperature: 0.1
-    max_tokens: 1500
+    max_tokens: 4000
     api_key:
 
   gemini:
     model: gemini-2.5-flash
     temperature: 0.1
-    max_tokens: 1500
+    max_tokens: 4000
     api_key:
+
+  ollama:
+    model: deepseek-coder-v2
+    temperature: 0.1
+    max_tokens: 4000
+    base_url:

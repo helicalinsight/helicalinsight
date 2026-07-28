@@ -11,6 +11,71 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Hierarchy as Treemap. Config: nest data {name, children[{name,value}]}; colorField name; label fields.\nPolish: readable labels; muted palette; interactions element-active; avoid deep nesting >2 levels unless data requires.",
-  "code": "\nfunction DrawRelation() {\n  const { Treemap } = components;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const chartData = {\n    name: \"root\",\n    children: data.map((item) => ({\n      name: item[dimensionField],\n      value: item[measureField],\n      ...item\n    }))\n  };\n  const config = {\n    data: chartData,\n    colorField: \"name\",\n    label: {\n      fields: [dimensionField]\n    }\n  };\n  return <div><Treemap {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "hierarchy",
+    "component": "Treemap",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Hierarchy as Treemap. Config: nest data {name, children[{name,value}]}; colorField name; label fields.",
+    "Polish: readable labels; muted palette; interactions element-active; avoid deep nesting >2 levels unless data requires."
+  ],
+  "code": [
+    "function DrawRelation() {",
+    "  const { Treemap } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const dimensionField = 'dimension_column';",
+    "  const measureField = 'measure_column';",
+    "  const chartData = {",
+    "    name: 'root',",
+    "    children: data.map((item) => ({",
+    "      name: item[dimensionField],",
+    "      value: item[measureField],",
+    "      ...item",
+    "    }))",
+    "  };",
+    "  const config = {",
+    "    data: chartData,",
+    "    colorField: 'name',",
+    "    label: {",
+    "      fields: [dimensionField]",
+    "    },",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Treemap {...config} /></div>;",
+    "}"
+  ]
 }

@@ -79,13 +79,66 @@ class TestGenerateSemanticHint:
         ]
         hint = generate_semantic_hint(metadata)
         assert "Table: employee_details (Employees)" in hint
-        assert "-employee_id (PK)" in hint
-        assert "-employee_name (Full name)" in hint
+        assert "employee_id" in hint
+        assert "Description: PK" in hint
+        assert "employee_name" in hint
+        assert "Description: Full name" in hint
         assert "Columns:" in hint
 
     def test_handles_missing_optional_fields(self):
-        hint = generate_semantic_hint([{"columns": []}])
-        assert "Table:  ()" in hint
+        hint = generate_semantic_hint([{"database_table": "t", "columns": []}])
+        assert "Table: t" in hint
+        assert "Columns:" in hint
+
+        assert generate_semantic_hint([{"columns": []}]) == ""
+
+    def test_includes_hierarchy_and_ai_context(self):
+        hint = generate_semantic_hint(
+            [
+                {
+                    "database_table": "travel_details",
+                    "columns": [
+                        {
+                            "column_name": "travel_date",
+                            "alias_name": "YEAR",
+                            "dimension_name": "YEAR",
+                            "hierarchy_name": "travel_date",
+                            "level_name": "YEAR",
+                            "semantic_type": "Text",
+                            "formula": "EXTRACT(YEAR from travel_details.travel_date)",
+                            "ai_context": {
+                                "instructions": "Year of travel.",
+                                "synonyms": "year",
+                                "examples": "2024",
+                            },
+                        }
+                    ],
+                    "measures": [
+                        {
+                            "column_name": "Cost by Cancellation",
+                            "alias_name": "Cost by Cancellation",
+                            "measure_name": "Cost by Cancellation",
+                            "semantic_type": "Number",
+                            "is_computed": True,
+                            "formula": "sum(travel_details.travel_cost) filter status=Yes",
+                            "ai_context": {
+                                "instructions": "Yes means cancelled.",
+                                "synonyms": "cancelled",
+                                "examples": "",
+                            },
+                        }
+                    ],
+                }
+            ]
+        )
+        assert "hierarchy: travel_date" in hint
+        assert "level: YEAR" in hint
+        assert "aiContext:" in hint
+        assert "Year of travel." in hint
+        assert "measure: Cost by Cancellation" in hint
+        assert "computed formula: sum(travel_details.travel_cost) filter status=Yes" in hint
+        assert "type: Number" in hint
+        assert "Yes means cancelled." in hint
 
 
 class TestGetDomainDetails:

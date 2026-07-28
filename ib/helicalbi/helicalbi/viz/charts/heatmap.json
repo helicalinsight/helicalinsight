@@ -11,6 +11,70 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Heatmap matrix. Config: xField, yField cats; colorField=measure; meta type cat.\nPolish: color MUST be a hex array (e.g. [\"#B8E1FF\", \"#5B8FF9\", \"#00318A\"]); never color: { type: \"sequential\" }. Legend bottom; element-active; readable axis ticks; tooltip with value. Apply Excel format strings to measure tooltip/legend when provided.",
-  "code": "\nfunction DrawHeatmap() {\n  const { Heatmap } = components;\n  const config = {\n    data,\n    xField: \"x_field\",\n    yField: \"y_field\",\n    colorField: \"measure_column\",\n    color: [\"#B8E1FF\", \"#9AC5FF\", \"#7DAAFF\", \"#5B8FF9\", \"#3D76DD\", \"#085EC0\", \"#0047A5\", \"#00318A\", \"#001D70\"],\n    meta: {\n      x_field: { type: \"cat\" },\n      y_field: { type: \"cat\" }\n    },\n    legend: {\n      position: \"bottom\"\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Heatmap {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "heatmap",
+    "component": "Heatmap",
+    "fields": {
+      "x_field": {
+        "role": "dimension",
+        "index": 0
+      },
+      "y_field": {
+        "role": "dimension",
+        "index": 1
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Heatmap matrix. Config: xField, yField cats; colorField=measure; meta type cat.",
+    "Polish: color MUST be a hex array (e.g. [\"#B8E1FF\", \"#5B8FF9\", \"#00318A\"]); never color: { type: \"sequential\" }. Legend bottom; element-active; readable axis ticks; tooltip with value. Apply Excel format strings to measure tooltip/legend when provided."
+  ],
+  "code": [
+    "function DrawHeatmap() {",
+    "  const { Heatmap } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'x_field',",
+    "    yField: 'y_field',",
+    "    colorField: 'measure_column',",
+    "    color: ['#B8E1FF', '#9AC5FF', '#7DAAFF', '#5B8FF9', '#3D76DD', '#085EC0', '#0047A5', '#00318A', '#001D70'],",
+    "    meta: {",
+    "      x_field: { type: 'cat' },",
+    "      y_field: { type: 'cat' }",
+    "    },",
+    "    legend: {",
+    "      position: 'bottom'",
+    "    },",
+    "    interactions: [{ type: 'element-active' }]",
+    "  };",
+    "  return <div><Heatmap {...config} /></div>;",
+    "}"
+  ]
 }

@@ -1,0 +1,71 @@
+{
+  "title": "System Schedules",
+  "service": "monitor/system/systemSchedule",
+  "table": {
+    "columns": [
+      { "key": "slno", "label": "#" },
+      { "key": "id", "label": "Id" },
+      { "key": "enabled", "label": "Enabled" },
+      { "key": "paused", "label": "Paused" },
+      { "key": "expired", "label": "Expired" },
+      { "key": "inMemory", "label": "In Memory" },
+      { "key": "triggerState", "label": "State" },
+      { "key": "taskType", "label": "Task Type" },
+      { "key": "cron", "label": "Cron" },
+      { "key": "scheduledTime", "label": "Scheduled Time" },
+      { "key": "expireDate", "label": "Expire Date" },
+      { "key": "nextFireTime", "label": "Next Fire" },
+      { "key": "previousFireTime", "label": "Last Fire" }
+    ]
+  },
+  "actions": [
+    { "name": "trigger", "label": "Trigger Now", "description": "Runs the schedule immediately" },
+    { "name": "pause", "label": "Pause", "description": "Pauses the in-memory Quartz trigger" },
+    { "name": "resume", "label": "Resume", "description": "Resumes a paused schedule" },
+    { "name": "disable", "label": "Disable", "description": "Disables schedule in JSON and removes it from memory" },
+    { "name": "enable", "label": "Enable", "description": "Enables schedule in JSON and registers it in memory" },
+    { "name": "delete", "label": "Delete", "description": "Deletes schedule from JSON and memory" },
+    { "name": "edit", "label": "Edit", "description": "Edit configured schedule fields dynamically" },
+    { "name": "editScript", "label": "Edit Script", "description": "Edit groovy script content" },
+    { "name": "editJson", "label": "Edit JSON", "description": "Edit systemschedule.json content" },
+    { "name": "reload", "label": "Reload", "description": "Reload all system schedules from JSON" }
+  ],
+  "form": {
+    "defaultLayout": "Static/layout/system-schedule.default.ui.layout",
+    "layoutDirectory": "Static/layout",
+    "commonFields": [
+      { "name": "id", "label": "Schedule Id", "type": "text", "readOnly": true, "required": true },
+      { "name": "enabled", "label": "Enabled", "type": "boolean" },
+      { "name": "paused", "label": "Paused", "type": "boolean" },
+      { "name": "expireDate", "label": "Expire Date", "type": "text", "placeholder": "never or yyyy-MM-dd'T'HH:mm:ss" },
+      { "name": "cron", "label": "Cron Expression", "type": "text" },
+      { "name": "scheduledTime", "label": "Scheduled Time", "type": "text", "placeholder": "HH:mm:ss" },
+      { "name": "timeZone", "label": "Time Zone", "type": "text" },
+      { "name": "task.class", "label": "Java Class", "type": "text" },
+      { "name": "task.script", "label": "Groovy Script", "type": "text" },
+      { "name": "task.function", "label": "Function", "type": "text" },
+      { "name": "email.enabled", "label": "Send Email", "type": "boolean" },
+      { "name": "email.to", "label": "Email To", "type": "text", "placeholder": "blank = systemadmin" }
+    ],
+    "dynamicConfigFrom": "config"
+  },
+  "api": {
+    "list": { "action": "list" },
+    "trigger": { "action": "trigger", "params": ["id"] },
+    "pause": { "action": "pause", "params": ["id"] },
+    "resume": { "action": "resume", "params": ["id"] },
+    "disable": { "action": "disable", "params": ["id"] },
+    "enable": { "action": "enable", "params": ["id"] },
+    "delete": { "action": "delete", "params": ["id"] },
+    "save": { "action": "save", "body": "schedule" },
+    "getScript": { "action": "getScript", "params": ["id", "script"] },
+    "saveScript": { "action": "saveScript", "params": ["id", "script", "content"] },
+    "getJson": { "action": "getJson" },
+    "saveJson": { "action": "saveJson", "params": ["content"] },
+    "reload": { "action": "reload" },
+    "getLayout": {
+      "service": "content/static/getContents",
+      "params": ["contentId"]
+    }
+  }
+}
