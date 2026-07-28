@@ -1,6 +1,5 @@
-import ReportQuery from '../index'
-import 'core-js';
-import { config } from './advfilters.mock.data'
+import ReportQuery from '../index';
+import { config } from './advfilters.mock.data';
 let arg = {
     column: 'HIUSER.travel_details.destination',
     alias: 'destination'
@@ -25,7 +24,7 @@ describe('testing where with config property - advanced filters', () => {
     });
     afterAll(() => {
         global.gc && global.gc()
-      })
+    })
     test('passing where condition with config - advanced filter - valid case', () => {
         let query = getQuery()
         let arg = {

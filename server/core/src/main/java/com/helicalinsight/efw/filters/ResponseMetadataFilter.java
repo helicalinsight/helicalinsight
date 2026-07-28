@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
@@ -37,7 +38,9 @@ public class ResponseMetadataFilter implements Filter {
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
         String path = httpRequest.getServletPath();
-        if (!ControllerUtils.isAjax(httpRequest) || (path != null && isStaticAsset(path))) {
+        if (!ControllerUtils.isAjax(httpRequest)
+                || (path != null && isStaticAsset(path))
+                || isStreamingRequest(httpRequest)) {
             chain.doFilter(request, response);
             return;
         }
@@ -82,7 +85,9 @@ public class ResponseMetadataFilter implements Filter {
         }
 
         String contentType = response.getContentType();
-        if (contentType == null || !isEnrichableContentType(contentType)) {
+        if (contentType == null
+                || contentType.toLowerCase().startsWith(MediaType.TEXT_EVENT_STREAM_VALUE)
+                || !isEnrichableContentType(contentType)) {
             return false;
         }
 
@@ -92,6 +97,14 @@ public class ResponseMetadataFilter implements Filter {
         }
 
         return true;
+    }
+
+    private boolean isStreamingRequest(HttpServletRequest request) {
+        if ("true".equalsIgnoreCase(request.getParameter("stream"))) {
+            return true;
+        }
+        String accept = request.getHeader("Accept");
+        return accept != null && accept.toLowerCase().contains(MediaType.TEXT_EVENT_STREAM_VALUE);
     }
 
     private boolean isEnrichableContentType(String contentType) {

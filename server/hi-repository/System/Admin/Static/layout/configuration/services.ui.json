@@ -1,0 +1,10 @@
+{
+    "id":  "services",
+    "file":  "services.xml",
+    "title":  "Services",
+    "description":  "Service registry mapping service paths to component implementations.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/services.ui.layout",
+    "fallbackEditor":  "xml"
+}

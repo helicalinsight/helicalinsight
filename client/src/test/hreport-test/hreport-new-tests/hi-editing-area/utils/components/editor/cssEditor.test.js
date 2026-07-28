@@ -33,52 +33,34 @@ const App = () => {
 };
 
 describe("Rendering CssEditor", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    
-  });
+
   document.createRange = () => {
     const range = new Range();
 
     range.getBoundingClientRect = () => {
-        return {
-            x: 0,
-            y: 0,
-            bottom: 0,
-            height: 0,
-            left: 0,
-            right: 0,
-            top: 0,
-            width: 0,
-            toJSON: () => { }
-        };
+      return {
+        x: 0,
+        y: 0,
+        bottom: 0,
+        height: 0,
+        left: 0,
+        right: 0,
+        top: 0,
+        width: 0,
+        toJSON: () => { }
+      };
     };
 
     range.getClientRects = () => {
-        return {
-            item: (index) => null,
-            length: 0,
-            *[Symbol.iterator]() { }
-        };
+      return {
+        item: (index) => null,
+        length: 0,
+        *[Symbol.iterator]() { }
+      };
     };
 
     return range;
-}
-
-afterAll(() => {
-  global.gc && global.gc()
-})
+  }
 
   test("CssEditor component", async () => {
     await waitFor(() => render(<App />));
@@ -86,7 +68,7 @@ afterAll(() => {
     const comp = screen.queryByTestId(/hi-report-css-editor/i);
 
     expect(comp).toBeTruthy();
-    
+
   });
 });
 

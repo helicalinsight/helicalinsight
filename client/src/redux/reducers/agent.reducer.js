@@ -46,6 +46,9 @@ export const agentReducer = (state = initialStates.agentInitialState, action) =>
         case actionTypes.AGENT_SEMANTIC_TYPES: {
             return { ...state, semanticTypes: action.payload || [] };
         }
+        case actionTypes.UPDATE_AGENT_GRID_ITEMS_LAYOUT: {
+            return { ...state, gridItemsLayout: action.payload.layout };
+        }
         default:
             return { ...state };
     }

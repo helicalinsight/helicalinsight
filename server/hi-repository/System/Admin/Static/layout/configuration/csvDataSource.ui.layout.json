@@ -1,0 +1,48 @@
+{
+    "id":  "csvDataSource",
+    "title":  "CSV Data Source",
+    "description":  "CSV / SQLite flat-file datasource defaults.",
+    "file":  "csvDataSource.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Connection",
+                         "key":  "connection",
+                         "fields":  [
+                                        {
+                                            "name":  "csvDriverUrl",
+                                            "path":  "csvDriverUrl",
+                                            "label":  "CSV Driver URL",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "JDBC URL prefix for CSV/SQLite datasource."
+                                        },
+                                        {
+                                            "name":  "Driver",
+                                            "path":  "Driver",
+                                            "label":  "Driver Class",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "JDBC driver class."
+                                        },
+                                        {
+                                            "name":  "username",
+                                            "path":  "username",
+                                            "label":  "Username",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default username."
+                                        },
+                                        {
+                                            "name":  "password",
+                                            "path":  "password",
+                                            "label":  "Password",
+                                            "type":  "password",
+                                            "span":  12,
+                                            "description":  "Default password."
+                                        }
+                                    ]
+                     }
+                 ]
+}

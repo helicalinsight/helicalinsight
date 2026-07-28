@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import getInstantBIOpenTaskbarItems from "../../components/hi-instant-bi/instant-bi-open-taskbar-items";
 import { fetchInstantBIReportAPI } from "../../components/hi-instant-bi/utils/instant-bi-requests";

@@ -4,25 +4,6 @@ import SubVizList from "../../../components/hi-reports/hi-editing-area/component
 
 
 describe("Rendering marks pane", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-    });
-    
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-    
     test("sub visualisation list for grid chart",async () => {
         await waitFor(() => render(<SubVizList   selectedType="GridChart" subVizType="bar" />))
         expect(screen.queryByTestId(/selected-sub-viz-type/i)).toBeTruthy();

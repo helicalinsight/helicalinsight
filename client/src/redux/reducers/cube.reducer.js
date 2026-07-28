@@ -235,6 +235,9 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 								}
 							} else {
 								obj[updateName] = checkVal;
+								if (updateName === 'defaultFunction' && obj.column) {
+									obj.column.defaultFunction = checkVal;
+								}
 								if (updateName === 'isDimensionCheck') {
 									if (checkVal) {
 										if (obj.isHierarchy) {

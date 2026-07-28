@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "../../../../utils/polyfill/url";
 import { configureStore } from "@reduxjs/toolkit";
@@ -44,26 +43,6 @@ const renderContextMenu = (store) => {
 };
 
 describe("Agent Interact context menu", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = () => ({
-      matches: false,
-      media: "",
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
-
-  afterAll(() => {
-    global.gc && global.gc();
-  });
-
   it("should defines interact option for global file browser append only", () => {
     expect(agentInteractContextMenuOption).toMatchObject({
       id: "intr",

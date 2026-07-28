@@ -10,6 +10,7 @@ from GraphBuilderManger import cube_info_sql_generator_graph, sql_generator_grap
 from bl.app_context import app
 from bl.helpers import (
     RequestAborted,
+    build_chat_memory_payload,
     ensure_not_aborted,
     extract_token_usage_dict,
     graph_invoke_config,
@@ -105,6 +106,8 @@ def register(flask_app) -> None:
             "domain_context": cube_info_prepared.get("domain_context", "") if use_cube_info_flow else "",
             "format_strings": cube_info_prepared.get("format_strings", {}) if use_cube_info_flow else {},
             "column_format_strings": cube_info_prepared.get("column_format_strings", "") if use_cube_info_flow else "",
+            "ai_instructions": cube_info_prepared.get("ai_instructions", {}) if use_cube_info_flow else {},
+            "column_ai_instructions": cube_info_prepared.get("column_ai_instructions", "") if use_cube_info_flow else "",
             "sort_orders": cube_info_prepared.get("sort_orders", []) if use_cube_info_flow else [],
             "column_sort_orders": cube_info_prepared.get("column_sort_orders", "") if use_cube_info_flow else "",
             "use_cube_info_sql_flow": use_cube_info_flow,
@@ -173,6 +176,16 @@ def register(flask_app) -> None:
                         or result.get("column_format_strings")
                         or ""
                     )
+                    result["ai_instructions"] = (
+                        cube_info_prepared.get("ai_instructions")
+                        or result.get("ai_instructions")
+                        or {}
+                    )
+                    result["column_ai_instructions"] = (
+                        cube_info_prepared.get("column_ai_instructions")
+                        or result.get("column_ai_instructions")
+                        or ""
+                    )
                     result["sort_orders"] = (
                         cube_info_prepared.get("sort_orders")
                         or result.get("sort_orders")
@@ -232,15 +245,16 @@ def register(flask_app) -> None:
             chat_graph_memory.add_node(
                 thread_id,
                 chat_seq_id,
-                {
-                    "chat_response": chat_response_dict,
-                    "sql": raw_sql,
-                    "dialect": metadata_fun_ref.get("reference", ""),
-                    "user_query": user_query,
-                    "user_name": username,
-                    "domain": result.get("domain") or [],
-                    "topics": result.get("topics") or [],
-                },
+                build_chat_memory_payload(
+                    chat_response=chat_response_dict,
+                    sql=raw_sql,
+                    dialect=metadata_fun_ref.get("reference", ""),
+                    user_query=user_query,
+                    user_name=username,
+                    domain=result.get("domain") or [],
+                    topics=result.get("topics") or [],
+                    state=result if isinstance(result, dict) else None,
+                ),
             )
             logger.info(
                 "Interactive request completed user=%s thread=%s chat_seq_id=%s has_sql=%s",

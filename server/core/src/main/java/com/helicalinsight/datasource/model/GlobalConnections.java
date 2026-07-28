@@ -6,9 +6,10 @@ import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-
-
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.serializer.UserDTODeserializer;
+import com.helicalinsight.serializer.UserDeserializer;
 
 import jakarta.persistence.*;
 import reactor.support.Identifiable;
@@ -54,9 +55,11 @@ public class GlobalConnections implements Identifiable<Integer>,Serializable {
     private String vendor;
     @Column(name="base_type")
     private String baseType;
-
-    @Column(name="created_by")
-    private String createdBy;
+    
+    @ManyToOne
+    @JoinColumn(name = "created_by")
+    @JsonDeserialize(using = UserDeserializer.class)
+    private User createdBy;
 
     @Column(name="created_date")
     private Date createdDate;
@@ -102,11 +105,11 @@ public class GlobalConnections implements Identifiable<Integer>,Serializable {
         this.baseType = baseType;
     }
 
-    public String getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 

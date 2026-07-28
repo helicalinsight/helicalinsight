@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { configureStore } from "@reduxjs/toolkit";
 import { hiMockAxios } from "../../app/mock-axios";
@@ -30,6 +29,11 @@ describe("Instant BI Requests Service Tests", () => {
     global.gc && global.gc();
   });
   test("should uri config should have correct endpoints", () => {
+    expect(uriConfig.instantBIChat).toBe("ai/interactive-chat");
+    expect(uriConfig.instantLoadChat).toBe("ai/load-chat");
+    expect(uriConfig.instantDataInsight).toBe("ai/data-insight");
+    expect(uriConfig.instantConvertChart).toBe("ai/convert-chart");
+    expect(uriConfig.instantListCharts).toBe("ai/list-charts");
     expect(uriConfig.instantBIDomain).toBe("ai/recommendation/domain");
     expect(uriConfig.instantBIRecommendation).toBe("ai/recommendation/analyst");
     expect(uriConfig.adhocMetadataGet).toBe("instantbi/instant/getAgent");
@@ -62,5 +66,7 @@ describe("Instant BI Requests Service Tests", () => {
     expect(instantBIInstance.instantBIChatRequest).toBeDefined();
     expect(instantBIInstance.instantBIFetchDomain).toBeDefined();
     expect(instantBIInstance.instantBIFetchRecommendation).toBeDefined();
+    expect(instantBIInstance.instantBIConvertChartRequest).toBeDefined();
+    expect(instantBIInstance.instantBIListChartsRequest).toBeDefined();
   });
 });

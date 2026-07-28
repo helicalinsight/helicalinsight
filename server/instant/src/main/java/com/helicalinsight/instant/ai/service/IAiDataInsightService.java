@@ -8,5 +8,5 @@ import java.io.IOException;
 public interface IAiDataInsightService extends IInstantBIService {
 
     void execute(String chatSeqId, String chatid, String inputParam, String formData, String subjectString,
-                 HttpServletRequest request, HttpServletResponse response) throws IOException;
+                 String downstreamEndpoint, HttpServletRequest request, HttpServletResponse response) throws IOException;
 }
