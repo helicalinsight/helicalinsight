@@ -102,7 +102,7 @@ jobs:
         working-directory: client
         run: |
           npm ci --legacy-peer-deps
-          npm run build
+          npm run build18
 
       - name: Copy frontend into webapp
         run: bash scripts/copy-frontend-to-webapp.sh
