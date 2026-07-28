@@ -1,5 +1,6 @@
-import { Row, Col, Menu } from "antd";
+import { Row, Col, Menu, Tooltip } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { ExperimentOutlined } from "@ant-design/icons";
 import { routesUrl } from "../../../app/constants";
 import { appActions } from "../../../redux/actions";
 import { useSelector, useDispatch } from "react-redux";
@@ -17,10 +18,13 @@ import {
   HIManagement,
   HIScheduling,
   HIAdfs,
-  HIRecycleBin
+  HIRecycleBin,
+  HIConfigurations
 } from "..";
 import TokenUsageDashboard from "../components/hi-management/Components/TokenUsage/TokenUsageDashboard";
 import "./hi-adminTabs.scss";
+
+const CONFIGURATIONS_EXPERIMENTAL_ID = "configurations";
 
 const { adminHomeUrl } = routesUrl;
 
@@ -64,12 +68,26 @@ const HIAdminTabs = () => {
   const { applicationSettingsData, activeRoute } = useSelector((state) => state.app);
   const { user, saml } = applicationSettingsData.userData;
   const { organization } = user;
+  const isSuperAdmin = !organization;
+  const { settings = {}, showExperimentalFeatures } = applicationSettingsData;
+  const experimentalModules = settings?.experimentalModules || [];
+  const showConfigurationsTab =
+    isSuperAdmin &&
+    (!experimentalModules.includes(CONFIGURATIONS_EXPERIMENTAL_ID) ||
+      showExperimentalFeatures);
   const orgCheck = organization ? `${usermanagementName}/roles` : `${usermanagementName}/organizations`;
   const apiRef = useRef(null);
 
   function handleAbort(prop = {}) {
     apiRef.current?.abort(prop);
   }
+
+  const configurationsTab = {
+    tab: "Configurations",
+    tabPath: "/configurations",
+    tutorialElementKey: "hi-configurations",
+    experimental: experimentalModules.includes(CONFIGURATIONS_EXPERIMENTAL_ID),
+  };
 
   const tabsData = [
     {
@@ -96,7 +114,8 @@ const HIAdminTabs = () => {
       tab: "Audit",
       tabPath: "/audit",
       tutorialElementKey: "hi-audit",
-    }
+    },
+    ...(showConfigurationsTab ? [configurationsTab] : []),
   ];
 
   useEffect(() => {
@@ -108,7 +127,7 @@ const HIAdminTabs = () => {
       setAdminTabsData([recycleBinRouteData, ...tabsData]);
     }
     dispatch(setIsAdminTabsDataSet(true));
-  }, [user]);
+  }, [user, showConfigurationsTab, showExperimentalFeatures]);
 
   useEffect(() => {
     if (saml.enabled) {
@@ -140,7 +159,7 @@ const HIAdminTabs = () => {
     <Row className="hi-admin-container hi-admin-tabs">
       <Col span={24} className="hi-admin-tabs-container">
         {adminTabsData.length > 0 && (
-          <Menu selectedKeys={[selectedKey]} onClick={(ele) => setSelectedKey(ele.key === "User Management")} mode="horizontal" inlineCollapsed={false} style={{ width: !organization ? '69.18%' : '49.5%' }} className="hi-tabs-menu">{/* 6013 */}
+          <Menu selectedKeys={[selectedKey]} onClick={(ele) => setSelectedKey(ele.key === "User Management")} mode="horizontal" inlineCollapsed={false} style={{ width: !organization ? '78%' : '58%' }} className="hi-tabs-menu">{/* 6013 */}
             {adminTabsData.map((eachData) => {
               return (
                 <Menu.Item
@@ -151,7 +170,12 @@ const HIAdminTabs = () => {
                     "menu-first-item":
                       eachData.tab === "Overview" ||
                       (organization && eachData.tab === "User Management"),
-                    "menu-last-item": eachData.tab === "Audit" || eachData.tab === "Adfs",
+                    "menu-last-item":
+                      eachData.tab === "Adfs" ||
+                      (eachData.tab === "Configurations" && !saml?.enabled) ||
+                      (eachData.tab === "Audit" &&
+                        !showConfigurationsTab &&
+                        !saml?.enabled),
                   })}
                 >
                   <NavLink
@@ -160,7 +184,27 @@ const HIAdminTabs = () => {
                     activeClassName="selected"
                   >
                     <TutorialInfo elementKey={eachData.tutorialElementKey} className="pad-top-10">
-                      {eachData.tab}
+                      {eachData.experimental ? (
+                        <Tooltip title="Experimental Module">
+                          <span>
+                            {eachData.tab}
+                            <sup>
+                              <ExperimentOutlined
+                                style={{
+                                  fontSize: "10px",
+                                  backgroundColor: "#1890F5",
+                                  color: "#fff",
+                                  padding: "3px",
+                                  margin: "2px",
+                                  borderRadius: "50%",
+                                }}
+                              />
+                            </sup>
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        eachData.tab
+                      )}
                     </TutorialInfo>
                   </NavLink>
                 </Menu.Item>
@@ -193,6 +237,11 @@ const HIAdminTabs = () => {
           <Route path={`${path}/audit`}>
             <TokenUsageDashboard apiRef={apiRef} handleAbort={handleAbort} />
           </Route>
+          {showConfigurationsTab && (
+            <Route path={`${path}/configurations`}>
+              <HIConfigurations apiRef={apiRef} handleAbort={handleAbort} />
+            </Route>
+          )}
           <Route path={`${path}/schedule`}>
             <HIScheduling apiRef={apiRef} handleAbort={handleAbort} />
           </Route>

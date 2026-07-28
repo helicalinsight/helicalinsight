@@ -68,7 +68,6 @@ export const buildCubeFieldsDataFromCubes = (cubes) => {
         obj.formula = levels[0].formula || '';
         obj.filter = levels[0].filter || '';
         obj.example = levels[0].example || '';
-        obj.description = levels[0].description || '';
 	  } else {
 	    obj.isHierarchy= true;
 		obj.table = hierarchies[0].table;
@@ -101,7 +100,6 @@ export const buildCubeFieldsDataFromCubes = (cubes) => {
             formula: level.formula || '',
             filter: level.filter || '',
             example: level.example || '',
-            description: level.description || '',
 	      }
 	    })
 	  }
@@ -135,7 +133,6 @@ export const buildCubeFieldsDataFromCubes = (cubes) => {
 		formula: measure.formula || '',
 		filter: measure.filter || '',
 		example: measure.example || '',
-		description: measure.description || '',
 		}
 	  })
 	cubeData.children.push(...measures);
@@ -257,7 +254,6 @@ export const handleCubeFormdata = ({ dispatch, location, type, fileName, cubeFie
 											formula: hChild.formula || '',
 											filter: hChild.filter || '',
 											example: hChild.example || '',
-											description: hChild.description || '',
 										};
 										if(type !== 'saveAs') {
 											(hChild.resLevelId) && (childObj.id = hChild.resLevelId);
@@ -310,7 +306,6 @@ export const handleCubeFormdata = ({ dispatch, location, type, fileName, cubeFie
 											formula: child.formula || '',
 											filter: child.filter || '',
 											example: child.example || '',
-											description: child.description || '',
 										}
 									]
 								}
@@ -345,7 +340,6 @@ export const handleCubeFormdata = ({ dispatch, location, type, fileName, cubeFie
 							formula: child.formula || '',
 							filter: child.filter || '',
 							example: child.example || '',
-							description: child.description || '',
 						};
 						(cubeMode === 'edit' ) && child.isDelete && (obj.action = 'delete');
 						if(type !== 'saveAs') {

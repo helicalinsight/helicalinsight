@@ -7,6 +7,7 @@ from flask import request
 from bl.app_context import app
 from bl.helpers import (
     RequestAborted,
+    build_chat_memory_payload,
     build_chat_response_from_item,
     domain_topics_from_chat_response,
     ensure_not_aborted,
@@ -129,15 +130,16 @@ def register(flask_app) -> None:
             chat_graph_memory.add_node(
                 thread_id,
                 chat_seq_id,
-                {
-                    "chat_response": chat_response_dict,
-                    "sql": raw_sql,
-                    "dialect": dialect,
-                    "user_query": user_query,
-                    "user_name": username,
-                    "domain": domain,
-                    "topics": topics,
-                },
+                build_chat_memory_payload(
+                    chat_response=chat_response_dict,
+                    sql=raw_sql,
+                    dialect=dialect,
+                    user_query=user_query,
+                    user_name=username,
+                    domain=domain,
+                    topics=topics,
+                    state=loaded_item if isinstance(loaded_item, dict) else None,
+                ),
             )
             logger.info(
                 "Load-chat request completed user=%s thread=%s chat_seq_id=%s",

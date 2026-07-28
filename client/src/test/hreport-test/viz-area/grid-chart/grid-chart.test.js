@@ -15,20 +15,6 @@ import GridChart from "../../../../components/hi-reports/hi-viz-area/grid-chart/
 
 
 describe("Rendering filters pane", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-    });
     const store = configureStore({
         reducer: reducers,
         middleware: (getDefaultMiddleware) =>
@@ -43,13 +29,6 @@ describe("Rendering filters pane", () => {
     const dispatch = store.dispatch
     const getState = store.getState
 
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-        
-    test("jest example",async () => {
-        expect(1+1).toBeTruthy();
-    });
     test("rendering grid chart with invalid config",async () => {
         let reportId = "test_1234"
         const marksList = [

@@ -32,17 +32,17 @@ import {
 import {
   convertAgentDataToCubeFieldsData,
   convertCubeFieldsDataToAgentData,
-  getAgentStateFromCubeFields,
   normalizeAgentData,
+  normalizeAgentFieldFormats,
   resolveAgentDataFromInput,
   serializeAgentData,
   serializeAgentDataForDisplay,
-  stripInternalTableRefsFromAgentState,
 } from "../../utils/agent-cube-bridge";
 import { AgentNameProvider } from "../../../common/agent-name-context";
 import "./semantic-metadata-editor.scss";
 
 const EMPTY_AGENT_DATA = ensureShape({});
+const EMPTY_SEMANTIC_TYPES = [];
 
 const SemanticMetadataEditor = React.forwardRef(
   (
@@ -66,6 +66,8 @@ const SemanticMetadataEditor = React.forwardRef(
     ref,
   ) => {
     const agentSlice = useSelector((store) => store.agent);
+    const semanticTypeOptions =
+      agentSlice?.semanticTypes || EMPTY_SEMANTIC_TYPES;
     const [editorState, editorDispatch] = useReducer(
       agentEditorReducer,
       agentSlice,
@@ -79,6 +81,7 @@ const SemanticMetadataEditor = React.forwardRef(
     const [jsonText, setJsonText] = useState(() =>
       serializeAgentDataForDisplay(EMPTY_AGENT_DATA),
     );
+    const [hasUnsavedJsonChanges, setHasUnsavedJsonChanges] = useState(false);
     const agentDataRef = useRef(EMPTY_AGENT_DATA);
     const editorStateRef = useRef(editorState);
     editorStateRef.current = editorState;
@@ -90,8 +93,6 @@ const SemanticMetadataEditor = React.forwardRef(
     );
     const onContentChangeRef = useRef(onContentChange);
     const onTableModeChangeRef = useRef(onTableModeChange);
-
-    const Notify = notify(dispatchProp);
 
     onContentChangeRef.current = onContentChange;
     onTableModeChangeRef.current = onTableModeChange;
@@ -115,14 +116,18 @@ const SemanticMetadataEditor = React.forwardRef(
 
     const publishAgentData = useCallback(
       (nextAgentData, { syncCube = true, syncJson = true } = {}) => {
-        const shaped = normalizeAgentData(nextAgentData);
+        const shaped = normalizeAgentFieldFormats(
+          normalizeAgentData(nextAgentData),
+          semanticTypeOptions,
+          agentDataRef.current,
+        );
         const serialized = serializeAgentData(shaped);
-
         agentDataRef.current = shaped;
 
         if (syncJson) {
           skipJsonSyncRef.current = true;
           setJsonText(serializeAgentDataForDisplay(shaped));
+          setHasUnsavedJsonChanges(false);
           lastFieldsSerializedRef.current = serialized;
           requestAnimationFrame(() => {
             skipJsonSyncRef.current = false;
@@ -136,33 +141,24 @@ const SemanticMetadataEditor = React.forwardRef(
         onContentChangeRef.current?.(serialized);
         return shaped;
       },
-      [syncCubeFromAgent],
+      [semanticTypeOptions, syncCubeFromAgent],
     );
 
-    const applyAgentData = useCallback(
-      (nextAgentData, options) => publishAgentData(nextAgentData, options),
-      [publishAgentData],
-    );
-
-    const applyParsedPayload = useCallback(
-      (rawText, { syncJson = true } = {}) => {
+    const applyJsonText = useCallback(
+      (rawText, options) => {
+        if (!rawText?.trim()) {
+          return publishAgentData(EMPTY_AGENT_DATA, options);
+        }
         const { agentState } = parsePastedAgentPayload(rawText);
         const nextAgentData = resolveAgentDataFromInput(
           agentDataRef.current,
           normalizeAgentData(agentState),
         );
         lastLoadedAgentPropRef.current = serializeAgentData(nextAgentData);
-        return applyAgentData(nextAgentData, { syncJson });
+        return publishAgentData(nextAgentData, options);
       },
-      [applyAgentData],
+      [publishAgentData],
     );
-
-    const getClipboardPayload = useCallback(() => {
-      const agentState = stripInternalTableRefsFromAgentState(
-        getAgentStateFromCubeFields(cubeFieldsData, agentDataRef.current),
-      );
-      return serializeAgentData(agentState);
-    }, [cubeFieldsData]);
 
     const {
       pasteOpen,
@@ -174,16 +170,16 @@ const SemanticMetadataEditor = React.forwardRef(
       closePasteModal,
       resetPasteModal,
     } = useJsonClipboard({
-      getPayload: getClipboardPayload,
-      applyPayload: applyParsedPayload,
+      getPayload: () => jsonText,
+      applyPayload: applyJsonText,
       onCopySuccess: () => {
-        Notify.success({
+        notify(dispatchProp).success({
           type: "Frontend",
           message: "Copied JSON to clipboard",
         });
       },
       onPasteError: (err) => {
-        Notify.error({
+        notify(dispatchProp).error({
           type: "Frontend",
           message: `Invalid JSON: ${err.message}`,
         });
@@ -207,28 +203,24 @@ const SemanticMetadataEditor = React.forwardRef(
       if (isLoading) {
         return;
       }
-
       if (agentData == null) {
         if (lastLoadedAgentPropRef.current != null) {
           resetEditor();
         }
         return;
       }
-
       const serializedProp = serializeAgentData(agentData);
       if (lastLoadedAgentPropRef.current === serializedProp) {
         return;
       }
-
       lastLoadedAgentPropRef.current = serializedProp;
-      applyAgentData(agentData);
-    }, [agentData, isLoading, applyAgentData, resetEditor]);
+      publishAgentData(agentData);
+    }, [agentData, isLoading, publishAgentData, resetEditor]);
 
-    const syncJsonFromCubeFields = useCallback(() => {
+    useEffect(() => {
       if (skipCubeSyncRef.current || skipJsonSyncRef.current) {
         return;
       }
-
       const nextAgentData = convertCubeFieldsDataToAgentData(
         cubeFieldsData,
         agentDataRef.current,
@@ -237,38 +229,44 @@ const SemanticMetadataEditor = React.forwardRef(
       if (serialized === lastFieldsSerializedRef.current) {
         return;
       }
-
       publishAgentData(nextAgentData, { syncCube: false, syncJson: true });
     }, [cubeFieldsData, publishAgentData]);
 
-    useEffect(() => {
-      syncJsonFromCubeFields();
-    }, [syncJsonFromCubeFields]);
+    const handleJsonDraftChange = useCallback((content) => {
+      setJsonText(content ?? "");
+      setHasUnsavedJsonChanges(true);
+    }, []);
+
+    const handleJsonSave = useCallback(() => {
+      try {
+        applyJsonText(jsonText, { syncJson: true });
+        notify(dispatchProp).success({
+          type: "Frontend",
+          message: "JSON saved successfully",
+        });
+      } catch (err) {
+        notify(dispatchProp).error({
+          type: "Frontend",
+          message: `Invalid JSON: ${err.message}`,
+        });
+      }
+    }, [applyJsonText, dispatchProp, jsonText]);
 
     const handleJsonChange = useCallback(
       (content) => {
-        if (!content?.trim()) {
-          applyAgentData(EMPTY_AGENT_DATA, { syncCube: true, syncJson: true });
-          return;
-        }
-
         try {
-          const nextAgentData = resolveAgentDataFromInput(
-            agentDataRef.current,
-            JSON.parse(content),
-          );
-          lastLoadedAgentPropRef.current = serializeAgentData(nextAgentData);
-          applyAgentData(nextAgentData, { syncCube: true, syncJson: true });
+          applyJsonText(content, { syncCube: true, syncJson: true });
         } catch {
-          setJsonText(content);
+          handleJsonDraftChange(content);
         }
       },
-      [applyAgentData],
+      [applyJsonText, handleJsonDraftChange],
     );
 
     useImperativeHandle(ref, () => ({
       handleCopy,
       handleOpenPaste,
+      handleJsonSave,
       toggleTableMode: () => editorDispatch(setCubeTableMode()),
       resetEditor,
       getSaveState: () => ({
@@ -313,8 +311,11 @@ const SemanticMetadataEditor = React.forwardRef(
             <AgentWorkspace
               shelfLayout={shelfLayout}
               metadataShelfProps={metadataShelfProps}
+              jsonText={jsonText}
+              onJsonChange={handleJsonDraftChange}
+              onSaveJson={handleJsonSave}
               onCopyJson={handleCopy}
-              onPasteJson={handleOpenPaste}
+              hasUnsavedJsonChanges={hasUnsavedJsonChanges}
             />
           </JsonEditorShell>
         </CubeEditorProvider>

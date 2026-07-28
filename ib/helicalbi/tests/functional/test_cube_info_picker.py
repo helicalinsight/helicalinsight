@@ -120,7 +120,19 @@ class TestGetRequiredMetricsCubeInfo:
             ),
         }
         result = GetRequiredMetrics().process_flow(state)
-        assert result["required_cube_info"] == {
-            "picked_dimensions": ["booking platform"],
-            "picked_metrics": ["Total cost"],
-        }
+        assert result["required_cube_info"]["picked_dimensions"] == ["booking platform"]
+        assert result["required_cube_info"]["picked_metrics"] == ["Total cost"]
+        picked_by_table = result["required_cube_info"]["picked_by_table"]
+        assert "travel_details" in picked_by_table
+        assert any(
+            item.get("alias_name") == "booking platform"
+            for item in picked_by_table["travel_details"].get("dimensions") or []
+        )
+        assert "sql_domain_context" in result
+        assert "format_string" not in json.dumps(
+            picked_by_table.get("travel_details") or {}
+        ) or all(
+            "format_string" not in item
+            for bucket in ("dimensions", "hierarchies", "measures", "computed_measures")
+            for item in (picked_by_table["travel_details"].get(bucket) or [])
+        )

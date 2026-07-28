@@ -200,7 +200,8 @@ public class ApplicationDefaultUsersInitializer implements ApplicationValuesInit
 
             //TODO NEED TO CHECK THIS
             GlobalConnections globalConnections = new GlobalConnections();
-            globalConnections.setCreatedBy("1");
+            User createdBy =  userService.findUser(1);
+            globalConnections.setCreatedBy(createdBy);
             globalConnections.setId(1);
             globalConnections.setName("SampleTravelDataDerby");
             globalConnections.setType("dynamicDataSource");

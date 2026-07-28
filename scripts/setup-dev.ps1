@@ -24,7 +24,7 @@ if (Test-Path $Setting) {
     $content = Get-Content $Setting -Raw
     if ($content -match '\$\{INSTALL_PATH\}') {
         $content = $content -replace '<efwSolution>.*</efwSolution>', "<efwSolution>$RepoAbs</efwSolution>"
-        $content = $content -replace '<BaseUrl>.*</BaseUrl>', '<BaseUrl>http://localhost:8080/hi-ee/hi.html</BaseUrl>'
+        $content = $content -replace '<BaseUrl>.*</BaseUrl>', '<BaseUrl>http://localhost:8080/hi-ee/</BaseUrl>'
         Set-Content -Path $Setting -Value $content -NoNewline
         Write-Host '[OK]   Patched setting.xml (efwSolution, BaseUrl)' -ForegroundColor Green
     } else {
@@ -63,11 +63,42 @@ if (-not (Test-Path $EnvFile) -and (Test-Path $EnvExample)) {
     Write-Host '[OK]   Created .env from .env.example' -ForegroundColor Green
 }
 
+$DockerEnvExample = Join-Path $Root "docker\.env.example"
+$DockerEnv = Join-Path $Root "docker\.env"
+if (-not (Test-Path $DockerEnv) -and (Test-Path $DockerEnvExample)) {
+    Copy-Item $DockerEnvExample $DockerEnv
+    Write-Host '[OK]   Created docker/.env from docker/.env.example' -ForegroundColor Green
+}
+
+# Link Instant BI into the shared Docker layout (same path the package uses)
+$InstantBiLink = Join-Path $Root "docker\instantbi\helicalbi"
+$InstantBiSrc = Join-Path $Root "ib\helicalbi"
+$InstantBiParent = Join-Path $Root "docker\instantbi"
+New-Item -ItemType Directory -Force -Path $InstantBiParent | Out-Null
+if ((Test-Path $InstantBiSrc) -and -not (Test-Path $InstantBiLink)) {
+    try {
+        New-Item -ItemType Junction -Path $InstantBiLink -Target $InstantBiSrc | Out-Null
+        Write-Host '[OK]   Linked docker/instantbi/helicalbi → ib/helicalbi' -ForegroundColor Green
+    } catch {
+        Copy-Item -Recurse $InstantBiSrc $InstantBiLink
+        Write-Host '[OK]   Copied ib/helicalbi → docker/instantbi/helicalbi' -ForegroundColor Green
+    }
+} elseif (Test-Path $InstantBiLink) {
+    Write-Host '[SKIP] docker/instantbi/helicalbi already present' -ForegroundColor Yellow
+}
+
 Write-Host ""
-Write-Host "Setup complete. Build and run:" -ForegroundColor Green
-Write-Host "  cd server; mvn clean package -DskipTests"
-Write-Host "  # Deploy presentation\target\hi-ee-7.0.0.war as %CATALINA_HOME%\webapps\hi-ee.war"
-Write-Host "  cd client; npm ci --legacy-peer-deps; npm run start18"
+Write-Host "Setup complete. See README.md for full paths." -ForegroundColor Green
 Write-Host ""
-Write-Host "Or use Docker:"
+Write-Host "Recommended (full stack — first start can take a few minutes):"
+Write-Host "  cd docker; docker compose up -d"
+Write-Host "  # Open https://localhost  (login: hiadmin / hiadmin)"
+Write-Host ""
+Write-Host "Per component:"
+Write-Host "  Backend:    cd server; mvn clean package -DskipTests"
+Write-Host "              # Deploy presentation\target\hi-ee-7.0.0.war as %CATALINA_HOME%\webapps\hi-ee.war"
+Write-Host "  Frontend:   cd client; npm ci --legacy-peer-deps; npm run start18"
+Write-Host "  Instant BI: cd ib\helicalbi; pip install -r requirements.txt; python app.py"
+Write-Host ""
+Write-Host "Build backend from source in Docker:"
 Write-Host "  docker compose -f docker-compose.dev.yml up --build"

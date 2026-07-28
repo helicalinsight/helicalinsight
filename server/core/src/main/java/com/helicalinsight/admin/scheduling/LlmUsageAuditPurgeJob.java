@@ -26,10 +26,13 @@ public class LlmUsageAuditPurgeJob implements Job {
         try {
             LlmUsageAuditService auditService = ApplicationContextAccessor.getBean(LlmUsageAuditService.class);
             int purgedCount = auditService.purgeOlderThan(cutoffDate, exportPath);
-            logger.info("System schedule {} purged {} LLM audit records older than {} days",
-                    scheduleId, purgedCount, retentionDays);
+            String result = "System schedule " + scheduleId + " purged " + purgedCount
+                    + " LLM audit records older than " + retentionDays + " days";
+            context.setResult(result);
+            logger.info(result);
         } catch (Exception ex) {
             logger.error("System schedule {} failed while purging LLM audit records", scheduleId, ex);
+            context.setResult("System schedule " + scheduleId + " failed: " + ex.getMessage());
         }
     }
 

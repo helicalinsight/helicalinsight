@@ -10,6 +10,13 @@
     <defaultBaseurl>true</defaultBaseurl>
     <autoSyncCutPasteDesigner>true</autoSyncCutPasteDesigner>
     <serviceSpeedLimitAlert>15000</serviceSpeedLimitAlert>
+    <!-- If the resource owner is not available during import, the resources will be assigned to this user. -->
+    <defaultOwnerId>1</defaultOwnerId>
+    <!-- Dialects to convert null string values into empty strings-->
+    <Dialects>
+    	<Dialect>org.hibernate.dialect.OracleDialect</Dialect>
+    	<Dialect>org.hibernate.dialect.Oracle12cDialect</Dialect>
+    </Dialects>
     <!-- The framework related files with extensions and configurable rules -->
     <Extentions>
         <!-- Only efw, efwsr, efwfav, efwresult, metadata, report, efwdd files are shown in the file browser -->
@@ -29,8 +36,8 @@
         <hr rule="com.helicalinsight.efw.resourceloader.rules.impl.AdhocReportRule" visible="true">hr</hr>
         <efwScript visible="false">script</efwScript>
         <efwdd rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardDesignerRule" visible="true">efwdd</efwdd>
-        <efwce rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardRule" visible="true">efwce</efwce>
-        <cube rule="com.helicalinsight.efw.resourceloader.rules.impl.CubeRule" visible="true">cube</cube>
+        <efwce rule="com.helicalinsight.efw.resourceloader.rules.impl.DashboardRule" visible="false">efwce</efwce>
+        <cube rule="com.helicalinsight.efw.resourceloader.rules.impl.CubeRule" visible="false">cube</cube>
         <instant rule="com.helicalinsight.efw.resourceloader.rules.impl.InstantRule" visible="true">instant</instant>
         <model rule="com.helicalinsight.efw.resourceloader.rules.impl.AiAgentRule" visible="true">model</model>
         <hwf visible="false">hwf</hwf>
@@ -59,7 +66,6 @@
         <xml name="services.xml" type="services"/>
         <xml name="components.xml" type="components"/>
         <xml name="globalConnections.xml" type="globalConnections"/>
-        <xml name="systemschedule.xml" type="system"/>
     </import>
     <!-- The following tag is read as string and should be without any attributes-->
     <enableSavedResult>false</enableSavedResult>

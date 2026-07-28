@@ -11,6 +11,77 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "CirclePacking. Config: root children[{name,value}]; colorField name; label field name.\nPolish: element-active; value=measure; clear names; soft colors; no overlapping text clutter.",
-  "code": "\nfunction DrawCirclePacking() {\n  const { CirclePacking } = components;\n  const dimensionField = \"dimension_column\";\n  const measureField = \"measure_column\";\n  const chartData = {\n    name: \"root\",\n    children: data.map((item) => ({\n      name: String(item[dimensionField]),\n      value: Number(item[measureField]) || 0\n    }))\n  };\n  const config = {\n    data: chartData,\n    colorField: \"name\",\n    label: { field: \"name\" },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><CirclePacking {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "hierarchy",
+    "component": "CirclePacking",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "CirclePacking. Config: root children[{name,value}]; colorField name; label field name (never show literal 'root').",
+    "Polish: element-active; value=measure; clear names; soft colors; no overlapping text clutter; hide root label."
+  ],
+  "code": [
+    "function DrawCirclePacking() {",
+    "  const { CirclePacking } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const dimensionField = 'dimension_column';",
+    "  const measureField = 'measure_column';",
+    "  const chartData = {",
+    "    name: 'root',",
+    "    children: data.map((item) => ({",
+    "      name: String(item[dimensionField]),",
+    "      value: Number(item[measureField]) || 0",
+    "    }))",
+    "  };",
+    "  const config = {",
+    "    data: chartData,",
+    "    colorField: 'name',",
+    "    label: {",
+    "      field: 'name',",
+    "      formatter: (datum) => {",
+    "        const name = (datum && (datum.name ?? datum)) || '';",
+    "        const depth = datum && datum.depth;",
+    "        if (name === 'root' || depth === 0) return '';",
+    "        return String(name);",
+    "      }",
+    "    },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><CirclePacking {...config} /></div>;",
+    "}"
+  ]
 }

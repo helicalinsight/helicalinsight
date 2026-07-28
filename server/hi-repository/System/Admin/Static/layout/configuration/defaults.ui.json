@@ -1,0 +1,10 @@
+{
+    "id":  "defaults",
+    "file":  "defaults.properties",
+    "title":  "Defaults",
+    "description":  "General SQL and application default property values.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/defaults.ui.layout",
+    "fallbackEditor":  "properties"
+}

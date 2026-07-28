@@ -196,8 +196,9 @@ const useChartContainerSize = (containerRef, { width, height, observe }) => {
       const nextWidth = width ?? el.clientWidth;
       const nextHeight = height ?? el.clientHeight;
       setSize((prev) => {
-        if (prev.width === nextWidth && prev.height === nextHeight) return prev;
-        return { width: nextWidth, height: nextHeight };
+        const w = nextWidth <= 0 && prev.width > 0 ? prev.width : nextWidth;
+        const h = nextHeight <= 0 && prev.height > 0 ? prev.height : nextHeight;
+        return prev.width === w && prev.height === h ? prev : { width: w, height: h };
       });
     };
     update();
@@ -205,10 +206,7 @@ const useChartContainerSize = (containerRef, { width, height, observe }) => {
     observer.observe(el);
     return () => observer.disconnect();
   }, [containerRef, width, height, observe]);
-  return {
-    width: width ?? size.width,
-    height: height ?? size.height,
-  };
+  return { width: width ?? size.width, height: height ?? size.height };
 };
 
 export const isIbKpiChart = (chartName = "", vf = "") => {
@@ -218,12 +216,15 @@ export const isIbKpiChart = (chartName = "", vf = "") => {
 };
 
 export const isIbTableChart = (chartName = "", vf = "") => {
-  if (String(chartName).toLowerCase() === "table") return true;
+  const name = String(chartName).toLowerCase();
+  // GridTable / pivot use AntV S2 — do not route them to markdown flat table.
+  if (name === "grid_table" || name === "pivot_table") return false;
+  if (name === "table") return true;
   const vfText = String(vf);
+  if (/\bGridTable\b/.test(vfText)) return false;
   return (
     /function\s+DrawTable\b/.test(vfText) ||
-    /<Table[\s/>]/.test(vfText) ||
-    /\bGridTable\b/.test(vfText)
+    /<Table[\s/>]/.test(vfText)
   );
 };
 
@@ -287,14 +288,24 @@ export const ChartView = ({
   const containerRef = useRef(null);
   const isTableChart = isIbTableChart(chartName, vf);
   const isKpiChart = isIbKpiChart(chartName, vf);
-  const observeSize = width == null || (!compact && height == null);
+  const [lockedWidth, setLockedWidth] = useState(null);
+  const observe = !lockedWidth && (width == null || (!compact && height == null));
   const { width: measuredWidth, height: measuredHeight } = useChartContainerSize(
     containerRef,
-    { width, height, observe: observeSize && !isTableChart },
+    { width, height, observe: observe && !isTableChart },
   );
   const [hasError, setHasError] = useState(
     () => !isTableChart && !String(vf || "").trim(),
   );
+
+  useEffect(() => {
+    setLockedWidth(null);
+  }, [id, vf]);
+  useEffect(() => {
+    if (compact && !lockedWidth && !isTableChart && measuredWidth > MIN_CHART_SIZE) {
+      setLockedWidth(measuredWidth);
+    }
+  }, [compact, lockedWidth, measuredWidth, isTableChart]);
 
   useEffect(() => {
     if (isTableChart) {
@@ -317,9 +328,7 @@ export const ChartView = ({
       <div
         ref={containerRef}
         className={`chart-wrapper chart-wrapper--table${compact ? " chart-wrapper--compact" : ""} ${className}`.trim()}
-        style={{
-          ...(width == null ? { width: "100%" } : { width }),
-        }}
+        style={width == null ? { width: "100%" } : { width }}
       >
         <div className="json-data-viewer">
           <CommonMarkdownTable data={data || []} />
@@ -334,30 +343,14 @@ export const ChartView = ({
     );
   }
 
-  const effectiveWidth = Math.max(measuredWidth, MIN_CHART_SIZE);
+  const chartWidth = Math.max(lockedWidth || measuredWidth, MIN_CHART_SIZE);
   const compactHeight =
     compact && !isKpiChart
-      ? Math.max(effectiveWidth * COMPACT_CHART_ASPECT_RATIO, MIN_CHART_SIZE)
+      ? Math.max(chartWidth * COMPACT_CHART_ASPECT_RATIO, MIN_CHART_SIZE)
       : undefined;
-  const effectiveHeight = compact
+  const chartHeight = compact
     ? compactHeight
     : Math.max(measuredHeight || getChartPreviewModalHeight(), MIN_CHART_SIZE);
-  const canRenderChart = effectiveWidth > MIN_CHART_SIZE;
-
-  const chart = canRenderChart ? (
-    <IBCustomChart
-      data={data}
-      showToolbar={false}
-      customChart={{ code: vf }}
-      dataId={id}
-      autoFit={true}
-      compact={compact}
-      isKpiChart={isKpiChart}
-      onPreviewError={handlePreviewError}
-      chartAreaWidth={effectiveWidth}
-      chartAreaHeight={effectiveHeight}
-    />
-  ) : null;
 
   return (
     <div
@@ -365,13 +358,31 @@ export const ChartView = ({
       className={`chart-wrapper${compact ? " chart-wrapper--compact" : ""}${
         isKpiChart ? " chart-wrapper--kpi" : ""
       } ${className}`.trim()}
-      style={{
-        ...(width == null ? { width: "100%" } : { width }),
-        ...(compactHeight != null ? { height: compactHeight } : undefined),
-      }}
+      style={
+        lockedWidth
+          ? { width: lockedWidth, maxWidth: lockedWidth, height: compactHeight }
+          : {
+              ...(width == null ? { width: "100%" } : { width }),
+              ...(compactHeight != null ? { height: compactHeight } : null),
+            }
+      }
     >
       <div className="chart-wrapper__content" style={{ width: "100%", height: "100%" }}>
-        {chart}
+        {chartWidth > MIN_CHART_SIZE ? (
+          <IBCustomChart
+            data={data}
+            showToolbar={false}
+            customChart={{ code: vf }}
+            dataId={id}
+            autoFit
+            compact={compact}
+            isKpiChart={isKpiChart}
+            chartName={chartName}
+            onPreviewError={handlePreviewError}
+            chartAreaWidth={chartWidth}
+            chartAreaHeight={chartHeight}
+          />
+        ) : null}
       </div>
     </div>
   );

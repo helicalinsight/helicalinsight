@@ -5,7 +5,8 @@ the nested ``SQLModel`` state (stored under ``state["sqlModel"]``) into a single
 client-friendly payload with the shape::
 
     chat_response: {
-        viz:     { vf_template, chart_name, vf_title, vf_reason },
+        viz:     { vf_template, chart_name, vf_title, vf_reason,
+                   similar_chart },
         sql:     { raw_sql, dialect, required_domain, required_topic,
                    required_table, required_column, required_join, required_cube_info,
                    reason },
@@ -28,6 +29,7 @@ from helicalbi.common import app_config
 from helicalbi.common.LlmInvokeHelper import read_time_consumed, read_token_usage
 from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
+from helicalbi.viz._chart_selection import format_similar_chart_wire
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,13 @@ class VizSection(BaseModel):
     chart_name: str = Field(default="", description="Selected chart / visualization type, e.g. bar, pie, line.")
     vf_title: str = Field(default="", description="Human friendly visualization title.")
     vf_reason: str = Field(default="", description="Reason for choosing this visualization.")
+    similar_chart: list[dict[str, str]] = Field(
+        default_factory=list,
+        description=(
+            "Alternate chart types that also fit this data "
+            '(wire format: [{"vf.column": "column"}, {"vf.dual_line": "dual line"}, ...]).'
+        ),
+    )
 
 
 class SqlSection(BaseModel):
@@ -107,11 +116,14 @@ class ChatResponse(BaseModel):
             else ""
         )
 
+        similar_chart = format_similar_chart_wire(state.get("similar_chart"))
+
         viz = VizSection(
             vf_template=vf_template_encoded,
             chart_name=_as_str(state.get("viz_hint")).replace("_", " "),
             vf_title=_as_str(state.get("vf_title")),
             vf_reason=_as_str(state.get("viz_reason")),
+            similar_chart=similar_chart,
         )
 
         required_tables = (

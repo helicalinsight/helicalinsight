@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "../../../utils/polyfill/url";
 import { configureStore } from "@reduxjs/toolkit";
@@ -22,22 +21,6 @@ const App = ({ store }) => {
 };
 
 describe("HI Icon Test", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
   const store = configureStore({
     reducer: reducers,
     middleware: (getDefaultMiddleware) =>
@@ -49,11 +32,7 @@ describe("HI Icon Test", () => {
         serializableCheck: false,
       }),
   });
-    
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
+
   test("Instant BI Icon Style", async () => {
     await waitFor(() => render(<App store={store} />));
     const iconEle = screen.queryByTestId(/hi-instant-bi-icon/i);

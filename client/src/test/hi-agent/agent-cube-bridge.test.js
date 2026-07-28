@@ -32,7 +32,6 @@ const sampleNewFormat = {
           columnName: "booking_platform",
           columnId: "1074",
           defaultFunction: "db.generic.groupBy.group",
-          description: "Platform used for booking",
           metric: { formula: "count(*)" },
         },
       ],
@@ -46,7 +45,6 @@ const sampleNewFormat = {
           formatString: "0.00",
           semanticType: "numeric",
           columnName: "destination_id",
-          description: "Number of destinations",
           metric: { formula: "" },
         },
       ],
@@ -439,6 +437,7 @@ describe("agent-cube-bridge", () => {
       tableId: "",
       columnName: "",
       formatString: "0.00",
+      defaultFunction: "",
       metric: { formula: "" },
     });
     expect(String(result.cube[0].measures[0].metricId || "").trim()).not.toBe(
@@ -447,7 +446,7 @@ describe("agent-cube-bridge", () => {
     expect(result.cube[0].measures[0]).not.toHaveProperty("columnId");
   });
 
-  it("exports None aggregator with db.generic.aggregate.none defaultFunction", () => {
+  it("exports empty defaultFunction when aggregator is None", () => {
     const result = convertCubeFieldsDataToAgentData(
       {
         children: [
@@ -471,7 +470,7 @@ describe("agent-cube-bridge", () => {
     expect(result.cube[0].measures[0]).toMatchObject({
       measureName: "age",
       aggregator: "None",
-      defaultFunction: "db.generic.aggregate.none",
+      defaultFunction: "",
       columnId: "2856",
     });
   });
@@ -545,7 +544,6 @@ describe("agent-cube-bridge", () => {
       tableId: "323",
       columnId: "2672",
       semanticType: "",
-      description: "",
       metric: { formula: "" },
       hierarchies: [
         {

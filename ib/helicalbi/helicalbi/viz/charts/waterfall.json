@@ -11,6 +11,79 @@
   ],
   "requires_ordered": true,
   "base": "default",
-  "instructions": "Waterfall. Config: xField=ordered stages, yField=delta; total.label; linkStyle dashed.\nPolish: autoFit; rising/falling colors if available; axis titles; label middle for values; clear Total; element-active.",
-  "code": "\nfunction DrawWaterfall() {\n  const { Waterfall } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    linkStyle: {\n      lineDash: [4, 2],\n      stroke: \"#ccc\"\n    },\n    total: {\n      label: \"Total\"\n    },\n    xAxis: {\n      title: {\n        text: \"dimension_column\"\n      }\n    },\n    yAxis: {\n      title: {\n        text: \"measure_column\"\n      }\n    }\n  };\n  return <div><Waterfall {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "cartesian",
+    "component": "Waterfall",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Waterfall. Config: xField=ordered stages, yField=delta; total.label; linkStyle dashed.",
+    "Polish: autoFit; rising/falling colors if available; axis titles; label middle for values; clear Total; element-active."
+  ],
+  "code": [
+    "function DrawWaterfall() {",
+    "  const { Waterfall } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'dimension_column',",
+    "    yField: 'measure_column',",
+    "    linkStyle: {",
+    "      lineDash: [4, 2],",
+    "      stroke: '#ccc'",
+    "    },",
+    "    total: {",
+    "      label: 'Total'",
+    "    },",
+    "    xAxis: {",
+    "      title: {",
+    "        text: 'dimension_column'",
+    "      }",
+    "    },",
+    "    yAxis: {",
+    "      title: {",
+    "        text: 'measure_column'",
+    "      },",
+    "      label: {",
+    "        formatter: (v) => formatMeasure(v, 'measure_column')",
+    "      }",
+    "    },",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Waterfall {...config} /></div>;",
+    "}"
+  ]
 }

@@ -88,15 +88,90 @@ class TestGetRequiredColumnDescription:
             "reason": "Employee meetings",
         }
         result = get_required_column_description(sample_cube_metadata, query_plan)
-        assert "employee_details.employee_name (alias: full_name) [table alias: employees]: Full name" in result
-        assert "meeting_details.meeting_id: PK" in result
+        assert "employee_details.employee_name" in result
+        assert "alias: full_name" in result
+        assert "Full name" in result
+        assert "meeting_details.meeting_id" in result
+        assert "PK" in result
+        assert "format:" not in result
+        assert '"format_string"' not in result
+        assert '"formatString"' not in result
 
     def test_accepts_query_plan_json_string(self, sample_cube_metadata):
         query_plan = json.dumps(
             {"columnName": ["meeting_details.meeting_id"], "reason": "Meetings"}
         )
         result = get_required_column_description(sample_cube_metadata, query_plan)
-        assert "meeting_details.meeting_id: PK" in result
+        assert "meeting_details.meeting_id" in result
+        assert "PK" in result
 
     def test_returns_empty_when_no_columns_selected(self, sample_cube_metadata):
         assert get_required_column_description(sample_cube_metadata, {}) == ""
+
+    def test_includes_hierarchy_ai_context_and_omits_format_string(self):
+        from helicalbi.sql.GetContextForSQL import collect_picked_column_items
+
+        cube_metadata = [
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {
+                        "column_name": "travel_date",
+                        "alias_name": "YEAR",
+                        "dimension_name": "YEAR",
+                        "hierarchy_name": "travel_date",
+                        "level_name": "YEAR",
+                        "semantic_type": "Text",
+                        "formula": "EXTRACT(YEAR from travel_details.travel_date)",
+                        "format_string": "0",
+                        "sort_order": "Ascending",
+                        "sort_direction": "ASC",
+                        "ai_context": {
+                            "instructions": "Year of travel.",
+                            "synonyms": "year",
+                            "examples": "2024",
+                        },
+                    }
+                ],
+                "measures": [
+                    {
+                        "column_name": "Cost by Cancellation",
+                        "alias_name": "Cost by Cancellation",
+                        "measure_name": "Cost by Cancellation",
+                        "is_computed": True,
+                        "semantic_type": "Number",
+                        "format_string": "$#,##0.00",
+                        "formula": "sum(travel_details.travel_cost) filter status=Yes",
+                        "ai_context": {
+                            "instructions": "Yes means cancelled.",
+                            "synonyms": "cancelled",
+                            "examples": "",
+                        },
+                    }
+                ],
+            }
+        ]
+        query_plan = {
+            "columnName": [
+                "travel_details.travel_date",
+                "travel_details.Cost by Cancellation",
+            ],
+            "pickedDimensions": ["YEAR"],
+            "pickedMetrics": ["Cost by Cancellation"],
+        }
+        picked = collect_picked_column_items(cube_metadata, query_plan)
+        travel = picked["travel_details"]
+        assert travel["hierarchies"][0]["ai_context"]["instructions"] == "Year of travel."
+        assert "format_string" not in travel["hierarchies"][0]
+        assert travel["computed_measures"][0]["formula"].startswith("sum(")
+        assert "format_string" not in travel["computed_measures"][0]
+
+        text = get_required_column_description(cube_metadata, query_plan)
+        assert "hierarchy: travel_date" in text
+        assert "aiContext:" in text
+        assert "Year of travel." in text
+        assert "COMPUTED measure" in text
+        assert "format:" not in text
+        assert "$#,##0.00" not in text
+        assert '"format_string"' not in text
+        assert "sort: ASC" in text

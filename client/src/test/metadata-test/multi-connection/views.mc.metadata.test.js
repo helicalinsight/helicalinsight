@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { configureStore } from "@reduxjs/toolkit";
 import { render, screen, fireEvent, act, waitFor, cleanup } from "@testing-library/react";
@@ -38,28 +37,6 @@ const App = ({ intialState = {}, store }) => {
 afterEach(cleanup);
 
 describe("Metadata multi connection views usecase", () => {
-    beforeAll(() => {
-        delete window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        });
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.console.error = jest.fn()
-        window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-    });
-  
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-      
     // test("views should be visible in case of tsingle connection", async () => {
     //     const store = configureStore({
     //         reducer: reducers,

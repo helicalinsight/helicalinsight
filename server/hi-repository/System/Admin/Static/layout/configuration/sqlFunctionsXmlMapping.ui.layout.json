@@ -1,0 +1,56 @@
+{
+    "id":  "sqlFunctionsXmlMapping",
+    "title":  "SQL Functions Mapping",
+    "description":  "Driver class to SQL functions XML key.",
+    "file":  "sqlFunctionsXmlMapping.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common Drivers",
+                         "key":  "drivers",
+                         "fields":  [
+                                        {
+                                            "name":  "mysql",
+                                            "path":  "com.mysql.jdbc.Driver",
+                                            "label":  "MySQL",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Functions XML key e.g. mysql."
+                                        },
+                                        {
+                                            "name":  "mysqlcj",
+                                            "path":  "com.mysql.cj.jdbc.Driver",
+                                            "label":  "MySQL CJ",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Functions XML key."
+                                        },
+                                        {
+                                            "name":  "postgres",
+                                            "path":  "org.postgresql.Driver",
+                                            "label":  "PostgreSQL",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Functions XML key."
+                                        },
+                                        {
+                                            "name":  "oracle",
+                                            "path":  "oracle.jdbc.OracleDriver",
+                                            "label":  "Oracle",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Functions XML key."
+                                        },
+                                        {
+                                            "name":  "sqlserver",
+                                            "path":  "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                                            "label":  "SQL Server",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Functions XML key."
+                                        }
+                                    ]
+                     }
+                 ]
+}

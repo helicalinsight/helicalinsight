@@ -35,7 +35,6 @@ const baseRecord = {
   formula: "",
   filter: "",
   example: "",
-  description: "",
   measure: { isMeasureCheck: true, DataType: "Number", Format: "0.00" },
   sort: { isSortCheck: true, value: "Ascending" },
   aggregation: { isAggregationCheck: false, value: "Sum" },
@@ -49,12 +48,11 @@ const emptyHierarchyData = {
 describe("cubeConstants", () => {
   describe("exports", () => {
     it("it should defines semantic field config and menu keys", () => {
-      expect(CUBE_FIELD_SEMANTIC_TEXT_FIELDS).toHaveLength(4);
+      expect(CUBE_FIELD_SEMANTIC_TEXT_FIELDS).toHaveLength(3);
       expect(CUBE_FIELD_SEMANTIC_TEXT_FIELDS.map((f) => f.fieldName)).toEqual([
         "formula",
         "filter",
         "example",
-        "description",
       ]);
       expect(CUBE_FIELD_SEMANTIC_MENU_KEY).toBe("semantic-fields");
       expect(CUBE_FIELD_MENU_TEXT_KEYS).toContain(CUBE_FIELD_SEMANTIC_MENU_KEY);
@@ -96,6 +94,15 @@ describe("cubeConstants", () => {
 
       expect(dispatch).toHaveBeenCalledWith(
         updateFieldValues({
+          updateName: "defaultFunction",
+          checkVal: "db.generic.aggregate.sum",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
           updateName: "semanticType",
           checkVal: "Number",
           recordKey: record.key,
@@ -128,6 +135,15 @@ describe("cubeConstants", () => {
         semanticTypeOptions,
       );
 
+      expect(dispatch).toHaveBeenCalledWith(
+        updateFieldValues({
+          updateName: "defaultFunction",
+          checkVal: "db.generic.groupBy.group",
+          recordKey: record.key,
+          isHierarchyChild: record.isHierarchyChild,
+          hierarchyKey: record.parentKey,
+        }),
+      );
       expect(dispatch).toHaveBeenCalledWith(
         updateFieldValues({
           updateName: "semanticType",
@@ -166,8 +182,8 @@ describe("cubeConstants", () => {
   describe("commitCubeFieldSemanticDraft", () => {
     it("it should dispatches updateFieldValues only for changed semantic fields", () => {
       const dispatch = jest.fn();
-      const record = { ...baseRecord, formula: "old", filter: "", example: "", description: "" };
-      const draft = { formula: "new formula", filter: "", example: "", description: "desc" };
+      const record = { ...baseRecord, formula: "old", filter: "", example: "" };
+      const draft = { formula: "new formula", filter: "", example: "ex" };
       commitCubeFieldSemanticDraft({ dispatch, record, draft });
       expect(dispatch).toHaveBeenCalledTimes(2);
       expect(dispatch).toHaveBeenCalledWith(
@@ -181,8 +197,8 @@ describe("cubeConstants", () => {
       );
       expect(dispatch).toHaveBeenCalledWith(
         updateFieldValues({
-          updateName: "description",
-          checkVal: "desc",
+          updateName: "example",
+          checkVal: "ex",
           recordKey: record.key,
           isHierarchyChild: record.isHierarchyChild,
           hierarchyKey: record.parentKey,
@@ -197,9 +213,8 @@ describe("cubeConstants", () => {
         formula: "same",
         filter: "",
         example: "ex",
-        description: "desc",
       };
-      const draft = { formula: "same", filter: "", example: "ex", description: "desc" };
+      const draft = { formula: "same", filter: "", example: "ex" };
       commitCubeFieldSemanticDraft({ dispatch, record, draft });
       expect(dispatch).not.toHaveBeenCalled();
     });
@@ -298,7 +313,7 @@ describe("cubeConstants", () => {
       expect(dispatch).toHaveBeenCalledWith(
         updateFieldValues({
           updateName: "defaultFunction",
-          checkVal: "db.generic.aggregate.none",
+          checkVal: "",
           recordKey: record.key,
           isHierarchyChild: record.isHierarchyChild,
           hierarchyKey: record.parentKey,
@@ -320,7 +335,7 @@ describe("cubeConstants", () => {
       expect(screen.getByText("Delete")).toBeInTheDocument();
       expect(screen.getByText("Formula")).toBeInTheDocument();
       expect(screen.getByText("Example")).toBeInTheDocument();
-      expect(screen.getByText("Description")).toBeInTheDocument();
+      expect(screen.queryByText("Description")).not.toBeInTheDocument();
     });
 
     it("it should dispatches deleteRow when delete is clicked", () => {
@@ -382,7 +397,7 @@ describe("cubeConstants", () => {
       commitCubeFieldSemanticDraft({
         dispatch,
         record: hierarchyChildRecord,
-        draft: { formula: "new", filter: "", example: "", description: "" },
+        draft: { formula: "new", filter: "", example: "" },
       });
       expect(dispatch).not.toHaveBeenCalled();
     });

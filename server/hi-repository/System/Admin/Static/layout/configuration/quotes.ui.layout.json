@@ -1,0 +1,62 @@
+{
+    "id":  "quotes",
+    "title":  "SQL Quotes",
+    "description":  "Identifier quoting rules per dialect.",
+    "file":  "quotes.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "SQL Server",
+                         "key":  "sqlserver",
+                         "fields":  [
+                                        {
+                                            "name":  "sqlServerEnabled",
+                                            "path":  "dialects/sql-server-db/@enabled",
+                                            "label":  "Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Enable SQL Server square-bracket quoting."
+                                        },
+                                        {
+                                            "name":  "openingBracket",
+                                            "path":  "dialects/sql-server-db/opening_square_bracket",
+                                            "label":  "Opening Bracket",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Opening quote character."
+                                        },
+                                        {
+                                            "name":  "closingBracket",
+                                            "path":  "dialects/sql-server-db/closing_square_bracket",
+                                            "label":  "Closing Bracket",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Closing quote character."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Common Literals",
+                         "key":  "common",
+                         "fields":  [
+                                        {
+                                            "name":  "commonEnabled",
+                                            "path":  "dialects/common-db-literals/@enabled",
+                                            "label":  "Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Enable common DB literal quotes."
+                                        },
+                                        {
+                                            "name":  "commonLiterals",
+                                            "path":  "dialects/common-db-literals",
+                                            "label":  "Quote Characters",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Comma-separated quote characters used as literals."
+                                        }
+                                    ]
+                     }
+                 ]
+}

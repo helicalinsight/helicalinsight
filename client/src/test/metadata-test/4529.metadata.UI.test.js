@@ -21,9 +21,9 @@ const App = () => {
                 immutableCheck: false,
                 serializableCheck: false,
             }),
-        preloadedState: { 
+        preloadedState: {
             metadata: store4515,
-         }
+        }
     });
     return (
         <DndProvider backend={HTML5Backend}>
@@ -34,25 +34,6 @@ const App = () => {
 
 
 describe('UI testcases', () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-    });
-      
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
     test('testing usecases', async () => {
         await waitFor(() => render(<App />));
         expect(screen.queryByTestId(/hi-metadata-sidebar-hidden/i)).toBeTruthy();

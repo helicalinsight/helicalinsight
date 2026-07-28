@@ -57,6 +57,7 @@ public class SettingsLoader implements Runnable {
         String type;
         String nullValue;
         String allValues;
+        String blankValue;
 
         if (logger.isInfoEnabled()) {
             logger.info("Initializing the application. Loading project.properties from classpath to set application"
@@ -69,6 +70,8 @@ public class SettingsLoader implements Runnable {
         type = properties.get("type");
         nullValue = properties.get("nullValues");
         allValues = properties.get("allValues");
+        blankValue = properties.get("blankValues");
+        		
         // set the setting path of the application.
 
         File file = new File(settingPath);
@@ -127,6 +130,7 @@ public class SettingsLoader implements Runnable {
         applicationProperties.setEncryptionSecret(properties.get("encryptionSecret"));
         applicationProperties.setNullValue(nullValue);
         applicationProperties.setAllValues(allValues);
+        applicationProperties.setBlankValue(blankValue);
         applicationProperties.setCacheEnabled(properties.get("enableCache"));
         applicationProperties.setDefaultEmailResourceType(GsonUtility.optString(settingsJson, "defaultEmailResourceType"));
         applicationProperties.setManifestVersion(properties.get("manifest_version"));

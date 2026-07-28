@@ -216,6 +216,29 @@ def enrich_cube_metadata_with_aliases(
     return enriched
 
 
+def _format_ai_context(ai_context: Optional[dict]) -> str:
+    """Render the whole aiContext object for table/column selection prompts."""
+    if not isinstance(ai_context, dict) or not ai_context:
+        return ""
+    parts: List[str] = []
+    for key in ("instructions", "synonyms", "examples"):
+        value = ai_context.get(key)
+        if value in (None, ""):
+            continue
+        if isinstance(value, list):
+            text = ", ".join(str(item) for item in value if item)
+        else:
+            text = str(value).strip()
+        if text:
+            parts.append(f"{key}: {text}")
+    # Preserve any extra keys so the whole object still reaches the LLM.
+    for key, value in ai_context.items():
+        if key in ("instructions", "synonyms", "examples") or value in (None, ""):
+            continue
+        parts.append(f"{key}: {value}")
+    return "; ".join(parts)
+
+
 def _format_semantic_column_line(
     table_name: str,
     col_name: str,
@@ -226,9 +249,22 @@ def _format_semantic_column_line(
     default_function: Optional[str] = None,
     aggregator: Optional[str] = None,
     formula: Optional[str] = None,
+    hierarchy_name: Optional[str] = None,
+    level_name: Optional[str] = None,
+    dimension_name: Optional[str] = None,
+    measure_name: Optional[str] = None,
+    ai_context: Optional[dict] = None,
 ) -> str:
     sql_ref = format_table_column_ref(table_name, col_name)
     detail_parts: List[str] = []
+    if dimension_name:
+        detail_parts.append(f"dimension: {dimension_name}")
+    if measure_name:
+        detail_parts.append(f"measure: {measure_name}")
+    if hierarchy_name:
+        detail_parts.append(f"hierarchy: {hierarchy_name}")
+    if level_name:
+        detail_parts.append(f"level: {level_name}")
     if col_desc:
         detail_parts.append(f"Description: {col_desc}")
     if semantic_type:
@@ -241,6 +277,9 @@ def _format_semantic_column_line(
         detail_parts.append(f"function: {default_function}")
     if synonyms:
         detail_parts.append(f"synonyms: {', '.join(str(item) for item in synonyms if item)}")
+    ai_context_text = _format_ai_context(ai_context)
+    if ai_context_text:
+        detail_parts.append(f"aiContext: {{{ai_context_text}}}")
     alias_suffix = f", alias: {alias_name}" if alias_name and alias_name != col_name else ""
     if alias_suffix:
         detail_parts.append(alias_suffix.strip(", "))
@@ -344,6 +383,8 @@ def generate_semantic_hint(metadata_json: list) -> str:
             if not col_name:
                 continue
             seen_column_names.add(str(col_name))
+            metric_obj = column.get("metric") if isinstance(column.get("metric"), dict) else {}
+            formula = column.get("formula") or metric_obj.get("formula")
             lines.append(
                 _format_semantic_column_line(
                     table_name,
@@ -353,6 +394,11 @@ def generate_semantic_hint(metadata_json: list) -> str:
                     semantic_type=column.get("semantic_type"),
                     synonyms=column.get("synonyms") or [],
                     default_function=column.get("default_function"),
+                    formula=formula or None,
+                    hierarchy_name=column.get("hierarchy_name"),
+                    level_name=column.get("level_name"),
+                    dimension_name=column.get("dimension_name") or column.get("alias_name"),
+                    ai_context=column.get("ai_context"),
                 )
             )
 
@@ -375,6 +421,8 @@ def generate_semantic_hint(metadata_json: list) -> str:
             )
             metric_obj = measure.get("metric") if isinstance(measure.get("metric"), dict) else {}
             formula = measure.get("formula") or metric_obj.get("formula")
+            # Blank-column / computed measures always expose formula + semantic type.
+            show_formula = formula if (measure.get("is_computed") or formula) else None
             lines.append(
                 _format_semantic_column_line(
                     table_name,
@@ -382,9 +430,12 @@ def generate_semantic_hint(metadata_json: list) -> str:
                     measure.get("alias_name") or col_name,
                     col_desc,
                     semantic_type=measure.get("semantic_type"),
+                    synonyms=measure.get("synonyms") or [],
                     default_function=measure.get("default_function"),
                     aggregator=measure.get("aggregator"),
-                    formula=formula if measure.get("is_computed") else None,
+                    formula=show_formula,
+                    measure_name=measure.get("measure_name") or measure.get("alias_name"),
+                    ai_context=measure.get("ai_context"),
                 )
             )
 

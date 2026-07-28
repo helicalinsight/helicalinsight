@@ -356,6 +356,85 @@ def format_chart_selection_guide(
     return guide
 
 
+# Shown in chart selection but never offered as a similar-chart swap target.
+_SIMILAR_CHART_EXCLUDE = frozenset({"other", "grid_table"})
+
+
+def resolve_similar_charts(selected: str, data_types: Any = None) -> list[str]:
+    """Return other chart types from the same LLM selection candidate list.
+
+    Uses ``possible_chart_options`` (same filter as the viz prompt guide).
+    Excludes the selected type, ``other``, and ``grid_table``.
+    """
+    name = (
+        (selected or "")
+        .strip()
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+    )
+    if not name:
+        return []
+
+    if data_types is not None:
+        dims, measures, ordered = infer_chart_shape(data_types)
+        options = possible_chart_options(dims, measures, ordered)
+    else:
+        options = list(get_chart_options())
+
+    if not options:
+        options = [
+            opt for opt in get_chart_options()
+            if opt.visualization_type in {"table", "other"}
+        ]
+
+    similar = sorted(
+        opt.visualization_type
+        for opt in options
+        if opt.visualization_type != name
+        and opt.visualization_type not in _SIMILAR_CHART_EXCLUDE
+    )
+    logger.info(
+        "chart_similar route=possible_options selected=%s similar=%s",
+        name,
+        similar,
+    )
+    return similar
+
+
+def format_similar_chart_wire(similar: Any) -> list[dict[str, str]]:
+    """Normalize similar charts to the interactive-response wire format.
+
+    ``[{"vf.column": "column"}, {"vf.dual_line": "dual line"}, ...]`` —
+    key is ``vf.<chart_type>``, value is the spaced display name.
+    Accepts legacy string lists or already-shaped object lists.
+    """
+    if similar is None or similar == "":
+        return []
+    items = similar if isinstance(similar, list) else [similar]
+    out: list[dict[str, str]] = []
+    for item in items:
+        raw = ""
+        if isinstance(item, dict):
+            for key, value in item.items():
+                if isinstance(key, str) and key.startswith("vf.") and key != "vf.chart_name":
+                    raw = key[3:] or value
+                    break
+            if not raw:
+                raw = item.get("vf.chart_name") or item.get("chart_name") or ""
+                if not raw and len(item) == 1:
+                    only_key, only_val = next(iter(item.items()))
+                    raw = only_val if only_val else only_key
+        else:
+            raw = item
+        name = str(raw or "").strip()
+        if not name:
+            continue
+        chart_type = name.lower().replace(" ", "_").replace("-", "_")
+        out.append({f"vf.{chart_type}": chart_type.replace("_", " ")})
+    return out
+
+
 def _format_constraint(minimum: int, maximum: Optional[int], *, ordered: bool = False) -> str:
     if minimum == 0 and maximum is None:
         return "any"

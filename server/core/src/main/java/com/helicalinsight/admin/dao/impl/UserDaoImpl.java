@@ -258,7 +258,7 @@ public class UserDaoImpl implements UserDao {
             deleteHIResourcePhase.setParameter("id", user);
             deleteHIResourcePhase.executeUpdate();
             
-            List<GlobalConnections> connections =  dbDao.findConnectionsByCreatedBy(""+userId);
+            List<GlobalConnections> connections =  dbDao.findConnectionsByCreatedBy(userId);
             
             for(GlobalConnections connection : connections) {
             	dbDao.hardDelete(connection);

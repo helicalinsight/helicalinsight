@@ -1,0 +1,10 @@
+{
+    "id":  "security",
+    "file":  "security.properties",
+    "title":  "Security",
+    "description":  "SQL security settings that control query restrictions and policies.",
+    "category":  "sql security",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/security.ui.layout",
+    "fallbackEditor":  "properties"
+}

@@ -8,6 +8,7 @@ The Helical Insight backend is a Java enterprise application packaged as a WAR (
 - [Prerequisites](#prerequisites)
 - [Project setup](#project-setup)
 - [Configuration](#configuration)
+- [Eclipse + Tomcat (recommended)](#eclipse--tomcat-recommended)
 - [Running the backend](#running-the-backend)
 - [Building the WAR](#building-the-war)
 - [Tomcat deployment](#tomcat-deployment)
@@ -92,7 +93,7 @@ For custom installations, edit:
 
 ```xml
 <efwSolution>/absolute/path/to/server/hi-repository</efwSolution>
-<BaseUrl>http://localhost:8080/hi-ee/hi.html</BaseUrl>
+<BaseUrl>http://localhost:8080/hi-ee/</BaseUrl>
 ```
 
 #### `hi-repository/System/Admin/globalConnections.xml`
@@ -126,9 +127,44 @@ On first startup against an empty database, the application creates:
 
 Change these immediately outside of local development.
 
+## Eclipse + Tomcat (recommended)
+
+**Eclipse** is the best fit for Helical Insight backend work: you can run and debug the app on an embedded/configured **Apache Tomcat** server from the IDE, without repeatedly copying the WAR by hand.
+
+### What you need
+
+| Item | Notes |
+|------|-------|
+| [Eclipse IDE for Enterprise Java and Web Developers](https://www.eclipse.org/downloads/) | Includes WTP / server tools |
+| JDK 25 | Set as the workspace / project JRE |
+| Apache Tomcat 11.x | Install on disk; register it in Eclipse (Servers view) |
+| Maven | Eclipse m2e (bundled) or a system Maven install |
+
+Run repo `scripts/setup-dev` first so `hi-repository` paths are correct on your machine.
+
+### One-time Eclipse setup
+
+1. **Import the Maven project** — *File → Import → Existing Maven Projects* → select the `server/` directory (multi-module root).
+2. **Add Tomcat** — *Window → Show View → Servers* → *New → Server* → Apache Tomcat **v11** → point at your Tomcat install.
+3. **Deploy the WAR module** — add the **`presentation`** module (context path **`/hi-ee`**) to that Tomcat server. The deployable artifact must be named / mapped as **`hi-ee`** so URLs match the frontend (`/hi-ee/`).
+4. **JDK** — ensure the Tomcat runtime and the Maven projects use JDK 25.
+5. **Start** the server from Eclipse (*Run* / *Debug*).
+
+Verify: [http://localhost:8080/hi-ee/](http://localhost:8080/hi-ee/)
+
+### Day-to-day tips
+
+- Prefer **Debug** on the Tomcat server for breakpoints in `core`, `adhoc`, `presentation`, etc.
+- After `pom.xml` or dependency changes, update the Maven project (*Right-click → Maven → Update Project*) and republish if Eclipse does not hot-reload.
+- Keep using Maven for CI-style builds: `mvn clean package -DskipTests` from `server/` when you need a standalone WAR.
+
+IntelliJ IDEA and other IDEs work, but Eclipse + Tomcat is the path we recommend so contributors spend less time on deploy plumbing.
+
 ## Running the backend
 
 ### Development workflow (Tomcat)
+
+Prefer [Eclipse + Tomcat](#eclipse--tomcat-recommended) when developing locally. The steps below are for a standalone Tomcat install (no IDE).
 
 1. **Build the WAR** (see below).
 2. **Copy** `presentation/target/hi-ee-7.0.0.war` to `$CATALINA_HOME/webapps/hi-ee.war`.
@@ -146,7 +182,7 @@ Change these immediately outside of local development.
 5. **Verify** the application is running:
 
    ```
-   http://localhost:8080/hi-ee/hi.html
+   http://localhost:8080/hi-ee/
    http://localhost:8080/hi-ee/applicationSettings
    ```
 
@@ -236,7 +272,7 @@ Deploy to Apache Tomcat when running the backend directly on a host (without Doc
 4. **Deploy the WAR** — copy `presentation/target/hi-ee-*.war` to `$CATALINA_HOME/webapps/hi-ee.war`.
 5. **Place `hi-repository/`** — must exist at the absolute path referenced in `setting.xml`.
 6. **Start Tomcat** and wait for the WAR to expand into `$CATALINA_HOME/webapps/hi-ee/`.
-7. **Verify** — open `http://<host>:<port>/hi-ee/hi.html`.
+7. **Verify** — open `http://<host>:<port>/hi-ee/`.
 
 ### Post-deploy configuration
 
@@ -273,7 +309,16 @@ Configure the frontend reverse proxy (`client/nginx.conf`) to forward `/hi-ee/` 
 
 ## Docker
 
-The backend includes a multi-stage `Dockerfile` that builds the WAR, bundles Apache Tomcat 11, and runs it with a trimmed JRE. For the full local stack (Postgres + backend + frontend), use the root [`docker-compose.dev.yml`](../docker-compose.dev.yml).
+**Recommended:** use the shared package under [`docker/`](../docker/) — same start steps for every release. See [docker/readme/readme.md](../docker/readme/readme.md).
+
+```bash
+cd docker
+cp .env.example .env
+docker compose up -d
+# Open https://localhost
+```
+
+Developers who want to **build the backend from source** can use the root [`docker-compose.dev.yml`](../docker-compose.dev.yml) or the image build steps below.
 
 ### Build the backend image
 
@@ -307,7 +352,7 @@ docker run -d \
   helicalinsight/backend:latest
 ```
 
-Access: `http://localhost:8080/hi-ee/hi.html`
+Access: `http://localhost:8080/hi-ee/`
 
 ### Image environment variables
 
@@ -385,4 +430,5 @@ Create a second database (`hischeduledata`) for Quartz if using the JDBC job sto
 ## Related documentation
 
 - [Frontend README](../client/README.md)
-- [Root README](../README.md)
+- [Instant BI README](../ib/README.md)
+- [Root README](../README.md) — pick your path (run vs develop)

@@ -11,6 +11,57 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Histogram. Config: binField=measure; binWidth sensible; columnStyle stroke #fff.\nPolish: autoFit; element-active; no fake category axis; choose binWidth from data range.",
-  "code": "\nfunction DrawHistogram() {\n  const { Histogram } = components;\n  const config = {\n    data,\n    binField: \"measure_column\",\n    binWidth: 1,\n    columnStyle: { stroke: \"#FFFFFF\" },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Histogram {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "other",
+    "component": "Histogram",
+    "fields": {
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Histogram. Config: binField=measure; binWidth sensible; columnStyle stroke #fff.",
+    "Polish: autoFit; element-active; no fake category axis; choose binWidth from data range."
+  ],
+  "code": [
+    "function DrawHistogram() {",
+    "  const { Histogram } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    binField: 'measure_column',",
+    "    binWidth: 1,",
+    "    columnStyle: { stroke: '#FFFFFF' },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Histogram {...config} /></div>;",
+    "}"
+  ]
 }

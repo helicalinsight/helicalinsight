@@ -474,6 +474,88 @@ const instantBIReducer = (
       });
     }
 
+    case actionTypes.UPDATE_IB_VIZ_PREFERENCE: {
+      const {
+        reportId,
+        chatSequenceId,
+        chart_name,
+        similar_chart,
+        vf_template,
+        vf,
+        vf_title,
+      } = action.payload || {};
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.id !== reportId) return report;
+
+          const patchViz = (viz = {}) => {
+            const next = { ...viz };
+            if (chart_name != null) next.chart_name = chart_name;
+            if (similar_chart != null) next.similar_chart = similar_chart;
+            if (vf_template != null) next.vf_template = vf_template;
+            if (vf_title != null) next.vf_title = vf_title;
+            delete next.settings;
+            return next;
+          };
+
+          report.chats = report.chats.map((chat) => {
+            if (chat.chatID !== report.activeChatID) return chat;
+            chat.messageList = chat.messageList.map((message) => {
+              if (message?.isUser || message?.chatSequenceId !== chatSequenceId) {
+                return message;
+              }
+              const nextFull = {
+                ...(message.fullChatResponse || {}),
+                viz: patchViz(message.fullChatResponse?.viz || {}),
+              };
+              return {
+                ...message,
+                fullChatResponse: nextFull,
+                ...(vf != null ? { vf } : {}),
+                ...(vf_title != null ? { vf_title } : {}),
+              };
+            });
+            return chat;
+          });
+
+          if (report.loadedChatResponses?.[chatSequenceId]) {
+            const loaded = report.loadedChatResponses[chatSequenceId];
+            report.loadedChatResponses[chatSequenceId] = {
+              ...loaded,
+              viz: patchViz(loaded.viz || {}),
+            };
+          }
+
+          const message = report.chats
+            .find((chat) => chat.chatID === report.activeChatID)
+            ?.messageList?.find(
+              (item) => !item.isUser && item.chatSequenceId === chatSequenceId
+            );
+          if (message?.id) {
+            report.previews = (report.previews || []).map((preview) => {
+              if (preview.id !== message.id) return preview;
+              return {
+                ...preview,
+                ...(vf != null ? { vf } : {}),
+                ...(vf_title != null ? { vf_title } : {}),
+                vizDetails: patchViz(preview.vizDetails || {}),
+              };
+            });
+          }
+          return report;
+        });
+      });
+    }
+
+    case actionTypes.SET_IB_CHART_LIST: {
+      const charts = Array.isArray(action.payload) ? action.payload : [];
+      return {
+        ...state,
+        chartList: charts,
+        chartListLoaded: true,
+      };
+    }
+
     default:
       return { ...state };
   }

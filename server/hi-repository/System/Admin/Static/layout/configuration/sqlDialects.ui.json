@@ -1,0 +1,10 @@
+{
+    "id":  "sqlDialects",
+    "file":  "sqlDialects.properties",
+    "title":  "SQL Dialects",
+    "description":  "Database dialect class mappings used for SQL translation.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/sqlDialects.ui.layout",
+    "fallbackEditor":  "properties"
+}

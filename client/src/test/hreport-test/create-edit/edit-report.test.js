@@ -1,6 +1,4 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
-import '../../utils/mockJsdom'
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, fireEvent,act,waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux'; 
@@ -23,29 +21,6 @@ const App = ({store,...props}) => {
 };
 
 describe("Hreport visualisation", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.createObjectURL = jest.fn();
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = arr => crypto.randomBytes(arr.length)
-    });
-
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-
-      
     test("edit report using url",async () => {
         const store = configureStore({
             reducer: reducers,

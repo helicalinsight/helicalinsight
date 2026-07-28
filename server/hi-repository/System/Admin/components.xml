@@ -255,6 +255,7 @@
                 <updateNoSql class="com.helicalinsight.spark.service.UpdateNoSqlConfig"/>
                 <mailStats class="com.helicalinsight.admin.management.MailStatProvider"/>
                 <llmUsageStats class="com.helicalinsight.admin.management.LlmUsageAuditProvider"/>
+                <systemSchedule class="com.helicalinsight.scheduling.SystemScheduleManager"/>
                 <release class="com.helicalinsight.efw.components.ReleaseNoteComponent" />
             </system>
         </monitor>

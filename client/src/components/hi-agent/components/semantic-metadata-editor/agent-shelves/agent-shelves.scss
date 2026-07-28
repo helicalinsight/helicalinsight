@@ -13,6 +13,7 @@
   border-bottom: 1px solid #ebebeb;
 
   .cube-add-metric-action {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -24,6 +25,29 @@
 
     &:hover {
       background-color: transparent;
+    }
+
+    &.is-disabled {
+      cursor: not-allowed;
+      opacity: 1;
+
+      .cube-add-metric-icon {
+        color: #c0c0c0;
+      }
+
+      &:hover .cube-add-metric-icon {
+        color: #c0c0c0;
+      }
+    }
+
+    .toolbar-unsaved-dot {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #1890ff;
     }
   }
 
@@ -93,6 +117,18 @@
     }
   }
 
+  .agent-workspace-metadata-shelf,
+  .agent-workspace-cube-shelf,
+  .agent-workspace-right-area {
+    .hr-resize-pin,
+    .hr-resize-pin-editing {
+      cursor: pointer;
+      z-index: 200;
+      pointer-events: auto;
+      padding: 4px;
+    }
+  }
+
   .metadata-sidebar.agent-workspace-metadata-shelf {
     margin-left: 1px;
     height: 100%;
@@ -100,6 +136,13 @@
     flex-direction: column;
     overflow: hidden;
     background: $hi-white;
+    position: relative;
+
+    .hi-instant-bi-info-container {
+      height: 32px;
+      min-height: 32px;
+      box-sizing: border-box;
+    }
 
     .agent-metadata-shelf,
     .agent-sidebar-shell,
@@ -133,6 +176,7 @@
     overflow: hidden;
     background: $hi-white;
     border: 1px solid #ebebeb;
+    position: relative;
 
     .cube-shelf {
       height: 100%;
@@ -192,6 +236,7 @@
     width: 100%;
     display: flex;
     overflow: hidden;
+    position: relative;
   }
 
   .agent-workspace-right-inner {
@@ -232,15 +277,15 @@
 
     .cube-business-view-toolbar {
       @extend %agent-compact-toolbar;
-      height: 20px !important;
-      min-height: 20px !important;
+      height: 32px !important;
+      min-height: 32px !important;
       padding: 0 8px !important;
     }
 
     .agent-json-toolbar {
       @extend %agent-compact-toolbar;
-      height: 28px;
-      min-height: 28px;
+      height: 32px;
+      min-height: 32px;
     }
 
     .business-view-hierarchy-body {
@@ -301,31 +346,33 @@
 
   .cube-shelf-name-bar {
     flex-shrink: 0;
-    height: 20px;
-    min-height: 20px;
+    height: 32px;
+    min-height: 32px;
     padding: 0 5px;
     overflow: hidden;
+    box-sizing: border-box;
   }
 
   .metadata-name-edit {
-    height: 20px;
+    height: 32px;
 
     .metadata-name-edit-row {
       align-items: center;
-      height: 20px;
+      height: 30px;
       flex-wrap: nowrap;
     }
 
     .metadata-name-edit-icon {
       color: #fff;
-      font-size: 11px;
+      font-size: large;
+      padding-top: 3.5px;
       line-height: 1;
       display: flex;
       align-items: center;
 
       svg {
-        width: 11px;
-        height: 11px;
+        width: 16px;
+        height: 16px;
       }
     }
 
@@ -335,18 +382,17 @@
 
       .ant-typography {
         color: #fff;
-        padding: 0 0 0 6px;
+        padding: 0 0 0 10px;
         margin-bottom: 0;
-        height: 20px;
+        height: 30px;
         display: flex;
         align-items: center;
-        font-size: 12px;
+        font-size: 14px;
         overflow: hidden;
       }
 
       .ant-typography-edit {
         color: #fff;
-        font-size: 11px;
         flex-shrink: 0;
         margin-left: 4px;
       }
@@ -356,12 +402,12 @@
         margin: 0;
 
         .ant-input {
-          top: 0;
-          height: 18px !important;
-          min-height: 18px !important;
+          top: 2px;
+          height: 26px !important;
+          min-height: 26px !important;
           padding: 0 4px;
-          font-size: 12px;
-          line-height: 16px;
+          font-size: 14px;
+          line-height: 22px;
           resize: none;
         }
       }
@@ -379,6 +425,15 @@
   height: 100%;
   box-sizing: border-box;
 
+  .tool-shelf-item-wrap {
+    display: block;
+    width: 100%;
+
+    &.is-disabled {
+      cursor: not-allowed;
+    }
+  }
+
   .tool-shelf-item {
     display: flex;
     flex-direction: column;
@@ -390,6 +445,7 @@
     cursor: pointer;
     color: #666;
     transition: color 0.15s ease;
+    width: 100%;
 
     &:hover {
       background: transparent;
@@ -399,6 +455,19 @@
     &.is-active {
       background: #e6f7ff;
       color: #1890ff;
+    }
+
+    &.is-disabled,
+    &:disabled {
+      opacity: 1;
+      cursor: not-allowed;
+      color: #c0c0c0;
+      pointer-events: none;
+
+      .tool-shelf-icon,
+      .tool-shelf-label {
+        color: #c0c0c0;
+      }
     }
   }
 

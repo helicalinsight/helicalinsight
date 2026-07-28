@@ -11,6 +11,7 @@ import InfoContainer from "./components/info-container/info-container";
 import InstantBIPreview from "./components/preview/instant-bi-preview";
 import "./index.scss";
 import { createInsantBIGridItems } from "./utils/common-utils";
+import { fetchInstantBIChartList } from "./utils/instant-bi-requests";
 
 const ResponsiveGridLayout = WidthProvider(Responsive);
 
@@ -25,7 +26,7 @@ const HIInstantBIModule = (props) => {
   const [, offsetHeight] = useWindowSize();
   const dispatch = useDispatch();
   const { metadata = {}, botStatus, mode } = activeReport;
-  const { layout } = useSelector((state) => state.instantBI);
+  const { layout, chartListLoaded } = useSelector((state) => state.instantBI);
   const { activeChatID, chats = [], previews = [], activePreviewID = null } = activeReport;
   const messageList = chats?.find((chat) => chat?.chatID === activeChatID)?.messageList || [];
   const { activeReportId = '' } = useSelector((state) => state.instantBI)
@@ -88,6 +89,11 @@ const HIInstantBIModule = (props) => {
       return createInsantBIGridItems({ metadataShelf, previewShelf, chatShelf, offsetHeight })
     });
   }, [metadataShelf, previewShelf, chatShelf, offsetHeight]);
+
+  useEffect(() => {
+    if (chartListLoaded) return;
+    fetchInstantBIChartList({ dispatch });
+  }, [chartListLoaded, dispatch]);
 
   return (
     <Layout className={`hi-instant-bi hr-sidebar${isOpenMode ? " hi-instant-bi--open-mode" : ""}`}>

@@ -3,7 +3,7 @@ import { generateColorRange, getFieldName, getHTMLColorFormat } from "../../hi-e
 import { getGridChartColorSchemeFromPalette } from '../utils/grid-chart-utils';
 import moment from 'moment';
 import { getCardValue } from '../../hi-editing-area/components/properties/property-card-utils';
-import Tooltip from 'antd/es/tooltip';
+import { Tooltip } from 'antd';
 import { getPropertyFieldInfo, getPropertyText, tooltipTemplateLiquidJS } from '../utils/utillities';
 import _, { cloneDeep, isEmpty } from 'lodash';
 import { getFieldDisplayName } from '../../../../utils/utilities';

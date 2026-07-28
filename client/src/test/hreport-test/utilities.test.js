@@ -26,9 +26,7 @@ import { getSaveData, prepareFetchReportStateResponse } from "../../components/h
 import { getVisulisationState } from "./hreport.request.mock.js";
 import { expectedReportDataWithFeedbackFormat, mapChartExpectedDataWhenFormatApplied, mapChartExpectedDataWhenFormatNotApplied, mapChartMockdataWhenFormatApplied, mapChartMockdataWhenFormatNotApplied, radialEnableData, reportDataWithFeedbackFormat } from './utilities-mockdata.js';
 import { getSaveFormData } from "./utils/mock.data";
-import "core-js/stable";
 import { wrapSpecialVariables } from "../../components/hi-dashboard-designer/utils/common-functions.js";
-import { describe } from "jest-circus";
 
 describe("Helical Report Utilities", () => {
   test("jest example", async () => {

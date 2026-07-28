@@ -63,12 +63,52 @@ public class AiDataInsightServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("1", "chat-1", "insight question", null, subject, request, response);
+            service.execute("1", "chat-1", "insight question", null, subject, "/data-insight", request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
                     eq(true),
                     eq("{\"status\":1,\"response\":{\"insight\":\"summary\",\"token_usage\":{\"total\":5}}}")));
+        }
+    }
+
+    @Test
+    public void executeWithInstantToHrEndpointSendsInsightResponse() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(principal.getUsername()).thenReturn("tester");
+        when(principal.getLoggedInUser()).thenReturn(user);
+        when(user.getRoles()).thenReturn(java.util.Collections.emptyList());
+        when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
+
+        IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
+        when(httpService.executeCancellableCall(eq(request), any(), eq("/instant-to-hr")))
+                .thenReturn("{\"insight\":\"converted\",\"token_usage\":{\"total\":3}}");
+
+        JsonObject settings = new JsonObject();
+        settings.addProperty("BaseUrl", "http://localhost/hi.html");
+
+        String subject = "{\"model\":{\"path\":\"/model\"}}";
+
+        try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class);
+             MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
+             MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
+             MockedStatic<InstantBIServiceFactory> factory = mockStatic(InstantBIServiceFactory.class)) {
+            controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+            jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+            factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
+
+            service.execute("1", "chat-1", "convert question", null, subject, "/instant-to-hr", request, response);
+
+            controllerUtils.verify(() -> ControllerUtils.handleSuccess(
+                    eq(response),
+                    eq(true),
+                    eq("{\"status\":1,\"response\":{\"insight\":\"converted\",\"token_usage\":{\"total\":3}}}")));
         }
     }
 
@@ -102,7 +142,7 @@ public class AiDataInsightServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("1", "chat-1", "insight question", null, subject, request, response);
+            service.execute("1", "chat-1", "insight question", null, subject, "/data-insight", request, response);
 
             controllerUtils.verifyNoInteractions();
         }

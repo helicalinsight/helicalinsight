@@ -92,6 +92,7 @@ class CubeInfoSqlGenerator:
             "required_functions": res.get("required_functions"),
             "required_cube_info": res.get("required_cube_info") or {},
             "column_sort_orders": res.get("column_sort_orders") or state.get("column_sort_orders") or "",
+            "sql_domain_context": res.get("sql_domain_context") or "",
             "filters": res.get("filters", ""),
             "messages": [],
         }

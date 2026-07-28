@@ -11,6 +11,63 @@
   ],
   "requires_ordered": true,
   "base": "default",
-  "instructions": "Funnel. Config: xField=stage, yField=measure; dynamicHeight; conversionTag; label middle.\nPolish: ordered stages descending; element-active; clear stage names; autoFit.",
-  "code": "\nfunction DrawFunnelChart() {\n  const { Funnel } = components;\n  const config = {\n    data,\n    xField: \"dimension_column\",\n    yField: \"measure_column\",\n    dynamicHeight: true,\n    label: { position: \"middle\" },\n    conversionTag: {},\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Funnel {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "cartesian",
+    "component": "Funnel",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Funnel. Config: xField=stage, yField=measure; dynamicHeight; conversionTag; label middle.",
+    "Polish: ordered stages descending; element-active; clear stage names; autoFit."
+  ],
+  "code": [
+    "function DrawFunnelChart() {",
+    "  const { Funnel } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data,",
+    "    xField: 'dimension_column',",
+    "    yField: 'measure_column',",
+    "    dynamicHeight: true,",
+    "    label: { position: 'middle' },",
+    "    conversionTag: {},",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Funnel {...config} /></div>;",
+    "}"
+  ]
 }

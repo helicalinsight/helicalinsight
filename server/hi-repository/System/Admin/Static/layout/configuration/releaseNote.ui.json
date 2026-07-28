@@ -1,0 +1,10 @@
+{
+    "id":  "releaseNote",
+    "file":  "releaseNote.properties",
+    "title":  "Release Note",
+    "description":  "Release note metadata shown in the product.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/releaseNote.ui.layout",
+    "fallbackEditor":  "properties"
+}

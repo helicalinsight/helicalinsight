@@ -40,27 +40,6 @@ const App = ({ admin_initial_view_state }) => {
 };
 
 describe("System Details Component", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
   test("System Details", async () => {
     await waitFor(() => render(<App admin_initial_view_state={admin_initial_view_state} />));
     expect(screen.queryByTestId(/jvm-thread-details/i)).toBeTruthy();

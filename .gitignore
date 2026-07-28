@@ -11,6 +11,9 @@ client/coverage
 # production
 client/build
 
+# release packaging output
+dist/
+
 # misc
 client/.DS_Store
 client/.env.local
@@ -136,4 +139,5 @@ warupdate/.idea/jarRepositories.xml
 warupdate/.idea/compiler.xml
 warupdate/.idea/**
 docker/.idea/**
+docker/instantbi/helicalbi
 ib/helicalbi/.idea/workspace.xml

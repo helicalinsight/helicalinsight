@@ -9,35 +9,54 @@ const TOOLS = [
   {
     key: TOOL_BUSINESS_VIEW,
     label: "Business View",
-    tooltip: "Business View",
+    tooltip:
+      "Organize your data into domains and topics. Domains group related business areas, topics hold fields that belong together.",
     icon: <ApartmentOutlined />,
   },
   {
     key: TOOL_AGENT_JSON,
     label: "JSON",
-    tooltip: "Generated JSON",
+    tooltip:
+      "View and edit the raw JSON for this semantic model. Changes here update the model configuration.",
     icon: <FileTextOutlined />,
   },
 ];
 
-export function ToolShelf({ activeTool, onSelect }) {
+export function ToolShelf({
+  activeTool,
+  onSelect,
+  disabledTools = {},
+  disabledToolTips = {},
+}) {
   return (
     <div className="tool-shelf">
-      {TOOLS.map((tool) => (
-        <Tooltip key={tool.key} title={tool.tooltip} placement="right">
-          <button
-            type="button"
-            className={`tool-shelf-item${
-              activeTool === tool.key ? " is-active" : ""
-            }`}
-            onClick={() => onSelect(tool.key)}
-            aria-label={tool.label}
-          >
-            <span className="tool-shelf-icon">{tool.icon}</span>
-            <span className="tool-shelf-label">{tool.label}</span>
-          </button>
-        </Tooltip>
-      ))}
+      {TOOLS.map((tool) => {
+        const isDisabled = Boolean(disabledTools[tool.key]);
+        const tooltip =
+          (isDisabled && disabledToolTips[tool.key]) || tool.tooltip;
+        return (
+          <Tooltip key={tool.key} title={tooltip} placement="right">
+            <span className={isDisabled ? "tool-shelf-item-wrap is-disabled" : "tool-shelf-item-wrap"}>
+              <button
+                type="button"
+                className={`tool-shelf-item${
+                  activeTool === tool.key ? " is-active" : ""
+                }${isDisabled ? " is-disabled" : ""}`}
+                onClick={() => {
+                  if (isDisabled) return;
+                  onSelect(tool.key);
+                }}
+                disabled={isDisabled}
+                aria-disabled={isDisabled}
+                aria-label={tool.label}
+              >
+                <span className="tool-shelf-icon">{tool.icon}</span>
+                <span className="tool-shelf-label">{tool.label}</span>
+              </button>
+            </span>
+          </Tooltip>
+        );
+      })}
     </div>
   );
 }

@@ -34,7 +34,7 @@ public interface GlobalConnectionService {
     GlobalConnections findGlobalConnectionById(int globalId, boolean applyFilter);
 
     List<GlobalConnections> getAllConnections();
-    List<GlobalConnections> findConnectionsByCreatedBy(String userId);
+    List<GlobalConnections> findConnectionsByCreatedBy(Integer userId);
 
     List getAllConnectionOfLoggedInUser(Integer createdBy, List<Integer> securedIds);
 

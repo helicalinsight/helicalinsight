@@ -107,6 +107,7 @@ const InstantBIPreviewContent = (props) => {
                                     }}
                                     autoFit={true}
                                     isKpiChart={isIbKpiChart(vizDetails?.chart_name, code)}
+                                    chartName={vizDetails?.chart_name || ""}
                                 />
                             )
                         )}

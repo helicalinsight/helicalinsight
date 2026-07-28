@@ -6,6 +6,7 @@ import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,7 +58,41 @@ public class InstantBIController {
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getDataInsightService().execute(chatSeqId, chatid, inputParam, formData, subjectString, request, response);
+        InstantBIServiceFactory.getDataInsightService()
+                .execute(chatSeqId, chatid, inputParam, formData, subjectString, "/data-insight", request, response);
+    }
+
+    @RequestMapping("/convert-hreport")
+    public void convertHreport(
+            @RequestParam("chat_sequence_id") String chatSeqId,
+            @RequestParam(value = "chatid", required = false) String chatid,
+            @RequestParam(value = "input", required = false) String inputParam,
+            @RequestParam(value = "formData", required = false) String formData,
+            @RequestParam(value = "subject", required = false) String subjectString,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getDataInsightService()
+                .execute(chatSeqId, chatid, inputParam, formData, subjectString, "/instant-to-hr", request, response);
+    }
+
+    @RequestMapping("/convert-chart")
+    public void convertChart(
+            @RequestParam(value = "vf_template", required = false) String vfTemplate,
+            @RequestParam("selected_chart") String selectedChart,
+            @RequestParam(value = "chat_id", required = false) String chatId,
+            @RequestParam(value = "chat_sequence_id", required = false) String chatSequenceId,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getConvertChartService()
+                .execute(vfTemplate, selectedChart, chatId, chatSequenceId, request, response);
+    }
+
+    @RequestMapping("/list-charts")
+    public void listCharts(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getListChartsService().execute(request, response);
     }
 
     @RequestMapping("/load-chat")

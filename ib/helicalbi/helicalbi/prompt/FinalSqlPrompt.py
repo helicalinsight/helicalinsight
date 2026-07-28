@@ -48,6 +48,10 @@ Provided columns
 
 -----------------------------------------------------
 Required column descriptions
+These are the full picked cube items arranged by table (dimensions, hierarchy
+levels, measures, and blank-column computed measures), including hierarchy and
+aiContext details. Do not expect or apply formatString here — formatting is
+handled later in visualization.
  {required_column_description}
 
 -----------------------------------------------------
@@ -56,9 +60,8 @@ Default column/measure functions (use when aggregating or grouping)
 
 -----------------------------------------------------
 Column sort orders for ORDER BY
-Map sortOrder / sort values to SQL directions: 0 or Ascending = ASC, 1 or
-Descending = DESC (or use an explicit asc/desc value when provided). Prefer
-this ordering when the user question does not request a different sort.
+Only Ascending=ASC and Descending=DESC are listed. Ignore none/empty sorts.
+Prefer this ordering when the user question does not request a different sort.
  {column_sort_orders}
 
 -----------------------------------------------------
@@ -67,7 +70,8 @@ Use the below joins (do not invent new join other than this) ignore if empty
 
 
 -----------------------------------------------------
-Domain context
+Filtered domain / topics for this query
+Use only this selected domain/topic context (with mapped component id+name).
  {domain_context}
 
 
@@ -78,7 +82,7 @@ Business metrics for required columns
 
 
 
-Generate the SQL query now based on the above details.  
+Generate the SQL request now based on the above details.  
 Always use alias for selected columns.
 Make sure syntactically proper query is generated. 
 Add limit always (limit {default_sql_limit})

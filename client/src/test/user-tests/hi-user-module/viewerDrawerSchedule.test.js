@@ -1,4 +1,3 @@
-import "core-js/stable";
 import { configureStore } from "@reduxjs/toolkit";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { _user_data_, _app_data_ } from "./hi-user-module-mocks";
@@ -33,20 +32,7 @@ const App = ({ _user_data_, _app_data_ }) => {
 };
 
 describe("Rendering ViewerDrawerSchedule", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
+ 
 
   test("ViewerDrawerSchedule component", async () => {
     await flushPromises(

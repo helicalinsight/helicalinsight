@@ -162,3 +162,16 @@ export const resetIBChatId = (data) => {
     payload: data
   }
 }
+export const updateIBVizPreference = (data) => {
+  return {
+    type: actionTypes.UPDATE_IB_VIZ_PREFERENCE,
+    payload: data
+  }
+}
+
+export const setIBChartList = (data) => {
+  return {
+    type: actionTypes.SET_IB_CHART_LIST,
+    payload: data
+  }
+}

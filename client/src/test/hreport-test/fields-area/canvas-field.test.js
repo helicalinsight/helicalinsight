@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { v4 as uuidv4 } from "uuid";
 import { configureStore } from '@reduxjs/toolkit';
@@ -29,20 +28,6 @@ const App = (props) => {
 
 
 describe("Rendering filters pane", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-    });
     const store = configureStore({
         reducer: reducers,
         middleware: (getDefaultMiddleware) =>
@@ -56,14 +41,7 @@ describe("Rendering filters pane", () => {
     });
     const dispatch = store.dispatch
     const getState = store.getState
-
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-      
-    test("jest example",async () => {
-        expect(1+1).toBeTruthy();
-    });
+  
     test("rendering fields",async () => {
         let reportId = uuidv4()
         dispatch({type: actionTypes.LOAD_INTIAL_REPORT,payload:{reportId}})
