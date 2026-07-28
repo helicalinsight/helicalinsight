@@ -1,0 +1,16 @@
+{
+  "title": "Configurations",
+  "description": "Browse and edit System/Admin configuration files grouped by category",
+  "service": "monitor/system/readWrite",
+  "layout": "Static/layout/configuration/configuration.ui.layout",
+  "editorsDirectory": "Static/layout/configuration",
+  "api": {
+    "list": { "action": "list" },
+    "read": { "action": "read", "params": ["file"] },
+    "write": { "action": "write", "params": ["file", "content"] },
+    "getLayout": {
+      "service": "content/static/getContents",
+      "params": ["contentId"]
+    }
+  }
+}

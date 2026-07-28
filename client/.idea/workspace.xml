@@ -4,15 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="33213aab-35d7-43d2-a163-8ad2b2b00d3d" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ib/helicalbi/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../ib/helicalbi/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ib/helicalbi/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../ib/helicalbi/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ib/helicalbi/testpy.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ib/helicalbi/testpy.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ib/helicalbi/tests/functional/test_pydantic_models.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ib/helicalbi/tests/functional/test_pydantic_models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../ib/helicalbi/tests/integration/test_app_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ib/helicalbi/tests/integration/test_app_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../server/hi-repository/System/Admin/setting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../server/hi-repository/System/Admin/setting.xml" afterDir="false" />
-    </list>
+    <list default="true" id="33213aab-35d7-43d2-a163-8ad2b2b00d3d" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -33,19 +25,19 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;ch-8739-aiagent-build-be-changes&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "helicalinsight-dev",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -60,11 +52,25 @@
       <workItem from="1772090278627" duration="1970000" />
       <workItem from="1782441671598" duration="772000" />
       <workItem from="1782961360414" duration="581000" />
+      <workItem from="1784740237021" duration="1807000" />
+      <workItem from="1784826664494" duration="48000" />
+      <workItem from="1785128944505" duration="1616000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ID_ORDER">
+      <list>
+        <option value="Default.Root" />
+        <option value="Default.Author" />
+        <option value="Default.Date" />
+        <option value="Default.Subject" />
+        <option value="Space.CommitStatus" />
+      </list>
+    </option>
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -76,5 +82,17 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="javascript">
+          <url>file://$PROJECT_DIR$/src/components/hi-instant-bi/components/chat-screen/chat-recommendations.jsx</url>
+          <line>10</line>
+          <properties lambdaOrdinal="-1" />
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

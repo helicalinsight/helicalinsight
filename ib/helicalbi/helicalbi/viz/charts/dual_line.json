@@ -12,6 +12,78 @@
   ],
   "requires_ordered": true,
   "base": "default",
-  "instructions": "DualAxes dual line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions two line (+seriesField if needed).\nPolish: autoFit; distinct line colors; shared x; legend; axis titles per measure; element-active.",
-  "code": "\nfunction DrawDualLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      { geometry: \"line\", seriesField: \"series_column\" },\n      { geometry: \"line\", seriesField: \"secondary_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "dual_axes",
+    "component": "DualAxes",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "secondary_measure_column": {
+        "role": "measure",
+        "index": 1
+      },
+      "series_column": {
+        "role": "series",
+        "optional": true
+      },
+      "secondary_series_column": {
+        "role": "series",
+        "optional": true
+      }
+    },
+    "omit_when_missing": [
+      "series_column",
+      "secondary_series_column"
+    ]
+  },
+  "instructions": [
+    "DualAxes dual line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions two line (+seriesField if needed).",
+    "Polish: autoFit; distinct line colors; shared x; legend; axis titles per measure; element-active."
+  ],
+  "code": [
+    "function DrawDualLine() {",
+    "  const { DualAxes } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data: [data, data],",
+    "    xField: 'dimension_column',",
+    "    yField: ['measure_column', 'secondary_measure_column'],",
+    "    geometryOptions: [",
+    "      { geometry: 'line', seriesField: 'series_column' },",
+    "      { geometry: 'line', seriesField: 'secondary_series_column' }",
+    "    ],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><DualAxes {...config} /></div>;",
+    "}"
+  ]
 }

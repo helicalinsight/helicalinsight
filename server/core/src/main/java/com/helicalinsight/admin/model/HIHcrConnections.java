@@ -36,12 +36,12 @@ public class HIHcrConnections implements Serializable {
     @JoinColumn(name="hcr_id")
     private HIResource hiResourceHcr;
     
-	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private HIHcrConnectionsEfwd hiHcrConnectionsEfwd;
 	
-	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private HIHcrConnectionsGlobal hiHcrConnectionsGlobal;
 	
-	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+	@OneToOne(mappedBy = "hiHcrConnections",cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
 	private HiHcrQuery hiHcrQuery;
 }

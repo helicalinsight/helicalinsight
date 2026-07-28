@@ -8,13 +8,30 @@ import { ensureShape } from "../../../components/hi-agent/components/semantic-me
 jest.mock(
   "../../../components/hi-agent/components/semantic-metadata-editor/agent-shelves",
   () => ({
-    AgentWorkspace: ({ onCopyJson, onPasteJson }) => (
+    AgentWorkspace: ({
+      onCopyJson,
+      onSaveJson,
+      onJsonChange,
+      hasUnsavedJsonChanges,
+    }) => (
       <div data-testid="agent-workspace">
         <button type="button" data-testid="workspace-copy-json" onClick={onCopyJson}>
           Copy JSON
         </button>
-        <button type="button" data-testid="workspace-paste-json" onClick={onPasteJson}>
-          Paste JSON
+        <button
+          type="button"
+          data-testid="workspace-save-json"
+          onClick={onSaveJson}
+          disabled={!hasUnsavedJsonChanges}
+        >
+          Save JSON
+        </button>
+        <button
+          type="button"
+          data-testid="workspace-edit-json"
+          onClick={() => onJsonChange('{"domain":[{"domain_name":"Edited"}]}')}
+        >
+          Edit JSON
         </button>
       </div>
     ),
@@ -95,6 +112,25 @@ const sampleAgentData = ensureShape({
       domain_name: "Finance",
       description: "Test metadata",
       topics: [],
+    },
+  ],
+  cube: [
+    {
+      cubeName: "",
+      dimensions: [
+        {
+          name: "Region",
+          column: "region",
+          sortOrder: 0,
+        },
+      ],
+      measures: [
+        {
+          name: "Amount",
+          column: "amount",
+          sortOrder: 1,
+        },
+      ],
     },
   ],
 });
@@ -182,17 +218,24 @@ describe("SemanticMetadataEditor", () => {
     expect(copied.domain).toBeDefined();
     expect(copied.cube).toBeDefined();
     expect(copied.business_metrics).toBeUndefined();
+    [...(copied.cube?.[0]?.dimensions || []), ...(copied.cube?.[0]?.measures || [])].forEach(
+      (field) => {
+        expect(field).not.toHaveProperty("sortOrder");
+      },
+    );
 
     ref.current.handleOpenPaste();
     expect(screen.getByRole("heading", { name: "Paste JSON" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Paste a metadata JSON/i)).toBeInTheDocument();
   });
 
-  it("wires workspace Copy/Paste actions to clipboard handlers", async () => {
+  it("wires workspace Copy/Save actions and dirty state", async () => {
+    const onContentChange = jest.fn();
     renderWithStore(
       {},
       <SemanticMetadataEditor
         agentData={sampleAgentData}
+        onContentChange={onContentChange}
         dispatch={jest.fn()}
       />,
     );
@@ -202,8 +245,17 @@ describe("SemanticMetadataEditor", () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByTestId("workspace-paste-json"));
-    expect(screen.getByPlaceholderText(/Paste a metadata JSON/i)).toBeInTheDocument();
+    const saveButton = screen.getByTestId("workspace-save-json");
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(screen.getByTestId("workspace-edit-json"));
+    expect(saveButton).toBeEnabled();
+    fireEvent.click(saveButton);
+    await waitFor(() => {
+      const lastContent =
+        onContentChange.mock.calls[onContentChange.mock.calls.length - 1][0];
+      expect(lastContent).toContain("Edited");
+    });
+    expect(saveButton).toBeDisabled();
   });
 
   it("applies pasted agent JSON", async () => {

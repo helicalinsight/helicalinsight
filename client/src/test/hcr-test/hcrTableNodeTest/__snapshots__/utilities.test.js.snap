@@ -1,0 +1,71 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`matches the snapshot for multiple styles 1`] = `
+[
+  {
+    "children": [],
+    "dsContextMenu": true,
+    "key": "style-1",
+    "menuType": "table-style-item",
+    "selectKey": "table-style-item",
+    "selectable": true,
+    "styleId": "style-1",
+    "tableData": {
+      "columns": 4,
+      "id": "table-1",
+      "rows": 3,
+    },
+    "title": "Bold Header",
+  },
+  {
+    "children": [],
+    "dsContextMenu": true,
+    "key": "style-2",
+    "menuType": "table-style-item",
+    "selectKey": "table-style-item",
+    "selectable": true,
+    "styleId": "style-2",
+    "tableData": {
+      "columns": 4,
+      "id": "table-1",
+      "rows": 3,
+    },
+    "title": "Striped Rows",
+  },
+]
+`;
+
+exports[`test getStylesOutline getStylesOutline — full output snapshot matches the snapshot for multiple styles 1`] = `
+[
+  {
+    "children": [],
+    "dsContextMenu": true,
+    "key": "style-1",
+    "menuType": "table-style-item",
+    "selectKey": "table-style-item",
+    "selectable": true,
+    "styleId": "style-1",
+    "tableData": {
+      "columns": 4,
+      "id": "table-1",
+      "rows": 3,
+    },
+    "title": "Bold Header",
+  },
+  {
+    "children": [],
+    "dsContextMenu": true,
+    "key": "style-2",
+    "menuType": "table-style-item",
+    "selectKey": "table-style-item",
+    "selectable": true,
+    "styleId": "style-2",
+    "tableData": {
+      "columns": 4,
+      "id": "table-1",
+      "rows": 3,
+    },
+    "title": "Striped Rows",
+  },
+]
+`;

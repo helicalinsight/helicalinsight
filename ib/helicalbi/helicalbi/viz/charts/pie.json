@@ -9,6 +9,66 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "Pie (explicit). Config: angleField, colorField; radius~0.8.\nPolish: outer labels + %; legend right if crowded; appendPadding; element-active; avoid 3D/explode; <=8 categories.",
-  "code": "\nfunction DrawPie() {\n  const { Pie } = components;\n  const config = {\n    appendPadding: 10,\n    data,\n    angleField: \"measure_column\",\n    colorField: \"dimension_column\",\n    radius: 0.8,\n    label: {\n      type: \"outer\",\n      content: \"{name}: {percentage}\"\n    },\n    interactions: [{ type: \"element-active\" }]\n  };\n  return <div><Pie {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "pie",
+    "component": "Pie",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "Pie (explicit). Config: angleField, colorField; radius~0.8.",
+    "Polish: outer labels + %; legend right if crowded; appendPadding; element-active; avoid 3D/explode; <=8 categories."
+  ],
+  "code": [
+    "function DrawPie() {",
+    "  const { Pie } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    appendPadding: 10,",
+    "    data,",
+    "    angleField: 'measure_column',",
+    "    colorField: 'dimension_column',",
+    "    radius: 0.8,",
+    "    label: {",
+    "      type: 'outer',",
+    "      content: '{name}: {percentage}'",
+    "    },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><Pie {...config} /></div>;",
+    "}"
+  ]
 }

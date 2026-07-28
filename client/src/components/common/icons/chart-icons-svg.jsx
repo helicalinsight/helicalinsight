@@ -1,11 +1,4 @@
-import { useSelector } from "react-redux"
-
 export const PivotTableSvg = () => {
-    const activeReport = useSelector(state => {
-        let activeReport = state.hreport.present.reports.find(report => report.active)
-        return activeReport
-    })
-    const { selectedType } = activeReport;
     return (
         <svg className="pivot-icon" height="1em" width="1.5em" viewBox="0 0 301.000000 186.000000" preserveAspectRatio="xMidYMid meet">
 
@@ -49,11 +42,6 @@ m510 0 l0 -155 -235 0 -235 0 0 155 0 155 235 0 235 0 0 -155z m510 0 l0 -155
 }
 
 export const PivotTableSvgNew = () => {
-    const activeReport = useSelector(state => {
-        let activeReport = state.hreport.present.reports.find(report => report.active)
-        return activeReport
-    })
-    const { selectedType } = activeReport;
     return (
         <svg height="1em" width="1.5em" viewBox="0 0 301.000000 186.000000" preserveAspectRatio="xMidYMid meet">
 
@@ -365,11 +353,6 @@ export const VFChartSvgNew = () => {
 }
 
 export const S2TableSvg = () => {
-    const activeReport = useSelector(state => {
-        let activeReport = state.hreport.present.reports.find(report => report.active)
-        return activeReport
-    })
-    const { selectedType } = activeReport;
     return (
         <svg className="pivot-icon" height="1em" width="1.5em" viewBox="0 0 301.000000 186.000000" preserveAspectRatio="xMidYMid meet">
 

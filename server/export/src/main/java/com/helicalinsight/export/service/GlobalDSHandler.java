@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +15,17 @@ import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.gson.JsonObject;
 import com.helicalinsight.adhoc.service.HIMetadataResourceServiceDB;
 import com.helicalinsight.admin.customauth.CipherUtils;
 import com.helicalinsight.admin.dto.GlobalDatasourceLookupDTO;
+import com.helicalinsight.admin.dto.UserDTO;
 import com.helicalinsight.admin.model.HIMetadataConnectionGlobal;
 import com.helicalinsight.admin.model.HIMetadataConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.datasource.model.DSExtraOption;
 import com.helicalinsight.datasource.model.DSTypeHikari;
 import com.helicalinsight.datasource.model.DSTypeJndi;
@@ -29,6 +34,7 @@ import com.helicalinsight.datasource.model.DSTypeTomcat;
 import com.helicalinsight.datasource.model.GlobalConnectionSecurity;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
+import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.export.dto.Conflict;
 import com.helicalinsight.export.dto.DataSourceWrapper;
 import com.helicalinsight.export.dto.Manifest;
@@ -92,23 +98,19 @@ private void hadleGlobalConnection(Integer globalId,List<DataSourceWrapper> dsWr
 	DataSourceWrapper wrapper = new DataSourceWrapper();
 	if (null != jndi) {
 		wrapper.setJndi(jndi);
-		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler
-				.getGlobalConnectionShare(globalId, jndi.getId());
+		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler.getGlobalConnectionShare(globalId, jndi.getId());
 		wrapper.setSecurities(securities);
 	} else if (null != hikari) {
 		wrapper.setHikari(hikari);
-		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler
-				.getGlobalConnectionShare(globalId, hikari.getId());
+		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler.getGlobalConnectionShare(globalId, hikari.getId());
 		wrapper.setSecurities(securities);
 	} else if (null != noSql) {
 		wrapper.setNoSql(noSql);
-		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler
-				.getGlobalConnectionShare(globalId, noSql.getId());
+		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler.getGlobalConnectionShare(globalId, noSql.getId());
 		wrapper.setSecurities(securities);
 	} else {
 		wrapper.setTomcat(tomcat);
-		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler
-				.getGlobalConnectionShare(globalId, tomcat.getId());
+		Map<Integer, List<GlobalConnectionSecurity>> securities = shareHandler.getGlobalConnectionShare(globalId, tomcat.getId());
 		wrapper.setSecurities(securities);
 	}
 
@@ -369,6 +371,33 @@ return  oldMappingNewMapping;
 		GlobalConnections gConnection = connectionService.getGlobalConnectionBy(lookup);
 		if( gConnection == null ) {
 			connection.setGlobalId(null);
+			
+			Object createdByObj = connection.getCreatedBy();
+			
+			User createdBy =  null;
+			boolean shouldFallBack = true;
+			
+			if ( createdByObj instanceof User user) {
+				if ( user.getUsername() != null ) {
+					createdBy = shareUtils.getOrInsertUser(dtoMapper.map(user));
+					shouldFallBack = false;
+				}
+			}
+			
+			if (shouldFallBack)  {
+				JsonObject settingsJson =  JsonUtils.newGetSettingsJson();
+				String defaultOwnerId = GsonUtility.optString(settingsJson,"defaultOwnerId");
+				if (StringUtils.isNotBlank(defaultOwnerId) && !"null".equalsIgnoreCase(defaultOwnerId)) {
+					User user = userService.findUser(Integer.parseInt(defaultOwnerId));
+					if ( user != null ) {
+						createdBy = user;
+					}
+					else {
+						logger.debug("Could not find user with given id {} , making the resource public.", defaultOwnerId);
+					}
+				}
+			}
+			connection.setCreatedBy(createdBy);
 			connectionService.addGlobalConnections(connection);
 			gConnection = connection;
 		}

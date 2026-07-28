@@ -1,0 +1,116 @@
+# Helical Insight — Docker
+#
+# Start (same for EE package, CE/open-source ZIP, or git + setup-dev):
+#   1. Copy .env.example to .env (set HOST_IP if needed)
+#   2. docker compose up -d
+#      (first run builds Instant BI image if missing; later starts reuse it)
+#   3. Open https://localhost
+#
+# Login: hiadmin / hiadmin
+# Rebuild Instant BI after code/requirements changes:
+#   docker compose up -d --build instantbi
+
+services:
+  postgres:
+    image: postgres:15.8-alpine3.20
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hiuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hiuser}
+      POSTGRES_DB: ${POSTGRES_DB:-hiee}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hiuser} -d ${POSTGRES_DB:-hiee}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./config/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - hinet
+
+  hiee:
+    image: hiee/helicalinsight:nitrogen-j25t11
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      HOST_IP: ${HOST_IP:-localhost}
+      INSTALL_CHROME: ${INSTALL_CHROME:-true}
+      CATALINA_OPTS: "-Djdk.internal.httpclient.disableHostnameVerification=true"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/hi-ee/applicationSettings || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - ./hi/db:/usr/local/Helical Insight/hi/db
+      - ./hi/hi-repository:/usr/local/Helical Insight/hi/hi-repository
+      - ./hi/hi-ee:/usr/local/tomcat/webapps/hi-ee
+      - ./hi/hi-ee.war:/usr/local/tomcat/webapps/hi-ee.war
+      - hirepo:/root
+      - ./config/tomcat/conf:/usr/local/tomcat/conf
+      - ./config/entry/entrypoint.sh:/entrypoint.sh
+      - hitomcat:/usr/local/tomcat/temp
+      - ./hi/tomcat/logs:/usr/local/tomcat/logs
+    # Optional: bind license to a fixed MAC address
+    # networks:
+    #   hinet:
+    #     mac_address: your_mac_address_here
+    networks:
+      - hinet
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    depends_on:
+      - hiee
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-check-certificate -q -O /dev/null https://127.0.0.1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./config/nginx/ssl/helical.key:/etc/nginx/ssl/helical.key
+      - ./config/nginx/ssl/helical.cert:/etc/nginx/ssl/helical.cert
+      - ./config/nginx/ssl/pass.txt:/etc/nginx/ssl/pass.txt
+    networks:
+      - hinet
+
+  instantbi:
+    build:
+      context: ./instantbi/helicalbi
+      dockerfile: Dockerfile
+    image: helicalinsight/instantbi:local
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+    # Optional: override LLM settings without rebuilding
+    # env_file:
+    #   - ./instantbi/helicalbi/.env
+    networks:
+      - hinet
+
+networks:
+  hinet:
+    driver: bridge
+
+volumes:
+  pgdata:
+    name: helical_pgdata
+  hirepo:
+    name: helical_hirepo
+  hitomcat:
+    name: helical_tomcat

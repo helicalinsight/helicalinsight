@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import {
   isIbKpiChart,
@@ -46,10 +45,12 @@ describe("isIbTableChart", () => {
     ).toBe(true);
   });
 
-  it("should detect table from GridTable usage in vf", () => {
-    expect(isIbTableChart("", "function Draw() { return <GridTable {...report} />; }")).toBe(
-      true,
-    );
+  it("should NOT treat GridTable / S2 pivot as flat markdown table", () => {
+    expect(
+      isIbTableChart("", "function DrawGridTable() { return <GridTable {...report} />; }"),
+    ).toBe(false);
+    expect(isIbTableChart("grid_table", "")).toBe(false);
+    expect(isIbTableChart("pivot_table", "")).toBe(false);
   });
 
   it("should return false for bar charts", () => {

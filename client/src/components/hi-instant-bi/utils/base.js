@@ -272,13 +272,40 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
   }))
   
   const chat_responses = botMessages.map(msg => {
+    const loaded = (activeReport.loadedChatResponses || {})[msg.chatSequenceId] || {};
     const {
       metadata: _metadata,
       ...chatResponseForSave
     } = msg.fullChatResponse || {};
+    const {
+      metadata: _loadedMetadata,
+      data: _loadedData,
+      ...loadedForSave
+    } = loaded;
+
+    // Prefer message preferences; fall back to loaded-open cache so open/edit
+    // preference edits still persist when fullChatResponse was sparse.
+    const messageViz = chatResponseForSave.viz || {};
+    const loadedViz = loadedForSave.viz || {};
+    const viz = {
+      ...loadedViz,
+      ...messageViz,
+    };
+    if (messageViz.chart_name || loadedViz.chart_name) {
+      viz.chart_name = messageViz.chart_name || loadedViz.chart_name;
+    }
+    if (messageViz.similar_chart || loadedViz.similar_chart) {
+      viz.similar_chart =
+        messageViz.similar_chart || loadedViz.similar_chart;
+    }
+    // Do not persist legacy InstantBI chart settings.
+    delete viz.settings;
+
     return {
       chat_sequence_id: msg.chatSequenceId,
+      ...loadedForSave,
       ...chatResponseForSave,
+      viz,
     };
   })
   

@@ -13,6 +13,46 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "KPI Statistic in Card. Config: title; value=data[0][measure]; valueStyle; Card border 0.\nPolish: one primary number; short title; strong color (#262626 or brand); width flexible; no chart chrome.",
-  "code": "\nfunction DrawKPI() {\n  const { Card, Statistic } = components;\n  \n  <Card loading={false} style={{ width: 200, border: 0 }}>\n      <Statistic\n        title=\"Put the title here\"\n        value={data[0]?.[\"value_column\"]}\n        valueStyle={{ color: \"#999\" }}\n      />\n    </Card>\n  );\n}\n"
+  "conversion": {
+    "family": "kpi",
+    "component": "Statistic",
+    "fields": {
+      "value_column": {
+        "role": "measure",
+        "index": 0
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "KPI Statistic in Card. Config: title; value=data[0][measure]; valueStyle; Card border 0.",
+    "Polish: one primary number; short title; strong color (#262626 or brand); width flexible; no chart chrome."
+  ],
+  "code": [
+    "function DrawKPI() {",
+    "  const { Card, Statistic } = components;",
+    "  ",
+    "  const measureFormats = {",
+    "    value_column: '0.00'",
+    "  };",
+    "  const formatKpi = (v) => {",
+    "    const fmt = measureFormats.value_column;",
+    "    if (!fmt || v == null || v === '') return v;",
+    "    const num = typeof v === 'number' ? v : Number(v);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return v;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    return num;",
+    "  };",
+    "  <Card loading={false} style={{ width: 200, border: 0 }}>",
+    "      <Statistic",
+    "        title='Put the title here'",
+    "        value={formatKpi(data[0]?.['value_column'])}",
+    "        valueStyle={{ color: '#999' }}",
+    "      />",
+    "    </Card>",
+    "  );",
+    "}"
+  ]
 }

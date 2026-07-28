@@ -9,6 +9,7 @@ import jakarta.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 
+@Deprecated(forRemoval = true)
 @Entity
 @Table(name = "ds_type_hikari")
 @Cacheable(true)

@@ -2,6 +2,8 @@ package com.helicalinsight.efw.components;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.customauth.CipherUtils;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DsOperation;
 import com.helicalinsight.datasource.GlobalJdbcType;
@@ -16,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -23,6 +26,7 @@ import java.util.Date;
 /**
  * Created by Helical on 5/19/2021.
  */
+@Deprecated(forRemoval = true)
 @Component("noneDsManager")
 public class PlainJDBCIOHandler implements DsOperation {
 
@@ -31,6 +35,10 @@ public class PlainJDBCIOHandler implements DsOperation {
 
     @Autowired
     private GlobalConnectionService globalConnectionService;
+    
+    @Autowired
+    @Qualifier(value = "userDetailsService")
+    private UserService userService;
 
     public String writeDataSource(@NotNull JsonObject formData, String mode) {
         Integer globalId = null;
@@ -60,7 +68,8 @@ public class PlainJDBCIOHandler implements DsOperation {
 
         //GlobalConnection
         globalConnection.setName(formData.get("name").getAsString());
-        globalConnection.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
         globalConnection.setType(GlobalJdbcType.NON_POOLED);
         globalConnection.setBaseType(GlobalJdbcType.TYPE);

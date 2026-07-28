@@ -41,30 +41,6 @@ const App = ({ intial_hreport_state, reportId, appStore = null }) => {
 };
 
 describe("Hreport filters", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
-  
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-    
-  test("jest example", async () => {
-    expect(1 + 1).toBeTruthy();
-  });
   test("Render text filter", async () => {
     render(<App intial_hreport_state={intialFiltersState} reportId={"test_123"} />);
     expect(screen.queryByTestId(/filters-advance-btn-test_123/i)).toBeTruthy();

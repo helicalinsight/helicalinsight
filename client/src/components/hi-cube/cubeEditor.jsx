@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "antd";
 import { useCubeEditorBindings } from "./cubeEditorContext";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   cubeTableDataSource,
@@ -75,6 +75,7 @@ import {
   createColumnChildFromDropRecord,
   getFieldSourceTableTooltip,
 } from "../hi-agent/utils/agent-cube-bridge";
+import { getAgentMissingMetadataFieldKeys } from "../hi-agent/utils/agent-helperMethods";
 import {
   AgentCubeFieldDragSource,
   AgentTopicDropZone,
@@ -315,6 +316,13 @@ export function CubeEditor({ showBusinessFields = true }) {
   const { cubeState, dispatch, variant } = useCubeEditorBindings();
   const isAgent = variant === "agent";
   const agentSemanticTypes = useSelector((store) => store.agent?.semanticTypes);
+  const agentMetadataDetails = useSelector(
+    (store) => store.agent?.metadataDetails || {},
+  );
+  const isAgentMetadataLoaded = Boolean(
+    agentMetadataDetails.path && agentMetadataDetails.fileName,
+  );
+  const canMutateAgentStructure = !isAgent || isAgentMetadataLoaded;
   const showAgentBusinessFields = isAgent && showBusinessFields;
   const descriptionFieldUi =
     DESCRIPTION_FIELD_UI[variant] || DESCRIPTION_FIELD_UI.cube;
@@ -330,7 +338,17 @@ export function CubeEditor({ showBusinessFields = true }) {
     cubeMode,
     isCubeTableModeNormal,
     cubeFieldsDataBackup,
+    metadataTablesData,
   } = cubeState;
+  const missingMetadataFieldKeys = useMemo(() => {
+    if (!isAgent) {
+      return new Set();
+    }
+    return getAgentMissingMetadataFieldKeys(
+      cubeFieldsData?.children || [],
+      metadataTablesData,
+    );
+  }, [isAgent, cubeFieldsData?.children, metadataTablesData]);
   let tableVirtualProps = {};
   const [collapsedEntries, setCollapsedEntries] = useState({});
   const toggleEntryCollapse = (key) =>
@@ -365,7 +383,7 @@ export function CubeEditor({ showBusinessFields = true }) {
       dispatch(
         setCubeFieldsData({
           mode: "setChild",
-          child: createColumnChildFromDropRecord(record),
+          child: createColumnChildFromDropRecord(record, agentSemanticTypes),
         }),
       );
     },
@@ -484,15 +502,20 @@ export function CubeEditor({ showBusinessFields = true }) {
   };
 
   const handleAddManualMetric = () => {
+    if (!canMutateAgentStructure) return;
     dispatch(
       setCubeFieldsData({
         mode: "setChild",
-        child: createManualMetricChild(cubeFieldsData.children),
+        child: createManualMetricChild(
+          cubeFieldsData.children,
+          agentSemanticTypes,
+        ),
       }),
     );
   };
 
   const handleAddBusinessEntry = () => {
+    if (!canMutateAgentStructure) return;
     dispatch(
       setCubeFieldsData({
         mode: "addBusinessEntry",
@@ -583,10 +606,15 @@ export function CubeEditor({ showBusinessFields = true }) {
       Fields
       <CubeFieldInfo label="Fields" />
       <ToolbarIconButton
-        title="Add Metric"
+        title={
+          canMutateAgentStructure
+            ? "Add Metric"
+            : "Connect a metadata file before adding a metric"
+        }
         placement="top"
         className="cube-add-metric-action cube-add-metric-action--inline"
         stopPropagation
+        disabled={!canMutateAgentStructure}
         onClick={handleAddManualMetric}
       >
         <PlusOutlined className="cube-add-metric-icon" />
@@ -978,8 +1006,14 @@ export function CubeEditor({ showBusinessFields = true }) {
     ) : (
       fieldName
     );
+    const isMissingFromMetadata = missingMetadataFieldKeys.has(field.key);
     return (
-      <div key={field.key} className="business-view-agent-topic-field-row">
+      <div
+        key={field.key}
+        className={`business-view-agent-topic-field-row${
+          isMissingFromMetadata ? " agent-field-missing-metadata" : ""
+        }`}
+      >
         <Dropdown
           overlay={renderAgentDeleteOnlyMenu({
             onDelete: () => clearFieldFromTopic(field.key, entry, topic),
@@ -1628,9 +1662,14 @@ export function CubeEditor({ showBusinessFields = true }) {
         <div className="business-view-hierarchy">
           <div className="cube-business-view-toolbar">
             <ToolbarIconButton
-              title="Add domain"
+              title={
+                canMutateAgentStructure
+                  ? "Add domain"
+                  : "Connect a metadata file before adding a domain"
+              }
               placement="left"
               ariaLabel="Add domain"
+              disabled={!canMutateAgentStructure}
               onClick={handleAddBusinessEntry}
             >
               <PlusOutlined className="cube-add-metric-icon" />
@@ -1792,6 +1831,11 @@ export function CubeEditor({ showBusinessFields = true }) {
           {...tableVirtualProps}
           pagination={false}
           size="small"
+          rowClassName={(record) =>
+            isAgent && missingMetadataFieldKeys.has(record.key)
+              ? "agent-field-missing-metadata"
+              : ""
+          }
         />
       )}
       {!showAgentBusinessFields && (

@@ -1,0 +1,8 @@
+{
+    "id":  "components",
+    "file":  "components.xml",
+    "title":  "Components",
+    "description":  "Registers application service components. Not editable from the Configurations UI.",
+    "category":  "ignore",
+    "editor":  "xml"
+}

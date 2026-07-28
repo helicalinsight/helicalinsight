@@ -37,30 +37,64 @@ const MessageList = (props = {}) => {
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const chatEndRef = useRef(null);
     const scrollableRef = useRef(null);
+    const stickToBottomRef = useRef(true);
 
     const handleLoadMore = () => { }
 
-    const scrollToBottom = () => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    const scrollToBottom = (smooth = false) => {
+        const el = scrollableRef.current;
+        if (el) {
+            el.scrollTop = el.scrollHeight;
+        }
+        chatEndRef.current?.scrollIntoView({
+            behavior: smooth ? 'smooth' : 'auto',
+            block: 'end',
+        });
     };
 
     const handleScroll = () => {
         const el = scrollableRef.current;
         if (!el) return;
-        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+        const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+        stickToBottomRef.current = isNearBottom;
         setShowScrollToBottom(!isNearBottom);
     };
 
     const resetScrollShow = () => {
+        stickToBottomRef.current = true;
         setShowScrollToBottom(false);
+        scrollToBottom(true);
     }
 
     useEffect(() => {
-        let tm = setTimeout(() => {
-            clearTimeout(tm);
-            scrollToBottom();
-        },100)
+        if (!messages.length) return undefined;
+        stickToBottomRef.current = true;
+        const t = setTimeout(() => scrollToBottom(false), 50);
+        return () => clearTimeout(t);
     }, [messages.length]);
+
+    useEffect(() => {
+        const el = scrollableRef.current;
+        if (!el || !messages.length || typeof ResizeObserver === 'undefined') {
+            return undefined;
+        }
+        const content = el.firstElementChild;
+        if (!content) return undefined;
+        const observer = new ResizeObserver(() => {
+            if (stickToBottomRef.current) {
+                scrollToBottom(false);
+            }
+        });
+        observer.observe(content);
+        return () => observer.disconnect();
+    }, [messages.length]);
+
+    //  (open/edit file)
+    useEffect(() => {
+        if (!stickToBottomRef.current) return undefined;
+        const t = setTimeout(() => scrollToBottom(false), 100);
+        return () => clearTimeout(t);
+    }, [loadingSequenceId]);
 
     if (!isMetadataPresent) return <MetadataNotConnected />
 
@@ -102,7 +136,6 @@ const MessageList = (props = {}) => {
                     messages.map((item, index) => (
                         <MessageLayout
                             chatItem={item}
-                            // key={item.message_id + "-" + index}
                             key={item.id}
                             index={index}
                             {...item}
@@ -126,10 +159,10 @@ const MessageList = (props = {}) => {
             </InfiniteScroll>
             <div ref={chatEndRef} />
             {showScrollToBottom && (
-                <ArrowDownOutlined className='scroll-to-bottom' onClick={scrollToBottom} style={{ fontSize: '20px' }} />
+                <ArrowDownOutlined className='scroll-to-bottom' onClick={() => resetScrollShow()} style={{ fontSize: '20px' }} />
             )}
         </div>
     );
 }
 
-export default MessageList 
+export default MessageList

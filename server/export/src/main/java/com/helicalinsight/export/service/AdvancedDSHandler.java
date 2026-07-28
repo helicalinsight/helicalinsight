@@ -3,6 +3,7 @@ package com.helicalinsight.export.service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
@@ -225,7 +226,10 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
 					HIResource parentResource = efwd.getParentResource();
 					parentResource.setResourceURL(context.addDestination(parentResource.getResourceURL()));
-					getOrInsertParent(parentResource, efwdConnection);
+					parentResource = getOrInsertParent(parentResource, efwdConnection);
+					efwd.setCreatedDate(new Date());
+					efwd.setLastUpdatedTime(new Date());
+					efwd.setCreatedBy(parentResource.getCreatedBy());
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
@@ -285,7 +289,10 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
 					HIResource parentResource = efwd.getParentResource();
 					parentResource.setResourceURL(context.addDestination(parentResource.getResourceURL()));
-					getOrInsertParent(parentResource, efwdConnection);
+					parentResource = getOrInsertParent(parentResource, efwdConnection);
+					efwd.setCreatedDate(new Date());
+					efwd.setLastUpdatedTime(new Date());
+					efwd.setCreatedBy(parentResource.getCreatedBy());
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					groovy.setHiEfwdConnection(efwdConnection);
@@ -379,7 +386,10 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
 					HIResource parentResource = efwd.getParentResource();
 					parentResource.setResourceURL(context.addDestination(parentResource.getResourceURL()));
-					getOrInsertParent(parentResource, efwdConnection);
+					parentResource = getOrInsertParent(parentResource, efwdConnection);
+					efwd.setCreatedDate(new Date());
+					efwd.setLastUpdatedTime(new Date());
+					efwd.setCreatedBy(parentResource.getCreatedBy());
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
@@ -444,7 +454,10 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
 					HIResource parentResource = efwd.getParentResource();
 					parentResource.setResourceURL(context.addDestination(parentResource.getResourceURL()));
-					getOrInsertParent(parentResource, efwdConnection);
+					parentResource =  getOrInsertParent(parentResource, efwdConnection);
+					efwd.setCreatedDate(new Date());
+					efwd.setLastUpdatedTime(new Date());
+					efwd.setCreatedBy(parentResource.getCreatedBy());
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					groovy.setHiEfwdConnection(efwdConnection);
@@ -499,10 +512,11 @@ public class AdvancedDSHandler extends DatasourceHandler {
 	 * @param parentResource HIResource object provides url.
 	 * @param efwdConnection HIEfwdConnection object provides resouce for EFWD.
 	 */
-	private void getOrInsertParent(HIResource parentResource, HIEfwdConnection efwdConnection) {
+	private HIResource getOrInsertParent(HIResource parentResource, HIEfwdConnection efwdConnection) {
 		HIResource dbResource = serviceDb.getResourceByUrl(parentResource.getResourceURL());
 		if (dbResource != null) {
 			efwdConnection.getHiResourceEFWD().setParentResource(dbResource);
+			return dbResource;
 		} else {
 			String[] urls = parentResource.getResourceURL().split("/");
 			HIResource parent = null;
@@ -522,6 +536,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 				prevUrl.append("/");
 			}
 			efwdConnection.getHiResourceEFWD().setParentResource(parent);
+			return parent;
 		}
 	}
 

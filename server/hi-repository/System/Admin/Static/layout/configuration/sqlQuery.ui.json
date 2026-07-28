@@ -1,0 +1,10 @@
+{
+    "id":  "sqlQuery",
+    "file":  "sqlQuery.properties",
+    "title":  "SQL Query",
+    "description":  "Reusable SQL query templates and fragments.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/sqlQuery.ui.layout",
+    "fallbackEditor":  "properties"
+}

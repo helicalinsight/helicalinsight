@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import "../../../utils/polyfill/url";
 import '@testing-library/jest-dom'
@@ -26,22 +25,6 @@ const App = ({ store }) => {
 };
 
 describe("Dashboard Designer Test", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
   const store = configureStore({
     reducer: reducers,
     middleware: (getDefaultMiddleware) =>

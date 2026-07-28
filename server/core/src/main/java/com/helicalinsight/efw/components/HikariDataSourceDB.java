@@ -2,6 +2,7 @@ package com.helicalinsight.efw.components;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.customauth.CipherUtils;
+import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DsOperation;
@@ -28,6 +29,7 @@ import java.util.Map;
  * @author Prashansa
  * @author Rajasekhar
  */
+@Deprecated(forRemoval = true)
 @Component("hikariDsManager")
 public class HikariDataSourceDB implements DsOperation {
 
@@ -104,14 +106,14 @@ public class HikariDataSourceDB implements DsOperation {
     }
 
     private Integer createDataSource(JsonObject formData, Map<String, String> map, String createdBy) {
-        Integer globalId;GlobalConnections globalConnection = new GlobalConnections();
+       
+    	GlobalConnections globalConnection = new GlobalConnections();
         globalConnection.setName(formData.get("name").getAsString());
-        globalConnection.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
         globalConnection.setType(GlobalJdbcType.DYNAMIC_DATASOURCE);
         globalConnection.setBaseType(GlobalJdbcType.TYPE);
-
-
         globalConnection.setCreatedDate(new Date());
         globalConnection.setLastUpdatedTime(new Date());
         String dsType = JsonUtils.getDSType(DSTypeHikari.class.getName());

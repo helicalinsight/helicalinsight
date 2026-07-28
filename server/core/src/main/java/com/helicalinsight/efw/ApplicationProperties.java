@@ -44,6 +44,7 @@ public enum ApplicationProperties {
      */
     private String nullValue;
     private String allValues;
+    private String blankValue;
     /**
      * The System directory of EFW-Project
      */
@@ -265,6 +266,14 @@ public enum ApplicationProperties {
      */
     public void setNullValue(String nullValue) {
         this.nullValue = nullValue;
+    }
+    
+    public String getBlankValue() {
+		return blankValue;
+	}
+	
+	public void setBlankValue(String blankValue) {
+        this.blankValue = blankValue;
     }
 
     /**

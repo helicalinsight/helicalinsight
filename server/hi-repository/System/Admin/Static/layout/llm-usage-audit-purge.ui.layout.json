@@ -1,0 +1,125 @@
+{
+  "id": "llm-usage-audit-purge",
+  "title": "LLM Usage Audit Purge",
+  "description": "Purge old LLM usage audit records on a schedule",
+  "width": 860,
+  "sections": [
+    {
+      "key": "identity",
+      "title": "Identity",
+      "description": "Unique id and runtime status flags",
+      "fields": [
+        {
+          "name": "id",
+          "label": "Schedule Id",
+          "type": "text",
+          "required": true,
+          "readOnlyOnEdit": true,
+          "span": 24
+        },
+        {
+          "name": "enabled",
+          "label": "Enabled",
+          "type": "boolean",
+          "span": 12
+        },
+        {
+          "name": "paused",
+          "label": "Paused",
+          "type": "boolean",
+          "span": 12
+        }
+      ]
+    },
+    {
+      "key": "schedule",
+      "title": "Schedule",
+      "description": "When the purge job runs and when it expires",
+      "fields": [
+        {
+          "name": "expireDate",
+          "label": "Expire Date",
+          "type": "text",
+          "span": 12,
+          "placeholder": "never or yyyy-MM-dd'T'HH:mm:ss"
+        },
+        {
+          "name": "scheduledTime",
+          "label": "Scheduled Time",
+          "type": "text",
+          "span": 12,
+          "placeholder": "HH:mm:ss"
+        },
+        {
+          "name": "cron",
+          "label": "Cron Expression",
+          "type": "text",
+          "span": 16,
+          "placeholder": "Optional; overrides scheduledTime when set"
+        },
+        {
+          "name": "timeZone",
+          "label": "Time Zone",
+          "type": "text",
+          "span": 8,
+          "placeholder": "e.g. Asia/Kolkata"
+        }
+      ]
+    },
+    {
+      "key": "task",
+      "title": "Task",
+      "description": "Java job class that performs the purge",
+      "fields": [
+        {
+          "name": "task.class",
+          "label": "Java Class",
+          "type": "text",
+          "span": 24,
+          "readOnly": true
+        }
+      ]
+    },
+    {
+      "key": "jobConfig",
+      "title": "Purge Settings",
+      "description": "Retention window and export destination",
+      "fields": [
+        {
+          "name": "retentionDays",
+          "label": "Retention Days",
+          "type": "number",
+          "span": 12,
+          "placeholder": "365"
+        },
+        {
+          "name": "exportPath",
+          "label": "Export Path",
+          "type": "text",
+          "span": 12,
+          "placeholder": "Audit/LLM"
+        }
+      ]
+    },
+    {
+      "key": "email",
+      "title": "Email Notification",
+      "description": "Optional result email; blank To uses systemadmin",
+      "fields": [
+        {
+          "name": "email.enabled",
+          "label": "Send Email",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "email.to",
+          "label": "To",
+          "type": "text",
+          "span": 16,
+          "placeholder": "blank = systemadmin"
+        }
+      ]
+    }
+  ]
+}

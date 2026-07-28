@@ -9,7 +9,6 @@ import axios from "axios";
 import { admin_data } from "./hi-managementmock-comp";
 import { BrowserRouter } from "react-router-dom";
 import { hiMockAxios } from "../../../../../app/mock-axios";
-const crypto = require("crypto");
 
 const App = ({ admin_data }) => {
   const store = configureStore({
@@ -34,27 +33,6 @@ const App = ({ admin_data }) => {
 };
 
 describe("Dice", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-    window.crypto = {};
-    window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
   test("Dice component", async () => {
     render(
       <BrowserRouter>

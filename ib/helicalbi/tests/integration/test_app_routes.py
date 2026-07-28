@@ -621,6 +621,133 @@ class TestDataInsight:
 
 
 # ---------------------------------------------------------------------------
+# /instant-to-hr
+# ---------------------------------------------------------------------------
+class TestInstantToHr:
+    def test_returns_form_data(self, flask_client, session_auth):
+        form_data = {
+            "location": "/meta",
+            "metadataFileName": "metadata.json",
+            "columns": [{"alias": "region"}],
+            "functions": [],
+        }
+        with patch(
+            "bl.instant_to_hr.sql_to_form_data", return_value=form_data
+        ) as mock_convert:
+            resp = flask_client.post(
+                "/instant-to-hr",
+                json={
+                    "input": {
+                        "sql": "SELECT region FROM t",
+                        "metadata_dir": "/meta",
+                        "metadata_file_name": "metadata.json",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body == form_data
+        mock_convert.assert_called_once()
+        assert mock_convert.call_args.args[0] == "SELECT region FROM t"
+        assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
+        assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
+        assert mock_convert.call_args.kwargs["location"] == "/meta"
+        assert mock_convert.call_args.kwargs["session_cookie"] == session_auth["sessionCookie"]
+
+    def test_accepts_md_location_aliases(self, flask_client, session_auth):
+        with patch(
+            "bl.instant_to_hr.sql_to_form_data",
+            return_value={"columns": []},
+        ) as mock_convert:
+            resp = flask_client.post(
+                "/instant-to-hr",
+                json={
+                    "input": {
+                        "sql": "SELECT 1",
+                        "md_location": "/meta",
+                        "md_file_name": "metadata.json",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        mock_convert.assert_called_once()
+        assert mock_convert.call_args.kwargs["location"] == "/meta"
+        assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
+        assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
+
+    def test_missing_sql_returns_error(self, flask_client, session_auth):
+        resp = flask_client.post(
+            "/instant-to-hr",
+            json={
+                "input": {
+                    "metadata_dir": "/meta",
+                    "metadata_file_name": "metadata.json",
+                    "sessionCookie": session_auth["sessionCookie"],
+                    "username": session_auth["username"],
+                }
+            },
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "No SQL found" in body["error"]
+
+    def test_resolves_sql_from_chat_response_item(self, flask_client, session_auth):
+        with patch(
+            "bl.instant_to_hr.sql_to_form_data",
+            return_value={"columns": []},
+        ) as mock_convert:
+            resp = flask_client.post(
+                "/instant-to-hr",
+                json={
+                    "input": {
+                        "chat_response_item": {
+                            "sql": {
+                                "raw_sql": "SELECT region FROM sales",
+                                "dialect": "postgres",
+                            }
+                        },
+                        "metadata_dir": "/meta",
+                        "metadata_file_name": "metadata.json",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        mock_convert.assert_called_once()
+        assert mock_convert.call_args.args[0] == "SELECT region FROM sales"
+
+    def test_exception_returns_error_payload(self, flask_client, session_auth):
+        with patch(
+            "bl.instant_to_hr.sql_to_form_data",
+            side_effect=RuntimeError("convert failed"),
+        ):
+            resp = flask_client.post(
+                "/instant-to-hr",
+                json={
+                    "input": {
+                        "sql": "SELECT 1",
+                        "metadata_dir": "/meta",
+                        "metadata_file_name": "metadata.json",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["error"] == "convert failed"
+
+
+# ---------------------------------------------------------------------------
 # /getSemanticData
 # ---------------------------------------------------------------------------
 class TestGetSemanticData:

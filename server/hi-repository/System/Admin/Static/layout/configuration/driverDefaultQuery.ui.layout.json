@@ -1,0 +1,56 @@
+{
+    "id":  "driverDefaultQuery",
+    "title":  "Driver Default Query",
+    "description":  "Validation queries per JDBC driver.",
+    "file":  "driverDefaultQuery.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common Drivers",
+                         "key":  "queries",
+                         "fields":  [
+                                        {
+                                            "name":  "mysql",
+                                            "path":  "com.mysql.jdbc.Driver",
+                                            "label":  "MySQL",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        },
+                                        {
+                                            "name":  "mysqlcj",
+                                            "path":  "com.mysql.cj.jdbc.Driver",
+                                            "label":  "MySQL CJ",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        },
+                                        {
+                                            "name":  "postgres",
+                                            "path":  "org.postgresql.Driver",
+                                            "label":  "PostgreSQL",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        },
+                                        {
+                                            "name":  "oracle",
+                                            "path":  "oracle.jdbc.OracleDriver",
+                                            "label":  "Oracle",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        },
+                                        {
+                                            "name":  "sqlserver",
+                                            "path":  "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                                            "label":  "SQL Server",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        }
+                                    ]
+                     }
+                 ]
+}

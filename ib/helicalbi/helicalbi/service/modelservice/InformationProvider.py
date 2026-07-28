@@ -1,7 +1,10 @@
 import logging
 from typing import Any, List
 
-from helicalbi.common.CubeInfoModel import topic_mappings_from_domain
+from helicalbi.common.CubeInfoModel import (
+    _strip_component_alias,
+    topic_mappings_from_domain,
+)
 from helicalbi.common.JsonToPara import (
     generate_bare_minimum_context,
     get_column_names,
@@ -35,6 +38,20 @@ def _normalize_topic_names(topics: list) -> List[str]:
         if name:
             names.append(name)
     return list(dict.fromkeys(names))
+
+
+def _component_match_tokens(components: list) -> List[str]:
+    """Flatten legacy ``component`` strings and rich ``components`` objects."""
+    tokens: List[str] = []
+    for item in components or []:
+        if isinstance(item, dict):
+            name = item.get("name")
+            if name:
+                tokens.append(_strip_component_alias(name))
+            continue
+        if item:
+            tokens.append(_strip_component_alias(item))
+    return list(dict.fromkeys(token for token in tokens if token))
 
 
 class InformationProvider:
@@ -100,10 +117,31 @@ class InformationProvider:
             if not isinstance(item, dict):
                 continue
             topic_name = item.get("topic_name")
-            if topic_name in topic_names:
-                components = ", ".join(item.get("component") or [])
-                result = f"    {topic_name} -> {components}\n"
-                to_send.append(result)
+            if topic_name not in topic_names:
+                continue
+            rich = item.get("components")
+            if isinstance(rich, list) and rich:
+                parts = []
+                for component in rich:
+                    if not isinstance(component, dict):
+                        continue
+                    label = str(component.get("name") or "")
+                    extras = []
+                    if component.get("id") not in (None, ""):
+                        extras.append(f"id={component['id']}")
+                    if component.get("kind"):
+                        extras.append(str(component["kind"]))
+                    if extras:
+                        label = f"{label} [{', '.join(extras)}]" if label else ", ".join(extras)
+                    if label:
+                        parts.append(label)
+                components = ", ".join(parts)
+            else:
+                components = ", ".join(
+                    _strip_component_alias(token) for token in (item.get("component") or [])
+                )
+            result = f"    {topic_name} -> {components}\n"
+            to_send.append(result)
 
         if not to_send and is_bare_minimum_config(self.model_data):
             cube_metadata = self.model_data.get("cube_metadata") or []
@@ -143,7 +181,9 @@ class InformationProvider:
         return _normalize_topic_names(input_topics)
 
     def get_input_tables(self, input_topics):
-        match_targets = self._match_targets(input_topics)
+        match_targets = {
+            _strip_component_alias(token) for token in self._match_targets(input_topics)
+        }
         matched_tables = []
         bare_minimum_tables = []
         all_tables = []
@@ -158,7 +198,7 @@ class InformationProvider:
                 continue
 
             for dimension in dimension_names:
-                if dimension in match_targets:
+                if _strip_component_alias(dimension) in match_targets:
                     matched_tables.append(database_table)
                     break
 
@@ -166,7 +206,9 @@ class InformationProvider:
         return list(dict.fromkeys(tables))
 
     def get_attribute_string(self, input_topics):
-        match_targets = self._match_targets(input_topics)
+        match_targets = {
+            _strip_component_alias(token) for token in self._match_targets(input_topics)
+        }
         tables_to_send = []
         bare_minimum = is_bare_minimum_config(self.model_data)
 
@@ -182,7 +224,7 @@ class InformationProvider:
 
             if name_array:
                 for itm in name_array:
-                    if itm in match_targets:
+                    if _strip_component_alias(itm) in match_targets:
                         tables_to_send.append({itm: f"{database_table}({columns_part})"})
                         entry_added = True
             elif bare_minimum:
@@ -208,7 +250,9 @@ class InformationProvider:
         for topic in topic_mappings:
             if not isinstance(topic, dict):
                 continue
-            if topic.get("topic_name") in topic_names:
-                components.extend(topic.get("component") or [])
+            if topic.get("topic_name") not in topic_names:
+                continue
+            components.extend(_component_match_tokens(topic.get("components") or []))
+            components.extend(_component_match_tokens(topic.get("component") or []))
 
-        return components
+        return list(dict.fromkeys(components))

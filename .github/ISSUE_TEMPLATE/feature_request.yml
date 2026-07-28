@@ -1,0 +1,80 @@
+name: Feature request / Enhancement
+description: Suggest an improvement with clear problem statement and desired outcome.
+title: "[Enhancement] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the enhancement idea.
+
+        The goal is to capture the “why” and the “what success looks like” so the team can assess scope quickly.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary (short)
+      placeholder: "Add a 'Test Data' button to quickly load SampleTravelData in dev"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Area / component
+      options:
+        - Backend (Java / APIs)
+        - Frontend (React UI)
+        - Instant BI (Python service)
+        - Docker / Deployment
+        - CI/CD / Build
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      placeholder: "Explain what pain point exists today and who is affected."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      placeholder: "Describe the feature/approach at a high level."
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      placeholder: "What else have you tried or evaluated?"
+    validations:
+      required: false
+
+  - type: textarea
+    id: success
+    attributes:
+      label: Success criteria
+      placeholder: "How will we know the change worked? Include acceptance checks if possible."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - Blocker (must-have)
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+

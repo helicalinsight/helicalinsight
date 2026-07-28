@@ -172,7 +172,11 @@ class GetColumnNames:
             model_data={
                 "topic_mappings": state.get("topic_mappings"),
                 "cube_metadata": cube_metadata,
+                "domain_context": state.get("domain_context"),
+                "domain": state.get("domain"),
+                "topics": state.get("topics"),
             },
+            domain_context=state.get("domain_context"),
         )
 
         parser = PydanticOutputParser(pydantic_object=get_column_response_model())

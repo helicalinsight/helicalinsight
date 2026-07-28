@@ -10,6 +10,7 @@ from helicalbi.common.JsonToPara import (
     split_table_column_ref,
     unquote_identifier,
 )
+from helicalbi.common.CubeInfoModel import format_topic_mappings_for_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ def get_table_col_description(
     table_names=None,
     user_query=None,
     model_data=None,
+    domain_context=None,
 ):
     cube_metadata = cube_metadata or []
     table_names = table_names or []
@@ -44,9 +46,29 @@ def get_table_col_description(
         reduced_cubes = all_cubes
 
     if bare_minimum or not table_names:
-        return generate_bare_minimum_context(user_query, reduced_cubes)
+        schema = generate_bare_minimum_context(user_query, reduced_cubes)
+    else:
+        schema = generate_semantic_hint(reduced_cubes)
 
-    return generate_semantic_hint(reduced_cubes)
+    model_data = model_data or {}
+    domain_block = (
+        domain_context
+        or model_data.get("domain_context")
+        or ""
+    )
+    topic_mappings = model_data.get("topic_mappings") or []
+    topic_block = format_topic_mappings_for_prompt(topic_mappings)
+    parts: list[str] = []
+    if domain_block and topic_block and topic_block in domain_block:
+        parts.append(str(domain_block).strip())
+    else:
+        if domain_block:
+            parts.append(str(domain_block).strip())
+        if topic_block:
+            parts.append(topic_block)
+    if schema:
+        parts.append(schema)
+    return "\n\n".join(part for part in parts if part)
 
 
 def _normalize_query_plan(query_plan: Any) -> dict:
@@ -70,11 +92,66 @@ def _lookup_column_meta(cube: dict, col_name: str) -> dict:
     target = unquote_identifier(col_name)
     if not target:
         return {}
+    # Prefer exact alias / semantic-name matches (hierarchy levels share column_name).
     for column in cube.get("columns") or []:
         if not isinstance(column, dict):
             continue
-        if column.get("column_name") == target or column.get("alias_name") == target:
+        if column.get("alias_name") == target or column.get("dimension_name") == target:
             return column
+        if column.get("level_name") == target:
+            return column
+    for measure in cube.get("measures") or []:
+        if not isinstance(measure, dict):
+            continue
+        if (
+            measure.get("alias_name") == target
+            or measure.get("measure_name") == target
+        ):
+            return measure
+    for column in cube.get("columns") or []:
+        if not isinstance(column, dict):
+            continue
+        if column.get("column_name") == target:
+            return column
+    for measure in cube.get("measures") or []:
+        if not isinstance(measure, dict):
+            continue
+        if measure.get("column_name") == target:
+            return measure
+    return {}
+
+
+def _lookup_all_column_meta(cube: dict, col_name: str) -> list[dict]:
+    """Return all column/measure metadata entries matching a physical name or alias."""
+    target = unquote_identifier(col_name)
+    if not target:
+        return []
+    matches: list[dict] = []
+    seen: set[tuple] = set()
+
+    def _append(item: dict) -> None:
+        key = (
+            item.get("alias_name") or item.get("measure_name") or item.get("column_name"),
+            item.get("hierarchy_name"),
+            item.get("level_name"),
+            item.get("is_computed"),
+            item.get("formula"),
+        )
+        if key in seen:
+            return
+        seen.add(key)
+        matches.append(item)
+
+    for column in cube.get("columns") or []:
+        if not isinstance(column, dict):
+            continue
+        if (
+            column.get("column_name") == target
+            or column.get("alias_name") == target
+            or column.get("dimension_name") == target
+            or column.get("level_name") == target
+        ):
+            _append(column)
     for measure in cube.get("measures") or []:
         if not isinstance(measure, dict):
             continue
@@ -83,12 +160,71 @@ def _lookup_column_meta(cube: dict, col_name: str) -> dict:
             or measure.get("alias_name") == target
             or measure.get("measure_name") == target
         ):
-            return measure
-    return {}
+            _append(measure)
+    return matches
+
+
+def _item_kind(meta: dict) -> str:
+    if meta.get("is_computed") or (
+        meta.get("measure_name") and not meta.get("column_name")
+    ):
+        return "computed_measure"
+    if meta.get("hierarchy_name") or meta.get("level_name"):
+        return "hierarchy"
+    if meta.get("measure_name") or meta.get("aggregator"):
+        return "measure"
+    return "dimension"
+
+
+def _strip_format_string(meta: dict) -> dict:
+    """Return a copy without formatString — formatting belongs to the viz flow."""
+    cleaned = {
+        key: value
+        for key, value in (meta or {}).items()
+        if key not in ("format_string", "formatString", "format")
+    }
+    return cleaned
+
+
+def _sql_sort_label(meta: dict) -> str:
+    """Return ASC/DESC for SQL hints; omit none/empty."""
+    direction = meta.get("sort_direction")
+    if direction in ("ASC", "DESC"):
+        return str(direction)
+    raw = meta.get("sort_order")
+    if raw in (None, ""):
+        return ""
+    if isinstance(raw, str) and raw.strip().lower() in (
+        "none",
+        "null",
+        "n/a",
+        "-",
+        "undefined",
+    ):
+        return ""
+    from helicalbi.common.CubeInfoModel import sort_direction_from_value
+
+    resolved = sort_direction_from_value(raw)
+    return resolved if resolved in ("ASC", "DESC") else ""
 
 
 def _format_column_detail(meta: dict) -> str:
+    """Format picked column/measure metadata for final SQL (no formatString)."""
     parts: list[str] = []
+    kind = _item_kind(meta)
+    parts.append(f"kind: {kind}")
+    dimension_name = meta.get("dimension_name")
+    if dimension_name:
+        parts.append(f"dimension: {dimension_name}")
+    measure_name = meta.get("measure_name")
+    if measure_name:
+        parts.append(f"measure: {measure_name}")
+    hierarchy_name = meta.get("hierarchy_name")
+    if hierarchy_name:
+        parts.append(f"hierarchy: {hierarchy_name}")
+    level_name = meta.get("level_name")
+    if level_name:
+        parts.append(f"level: {level_name}")
     description = meta.get("description")
     if description:
         parts.append(str(description))
@@ -100,6 +236,26 @@ def _format_column_detail(meta: dict) -> str:
     ai_examples = meta.get("ai_examples")
     if ai_examples and (not description or str(ai_examples) not in str(description)):
         parts.append(f"examples: {ai_examples}")
+    ai_context = meta.get("ai_context")
+    if isinstance(ai_context, dict) and ai_context:
+        ai_parts = []
+        for key in ("instructions", "synonyms", "examples"):
+            value = ai_context.get(key)
+            if value in (None, ""):
+                continue
+            if isinstance(value, list):
+                text = ", ".join(str(item) for item in value if item)
+            else:
+                text = str(value).strip()
+            if text:
+                ai_parts.append(f"{key}: {text}")
+        # Preserve any extra aiContext keys.
+        for key, value in ai_context.items():
+            if key in ("instructions", "synonyms", "examples") or value in (None, ""):
+                continue
+            ai_parts.append(f"{key}: {value}")
+        if ai_parts:
+            parts.append(f"aiContext: {{{'; '.join(ai_parts)}}}")
     semantic_type = meta.get("semantic_type")
     if semantic_type:
         parts.append(f"type: {semantic_type}")
@@ -109,22 +265,18 @@ def _format_column_detail(meta: dict) -> str:
     default_function = meta.get("default_function")
     if default_function:
         parts.append(f"function: {default_function}")
-    format_string = meta.get("format_string")
-    if format_string:
-        parts.append(f"format: {format_string}")
-    sort_direction = meta.get("sort_direction")
-    sort_order = meta.get("sort_order")
-    if sort_direction:
-        if sort_order is not None and sort_order != "":
-            parts.append(f"sort: {sort_direction} (sortOrder={sort_order})")
+    # formatString is intentionally omitted — applied only in visualization flow.
+    sort_label = _sql_sort_label(meta)
+    if sort_label:
+        raw = meta.get("sort_order")
+        if raw not in (None, "") and str(raw).upper() != sort_label:
+            parts.append(f"sort: {sort_label} (sort={raw})")
         else:
-            parts.append(f"sort: {sort_direction}")
-    elif sort_order is not None and sort_order != "":
-        parts.append(f"sortOrder: {sort_order}")
+            parts.append(f"sort: {sort_label}")
     metric_obj = meta.get("metric") if isinstance(meta.get("metric"), dict) else {}
     formula = meta.get("formula") or metric_obj.get("formula")
     if formula:
-        if meta.get("is_computed"):
+        if meta.get("is_computed") or kind == "computed_measure":
             parts.append(
                 "COMPUTED measure - this is NOT a physical column; implement the "
                 "following formula as a SQL expression and alias it with the "
@@ -132,11 +284,179 @@ def _format_column_detail(meta: dict) -> str:
             )
         else:
             parts.append(f"formula: {formula}")
+    synonyms = meta.get("synonyms") or []
+    if synonyms:
+        parts.append(
+            "synonyms: " + ", ".join(str(item) for item in synonyms if item)
+        )
     return "; ".join(parts)
 
 
+def collect_picked_column_items(cube_metadata, query_plan) -> dict:
+    """Collect full cube metadata items for picked columns, grouped by table.
+
+    Includes dimensions, measures, hierarchy levels, and blank-column computed
+    measures. ``formatString`` is stripped — it belongs to the viz flow only.
+    """
+    plan = _normalize_query_plan(query_plan)
+    column_refs = plan.get("columnName") or []
+    picked_dimensions = plan.get("pickedDimensions") or plan.get("picked_dimensions") or []
+    picked_metrics = plan.get("pickedMetrics") or plan.get("picked_metrics") or []
+
+    by_table: dict[str, dict] = {}
+
+    def _bucket_for(meta: dict) -> str:
+        kind = _item_kind(meta)
+        if kind == "hierarchy":
+            return "hierarchies"
+        if kind == "computed_measure":
+            return "computed_measures"
+        if kind == "measure":
+            return "measures"
+        return "dimensions"
+
+    def _add(table_name: str, meta: dict) -> None:
+        if not table_name or not meta:
+            return
+        cleaned = _strip_format_string(dict(meta))
+        cleaned["kind"] = _item_kind(cleaned)
+        cleaned["table"] = table_name
+        entry = by_table.setdefault(
+            table_name,
+            {
+                "database_table": table_name,
+                "dimensions": [],
+                "hierarchies": [],
+                "measures": [],
+                "computed_measures": [],
+            },
+        )
+        bucket = _bucket_for(cleaned)
+        dedupe_key = (
+            cleaned.get("alias_name")
+            or cleaned.get("measure_name")
+            or cleaned.get("dimension_name")
+            or cleaned.get("column_name"),
+            cleaned.get("hierarchy_name"),
+            cleaned.get("level_name"),
+            cleaned.get("formula"),
+        )
+        existing_keys = {
+            (
+                item.get("alias_name")
+                or item.get("measure_name")
+                or item.get("dimension_name")
+                or item.get("column_name"),
+                item.get("hierarchy_name"),
+                item.get("level_name"),
+                item.get("formula"),
+            )
+            for item in entry[bucket]
+        }
+        if dedupe_key in existing_keys:
+            return
+        entry[bucket].append(cleaned)
+
+    cubes = list(iter_cube_entries(cube_metadata or []))
+    cube_by_table = {
+        cube.get("database_table"): cube
+        for cube in cubes
+        if cube.get("database_table")
+    }
+
+    for ref in column_refs:
+        table_name, col_name = split_table_column_ref(ref)
+        if not col_name:
+            continue
+        if table_name and table_name in cube_by_table:
+            for meta in _lookup_all_column_meta(cube_by_table[table_name], col_name):
+                _add(table_name, meta)
+            continue
+        for cube in cubes:
+            matches = _lookup_all_column_meta(cube, col_name)
+            if not matches:
+                continue
+            resolved_table = cube.get("database_table") or table_name or ""
+            for meta in matches:
+                _add(resolved_table, meta)
+            break
+
+    semantic_targets = [
+        unquote_identifier(str(name))
+        for name in list(picked_dimensions) + list(picked_metrics)
+        if name
+    ]
+    for target in semantic_targets:
+        for cube in cubes:
+            table_name = cube.get("database_table") or ""
+            for meta in _lookup_all_column_meta(cube, target):
+                _add(table_name, meta)
+
+    # Drop empty buckets for cleaner prompt payloads.
+    result: dict[str, dict] = {}
+    for table_name, entry in by_table.items():
+        trimmed = {
+            "database_table": table_name,
+        }
+        for key in ("dimensions", "hierarchies", "measures", "computed_measures"):
+            if entry.get(key):
+                trimmed[key] = entry[key]
+        result[table_name] = trimmed
+    return result
+
+
+def format_picked_columns_for_sql(picked_by_table: dict) -> str:
+    """Render full picked cube items (no formatString) for the final SQL prompt."""
+    if not picked_by_table:
+        return ""
+    lines = [
+        "Picked cube items arranged by table "
+        "(full dimension / hierarchy / measure / blank-column measure objects; "
+        "display formatting is applied later in visualization only):"
+    ]
+    for table_name, entry in picked_by_table.items():
+        lines.append(f"Table: {table_name}")
+        for bucket in ("dimensions", "hierarchies", "measures", "computed_measures"):
+            items = entry.get(bucket) or []
+            if not items:
+                continue
+            lines.append(f"  {bucket}:")
+            for item in items:
+                detail = _format_column_detail(item)
+                alias = (
+                    item.get("alias_name")
+                    or item.get("measure_name")
+                    or item.get("dimension_name")
+                    or item.get("column_name")
+                    or ""
+                )
+                col_name = item.get("column_name") or alias
+                prefix = f"{table_name}.{col_name}"
+                if alias and alias != col_name:
+                    prefix = f"{prefix} (alias: {alias})"
+                lines.append(f"  - {prefix}: {detail}" if detail else f"  - {prefix}")
+                # Also emit the whole item so hierarchy/aiContext fields are intact.
+                payload = {
+                    key: value
+                    for key, value in item.items()
+                    if key not in ("format_string", "formatString", "format")
+                    and value not in (None, "", [], {})
+                }
+                lines.append(f"    item: {json.dumps(payload, default=str)}")
+    return "\n".join(lines)
+
+
 def get_required_column_description(cube_metadata, query_plan) -> str:
-    """Build column descriptions for columns selected in the query plan."""
+    """Build column descriptions for columns selected in the query plan.
+
+    Uses the full picked dimension/measure/hierarchy/computed-measure items
+    (arranged by table). formatString is not included.
+    """
+    picked = collect_picked_column_items(cube_metadata, query_plan)
+    if picked:
+        return format_picked_columns_for_sql(picked)
+
+    # Fallback for legacy metadata without rich cube items.
     plan = _normalize_query_plan(query_plan)
     column_refs = plan.get("columnName") or []
     if not column_refs:

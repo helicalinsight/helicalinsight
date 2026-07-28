@@ -34,6 +34,7 @@ class FindTablesFromTopics:
             table_names=None,
             user_query=user_query,
             model_data=model_data,
+            domain_context=state.get("domain_context"),
         )
 
         parser = PydanticOutputParser(pydantic_object=get_table_response_model())
@@ -81,6 +82,9 @@ class FindTablesFromTopics:
             "topic_mappings": state.get("topic_mappings") or model_data.get("topic_mappings") or [],
             "business_metrics": state.get("business_metrics") or model_data.get("business_metrics") or [],
             "synonyms": state.get("synonyms") or model_data.get("synonyms") or [],
+            "domain_context": state.get("domain_context") or model_data.get("domain_context") or "",
+            "domain": state.get("domain") or model_data.get("domain") or [],
+            "topics": state.get("topics") or model_data.get("topics") or topics,
         }
         info_provider = InformationProvider(model_data=model_data)
         input_tables = info_provider.get_input_tables(topics)

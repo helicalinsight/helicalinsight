@@ -1,0 +1,38 @@
+[
+  {
+    "id": "llmUsageAuditPurge",
+    "layout": "Static/layout/llm-usage-audit-purge.ui.layout",
+    "enabled": true,
+    "paused": false,
+    "expireDate": "never",
+    "task": {
+      "class": "com.helicalinsight.admin.scheduling.LlmUsageAuditPurgeJob"
+    },
+    "retentionDays": 365,
+    "scheduledTime": "00:05:00",
+    "timeZone": "",
+    "exportPath": "Audit/LLM",
+    "email": {
+      "enabled": true,
+      "to": ""
+    }
+  },
+  {
+    "id": "tempDirectoryClean",
+    "layout": "Static/layout/temp-directory-clean.ui.layout",
+    "enabled": true,
+    "paused": false,
+    "expireDate": "never",
+    "task": {
+      "script": "tempDirectoryClean.groovy",
+      "function": "execute"
+    },
+    "noOfDays": 1,
+    "scheduledTime": "01:00:00",
+    "timeZone": "",
+    "email": {
+      "enabled": true,
+      "to": ""
+    }
+  }
+]

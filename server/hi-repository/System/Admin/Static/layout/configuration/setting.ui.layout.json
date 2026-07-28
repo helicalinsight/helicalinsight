@@ -1,0 +1,130 @@
+{
+  "id": "setting",
+  "title": "Application Settings",
+  "description": "Common setting.xml keys for solution path, base URL, and feature flags",
+  "file": "setting.xml",
+  "format": "xml",
+  "fallbackEditor": "xml",
+  "sections": [
+    {
+      "key": "paths",
+      "title": "Paths & URLs",
+      "description": "Solution directory and application base URL",
+      "fields": [
+        {
+          "name": "efwSolution",
+          "path": "efwProject/efwSolution",
+          "label": "EFW Solution",
+          "type": "text",
+          "span": 24,
+          "required": true,
+          "placeholder": "d:/hi7/server/hi-repository",
+          "description": "Path to the solution resources directory. Can be changed while the application is running."
+        },
+        {
+          "name": "BaseUrl",
+          "path": "efwProject/BaseUrl",
+          "label": "Base URL",
+          "type": "text",
+          "span": 24,
+          "required": true,
+          "placeholder": "http://localhost:8085/hi-ee/hi.html",
+          "description": "Application entry URL used for links, redirects, and email resource generation."
+        },
+        {
+          "name": "defaultBaseurl",
+          "path": "efwProject/defaultBaseurl",
+          "label": "Default Base URL",
+          "type": "boolean",
+          "span": 12,
+          "description": "Set to false when BaseUrl is different from the server address."
+        }
+      ]
+    },
+    {
+      "key": "features",
+      "title": "Features",
+      "description": "Experimental modules and related toggles",
+      "fields": [
+        {
+          "name": "showExperimentalFeatures",
+          "path": "efwProject/showExperimentalFeatures",
+          "label": "Experimental Features / Modules",
+          "type": "boolean",
+          "span": 12,
+          "description": "Enables experimental modules and features in the product UI."
+        },
+        {
+          "name": "enableSavedResult",
+          "path": "efwProject/enableSavedResult",
+          "label": "Enable Saved Result",
+          "type": "boolean",
+          "span": 12,
+          "description": "Allow saving and using saved report results."
+        },
+        {
+          "name": "streamResponse",
+          "path": "efwProject/streamResponse",
+          "label": "Stream Response",
+          "type": "boolean",
+          "span": 12,
+          "description": "Stream progressive response updates to the client."
+        },
+        {
+          "name": "hideDefaultLoginButtons",
+          "path": "efwProject/hideDefaultLoginButtons",
+          "label": "Hide Default Login Buttons",
+          "type": "boolean",
+          "span": 12,
+          "description": "Hide the default login buttons on the login page."
+        }
+      ]
+    },
+    {
+      "key": "runtime",
+      "title": "Runtime",
+      "description": "Query and service runtime limits",
+      "fields": [
+        {
+          "name": "jdbcQueryCancellationTime",
+          "path": "efwProject/jdbcQueryCancellationTime",
+          "label": "JDBC Query Cancellation Time",
+          "type": "number",
+          "span": 12,
+          "min": 0,
+          "description": "Query cancellation time in seconds."
+        },
+        {
+          "name": "serviceSpeedLimitAlert",
+          "path": "efwProject/serviceSpeedLimitAlert",
+          "label": "Service Speed Limit Alert",
+          "type": "number",
+          "span": 12,
+          "min": 0,
+          "description": "Threshold (ms) used to alert on slow service responses."
+        },
+        {
+          "name": "eventBatchSize",
+          "path": "efwProject/eventBatchSize",
+          "label": "Event Batch Size",
+          "type": "number",
+          "span": 12,
+          "min": 1,
+          "description": "How many events are grouped before being sent to the client. Values near 100 balance performance and responsiveness."
+        },
+        {
+          "name": "defaultEmailResourceType",
+          "path": "efwProject/defaultEmailResourceType",
+          "label": "Default Email Resource Type",
+          "type": "select",
+          "span": 12,
+          "options": [
+            { "label": "URL (server-side print)", "value": "url" },
+            { "label": "Adhoc (HTML source)", "value": "adhoc" }
+          ],
+          "description": "If url, server-side printing is used for email. If adhoc, HTML source is expected."
+        }
+      ]
+    }
+  ]
+}

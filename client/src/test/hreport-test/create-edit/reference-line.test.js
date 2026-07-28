@@ -1,6 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen } from '@testing-library/react';
-import "core-js/stable";
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
@@ -9,7 +8,6 @@ import { hiMockAxios } from '../../../app/mock-axios';
 import CustomReferenceLine from '../../../components/hi-reports/hi-editing-area/components/values/reference-line/custom-reference-line';
 import { calculateReferenceLinePosition, getChartMaxScaleValue } from "../../../components/hi-reports/hi-viz-area/utils/utillities";
 import reducers from '../../../redux';
-import '../../utils/mockJsdom';
 
 const chartScalMap = new Map([
     [
@@ -109,7 +107,6 @@ const chartScalMap = new Map([
     ]
 ])
 
-const crypto = require('crypto');
 const flushPromises = () => new Promise(setImmediate);
 
 const App = ({ store, ...rest }) => {
@@ -123,28 +120,6 @@ const App = ({ store, ...rest }) => {
 };
 
 describe("Hreport Reference Line", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.createObjectURL = jest.fn();
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = arr => crypto.randomBytes(arr.length)
-    });
-
-    afterAll(() => {
-        global.gc && global.gc()
-    })
-
     test("render reference line", async () => {
         const store = configureStore({
             reducer: reducers,

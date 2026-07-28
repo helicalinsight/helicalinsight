@@ -33,29 +33,7 @@ const App = ({ intial_hreport_state }) => {
 };
 
 describe("Rendering Intial view", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.URL.createObjectURL = jest.fn()
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-    
-  test("jest example", async () => {
-    expect(1 + 1).toBeTruthy();
-  });
+ 
   // test("intial page content", async () => {
   //   await waitFor(() => render(<App intial_hreport_state={hreport_intial_view_state} />));
   //   expect(screen.queryByText(/New1/i)).toBeTruthy();

@@ -859,7 +859,7 @@ public class ResourceDTOMapper {
         dto.setType(entity.getType());
         dto.setVendorName(entity.getVendor());
         dto.setBaseType(entity.getBaseType());
-        dto.setCreatedBy(entity.getCreatedBy());
+        dto.setCreatedBy(map(entity.getCreatedBy()));
         dto.setCreatedDate(entity.getCreatedDate());
         dto.setLastUpdatedTime(entity.getLastUpdatedTime());
         dto.setDsTypeClass(entity.getDsType());
@@ -881,7 +881,7 @@ public class ResourceDTOMapper {
         entity.setType(dto.getType());
         entity.setVendor(dto.getVendorName());
         entity.setBaseType(dto.getBaseType());
-        entity.setCreatedBy(dto.getCreatedBy());
+        entity.setCreatedBy(map(dto.getCreatedBy()));
         entity.setCreatedDate(dto.getCreatedDate());
         entity.setLastUpdatedTime(dto.getLastUpdatedTime());
         entity.setDsType(dto.getDsTypeClass());

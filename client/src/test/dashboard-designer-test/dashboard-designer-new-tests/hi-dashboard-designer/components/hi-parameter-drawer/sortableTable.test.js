@@ -39,25 +39,6 @@ const App = ({ designer_data }) => {
 };
 
 describe("Rendering SortableTable", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
   test("SortableTable component", async () => {
     await waitFor(() =>
       render(<App designer_data={designer_data} />)

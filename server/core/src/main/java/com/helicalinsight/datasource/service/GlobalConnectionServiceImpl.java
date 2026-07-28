@@ -370,7 +370,7 @@ public class GlobalConnectionServiceImpl implements GlobalConnectionService {
 
 	@Transactional
 	@Override
-	public List<GlobalConnections> findConnectionsByCreatedBy(String userId) {
+	public List<GlobalConnections> findConnectionsByCreatedBy(Integer userId) {
 		return globalConnectionDAO.findConnectionsByCreatedBy(userId);
 	}
 

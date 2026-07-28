@@ -12,6 +12,52 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "PivotViewComponent. Config: dataSourceSettings columns/values/rows from metadata; dataSource=data; expandAll.\nPolish: map dims->rows/columns, measures->values; keep filters []; clear field names; minimal chrome.",
-  "code": "\nfunction DemoPivot() {\n  const { PivotViewComponent } = components;\n  const dataSourceSettings = {\n    columns: [{ name: \"column_fields\" }],\n    values: [{ name: \"values_fields\" }],\n    dataSource: data,\n    rows: [],\n    formatSettings: [],\n    expandAll: true,\n    filters: []\n  };\n  return (\n    <div>\n      <PivotViewComponent\n        id=\"PivotView\"\n        dataSourceSettings={dataSourceSettings}\n      />\n    </div>\n  );\n}\n"
+  "conversion": {
+    "family": "table",
+    "component": "GridTable",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0,
+        "optional": true
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0,
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "instructions": [
+    "GridTable = AntV S2 wrapper (NOT Ant Design Table). Keep the VF SHORT — use helperFunctions.buildGridTableReport.",
+    "Requires ≥2 dimensions: first dim row, remaining dims column (needed for column headers + grand/sub totals).",
+    "1) Replace dimensions/measures with real result-column keys from data/SQL.",
+    "2) Pass formatStrings when Excel formats are provided. showTotals: true unless user disables.",
+    "3) Do not inline a full report/properties blob (it truncates under max_tokens). Never use <Table />."
+  ],
+  "code": [
+    "function DrawGridTable() {",
+    "  const { GridTable } = components;",
+    "  const { buildGridTableReport } = helperFunctions;",
+    "  const minReport = buildGridTableReport({",
+    "    dimensions: ['dimension_column', 'dimension_column_2'],",
+    "    measures: ['measure_column'],",
+    "    formatStrings: { measure_column: '0.00' },",
+    "    showTotals: true",
+    "  });",
+    "  return (",
+    "    <div>",
+    "      <GridTable",
+    "        {...report}",
+    "        data={data}",
+    "        fields={minReport.fields}",
+    "        metadata={minReport.metadata}",
+    "        marksList={minReport.marksList}",
+    "        report={minReport}",
+    "      />",
+    "    </div>",
+    "  );",
+    "}"
+  ]
 }

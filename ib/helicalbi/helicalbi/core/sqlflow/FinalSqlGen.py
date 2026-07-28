@@ -61,11 +61,28 @@ class FinalSqlGen:
         required_metrics = state.get("required_business_metrics") or []
         required_column_description = state.get("required_column_description") or ""
         required_functions = state.get("required_functions") or ""
-        domain_context = state.get("domain_context") or ""
+        domain_context = (
+            state.get("sql_domain_context")
+            or state.get("domain_context")
+            or ""
+        )
         column_sort_orders = state.get("column_sort_orders") or ""
+        # Never pass formatString hints into final SQL — those belong to viz flow.
+        cleaned_metrics = []
+        for metric in required_metrics:
+            if not isinstance(metric, dict):
+                cleaned_metrics.append(metric)
+                continue
+            cleaned_metrics.append(
+                {
+                    key: value
+                    for key, value in metric.items()
+                    if key not in ("format_string", "formatString", "format")
+                }
+            )
         required_metrics_text = (
-            json.dumps(required_metrics, indent=2, default=str)
-            if required_metrics
+            json.dumps(cleaned_metrics, indent=2, default=str)
+            if cleaned_metrics
             else ""
         )
         last_chats = state["last_chats"]

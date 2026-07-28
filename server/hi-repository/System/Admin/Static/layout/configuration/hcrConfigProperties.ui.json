@@ -1,0 +1,8 @@
+{
+    "id":  "hcrConfigProperties",
+    "file":  "hcrConfigProperties.properties",
+    "title":  "HCR Config Properties",
+    "description":  "Helical Custom Report configuration properties. Not editable from the Configurations UI.",
+    "category":  "ignore",
+    "editor":  "properties"
+}

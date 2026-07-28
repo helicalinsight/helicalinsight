@@ -103,9 +103,11 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         HIRecycleBin bin = new HIRecycleBin();
         bin.setRecycleBinType(RecycleBinType.DS_GLOBAL_CONNECTIONS);
         bin.setDeletedBy(userDao.findUser(Integer.valueOf(SecurityUtils.securityObject().getCreatedBy())));
-        User owner = userDao.findUser(Integer.valueOf(globalConnections.getCreatedBy()));
+        User owner = globalConnections.getCreatedBy();
         bin.setCreatedBy(owner);
-        bin.setOrgId(owner.getOrganization());
+        if ( owner != null ) {
+        	bin.setOrgId(owner.getOrganization());
+        }
         HIRecycleBinDSGlobalConnections binConnection = new HIRecycleBinDSGlobalConnections();
         binConnection.setGlobalConnection(globalConnections);
         binConnection.setRecycleBin(bin);
@@ -302,7 +304,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         try {
             Session currentSession = this.getSession();
             currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-            String queryString = "select globalId as globalId , name as name, type as type, baseType as baseType, createdBy as createdBy ,dsType as dsTypeClass, isMigrated as isMigrated, vendor as vendorName  from GlobalConnections where (createdBy=:createdBy or createdBy is null) ";
+            String queryString = "select globalId as globalId , name as name, type as type, baseType as baseType, createdBy.id  as createdBy ,dsType as dsTypeClass, isMigrated as isMigrated, vendor as vendorName  from GlobalConnections where (createdBy.id=:createdBy or createdBy is null) ";
 
             if (!sharedGlobalId.isEmpty()) {
                 queryString += " or globalId in (:globalIds)";
@@ -311,7 +313,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             if (!sharedGlobalId.isEmpty()) {
                 query.setParameterList("globalIds", sharedGlobalId);
             }
-            query.setParameter("createdBy", "" + createdBy);
+            query.setParameter("createdBy", createdBy);
             query.setResultTransformer(new JsonResultSetTransformer());
            // query.setCacheable(true);
             // query.setResultTransformer(Transformers.aliasToBean(GlobalConnectionDTO.class));
@@ -412,7 +414,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         try {
             Session currentSession = this.getSession();
             currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-            String queryString = "select globalId as globalId , name as name, type as type, baseType as baseType, createdBy as createdBy ,dsType as dsTypeClass, isMigrated as isMigrated  from GlobalConnections  where  ";
+            String queryString = "select globalId as globalId , name as name, type as type, baseType as baseType, createdBy.id  as createdBy ,dsType as dsTypeClass, isMigrated as isMigrated  from GlobalConnections  where  ";
 
 
             queryString += "  globalId = :globalId";
@@ -828,11 +830,11 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
     }
 
     @Override
-    public List<GlobalConnections> findConnectionsByCreatedBy(String userId) {
+    public List<GlobalConnections> findConnectionsByCreatedBy(Integer userId) {
 
         try {
             Session session = getSession();
-            Query query = session.createQuery("FROM GlobalConnections where createdBy = :userId");
+            Query query = session.createQuery("FROM GlobalConnections where createdBy.id = :userId");
             query.setParameter("userId", userId);
             return query.getResultList();
         }

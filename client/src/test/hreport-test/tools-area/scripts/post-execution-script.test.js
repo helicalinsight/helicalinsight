@@ -26,28 +26,6 @@ const App = ({ store }) => {
 };
 
 describe("Post Execution Script", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.createObjectURL = jest.fn();
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = arr => crypto.randomBytes(arr.length)
-    });
-    
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-    
     test("post execution test ", async () => {
         const store = configureStore({
             reducer: reducers,
@@ -62,16 +40,16 @@ describe("Post Execution Script", () => {
         });
         const dispatch = store.dispatch
         const getState = store.getState
-       await flushPromises( dispatch(appActions.setEditModeInfo({
+        await flushPromises(dispatch(appActions.setEditModeInfo({
             dir: "naresh/parent.hr", file: "parent.hr", extension: "hr"
         })))
-       await flushPromises( render(<App store={store} />))
+        await flushPromises(render(<App store={store} />))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
         let script1 = `add_row({table:"travel_details",column:"travel_medium"})`
         dispatch(changeEditorContent({ id: "post-execution", value: script1 }))
         dispatch(applyReportScripts())
         let activeReport = getState().hreport.present.reports[0]
-       await flushPromises( generateReport(activeReport, dispatch))
+        await flushPromises(generateReport(activeReport, dispatch))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
     });
 }); 

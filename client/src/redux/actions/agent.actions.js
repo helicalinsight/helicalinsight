@@ -47,3 +47,10 @@ export const setAgentSemanticTypes = (data = []) => {
 		payload: data
 	};
 };
+
+export const updateAgentGridItemsLayout = (layout) => {
+	return {
+		type: actionTypes.UPDATE_AGENT_GRID_ITEMS_LAYOUT,
+		payload: { layout }
+	};
+};

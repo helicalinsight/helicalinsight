@@ -1,4 +1,3 @@
-import { describe } from "jest-circus";
 import { hcrContextMenuTypes, hcrTableBandOrder, hcrTableBandsTypes } from "../../../components/hi-canned-reports/hcr-constants";
 import { getAdvancedTableConfig, getTableStyles, hcrCanvasPaneHelperMethods, makeCellId } from "../../../components/hi-canned-reports/hcrCanvas/hcrCanvasPaneHelperMethods";
 import { addEscapedQuotes, checkIfBandIsDeleted, getEmptyGroupCell, getHCRParaTypeFormat, getInitialParameter, getNewStyle, getTableStylesFromReportState, isHCRDateVariable, updateCanvasTabViewComponent, updateTableStyles } from "../../../components/hi-canned-reports/hcrHelperMethods";

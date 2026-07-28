@@ -206,6 +206,7 @@
             <updateNoSql class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" access="ROLE_ADMIN"/>
             <mailStats class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" access="ROLE_ADMIN"/>
             <llmUsageStats class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" access="ROLE_ADMIN"/>
+            <systemSchedule class="com.helicalinsight.admin.management.ResourceManagerService" access="ROLE_ADMIN"/>
             <release class="com.helicalinsight.efw.services.ReleaseNoteService" />
         </system>
     </monitor>

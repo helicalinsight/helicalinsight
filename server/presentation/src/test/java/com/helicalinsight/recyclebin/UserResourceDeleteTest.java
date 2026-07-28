@@ -203,7 +203,7 @@ public class UserResourceDeleteTest {
 		HIResourceServiceDB serviceDB = ApplicationContextAccessor.getBean(HIResourceServiceDB.class);
 		GlobalConnectionService gService = ApplicationContextAccessor.getBean(GlobalConnectionService.class);
 		Assert.assertTrue(serviceDB.getHIResourceByCreatedBy(userId).isEmpty());
-		Assert.assertTrue(gService.findConnectionsByCreatedBy(""+userId).isEmpty());
+		Assert.assertTrue(gService.findConnectionsByCreatedBy(userId).isEmpty());
 	}
 	
 	

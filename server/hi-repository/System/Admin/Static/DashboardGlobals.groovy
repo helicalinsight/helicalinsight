@@ -42,7 +42,7 @@ return """
 			}
 		}
 	},
-	experimentalModules:["hwf","hice","dice","cube"],
+	experimentalModules:["hwf","hice","dice","cube","configurations"],
 	fileExtensions: $listExtension,
 	experimentalSubModules : {
 		"hcr": {

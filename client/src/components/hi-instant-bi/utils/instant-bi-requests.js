@@ -11,7 +11,9 @@ import {
   resetIBChatId,
   savedConfigInstantBIFile,
   setInstantBIPageLoading,
+  setIBChartList,
   updateBIBotStatus,
+  updateIBVizPreference,
   updateInstantBIReportFile,
   updateRecommendationsVisibility,
 } from "../../../redux/actions/instant-bi.actions";
@@ -180,7 +182,7 @@ export const saveInstantBIReportAPI = ({
           })
         );
         if (res.data) {
-          dispatch(fileBrowserActions.saveFileinFb(res.data[0]));
+          dispatch(fileBrowserActions.saveFileinFb(res.data));
         }
       }
     },
@@ -625,6 +627,164 @@ export const loadInstantBIDataInsight = ({
     },
   });
 };
+
+export const buildInstantBIConvertChartFormData = ({
+  vfTemplate,
+  selectedChart,
+  chatId,
+  chatSequenceId,
+}) => ({
+  vf_template: vfTemplate,
+  selected_chart: selectedChart,
+  chat_id: chatId,
+  chat_sequence_id: chatSequenceId,
+});
+
+export const instantConvertChartAPI = ({
+  dispatch,
+  vfTemplate,
+  selectedChart,
+  chatId,
+  chatSequenceId,
+  successCB = () => {},
+  errorCB = () => {},
+}) =>
+  requests.instantBI(dispatch).instantBIConvertChartRequest({
+    uri: uriConfig.instantConvertChart,
+    formData: buildInstantBIConvertChartFormData({
+      vfTemplate,
+      selectedChart,
+      chatId,
+      chatSequenceId,
+    }),
+    callback: successCB,
+    errback: errorCB,
+  });
+
+export const convertInstantBIChart = ({
+  dispatch,
+  reportId,
+  chatSequenceId,
+  chatId,
+  vfTemplate,
+  selectedChart,
+  Notify,
+  onComplete = () => {},
+}) => {
+  if (!chatSequenceId || !chatId || !vfTemplate || !selectedChart) {
+    Notify?.error?.({
+      type: "Frontend",
+      message: "Required convert chart data is missing.",
+    });
+    onComplete({ success: false });
+    return;
+  }
+
+  const notifyError = (message) =>
+    Notify?.error?.({ type: "Frontend", message });
+
+  const applyConvertedViz = (payload = {}) => {
+    const viz = payload?.chat_response?.viz || payload?.viz || {};
+    const nextTemplate =
+      viz.vf_template ||
+      payload?.vf_template ||
+      (payload?.vf ? btoa(payload.vf) : null);
+
+    let nextVf = payload?.vf || null;
+    if (!nextVf && nextTemplate) {
+      try {
+        nextVf = atob(nextTemplate);
+      } catch {
+        nextVf = null;
+      }
+    }
+    if (!nextVf || !reportId) return null;
+
+    dispatch(
+      updateIBVizPreference({
+        reportId,
+        chatSequenceId,
+        chart_name: viz.chart_name || payload?.chart_name || selectedChart,
+        vf: nextVf,
+        vf_template: nextTemplate || btoa(nextVf),
+        ...(Array.isArray(viz.similar_chart) && viz.similar_chart.length
+          ? { similar_chart: viz.similar_chart }
+          : {}),
+      })
+    );
+    return nextVf;
+  };
+
+  // Apply viz when present (even if error). Open VF editor on partial convert.
+  const finish = (payload = {}, fallbackMessage) => {
+    const errorMessage = payload?.error || fallbackMessage;
+    const vfCode = applyConvertedViz(payload);
+
+    if (vfCode) {
+      if (errorMessage) notifyError(errorMessage);
+      onComplete({
+        success: true,
+        openVfEditor: Boolean(errorMessage),
+        vfCode,
+      });
+      return;
+    }
+
+    notifyError(errorMessage || payload?.message || "Unable to convert chart.");
+    onComplete({ success: false });
+  };
+
+  return instantConvertChartAPI({
+    dispatch,
+    vfTemplate,
+    selectedChart,
+    chatId,
+    chatSequenceId,
+    successCB: (response) => finish(response),
+    errorCB: (err) =>
+      finish(err, err?.message || "Unable to convert chart."),
+  });
+};
+
+export const parseInstantBIListChartsResponse = (response) => {
+  const raw =
+    response?.charts ||
+    response?.chart_list ||
+    response?.chartList ||
+    response?.data ||
+    response;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .map((item) => {
+      if (typeof item === "string") return item.trim();
+      if (item && typeof item === "object") {
+        return String(
+          item.name || item.chart_name || item.chart || item.type || ""
+        ).trim();
+      }
+      return "";
+    })
+    .filter(Boolean);
+};
+
+export const fetchInstantBIChartList = ({
+  dispatch,
+  successCB = () => {},
+  errorCB = () => {},
+}) =>
+  requests.instantBI(dispatch).instantBIListChartsRequest({
+    uri: uriConfig.instantListCharts,
+    formData: {},
+    callback: (response) => {
+      const charts = parseInstantBIListChartsResponse(response);
+      dispatch(setIBChartList(charts));
+      successCB(charts);
+    },
+    errback: (err) => {
+      dispatch(setIBChartList([]));
+      errorCB(err);
+    },
+  });
 
 
 export const agentGenerateAPI = ({ dir, file, dispatch, successCB, errorCB }) => {

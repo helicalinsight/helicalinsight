@@ -1,4 +1,3 @@
-import "core-js/stable";
 import { v4 as uuidv4 } from "uuid";
 import { configureStore } from '@reduxjs/toolkit';
 import { waitFor } from '@testing-library/react';

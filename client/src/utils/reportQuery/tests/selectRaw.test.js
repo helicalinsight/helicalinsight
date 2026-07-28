@@ -1,5 +1,4 @@
-import ReportQuery from '../index'
-import 'core-js';
+import ReportQuery from '../index';
 const getQuery = () => new ReportQuery({
     "location": "1639026125991",
     "metadataFileName": "59ced249-8d96-4175-aa88-75a17b200b5c.metadata",

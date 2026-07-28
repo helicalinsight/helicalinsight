@@ -66,8 +66,7 @@ public class GlobalDSReaderUtility {
             }
         }
 
-        String userId = AuthenticationUtils.getUserId();
-        Integer createdBy = Integer.valueOf(userId);
+        Integer createdBy = Integer.valueOf(AuthenticationUtils.getUserId());
 
         List<Map<String, Object>> allConnectionsOwner = globalConnectionService.getAllConnectionOfLoggedInUser(createdBy, collect);
         Map<Integer,Map<String, Object>> allConnOwnerMap =new HashMap<>();
@@ -94,7 +93,7 @@ public class GlobalDSReaderUtility {
         for (Integer connId:connIds) {
             Integer permission = idPermissionMap.get(connId);
             Map<String, Object> globalConnections=allConnOwnerMap.get(connId);
-			if (userId.equals(globalConnections.get("createdBy"))) {
+			if (createdBy.equals(globalConnections.get("createdBy"))) {
 				permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.OWNER);
 			} else if (globalConnections.get("createdBy") == null) {
 				permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
@@ -109,7 +108,7 @@ public class GlobalDSReaderUtility {
 
         Map<String, Object> allConnectionsByUser = globalConnectionService.getAllConnectionsFromSharedIfId(forGlobalId);
 
-        String userId = AuthenticationUtils.getUserId();
+        Integer userId = Integer.parseInt(AuthenticationUtils.getUserId());
 
         Map<String, Object> allConnectionsOwner = globalConnectionService.getAConnectionById(forGlobalId);
         if (allConnectionsOwner == null || allConnectionsOwner.isEmpty()) {

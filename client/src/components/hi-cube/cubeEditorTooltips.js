@@ -37,8 +37,6 @@ export const CUBE_EDITOR_TOOLTIPS = {
     "Only calculate or include this field for records that match your condition (e.g., status = 'completed').",
   Example:
     "Examples teach the semantic model how to map plain language to database values (e.g., term -> column or value). Add more examples for better matching.",
-  Description:
-    "A short business description of this field so users and the semantic model understand its meaning and usage.",
   "Dimension/Measure":
     "A Dimension lets you group and filter; a Measure is a number you can total or average. Expand to set Sort for Dimensions, or Format and Aggregation for Measures.",
   "Clear field values": "Clear the field values from the cube",
@@ -59,7 +57,7 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Remove field from topic":
     "Removes this field from this topic only. The field remains available in the Fields list and in any other topics it belongs to.",
   Fields:
-    "Display name for each column in your semantic model metadata. Right-click for more field actions.",
+    "To build your Semantic Model, drag and drop fields from the Metadata. Right-click on a column to perform additional field actions.",
   Aggregation:
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure.",
   "Semantic Type":

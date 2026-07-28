@@ -87,3 +87,42 @@
     max-width: 200px;
   }
 }
+
+.hi-scheduling-tabs {
+  .ant-tabs-nav {
+    margin: 0 0 8px 8px;
+  }
+}
+
+.hi-system-scheduling-container {
+  border: 1px solid $hi-light-gray;
+
+  .system-schedule-header {
+    padding: 8px 12px;
+    border-bottom: 1px solid $hi-white-smoke;
+  }
+
+  .system-schedule-title {
+    font-weight: 600;
+  }
+
+  .system-schedule-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .table-row-color {
+    background-color: whitesmoke;
+  }
+
+  .ant-card-body {
+    padding: 0 !important;
+  }
+}
+
+.system-schedule-toggle {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  white-space: nowrap;
+}
