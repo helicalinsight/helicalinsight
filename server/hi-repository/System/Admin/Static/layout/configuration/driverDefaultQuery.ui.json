@@ -1,0 +1,10 @@
+{
+    "id":  "driverDefaultQuery",
+    "file":  "driverDefaultQuery.properties",
+    "title":  "Driver Default Query",
+    "description":  "Default validation / probe queries executed per database driver.",
+    "category":  "datasource",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/driverDefaultQuery.ui.layout",
+    "fallbackEditor":  "properties"
+}

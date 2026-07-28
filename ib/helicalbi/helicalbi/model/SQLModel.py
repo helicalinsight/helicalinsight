@@ -48,6 +48,7 @@ class SQLModel(MessagesState):
     required_functions: str
     required_cube_info: dict
     domain_context: str
+    sql_domain_context: str
     topic_mappings: list
     column_sort_orders: str
     sort_orders: list

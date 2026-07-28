@@ -8,6 +8,7 @@ from flask import request
 from helicalbi.common.ErrorMessages import extract_message_from_stack_trace
 from helicalbi.common import app_config
 
+from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.model.TokenUsage import TokenUsage
 from helicalbi.model.TimeConsumed import TimeConsumed
@@ -17,6 +18,7 @@ from helicalbi.model.output.ChatResponse import (
     SummarySection,
     VizSection,
 )
+from helicalbi.sql.SqlSanitizer import extract_sql
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +27,77 @@ _BORDER = "--------------"
 
 class RequestAborted(Exception):
     """Raised when a client aborts an in-flight request."""
+
+
+def clean_sql(raw_sql: str, dialect: str = "") -> str:
+    """Strip markdown fences and normalize SQL text."""
+    if not raw_sql:
+        return ""
+    if "```" in raw_sql:
+        raw_sql = extract_sql(raw_sql, dialect)
+    return raw_sql.replace("```sql", "").replace("```", "").strip()
+
+
+def resolve_sql_from_request(
+    user_input: dict,
+    thread_id: str,
+    chat_seq_id: Any,
+    *,
+    context: str = "request",
+) -> str:
+    """Resolve SQL from memory, request input, or saved chat item (data-insight parity)."""
+    if thread_id and chat_seq_id is not None:
+        if chat_graph_memory.has_node(thread_id, chat_seq_id):
+            memory_node = chat_graph_memory.get_node(thread_id, chat_seq_id)
+            if memory_node:
+                sql = clean_sql(
+                    memory_node.get("sql", ""),
+                    memory_node.get("dialect", ""),
+                )
+                if sql:
+                    logger.info(
+                        "Resolved SQL for %s from memory chatid=%s chat_seq_id=%s",
+                        context,
+                        thread_id,
+                        chat_seq_id,
+                    )
+                    return sql
+                logger.debug(
+                    "Memory node found but SQL empty for %s chatid=%s chat_seq_id=%s",
+                    context,
+                    thread_id,
+                    chat_seq_id,
+                )
+        else:
+            logger.debug(
+                "No memory node for %s chatid=%s chat_seq_id=%s",
+                context,
+                thread_id,
+                chat_seq_id,
+            )
+
+    sql = user_input.get("sql", "")
+    if sql:
+        resolved = clean_sql(sql)
+        logger.info("Resolved SQL for %s from request input", context)
+        return resolved
+
+    chat_response_item = user_input.get("chat_response_item") or {}
+    if chat_response_item:
+        sql_section = chat_response_item.get("sql") or {}
+        dialect = sql_section.get("dialect", "")
+        resolved = clean_sql(sql_section.get("raw_sql", ""), dialect)
+        if resolved:
+            logger.info("Resolved SQL for %s from chat_response_item", context)
+            return resolved
+
+    logger.warning(
+        "No SQL resolved for %s chatid=%s chat_seq_id=%s",
+        context,
+        thread_id,
+        chat_seq_id,
+    )
+    return ""
 
 
 def resolve_request_id(data: Optional[dict] = None, user_input: Optional[dict] = None) -> Optional[str]:
@@ -60,6 +133,82 @@ def graph_invoke_config(thread_id: Any, chat_seq_id: Any = None) -> dict[str, di
     return {"configurable": {"thread_id": turn_id}}
 
 
+def _normalize_format_strings(raw: Any) -> dict[str, str]:
+    """Normalize format-string maps for chat memory / chart conversion."""
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, str] = {}
+    for key, value in raw.items():
+        name = str(key or "").strip()
+        fmt = str(value or "").strip()
+        if name and fmt:
+            out[name] = fmt
+    return out
+
+
+def _format_strings_from_vf_template(vf_template: Any) -> dict[str, str]:
+    """Best-effort parse of measure/column formats from a base64 vf_template."""
+    if not isinstance(vf_template, str) or not vf_template.strip():
+        return {}
+    try:
+        from helicalbi.viz.chart_conversion import (
+            decode_vf_template,
+            _extract_format_maps,
+        )
+
+        return _extract_format_maps(decode_vf_template(vf_template))
+    except Exception:  # noqa: BLE001 - memory enrichment must not fail the request
+        logger.debug("Unable to extract format strings from vf_template", exc_info=True)
+        return {}
+
+
+def build_chat_memory_payload(
+    *,
+    chat_response: dict,
+    sql: str,
+    dialect: str,
+    user_query: str,
+    user_name: str,
+    domain: Any = None,
+    topics: Any = None,
+    state: Optional[dict] = None,
+) -> dict[str, Any]:
+    """Build the ChatGraphMemory node payload for interactive / load-chat.
+
+    Persists query metadata, title, and applied Excel format strings so
+    ``/convert-chart`` can recover table field bindings and formatting.
+    """
+    viz = (chat_response or {}).get("viz") or {}
+    format_strings = _normalize_format_strings(
+        (state or {}).get("format_strings")
+        if isinstance(state, dict)
+        else None
+    )
+    if not format_strings:
+        format_strings = _normalize_format_strings(
+            (chat_response or {}).get("format_strings")
+        )
+    if not format_strings:
+        format_strings = _format_strings_from_vf_template(viz.get("vf_template"))
+
+    metadata = (chat_response or {}).get("metadata") or []
+    if not isinstance(metadata, list):
+        metadata = []
+
+    return {
+        "chat_response": chat_response,
+        "sql": sql,
+        "dialect": dialect,
+        "user_query": user_query,
+        "user_name": user_name,
+        "domain": domain or [],
+        "topics": topics or [],
+        "metadata": metadata,
+        "vf_title": str(viz.get("vf_title") or ""),
+        "format_strings": format_strings,
+    }
+
+
 def build_chat_response_from_item(
     item: dict,
     *,
@@ -68,7 +217,11 @@ def build_chat_response_from_item(
     formatted_sql: str,
     error: str = "",
 ) -> dict:
-    """Assemble a chat response payload from a pre-generated item plus query results."""
+    """Assemble a chat response payload from a pre-generated item plus query results.
+
+    Preserves the saved preferred chart (``chart_name``) so open
+    mode re-renders the same InstantBI visualization the user saved.
+    """
     logger.debug(
         "Building chat response from item rows=%s metadata_cols=%s has_sql=%s",
         len(data),
@@ -89,7 +242,7 @@ def build_chat_response_from_item(
     )
 
     return ChatResponse(
-        viz=VizSection(**(item.get("viz") or {})),
+        viz=_hydrate_saved_viz(item.get("viz") or {}, data_types=metadata),
         sql=sql_section,
         summary=SummarySection(**(item.get("summary") or {})),
         data=data,
@@ -98,6 +251,13 @@ def build_chat_response_from_item(
         time_consumed=time_consumed,
         error=error,
     ).to_dict()
+
+
+def _hydrate_saved_viz(viz: dict, *, data_types: Any = None) -> VizSection:
+    """Restore preferred chart / similar_chart for InstantBI open mode."""
+    from helicalbi.viz._charts import hydrate_saved_viz
+
+    return VizSection(**hydrate_saved_viz(viz, data_types=data_types))
 
 
 def as_list(value: Any) -> List[Any]:
@@ -131,6 +291,7 @@ def turn_state_defaults() -> dict[str, Any]:
         "vf_title": "",
         "viz_hint": "",
         "viz_reason": "",
+        "similar_chart": [],
         "insight": "",
         "flow": [],
         "token_usage": {},

@@ -1,0 +1,229 @@
+.ib-chart-preferences {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ib-chart-preferences__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ib-chart-preferences__row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.ib-chart-preferences__label {
+  font-size: 11px;
+}
+
+.ib-chart-preferences__icon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  justify-items: center;
+
+  > span,
+  .ant-tooltip-disabled-compatible-wrapper {
+    display: contents;
+    background: transparent !important;
+  }
+}
+
+.ib-chart-preferences__icon-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 2px;
+  margin: 0;
+  border: none !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
+  color: rgba(0, 0, 0, 0.75);
+
+  &:hover {
+    color: #2691e9;
+    background: transparent !important;
+  }
+
+  &.is-active {
+    color: #2691e9;
+    cursor: default;
+  }
+
+  &.is-disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &:focus,
+  &:focus-visible,
+  &:active {
+    outline: none;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
+.ib-chart-preferences__show-more {
+  align-self: flex-end;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #1890ff;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover {
+    color: #40a9ff;
+    text-decoration: underline;
+  }
+}
+
+.ib-chart-preferences__icon {
+  width: 20px;
+  height: 20px;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: visible;
+
+  .anticon {
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 !important;
+    line-height: 20px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  > svg,
+  .anticon > svg {
+    width: 20px !important;
+    height: 20px !important;
+    max-width: 20px !important;
+    max-height: 20px !important;
+    margin: 0 !important;
+  }
+
+  .ib-chart-preferences__custom-icon[data-icon="relation"] {
+    display: inline-flex;
+    width: 20px;
+    height: 20px;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+      width: 22px !important;
+      height: 22px !important;
+      max-width: none !important;
+      max-height: none !important;
+      transform: scale(1.25);
+      transform-origin: center;
+      margin-left: 0 !important;
+    }
+  }
+}
+
+.ib-chart-preferences__icon-title {
+  font-size: 10px;
+  text-align: center;
+  text-transform: capitalize;
+  line-height: 1.2;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ib-chart-preferences-drawer {
+  .ant-drawer-header {
+    padding: 12px 16px;
+  }
+
+  .ant-drawer-title {
+    font-size: 14px;
+    width: 100%;
+  }
+
+  .ant-drawer-body {
+    padding: 8px 12px 16px;
+  }
+
+  &--vf .ant-drawer-body {
+    padding: 8px 12px 0;
+  }
+}
+
+.ib-chart-preferences__body {
+  position: relative;
+  min-height: 40px;
+}
+
+.ib-chart-preferences__similar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.ib-chart-preferences__vf-hotspot {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  .ib-chart-preferences__vf-fab {
+    width: 20px;
+    height: 20px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: rgba(0, 0, 0, 0.75);
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out, color 0.2s ease;
+
+    &:hover {
+      color: #1890ff;
+    }
+  }
+
+  &.is-hover .ib-chart-preferences__vf-fab,
+  &:hover .ib-chart-preferences__vf-fab {
+    opacity: 1;
+  }
+}
+
+.custom-chart-title {
+  width: 100%;
+  align-items: center;
+}

@@ -1,0 +1,10 @@
+{
+    "id":  "defaultFunctions",
+    "file":  "defaultFunctions.properties",
+    "title":  "Default Functions",
+    "description":  "Default SQL function names used when building expressions.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/defaultFunctions.ui.layout",
+    "fallbackEditor":  "properties"
+}

@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -51,6 +52,7 @@ import net.sf.json.JSONObject;
 @ContextConfiguration(locations = { "classpath:application-context.xml", "classpath:dispatcher-servlet.xml",
 		"classpath:spring-security.xml" })
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@Profile("hiee")
 public class GroovyConnectionTest {
 
 	MockMvc efwMock;
@@ -142,7 +144,7 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "test");
-		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"name\":\"SampleTravelData\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
+		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.iapi.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"name\":\"SampleTravelData\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
@@ -158,7 +160,7 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "write");
-		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"name\":\"GroovyDataSource\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
+		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.iapi.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"name\":\"GroovyDataSource\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		MvcResult result = this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
@@ -179,7 +181,7 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "write");
-		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"name\":\"GroovyDataSource2\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
+		String formData = "{\"classifier\":\"efwd\",\"condition\":\"    import net.sf.json.JSONObject;\\n    import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n    public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        responseJson.put(\\\"driver\\\", \\\"org.apache.derby.iapi.jdbc.AutoloadedDriver\\\");\\n        responseJson.put(\\\"url\\\", \\\""+jdbcUrl+"\\\" );\\n        responseJson.put(\\\"user\\\", \\\"root\\\");\\n        responseJson.put(\\\"pass\\\", \\\"root\\\");\\n        return responseJson;\\n    }\",\"driverName\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"name\":\"GroovyDataSource2\",\"userName\":\"\",\"password\":\"\",\"database\":\""+dbName+"\",\"jdbcUrl\":\""+jdbcUrl+"\",\"dataSourceType\":\"Groovy Plain Jdbc DataSource\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		MvcResult result = this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
@@ -228,17 +230,17 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "read");
-		String formData = "{\"dir\":\"GroovyDataSource\",\"driver\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"id\":\""+firstDSId+"\",\"type\":\"sql.jdbc.groovy\",\"classifier\":\"efwd\"}";
+		String formData = "{\"dir\":\"GroovyDataSource\",\"driver\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"id\":\""+firstDSId+"\",\"type\":\"sql.jdbc.groovy\",\"classifier\":\"efwd\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response").exists())
-				.andExpect(MockMvcResultMatchers.jsonPath("$.response.driver").value("org.apache.derby.jdbc.AutoloadedDriver"))
+				.andExpect(MockMvcResultMatchers.jsonPath("$.response.driver").value("org.apache.derby.iapi.jdbc.AutoloadedDriver"))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.classifier").value("efwd"))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.name").value("GroovyDataSource"))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.dir").value("GroovyDataSource"))
-				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.driverName").value("org.apache.derby.jdbc.AutoloadedDriver"))
+				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.driverName").value("org.apache.derby.iapi.jdbc.AutoloadedDriver"))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.type").value("sql.jdbc.groovy"))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.id").value(firstDSId))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.data.condition").exists())
@@ -252,7 +254,7 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "update");
-		String formData = "{\"classifier\":\"efwd\",\"name\":\"UpdatedGroovyConnection\",\"driverName\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"userName\":\"root\",\"password\":\"root\",\"jdbcUrl\":\"jdbc:derby:\\//home//helical//Performance//HITest//hiee\",\"database\":\"\\//home//helical//Performance//HITest//hiee\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\",\"id\":\""+firstDSId+"\",\"condition\" : \"import net.sf.json.JSONObject;\\r\\n\\t\\t\\t\\t\\timport com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\r\\n\\t\\t\\t\\t\\tpublic JSONObject evalCondition() {\\r\\n\\t\\t\\t\\t\\tJSONObject responseJson = new JSONObject();\\r\\n\\t\\t\\t\\t\\tString userName = GroovyUsersSession.getValue('${user}.name');\\r\\n\\t\\t\\t\\t\\tuserName = userName .replaceAll(\\\"'\\\",\\\"\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"driver\\\",\\\"com.mysql.jdbc.Driver\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"url\\\",\\\"jdbc:mysql://127.0.0.1:3306/\\\"+userName );\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"user\\\",\\\"root\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"pass\\\",\\\"root\\\");\\r\\n\\t\\t\\t\\t\\treturn responseJson;\\r\\n\\t\\t\\t\\t\\t}\"}";
+		String formData = "{\"classifier\":\"efwd\",\"name\":\"UpdatedGroovyConnection\",\"driverName\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"userName\":\"root\",\"password\":\"root\",\"jdbcUrl\":\"jdbc:derby:\\//home//helical//Performance//HITest//hiee\",\"database\":\"\\//home//helical//Performance//HITest//hiee\",\"directory\":\"GroovyDataSource\",\"type\":\"sql.jdbc.groovy\",\"id\":\""+firstDSId+"\",\"condition\" : \"import net.sf.json.JSONObject;\\r\\n\\t\\t\\t\\t\\timport com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\r\\n\\t\\t\\t\\t\\tpublic JSONObject evalCondition() {\\r\\n\\t\\t\\t\\t\\tJSONObject responseJson = new JSONObject();\\r\\n\\t\\t\\t\\t\\tString userName = GroovyUsersSession.getValue('${user}.name');\\r\\n\\t\\t\\t\\t\\tuserName = userName .replaceAll(\\\"'\\\",\\\"\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"driver\\\",\\\"com.mysql.jdbc.Driver\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"url\\\",\\\"jdbc:mysql://127.0.0.1:3306/\\\"+userName );\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"user\\\",\\\"root\\\");\\r\\n\\t\\t\\t\\t\\tresponseJson.put(\\\"pass\\\",\\\"root\\\");\\r\\n\\t\\t\\t\\t\\treturn responseJson;\\r\\n\\t\\t\\t\\t\\t}\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
@@ -406,7 +408,7 @@ public class GroovyConnectionTest {
 		map.put("type", "core");
 		map.put("serviceType", "dataSource");
 		map.put("service", "delete");
-		String formData = "{\"driver\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"id\":\""+secondDSId+"\",\"type\":\"simple\",\"classifier\":\"efwd\",\"directory\":\"GroovyDataSource\"}";
+		String formData = "{\"driver\":\"org.apache.derby.iapi.jdbc.AutoloadedDriver\",\"id\":\""+secondDSId+"\",\"type\":\"simple\",\"classifier\":\"efwd\",\"directory\":\"GroovyDataSource\"}";
 		map.put("formData", formData);
 		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())

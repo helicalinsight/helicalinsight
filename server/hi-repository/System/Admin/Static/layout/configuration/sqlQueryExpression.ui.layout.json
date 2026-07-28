@@ -1,0 +1,12 @@
+{
+    "id":  "sqlQueryExpression",
+    "title":  "SQL Query Expression",
+    "description":  "Groovy SQL expression helpers. Use Raw editor to edit script.",
+    "file":  "sqlQueryExpression.groovy",
+    "format":  "text",
+    "fallbackEditor":  "text",
+    "language":  "groovy",
+    "sections":  [
+
+                 ]
+}

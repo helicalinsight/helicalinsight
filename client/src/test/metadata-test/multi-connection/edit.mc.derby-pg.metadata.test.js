@@ -35,28 +35,7 @@ const App = ({ intialState = {}, store }) => {
 };
 
 describe("Metadata multi connection edit test", () => {
-    beforeAll(() => {
-        delete window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        });
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.console.error = jest.fn()
-        window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-    });
-  
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-      
+    
     test("Metadata Module multi connection derby and postgres connections", async () => {
         const store = configureStore({
             reducer: reducers,

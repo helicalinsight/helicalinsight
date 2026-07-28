@@ -1,0 +1,80 @@
+{
+    "id":  "dataTypesMapping",
+    "title":  "Data Types Mapping",
+    "description":  "Java/SQL type to HI semantic type mapping.",
+    "file":  "dataTypesMapping.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common Java Types",
+                         "key":  "java",
+                         "fields":  [
+                                        {
+                                            "name":  "string",
+                                            "path":  "java.lang.String",
+                                            "label":  "String",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type e.g. text."
+                                        },
+                                        {
+                                            "name":  "integer",
+                                            "path":  "java.lang.Integer",
+                                            "label":  "Integer",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type e.g. numeric."
+                                        },
+                                        {
+                                            "name":  "long",
+                                            "path":  "java.lang.Long",
+                                            "label":  "Long",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        },
+                                        {
+                                            "name":  "double",
+                                            "path":  "java.lang.Double",
+                                            "label":  "Double",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        },
+                                        {
+                                            "name":  "boolean",
+                                            "path":  "java.lang.Boolean",
+                                            "label":  "Boolean",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        },
+                                        {
+                                            "name":  "date",
+                                            "path":  "java.sql.Date",
+                                            "label":  "SQL Date",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        },
+                                        {
+                                            "name":  "timestamp",
+                                            "path":  "java.sql.Timestamp",
+                                            "label":  "Timestamp",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        },
+                                        {
+                                            "name":  "bigDecimal",
+                                            "path":  "java.math.BigDecimal",
+                                            "label":  "BigDecimal",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Maps to HI type."
+                                        }
+                                    ]
+                     }
+                 ]
+}

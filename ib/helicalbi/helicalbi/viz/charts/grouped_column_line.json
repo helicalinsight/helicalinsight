@@ -11,6 +11,83 @@
   ],
   "requires_ordered": false,
   "base": "default",
-  "instructions": "DualAxes grouped column+line. Config: column isGroup+seriesField; line seriesField.\nPolish: group for comparison + trend line; legend; autoFit; avoid overlapping colors.",
-  "code": "\nfunction DrawGroupedColumnLine() {\n  const { DualAxes } = components;\n  const config = {\n    data: [data, data],\n    xField: \"dimension_column\",\n    yField: [\"measure_column\", \"secondary_measure_column\"],\n    geometryOptions: [\n      {\n        geometry: \"column\",\n        isGroup: true,\n        seriesField: \"group_column\"\n      },\n      { geometry: \"line\", seriesField: \"line_series_column\" }\n    ]\n  };\n  return <div><DualAxes {...config} /></div>;\n}\n"
+  "conversion": {
+    "family": "dual_axes",
+    "component": "DualAxes",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "secondary_measure_column": {
+        "role": "measure",
+        "index": 1
+      },
+      "group_column": {
+        "role": "dimension",
+        "index": 1,
+        "optional": true
+      },
+      "line_series_column": {
+        "role": "series",
+        "optional": true
+      }
+    },
+    "omit_when_missing": [
+      "group_column",
+      "line_series_column"
+    ]
+  },
+  "instructions": [
+    "DualAxes grouped column+line. Config: column isGroup+seriesField; line seriesField.",
+    "Polish: group for comparison + trend line; legend; autoFit; avoid overlapping colors."
+  ],
+  "code": [
+    "function DrawGroupedColumnLine() {",
+    "  const { DualAxes } = components;",
+    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
+    "  const measureFormats = {",
+    "    measure_column: '0.00'",
+    "  };",
+    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      return num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const config = {",
+    "    data: [data, data],",
+    "    xField: 'dimension_column',",
+    "    yField: ['measure_column', 'secondary_measure_column'],",
+    "    geometryOptions: [",
+    "      {",
+    "        geometry: 'column',",
+    "        isGroup: true,",
+    "        seriesField: 'group_column'",
+    "      },",
+    "      { geometry: 'line', seriesField: 'line_series_column' }",
+    "    ],",
+    "    meta: {",
+    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "    }",
+    "  };",
+    "  return <div><DualAxes {...config} /></div>;",
+    "}"
+  ]
 }

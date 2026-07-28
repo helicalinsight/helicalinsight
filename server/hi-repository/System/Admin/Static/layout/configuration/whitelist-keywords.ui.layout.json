@@ -1,0 +1,33 @@
+{
+    "id":  "whitelist-keywords",
+    "title":  "Whitelist Keywords",
+    "description":  "Allowed SQL keywords for security validation.",
+    "file":  "whitelist-keywords.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "Keywords",
+                         "key":  "keywords",
+                         "fields":  [
+                                        {
+                                            "name":  "allowed",
+                                            "path":  "sql-keywords/@allowed",
+                                            "label":  "Allowed",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Whether the whitelist is active."
+                                        },
+                                        {
+                                            "name":  "keywords",
+                                            "path":  "sql-keywords",
+                                            "label":  "Keywords",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Comma-separated allowed SQL keywords.",
+                                            "rows":  8
+                                        }
+                                    ]
+                     }
+                 ]
+}

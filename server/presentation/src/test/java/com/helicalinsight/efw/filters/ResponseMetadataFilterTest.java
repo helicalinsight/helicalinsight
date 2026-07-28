@@ -1,6 +1,5 @@
 package com.helicalinsight.efw.filters;
 
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -13,6 +12,7 @@ import java.io.IOException;
 
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.http.MediaType;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import jakarta.servlet.FilterChain;
@@ -54,6 +54,39 @@ public class ResponseMetadataFilterTest {
     }
 
     @Test
+    public void doFilter_bypassesStreamParamRequestsWithoutWrappingResponse() throws ServletException, IOException {
+        ResponseMetadataFilter filter = new ResponseMetadataFilter();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getHeader("X-Requested-With")).thenReturn("XMLHttpRequest");
+        when(request.getServletPath()).thenReturn("/services");
+        when(request.getParameter("stream")).thenReturn("true");
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(eq(request), eq(response));
+    }
+
+    @Test
+    public void doFilter_bypassesEventStreamAcceptRequestsWithoutWrappingResponse() throws ServletException, IOException {
+        ResponseMetadataFilter filter = new ResponseMetadataFilter();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getHeader("X-Requested-With")).thenReturn("XMLHttpRequest");
+        when(request.getServletPath()).thenReturn("/services");
+        when(request.getParameter("stream")).thenReturn(null);
+        when(request.getHeader("Accept")).thenReturn(MediaType.TEXT_EVENT_STREAM_VALUE);
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(eq(request), eq(response));
+    }
+
+    @Test
     public void doFilter_wrapsAjaxApiRequests() throws ServletException, IOException {
         ResponseMetadataFilter filter = new ResponseMetadataFilter();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -62,6 +95,8 @@ public class ResponseMetadataFilterTest {
 
         when(request.getHeader("X-Requested-With")).thenReturn("XMLHttpRequest");
         when(request.getServletPath()).thenReturn("/services");
+        when(request.getParameter("stream")).thenReturn(null);
+        when(request.getHeader("Accept")).thenReturn("application/json");
         when(response.getStatus()).thenReturn(200);
         when(response.getHeader("Content-Encoding")).thenReturn(null);
         when(response.getContentType()).thenReturn("application/json");

@@ -1,0 +1,8 @@
+{
+    "id":  "globalConnections",
+    "file":  "globalConnections.xml",
+    "title":  "Global Connections",
+    "description":  "Global connection definitions. Not editable from the Configurations UI.",
+    "category":  "ignore",
+    "editor":  "xml"
+}

@@ -39,7 +39,7 @@ public class DatabaseQueryGeneratorTest {
 		formDataJson.addProperty("queryGeneratorImplementation", "queryGeneratorImplementation");
 		JsonObject metadataFileJson = new JsonObject();
 		JsonObject connectionDetails = new JsonObject();
-		connectionDetails.addProperty("fetchMode", "cache");
+		connectionDetails.addProperty("fetchMode", "live");
 		JsonObject driverClass = new JsonObject();
 		connectionDetails.add("driverClass", driverClass);
 		metadataFileJson.add("connectionDetails", connectionDetails);
@@ -89,7 +89,7 @@ public class DatabaseQueryGeneratorTest {
 		formDataJson.addProperty("queryGeneratorImplementation", "queryGeneratorImplementation");
 		JsonObject metadataFileJson = new JsonObject();
 		JsonObject connectionDetails = new JsonObject();
-		connectionDetails.addProperty("fetchMode", "cache");
+		connectionDetails.addProperty("fetchMode", "live");
 		JsonObject driverClass = new JsonObject();
 		connectionDetails.add("driverClass", driverClass);
 		metadataFileJson.add("connectionDetails", connectionDetails);
@@ -166,7 +166,7 @@ public class DatabaseQueryGeneratorTest {
 		formDataJson.addProperty("queryGeneratorImplementation", "queryGeneratorImplementation");
 		JsonObject metadataFileJson = new JsonObject();
 		JsonObject connectionDetails = new JsonObject();
-		connectionDetails.addProperty("fetchMode", "cache");
+		connectionDetails.addProperty("fetchMode", "live");
 		JsonObject driverClass = new JsonObject();
 		connectionDetails.add("driverClass", driverClass);
 		metadataFileJson.add("connectionDetails", connectionDetails);
@@ -239,7 +239,7 @@ public class DatabaseQueryGeneratorTest {
 		formDataJson.addProperty("queryGeneratorImplementation", "queryGeneratorImplementation");
 		JsonObject metadataFileJson = new JsonObject();
 		JsonObject connectionDetails = new JsonObject();
-		connectionDetails.addProperty("fetchMode", "cache");
+		connectionDetails.addProperty("fetchMode", "live");
 		JsonObject driverClass = new JsonObject();
 		connectionDetails.add("driverClass", driverClass);
 		metadataFileJson.add("connectionDetails", connectionDetails);

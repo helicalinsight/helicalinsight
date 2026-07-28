@@ -54,16 +54,19 @@ export function MonacoJsonEditor({
   className = "monaco-json-editor",
 }) {
   const [localValue, setLocalValue] = useState(value);
-  const isFocusedRef = useRef(false);
+  const lastEmittedRef = useRef(value);
 
   useEffect(() => {
-    if (!isFocusedRef.current) {
-      setLocalValue(value ?? "");
+    if (value === lastEmittedRef.current) {
+      return;
     }
+    lastEmittedRef.current = value;
+    setLocalValue(value ?? "");
   }, [value]);
 
   const handleEditorChange = (nextValue) => {
     const normalized = nextValue ?? "";
+    lastEmittedRef.current = normalized;
     setLocalValue(normalized);
     onChange?.(normalized);
   };
@@ -82,14 +85,6 @@ export function MonacoJsonEditor({
         language="json"
         value={localValue}
         onChange={handleEditorChange}
-        onMount={(editor) => {
-          editor.onDidFocusEditorText(() => {
-            isFocusedRef.current = true;
-          });
-          editor.onDidBlurEditorText(() => {
-            isFocusedRef.current = false;
-          });
-        }}
         theme="vs-light"
         options={{
           minimap: { enabled: true },
