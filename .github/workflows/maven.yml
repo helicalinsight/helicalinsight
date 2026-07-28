@@ -132,15 +132,15 @@ jobs:
       - name: Build Docker ZIP
         run: |
           # package-docker.sh expects WAR under presentation/target
-          bash scripts/package-docker.sh "${{ steps.ver.outputs.version }}"
+          bash scripts/package-docker.sh "7.0.0"
 
       - name: Upload build artifacts (Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: helicalinsight-${{ steps.ver.outputs.version }}
+          name: helicalinsight-7.0.0
           path: |
-            dist/hi-ee-${{ steps.ver.outputs.version }}.war
-            dist/helicalinsight-${{ steps.ver.outputs.version }}-docker.zip
+            dist/hi-ee-7.0.0.war
+            dist/helicalinsight-7.0.0-docker.zip
           if-no-files-found: error
           retention-days: 30
 
