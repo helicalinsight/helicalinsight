@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { getInsantBISaveData } from "../../components/hi-instant-bi/utils/base";
 import { shouldUseLoadChatPayloadForInsight, buildInstantBIInteractiveChatFormData, parseInstantBIChatResponse } from "../../components/hi-instant-bi/utils/instant-bi-requests";
@@ -65,6 +64,31 @@ describe("getInsantBISaveData", () => {
     expect(savedResponse).not.toHaveProperty("metadata");
     expect(savedResponse.viz).toEqual({ vf_title: "Sales chart" });
     expect(savedResponse.sql).toEqual({ raw_sql: "SELECT 1" });
+  });
+
+  it("it should persist preferred chart and similar_chart on save", () => {
+    const activeReport = buildActiveReportForSave();
+    activeReport.chats[0].messageList[1].fullChatResponse.viz = {
+      chart_name: "bar",
+      vf_title: "Sales chart",
+      similar_chart: [{ "vf.column": "column" }],
+      settings: {
+        color: ["#5B8FF9"],
+        backgroundColor: "#f5f5f5",
+      },
+    };
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: {
+        reportName: "MyReport",
+        location: "reports",
+      },
+    });
+    expect(saveData.state.chat_responses[0].viz).toEqual({
+      chart_name: "bar",
+      vf_title: "Sales chart",
+      similar_chart: [{ "vf.column": "column" }],
+    });
   });
 
   it("it should exclude runtime metadata & loaded chat cache from state", () => {
@@ -143,7 +167,65 @@ describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
   });
 });
 
-describe("instantBIReducer LOAD_IB_OPEN_CHAT_RESPONSE", () => {
+describe("instantBIReducer UPDATE_IB_VIZ_PREFERENCE", () => {
+  it("it should update chart_name and strip legacy settings on preference update", () => {
+    const baseReport = {
+      id: "report-1",
+      active: true,
+      activeChatID: "chat-1",
+      loadedChatResponses: {
+        1: {
+          viz: {
+            chart_name: "bar",
+            settings: { backgroundColor: "#ffffff" },
+          },
+        },
+      },
+      loadedChatResponseSources: { 1: "scroll-load" },
+      chats: [
+        {
+          chatID: "chat-1",
+          messageList: [
+            {
+              id: "bot-1",
+              isUser: false,
+              chatSequenceId: 1,
+              fullChatResponse: {
+                viz: {
+                  chart_name: "bar",
+                  settings: { backgroundColor: "#ffffff" },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      previews: [],
+    };
+    const state = instantBIReducer(
+      {
+        ...initialStates.instantBIInitialState,
+        activeReportId: "report-1",
+        reports: [baseReport],
+      },
+      {
+        type: actionTypes.UPDATE_IB_VIZ_PREFERENCE,
+        payload: {
+          reportId: "report-1",
+          chatSequenceId: 1,
+          chart_name: "column",
+        },
+      }
+    );
+    const report = state.reports[0];
+    expect(report.chats[0].messageList[0].fullChatResponse.viz.chart_name).toBe(
+      "column"
+    );
+    expect(report.chats[0].messageList[0].fullChatResponse.viz.settings).toBeUndefined();
+    expect(report.loadedChatResponses[1].viz.chart_name).toBe("column");
+    expect(report.loadedChatResponses[1].viz.settings).toBeUndefined();
+  });
+});
   it("it should cache loaded chat response by sequence id", () => {
     const baseReport = {
       id: "report-1",

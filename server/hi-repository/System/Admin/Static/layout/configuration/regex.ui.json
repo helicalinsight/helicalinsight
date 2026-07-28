@@ -1,0 +1,10 @@
+{
+    "id":  "regex",
+    "file":  "regex.properties",
+    "title":  "Regex",
+    "description":  "Regular expression patterns used by validation and sanitization.",
+    "category":  "validation",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/regex.ui.layout",
+    "fallbackEditor":  "properties"
+}

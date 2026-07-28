@@ -1,0 +1,52 @@
+{
+    "id":  "databaseDrivers",
+    "title":  "Database Drivers",
+    "description":  "Default JDBC URL templates for common drivers.",
+    "file":  "databaseDrivers.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common URL Templates",
+                         "key":  "urls",
+                         "fields":  [
+                                        {
+                                            "name":  "mysql",
+                                            "path":  "com.mysql.jdbc.Driver",
+                                            "label":  "MySQL URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Default JDBC URL template.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "postgres",
+                                            "path":  "org.postgresql.Driver",
+                                            "label":  "PostgreSQL URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Default JDBC URL template.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "oracle",
+                                            "path":  "oracle.jdbc.OracleDriver",
+                                            "label":  "Oracle URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Default JDBC URL template.",
+                                            "rows":  2
+                                        },
+                                        {
+                                            "name":  "sqlserver",
+                                            "path":  "com.microsoft.sqlserver.jdbc.SQLServerDriver",
+                                            "label":  "SQL Server URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Default JDBC URL template.",
+                                            "rows":  2
+                                        }
+                                    ]
+                     }
+                 ]
+}

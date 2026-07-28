@@ -156,6 +156,32 @@ export const getSemanticTypeDisplayLabel = (storedValue, semanticTypeOptions) =>
   return storedValue;
 };
 
+export const getFormatsForSemanticType = (semanticTypeOptions, storedValue) => {
+  if (!isGroupedSemanticTypes(semanticTypeOptions)) {
+    return [];
+  }
+  const found = findSemanticTypeOption(semanticTypeOptions, storedValue);
+  const formats = found?.option?.formats;
+  return Array.isArray(formats)
+    ? formats.map((format) => String(format ?? "").trim()).filter(Boolean)
+    : [];
+};
+
+export const getDefaultFormatForSemanticType = (
+  semanticTypeOptions,
+  storedValue,
+) => getFormatsForSemanticType(semanticTypeOptions, storedValue)[0] || "";
+
+export const resolveFormatForSemanticType = (
+  semanticTypeOptions,
+  semanticType,
+  formatString = "",
+) => {
+  const formats = getFormatsForSemanticType(semanticTypeOptions, semanticType);
+  const current = String(formatString ?? "").trim();
+  return formats.includes(current) ? current : formats[0] || "";
+};
+
 const getAgentFieldPreview = (value, emptyLabel = "Add") => {
   const trimmed = (value ?? "").trim();
   if (!trimmed) {

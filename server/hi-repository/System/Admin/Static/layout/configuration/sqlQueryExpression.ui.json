@@ -1,0 +1,9 @@
+{
+    "id":  "sqlQueryExpression",
+    "file":  "sqlQueryExpression.groovy",
+    "title":  "SQL Query Expression",
+    "description":  "Groovy helpers for building and transforming SQL query expressions.",
+    "category":  "sql",
+    "editor":  "text",
+    "language":  "plaintext"
+}

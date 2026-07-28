@@ -149,8 +149,9 @@
   "scripts": {
     "start": "node --max_old_space_size=5096 scripts/start",
     "build": "node --max_old_space_size=5096 scripts/build",
-    "test": "node scripts/test.js --max_old_space_size=8096 --watchAll=false --silent",
-    "test:coverage": "node scripts/test.js --max_old_space_size=8096 --watchAll=false --coverage",
+    "build18": "node --max_old_space_size=5096 --openssl-legacy-provider scripts/build",
+    "test": "node  --max_old_space_size=8096 scripts/test.js --watchAll=false --silent --maxWorkers=50%",
+    "test:coverage": "node --max_old_space_size=8096 scripts/test.js --watchAll=false --coverage --maxWorkers=50%",
     "test:dev": "node scripts/test.js",
     "analyze": "source-map-explorer 'build/static/js/*.js'",
     "proxy": "nodemon proxy",
@@ -171,7 +172,10 @@
     ],
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}",
-      "!src/**/*.d.ts"
+      "!src/**/*.d.ts",
+      "!src/test/**",
+      "!src/**/*.mock.*",
+      "!src/**/index.js"
     ],
     "coverageDirectory": "<rootDir>/coverage",
     "coverageReporters": [
@@ -180,11 +184,14 @@
       "html",
       "json-summary"
     ],
+    "cacheDirectory": "<rootDir>/node_modules/.cache/jest",
     "setupFiles": [
       "react-app-polyfill/jsdom",
       "jsdom-worker"
     ],
-    "setupFilesAfterEnv": [],
+    "setupFilesAfterEnv": [
+      "<rootDir>/src/test/setupTests.js"
+    ],
     "testMatch": [
       "<rootDir>/src/test/**/*.{spec,test}.{js,jsx,ts,tsx}",
       "<rootDir>/src/utils/**/*.{spec,test}.{js,jsx,ts,tsx}"
@@ -201,7 +208,7 @@
     "testRunner": "<rootDir>node_modules/jest-circus/runner.js",
     "globalTeardown": "<rootDir>/src/test/globalTearDown.js",
     "transform": {
-      "^.+\\.(js|jsx|mjs|cjs|ts|tsx)$": "<rootDir>/config/jest/babelTransform.js",
+      "^.+\\.(js|jsx|mjs|cjs|ts|tsx)$": "@swc/jest",
       "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
       "^(?!.*\\.(js|jsx|mjs|cjs|ts|tsx|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
     },
@@ -230,9 +237,7 @@
       "jest-watch-typeahead/filename",
       "jest-watch-typeahead/testname"
     ],
-    "resetMocks": true,
-    "clearMocks": true,
-    "timers": "fake"
+    "clearMocks": true
   },
   "browserslist": {
     "production": [
@@ -255,6 +260,8 @@
     "@storybook/node-logger": "6.4.9",
     "@storybook/preset-create-react-app": "3.2.0",
     "@storybook/react": "6.4.9",
+    "@swc/core": "^1.15.43",
+    "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^5.16.5",
     "babel-plugin-transform-remove-console": "6.9.4",
     "copy-webpack-plugin": "5.1.1",

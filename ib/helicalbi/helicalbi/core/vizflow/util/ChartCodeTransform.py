@@ -21,6 +21,12 @@ _DEFAULT_SEQUENTIAL_COLORS = (
     '"#085EC0", "#0047A5", "#00318A", "#001D70"]'
 )
 
+# G2Plot formatters often receive strings (axis ticks) or datums (labels),
+# so `(v) => v.toFixed(n)` throws. Rewrite to coerce by value type first.
+_UNSAFE_TOFIXED = re.compile(
+    r"\(\s*(?P<var>[A-Za-z_$][\w$]*)\s*\)\s*=>\s*(?P=var)\.toFixed\s*\(\s*(?P<digits>\d+)\s*\)"
+)
+
 
 def _parse_component_names(binding: str) -> list[str]:
     return [name.strip() for name in binding.split(",") if name.strip()]
@@ -44,6 +50,27 @@ def _collect_component_names(code: str) -> list[str]:
     return names
 
 
+def _safe_tofixed_formatter(var: str, digits: str) -> str:
+    return (
+        f"({var}) => {{ "
+        f"const _raw = ({var} != null && typeof {var} === 'object') "
+        f"? ({var}.value ?? Object.values({var}).find((x) => "
+        f"typeof x === 'number' || (typeof x === 'string' && x !== '' && !isNaN(Number(x))))) "
+        f": {var}; "
+        f"const _num = typeof _raw === 'number' ? _raw : Number(_raw); "
+        f"return (typeof _num === 'number' && Number.isFinite(_num)) "
+        f"? _num.toFixed({digits}) : (_raw ?? ''); "
+        f"}}"
+    )
+
+
+def _rewrite_unsafe_tofixed(code: str) -> str:
+    def repl(match: re.Match[str]) -> str:
+        return _safe_tofixed_formatter(match.group("var"), match.group("digits"))
+
+    return _UNSAFE_TOFIXED.sub(repl, code)
+
+
 def transform_chart_code(code: str) -> str:
     # 1. Remove all import statements
     code = re.sub(r"import\s+.*?;\s*", "", code)
@@ -58,10 +85,13 @@ def transform_chart_code(code: str) -> str:
         code,
     )
 
-    # 4. Merge component names from existing destructuring and JSX usage
+    # 4. Coerce unsafe `.toFixed` formatters (string/datum args)
+    code = _rewrite_unsafe_tofixed(code)
+
+    # 5. Merge component names from existing destructuring and JSX usage
     components = _collect_component_names(code)
 
-    # 5. Remove duplicate/existing components destructuring lines
+    # 6. Remove duplicate/existing components destructuring lines
     code = _COMPONENTS_DESTRUCTURE.sub("", code)
     code = re.sub(r"\n{3,}", "\n\n", code)
 
@@ -69,7 +99,7 @@ def transform_chart_code(code: str) -> str:
         comp_str = ", ".join(components)
         inject_line = f"const {{ {comp_str} }} = components;\n  "
 
-        # 6. Inject a single destructuring line inside the function
+        # 7. Inject a single destructuring line inside the function
         code = re.sub(
             r"(function\s+\w+\s*\(\)\s*\{\s*)",
             r"\1" + inject_line,

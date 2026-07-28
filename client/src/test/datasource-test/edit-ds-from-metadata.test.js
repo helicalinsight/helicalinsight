@@ -62,27 +62,6 @@ const App = ({ intialState }) => {
 };
 
 describe("Datasource", () => {
-    beforeAll(() => {
-        delete window.matchMedia;
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        });
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = (arr) => crypto.randomBytes(arr.length);
-    });
-  
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-      
     test("Datasource Module", async () => {
         // render(
         //     <BrowserRouter>

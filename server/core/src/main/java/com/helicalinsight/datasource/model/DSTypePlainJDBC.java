@@ -12,6 +12,7 @@ import jakarta.persistence.Table;
 import java.io.Serializable;
 import java.util.Date;
 
+@Deprecated(forRemoval = true)
 @Entity
 @Table(name="ds_type_adhoc_jdbc")
 @Cacheable(true)

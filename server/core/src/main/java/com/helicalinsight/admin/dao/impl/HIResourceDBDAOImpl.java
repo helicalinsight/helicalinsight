@@ -1074,7 +1074,12 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 						.getBean("schedulesServiceImpl");
 				List<Long> scheduleIds = scheduleService.findAllSchedulesByResourceId(resId);
 				scheduleService.deleteScheduleByIds(scheduleIds);
-
+				
+				MutationQuery deleteMapping = currentSession.createMutationQuery("delete HIResourceMapping rm where rm.parentResource.resourceId=:id or rm.childResource.resourceId=:id");
+				deleteMapping.setParameter("id", resId);
+				deleteMapping.executeUpdate();
+				
+				
 				if (delResource != null) {
 					Long binId = getHiRecycleBinIdOfSoftDeletedItemByHiResourceId(delResource.getResourceId());
 					if (binId != null) {
@@ -1095,12 +1100,13 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	private void hardDeleteFromHiHcrConnectionsByResourceId(HIResource delResource) {
 		try {
 			Session currentSession = getSession();
-			org.hibernate.query.Query query = currentSession
-					.createQuery("FROM HIHcrConnections res WHERE res.hiResourceHcr.resourceId=:resId");
-			query.setParameter("resId", delResource.getResourceId());
-			List<HIHcrConnections> delHcrCon = (List<HIHcrConnections>) query.getResultList();
-			for (HIHcrConnections deleH : delHcrCon)
-				currentSession.delete(deleH);
+			List<HIHcrConnections> connections = currentSession
+					.createQuery("from HIHcrConnections where hiResourceHcr.resourceId = :id", HIHcrConnections.class)
+					.setParameter("id", delResource.getResourceId()).getResultList();
+			for (HIHcrConnections connection : connections) {
+				currentSession.remove(connection);
+			}
+			currentSession.flush();
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
