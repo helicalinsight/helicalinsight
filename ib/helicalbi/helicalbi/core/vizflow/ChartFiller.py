@@ -5,6 +5,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from helicalbi.common.ChatManager import add_viz_response, get_last_n_viz
+from helicalbi.common.CubeInfoModel import build_viz_column_context
 from helicalbi.core.vizflow.util.ChartCodeTransform import transform_chart_code
 from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
@@ -30,7 +31,7 @@ class ChartFiller:
             state["skip"] = True
             return state
         data_md = data_json["metadata"]
-        sql = state["sql"]
+        sql = state.get("sql") or ""
 
         try:
             viz_hint = (
@@ -41,18 +42,60 @@ class ChartFiller:
             chart_config = get_chart_config()
             chart_function = chart_config.get(viz_hint, chart_config["other"])
             previous_viz = get_last_n_viz(state["thread_id"])
-            column_format_strings = state.get("column_format_strings") or ""
+
+            domain_context = (
+                state.get("sql_domain_context")
+                or state.get("domain_context")
+                or ""
+            )
+            viz_context = build_viz_column_context(
+                data_md,
+                cube_metadata=state.get("cube_metadata") or [],
+                format_strings=state.get("format_strings") or {},
+                ai_instructions=state.get("ai_instructions") or {},
+                sort_orders=state.get("sort_orders") or [],
+                domain_context=domain_context,
+            )
+            # Prefer result-column-filtered hints; fall back to full-cube prompts.
+            column_format_strings = (
+                viz_context.get("column_format_strings")
+                or state.get("column_format_strings")
+                or ""
+            )
+            column_ai_instructions = (
+                viz_context.get("column_ai_instructions")
+                or state.get("column_ai_instructions")
+                or ""
+            )
+            column_sort_orders = viz_context.get("column_sort_orders") or ""
+            column_viz_context = viz_context.get("column_context") or ""
+            state["viz_column_context"] = viz_context
+
             logger.info(
-                "ChartFiller filling viz_hint=%s format_strings_chars=%s",
+                "ChartFiller filling viz_hint=%s result_fields=%s "
+                "format_strings_chars=%s ai_instructions_chars=%s",
                 viz_hint,
+                viz_context.get("field_names") or [],
                 len(column_format_strings),
+                len(column_ai_instructions),
             )
             parser = PydanticOutputParser(pydantic_object=ChartFillerResponse)
             prompt = PromptTemplate(
                 template=fill_prompt_string + format_instruction_string,
-                input_variables=["domain", "topics", "user_question",
-                                 "data_types", "chart_function", "previous_viz",
-                                 "column_format_strings"],
+                input_variables=[
+                    "domain",
+                    "topics",
+                    "domain_context",
+                    "sql",
+                    "user_question",
+                    "data_types",
+                    "chart_function",
+                    "previous_viz",
+                    "column_format_strings",
+                    "column_ai_instructions",
+                    "column_sort_orders",
+                    "column_viz_context",
+                ],
                 partial_variables={"format_instructions": parser.get_format_instructions()},
             )
             response, _ = invoke_structured(
@@ -60,13 +103,18 @@ class ChartFiller:
                 llm,
                 parser,
                 {
-                    "domain": state["domain"],
-                    "topics": state["topics"],
+                    "domain": state.get("domain") or [],
+                    "topics": state.get("topics") or [],
+                    "domain_context": domain_context,
+                    "sql": sql,
                     "user_question": user_query,
                     "previous_viz": previous_viz,
                     "data_types": data_md,
                     "chart_function": chart_function,
                     "column_format_strings": column_format_strings,
+                    "column_ai_instructions": column_ai_instructions,
+                    "column_sort_orders": column_sort_orders,
+                    "column_viz_context": column_viz_context,
                 },
                 state=state,
             )

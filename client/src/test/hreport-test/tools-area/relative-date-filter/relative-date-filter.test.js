@@ -1,4 +1,3 @@
-import "core-js/stable";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -18,28 +17,7 @@ const App = ({ ...props }) => {
 };
 
 describe("hreport relative date filters test", () => {
-    beforeAll(() => {
-        delete window.matchMedia
-        window.matchMedia = (query) => ({
-            matches: false,
-            media: query,
-            onchange: null,
-            addListener: jest.fn(), // deprecated
-            removeListener: jest.fn(), // deprecated
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            dispatchEvent: jest.fn(),
-        })
-        window.createObjectURL = jest.fn();
-        window.HTMLElement.prototype.scrollBy = jest.fn();
-        window.crypto = {};
-        window.crypto.getRandomValues = arr => crypto.randomBytes(arr.length)
-    });
-
-    afterAll(() => {
-        global.gc && global.gc()
-      })
-        
+    
     test("relative date anchor filter with date function as individual", async () => {
         await flushPromises( render(<App {...dataWithDatepartAsIndividual} />));
         expect(screen.queryByTestId(/hr-relative-list-value-individual/i)).toBeTruthy();

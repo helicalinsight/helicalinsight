@@ -12,6 +12,7 @@ import Toolbar from "../toolbar";
 import { getPreviewStyles, getPropertyElement, getPropertyStyle } from "../utils/utillities";
 import { enableInteractivity, getPropertiesConfig, getTooltip, getGridChartLabels, getTableColumns, getGridChartConfig, changePageSize } from "./utilities";
 import GridTable from "../s2-charts/s2chart";
+import { buildGridTableReport } from "../s2-charts/build-grid-table-report";
 import '../table/table.scss'
 import { registerAntdTheme } from "../ant-charts/ant-utils";
 
@@ -38,7 +39,7 @@ const CustomChart = (props) => {
         components: { ...MapCharts, ...Plots, ...AntdComponents, ...MuzeCharts, GridTable },
         data,
         report: { ...props, dispatch },
-        helperFunctions: { getTooltip, getPropertiesConfig, enableInteractivity, getGridChartLabels, getTableColumns, getGridChartConfig, changePageSize }
+        helperFunctions: { getTooltip, getPropertiesConfig, enableInteractivity, getGridChartLabels, getTableColumns, getGridChartConfig, changePageSize, buildGridTableReport }
     };
     const { title = {}, subTitle = {}, format = {} } = report?.reportData?.properties || {};
     const reportForInteractiveMode = { properties, fields, reportData: report?.reportData }

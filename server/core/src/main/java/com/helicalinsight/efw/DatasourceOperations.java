@@ -3,6 +3,8 @@ package com.helicalinsight.efw;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.customauth.CipherUtils;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.datasource.model.*;
@@ -30,9 +32,10 @@ public class DatasourceOperations {
     private static final org.slf4j.Logger logger = LoggerFactory.getLogger(DatasourceOperations.class);
 
     private GlobalConnectionService globalConnectionService;
-
+    private UserService userService;
     public void migrateDataSourceToDatabase() throws Exception {
         globalConnectionService = ApplicationContextAccessor.getBean(GlobalConnectionService.class);
+        userService = (UserService) ApplicationContextAccessor.getBean("userDetailsService");
         readDataSource();
     }
 
@@ -104,7 +107,8 @@ public class DatasourceOperations {
         globalConnections.setBaseType(GsonUtility.optString(gcJsonItem, "baseType"));
         globalConnections.setCreatedDate(new Date());
         globalConnections.setLastUpdatedTime(new Date());
-        globalConnections.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnections.setCreatedBy(createdByUser);
         globalConnections.setVendor(GsonUtility.optString(gcJsonItem,"@vendor"));
         globalConnections.setIsMigrated(true);
         if (dataSourceProvider.equalsIgnoreCase("tomcat")) {

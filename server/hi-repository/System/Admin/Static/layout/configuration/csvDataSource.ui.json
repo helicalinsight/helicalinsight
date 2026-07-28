@@ -1,0 +1,10 @@
+{
+    "id":  "csvDataSource",
+    "file":  "csvDataSource.properties",
+    "title":  "CSV Data Source",
+    "description":  "CSV / flat-file datasource defaults and parsing options.",
+    "category":  "datasource",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/csvDataSource.ui.layout",
+    "fallbackEditor":  "properties"
+}

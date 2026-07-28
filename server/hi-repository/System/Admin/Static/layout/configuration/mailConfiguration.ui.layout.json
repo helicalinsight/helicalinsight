@@ -1,0 +1,228 @@
+{
+  "id": "mailConfiguration",
+  "title": "Mail Configuration",
+  "description": "SMTP and email delivery settings stored under System/Mail",
+  "file": "mailConfiguration.properties",
+  "path": "Mail",
+  "format": "properties",
+  "fallbackEditor": "properties",
+  "sections": [
+    {
+      "key": "smtp",
+      "title": "SMTP Server",
+      "description": "Host, port, protocol, and sender defaults",
+      "fields": [
+        {
+          "name": "hostName",
+          "path": "hostName",
+          "label": "Host Name",
+          "type": "text",
+          "span": 16,
+          "placeholder": "smtp.example.com",
+          "description": "Address of the SMTP server."
+        },
+        {
+          "name": "port",
+          "path": "port",
+          "label": "Port",
+          "type": "number",
+          "span": 8,
+          "description": "Connection port. 587 is common for STARTTLS; 465 for implicit SSL."
+        },
+        {
+          "name": "from",
+          "path": "from",
+          "label": "From Address",
+          "type": "text",
+          "span": 12,
+          "description": "Default sender address shown in the From field."
+        },
+        {
+          "name": "mailProtocol",
+          "path": "mailProtocol",
+          "label": "Mail Protocol",
+          "type": "select",
+          "span": 12,
+          "options": [
+            { "label": "smtp", "value": "smtp" },
+            { "label": "smtps", "value": "smtps" }
+          ],
+          "description": "Transport protocol for outbound mail."
+        },
+        {
+          "name": "systemadmin",
+          "path": "systemadmin",
+          "label": "System Admin Recipient",
+          "type": "text",
+          "span": 24,
+          "description": "Default recipient for system schedule emails when email.to is empty."
+        }
+      ]
+    },
+    {
+      "key": "auth",
+      "title": "Authentication",
+      "description": "Credentials and auth flags",
+      "fields": [
+        {
+          "name": "isAuthenticated",
+          "path": "isAuthenticated",
+          "label": "Authenticated",
+          "type": "select",
+          "span": 12,
+          "options": [
+            { "label": "yes", "value": "yes" },
+            { "label": "no", "value": "no" }
+          ],
+          "description": "When yes, SMTP login with username/password is required."
+        },
+        {
+          "name": "user",
+          "path": "user",
+          "label": "Username",
+          "type": "text",
+          "span": 12,
+          "description": "SMTP account used to log in."
+        },
+        {
+          "name": "password",
+          "path": "password",
+          "label": "Password",
+          "type": "password",
+          "span": 24,
+          "description": "Password or app password for the SMTP user."
+        }
+      ]
+    },
+    {
+      "key": "tls",
+      "title": "TLS / SSL",
+      "description": "Secure transport options",
+      "fields": [
+        {
+          "name": "isSSLEnabled",
+          "path": "isSSLEnabled",
+          "label": "SSL Enabled",
+          "type": "select",
+          "span": 12,
+          "options": [
+            { "label": "yes", "value": "yes" },
+            { "label": "no", "value": "no" }
+          ],
+          "description": "Implicit SSL (typically port 465)."
+        },
+        {
+          "name": "sslProtocols",
+          "path": "sslProtocols",
+          "label": "SSL Protocols",
+          "type": "text",
+          "span": 12,
+          "placeholder": "TLSv1.2",
+          "description": "Preferred TLS protocol version."
+        },
+        {
+          "name": "ttlsEnabled",
+          "path": "ttlsEnabled",
+          "label": "STARTTLS Enabled",
+          "type": "boolean",
+          "span": 12,
+          "description": "Upgrade the connection with STARTTLS (common on port 587)."
+        },
+        {
+          "name": "ttlsRequired",
+          "path": "ttlsRequired",
+          "label": "STARTTLS Required",
+          "type": "boolean",
+          "span": 12,
+          "description": "Fail if the server does not support a secure TLS upgrade."
+        }
+      ]
+    },
+    {
+      "key": "message",
+      "title": "Message Defaults",
+      "fields": [
+        {
+          "name": "subject",
+          "path": "subject",
+          "label": "Subject Prefix",
+          "type": "text",
+          "span": 24,
+          "description": "Default subject prefix for generated emails."
+        },
+        {
+          "name": "body",
+          "path": "body",
+          "label": "Body Notice",
+          "type": "textarea",
+          "span": 24,
+          "rows": 4,
+          "description": "Default body notice included in generated emails."
+        }
+      ]
+    },
+    {
+      "key": "pool",
+      "title": "Connection Pool",
+      "description": "SMTP connection pool limits",
+      "fields": [
+        {
+          "name": "minIdle",
+          "path": "minIdle",
+          "label": "Min Idle",
+          "type": "number",
+          "span": 8,
+          "description": "Minimum idle connections kept in the pool."
+        },
+        {
+          "name": "maxIdle",
+          "path": "maxIdle",
+          "label": "Max Idle",
+          "type": "number",
+          "span": 8,
+          "description": "Maximum idle connections retained."
+        },
+        {
+          "name": "maxTotal",
+          "path": "maxTotal",
+          "label": "Max Total",
+          "type": "number",
+          "span": 8,
+          "description": "Absolute limit of simultaneous SMTP connections."
+        },
+        {
+          "name": "maxWaitMillis",
+          "path": "maxWaitMillis",
+          "label": "Max Wait (ms)",
+          "type": "number",
+          "span": 12,
+          "description": "How long to wait for a pooled connection."
+        },
+        {
+          "name": "setTestOnBorrow",
+          "path": "setTestOnBorrow",
+          "label": "Test On Borrow",
+          "type": "boolean",
+          "span": 12,
+          "description": "Validate the SMTP connection before lending it from the pool."
+        },
+        {
+          "name": "keepAlive",
+          "path": "keepAlive",
+          "label": "Keep Alive",
+          "type": "boolean",
+          "span": 12,
+          "description": "Keep the socket open between transmissions."
+        },
+        {
+          "name": "debug",
+          "path": "debug",
+          "label": "Debug",
+          "type": "boolean",
+          "span": 12,
+          "description": "Print the SMTP handshake to the console."
+        }
+      ]
+    }
+  ]
+}

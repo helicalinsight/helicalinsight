@@ -312,6 +312,7 @@ const agentInitialState = {
   agentMode: "create",
   agentDataAfterSave: {},
   semanticTypes: [],
+  gridItemsLayout: null,
 };
 
 const getInitialIBChatState = () => {
@@ -344,6 +345,8 @@ const instantBIInitialState = {
   isSaving: false,
   loading: false,
   hasUnsavedData: true,
+  chartList: [],
+  chartListLoaded: false,
   layout: {
     metadataShelf: false,
     previewShelf: false,

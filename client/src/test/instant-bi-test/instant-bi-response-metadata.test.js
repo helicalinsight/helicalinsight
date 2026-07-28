@@ -1,4 +1,3 @@
-import "core-js/stable";
 import "regenerator-runtime/runtime";
 import { fireEvent, render, screen } from "@testing-library/react";
 import InstantBIResponseMetadata, {

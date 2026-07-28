@@ -1,154 +1,175 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# Helical Insight — CI / CD
+#
+# Push / PR  → compile → backend tests
+# Git tag    → above, then package WAR + Docker ZIP → GitHub Release
+#
+# Efficiency:
+# - concurrency cancels superseded runs on the same ref
+# - Maven / npm caches
+# - release job skips tests (already validated) and builds once
 
 name: Build HelicalInsight
 
 on:
   push:
-    branches: [ "*" ]
+    branches: ["master"]
+    tags: ["v*", "*.*.*"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   compile:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 25
-      uses: actions/setup-java@v4
-      with:
-        java-version: '25'
-        distribution: 'temurin'
-        cache: maven
-        cache-dependency-path: server/pom.xml
-    - name: compile
-      run: mvn -q clean compile --file server/pom.xml -Dedition=hice
-      env:
-        MAVEN_OPTS: -Xmx2g
-  
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: server/pom.xml
+
+      - name: Compile
+        run: mvn -B -q clean compile --file server/pom.xml -Dedition=hice
+        env:
+          MAVEN_OPTS: -Xmx2g
+
   backend-test:
     name: Backend Test
     runs-on: ubuntu-latest
     needs: compile
     timeout-minutes: 60
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 25
-      uses: actions/setup-java@v4
-      with:
-        java-version: '25'
-        distribution: 'temurin'
-        cache: maven
-        cache-dependency-path: server/pom.xml
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
+      - uses: actions/checkout@v4
 
-    - name: Verify Node
-      run: |
-        node --version
-        npm --version
-    
-    - name: Prepare test environment
-      run: bash scripts/setup-ci-test-env.sh
-    
-    - name: test 
-      run: mvn test --file server/pom.xml -Denv=ci -Dedition=hice -Dsurefire.skipAfterFailureCount=1 -T 2
-      env:
-        MAVEN_OPTS: -Xmx2g
-        
-        
-    - name: Generate coverage badge
-      uses: cicirello/jacoco-badge-generator@v2
-      with:
-        jacoco-csv-file: server/presentation/target/site/jacoco-aggregate/jacoco.csv
-        badges-directory: .github/badges
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: server/pom.xml
 
-  backend-docker:
+      - name: Prepare test environment
+        run: bash scripts/setup-ci-test-env.sh
+
+      - name: Test
+        run: mvn -B -q test --file server/pom.xml -Denv=ci -Dedition=hice
+        env:
+          MAVEN_OPTS: -Xmx2g
+
+      - name: Generate coverage badge
+        uses: cicirello/jacoco-badge-generator@v2
+        with:
+          jacoco-csv-file: server/presentation/target/site/jacoco-aggregate/jacoco.csv
+          badges-directory: .github/badges
+
+  release:
+    name: Package and release (WAR + Docker ZIP)
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     needs: backend-test
-    timeout-minutes: 60
-    steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 25
-      uses: actions/setup-java@v4
-      with:
-        java-version: '25'
-        distribution: 'temurin'
-        cache: maven
-        cache-dependency-path: server/pom.xml
-    
-    - name: Build Docker Image
-      run: |
-        VERSION=${{ github.ref_name }}
-        docker build -t helicalinsight:${VERSION} -f server/Dockerfile .
-        docker images
-  
-  # frontend-tests:
-  #   name: Frontend Test
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 60
-  #   defaults:
-  #     run:
-  #       working-directory: client
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: 20
-  #         cache: npm
-  #         cache-dependency-path: client/package-lock.json
-  
-  #     - name: Install dependencies
-  #       run: npm ci --legacy-peer-deps
-  
-  #     - name: Run unit tests
-  #       run: npm run test:coverage
-        
-  #     - name: Generate frontend coverage badge
-  #       run: |
-  #         COVERAGE=$(node -e "
-  #           const coverage=require('./client/coverage/coverage-summary.json');
-  #           console.log(Math.round(coverage.total.lines.pct));
-  #         ")
-
-  #         mkdir -p public
-  #         echo "<svg xmlns='http://www.w3.org/2000/svg' width='180' height='20'>
-  #           <rect width='180' height='20' fill='#555'/>
-  #           <rect x='90' width='90' height='20' fill='#4c1'/>
-  #           <text x='45' y='14' fill='#fff' font-size='11' text-anchor='middle'>frontend</text>
-  #           <text x='135' y='14' fill='#fff' font-size='11' text-anchor='middle'>${COVERAGE}%</text>
-  #         </svg>" > public/frontend-coverage.svg
-  
-  frontend-docker:
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    # needs: frontend-tests
-    timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: client
+    permissions:
+      contents: write
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
           cache: npm
           cache-dependency-path: client/package-lock.json
 
-      - name: Build Docker Image
+      - name: Build frontend
+        working-directory: client
         run: |
-          VERSION=${{ github.ref_name }}
-          docker build -t helicalinsight:${VERSION} -f Dockerfile .
-          docker images
-        
+          npm ci --legacy-peer-deps
+          npm run build18
+
+      - name: Copy frontend into webapp
+        run: bash scripts/copy-frontend-to-webapp.sh
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: temurin
+          cache: maven
+          cache-dependency-path: server/pom.xml
+
+      - name: Package WAR
+        run: mvn -B -q clean package -DskipTests --file server/pom.xml -Dedition=hice -Denv=docker
+        env:
+          MAVEN_OPTS: -Xmx2g
+
+      - name: Stage WAR artifact
+        run: |
+          mkdir -p dist
+          WAR="$(ls -1 server/presentation/target/hi-ee-*.war | head -1)"
+          cp -a "$WAR" "dist/hi-ee-${{ steps.ver.outputs.version }}.war"
+          # Stable name for Docker package + compose context path
+          cp -a "$WAR" dist/hi-ee.war
+          ls -lh dist/
+
+      - name: Build Docker ZIP
+        run: |
+          # package-docker.sh expects WAR under presentation/target
+          bash scripts/package-docker.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Upload build artifacts (Actions)
+        uses: actions/upload-artifact@v4
+        with:
+          name: helicalinsight-${{ steps.ver.outputs.version }}
+          path: |
+            dist/hi-ee-${{ steps.ver.outputs.version }}.war
+            dist/helicalinsight-${{ steps.ver.outputs.version }}-docker.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Helical Insight ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          body: |
+            ## Downloads
+
+            | Asset | Use when |
+            |-------|----------|
+            | `helicalinsight-${{ steps.ver.outputs.version }}-docker.zip` | **Recommended** — unzip, `docker compose up -d`, open https://localhost |
+            | `hi-ee-${{ steps.ver.outputs.version }}.war` | Deploy onto an existing Tomcat 11 |
+
+            ### Docker package (quick start)
+
+            ```bash
+            unzip helicalinsight-${{ steps.ver.outputs.version }}-docker.zip
+            cd helicalinsight-${{ steps.ver.outputs.version }}-docker
+            cp .env.example .env   # already included; edit HOST_IP if needed
+            docker compose up -d
+            ```
+
+            Login: `hiadmin` / `hiadmin`
+
+            First start builds the Instant BI image once if needed (deps baked in). Later starts are fast.
+          files: |
+            dist/hi-ee-${{ steps.ver.outputs.version }}.war
+            dist/helicalinsight-${{ steps.ver.outputs.version }}-docker.zip

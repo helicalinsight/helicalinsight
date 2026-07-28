@@ -36,25 +36,6 @@ const App = ({ admin_data ,app_data }) => {
 };
 
 describe("Rendering HIRoleEditableTable", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-
-  afterAll(() => {
-    global.gc && global.gc()
-  })
-  
   test("HIRoleEditableTable component", async () => {
     await waitFor(() =>
       render(<App app_data ={app_data} admin_data={admin_data} />)

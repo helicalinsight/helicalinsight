@@ -1,0 +1,10 @@
+{
+    "id":  "databaseDrivers",
+    "file":  "databaseDrivers.properties",
+    "title":  "Database Drivers",
+    "description":  "Maps database types to JDBC driver classes and connection helpers.",
+    "category":  "datasource",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/databaseDrivers.ui.layout",
+    "fallbackEditor":  "properties"
+}

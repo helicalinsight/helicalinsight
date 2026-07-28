@@ -1,0 +1,86 @@
+{
+    "id":  "defaults",
+    "title":  "SQL Defaults",
+    "description":  "HikariCP and Tomcat pool defaults.",
+    "file":  "defaults.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "HikariCP",
+                         "key":  "hikari",
+                         "fields":  [
+                                        {
+                                            "name":  "hikariMaxPool",
+                                            "path":  "hikari.maximumPoolSize",
+                                            "label":  "Maximum Pool Size",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Max connections in Hikari pool."
+                                        },
+                                        {
+                                            "name":  "hikariMinIdle",
+                                            "path":  "hikari.minimumIdle",
+                                            "label":  "Minimum Idle",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Minimum idle connections."
+                                        },
+                                        {
+                                            "name":  "hikariConnTimeout",
+                                            "path":  "hikari.connectionTimeout",
+                                            "label":  "Connection Timeout",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Connection timeout in ms."
+                                        },
+                                        {
+                                            "name":  "hikariTestQuery",
+                                            "path":  "hikari.testQuery",
+                                            "label":  "Test Query",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Tomcat JDBC",
+                         "key":  "tomcat",
+                         "fields":  [
+                                        {
+                                            "name":  "tomcatMaxActive",
+                                            "path":  "tomcat.maxActive",
+                                            "label":  "Max Active",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Max active connections."
+                                        },
+                                        {
+                                            "name":  "tomcatMinIdle",
+                                            "path":  "tomcat.minIdle",
+                                            "label":  "Min Idle",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Minimum idle connections."
+                                        },
+                                        {
+                                            "name":  "tomcatTestOnBorrow",
+                                            "path":  "tomcat.testOnBorrow",
+                                            "label":  "Test On Borrow",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Validate connections on borrow."
+                                        },
+                                        {
+                                            "name":  "tomcatTestQuery",
+                                            "path":  "tomcat.testQuery",
+                                            "label":  "Test Query",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Validation query."
+                                        }
+                                    ]
+                     }
+                 ]
+}

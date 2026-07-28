@@ -3,9 +3,11 @@
 import pytest
 
 from helicalbi.common.CubeInfoModel import (
+    ai_instructions_from_cube_info,
     business_metrics_from_cube_info,
     cube_info_to_cube_metadata,
     extract_domain_topics,
+    format_ai_instructions_for_prompt,
     format_format_strings_for_prompt,
     format_sort_orders_for_prompt,
     format_strings_from_cube_info,
@@ -531,6 +533,14 @@ class TestHierarchyAndAiContext:
         assert address["columnId"] == "2857"
         assert address["ai_instructions"] == "inst"
         assert address["synonyms"] == ["synonyms"]
+        assert address["hierarchyName"] == "address"
+        assert address["levelName"] == "address"
+        assert address["metric"]["formula"] == "this is formula"
+        assert address["aiContext"] == {
+            "instructions": "inst",
+            "synonyms": "synonyms",
+            "examples": "examples",
+        }
         assert "AI instructions (SQL/viz): inst" in address["description"]
 
     def test_expands_hierarchy_levels_into_measures(self):
@@ -596,16 +606,42 @@ class TestHierarchyAndAiContext:
         assert "synonyms" in (address_col.get("synonyms") or [])
         assert address_col.get("sort_order") == 0
         assert address_col.get("sort_direction") == "ASC"
+        assert address_col.get("hierarchy_name") == "address"
+        assert address_col.get("level_name") == "address"
+        assert address_col.get("dimension_name") == "address"
+        assert address_col.get("formula") == "this is formula"
+        assert address_col.get("ai_context") == {
+            "instructions": "inst",
+            "synonyms": "synonyms",
+            "examples": "examples",
+        }
 
         topic_map = {
             entry["topic_name"]: entry["component"]
             for entry in prepared["topic_mappings"]
         }
-        assert topic_map["topic"] == [
-            " alias:-address",
-            " alias:-employee_name",
-        ]
-        assert " alias:-metric_1" in topic_map["topic 2"]
+        assert "address" in topic_map["topic"]
+        assert "employee_name" in topic_map["topic"]
+        assert " alias:-address" in topic_map["topic"]
+        assert " alias:-employee_name" in topic_map["topic"]
+        assert "metric_1" in topic_map["topic 2"] or " alias:-metric_1" in topic_map["topic 2"]
+
+        rich_by_topic = {
+            entry["topic_name"]: entry.get("components") or []
+            for entry in prepared["topic_mappings"]
+        }
+        address_component = next(
+            item for item in rich_by_topic["topic"] if item.get("name") == "address"
+        )
+        assert address_component["id"] == "2857"
+        assert address_component["kind"] == "hierarchy"
+        assert address_component.get("hierarchyName") == "address"
+        metric_component = next(
+            item for item in rich_by_topic["topic 2"] if item.get("name") == "metric_1"
+        )
+        assert metric_component["id"] == "eb541c54-f2fc-44be-b92f-5a08895a1c6d"
+        assert metric_component["kind"] == "computed_measure"
+        assert metric_component.get("formula") == "f3"
 
         synonym_dims = {
             entry["dimension_name"]: entry["synonyms"]
@@ -615,10 +651,18 @@ class TestHierarchyAndAiContext:
         assert synonym_dims["location"] == ["s4"]
 
         assert "topic" in prepared["domain_context"]
-        assert "components: address, employee_name" in prepared["domain_context"]
+        assert "components: address" in prepared["domain_context"]
+        assert "employee_name" in prepared["domain_context"]
+        assert "id=2857" in prepared["domain_context"] or "id: 2857" in prepared["domain_context"]
 
         assert prepared["format_strings"]["metric_1"] == "0.00"
         assert "0.00" in prepared["column_format_strings"]
+
+        assert prepared["ai_instructions"]["address"] == "inst"
+        assert prepared["ai_instructions"]["location"] == "i4"
+        assert prepared["ai_instructions"]["metric_1"] == "j3"
+        assert "inst" in prepared["column_ai_instructions"]
+        assert "j3" in prepared["column_ai_instructions"]
 
         sort_by_name = {entry["name"]: entry for entry in prepared["sort_orders"]}
         assert sort_by_name["address"]["direction"] == "ASC"
@@ -642,6 +686,10 @@ class TestFormatStringAndSortOrder:
         assert sort_direction_from_value("Ascending") == "ASC"
         assert sort_direction_from_value("DESC") == "DESC"
         assert sort_direction_from_value("Descending") == "DESC"
+        assert sort_direction_from_value("none") is None
+        assert sort_direction_from_value("None") is None
+        assert sort_direction_from_value("") is None
+        assert sort_direction_from_value(None) is None
 
     def test_format_strings_map_by_names(self):
         cube_info = [
@@ -715,3 +763,514 @@ class TestFormatStringAndSortOrder:
         assert "booking_platform: ASC" in prompt_text
         assert "travel_cost: DESC" in prompt_text
         assert "0.00" in format_format_strings_for_prompt(mapping)
+
+    def test_none_sort_excluded_from_sort_list(self):
+        from helicalbi.common.CubeInfoModel import (
+            filter_domain_context_for_sql,
+            filter_sort_orders_for_picked,
+            format_sort_orders_for_prompt,
+            sort_orders_from_cube_info,
+        )
+
+        cube_info = [
+            {
+                "dimensions": [
+                    {
+                        "dimensionName": "booking_platform",
+                        "columnName": "travel_details.booking_platform",
+                        "sort": "Ascending",
+                    },
+                    {
+                        "dimensionName": "travel_type",
+                        "columnName": "travel_details.travel_type",
+                        "sort": "none",
+                    },
+                    {
+                        "dimensionName": "source",
+                        "columnName": "travel_details.source",
+                        "sort": "",
+                    },
+                ],
+                "measures": [
+                    {
+                        "measureName": "travel_cost",
+                        "sort": "Descending",
+                        "formatString": "$#,##0.00",
+                    }
+                ],
+            }
+        ]
+        orders = sort_orders_from_cube_info(cube_info)
+        names = [entry["name"] for entry in orders]
+        assert "booking_platform" in names
+        assert "travel_cost" in names
+        assert "travel_type" not in names
+        assert "source" not in names
+
+        filtered = filter_sort_orders_for_picked(
+            orders, ["booking_platform", "travel_type", "travel_cost"]
+        )
+        filtered_names = [entry["name"] for entry in filtered]
+        assert filtered_names == ["booking_platform", "travel_cost"]
+        prompt = format_sort_orders_for_prompt(filtered)
+        assert "booking_platform: ASC" in prompt
+        assert "travel_cost: DESC" in prompt
+        assert "travel_type" not in prompt
+
+        domain_ctx = filter_domain_context_for_sql(
+            domain=["Sales Order"],
+            topics=["Sales"],
+            topic_mappings=[
+                {
+                    "topic_name": "Client Meeting",
+                    "domain_name": "Sales Order",
+                    "components": [{"id": "1045", "name": "client_name", "kind": "dimension"}],
+                },
+                {
+                    "topic_name": "Sales",
+                    "domain_name": "Sales Order",
+                    "components": [
+                        {"id": "1072", "name": "travel_cost", "kind": "measure"}
+                    ],
+                },
+            ],
+            domain_context="Domain: Sales Order; topics: Client Meeting, Sales",
+        )
+        assert "Sales Order" in domain_ctx
+        assert "Topic: Sales" in domain_ctx
+        assert "travel_cost" in domain_ctx
+        assert "Client Meeting" not in domain_ctx or "Topic: Client Meeting" not in domain_ctx
+        assert "Topic: Client Meeting" not in domain_ctx
+
+    def test_ai_instructions_map_and_prompt(self):
+        cube_info = [
+            {
+                "dimensions": [
+                    {
+                        "dimensionName": "booking_platform",
+                        "columnName": "travel_details.booking_platform",
+                        "aiContext": {
+                            "instructions": "group platforms",
+                            "synonyms": "",
+                            "examples": "",
+                        },
+                    }
+                ],
+                "measures": [
+                    {
+                        "measureName": "travel_cost",
+                        "aiContext": {
+                            "instructions": "show as currency",
+                            "synonyms": "",
+                            "examples": "",
+                        },
+                    }
+                ],
+            }
+        ]
+        mapping = ai_instructions_from_cube_info(cube_info)
+        assert mapping["booking_platform"] == "group platforms"
+        assert mapping["travel_details.booking_platform"] == "group platforms"
+        assert mapping["travel_cost"] == "show as currency"
+        prompt_text = format_ai_instructions_for_prompt(mapping)
+        assert "group platforms" in prompt_text
+        assert "show as currency" in prompt_text
+        assert "booking_platform:" in prompt_text
+        assert "travel_cost:" in prompt_text
+
+
+class TestSelectionFieldPropagation:
+    """Fields required during table/column selection must reach cube_metadata."""
+
+    def test_dimension_hierarchy_and_blank_measure_fields(self):
+        from helicalbi.common.JsonToPara import generate_semantic_hint
+
+        metadata_response = {
+            "tables": {
+                "travel_details": {
+                    "id": "112",
+                    "alias": "travel",
+                    "columns": {
+                        "booking_platform": {"id": "1074"},
+                        "travel_date": {"id": "1065"},
+                        "travel_cost": {"id": "1072"},
+                    },
+                },
+                "meeting_details": {
+                    "id": "109",
+                    "alias": "meetings",
+                    "columns": {
+                        "meet_cancellation_status": {"id": "1048"},
+                    },
+                },
+            }
+        }
+        cube_info = [
+            {
+                "cubeName": "Sales_Travel_And_Meetings",
+                "dimensions": [
+                    {
+                        "dimensionName": "Booking Platform",
+                        "semanticType": "Text",
+                        "tableId": "112",
+                        "columnName": "travel_details.booking_platform",
+                        "columnId": "1074",
+                        "aiContext": {
+                            "instructions": "Platform used to book travel.",
+                            "synonyms": "booking site, portal",
+                            "examples": "Expedia, MakeMyTrip",
+                        },
+                    },
+                    {
+                        "dimensionName": "travel_date",
+                        "semanticType": "Date",
+                        "tableId": "112",
+                        "columnName": "travel_details.travel_date",
+                        "columnId": "dd6b8758-8940-474f-a901-5e9bb93be372",
+                        "aiContext": {
+                            "instructions": "Date of travel.",
+                            "synonyms": "travel date",
+                            "examples": "2024-01-15",
+                        },
+                        "hierarchies": [
+                            {
+                                "hierarchyName": "travel_date",
+                                "primaryColumnId": "dd6b8758-8940-474f-a901-5e9bb93be372",
+                                "tableId": "112",
+                                "columnName": "travel_details.travel_date",
+                                "levels": [
+                                    {
+                                        "levelName": "YEAR",
+                                        "semanticType": "Text",
+                                        "tableId": "112",
+                                        "columnName": "travel_details.travel_date",
+                                        "columnId": "1065",
+                                        "metric": {
+                                            "formula": "EXTRACT(YEAR from travel_details.travel_date)"
+                                        },
+                                        "aiContext": {
+                                            "instructions": "Year of travel.",
+                                            "synonyms": "year, travel year",
+                                            "examples": "2023, 2024",
+                                        },
+                                    }
+                                ],
+                            }
+                        ],
+                    },
+                ],
+                "measures": [
+                    {
+                        "measureName": "travel_cost",
+                        "aggregator": "Sum",
+                        "columnId": "1072",
+                        "tableId": "112",
+                        "semanticType": "Currency",
+                        "columnName": "travel_details.travel_cost",
+                        "aiContext": {
+                            "instructions": "Total travel expense.",
+                            "synonyms": "trip cost",
+                            "examples": "150.00",
+                        },
+                    },
+                    {
+                        "measureName": "Cost by Cancellation",
+                        "aggregator": "None",
+                        "metricId": "00b133c4-1d5a-4d6f-b8eb-b5639ede7f9d",
+                        "tableId": "",
+                        "semanticType": "Number",
+                        "columnName": "",
+                        "metric": {
+                            "formula": (
+                                "sum(travel_details.travel_cost) "
+                                "filter meeting_details.meet_cancellation_status=Yes"
+                            )
+                        },
+                        "aiContext": {
+                            "instructions": "Cancelled meetings use Yes or No.",
+                            "synonyms": "cancelled, loss",
+                            "examples": "",
+                        },
+                    },
+                ],
+            }
+        ]
+
+        result = cube_info_to_cube_metadata(cube_info, metadata_response)
+        columns = {
+            col["alias_name"]: col
+            for table in result
+            for col in table.get("columns") or []
+        }
+        measures = {
+            m["alias_name"]: m
+            for table in result
+            for m in table.get("measures") or []
+        }
+
+        booking = columns["Booking Platform"]
+        assert booking["dimension_name"] == "Booking Platform"
+        assert booking["semantic_type"] == "Text"
+        assert booking["column_name"] == "booking_platform"
+        assert booking["ai_context"] == {
+            "instructions": "Platform used to book travel.",
+            "synonyms": "booking site, portal",
+            "examples": "Expedia, MakeMyTrip",
+        }
+
+        year = columns["YEAR"]
+        assert year["hierarchy_name"] == "travel_date"
+        assert year["level_name"] == "YEAR"
+        assert year["column_name"] == "travel_date"
+        assert year["formula"] == "EXTRACT(YEAR from travel_details.travel_date)"
+        assert year["ai_context"]["instructions"] == "Year of travel."
+
+        travel_cost = measures["travel_cost"]
+        assert travel_cost["measure_name"] == "travel_cost"
+        assert travel_cost["column_name"] == "travel_cost"
+        assert travel_cost["ai_context"]["synonyms"] == "trip cost"
+
+        cancelled = measures["Cost by Cancellation"]
+        assert cancelled["is_computed"] is True
+        assert cancelled["measure_name"] == "Cost by Cancellation"
+        assert cancelled["formula"].startswith("sum(travel_details.travel_cost)")
+        assert cancelled["semantic_type"] == "Number"
+        assert cancelled["ai_context"] == {
+            "instructions": "Cancelled meetings use Yes or No.",
+            "synonyms": "cancelled, loss",
+            "examples": "",
+        }
+
+        hint = generate_semantic_hint(result)
+        assert "dimension: Booking Platform" in hint
+        assert "aiContext:" in hint
+        assert "Platform used to book travel." in hint
+        assert "hierarchy: travel_date" in hint
+        assert "level: YEAR" in hint
+        assert "EXTRACT(YEAR from travel_details.travel_date)" in hint
+        assert "measure: Cost by Cancellation" in hint
+        assert "Cancelled meetings use Yes or No." in hint
+        assert "type: Number" in hint
+
+
+class TestVizColumnContext:
+    def test_builds_context_for_execute_query_columns(self):
+        from helicalbi.common.CubeInfoModel import (
+            build_viz_column_context,
+            extract_result_field_names,
+        )
+
+        metadata = [
+            {"1": {"name": "YEAR", "type": "text"}},
+            {"2": {"name": "travel_cost", "type": "numeric"}},
+            {"rows": 2},
+        ]
+        assert extract_result_field_names(metadata) == ["YEAR", "travel_cost"]
+
+        cube_metadata = [
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {
+                        "column_name": "travel_date",
+                        "alias_name": "YEAR",
+                        "dimension_name": "YEAR",
+                        "hierarchy_name": "travel_date",
+                        "level_name": "YEAR",
+                        "semantic_type": "Text",
+                        "sort_direction": "ASC",
+                        "sort_order": "Ascending",
+                        "ai_context": {
+                            "instructions": "Year of travel.",
+                            "synonyms": "year",
+                            "examples": "2024",
+                        },
+                    }
+                ],
+                "measures": [
+                    {
+                        "column_name": "travel_cost",
+                        "alias_name": "travel_cost",
+                        "measure_name": "travel_cost",
+                        "semantic_type": "Currency",
+                        "format_string": "$#,##0.00",
+                        "ai_context": {
+                            "instructions": "Show as currency.",
+                            "synonyms": "trip cost",
+                            "examples": "150.00",
+                        },
+                    }
+                ],
+            }
+        ]
+        context = build_viz_column_context(
+            metadata,
+            cube_metadata=cube_metadata,
+            format_strings={"travel_cost": "$#,##0.00", "unused": "0"},
+            ai_instructions={"YEAR": "Year of travel."},
+            sort_orders=[
+                {"name": "YEAR", "direction": "ASC", "raw": "Ascending", "priority": 0},
+                {"name": "unused", "direction": "DESC", "raw": "Descending", "priority": 1},
+            ],
+            domain_context="Domain: Sales Order; topics: Sales",
+        )
+        assert context["field_names"] == ["YEAR", "travel_cost"]
+        assert "unused" not in context["format_strings"]
+        assert context["format_strings"]["travel_cost"] == "$#,##0.00"
+        assert context["ai_instructions"]["YEAR"] == "Year of travel."
+        assert [entry["name"] for entry in context["sort_orders"]] == ["YEAR"]
+        by_name = {entry["name"]: entry for entry in context["columns"]}
+        assert by_name["YEAR"]["semantic_type"] == "Text"
+        assert by_name["YEAR"]["sort_direction"] == "ASC"
+        assert by_name["travel_cost"]["format_string"] == "$#,##0.00"
+        assert "Year of travel." in context["column_context"]
+        assert "formatString: $#,##0.00" in context["column_context"]
+        assert "semanticType: Text" in context["column_context"]
+        assert context["domain_context"].startswith("Domain: Sales Order")
+
+
+class TestDomainTopicIdMapping:
+    def test_topic_components_resolve_by_id_across_kinds(self):
+        from helicalbi.common.CubeInfoModel import (
+            format_topic_mappings_for_prompt,
+            topic_mappings_from_domain,
+        )
+        from helicalbi.sql.GetContextForSQL import get_table_col_description
+
+        model_data = {
+            "domain": [
+                {
+                    "domain_name": "Sales Order",
+                    "description": "Sales meetings and travel.",
+                    "topics": [
+                        {
+                            "topic": "Client Meeting",
+                            "description": "Client meetings and cancellation.",
+                            "components": [
+                                {"id": "1045", "name": "client_name"},
+                                {"id": "1044", "name": "meeting_by"},
+                            ],
+                        },
+                        {
+                            "topic": "Sales",
+                            "description": "Travel cost and cancellation cost.",
+                            "components": [
+                                {"id": "1072", "name": "travel_cost"},
+                                {
+                                    "id": "00b133c4-1d5a-4d6f-b8eb-b5639ede7f9d",
+                                    "name": "Cost by Cancellation",
+                                },
+                                {"id": "1065", "name": "YEAR"},
+                            ],
+                        },
+                    ],
+                }
+            ],
+            "cube": [
+                {
+                    "dimensions": [
+                        {
+                            "dimensionName": "client_name",
+                            "semanticType": "Text",
+                            "columnName": "meeting_details.client_name",
+                            "columnId": "1045",
+                            "tableId": "109",
+                        },
+                        {
+                            "dimensionName": "travel_date",
+                            "semanticType": "Date",
+                            "columnName": "travel_details.travel_date",
+                            "columnId": "dd6b8758-8940-474f-a901-5e9bb93be372",
+                            "tableId": "112",
+                            "hierarchies": [
+                                {
+                                    "hierarchyName": "travel_date",
+                                    "columnName": "travel_details.travel_date",
+                                    "levels": [
+                                        {
+                                            "levelName": "YEAR",
+                                            "columnName": "travel_details.travel_date",
+                                            "columnId": "1065",
+                                            "tableId": "112",
+                                            "metric": {
+                                                "formula": (
+                                                    "EXTRACT(YEAR from "
+                                                    "travel_details.travel_date)"
+                                                )
+                                            },
+                                        }
+                                    ],
+                                }
+                            ],
+                        },
+                    ],
+                    "measures": [
+                        {
+                            "measureName": "meeting_by",
+                            "columnId": "1044",
+                            "tableId": "109",
+                            "columnName": "meeting_details.meeting_by",
+                        },
+                        {
+                            "measureName": "travel_cost",
+                            "columnId": "1072",
+                            "tableId": "112",
+                            "columnName": "travel_details.travel_cost",
+                        },
+                        {
+                            "measureName": "Cost by Cancellation",
+                            "metricId": "00b133c4-1d5a-4d6f-b8eb-b5639ede7f9d",
+                            "columnName": "",
+                            "semanticType": "Number",
+                            "metric": {
+                                "formula": (
+                                    "sum(travel_details.travel_cost) "
+                                    "filter meeting_details.meet_cancellation_status=Yes"
+                                )
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+
+        mappings = topic_mappings_from_domain(model_data)
+        by_topic = {entry["topic_name"]: entry for entry in mappings}
+
+        client = by_topic["Client Meeting"]
+        assert client["domain_name"] == "Sales Order"
+        kinds = {item["name"]: item["kind"] for item in client["components"]}
+        assert kinds["client_name"] == "dimension"
+        assert kinds["meeting_by"] == "measure"
+        assert any(item["id"] == "1045" for item in client["components"])
+
+        sales = by_topic["Sales"]
+        sales_kinds = {item["name"]: item for item in sales["components"]}
+        assert sales_kinds["travel_cost"]["kind"] == "measure"
+        assert sales_kinds["Cost by Cancellation"]["kind"] == "computed_measure"
+        assert sales_kinds["YEAR"]["kind"] == "hierarchy"
+        assert "EXTRACT(YEAR" in sales_kinds["YEAR"]["formula"]
+
+        prompt = format_topic_mappings_for_prompt(mappings)
+        assert "Topic: Client Meeting" in prompt
+        assert "id: 1045" in prompt
+        assert "kind: computed_measure" in prompt
+        assert "kind: hierarchy" in prompt
+
+        description = get_table_col_description(
+            [
+                {
+                    "database_table": "travel_details",
+                    "columns": [{"column_name": "travel_cost"}],
+                }
+            ],
+            table_names=["travel_details"],
+            model_data={
+                "topic_mappings": mappings,
+                "domain_context": "Domain: Sales Order",
+            },
+        )
+        assert "Domain: Sales Order" in description
+        assert "Topic: Sales" in description
+        assert "Cost by Cancellation" in description
+        assert "travel_cost" in description

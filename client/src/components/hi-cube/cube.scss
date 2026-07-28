@@ -319,6 +319,9 @@
 				overflow-y: auto !important;
 				@include hi-cube-scrollbar;
 			}
+			.ant-table-tbody > tr.agent-field-missing-metadata > td {
+				background-color: $hi-warning-pink !important;
+			}
 			.table-action-icon {
 				font-size: 24px;
 			}
@@ -615,6 +618,19 @@
 				.cube-add-metric-icon {
 					font-size: 13px;
 				}
+
+				&.is-disabled {
+					cursor: not-allowed;
+					opacity: 1;
+
+					.cube-add-metric-icon {
+						color: #c0c0c0;
+					}
+
+					&:hover .cube-add-metric-icon {
+						color: #c0c0c0;
+					}
+				}
 			}
 		}
 	}
@@ -639,21 +655,11 @@
 	.cube-agent-measure-toggle {
 		flex-shrink: 0;
 		font-size: 13px;
-		color: #bbb;
 		cursor: pointer;
 		transition: color 0.15s ease;
-
-		&.is-active {
-			color: $hi-blue;
-		}
-
 		&.is-disabled {
 			cursor: not-allowed;
 			opacity: 0.45;
-		}
-
-		&:not(.is-disabled):hover {
-			color: darken($hi-blue, 6%);
 		}
 	}
 
@@ -670,6 +676,19 @@
 
 				&:hover {
 					background-color: transparent;
+				}
+
+				&.is-disabled {
+					cursor: not-allowed;
+					opacity: 1;
+
+					.cube-add-metric-icon {
+						color: #c0c0c0;
+					}
+
+					&:hover .cube-add-metric-icon {
+						color: #c0c0c0;
+					}
 				}
 			}
 
@@ -1000,6 +1019,10 @@
 			min-height: 20px;
 			padding: 0 2px;
 			border-radius: 3px;
+
+			&.agent-field-missing-metadata {
+				background-color: $hi-warning-pink;
+			}
 
 			.business-view-agent-topic-field-name {
 				flex: 0 1 auto;
@@ -1648,7 +1671,6 @@
 	.cube-field-ai-context-tree {
 		margin-top: 2px;
 		padding-top: 4px;
-		border-top: 1px solid #f0f0f0;
 	}
 
 	.cube-field-ai-context-tree-root {

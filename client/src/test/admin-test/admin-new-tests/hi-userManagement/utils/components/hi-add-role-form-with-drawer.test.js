@@ -1,4 +1,3 @@
-import "core-js/stable";
 import { configureStore } from "@reduxjs/toolkit";
 import { fireEvent, render, screen } from "@testing-library/react";
 import '@testing-library/jest-dom/extend-expect';
@@ -34,25 +33,6 @@ const App = ({ admin_data }) => {
 };
 
 describe("Rendering HIAddRoleFormWithDrawer", () => {
-  beforeAll(() => {
-    delete window.matchMedia;
-    window.matchMedia = (query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    });
-    window.HTMLElement.prototype.scrollBy = jest.fn();
-  });
-
-  afterAll(() => {
-    global.gc && global.gc();
-  });
-
   test("HIAddProfileFormWithDrawer component", async () => {
     await flushPromises(
       render(<App admin_data={admin_data} />)

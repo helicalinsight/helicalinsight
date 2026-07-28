@@ -1,0 +1,152 @@
+name: Bug report
+description: Report a reproducible problem (include steps, expected vs actual, and logs).
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        To help us fix it faster, please fill the fields below with as much detail as possible.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Summary (short)
+      description: One sentence describing what’s wrong.
+      placeholder: "Login screen throws 500 when I click 'Sign in' after enabling SSO"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: edition
+    attributes:
+      label: Product edition
+      options:
+        - Community Edition (CE)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Area / component
+      description: Where does the issue happen?
+      options:
+        - Backend (Java / APIs)
+        - Frontend (React UI)
+        - Instant BI (Python service)
+        - Docker / Deployment
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Affected version / build
+      description: For Docker/image versions, use the image tag. For git, use commit SHA or branch name.
+      placeholder: "7.0.0, nitrogen-j25t11, or commit SHA"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: regression
+    attributes:
+      label: Regression?
+      options:
+        - label: "Yes — started happening after an update"
+          required: false
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity / impact
+      options:
+        - Blocker
+        - Critical
+        - Major
+        - Normal
+        - Minor
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment details
+      description: Include OS, deployment type, and any special configuration.
+      placeholder: |
+        OS: Windows 11 / Ubuntu 22.04
+        Deployment: Docker package / native Tomcat / native dev
+        Browser: Mozilla Firefox 120 / Chrome 126
+        DB: PostgreSQL / Derby / other
+    validations:
+      required: true
+
+  - type: input
+    id: url
+    attributes:
+      label: URL (where you see the issue)
+      placeholder: "http://localhost:8080/hi-ee/"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser (if UI-related)
+      options:
+        - Mozilla (Firefox)
+        - Chrome
+        - Microsoft Edge
+        - Safari
+        - Not applicable / server-side
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps that reliably reproduce the problem.
+      placeholder: |
+        1. Open the app
+        2. Log in as hiuser
+        3. Go to Reports -> Create
+        4. Click Export PDF
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: "Export PDF should succeed and download a file"
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: "UI shows 500 error; Tomcat logs show NullPointerException in ... "
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots / recordings
+      description: Paste stack traces and relevant log lines. Attach screenshots if helpful.
+      placeholder: |
+        Error from UI:
+        Tomcat log lines:
+        Browser console:
+    validations:
+      required: false
+
