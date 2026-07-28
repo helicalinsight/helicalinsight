@@ -1,0 +1,8 @@
+{
+    "id":  "map",
+    "file":  "map.properties",
+    "title":  "Map Properties",
+    "description":  "Internal mapping properties. Not editable from the Configurations UI.",
+    "category":  "ignore",
+    "editor":  "properties"
+}

@@ -1,6 +1,8 @@
 package com.helicalinsight.efw.components;
 
 import com.google.gson.JsonObject;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DsOperation;
 import com.helicalinsight.datasource.GlobalJdbcType;
@@ -9,13 +11,13 @@ import com.helicalinsight.datasource.model.DSTypeJndi;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
 import com.helicalinsight.efw.utility.JsonUtils;
-import com.helicalinsight.efw.utility.ResourcePermissionLevelsHolder;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 import com.helicalinsight.resourcesecurity.jaxb.Security;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -35,7 +37,8 @@ public class JndiDataSourceDB implements DsOperation {
     private GlobalConnectionService globalConnectionService;
 
     @Autowired
-    private ResourcePermissionLevelsHolder resourcePermissionLevelsHolder;
+    @Qualifier(value = "userDetailsService")
+    private UserService userService;
 
 
     @NotNull
@@ -88,10 +91,10 @@ public class JndiDataSourceDB implements DsOperation {
     }
 
     private Integer createDataSource(JsonObject formData, String createdBy) {
-        Integer globalId;//Global Connection
         GlobalConnections globalConnection = new GlobalConnections();
         globalConnection.setName(formData.get("name").getAsString());
-        globalConnection.setCreatedBy(createdBy);
+        User createdByUser = userService.findUser(Integer.parseInt(createdBy));
+        globalConnection.setCreatedBy(createdByUser);
         globalConnection.setVendor(GsonUtility.optString(formData,"vendorName"));
         globalConnection.setType(GlobalJdbcType.STATIC_DATASOURCE);
         globalConnection.setBaseType(GlobalJdbcType.TYPE);
@@ -100,8 +103,6 @@ public class JndiDataSourceDB implements DsOperation {
         String dsType = JsonUtils.getDSType(DSTypeJndi.class.getName());
         globalConnection.setDsType(dsType);
         globalConnection.setIsMigrated(false);
-
-
 
         //JNDI
         DSTypeJndi connection = new DSTypeJndi();

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import com.helicalinsight.admin.model.HIMetadataConnectionGlobal;
 import com.helicalinsight.admin.model.HIMetadataConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
+import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.model.DSTypeHikari;
 import com.helicalinsight.datasource.model.DSTypeJndi;
 import com.helicalinsight.datasource.model.DSTypeNoSQL;
@@ -46,6 +48,7 @@ import com.helicalinsight.export.service.GlobalDSHandler;
 import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.utils.JsonMapperUtils;
 import com.helicalinsight.export.utils.ManifestUtils;
+import com.helicalinsight.export.utils.ResourceShareUtils;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 
 
@@ -75,6 +78,8 @@ public class GlobalDSHandlerTest {
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -92,6 +97,13 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -101,7 +113,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeHikari.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -127,6 +143,8 @@ public class GlobalDSHandlerTest {
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -144,6 +162,14 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -153,7 +179,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getHikariConnectionById(anyInt())).thenReturn(dsTypeHikari);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeHikari.getGlobalConnections()).thenReturn(gConnection);
 		when(dsTypeHikari.getId()).thenReturn(1);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
@@ -184,6 +214,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeJndi dsTypeJndi = mock(DSTypeJndi.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -201,6 +233,15 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -210,7 +251,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getJndiConnectionById(anyInt())).thenReturn(dsTypeJndi);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeJndi.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -236,6 +281,9 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeJndi dsTypeJndi = mock(DSTypeJndi.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
+
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -253,6 +301,15 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -262,7 +319,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getJndiConnectionById(anyInt())).thenReturn(null);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeJndi.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -289,6 +350,9 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeNoSQL dsTypeNoSQL = mock(DSTypeNoSQL.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
+
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -306,6 +370,14 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -315,7 +387,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getNoSQLConnectionById(anyInt())).thenReturn(null);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeNoSQL.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -342,6 +418,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeNoSQL dsTypeNoSQL = mock(DSTypeNoSQL.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -359,6 +437,14 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -368,7 +454,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getNoSQLConnectionById(anyInt())).thenReturn(dsTypeNoSQL);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeNoSQL.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -395,6 +485,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeTomcat dsTypeTomcat = mock(DSTypeTomcat.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -412,6 +504,14 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -421,7 +521,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getTomcatConnectionById(anyInt())).thenReturn(dsTypeTomcat);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeTomcat.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);
@@ -447,6 +551,8 @@ public class GlobalDSHandlerTest {
 		ImportRequest importRequest = mock(ImportRequest.class);
 		DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
 		DSTypeTomcat dsTypeTomcat = mock(DSTypeTomcat.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		
 		Field field = ResourceIOHandler.class.getDeclaredField("mapperUtils");
 		field.setAccessible(true);
@@ -464,6 +570,14 @@ public class GlobalDSHandlerTest {
 		field3.setAccessible(true);
 		field3.set(dsHandler, shareHandler);
 		
+		Field shareUtilsField = ResourceIOHandler.class.getDeclaredField("shareUtils");
+		shareUtilsField.setAccessible(true);
+		shareUtilsField.set(dsHandler, shareUtils);
+		
+		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		dtoMapperField.setAccessible(true);
+		dtoMapperField.set(dsHandler, dtoMapper);
+		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -473,7 +587,11 @@ public class GlobalDSHandlerTest {
 		when(context.getRequest()).thenReturn(importRequest);
 		when(importRequest.getOnConflict()).thenReturn("update");
 		when(connectionService.getTomcatConnectionById(anyInt())).thenReturn(null);
-		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(null);
+		when(gConnection.getId()).thenReturn(1);
+		when(gConnection.getGlobalId()).thenReturn(1);
+		when(gConnection.isDeleted()).thenReturn(false);
+		when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class))).thenReturn(gConnection);
+		when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
 		when(dsTypeTomcat.getGlobalConnections()).thenReturn(gConnection);
 		when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
 		when(mapperUtils.mapToDTO(textNode.toString(),DataSourceWrapper.class)).thenReturn(wrapper);

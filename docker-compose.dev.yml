@@ -1,12 +1,9 @@
-# Helical Insight — OSS local development stack
+# Developer-only: build the backend from source (git checkout).
+# End users: use the docker/ folder instead — see docker/readme/readme.md
 #
-# Usage:
 #   docker compose -f docker-compose.dev.yml up --build
 #
-# Then open:
-#   Backend:  http://localhost:8080/hi-ee/
-#
-# Login: hiadmin / hiadmin
+# Then open http://localhost:8080/hi-ee/  (login: hiadmin / hiadmin)
 
 services:
   postgres:
@@ -33,36 +30,41 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       HOST_IP: ${HOST_IP:-localhost}
       INSTALL_CHROME: ${INSTALL_CHROME:-false}
-    healthcheck: 
-      test: ["CMD-SHELL", "curl http://localhost:8080/hi-ee/applicationSettings || exit 1"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/hi-ee/applicationSettings || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 90s
     ports:
       - "8080:8080"
     volumes:
       - ./server/hi-repository:/usr/local/Helical Insight/hi/hi-repository
     networks:
-      - hinet 
+      - hinet
 
   instantbi:
-    image: python:3.9-slim
-    # ports:
-      # - 80:80
-      # - 8000:8000
+    build:
+      context: ./ib/helicalbi
+      dockerfile: Dockerfile
+    image: helicalinsight/instantbi:dev
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL","python","-c","import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s
     volumes:
+      # Live-edit source; reinstall deps only when requirements change
       - ./ib/helicalbi:/app
     working_dir: /app
-    command: bash -c "pip install -r requirements.txt && python app.py"      
+    command: bash -c "pip install -q -r requirements.txt && python app.py"
     networks:
       - hinet
 

@@ -9,11 +9,24 @@ from helicalbi.viz._chart_selection import (  # noqa: F401
     CHART_SELECTION_RULES,
     ChartOption,
     format_chart_selection_guide,
+    format_similar_chart_wire,
     get_chart_options,
     infer_chart_shape,
     possible_chart_options,
+    resolve_similar_charts,
 )
-from helicalbi.viz._charts import get_chart_config
+from helicalbi.viz._charts import (  # noqa: F401
+    get_chart_code,
+    get_chart_config,
+    get_chart_conversion,
+    get_chart_definition,
+    hydrate_saved_viz,
+    resolve_chart_name,
+)
+from helicalbi.viz.chart_conversion import (  # noqa: F401
+    ChartConversionError,
+    convert_chart,
+)
 from helicalbi.viz._template_instructions import (  # noqa: F401
     BASE_RULES,
     OTHER_BASE_RULES,

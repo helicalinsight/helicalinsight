@@ -1,0 +1,80 @@
+{
+    "id":  "defaultFunctions",
+    "title":  "Default Functions",
+    "description":  "Default aggregate/group functions per Java type.",
+    "file":  "defaultFunctions.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Common Java Types",
+                         "key":  "java",
+                         "fields":  [
+                                        {
+                                            "name":  "string",
+                                            "path":  "java.lang.String",
+                                            "label":  "String",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for strings."
+                                        },
+                                        {
+                                            "name":  "integer",
+                                            "path":  "java.lang.Integer",
+                                            "label":  "Integer",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for integers."
+                                        },
+                                        {
+                                            "name":  "long",
+                                            "path":  "java.lang.Long",
+                                            "label":  "Long",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for longs."
+                                        },
+                                        {
+                                            "name":  "double",
+                                            "path":  "java.lang.Double",
+                                            "label":  "Double",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for doubles."
+                                        },
+                                        {
+                                            "name":  "boolean",
+                                            "path":  "java.lang.Boolean",
+                                            "label":  "Boolean",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for booleans."
+                                        },
+                                        {
+                                            "name":  "date",
+                                            "path":  "java.sql.Date",
+                                            "label":  "SQL Date",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for dates."
+                                        },
+                                        {
+                                            "name":  "timestamp",
+                                            "path":  "java.sql.Timestamp",
+                                            "label":  "Timestamp",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for timestamps."
+                                        },
+                                        {
+                                            "name":  "bigDecimal",
+                                            "path":  "java.math.BigDecimal",
+                                            "label":  "BigDecimal",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Default function key for decimals."
+                                        }
+                                    ]
+                     }
+                 ]
+}
