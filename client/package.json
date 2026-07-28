@@ -4,6 +4,7 @@
   "private": true,
   "proxy": "http://localhost:8080",
   "dependencies": {
+    "--legacy-peer-deps": "^0.0.1-security.6",
     "@ant-design/flowchart": "^1.2.2",
     "@ant-design/icons": "^5.1.4",
     "@ant-design/maps": "^1.0.6",
@@ -148,6 +149,7 @@
   "scripts": {
     "start": "node --max_old_space_size=5096 scripts/start",
     "build": "node --max_old_space_size=5096 scripts/build",
+    "build18": "node --max_old_space_size=5096 --openssl-legacy-provider scripts/build",
     "test": "node  --max_old_space_size=8096 scripts/test.js --watchAll=false --silent --maxWorkers=50%",
     "test:coverage": "node --max_old_space_size=8096 scripts/test.js --watchAll=false --coverage --maxWorkers=50%",
     "test:dev": "node scripts/test.js",
