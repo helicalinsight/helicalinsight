@@ -124,7 +124,7 @@ jobs:
         run: |
           mkdir -p dist
           WAR="$(ls -1 server/presentation/target/hi-ee-*.war | head -1)"
-          cp -a "$WAR" "dist/hi-ee-${{ steps.ver.outputs.version }}.war"
+          cp -a "$WAR" "dist/hi-ee-*.war"
           # Stable name for Docker package + compose context path
           cp -a "$WAR" dist/hi-ee.war
           ls -lh dist/
