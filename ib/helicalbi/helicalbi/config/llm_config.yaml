@@ -2,7 +2,7 @@
 default_provider: openai
 #Provide base url of the hi-ee application along with port number
 #base_url: http://hiee:8080/hi-ee
-base_url: https://164.52.206.202/hi-ee
+base_url: http://hiee:8080/hi-ee
 
 providers:
   openai:

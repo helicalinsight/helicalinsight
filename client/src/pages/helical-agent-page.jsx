@@ -455,6 +455,7 @@ export function HIAGENT({ urlObj = {} }) {
   const taskBarItems = [
     {
       tooltip: "Save",
+      tutorialKey: "hi-agent-save",
       icon: <SaveOutlined />,
       dropdown: [
         {
@@ -481,6 +482,7 @@ export function HIAGENT({ urlObj = {} }) {
     // },
     {
       tooltip: "Layout",
+      tutorialKey: "hi-agent-layout",
       icon: <LayoutOutlined />,
       dropdown: [
         {

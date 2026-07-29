@@ -16,6 +16,12 @@ const navbarItems = [
       "Create metadata from your database with required rows, columns, joins, views and row level / column level data security. This metadata will be used for various reporting purposes.",
   },
   {
+    key: "hi-navbar-agent",
+    title: "Semantic Model",
+    description:
+      "Build a semantic model on top of your metadata by organizing fields into a Business View of domains and topics, or edit the model directly as JSON. This model powers AI-driven analysis in Instant BI.",
+  },
+  {
     key: "hi-navbar-reports",
     title: "Reports",
     description:
@@ -318,7 +324,12 @@ const adminWithOrgItems = [
     moduleKey: "roleUser",
   },
   ...navbarItems
-    .filter((item) => item.key !== "hi-navbar-data-sources" && item.key !== "hi-navbar-metadata")
+    .filter(
+      (item) =>
+        item.key !== "hi-navbar-data-sources" &&
+        item.key !== "hi-navbar-metadata" &&
+        item.key !== "hi-navbar-agent"
+    )
     .map((item) => ({ ...item, moduleKey: "roleUser" })),
   {
     key: "hi-notifications",
@@ -477,6 +488,57 @@ const metadataItems = [
     description:
       "Implement row level data security based on loggedin users credentials. Implement row level, column level, table level data security.",
     moduleKey: "metadata",
+  },
+];
+
+const agentItems = [
+  {
+    key: "hi-agent-metadata-shelf",
+    title: "Metadata",
+    description:
+      "Shows the name and path of the metadata file currently connected to this semantic model.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hr-metadata",
+    title: "Connect to Metadata",
+    description:
+      "Click on this and select the metadata from File Browser which will be used to build your semantic model.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hi-agent-fields-shelf",
+    title: "Fields",
+    description:
+      "View and rename your semantic model, and drag fields from Metadata to build the Fields list used across your Business View.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hi-agent-tool-business-view",
+    title: "Business View",
+    description:
+      "Organize your data into domains and topics. Domains group related business areas; topics hold fields that belong together.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hi-agent-tool-json",
+    title: "JSON",
+    description:
+      "View and edit the raw JSON for this semantic model. Changes here update the model configuration directly.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hi-agent-save",
+    title: "Save",
+    description: "Save or Save As the semantic model to a folder of your choice.",
+    moduleKey: "agent",
+  },
+  {
+    key: "hi-agent-layout",
+    title: "Layout",
+    description:
+      "Show or hide the Metadata, Fields and Tools shelves to customize your workspace.",
+    moduleKey: "agent",
   },
 ];
 
@@ -729,6 +791,7 @@ const tutorialItems = {
   reportviewer: userModuleItems,
   hcr: hcrTutorialItems,
   instantBI: instantBIItems,
+  agent: agentItems,
 };
 
 export default tutorialItems;

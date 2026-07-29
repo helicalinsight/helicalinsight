@@ -10,6 +10,7 @@ import {
   setAgentMode,
 } from "../../../redux/actions/agent.actions";
 import { CustomIcon } from "../../common/custom-icons/CustomIcon";
+import TutorialInfo from "../../common/hi-tutorial";
 import HiMetadataArea from "../../hi-sidebar/hr-hreportSidebar/hi-metadata-area";
 import agentRequests from "../../../base/requests/agent.requests";
 import "../../hi-instant-bi/components/info-container/info-container.scss";
@@ -245,29 +246,31 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
       className={`agent-metadata-shelf ${className}`.trim()}
     >
       <div className="agent-sidebar-shell">
-        <div className="hi-instant-bi-info-container">
-          <div type="secondary" style={{ whiteSpace: "nowrap", marginRight: 4 }}>
-            Metadata:{" "}
-          </div>
-          <Tooltip
-            title={`${metadataDetails?.path || ""}/${
-              metadataDetails?.fileName || ""
-            }`}
-          >
-            <div
-              strong
-              style={{
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flex: 1,
-                minWidth: 0,
-              }}
-            >
-              {agentState.metadataTablesData.metadataName}
+        <TutorialInfo elementKey="hi-agent-metadata-shelf">
+          <div className="hi-instant-bi-info-container">
+            <div type="secondary" style={{ whiteSpace: "nowrap", marginRight: 4 }}>
+              Metadata:{" "}
             </div>
-          </Tooltip>
-        </div>
+            <Tooltip
+              title={`${metadataDetails?.path || ""}/${
+                metadataDetails?.fileName || ""
+              }`}
+            >
+              <div
+                strong
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                {agentState.metadataTablesData.metadataName}
+              </div>
+            </Tooltip>
+          </div>
+        </TutorialInfo>
 
         <div className="agent-sidebar-content">
           <HiMetadataArea

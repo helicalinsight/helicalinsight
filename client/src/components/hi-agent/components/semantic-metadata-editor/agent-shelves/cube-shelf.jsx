@@ -4,6 +4,7 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import { Cube } from "../../../../hi-cube/cube";
 import { useAgentName } from "../../../../common/agent-name-context";
 import { CustomIcon } from "../../../../common/custom-icons/CustomIcon";
+import TutorialInfo from "../../../../common/hi-tutorial";
 import { getCubeEditorTooltipText } from "../../../../hi-cube/cubeEditorTooltips";
 
 const { Paragraph } = Typography;
@@ -18,33 +19,35 @@ export function CubeShelf({ showBusinessFields = false }) {
 
   return (
     <div className="cube-shelf">
-      <div className="cube-shelf-name-bar hi-background-blue metadata-name-edit">
-        <Row className="metadata-name-edit-row">
-          <Col span={2} className="metadata-name-edit-icon">
-            <CustomIcon name="Cube" />
-          </Col>
-          <Col span={22} className="metadata-name-edit-name">
-            <span className="cube-shelf-name-row">
-              <Paragraph
-                className="cube-shelf-name-text"
-                ellipsis={{ tooltip: displayName }}
-                editable={{
-                  tooltip: "Edit",
-                  text: displayName,
-                  onChange: (value) => onAgentNameChange?.(value),
-                }}
-              >
-                {displayName}
-              </Paragraph>
-              {MODEL_NAME_TOOLTIP ? (
-                <Tooltip title={MODEL_NAME_TOOLTIP} placement="right">
-                  <InfoCircleOutlined className="cube-info-icon cube-shelf-name-info" />
-                </Tooltip>
-              ) : null}
-            </span>
-          </Col>
-        </Row>
-      </div>
+      <TutorialInfo elementKey="hi-agent-fields-shelf">
+        <div className="cube-shelf-name-bar hi-background-blue metadata-name-edit">
+          <Row className="metadata-name-edit-row">
+            <Col span={2} className="metadata-name-edit-icon">
+              <CustomIcon name="Cube" />
+            </Col>
+            <Col span={22} className="metadata-name-edit-name">
+              <span className="cube-shelf-name-row">
+                <Paragraph
+                  className="cube-shelf-name-text"
+                  ellipsis={{ tooltip: displayName }}
+                  editable={{
+                    tooltip: "Edit",
+                    text: displayName,
+                    onChange: (value) => onAgentNameChange?.(value),
+                  }}
+                >
+                  {displayName}
+                </Paragraph>
+                {MODEL_NAME_TOOLTIP ? (
+                  <Tooltip title={MODEL_NAME_TOOLTIP} placement="right">
+                    <InfoCircleOutlined className="cube-info-icon cube-shelf-name-info" />
+                  </Tooltip>
+                ) : null}
+              </span>
+            </Col>
+          </Row>
+        </div>
+      </TutorialInfo>
       <div className="cube-shelf-cube-area">
         <Cube showBusinessFields={showBusinessFields} />
       </div>
