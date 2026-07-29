@@ -42,8 +42,9 @@ class VizSection(BaseModel):
     similar_chart: list[dict[str, str]] = Field(
         default_factory=list,
         description=(
-            "Alternate chart types that also fit this data "
-            '(wire format: [{"vf.column": "column"}, {"vf.dual_line": "dual line"}, ...]).'
+            "Current chart plus alternate types that also fit this data "
+            '(wire format: [{"vf.heatmap": "heatmap"}, {"vf.column": "column"}, '
+            '{"vf.dual_line": "dual line"}, ...]).'
         ),
     )
 
@@ -116,11 +117,15 @@ class ChatResponse(BaseModel):
             else ""
         )
 
-        similar_chart = format_similar_chart_wire(state.get("similar_chart"))
+        chart_name = _as_str(state.get("viz_hint")).replace("_", " ")
+        similar_chart = format_similar_chart_wire(
+            state.get("similar_chart"),
+            chart_name=chart_name,
+        )
 
         viz = VizSection(
             vf_template=vf_template_encoded,
-            chart_name=_as_str(state.get("viz_hint")).replace("_", " "),
+            chart_name=chart_name,
             vf_title=_as_str(state.get("vf_title")),
             vf_reason=_as_str(state.get("viz_reason")),
             similar_chart=similar_chart,

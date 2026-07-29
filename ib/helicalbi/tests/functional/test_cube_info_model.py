@@ -535,7 +535,8 @@ class TestHierarchyAndAiContext:
         assert address["synonyms"] == ["synonyms"]
         assert address["hierarchyName"] == "address"
         assert address["levelName"] == "address"
-        assert address["metric"]["formula"] == "this is formula"
+        assert address["formula"] == "this is formula"
+        assert "metric" not in address or "formula" not in (address.get("metric") or {})
         assert address["aiContext"] == {
             "instructions": "inst",
             "synonyms": "synonyms",
@@ -610,6 +611,7 @@ class TestHierarchyAndAiContext:
         assert address_col.get("level_name") == "address"
         assert address_col.get("dimension_name") == "address"
         assert address_col.get("formula") == "this is formula"
+        assert "metric" not in address_col
         assert address_col.get("ai_context") == {
             "instructions": "inst",
             "synonyms": "synonyms",

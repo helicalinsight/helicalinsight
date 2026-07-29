@@ -135,6 +135,23 @@ const withCubeFieldsMenuText = (text) => (
 	<span className="cube-fields-menu-action-label">{text}</span>
 );
 
+function renderCubeFieldsMenuActionLabel(label, tooltip) {
+	return (
+		<span className="cube-fields-menu-action-row">
+			<span className="cube-fields-menu-action-label">{label}</span>
+			{tooltip ? (
+				<Tooltip title={tooltip} placement="right">
+					<InfoCircleOutlined
+						className="cube-info-icon"
+						style={{ fontSize: 11 }}
+						onClick={(e) => e.stopPropagation()}
+					/>
+				</Tooltip>
+			) : null}
+		</span>
+	);
+}
+
 const getAgentFormatValues = ({ record, semanticTypeOptions }) => {
 	const semanticFormats = getFormatsForSemanticType(
 		semanticTypeOptions,
@@ -202,7 +219,7 @@ export function getAgentMeasureMenuItems({
 	return [
 		renderAgentRightSubmenuItem({
 			itemKey: "agent-measure-format",
-			label: "Format",
+			label: <CubeFieldSemanticLabel label="Format" />,
 			selectedValue: selectedFormat,
 			menu: formatMenu,
 		}),
@@ -212,6 +229,7 @@ export function getAgentMeasureMenuItems({
 function AgentRightSubmenuDropdown({
 	itemKey,
 	label,
+	tooltip,
 	selectedValue,
 	menu,
 	openKey = null,
@@ -243,6 +261,15 @@ function AgentRightSubmenuDropdown({
 				onMouseDown={(e) => e.stopPropagation()}
 			>
 				<span className="cube-fields-menu-action-label">{label}</span>
+				{tooltip ? (
+					<Tooltip title={tooltip} placement="right">
+						<InfoCircleOutlined
+							className="cube-info-icon"
+							style={{ fontSize: 11 }}
+							onClick={(e) => e.stopPropagation()}
+						/>
+					</Tooltip>
+				) : null}
 				<span className="cube-agent-format-trigger">
 					{selectedValue ? (
 						<span className="cube-agent-format-value">
@@ -380,9 +407,7 @@ function AgentRoleMenuTree({
 		if (expanded || !onOpenKeyChange || !openKey) {
 			return;
 		}
-		const ownsOpenKey =
-			openKey === "semanticType" ||
-			childItems.some((item) => item.itemKey === openKey);
+		const ownsOpenKey = childItems.some((item) => item.itemKey === openKey);
 		if (ownsOpenKey) {
 			onOpenKeyChange(null);
 		}
@@ -453,16 +478,27 @@ function renderAgentConvertRoleMenuItem({
 	record,
 	isMeasure,
 	semanticTypeOptions,
+	variant = "agent",
 }) {
 	const convertLabel = isMeasure
 		? "Convert to Dimension"
 		: "Convert to Measure";
+	const convertTooltip = getCubeEditorTooltipText(convertLabel, variant);
 
 	return {
 		key: AGENT_CONVERT_ROLE_MENU_KEY,
 		label: (
 			<span className="cube-fields-menu-action-row">
 				<span className="cube-fields-menu-action-label">{convertLabel}</span>
+				{convertTooltip ? (
+					<Tooltip title={convertTooltip} placement="right">
+						<InfoCircleOutlined
+							className="cube-info-icon"
+							style={{ fontSize: 11 }}
+							onClick={(e) => e.stopPropagation()}
+						/>
+					</Tooltip>
+				) : null}
 			</span>
 		),
 		onClick: () =>
@@ -612,7 +648,7 @@ export function getAgentSortMenuItems({ dispatch, record }) {
 	return [
 		renderAgentRightSubmenuItem({
 			itemKey: "agent-sort",
-			label: "Sort",
+			label: <CubeFieldSemanticLabel label="Sort" />,
 			selectedValue,
 			menu: sortMenu,
 		}),
@@ -637,7 +673,7 @@ export function getAgentAggregationMenuItems({ dispatch, record }) {
 	return [
 		renderAgentRightSubmenuItem({
 			itemKey: "agent-aggregation",
-			label: "Aggregation",
+			label: <CubeFieldSemanticLabel label="Aggregation" />,
 			selectedValue,
 			menu: aggregationMenu,
 		}),
@@ -1309,15 +1345,8 @@ function CubeFieldSemanticMenuPanel({
             }
           />
         ))}
-      </div>
-
-      {agentRoleMenu ? (
-        <AgentRoleMenuTree
-          roleLabel={agentRoleMenu.roleLabel}
-          childItems={agentRoleMenu.childItems}
-          openKey={openKey}
-          onOpenKeyChange={setOpenKey}
-          leadingContent={
+        {agentRoleMenu ? (
+          <>
             <AgentSemanticTypeSubmenuRow
               label={<CubeFieldSemanticLabel label="Semantic Type" />}
               disabled={disabled}
@@ -1339,7 +1368,27 @@ function CubeFieldSemanticMenuPanel({
                 }
               }}
             />
-          }
+            {(agentRoleMenu.formatItems || []).map((item) => (
+              <AgentRightSubmenuDropdown
+                key={item.key}
+                itemKey={item.itemKey}
+                label={item.label}
+                selectedValue={item.selectedValue}
+                menu={item.menu}
+                openKey={openKey}
+                onOpenKeyChange={setOpenKey}
+              />
+            ))}
+          </>
+        ) : null}
+      </div>
+
+      {agentRoleMenu ? (
+        <AgentRoleMenuTree
+          roleLabel={agentRoleMenu.roleLabel}
+          childItems={agentRoleMenu.childItems}
+          openKey={openKey}
+          onOpenKeyChange={setOpenKey}
         />
       ) : null}
 
@@ -1430,6 +1479,10 @@ function buildCubeFieldsMenuItems({
 	semanticTypeOptions,
 }) {
 	const removeFieldTooltip = getCubeEditorTooltipText("Remove field", variant);
+	const removeFromHierarchyTooltip = getCubeEditorTooltipText(
+		"Remove from hierarchy",
+		variant,
+	);
 	let menu = record.isHierarchy
     ? [
         {
@@ -1457,7 +1510,10 @@ function buildCubeFieldsMenuItems({
     : record.isHierarchyChild
     ? [
         {
-          label: "Remove from hierarchy",
+          label: renderCubeFieldsMenuActionLabel(
+            "Remove from hierarchy",
+            removeFromHierarchyTooltip,
+          ),
           key: "Remove from hierarchy",
           onClick: () => {
             dispatch(modifyHierarchy({ record, step: "removeFromHierarchy" }));
@@ -1465,7 +1521,7 @@ function buildCubeFieldsMenuItems({
         },
         // { item: 'Add to an existing Hierarchy' },
         {
-          label: "Delete",
+          label: renderCubeFieldsMenuActionLabel("Delete", removeFieldTooltip),
           key: "deleteFromHierarchy",
           onClick: () => {
             dispatch(modifyHierarchy({ record, step: "deleteFromHierarchy" }));
@@ -1482,21 +1538,7 @@ function buildCubeFieldsMenuItems({
         // },
         // { item: 'Add to an existing Hierarchy' },
         {
-          label: (
-            <span className="cube-fields-menu-action-row">
-              <span className="cube-fields-menu-action-label">Delete</span>
-              <Tooltip
-                title={removeFieldTooltip}
-                placement="right"
-              >
-                <InfoCircleOutlined
-                  className="cube-info-icon"
-                  style={{ fontSize: 11 }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Tooltip>
-            </span>
-          ),
+          label: renderCubeFieldsMenuActionLabel("Delete", removeFieldTooltip),
           key: "Delete",
           onClick: () => {
             dispatch(modifyHierarchy({ record, step: "deleteRow" }));
@@ -1505,42 +1547,52 @@ function buildCubeFieldsMenuItems({
       ];
 
 	let agentRoleMenu = null;
-	if (variant === "agent" && !record.isHierarchy) {
+	if (variant === "agent" && !record.isHierarchy && !record.isHierarchyChild) {
 		const insertAt = Math.min(1, menu.length);
 		const isMeasure = Boolean(record.measure?.isMeasureCheck);
 		menu.splice(
 			insertAt,
 			0,
-			renderAgentConvertRoleMenuItem({
-				dispatch,
-				record,
-				isMeasure,
-				semanticTypeOptions,
-			}),
+		renderAgentConvertRoleMenuItem({
+			dispatch,
+			record,
+			isMeasure,
+			semanticTypeOptions,
+			variant,
+		}),
 		);
+		const formatItems = getAgentMeasureMenuItems({
+			dispatch,
+			record,
+			semanticTypeOptions,
+		});
 		agentRoleMenu = isMeasure
 			? {
 					roleLabel: "Measure",
+					formatItems,
 					childItems: [
-						...getAgentMeasureMenuItems({
-							dispatch,
-							record,
-							semanticTypeOptions,
-						}),
 						...getAgentAggregationMenuItems({ dispatch, record }),
 					],
 				}
 			: {
 					roleLabel: "Dimension",
+					formatItems,
 					childItems: [
-						...getAgentMeasureMenuItems({
-							dispatch,
-							record,
-							semanticTypeOptions,
-						}),
 						...getAgentSortMenuItems({ dispatch, record }),
 					],
 				};
+	} else if (variant === "agent" && record.isHierarchyChild) {
+		agentRoleMenu = {
+			roleLabel: "Dimension",
+			childItems: [
+				...getAgentMeasureMenuItems({
+					dispatch,
+					record,
+					semanticTypeOptions,
+				}),
+				...getAgentSortMenuItems({ dispatch, record }),
+			],
+		};
 	}
 
 	if (!record.isHierarchy) {
@@ -1560,7 +1612,11 @@ function buildCubeFieldsMenuItems({
 			),
 		});
 	}
-	if (!record.isHierarchyChild && (record.isHierarchy || record.isDimensionCheck)) {
+	if (
+		!record.isHierarchyChild &&
+		!record.measure?.isMeasureCheck &&
+		(record.isHierarchy || record.isDimensionCheck)
+	) {
 		// if (record.measure.isMeasureCheck) {
 		// 	menu.shift();
 		// }
@@ -1595,6 +1651,10 @@ function buildCubeFieldsMenuItems({
 					items={existingHierarchyChildren}
 				/>
 			);
+			const hierarchyTooltip = getCubeEditorTooltipText(
+				"Add to an existing Hierarchy",
+				variant,
+			);
 			menu.splice(1, 0, {
 				key: "Add to an existing Hierarchy",
 				className: "cube-fields-menu-hierarchy-item",
@@ -1602,6 +1662,7 @@ function buildCubeFieldsMenuItems({
 					<AgentRightSubmenuDropdown
 						itemKey="add-to-existing-hierarchy"
 						label="Add to an existing Hierarchy"
+						tooltip={hierarchyTooltip}
 						menu={hierarchyMenu}
 					/>
 				),

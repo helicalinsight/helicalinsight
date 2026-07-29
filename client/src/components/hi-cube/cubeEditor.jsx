@@ -16,6 +16,7 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   cubeTableDataSource,
+  partitionCubeFieldsByRole,
   handleCubeTitleEdit,
   handleHeader,
   handleHierarachyTitle,
@@ -87,6 +88,18 @@ import {
   resolveBusinessTopicDropKeys,
 } from "./agentBusinessTopicMembership";
 import { ToolbarIconButton } from "../common/toolbar-icon-button";
+
+const FIELDS_LIST_SORT_ORDER = ["ascending", "descending", false];
+
+const sortFieldRowsByName = (rows = [], mode) => {
+  if (!mode) return rows;
+  const sorted = [...rows].sort((a, b) =>
+    String(a.fields || "").localeCompare(String(b.fields || ""), undefined, {
+      sensitivity: "base",
+    }),
+  );
+  return mode === "descending" ? sorted.reverse() : sorted;
+};
 
 const { Title, Paragraph } = Typography;
 function EditableNameParagraph({
@@ -361,6 +374,9 @@ export function CubeEditor({ showBusinessFields = true }) {
     setCollapsedTopics((prev) => ({ ...prev, [ck]: !prev[ck] }));
   };
   const [collapsedHierarchies, setCollapsedHierarchies] = useState({});
+  const [fieldsListSort, setFieldsListSort] = useState(
+    FIELDS_LIST_SORT_ORDER[2],
+  );
   const hierarchyCollapseKey = (entryKey, topicKey, hierarchyKey) =>
     `${entryKey}::${topicKey}::${hierarchyKey}`;
   const toggleHierarchyCollapse = (entryKey, topicKey, hierarchyKey) => {
@@ -549,7 +565,14 @@ export function CubeEditor({ showBusinessFields = true }) {
   const isHierarchyChildFieldLocked = (record) =>
     variant !== "agent" && record.isHierarchyChild;
 
+  /** Hierarchies may only contain dimensions — block role toggle for members/parents. */
+  const isAgentHierarchyRoleLocked = (record) =>
+    isAgent && (record.isHierarchy || record.isHierarchyChild);
+
   const toggleFieldMeasure = (record, checked) => {
+    if (isAgentHierarchyRoleLocked(record)) {
+      return;
+    }
     applyFieldMeasureRoleChange(
       dispatch,
       record,
@@ -563,7 +586,8 @@ export function CubeEditor({ showBusinessFields = true }) {
     if (record.isHierarchy) return null;
 
     const isMeasure = Boolean(record.measure?.isMeasureCheck);
-    const isLocked = isHierarchyChildFieldLocked(record);
+    const isLocked =
+      isHierarchyChildFieldLocked(record) || isAgentHierarchyRoleLocked(record);
     const dataType = record.dataType || "";
     // NumberOutlined only for measures. Dimensions use metadata type icons
     // (boolean/date/text); numeric dimensions use FileTextOutlined.
@@ -578,9 +602,11 @@ export function CubeEditor({ showBusinessFields = true }) {
     return (
       <Tooltip
         title={
-          isMeasure
-            ? "Measure (click to use as dimension)"
-            : "Dimension (click to use as measure)"
+          isLocked
+            ? "Hierarchy members must remain dimensions"
+            : isMeasure
+              ? "Measure (click to use as dimension)"
+              : "Dimension (click to use as measure)"
         }
       >
         <RoleIcon
@@ -601,25 +627,81 @@ export function CubeEditor({ showBusinessFields = true }) {
     );
   };
 
+  const fieldsListSortOrder =
+    fieldsListSort === "ascending"
+      ? "ascend"
+      : fieldsListSort === "descending"
+        ? "descend"
+        : null;
+
+  const handleFieldsListSortChange = (_pagination, _filters, sorter) => {
+    const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+    const order = activeSorter?.order;
+    if (order === "ascend") {
+      setFieldsListSort(FIELDS_LIST_SORT_ORDER[0]);
+    } else if (order === "descend") {
+      setFieldsListSort(FIELDS_LIST_SORT_ORDER[1]);
+    } else {
+      setFieldsListSort(FIELDS_LIST_SORT_ORDER[2]);
+    }
+  };
+
   const renderAgentFieldsColumnTitle = () => (
     <span className="cube-column-title cube-column-title--agent-fields">
       Fields
       <CubeFieldInfo label="Fields" />
-      <ToolbarIconButton
-        title={
-          canMutateAgentStructure
-            ? "Add Metric"
-            : "Connect a metadata file before adding a metric"
-        }
-        placement="top"
-        className="cube-add-metric-action cube-add-metric-action--inline"
-        stopPropagation
-        disabled={!canMutateAgentStructure}
-        onClick={handleAddManualMetric}
-      >
-        <PlusOutlined className="cube-add-metric-icon" />
-      </ToolbarIconButton>
     </span>
+  );
+
+  const renderAgentFieldsCategoryHeader = (category, actions = null) => (
+    <div className="cube-fields-category-header">
+      <span className="cube-fields-category-title">{category}</span>
+      {actions}
+    </div>
+  );
+
+  const renderAgentAddMetricAction = () => (
+    <ToolbarIconButton
+      title={
+        canMutateAgentStructure
+          ? "Add Metric"
+          : "Connect a metadata file before adding a metric"
+      }
+      placement="top"
+      className="cube-add-metric-action cube-add-metric-action--inline"
+      stopPropagation
+      disabled={!canMutateAgentStructure}
+      onClick={handleAddManualMetric}
+    >
+      <PlusOutlined className="cube-add-metric-icon" />
+    </ToolbarIconButton>
+  );
+
+  const renderAgentFieldsPaneHeader = () => (
+    <Table
+      className="schedule-table cube-fields-pane-header-table"
+      columns={[
+        {
+          ...fieldsColumn,
+          sorter: true,
+          sortOrder: fieldsListSortOrder,
+          showSorterTooltip: {
+            title:
+              fieldsListSort === "ascending"
+                ? "Sorted A to Z — click for Z to A"
+                : fieldsListSort === "descending"
+                  ? "Sorted Z to A — click to reset default order"
+                  : "Click to sort fields by name",
+          },
+        },
+      ]}
+      dataSource={[]}
+      pagination={false}
+      size="small"
+      showHeader
+      onChange={handleFieldsListSortChange}
+      locale={{ emptyText: <></> }}
+    />
   );
 
   const renderCubeDimensionMeasureCell = (record) => (
@@ -1612,6 +1694,59 @@ export function CubeEditor({ showBusinessFields = true }) {
     ? cubeFieldsData.businessViewEntries || []
     : cubeTableDataSource({ dataSource: cubeFieldsData.children });
 
+  const { dimensions: dimensionFields, measures: measureFields } = useMemo(() => {
+    if (!(isAgent && !showAgentBusinessFields)) {
+      return { dimensions: [], measures: [] };
+    }
+    const partitioned = partitionCubeFieldsByRole(cubeFieldsData.children);
+    const query = String(fieldSearchText || "")
+      .trim()
+      .toLowerCase();
+    const matches = (row) =>
+      String(row.fields || "")
+        .toLowerCase()
+        .includes(query) ||
+      (row.children || []).some((child) =>
+        String(child.fields || "")
+          .toLowerCase()
+          .includes(query),
+      );
+    const filtered = query
+      ? {
+          dimensions: partitioned.dimensions.filter(matches),
+          measures: partitioned.measures.filter(matches),
+        }
+      : partitioned;
+    return {
+      dimensions: sortFieldRowsByName(filtered.dimensions, fieldsListSort),
+      measures: sortFieldRowsByName(filtered.measures, fieldsListSort),
+    };
+  }, [
+    isAgent,
+    showAgentBusinessFields,
+    cubeFieldsData.children,
+    fieldSearchText,
+    fieldsListSort,
+  ]);
+
+  const renderAgentFieldsTable = (dataSource) => (
+    <Table
+      className="schedule-table cube-fields-category-table"
+      columns={columns}
+      dataSource={dataSource}
+      {...tableVirtualProps}
+      pagination={false}
+      size="small"
+      showHeader={false}
+      locale={{ emptyText: "No data" }}
+      rowClassName={(record) =>
+        isAgent && missingMetadataFieldKeys.has(record.key)
+          ? "agent-field-missing-metadata"
+          : ""
+      }
+    />
+  );
+
   return (
     <div className="cube-editor" ref={drop}>
       {!isAgent && (
@@ -1823,6 +1958,21 @@ export function CubeEditor({ showBusinessFields = true }) {
             )}
           </div>
         </div>
+      ) : isAgent ? (
+        <div className="cube-fields-categories">
+          {renderAgentFieldsPaneHeader()}
+          <div className="cube-fields-category cube-fields-category--dimensions">
+            {renderAgentFieldsCategoryHeader("Dimensions")}
+            {renderAgentFieldsTable(dimensionFields)}
+          </div>
+          <div className="cube-fields-category cube-fields-category--measures">
+            {renderAgentFieldsCategoryHeader(
+              "Measures",
+              renderAgentAddMetricAction(),
+            )}
+            {renderAgentFieldsTable(measureFields)}
+          </div>
+        </div>
       ) : (
         <Table
           className="schedule-table"
@@ -1838,7 +1988,7 @@ export function CubeEditor({ showBusinessFields = true }) {
           }
         />
       )}
-      {!showAgentBusinessFields && (
+      {!showAgentBusinessFields && !isAgent && (
         <div className="cube-editor-drop-surface" aria-hidden="true" />
       )}
     </div>

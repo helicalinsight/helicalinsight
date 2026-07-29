@@ -1,10 +1,10 @@
 from langchain_core.prompts import PromptTemplate
 
 success_response_method = """ AIDA
-    Attention – Grab the user’s focus
-    Interest – Build curiosity or relevance
-    Desire – Create a strong need or want
-    Action – Encourage the user to take the next step
+    Attention - Grab the user's focus
+    Interest - Build curiosity or relevance
+    Desire - Create a strong need or want
+    Action - Encourage the user to take the next step
 """
 success_execution_prompt="""
 Context:
@@ -19,7 +19,7 @@ Generate a short insight explaining the purpose and business value of the analys
 
 Requirements:
 
-* Keep it to 2–4 sentences.
+* Keep it to 2-4 sentences.
 * Use a natural, professional tone.
 * Explain what business question the analysis helps answer and why it matters.
 * Suggest a relevant next step when appropriate.

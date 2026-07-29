@@ -1,0 +1,573 @@
+{
+  "metadata": {
+    "location": "test",
+    "metadataFileName": "pg_sample_travel_data.metadata"
+  },
+  "state": {
+    "cube": [
+      {
+        "cubeName": "Travle_Agent",
+        "dimensions": [
+          {
+            "dimensionName": "Booking Platform",
+            "semanticType": "Text",
+            "tableId": "112",
+            "columnName": "travel_details.booking_platform",
+            "columnId": "1074",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 0,
+            "aiContext": {
+              "instructions": "Platform used to book the trip.",
+              "synonyms": "booking site, travel portal, agency",
+              "examples": "Makemytrip, Website, Agent"
+            }
+          },
+          {
+            "dimensionName": "mode_of_payment",
+            "semanticType": "Text",
+            "tableId": "112",
+            "columnName": "travel_details.mode_of_payment",
+            "columnId": "1073",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 1,
+            "aiContext": {
+              "instructions": "How the trip was paid for. Use for payment-mode analyses and word clouds.",
+              "synonyms": "payment mode, payment method, mode of payments, pay type",
+              "examples": "Credit, Cash, Net Banking, Cheque"
+            }
+          },
+          {
+            "dimensionName": "Client Destination",
+            "semanticType": "City",
+            "tableId": "112",
+            "columnName": "travel_details.destination",
+            "columnId": "1071",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 2,
+            "aiContext": {
+              "instructions": "Travel destination city or country name.",
+              "synonyms": "destination city, to city, arrival city",
+              "examples": "Chennai, Paris, New York, Mumbai"
+            }
+          },
+          {
+            "dimensionName": "source",
+            "semanticType": "City",
+            "tableId": "112",
+            "columnName": "travel_details.source",
+            "columnId": "1069",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 3,
+            "aiContext": {
+              "instructions": "Travel origin city.",
+              "synonyms": "origin, from city, departure city",
+              "examples": "Bangalore, New Delhi, Chennai"
+            }
+          },
+          {
+            "dimensionName": "travel_date",
+            "semanticType": "Date",
+            "tableId": "112",
+            "columnName": "travel_details.travel_date",
+            "columnId": "dd6b8758-8940-474f-a901-5e9bb93be372",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "yyyy-mm-dd",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "hierarchies": [
+              {
+                "hierarchyName": "travel_date",
+                "primaryColumnId": "dd6b8758-8940-474f-a901-5e9bb93be372",
+                "tableId": "112",
+                "columnName": "travel_details.travel_date",
+                "levels": [
+                  {
+                    "levelName": "YEAR",
+                    "semanticType": "Text",
+                    "tableId": "112",
+                    "columnName": "travel_details.travel_date",
+                    "columnId": "1065",
+                    "defaultFunction": "db.generic.groupBy.group",
+                    "formatString": "0",
+                    "metric": {
+                      "formula": "EXTRACT(YEAR from travel_details.travel_date)"
+                    },
+                    "sort": "Ascending",
+                    "aiContext": {
+                      "instructions": "Calendar year of travel.",
+                      "synonyms": "year, yearly",
+                      "examples": "2015"
+                    }
+                  },
+                  {
+                    "levelName": "MONTH",
+                    "semanticType": "Text",
+                    "tableId": "112",
+                    "columnName": "travel_details.travel_date",
+                    "columnId": "1065",
+                    "defaultFunction": "db.generic.groupBy.group",
+                    "formatString": "0",
+                    "metric": {
+                      "formula": "EXTRACT(MONTH from travel_details.travel_date)"
+                    },
+                    "sort": "Ascending",
+                    "aiContext": {
+                      "instructions": "Calendar month of travel (1-12).",
+                      "synonyms": "month, monthly, month wise",
+                      "examples": "1, 9, 12"
+                    }
+                  },
+                  {
+                    "levelName": "WEEK",
+                    "semanticType": "Text",
+                    "tableId": "112",
+                    "columnName": "travel_details.travel_date",
+                    "columnId": "1065",
+                    "defaultFunction": "db.generic.groupBy.group",
+                    "formatString": "0",
+                    "metric": {
+                      "formula": "EXTRACT(WEEK from travel_details.travel_date)"
+                    },
+                    "sort": "Ascending",
+                    "aiContext": {
+                      "instructions": "ISO week number of travel.",
+                      "synonyms": "week, weekly",
+                      "examples": ""
+                    }
+                  }
+                ]
+              }
+            ],
+            "sortOrder": 4,
+            "aiContext": {
+              "instructions": "Date of the trip; use YEAR/MONTH hierarchy for time series.",
+              "synonyms": "trip date, journey date",
+              "examples": ""
+            }
+          },
+          {
+            "dimensionName": "travel_medium",
+            "semanticType": "Text",
+            "tableId": "112",
+            "columnName": "travel_details.travel_medium",
+            "columnId": "1067",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 5,
+            "aiContext": {
+              "instructions": "Mode of travel — how the sales team reached the client.",
+              "synonyms": "mode, medium, vehicle, transportation",
+              "examples": "Flight, Bus, Train, Cab, Misc"
+            }
+          },
+          {
+            "dimensionName": "travel_type",
+            "semanticType": "Text",
+            "tableId": "112",
+            "columnName": "travel_details.travel_type",
+            "columnId": "1066",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 6,
+            "aiContext": {
+              "instructions": "Domestic vs International trip classification. Values are case-sensitive.",
+              "synonyms": "trip type, journey type",
+              "examples": "Domestic, International"
+            }
+          },
+          {
+            "dimensionName": "client_name",
+            "semanticType": "Text",
+            "tableId": "109",
+            "columnName": "meeting_details.client_name",
+            "columnId": "1045",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 7,
+            "aiContext": {
+              "instructions": "Client / company met during the visit.",
+              "synonyms": "client, company, account",
+              "examples": "CA technologies, Tata Comm, Numerify"
+            }
+          },
+          {
+            "dimensionName": "meeting_purpose",
+            "semanticType": "Text",
+            "tableId": "109",
+            "columnName": "meeting_details.meeting_purpose",
+            "columnId": "1046",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 8,
+            "aiContext": {
+              "instructions": "Reason the meeting was scheduled.",
+              "synonyms": "purpose, agenda, meeting type",
+              "examples": "Event, MOU Signing, Deployment, Conference, Client Visit"
+            }
+          },
+          {
+            "dimensionName": "meeting_impact",
+            "semanticType": "Text",
+            "tableId": "109",
+            "columnName": "meeting_details.meeting_impact",
+            "columnId": "1047",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 9,
+            "aiContext": {
+              "instructions": "Business outcome recorded for the meeting.",
+              "synonyms": "impact, outcome, result, deal status",
+              "examples": "Deal closed, Payment Released, Followup Required, Not Interested"
+            }
+          },
+          {
+            "dimensionName": "meet_cancellation_status",
+            "semanticType": "Text",
+            "tableId": "109",
+            "columnName": "meeting_details.meet_cancellation_status",
+            "columnId": "1048",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 10,
+            "aiContext": {
+              "instructions": "Yes = cancelled/failed meeting, No = successful meeting. Use exact literals.",
+              "synonyms": "cancelled, canceled, success flag",
+              "examples": "Yes, No"
+            }
+          },
+          {
+            "dimensionName": "cancellation_reason",
+            "semanticType": "Text",
+            "tableId": "109",
+            "columnName": "meeting_details.cancellation_reason",
+            "columnId": "1049",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 11,
+            "aiContext": {
+              "instructions": "Free-text reason when meet_cancellation_status is Yes. Good for wordcloud.",
+              "synonyms": "cancel reason, why cancelled",
+              "examples": "Delay in Project, Concerned Person not Available, Meeting Postpone"
+            }
+          },
+          {
+            "dimensionName": "meeting_date",
+            "semanticType": "Date",
+            "tableId": "109",
+            "columnName": "meeting_details.meeting_date",
+            "columnId": "1042",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "yyyy-mm-dd",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "hierarchies": [
+              {
+                "hierarchyName": "meeting_date",
+                "primaryColumnId": "1042",
+                "tableId": "109",
+                "columnName": "meeting_details.meeting_date",
+                "levels": [
+                  {
+                    "levelName": "YEAR",
+                    "semanticType": "Text",
+                    "tableId": "109",
+                    "columnName": "meeting_details.meeting_date",
+                    "columnId": "1042",
+                    "defaultFunction": "db.generic.groupBy.group",
+                    "formatString": "0",
+                    "metric": {
+                      "formula": "EXTRACT(YEAR from meeting_details.meeting_date)"
+                    },
+                    "sort": "Ascending",
+                    "aiContext": {
+                      "instructions": "",
+                      "synonyms": "year",
+                      "examples": ""
+                    }
+                  },
+                  {
+                    "levelName": "MONTH",
+                    "semanticType": "Text",
+                    "tableId": "109",
+                    "columnName": "meeting_details.meeting_date",
+                    "columnId": "1042",
+                    "defaultFunction": "db.generic.groupBy.group",
+                    "formatString": "0",
+                    "metric": {
+                      "formula": "EXTRACT(MONTH from meeting_details.meeting_date)"
+                    },
+                    "sort": "Ascending",
+                    "aiContext": {
+                      "instructions": "",
+                      "synonyms": "month, month wise",
+                      "examples": ""
+                    }
+                  }
+                ]
+              }
+            ],
+            "sortOrder": 12,
+            "aiContext": {
+              "instructions": "Scheduled date of the client meeting.",
+              "synonyms": "meet date, appointment date",
+              "examples": ""
+            }
+          },
+          {
+            "dimensionName": "employee_name",
+            "semanticType": "Text",
+            "tableId": "108",
+            "columnName": "employee_details.employee_name",
+            "columnId": "1031",
+            "defaultFunction": "db.generic.groupBy.group",
+            "formatString": "",
+            "metric": { "formula": "" },
+            "sort": "Ascending",
+            "sortOrder": 13,
+            "aiContext": {
+              "instructions": "Employee who travelled or conducted the meeting. Join via travelled_by / meeting_by.",
+              "synonyms": "staff, traveler, salesperson, employee",
+              "examples": ""
+            }
+          }
+        ],
+        "measures": [
+          {
+            "measureName": "travel_cost",
+            "aggregator": "Sum",
+            "columnId": "1072",
+            "tableId": "112",
+            "defaultFunction": "db.generic.aggregate.sum",
+            "formatString": "$#,##0.00",
+            "semanticType": "Currency",
+            "columnName": "travel_details.travel_cost",
+            "metric": { "formula": "" },
+            "sort": "Descending",
+            "sortOrder": 20,
+            "aiContext": {
+              "instructions": "Total trip cost. Always format as currency.",
+              "synonyms": "trip cost, travel expense, cost to company",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "avg_travel_cost",
+            "aggregator": "Average",
+            "columnId": "1072",
+            "tableId": "112",
+            "defaultFunction": "db.generic.aggregate.avg",
+            "formatString": "$#,##0.00",
+            "semanticType": "Currency",
+            "columnName": "travel_details.travel_cost",
+            "metric": {
+              "formula": "AVG(travel_details.travel_cost)"
+            },
+            "sortOrder": 21,
+            "aiContext": {
+              "instructions": "Average cost per trip.",
+              "synonyms": "mean travel cost, average expense",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "trip_count",
+            "aggregator": "Count",
+            "columnId": "1060",
+            "tableId": "112",
+            "defaultFunction": "db.generic.aggregate.count",
+            "formatString": "#,##0",
+            "semanticType": "Number",
+            "columnName": "travel_details.travel_id",
+            "metric": {
+              "formula": "COUNT(travel_details.travel_id)"
+            },
+            "sortOrder": 22,
+            "aiContext": {
+              "instructions": "Number of travel records / trips.",
+              "synonyms": "trips, journey count, travel count",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "meeting_count",
+            "aggregator": "Count",
+            "columnId": "1040",
+            "tableId": "109",
+            "defaultFunction": "db.generic.aggregate.count",
+            "formatString": "#,##0",
+            "semanticType": "Number",
+            "columnName": "meeting_details.meeting_id",
+            "metric": {
+              "formula": "COUNT(meeting_details.meeting_id)"
+            },
+            "sortOrder": 23,
+            "aiContext": {
+              "instructions": "Number of meetings.",
+              "synonyms": "meetings, meeting volume",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "Cost by Cancellation",
+            "aggregator": "None",
+            "metricId": "00b133c4-1d5a-4d6f-b8eb-b5639ede7f9d",
+            "tableId": "",
+            "defaultFunction": "",
+            "formatString": "$#,##0.00",
+            "semanticType": "Currency",
+            "columnName": "",
+            "metric": {
+              "formula": "sum(travel_details.travel_cost) filter meeting_details.meet_cancellation_status=Yes"
+            },
+            "sortOrder": 24,
+            "aiContext": {
+              "instructions": "Travel cost associated with cancelled meetings. Yes/No on meet_cancellation_status.",
+              "synonyms": "cancelled cost, loss, dip",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "destination_id",
+            "aggregator": "Sum",
+            "columnId": "1070",
+            "tableId": "112",
+            "defaultFunction": "db.generic.aggregate.sum",
+            "formatString": "0.00",
+            "semanticType": "Number",
+            "columnName": "travel_details.destination_id",
+            "metric": { "formula": "" },
+            "sortOrder": 25,
+            "aiContext": {
+              "instructions": "",
+              "synonyms": "",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "meeting_by",
+            "aggregator": "Sum",
+            "columnId": "1044",
+            "tableId": "109",
+            "defaultFunction": "db.generic.aggregate.sum",
+            "formatString": "0.00",
+            "semanticType": "Number",
+            "columnName": "meeting_details.meeting_by",
+            "metric": { "formula": "" },
+            "sortOrder": 26,
+            "aiContext": {
+              "instructions": "Employee id who ran the meeting.",
+              "synonyms": "",
+              "examples": ""
+            }
+          },
+          {
+            "measureName": "travelled_by",
+            "aggregator": "Sum",
+            "columnId": "1075",
+            "tableId": "112",
+            "defaultFunction": "db.generic.aggregate.sum",
+            "formatString": "0.00",
+            "semanticType": "Number",
+            "columnName": "travel_details.travelled_by",
+            "metric": { "formula": "" },
+            "sortOrder": 27,
+            "aiContext": {
+              "instructions": "Employee id of the traveler.",
+              "synonyms": "",
+              "examples": ""
+            }
+          }
+        ]
+      }
+    ],
+    "domain": [
+      {
+        "domain_name": "Sales Order",
+        "description": "Sales operations covering client meetings and associated business travel.",
+        "topics": [
+          {
+            "topic": "Client Meeting",
+            "description": "Client meeting activity, outcomes, and cancellations.",
+            "components": [
+              { "id": "1045", "name": "client_name" },
+              { "id": "1046", "name": "meeting_purpose" },
+              { "id": "1047", "name": "meeting_impact" },
+              { "id": "1048", "name": "meet_cancellation_status" },
+              { "id": "1049", "name": "cancellation_reason" },
+              { "id": "1042", "name": "meeting_date" },
+              { "id": "1044", "name": "meeting_by" },
+              { "id": "1040", "name": "meeting_count" }
+            ]
+          },
+          {
+            "topic": "Sales Travel",
+            "description": "Trip costs, modes, payments, and destinations.",
+            "components": [
+              { "id": "1072", "name": "travel_cost" },
+              { "id": "1073", "name": "mode_of_payment" },
+              { "id": "1074", "name": "Booking Platform" },
+              { "id": "1066", "name": "travel_type" },
+              { "id": "1067", "name": "travel_medium" },
+              { "id": "1071", "name": "Client Destination" },
+              { "id": "1069", "name": "source" },
+              { "id": "1075", "name": "travelled_by" },
+              { "id": "1031", "name": "employee_name" }
+            ]
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "type": "inner",
+        "operator": "=",
+        "left": { "table": "employee_details", "column": "employee_id" },
+        "right": { "table": "meeting_details", "column": "meeting_by" }
+      },
+      {
+        "type": "inner",
+        "operator": "=",
+        "left": { "table": "employee_details", "column": "employee_id" },
+        "right": { "table": "travel_details", "column": "travelled_by" }
+      },
+      {
+        "type": "inner",
+        "operator": "=",
+        "left": { "table": "geo_cordinates", "column": "location_id" },
+        "right": { "table": "travel_details", "column": "destination_id" }
+      },
+      {
+        "type": "inner",
+        "operator": "=",
+        "left": { "table": "geo_cordinates", "column": "location_id" },
+        "right": { "table": "travel_details", "column": "source_id" }
+      }
+    ]
+  }
+}

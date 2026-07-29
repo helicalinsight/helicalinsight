@@ -1,19 +1,11 @@
 """Fixtures for LLM prompt tests.
 
-The model schema under test is the one defined in
-``helicalbi.api.TravelDetailsCube`` (Travel + Meetings domain).  We expose
-the raw lists/dicts as pytest fixtures along with a fully-assembled
-``model_data`` payload that mirrors what
-``ModelLayerHelper.get_model_semantic_layer()`` returns at runtime so the
-existing :class:`InformationProvider` plumbing can be reused inside the
-tests.
+Travel + Meetings cube fixtures historically came from
+``helicalbi.api.TravelDetailsCube``. That module may be absent in some
+checkouts; fixtures that need it are skipped gracefully.
 
-These fixtures live in their own ``tests/llm`` package so that:
-
-* the heavier ``deepeval`` dependency is only imported when this folder is
-  collected, and
-* the schema fixtures stay separate from the lightweight functional
-  fixtures in ``tests/conftest.py``.
+Travle_Agent connection settings are always loaded via
+``tests.llm.llm_test_settings`` so SQL/viz scenarios can run independently.
 """
 from __future__ import annotations
 
@@ -21,55 +13,83 @@ import os
 
 import pytest
 
-from helicalbi.api.TravelDetailsCube import (
-    business_metrics,
-    cube_metadata,
-    domain,
-    examples,
-    metadata_info,
-    relationships,
-    synonyms,
-    topic_mappings,
-)
+from tests.llm.llm_test_settings import apply_llm_test_env
+
+try:
+    from helicalbi.api.TravelDetailsCube import (
+        business_metrics,
+        cube_metadata,
+        domain,
+        examples,
+        metadata_info,
+        relationships,
+        synonyms,
+        topic_mappings,
+    )
+
+    _TRAVEL_CUBE_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional legacy cube module
+    business_metrics = None
+    cube_metadata = None
+    domain = None
+    examples = None
+    metadata_info = None
+    relationships = None
+    synonyms = None
+    topic_mappings = None
+    _TRAVEL_CUBE_AVAILABLE = False
+
+
+def _require_travel_cube():
+    if not _TRAVEL_CUBE_AVAILABLE:
+        pytest.skip("helicalbi.api.TravelDetailsCube is not available")
 
 
 @pytest.fixture(scope="session")
 def travel_business_metrics():
+    _require_travel_cube()
     return business_metrics
 
 
 @pytest.fixture(scope="session")
 def travel_synonyms():
+    _require_travel_cube()
     return synonyms
 
 
 @pytest.fixture(scope="session")
 def travel_examples():
+    _require_travel_cube()
     return examples
 
 
 @pytest.fixture(scope="session")
 def travel_metadata_info():
+    _require_travel_cube()
     return metadata_info
 
 
 @pytest.fixture(scope="session")
 def travel_domain():
+    _require_travel_cube()
     return domain
 
 
 @pytest.fixture(scope="session")
 def travel_topic_mappings():
+    _require_travel_cube()
     return topic_mappings
 
 
 @pytest.fixture(scope="session")
 def travel_cube_metadata():
+    _require_travel_cube()
     return cube_metadata
 
 
 @pytest.fixture(scope="session")
 def travel_relationships():
+    _require_travel_cube()
     return relationships
 
 
@@ -104,3 +124,9 @@ def llm_mode() -> str:
     the configured Ollama / OpenAI provider end-to-end.
     """
     return os.environ.get("HELICALBI_LLM_MODE", "stub").strip().lower()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _apply_travle_llm_test_env():
+    """Load Travle_Agent test config (base URL, cookie, OpenAI key) into env."""
+    apply_llm_test_env()

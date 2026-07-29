@@ -5,44 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d865ea7c-88bc-4b7f-b5e4-010f49231ef3" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../../client/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../client/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bl/data_insight.py" beforeDir="false" afterPath="$PROJECT_DIR$/bl/data_insight.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bl/helpers.py" beforeDir="false" afterPath="$PROJECT_DIR$/bl/helpers.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/_template_instructions.py" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/_template_instructions.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/arc.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/arc.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/area.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/area.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/bar.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/bar.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/bubble_chart.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/bubble_chart.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/calendar.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/calendar.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/column.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/column.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/column_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/column_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/donut.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/donut.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/doughnut.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/doughnut.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/dual_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/dual_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/funnel_chart.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/funnel_chart.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/grouped_column_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/grouped_column_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/heatmap.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/heatmap.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/histogram.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/histogram.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/kpi.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/kpi.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/other.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/other.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/pie.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/pie.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/point.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/point.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/radar.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/radar.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/relation.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/relation.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/rose_chart.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/rose_chart.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/scatter.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/scatter.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/stacked_and_grouped_column_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/stacked_and_grouped_column_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/stacked_column_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/stacked_column_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/sunburst.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/sunburst.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_area.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_area.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_column.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_column.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_line.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/tiny_line.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/treemap.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/treemap.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/waterfall.json" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/viz/charts/waterfall.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/tests/integration/test_app_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/integration/test_app_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../server/hi-repository/System/Admin/setting.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../../server/hi-repository/System/Admin/setting.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/helicalbi/common/CubeInfoModel.py" beforeDir="false" afterPath="$PROJECT_DIR$/helicalbi/common/CubeInfoModel.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/helicalbi/viz/charts/arc.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tests/functional/test_cube_info_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/tests/functional/test_cube_info_model.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,25 +44,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
-    &quot;Flask server.Flask (app.py).executor&quot;: &quot;Run&quot;,
-    &quot;Flask server.helicalbi.executor&quot;: &quot;Run&quot;,
-    &quot;Python.Metadata.executor&quot;: &quot;Run&quot;,
-    &quot;Python.testpy.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;####-hi-multiplefeature&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/ibtohr&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_ADD_EXTERNAL_FILES": "true",
+    "Flask server.Flask (app.py).executor": "Run",
+    "Flask server.helicalbi.executor": "Run",
+    "Python.Metadata.executor": "Run",
+    "Python.testpy.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "helicalinsight-dev",
+    "last_opened_file_path": "D:/ibtohr",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Flask server.helicalbi">
     <configuration name="Metadata" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="helicalbi" />
@@ -234,6 +200,7 @@
       <workItem from="1784616812670" duration="396000" />
       <workItem from="1784703732381" duration="482000" />
       <workItem from="1784773715656" duration="2626000" />
+      <workItem from="1785205732034" duration="921000" />
     </task>
     <servers />
   </component>

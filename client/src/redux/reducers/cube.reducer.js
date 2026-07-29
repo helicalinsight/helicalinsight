@@ -224,6 +224,10 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 											isSortCheck: false,
 											value: ''
 										};
+										handleRemoveHierarchy({
+											dupCubeFieldsData,
+											record: obj,
+										});
 									} else if (key === 'DataType') {
 										obj.measure.Format = cubeEditorMeasureData.reduce((acc, cur) => {
 											if (cur.dataType === value) {
@@ -240,9 +244,12 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 								}
 								if (updateName === 'isDimensionCheck') {
 									if (checkVal) {
-										if (obj.isHierarchy) {
+										if (!obj.isHierarchyChild) {
 											dupCubeFieldsData.hierarchyData = handleHierarchyData({
-												state,
+												state: {
+													...state,
+													cubeFieldsData: dupCubeFieldsData,
+												},
 												record: obj
 											});
 										}
@@ -256,13 +263,11 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 											value: ''
 										};
 										obj.sort = {
-											isSortCheck: true,
-											value: 'Ascending'
+											isSortCheck: false,
+											value: 'Natural'
 										};
 									} else {
-										if (obj.isHierarchy) {
-											handleRemoveHierarchy({ dupCubeFieldsData, record: obj });
-										}
+										handleRemoveHierarchy({ dupCubeFieldsData, record: obj });
 									}
 								}
 							}
@@ -764,6 +769,10 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 				// 		return ele;
 				// 	});
 			} else if (step === 'addToExistingHierarchy') {
+				// Hierarchies may only contain dimension fields
+				if (record.measure?.isMeasureCheck || (!record.isHierarchy && !record.isDimensionCheck)) {
+					return state;
+				}
 				let seperatedRecord = {};
 				let hierarchyRecord = {};
 				let dupChildren = []; //dupCubeFieldsData.children;
@@ -773,6 +782,10 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 						handleRemoveHierarchy({ dupCubeFieldsData, record });
 					} else {
 						if (selectedHierarchy === ele.fields) {
+							if (ele.measure?.isMeasureCheck) {
+								dupChildren.push(ele);
+								return;
+							}
 							if (!ele.isHierarchy) {
 								const levelColumnId = ele.columnId;
 								ele = {

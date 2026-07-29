@@ -31,6 +31,21 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "names": "provide dimension names separated by comma, min 1 max any"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max any"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    }
+  },
   "instructions": [
     "GridTable = AntV S2 wrapper (NOT Ant Design Table). Keep the VF SHORT — use helperFunctions.buildGridTableReport.",
     "1) Replace dimensions/measures with real result-column keys from data/SQL (must match Object.keys(data[0])).",
@@ -42,10 +57,13 @@
     "function DrawGridTable() {",
     "  const { GridTable } = components;",
     "  const { buildGridTableReport } = helperFunctions;",
+    "  const setting = ${setting};",
+    "  const dimensions = (setting.dimensions.names && setting.dimensions.names.length ? setting.dimensions.names : (setting.dimensions.name ? [setting.dimensions.name] : []));",
+    "  const measures = setting.measures || [];",
     "  const minReport = buildGridTableReport({",
-    "    dimensions: ['dimension_column'],",
-    "    measures: ['measure_column'],",
-    "    formatStrings: { measure_column: '0.00' },",
+    "    dimensions,",
+    "    measures,",
+    "    formatStrings: setting.measure_formats || {},",
     "    showTotals: true",
     "  });",
     "  return (",

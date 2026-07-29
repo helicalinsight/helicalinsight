@@ -6,6 +6,7 @@ by data shape and builds a compact prompt guide — never the full table.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
@@ -402,20 +403,69 @@ def resolve_similar_charts(selected: str, data_types: Any = None) -> list[str]:
     return similar
 
 
-def format_similar_chart_wire(similar: Any) -> list[dict[str, str]]:
+def format_similar_chart_wire(
+    similar: Any,
+    *,
+    chart_name: Optional[str] = None,
+) -> list[dict[str, str]]:
     """Normalize similar charts to the interactive-response wire format.
 
-    ``[{"vf.column": "column"}, {"vf.dual_line": "dual line"}, ...]`` —
-    key is ``vf.<chart_type>``, value is the spaced display name.
+    Returns a list like::
+
+        [
+          {"vf.heatmap": "heatmap"},
+          {"vf.circle_packing": "circle packing"},
+          {"vf.dual_line": "dual line"},
+          ...
+        ]
+
+    ``chart_name`` may contain whitespace (e.g. ``"dual line"``,
+    ``"circle packing"``). The wire key always uses underscores
+    (``vf.dual_line``); the value is the spaced display name.
+
+    When ``chart_name`` is provided, the current chart is included first.
     Accepts legacy string lists or already-shaped object lists.
     """
     if similar is None or similar == "":
-        return []
-    items = similar if isinstance(similar, list) else [similar]
+        similar_items: list[Any] = []
+    else:
+        similar_items = similar if isinstance(similar, list) else [similar]
+
+    current = str(chart_name or "").strip()
     out: list[dict[str, str]] = []
-    for item in items:
+    seen_types: set[str] = set()
+
+    def _wire_parts(name: str) -> tuple[str, str]:
+        """Return ``(chart_type_key, display_value)``; spaces → underscores in key."""
+        text = str(name or "").strip().lower()
+        # Collapse any whitespace/hyphen runs so "dual line" / "dual  line" / "dual-line"
+        # all become dual_line → display "dual line".
+        chart_type = re.sub(r"[\s\-]+", "_", text).strip("_")
+        display = chart_type.replace("_", " ")
+        return chart_type, display
+
+    def _append_vf(name: str, *, front: bool = False) -> None:
+        chart_type, display = _wire_parts(name)
+        if not chart_type or chart_type in seen_types:
+            return
+        seen_types.add(chart_type)
+        entry = {f"vf.{chart_type}": display}
+        if front:
+            out.insert(0, entry)
+        else:
+            out.append(entry)
+
+    if current:
+        _append_vf(current)
+
+    for item in similar_items:
         raw = ""
         if isinstance(item, dict):
+            # Ignore legacy {"chart_name": "..."} entries; current comes from arg.
+            if list(item.keys()) == ["chart_name"]:
+                if not current:
+                    _append_vf(item.get("chart_name") or "", front=True)
+                continue
             for key, value in item.items():
                 if isinstance(key, str) and key.startswith("vf.") and key != "vf.chart_name":
                     raw = key[3:] or value
@@ -427,11 +477,7 @@ def format_similar_chart_wire(similar: Any) -> list[dict[str, str]]:
                     raw = only_val if only_val else only_key
         else:
             raw = item
-        name = str(raw or "").strip()
-        if not name:
-            continue
-        chart_type = name.lower().replace(" ", "_").replace("-", "_")
-        out.append({f"vf.{chart_type}": chart_type.replace("_", " ")})
+        _append_vf(raw)
     return out
 
 

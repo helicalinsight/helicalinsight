@@ -2,6 +2,10 @@
 htmlcov/
 .coverage
 coverage.xml
+reports/
 
 # Local Compose / secrets (use .env.example as template)
 .env
+
+# LLM test secrets (cookie / API keys) — use llm_test_config.yaml for non-secrets
+tests/llm/llm_test_config.local.yaml
