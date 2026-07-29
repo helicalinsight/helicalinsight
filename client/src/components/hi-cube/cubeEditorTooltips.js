@@ -11,6 +11,8 @@ export const CUBE_EDITOR_TOOLTIPS = {
     "Enable sorting on this field and choose ascending or descending order from the menu.",
   Aggregation:
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure in reports.",
+  Format:
+    "Choose how numeric values are displayed (e.g., 0.00, #,##0) when this field is used as a measure.",
   Partition:
     "Mark a field for partitioning when you need data split or grouped along this dimension.",
   Dimension:
@@ -32,15 +34,19 @@ export const CUBE_EDITOR_TOOLTIPS = {
   "Semantic Model Topic":
     "Business topics for this semantic model. Enter comma-separated values (e.g., Sales, Travel).",
   Formula:
-    "Define the calculation or expression for this field. Reference columns using cube notation (e.g., [Measures].[Amount]) or aggregation functions (e.g., SUM, AVG).",
+    "Write the calculation for this field, referencing columns in cube notation (e.g., [Measures].[Amount]) or using aggregation functions (e.g., SUM, AVG).",
   "Filter (optional)":
     "Only calculate or include this field for records that match your condition (e.g., status = 'completed').",
   Example:
     "Examples teach the semantic model how to map plain language to database values (e.g., term -> column or value). Add more examples for better matching.",
   "Dimension/Measure":
-    "A Dimension lets you group and filter; a Measure is a number you can total or average. Expand to set Sort for Dimensions, or Format and Aggregation for Measures.",
+    "A Dimension lets you group and filter; a Measure is a number you can total or average. Expand to set Sort for Dimensions, or Aggregation for Measures.",
   "Clear field values": "Clear the field values from the cube",
   "Remove field": "Removes this field from the cube",
+  "Remove from hierarchy":
+    "Removes this field from the hierarchy only. The field stays in the Fields list as a regular dimension.",
+  "Add to an existing Hierarchy":
+    "Add this field as a member of an existing hierarchy so it can be browsed and drilled into alongside related fields.",
 };
 
 export const AGENT_EDITOR_TOOLTIPS = {
@@ -57,13 +63,19 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Remove field from topic":
     "Removes this field from this topic only. The field remains available in the Fields list and in any other topics it belongs to.",
   Fields:
-    "To build your Semantic Model, drag and drop fields from the Metadata. Right-click on a column to perform additional field actions.",
+    "To build your Semantic Model, drag and drop fields from Metadata. Numeric columns are placed under Measures; other types under Dimensions. Right-click a field for more actions. Hierarchies can only include Dimension fields.",
+  "Sort fields":
+    "Sort Dimensions and Measures by name. Click to cycle A–Z, Z–A, then reset to the default (drag/drop) order.",
+  Sort:
+    "Choose ascending, descending, or natural order for this dimension when it is used in reports.",
   Aggregation:
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure.",
+  Format:
+    "Choose how values are displayed (e.g., General, 0.00). Available formats depend on the selected semantic type.",
   "Semantic Type":
     "Classify the column (e.g., currency, email) so the semantic model interprets values correctly.",
   Formula:
-    "Define the calculation used for this field. Reference columns from your source tables using aggregation functions (e.g., SUM(order_amount), AVG(total_price)).",
+    "Write the calculation for this field as an aggregation over your source columns (e.g., SUM(order_amount), AVG(total_price)).",
   Instructions:
     "Guidance for how the semantic model should interpret or use this field when answering questions.",
   Synonyms:
@@ -73,7 +85,7 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "AI Context":
     "Extra context that helps the semantic model understand this field: instructions, synonyms, and examples.",
   "Dimension/Measure":
-    "A Dimension lets you group and filter; a Measure is a number you can total or average. Expand to set Sort for Dimensions, or Format and Aggregation for Measures.",
+    "A Dimension lets you group and filter; a Measure is a number you can total or average. Expand to set Sort for Dimensions, or Aggregation for Measures.",
   "Semantic Model Topic":
     "Business topics for this semantic model. Enter comma-separated values (e.g., Sales, Travel).",
   Topic:
@@ -89,6 +101,14 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Clear Description": "Clears the description text for this domain or topic.",
   "Clear field values": "Clear the field values for this field",
   "Remove field": "Removes this field from the semantic model metadata",
+  "Remove from hierarchy":
+    "Removes this field from the hierarchy only. The field stays in the Fields list as a regular dimension.",
+  "Add to an existing Hierarchy":
+    "Add this field as a member of an existing hierarchy so it can be browsed and drilled into alongside related fields.",
+  "Convert to Measure":
+    "Convert this dimension into a measure so it can be aggregated (e.g., summed, averaged).",
+  "Convert to Dimension":
+    "Convert this measure into a dimension so it can be used for grouping and filtering.",
 };
 
 export function getCubeEditorTooltipText(label, variant = "cube") {

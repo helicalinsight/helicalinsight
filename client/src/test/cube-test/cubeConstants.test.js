@@ -361,6 +361,7 @@ describe("cubeConstants", () => {
         isHierarchy: true,
         isDimensionCheck: true,
         fields: "Date Hierarchy",
+        measure: { isMeasureCheck: false, DataType: "", Format: "" },
       };
       render(
         <CubeFieldsMenu

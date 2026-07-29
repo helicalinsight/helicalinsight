@@ -380,6 +380,29 @@
       min-width: 0;
       overflow: hidden;
 
+      .cube-shelf-name-row {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .cube-shelf-name-text {
+        min-width: 0;
+        overflow: hidden;
+        flex: 1;
+      }
+
+      .cube-shelf-name-info {
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.75);
+        margin-left: 2px;
+
+        &:hover {
+          color: #fff;
+        }
+      }
+
       .ant-typography {
         color: #fff;
         padding: 0 0 0 10px;

@@ -157,6 +157,24 @@ Same as above, but skip slower LLM prompt tests:
 pytest -m "not llm" --cov=helicalbi --cov=app --cov-config=.coveragerc --cov-report=term-missing --cov-report=html
 ```
 
+### Full reports + CI/CD (Windows & Jenkins)
+
+For JUnit XML, coverage XML/HTML, helper scripts, and the Jenkins pipeline under
+`/home/helical/.jenkins/workspace/HI7SourceCode`, see
+**[docs/TEST_REPORTS_AND_CICD.md](docs/TEST_REPORTS_AND_CICD.md)**.
+
+Quick start:
+
+```powershell
+# Windows
+.\scripts\run_tests_with_report.ps1 -SkipLlm
+```
+
+```bash
+# Linux / Jenkins
+./scripts/run_tests_with_report.sh --skip-llm
+```
+
 If **collection** fails for a few modules (for example import-time HTTP to the API base URL), you can still run the rest of the suite and emit coverage:
 
 ```bash

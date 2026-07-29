@@ -32,7 +32,7 @@ const sampleNewFormat = {
           columnName: "booking_platform",
           columnId: "1074",
           defaultFunction: "db.generic.groupBy.group",
-          metric: { formula: "count(*)" },
+          formula: "count(*)",
         },
       ],
       measures: [
@@ -45,7 +45,7 @@ const sampleNewFormat = {
           formatString: "0.00",
           semanticType: "numeric",
           columnName: "destination_id",
-          metric: { formula: "" },
+          formula: "",
         },
       ],
     },
@@ -438,7 +438,7 @@ describe("agent-cube-bridge", () => {
       columnName: "",
       formatString: "0.00",
       defaultFunction: "",
-      metric: { formula: "" },
+      formula: "",
     });
     expect(String(result.cube[0].measures[0].metricId || "").trim()).not.toBe(
       "",
@@ -544,7 +544,7 @@ describe("agent-cube-bridge", () => {
       tableId: "323",
       columnId: "2672",
       semanticType: "",
-      metric: { formula: "" },
+      formula: "",
       hierarchies: [
         {
           hierarchyName: "employee_name",
@@ -613,7 +613,7 @@ describe("agent-cube-bridge", () => {
               columnId: "2672",
               columnName: "employee_details.employee_name",
               defaultFunction: "db.generic.groupBy.group",
-              metric: { formula: "" },
+              formula: "",
               sortOrder: 0,
               hierarchies: [
                 {
@@ -628,7 +628,7 @@ describe("agent-cube-bridge", () => {
                       columnId: "2672",
                       columnName: "employee_details.employee_name",
                       defaultFunction: "db.generic.groupBy.group",
-                      metric: { formula: "" },
+                      formula: "",
                     },
                     {
                       levelName: "address",
@@ -636,7 +636,7 @@ describe("agent-cube-bridge", () => {
                       columnId: "2674",
                       columnName: "employee_details.address",
                       defaultFunction: "db.generic.groupBy.group",
-                      metric: { formula: "" },
+                      formula: "",
                     },
                     {
                       levelName: "cancellation_reason",
@@ -644,7 +644,7 @@ describe("agent-cube-bridge", () => {
                       columnId: "2686",
                       columnName: "meeting_details.cancellation_reason",
                       defaultFunction: "db.generic.groupBy.group",
-                      metric: { formula: "" },
+                      formula: "",
                     },
                   ],
                 },

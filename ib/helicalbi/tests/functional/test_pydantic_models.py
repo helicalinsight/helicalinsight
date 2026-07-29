@@ -437,8 +437,54 @@ class TestVisualizationResponses:
         assert m.visualization_title == "Sales"
 
     def test_chart_filler_response(self):
-        m = ChartFillerResponse(js_func_string="function(){}")
-        assert m.js_func_string == "function(){}"
+        from helicalbi.model.output.viz.ChartSettings import (
+            ChartSettings,
+            DimensionSetting,
+        )
+
+        m = ChartFillerResponse(
+            settings=ChartSettings(
+                dimensions=DimensionSetting(name="Travel Type"),
+                measures=["Travel Cost"],
+                labelsX="Travel Type",
+                labelsY="Travel Cost",
+                title="Cost by Type",
+            )
+        )
+        assert m.settings.dimensions.name == "Travel Type"
+        assert m.settings.measures == ["Travel Cost"]
+        assert m.settings.labelsX == "Travel Type"
+        assert m.settings.title == "Cost by Type"
+
+    def test_chart_filler_coerces_comma_separated_dimension_names(self):
+        """LLMs sometimes return names as 'a,b' instead of ['a','b']."""
+        m = ChartFillerResponse.model_validate(
+            {
+                "settings": {
+                    "dimensions": {"names": "travel_medium,travel_type"},
+                    "measures": ["travel_cost"],
+                    "labelsX": "Travel Medium",
+                    "labelsY": "Travel Type",
+                    "color": ["#B8E1FF", "#5B8FF9", "#00318A"],
+                    "measure_formats": {"travel_cost": "$#,##0.00"},
+                }
+            }
+        )
+        assert m.settings.dimensions.names == ["travel_medium", "travel_type"]
+        assert m.settings.dimensions.name == "travel_medium"
+        assert m.settings.measures == ["travel_cost"]
+        assert m.settings.measure_formats["travel_cost"] == "$#,##0.00"
+
+    def test_chart_filler_coerces_comma_separated_measures(self):
+        m = ChartFillerResponse.model_validate(
+            {
+                "settings": {
+                    "dimensions": {"name": "travel_type"},
+                    "measures": "travel_cost,trip_count",
+                }
+            }
+        )
+        assert m.settings.measures == ["travel_cost", "trip_count"]
 
 
 class TestOptionalPromptReason:

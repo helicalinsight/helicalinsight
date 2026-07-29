@@ -20,12 +20,16 @@ from helicalbi.viz._charts import (  # noqa: F401
     get_chart_config,
     get_chart_conversion,
     get_chart_definition,
+    get_chart_settings_schema,
     hydrate_saved_viz,
     resolve_chart_name,
 )
 from helicalbi.viz.chart_conversion import (  # noqa: F401
     ChartConversionError,
+    apply_chart_settings,
     convert_chart,
+    fields_to_settings,
+    settings_to_fields,
 )
 from helicalbi.viz._template_instructions import (  # noqa: F401
     BASE_RULES,

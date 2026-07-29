@@ -11,6 +11,7 @@ response keys): Excel-style ``measureFormats`` and chart ``color`` palette/solid
 from __future__ import annotations
 
 import base64
+import json
 import logging
 import re
 from dataclasses import dataclass, field
@@ -32,6 +33,10 @@ from helicalbi.viz._charts import (
     ChartDefinition,
     get_chart_definition,
     resolve_chart_name,
+)
+from helicalbi.model.output.viz.ChartSettings import (
+    ChartSettings,
+    DimensionSetting,
 )
 
 logger = logging.getLogger(__name__)
@@ -157,6 +162,9 @@ class ExtractedFields:
     measures: list[str] = field(default_factory=list)
     series: Optional[str] = None
     title: Optional[str] = None
+    label_x: Optional[str] = None
+    label_y: Optional[str] = None
+    label_z: Optional[str] = None
     source_chart: Optional[str] = None
     source_family: Optional[str] = None
     # Excel-style format strings keyed by measure / column name.
@@ -232,6 +240,196 @@ def encode_vf_template(code: str) -> str:
     return base64.b64encode((code or "").encode("utf-8")).decode("utf-8")
 
 
+def color_expr_from_settings(color: Any) -> Optional[str]:
+    """Convert a color value into a JS expression string."""
+    if color is None or color == "":
+        return None
+    if isinstance(color, list):
+        parts = [_js_string_literal(str(item).strip()) for item in color if str(item).strip()]
+        return f"[{', '.join(parts)}]" if parts else None
+    text = str(color).strip()
+    if not text:
+        return None
+    # Already a JS array / quoted literal from extraction.
+    if text.startswith("[") or text.startswith("'") or text.startswith('"'):
+        return text
+    return _js_string_literal(text)
+
+
+def settings_to_fields(
+    settings: ChartSettings,
+    *,
+    source_chart: Optional[str] = None,
+    source_family: Optional[str] = None,
+    format_strings: Optional[dict[str, str]] = None,
+) -> ExtractedFields:
+    """Map LLM / conversion ChartSettings onto the skeleton field bag."""
+    formats = dict(settings.measure_formats or {})
+    if isinstance(format_strings, dict):
+        for key, value in format_strings.items():
+            name = str(key or "").strip()
+            fmt = str(value or "").strip()
+            if name and fmt and name not in _PLACEHOLDER_FORMAT_KEYS:
+                formats.setdefault(name, fmt)
+
+    return ExtractedFields(
+        dimensions=settings.dimension_names(),
+        measures=[str(m).strip() for m in (settings.measures or []) if str(m).strip()],
+        series=(str(settings.series).strip() if settings.series else None) or None,
+        title=(settings.title or "").strip() or None,
+        label_x=(settings.labelsX or "").strip() or None,
+        label_y=(settings.labelsY or "").strip() or None,
+        label_z=(settings.labelsZ or "").strip() or None,
+        source_chart=source_chart,
+        source_family=source_family,
+        measure_formats=formats,
+        color=color_expr_from_settings(settings.color),
+    )
+
+
+def fields_to_settings(fields: ExtractedFields) -> ChartSettings:
+    """Map an extracted field bag back to ChartSettings (shared conversion shape)."""
+    color_value: Any = None
+    if fields.color:
+        expr = fields.color.strip()
+        if expr.startswith("[") and expr.endswith("]"):
+            inner = expr[1:-1]
+            color_value = [
+                part.strip().strip("'\"")
+                for part in inner.split(",")
+                if part.strip().strip("'\"")
+            ]
+        else:
+            color_value = expr.strip("'\"")
+
+    dims = list(fields.dimensions or [])
+    if len(dims) > 1:
+        dimension = DimensionSetting(name=dims[0], names=dims)
+    elif dims:
+        dimension = DimensionSetting(name=dims[0])
+    else:
+        dimension = DimensionSetting()
+
+    return ChartSettings(
+        dimensions=dimension,
+        measures=list(fields.measures or []),
+        series=fields.series,
+        labelsX=fields.label_x,
+        labelsY=fields.label_y,
+        labelsZ=fields.label_z,
+        title=fields.title,
+        color=color_value,
+        measure_formats=dict(fields.measure_formats or {}),
+    )
+
+
+def _normalize_chart_settings(
+    settings: ChartSettings,
+    *,
+    format_strings: Optional[dict[str, str]] = None,
+) -> ChartSettings:
+    """Fill blank labels / formats from field names before JS injection."""
+    dims = settings.dimension_names()
+    measures = [str(m).strip() for m in (settings.measures or []) if str(m).strip()]
+    dim0 = dims[0] if dims else ""
+    meas0 = measures[0] if measures else ""
+    meas1 = measures[1] if len(measures) > 1 else ""
+
+    formats = dict(settings.measure_formats or {})
+    if isinstance(format_strings, dict):
+        for key, value in format_strings.items():
+            name = str(key or "").strip()
+            fmt = str(value or "").strip()
+            if name and fmt and name not in _PLACEHOLDER_FORMAT_KEYS:
+                formats.setdefault(name, fmt)
+
+    title = (settings.title or "").strip() or None
+    if not title:
+        if meas0 and dim0:
+            title = f"{meas0} by {dim0}"
+        else:
+            title = meas0 or dim0 or None
+
+    if len(dims) > 1:
+        dimension = DimensionSetting(name=dims[0], names=dims)
+    elif dims:
+        dimension = DimensionSetting(name=dims[0])
+    else:
+        dimension = DimensionSetting(name=settings.dimensions.name)
+
+    return ChartSettings(
+        dimensions=dimension,
+        measures=measures,
+        labelsX=(settings.labelsX or "").strip() or dim0 or None,
+        labelsY=(settings.labelsY or "").strip() or meas0 or None,
+        labelsZ=(settings.labelsZ or "").strip() or meas1 or None,
+        title=title,
+        series=(str(settings.series).strip() if settings.series else None) or None,
+        color=settings.color,
+        measure_formats=formats,
+    )
+
+
+def settings_to_js_literal(settings: ChartSettings) -> str:
+    """Serialize filled settings as a JS object literal for ``${setting}``."""
+    return json.dumps(settings.to_js_object(), ensure_ascii=False, indent=2)
+
+
+_SETTING_PLACEHOLDER = re.compile(r"\$\{\s*setting\s*\}")
+
+
+def inject_setting_object(code: str, settings: ChartSettings) -> str:
+    """Replace ``${setting}`` with the filled settings JS object literal."""
+    literal = settings_to_js_literal(settings)
+    if not _SETTING_PLACEHOLDER.search(code or ""):
+        return code
+    return _SETTING_PLACEHOLDER.sub(literal, code, count=1)
+
+
+def apply_chart_settings(
+    settings: ChartSettings,
+    *,
+    chart_def: Optional[ChartDefinition] = None,
+    chart_name: Optional[str] = None,
+    format_strings: Optional[dict[str, str]] = None,
+) -> str:
+    """Fill a chart skeleton from ChartSettings (LLM fill or conversion).
+
+    Preferred path: chart ``code`` contains ``const setting = ${setting}`` and
+    references ``setting.dimensions.name``, ``setting.measures[0]``, etc.
+
+    Legacy path: charts without ``${setting}`` still use placeholder replacement
+    via ``fill_skeleton``.
+    """
+    target = chart_def or (get_chart_definition(chart_name) if chart_name else None)
+    if not target:
+        raise ChartConversionError(
+            f"Unknown chart type: {(chart_name or getattr(chart_def, 'name', None))!r}"
+        )
+    if not target.conversion:
+        raise ChartConversionError(
+            f"Chart type {target.name!r} has no conversion contract; "
+            "add a conversion block to its chart JSON."
+        )
+    if not target.code:
+        raise ChartConversionError(f"No code skeleton for chart type: {target.name}")
+
+    normalized = _normalize_chart_settings(settings, format_strings=format_strings)
+    fields = settings_to_fields(
+        normalized,
+        source_chart=target.name,
+        source_family=target.conversion.family,
+        format_strings=format_strings,
+    )
+
+    if _SETTING_PLACEHOLDER.search(target.code):
+        code = inject_setting_object(target.code, normalized)
+        code = _inject_conversion_hints(code, fields)
+        return code.strip()
+
+    return fill_skeleton(target.code, fields, conversion=target.conversion)
+
+
 def convert_chart(
     vf_template: str,
     selected_chart: str,
@@ -288,8 +486,10 @@ def convert_chart(
     except ChartConversionError as exc:
         # Still return the requested skeleton (best-effort fill) so the UI can
         # let the user edit bindings and regenerate.
-        filled = fill_skeleton(
-            target_def.code, fields, conversion=target_def.conversion
+        filled = apply_chart_settings(
+            fields_to_settings(fields),
+            chart_def=target_def,
+            format_strings=format_strings,
         )
         filled = transform_chart_code(filled)
         logger.info(
@@ -311,7 +511,11 @@ def convert_chart(
             ),
         ) from exc
 
-    filled = fill_skeleton(target_def.code, fields, conversion=target_def.conversion)
+    filled = apply_chart_settings(
+        fields_to_settings(fields),
+        chart_def=target_def,
+        format_strings=format_strings,
+    )
     filled = transform_chart_code(filled)
 
     #similar = resolve_similar_charts(target_def.name, data_types=data_types)
@@ -370,6 +574,66 @@ def validate_conversion_requirements(
             )
 
 
+_SETTING_ASSIGN = re.compile(r"const\s+setting\s*=\s*\{")
+
+
+def _extract_balanced_object(text: str, open_index: int) -> Optional[str]:
+    """Return the substring of a `{...}` object starting at ``open_index``."""
+    if open_index < 0 or open_index >= len(text) or text[open_index] != "{":
+        return None
+    depth = 0
+    in_str: Optional[str] = None
+    escaped = False
+    for i in range(open_index, len(text)):
+        ch = text[i]
+        if in_str:
+            if escaped:
+                escaped = False
+            elif ch == "\\":
+                escaped = True
+            elif ch == in_str:
+                in_str = None
+            continue
+        if ch in {'"', "'"}:
+            in_str = ch
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_index : i + 1]
+    return None
+
+
+def _extract_settings_object(source_js: str) -> Optional[ChartSettings]:
+    """Parse a filled ``const setting = {...};`` block from chart JS when present."""
+    match = _SETTING_ASSIGN.search(source_js or "")
+    if not match:
+        return None
+    open_index = source_js.find("{", match.start())
+    body = _extract_balanced_object(source_js, open_index)
+    if not body:
+        return None
+    try:
+        payload = json.loads(body)
+    except json.JSONDecodeError:
+        cleaned = re.sub(r",\s*}", "}", body)
+        cleaned = re.sub(r",\s*]", "]", cleaned)
+        try:
+            payload = json.loads(cleaned)
+        except json.JSONDecodeError:
+            logger.debug("Unable to parse setting object from source chart JS")
+            return None
+    if not isinstance(payload, dict):
+        return None
+    try:
+        return ChartSettings.model_validate(payload)
+    except Exception:  # noqa: BLE001
+        logger.debug("setting object failed ChartSettings validation", exc_info=True)
+        return None
+
+
 def extract_fields(
     source_js: str,
     *,
@@ -377,6 +641,36 @@ def extract_fields(
     format_strings: Optional[dict[str, str]] = None,
 ) -> ExtractedFields:
     """Pull dimension / measure / series / title bindings from source chart JS."""
+    # Prefer the injected settings object when present (${setting} charts).
+    from_settings = _extract_settings_object(source_js)
+    if from_settings is not None:
+        source_chart = _detect_source_chart(source_js)
+        source_def = get_chart_definition(source_chart) if source_chart else None
+        source_family = _resolve_source_family(source_chart, source_def)
+        fields = settings_to_fields(
+            from_settings,
+            source_chart=source_chart,
+            source_family=source_family,
+            format_strings=format_strings,
+        )
+        if not fields.color:
+            fields.color = _extract_color(source_js)
+        # Tables often leave dimensions/measures empty (all columns render);
+        # fill gaps from result metadata so conversion (e.g. → wordcloud) works.
+        if data_types is not None and (not fields.dimensions or not fields.measures):
+            meta_dims, meta_measures = _infer_columns_from_metadata(data_types)
+            if not fields.dimensions:
+                measure_set = set(fields.measures)
+                fields.dimensions = _unique(
+                    [d for d in meta_dims if d not in measure_set]
+                )
+            if not fields.measures:
+                dim_set = set(fields.dimensions)
+                fields.measures = _unique(
+                    [m for m in meta_measures if m not in dim_set]
+                )
+        return fields
+
     source_chart = _detect_source_chart(source_js)
     source_def = get_chart_definition(source_chart) if source_chart else None
     source_family = _resolve_source_family(source_chart, source_def)
@@ -482,12 +776,15 @@ def extract_fields(
 
     dimensions = _unique(dimensions)
     measures = _unique([m for m in measures if m not in set(dimensions)])
+    label_x, label_y = _extract_axis_labels(source_js)
 
     return ExtractedFields(
         dimensions=dimensions,
         measures=measures,
         series=series,
         title=_extract_title(source_js),
+        label_x=label_x,
+        label_y=label_y,
         source_chart=source_chart,
         source_family=source_family,
         measure_formats=format_maps,
@@ -937,6 +1234,14 @@ def _build_replacements(
 
     # Always allow title_text even if not declared (common in skeletons).
     replacements.setdefault("title_text", title)
+    # Axis / display labels (LLM settings or defaults from field names).
+    replacements.setdefault("label_x", fields.label_x or dim0)
+    replacements.setdefault("label_y", fields.label_y or meas0)
+    if fields.label_z:
+        replacements.setdefault("label_z", fields.label_z)
+    # Legacy skeleton placeholders used before settings-based labels.
+    replacements.setdefault("Label for dimension axis", fields.label_x or dim0)
+    replacements.setdefault("Label for measure axis", fields.label_y or meas0)
     return replacements
 
 
@@ -1060,6 +1365,39 @@ def _values_from_match(match: re.Match) -> list[str]:
     return []
 
 
+_AXIS_TITLE = re.compile(
+    r"(?P<axis>xAxis|yAxis)\s*:\s*\{[^}]*?title\s*:\s*\{[^}]*?text\s*:\s*"
+    r"(?:'(?P<sq>[^']+)'|\"(?P<dq>[^\"]+)\")",
+    re.DOTALL,
+)
+
+
+def _extract_axis_labels(source_js: str) -> tuple[Optional[str], Optional[str]]:
+    """Best-effort xAxis / yAxis title texts from source chart JS."""
+    label_x: Optional[str] = None
+    label_y: Optional[str] = None
+    skip = {
+        "title_text",
+        "label_x",
+        "label_y",
+        "label_z",
+        "Label for measure axis",
+        "Label for dimension axis",
+        "dimension_column",
+        "measure_column",
+    }
+    for match in _AXIS_TITLE.finditer(source_js or ""):
+        text = (match.group("sq") or match.group("dq") or "").strip()
+        if not text or text in skip or text.endswith("_column"):
+            continue
+        axis = match.group("axis")
+        if axis == "xAxis" and not label_x:
+            label_x = text
+        elif axis == "yAxis" and not label_y:
+            label_y = text
+    return label_x, label_y
+
+
 def _extract_title(source_js: str) -> Optional[str]:
     for pattern in _TITLE_PATTERNS:
         match = pattern.search(source_js)
@@ -1071,6 +1409,9 @@ def _extract_title(source_js: str) -> Optional[str]:
             "Put the title here",
             "Label for measure axis",
             "Label for dimension axis",
+            "label_x",
+            "label_y",
+            "label_z",
         }:
             continue
         if text.endswith("_column") or text in {"dimension_column", "measure_column"}:

@@ -42,6 +42,23 @@
       "secondary_series_column"
     ]
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 1 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 2 max 2"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "labelsZ": "Label for secondary measure",
+    "series": "optional series / group / stack field name"
+  },
   "instructions": [
     "DualAxes dual line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions two line (+seriesField if needed).",
     "Polish: autoFit; distinct line colors; shared x; legend; axis titles per measure; element-active."
@@ -49,11 +66,10 @@
   "code": [
     "function DrawDualLine() {",
     "  const { DualAxes } = components;",
-    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
-    "  const measureFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
-    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
     "    const fmt = measureFormats[field];",
     "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
     "    if (!fmt || raw == null || raw === '') return raw;",
@@ -62,25 +78,29 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return raw;",
     "  };",
     "  const config = {",
     "    data: [data, data],",
-    "    xField: 'dimension_column',",
-    "    yField: ['measure_column', 'secondary_measure_column'],",
+    "    xField: setting.dimensions.name,",
+    "    yField: [setting.measures[0], setting.measures[1]],",
+    "    ...(setting.color ? { color: setting.color } : {}),",
     "    geometryOptions: [",
-    "      { geometry: 'line', seriesField: 'series_column' },",
-    "      { geometry: 'line', seriesField: 'secondary_series_column' }",
+    "      { geometry: 'line', ...(setting.series ? { seriesField: setting.series } : {}) },",
+    "      { geometry: 'line', ...(setting.series ? { seriesField: setting.series } : {}) },",
     "    ],",
     "    meta: {",
-    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "      [setting.measures[0]]: { alias: setting.labelsY || setting.measures[0], formatter: (v) => formatMeasure(v, setting.measures[0]) },",
+    "      [setting.measures[1]]: { alias: setting.labelsZ || setting.measures[1], formatter: (v) => formatMeasure(v, setting.measures[1]) }",
     "    }",
     "  };",
     "  return <div><DualAxes {...config} /></div>;",

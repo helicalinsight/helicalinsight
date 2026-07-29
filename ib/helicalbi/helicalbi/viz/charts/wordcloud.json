@@ -3,7 +3,7 @@
   "dims_max": 1,
   "measures_min": 0,
   "measures_max": 1,
-  "instruction": "Word frequency/prominence is the requested insight.",
+  "instruction": "Categorical labels or free-text where relative frequency/prominence matters (modes, mediums, reasons, tags, 'all X'). Prefer over table for list-all category questions.",
   "aliases": [
     "word cloud",
     "tag cloud",
@@ -22,25 +22,50 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 1 and max 1"
+    },
+    "measures": [
+      "optional weight/count measure as a JSON array, min 0 max 1 (omit or [] when weight should be word frequency)"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    }
+  },
   "instructions": [
-    "WordCloud. Config: map dim->name, weight=value|count; wordField name; weightField value.",
+    "WordCloud. Config: wordField=dimension; weightField=measure when present, else synthesize frequency weights from wordField values (WordCloud always needs a numeric weight).",
     "Polish: single color or soft palette; interactions element-active; avoid tiny unreadable words; no extra axes."
   ],
   "code": [
-    "function DrawWordCloud() {",
+    "function DrawWordcloud() {",
     "  const { WordCloud } = components;",
-    "  const dimensionField = 'dimension_column';",
-    "  const cloudData = data.map((item) => ({",
-    "    ...item,",
-    "    name: item[dimensionField],",
-    "    value: 1",
-    "  }));",
+    "  const setting = ${setting};",
+    "  const wordField = setting.dimensions.name || (setting.dimensions.names && setting.dimensions.names[0]);",
+    "  const measureField = setting.measures && setting.measures[0];",
+    "  const weightField = measureField || '__weight';",
+    "  let chartData = data;",
+    "  if (!measureField) {",
+    "    const counts = {};",
+    "    (data || []).forEach((row) => {",
+    "      const key = row[wordField];",
+    "      if (key == null || key === '') return;",
+    "      counts[key] = (counts[key] || 0) + 1;",
+    "    });",
+    "    chartData = Object.keys(counts).map((name) => ({",
+    "      [wordField]: name,",
+    "      [weightField]: counts[name]",
+    "    }));",
+    "  }",
     "  const config = {",
-    "    data: cloudData,",
-    "    wordField: 'name',",
-    "    weightField: 'value',",
-    "    color: 'rgba(76, 132, 238, 1)',",
-    "    interactions: [{ type: 'element-active' }]",
+    "    data: chartData,",
+    "    wordField,",
+    "    weightField,",
+    "    ...(setting.color ? { color: setting.color } : {}),",
     "  };",
     "  return <div><WordCloud {...config} /></div>;",
     "}"

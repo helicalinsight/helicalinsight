@@ -18,6 +18,14 @@ describe("cubeEditorTooltips", () => {
     );
   });
 
+  it("exposes Format tooltip for cube and agent field menus", () => {
+    expect(CUBE_EDITOR_TOOLTIPS.Format).toMatch(/numeric|display|format/i);
+    expect(AGENT_EDITOR_TOOLTIPS.Format).toMatch(/numeric|display|format/i);
+    expect(getCubeEditorTooltipText("Format", "agent")).toBe(
+      AGENT_EDITOR_TOOLTIPS.Format,
+    );
+  });
+
   describe("getCubeEditorTooltipText", () => {
     it("returns agent-specific tooltip when variant is agent", () => {
       expect(getCubeEditorTooltipText("Domain Description", "agent")).toBe(

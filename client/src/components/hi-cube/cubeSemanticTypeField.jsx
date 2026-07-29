@@ -1,13 +1,33 @@
 import { Select, TreeSelect, Dropdown, Tooltip } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { CloseOutlined, RightOutlined, DownOutlined } from "@ant-design/icons";
+import {
+  CloseOutlined,
+  RightOutlined,
+  DownOutlined,
+  CalendarOutlined,
+  NumberOutlined,
+  FileTextOutlined,
+  CheckOutlined,
+} from "@ant-design/icons";
 import { SEMANTIC_TYPES } from "../hi-agent/components/semantic-metadata-editor/semantic-metadata-utils";
 import { useCubeEditorBindings } from "./cubeEditorContext";
 
 const { Option } = Select;
 
 const SEMANTIC_NODE_SEPARATOR = "::";
+
+const SEMANTIC_TYPE_ICON_MAP = {
+  CalendarOutlined,
+  NumberOutlined,
+  FileTextOutlined,
+  CheckOutlined,
+};
+
+const resolveSemanticTypeIcon = (iconName) => {
+  const Icon = SEMANTIC_TYPE_ICON_MAP[iconName] || FileTextOutlined;
+  return <Icon className="cube-semantic-type-icon" />;
+};
 
 const normalizeSemanticKey = (value) =>
   String(value ?? "").trim().toLowerCase();
@@ -86,11 +106,20 @@ const highlightMatch = (text, searchText) => {
   );
 };
 
+const renderSemanticTypeTitle = (label, searchText, iconName) => (
+  <span className="cube-semantic-type-node-title">
+    {resolveSemanticTypeIcon(iconName)}
+    <span className="cube-semantic-type-node-label">
+      {highlightMatch(label, searchText)}
+    </span>
+  </span>
+);
+
 export const buildSemanticTreeData = (groups, searchText = "") =>
   (groups || []).map((group) => {
     const groupKey = group.value || group.label;
     return {
-      title: highlightMatch(group.label, searchText),
+      title: renderSemanticTypeTitle(group.label, searchText, group.icon),
       titleText: group.label,
       value: `grp${SEMANTIC_NODE_SEPARATOR}${groupKey}`,
       selectable: false,

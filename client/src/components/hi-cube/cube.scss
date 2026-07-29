@@ -314,6 +314,114 @@
 			padding: 4px 8px 0;
 			flex-shrink: 0;
 		}
+		.cube-fields-categories {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			min-height: 0;
+			overflow: auto;
+			@include hi-cube-scrollbar;
+		}
+		.cube-fields-pane-header-table {
+			flex: 0 0 auto !important;
+			height: auto !important;
+			max-height: none !important;
+			overflow: visible !important;
+
+			.ant-spin-nested-loading,
+			.ant-spin-container,
+			.ant-table,
+			.ant-table-container,
+			.ant-table-content {
+				height: auto !important;
+			}
+
+			.ant-table-body,
+			.ant-table-tbody,
+			.ant-table-placeholder {
+				display: none !important;
+				height: 0 !important;
+				min-height: 0 !important;
+				padding: 0 !important;
+				margin: 0 !important;
+				border: none !important;
+			}
+
+			.ant-table-thead > tr > th {
+				padding-top: 4px;
+				padding-bottom: 4px;
+			}
+
+			.ant-table-column-sorter {
+				margin-left: 4px;
+			}
+		}
+		.cube-fields-category {
+			display: flex;
+			flex-direction: column;
+			flex-shrink: 0;
+
+			.schedule-table {
+				.ant-table-placeholder {
+					.ant-empty-normal {
+						margin: 8px 0;
+					}
+				}
+			}
+		}
+		.cube-fields-category-header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			padding: 6px 8px;
+			background: #fafafa;
+			border-bottom: 1px solid #f0f0f0;
+			border-top: 1px solid #f0f0f0;
+
+			.cube-add-metric-action {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				flex-shrink: 0;
+				margin-left: auto;
+				width: 22px;
+				height: 22px;
+				border-radius: 4px;
+				cursor: pointer;
+				line-height: 1;
+
+				&:hover {
+					background-color: transparent;
+				}
+
+				&.is-disabled {
+					cursor: not-allowed;
+					opacity: 1;
+
+					.cube-add-metric-icon {
+						color: #c0c0c0;
+					}
+
+					&:hover .cube-add-metric-icon {
+						color: #c0c0c0;
+					}
+				}
+			}
+
+			.cube-add-metric-icon {
+				font-size: 14px;
+				color: rgba(0, 0, 0, 0.75);
+			}
+		}
+		.cube-fields-category-title {
+			font-size: 12px;
+		}
+		.cube-fields-category-table {
+			.ant-table-thead {
+				display: none;
+			}
+		}
 		.schedule-table {
 			.ant-table-body {
 				overflow-y: auto !important;
@@ -583,7 +691,8 @@
 
 	.agent-workspace-cube-shelf {
 		.cube-editor > .ant-table-wrapper,
-		.cube-editor > .schedule-table {
+		.cube-editor > .schedule-table,
+		.cube-editor > .cube-fields-categories {
 			flex: 1 1 auto;
 			min-height: 0;
 			overflow: auto;
@@ -596,6 +705,12 @@
 			.ant-table-body {
 				overflow-x: hidden !important;
 			}
+		}
+
+		.cube-editor > .cube-fields-categories > .cube-fields-pane-header-table {
+			flex: 0 0 auto !important;
+			height: auto !important;
+			overflow: visible !important;
 		}
 
 		.ant-table-thead > tr > th {
@@ -654,12 +769,11 @@
 
 	.cube-agent-measure-toggle {
 		flex-shrink: 0;
-		font-size: 13px;
+		font-size: 14px;
 		cursor: pointer;
 		transition: color 0.15s ease;
 		&.is-disabled {
 			cursor: not-allowed;
-			opacity: 0.45;
 		}
 	}
 
@@ -709,7 +823,7 @@
 
 			.business-view-empty-title {
 				margin: 0 0 6px;
-				font-size: 13px;
+				font-size: 14px;
 				font-weight: 500;
 				color: rgba(0, 0, 0, 0.65);
 				line-height: 1.4;
@@ -1904,6 +2018,22 @@
 	.ant-select-tree-node-content-wrapper {
 		min-height: 24px;
 		line-height: 24px;
+	}
+
+	.cube-semantic-type-node-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		min-width: 0;
+	}
+
+	.cube-semantic-type-icon {
+		flex-shrink: 0;
+		font-size: 12px;
+	}
+
+	.cube-semantic-type-node-label {
+		min-width: 0;
 	}
 
 	.cube-semantic-type-highlight {

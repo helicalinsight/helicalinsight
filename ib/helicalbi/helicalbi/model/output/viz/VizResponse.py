@@ -1,6 +1,10 @@
 from pydantic import BaseModel, Field, create_model
 
 from helicalbi.model.output.reason_field import reason_field_kwargs
+from helicalbi.model.output.viz.ChartSettings import (  # noqa: F401
+    ChartSettings,
+    DimensionSetting,
+)
 
 _VIZ_REASON_DESCRIPTION = (
     "Explanation of why this visualization type and title were chosen "
@@ -51,8 +55,26 @@ def get_ant_visualization_response_model():
 
 
 class ChartFillerResponse(BaseModel):
-    """Extracted information from the prompt."""
-    js_func_string: str = Field(description="The final js function in antd as per the above skeleton")
+    """LLM chart fill output: settings only (JS is filled locally from the skeleton)."""
+
+    settings: ChartSettings = Field(
+        description=(
+            "Filled chart settings matching the chart settings template. "
+            "Use dimensions.name (or dimensions.names), measures, labelsX/labelsY/title, "
+            "color, and measure_formats — do not return JavaScript."
+        )
+    )
+
+
+class OtherChartFillerResponse(BaseModel):
+    """LLM output for the catch-all ``other`` chart: full DrawOther JS/JSX."""
+
+    code: str = Field(
+        description=(
+            "Complete DrawOther() JavaScript/JSX function adapted to the user question "
+            "and result metadata. No markdown fences, no ChartSettings JSON."
+        )
+    )
 
 
 VisualizationResponse = get_visualization_response_model()

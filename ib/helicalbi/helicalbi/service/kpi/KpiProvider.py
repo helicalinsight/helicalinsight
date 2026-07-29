@@ -2,6 +2,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from helicalbi.common.LlmInvokeHelper import invoke_structured
+from helicalbi.common.app_config import kpi_suggestion_query
 from helicalbi.common.configuration import llm
 from helicalbi.model.TokenUsage import TokenUsage
 from helicalbi.model.output.KpiData import get_kpi_schema_model
@@ -11,11 +12,17 @@ from helicalbi.service.modelservice.InformationProvider import InformationProvid
 
 
 class KpiProvider:
-    def __init__(self, model_data, input_domain, user_query="Suggest few Measurable and timebound KPIS"):
+    def __init__(self, model_data, input_domain, user_query=None):
         self.model_data = model_data
         self.input_domain = input_domain
         self.topics = []
-        self.user_query = user_query
+        model_suggestion = (model_data or {}).get("suggestion_query")
+        if model_suggestion:
+            self.user_query = model_suggestion
+        elif user_query is not None:
+            self.user_query = user_query
+        else:
+            self.user_query = kpi_suggestion_query
 
     def top_kpis(self):
         info_provider = InformationProvider(model_data=self.model_data)

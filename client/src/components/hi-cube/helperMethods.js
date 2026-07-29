@@ -429,6 +429,20 @@ export const cubeTableDataSource = ({dataSource}) => {
 	return dataSource;
 }
 
+export const partitionCubeFieldsByRole = (dataSource = []) => {
+	const rows = cubeTableDataSource({ dataSource });
+	const dimensions = [];
+	const measures = [];
+	rows.forEach((row) => {
+		if (row.isHierarchy || row.isDimensionCheck || !row.measure?.isMeasureCheck) {
+			dimensions.push(row);
+		} else {
+			measures.push(row);
+		}
+	});
+	return { dimensions, measures };
+};
+
 export const handleLevelToHierarchy = ({restCurchild, state, dupCubeFieldsData, parentKey}) => { // test cases
 	restCurchild.fields = handleHierarachyTitle({
 		value: restCurchild.fields,
@@ -485,11 +499,16 @@ export const handleHierarchyData = ({state, record}) => { // test cases
 		hierarchyList: [ ...state.cubeFieldsData.hierarchyData.hierarchyList ],
 		isHierarchyPresent: state.cubeFieldsData.hierarchyData.isHierarchyPresent
 	};
-	hierarchyData.hierarchyList.push({
-		hierarchyName: record.fields,
-		hierarchyKey: record.key
-	});
-	hierarchyData.isHierarchyPresent = true;
+	const alreadyPresent = hierarchyData.hierarchyList.some(
+		(item) => item.hierarchyKey === record.key,
+	);
+	if (!alreadyPresent) {
+		hierarchyData.hierarchyList.push({
+			hierarchyName: record.fields,
+			hierarchyKey: record.key
+		});
+	}
+	hierarchyData.isHierarchyPresent = hierarchyData.hierarchyList.length > 0;
 	return hierarchyData;
 }
 

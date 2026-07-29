@@ -28,6 +28,20 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 0 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max 2"
+    ],
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "title": "Chart title"
+  },
   "instructions": [
     "RingProgress. Config: percent in [0,1] from actual/target; color [progress, track]; statistic content as %.",
     "Polish: clamp percent; 2-color palette; fontSize~14; no fake axes; title via statistic if needed."
@@ -35,14 +49,36 @@
   "code": [
     "function DrawProgress() {",
     "  const { RingProgress } = components;",
-    "  const measureField = 'measure_column';",
-    "  const targetField = 'target_column';",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      let out = num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const targetField = setting.measures[1];",
     "  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);",
-    "  const target = data[0]?.[targetField] ?? total;",
-    "  const percent = target > 0 ? total / target : 0;",
+    "  const target = targetField ? (data[0]?.[targetField] ?? total) : total;",
+    "  const percent = target > 0 ? Math.min(total / target, 1) : 0;",
     "  const config = {",
     "    percent,",
-    "    color: ['#5B8FF9', '#E8EDF3'],",
+    "    color: setting.color || ['#5B8FF9', '#E8EDF3'],",
     "    statistic: {",
     "      content: {",
     "        style: { fontSize: 14 },",

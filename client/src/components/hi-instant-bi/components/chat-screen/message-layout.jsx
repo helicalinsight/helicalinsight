@@ -451,7 +451,6 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                               }`}
                               onClick={() => {
                                 setActiveTab(item.key);
-                                handleScroll();
                               }}
                             >
                               {item.icon}

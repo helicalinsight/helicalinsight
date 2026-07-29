@@ -17,6 +17,21 @@
     "fields": {},
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "names": "provide dimension names separated by comma, min 2 max 2"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 0 max 1"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "palette",
+      "optional": false,
+      "description": "Sequential hex palette for the heat scale"
+    }
+  },
   "instructions": [
     "Calendar heatmap. Config: Heatmap; meta week_day/month cats; color sequential blues.",
     "Polish: xField/yField from date parts in data; legend continuous bottom; element-active; consistent month/weekday order."
@@ -24,22 +39,42 @@
   "code": [
     "function DrawCalendar() {",
     "  const { Heatmap } = components;",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
+    "    const fmt = measureFormats[field];",
+    "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
+    "    if (!fmt || raw == null || raw === '') return raw;",
+    "    const num = typeof raw === 'number' ? raw : Number(raw);",
+    "    if (typeof num !== 'number' || !Number.isFinite(num)) return raw;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      let out = num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
+    "    }",
+    "    return raw;",
+    "  };",
+    "  const xDim = (setting.dimensions.names && setting.dimensions.names[0]) || setting.dimensions.name;",
+    "  const yDim = (setting.dimensions.names && setting.dimensions.names[1]) || setting.dimensions.name;",
     "  const config = {",
     "    data,",
-    "    xField: '',",
-    "    yField: 'month',",
-    "    color: ['#B8E1FF', '#9AC5FF', '#7DAAFF', '#5B8FF9', '#3D76DD', '#085EC0', '#0047A5', '#00318A', '#001D70'],",
+    "    xField: xDim,",
+    "    yField: yDim,",
+    "    colorField: setting.measures[0],",
+    "    color: setting.color || ['#BAE7FF', '#1890FF', '#0050B3'],",
     "    meta: {",
-    "      week_day: {",
-    "        type: 'cat',",
-    "        values: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']",
-    "      },",
-    "      month: {",
-    "        type: 'cat',",
-    "        values: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']",
-    "      }",
+    "      [xDim]: { type: 'cat' },",
+    "      [yDim]: { type: 'cat' }",
     "    },",
-    "    interactions: [{ type: 'element-active' }]",
+    "    legend: { position: 'bottom' }",
     "  };",
     "  return <div><Heatmap {...config} /></div>;",
     "}"

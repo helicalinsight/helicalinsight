@@ -150,6 +150,31 @@ def _inherit_parent_display_fields(level: dict, parent: dict) -> dict:
     return item
 
 
+def _lift_formula_to_top_level(item: dict) -> dict:
+    """Promote ``metric.formula`` to a top-level ``formula`` key when needed.
+
+    Incoming cube payloads may nest formula under ``metric``; normalized items
+    expose ``formula`` directly. Other metric fields (aggregator, format, …)
+    stay on the metric object for backward-compatible readers.
+    """
+    if not isinstance(item, dict):
+        return item
+    metric_obj = item.get("metric") if isinstance(item.get("metric"), dict) else {}
+    formula = item.get("formula") or metric_obj.get("formula")
+    if formula in (None, ""):
+        return item
+
+    lifted = dict(item)
+    lifted["formula"] = str(formula)
+    if metric_obj and "formula" in metric_obj:
+        cleaned_metric = {k: v for k, v in metric_obj.items() if k != "formula"}
+        if cleaned_metric:
+            lifted["metric"] = cleaned_metric
+        else:
+            lifted.pop("metric", None)
+    return lifted
+
+
 def _hierarchy_level_to_item(
     level: dict,
     name_key: str,
@@ -158,7 +183,7 @@ def _hierarchy_level_to_item(
 ) -> dict:
     """Convert a hierarchy level into a dimension or measure dict.
 
-    Carries ``hierarchyName``, ``levelName``, ``columnName``, metric formula,
+    Carries ``hierarchyName``, ``levelName``, ``columnName``, formula,
     and the whole ``aiContext`` object through for table/column selection.
     """
     item = {k: v for k, v in level.items() if k != "hierarchies"}
@@ -176,7 +201,7 @@ def _hierarchy_level_to_item(
         level_name = item.get("levelName") or item.get("dimensionName") or item.get("measureName")
         if level_name:
             item[name_key] = level_name
-    return apply_ai_context(item)
+    return apply_ai_context(_lift_formula_to_top_level(item))
 
 
 def _expand_hierarchy_items(items: list, name_key: str) -> List[dict]:
@@ -185,7 +210,7 @@ def _expand_hierarchy_items(items: list, name_key: str) -> List[dict]:
     Levels are added first so they take precedence when names collide with the
     parent container. Existing non-hierarchy items are preserved unchanged
     (aside from aiContext normalization). Each level keeps hierarchyName,
-    levelName, columnName, metric formula, and aiContext for selection prompts.
+    levelName, columnName, formula, and aiContext for selection prompts.
     """
     expanded: List[dict] = []
     seen_names: Set[str] = set()
@@ -217,7 +242,7 @@ def _expand_hierarchy_items(items: list, name_key: str) -> List[dict]:
                     )
                 )
 
-        parent = apply_ai_context(parent_fields)
+        parent = apply_ai_context(_lift_formula_to_top_level(parent_fields))
         _append(parent)
 
     return expanded
@@ -471,10 +496,10 @@ def cube_info_to_cube_metadata(
                 "sort_direction": sort_direction_from_value(
                     _sort_order_raw_from_cube_item(dim)
                 ),
-                "metric": dim.get("metric") or {},
             }
             # Table/column selection needs dimensionName, semanticType, columnName,
-            # and the whole aiContext object.
+            # and the whole aiContext object. Formula is a top-level key (not
+            # nested under metric).
             if preferred_alias:
                 column_entry["dimension_name"] = preferred_alias
             if formula:
@@ -552,11 +577,11 @@ def cube_info_to_cube_metadata(
                     _sort_order_raw_from_cube_item(measure)
                 ),
                 "default_function": _default_function_from_cube_item(measure, metadata_response) or None,
-                "metric": measure.get("metric") or {},
                 "synonyms": measure.get("synonyms") or [],
             }
             # Table/column selection needs measureName, columnName, and aiContext.
             # Blank-column (formula-only) measures also need formula + semanticType.
+            # Formula is a top-level key (not nested under metric).
             if preferred_alias:
                 measure_entry["measure_name"] = preferred_alias
             ai_context = _ai_context_payload(measure)

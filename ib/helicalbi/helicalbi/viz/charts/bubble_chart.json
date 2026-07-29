@@ -38,6 +38,22 @@
       "dimension_column"
     ]
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 0 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 2 max any"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "labelsZ": "Label for size / z field"
+  },
   "instructions": [
     "Bubble Scatter. Config: xField, yField measures; sizeField; colorField dim; size:[4,30]; shape circle.",
     "Polish: autoFit; legend for color; opacity if dense; interactions element-active; axis titles."
@@ -45,11 +61,10 @@
   "code": [
     "function DrawBubbleChart() {",
     "  const { Scatter } = components;",
-    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
-    "  const measureFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
-    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
     "    const fmt = measureFormats[field];",
     "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
     "    if (!fmt || raw == null || raw === '') return raw;",
@@ -58,26 +73,32 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return raw;",
     "  };",
     "  const config = {",
     "    data,",
-    "    xField: 'x_measure_column',",
-    "    yField: 'y_measure_column',",
-    "    sizeField: 'size_measure_column',",
-    "    colorField: 'dimension_column',",
+    "    xField: setting.measures[0],",
+    "    yField: setting.measures[1],",
+    "    sizeField: setting.measures[2] || setting.measures[1],",
     "    size: [4, 30],",
     "    shape: 'circle',",
+    "    ...(setting.dimensions.name ? { colorField: setting.dimensions.name } : {}),",
+    "    ...(setting.color ? { color: setting.color } : {}),",
+    "    xAxis: { title: { text: setting.labelsX } },",
+    "    yAxis: { title: { text: setting.labelsY } },",
     "    interactions: [{ type: 'element-active' }],",
     "    meta: {",
-    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "      [setting.measures[0]]: { alias: setting.labelsX || setting.measures[0], formatter: (v) => formatMeasure(v, setting.measures[0]) },",
+    "      [setting.measures[1]]: { alias: setting.labelsY || setting.measures[1], formatter: (v) => formatMeasure(v, setting.measures[1]) }",
     "    }",
     "  };",
     "  return <div><Scatter {...config} /></div>;",

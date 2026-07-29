@@ -41,7 +41,7 @@ Response:
     "chart_name": "bar",
     "vf_title": "...",
     "vf_reason": "...",
-      "similar_chart": [{"vf.column": "column"}, {"vf.pie": "pie"}, "..."]
+      "similar_chart": [{"vf.heatmap": "heatmap"}, {"vf.column": "column"}, {"vf.pie": "pie"}, "..."]
   }
 }
 ```

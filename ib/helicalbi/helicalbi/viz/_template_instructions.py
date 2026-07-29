@@ -1,17 +1,20 @@
 """
 Shared output constraints only. Chart-specific config/polish lives in each viz module.
-Assumes LLM knows @ant-design/charts@1.4.2 (G2Plot API).
+
+Default charts: the LLM fills ChartSettings JSON; settings are injected at `${setting}`.
+``other`` charts: settings injection is not enough — the LLM returns a full DrawOther JS function.
 """
 
 BASE_RULES = """
-@ant-design/charts@1.4.2. Output JSX only: no imports/markdown/export statements.
-Keep `data` as-is. Replace placeholders with real metadata keys (dims=text/cat/date, measures=numeric).
-Keep function name + component. Valid braces/tags.
+@ant-design/charts@1.4.2 field roles. Output ChartSettings only: no JS/JSX/markdown.
+Pick dimension / measure column names from executeQuery metadata (dims=text/cat/date, measures=numeric).
+Fill dimensions.name (or dimensions.names), measures[], labelsX/labelsY/title, and color as the template asks.
 """
 
 OTHER_BASE_RULES = """
-@ant-design/charts@1.4.2 custom viz. Output JSX only: no imports/markdown/export statements.
-Keep `data` as-is. Function must be DrawOther.
-Pick ONE component from `components` matching viz_hint. Map dims->xField/colorField; measures->yField/angleField/sizeField.
-Wrap: return <div><Comp {...config} /></div>. Optional helperFunctions: getTooltip, enableInteractivity, getPropertiesConfig.
+@ant-design/charts@1.4.2 custom / fallback viz.
+Return a complete DrawOther() JavaScript/JSX function only — no markdown fences, no ChartSettings JSON.
+Use executeQuery metadata for real column names. Keep `data` as-is (never inline sample rows).
+Destructure chart components from `components`. Replace ChartComponent with the plot that matches the user question.
+Do not leave `${setting}` or `setting.*` references — bind concrete field names.
 """
