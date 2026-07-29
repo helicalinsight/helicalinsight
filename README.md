@@ -26,6 +26,10 @@ A Unified Open Source Enterprise Ready Embedded BI with AI Capabilities ~ provid
 ## Concept Video Overview
 ![Introduction](docs/Intro.gif)
 
+## Demo 
+![Helical Insight Introduction](docs%2Fv7%20Github%20Helical%20Insight.gif)
+Reach out for a personalized demo on support@helicalinsight.com
+
 
 ## Key Features
 Helical Insight is designed for organizations that need a complete Business Intelligence and Reporting platform without compromising flexibility or scalability.
@@ -85,6 +89,8 @@ The comparison includes:
 - Dashboarding
 - AI Features
 
+For a more detailed comparison, refer to the blog : [Comparison link](https://www.helicalinsight.com/open-source-github-hosted-bi-tools-comparison/) 
+
 ![Comparison Matrix](docs%2FHelical%20insight%20bi%20tool%20comparison%20with%20modern%20open%20source%20BI.png
 )
 
@@ -105,13 +111,9 @@ The comparison covers:
 - Exporting
 - Modern BI requirements
 
+For a more detailed comparison, refer to the blog : [Comparison link](https://www.helicalinsight.com/helical-insight-vs-legacy-reporting-tools/) 
+
 ![Traditional Reporting Comparison](docs%2FHelical%20Insight%20BI%20tool%20comparison%20with%20traditional%20open%20source%20reporting%201.png)
-
-
-
-## Demo 
-![Helical Insight Introduction](docs%2Fv7%20Github%20Helical%20Insight.gif)
-Reach out for a personalized demo on support@helicalinsight.com
 
 ---
 
