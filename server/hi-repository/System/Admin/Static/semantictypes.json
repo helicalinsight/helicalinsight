@@ -1,24 +1,9 @@
 {
   "semanticTypes": [
     {
-      "label": "Generic",
-      "value": "GENERIC",
-      "options": [
-        {
-          "label": "String",
-          "value": "generic.string",
-          "formats": []
-        },
-        {
-          "label": "Character",
-          "value": "generic.character",
-          "formats": []
-        }
-      ]
-    },
-    {
       "label": "Temporal",
       "value": "TEMPORAL",
+      "icon": "CalendarOutlined",
       "options": [
         {
           "label": "Date",
@@ -75,6 +60,7 @@
     {
       "label": "Numeric",
       "value": "NUMERIC",
+      "icon": "NumberOutlined",
       "options": [
         {
           "label": "Integer",
@@ -145,6 +131,7 @@
     {
       "label": "Identifier",
       "value": "IDENTIFIER",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Identifier",
@@ -191,6 +178,7 @@
     {
       "label": "Person",
       "value": "PERSON",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Person Name",
@@ -234,6 +222,7 @@
     {
       "label": "Geographic",
       "value": "GEOGRAPHIC",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Address",
@@ -286,6 +275,7 @@
     {
       "label": "Organization",
       "value": "ORGANIZATION",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Company",
@@ -317,6 +307,7 @@
     {
       "label": "Product & Business",
       "value": "PRODUCT_BUSINESS",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Product",
@@ -343,6 +334,7 @@
     {
       "label": "Internet & Network",
       "value": "INTERNET_NETWORK",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "URL",
@@ -374,6 +366,7 @@
     {
       "label": "Documents & Content",
       "value": "DOCUMENTS_CONTENT",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Text",
@@ -425,6 +418,7 @@
     {
       "label": "Media",
       "value": "MEDIA",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Image",
@@ -451,6 +445,7 @@
     {
       "label": "Logical",
       "value": "LOGICAL",
+      "icon": "CheckOutlined",
       "options": [
         {
           "label": "Boolean",
@@ -477,6 +472,7 @@
     {
       "label": "Collection",
       "value": "COLLECTION",
+      "icon": "FileTextOutlined",
       "options": [
         {
           "label": "Array",

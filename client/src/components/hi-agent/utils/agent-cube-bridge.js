@@ -70,9 +70,8 @@ const orderCubeFields = (dimensions = [], measures = []) =>
 const collapseNewlines = (value = "") =>
   String(value || "").replace(/\r?\n+/g, " ");
 
-const buildMetric = (formula = "") => ({
-  formula: collapseNewlines(formula),
-});
+const readFormulaFromEntry = (entry = {}) =>
+  collapseNewlines(entry.formula ?? entry.metric?.formula ?? "");
 
 const buildAiContextForExport = (child = {}) => ({
   aiContext: {
@@ -292,7 +291,7 @@ const buildDimensionEntry = (child, sortOrder) => ({
     child.defaultFunction || child.column?.defaultFunction || "",
   formatString: child.measure?.Format || "",
   ...buildAiContextForExport(child),
-  metric: buildMetric(child.formula),
+  formula: collapseNewlines(child.formula),
   sort: toSortValue(child.sort),
   sortOrder,
 });
@@ -305,7 +304,7 @@ const buildAgentLevelEntry = (child) => ({
   columnId: asId(child.columnId),
   defaultFunction: child.defaultFunction || child.column?.defaultFunction || "",
   formatString: child.measure?.Format || "",
-  metric: buildMetric(child.formula),
+  formula: collapseNewlines(child.formula),
   sort: toSortValue(child.sort),
 });
 
@@ -331,7 +330,7 @@ const buildAgentHierarchyDimension = (child, sortOrder) => {
       primaryLevel.defaultFunction ||
       "",
     formatString: child.measure?.Format || "",
-    metric: buildMetric(child.formula),
+    formula: collapseNewlines(child.formula),
     sort: toSortValue(child.sort),
     sortOrder,
     hierarchies: [
@@ -368,7 +367,7 @@ const buildMeasureEntry = (child, sortOrder) => {
     semanticType: child.semanticType || "",
     columnName: buildQualifiedColumnName(child),
     ...buildAiContextForExport(child),
-    metric: buildMetric(child.formula),
+    formula: collapseNewlines(child.formula),
     sortOrder,
   };
 };
@@ -383,7 +382,7 @@ const buildLevelEntry = (child) => ({
     child.defaultFunction || child.column?.defaultFunction || "",
   formatString: child.measure?.Format || "",
   ...buildAiContextForExport(child),
-  metric: buildMetric(child.formula),
+  formula: collapseNewlines(child.formula),
   sort: toSortValue(child.sort),
 });
 
@@ -413,7 +412,7 @@ const buildHierarchyDimensionEntry = (hierarchyChild, sortOrder) => {
       "",
     formatString: hierarchyChild.measure?.Format || "",
     ...buildAiContextForExport(hierarchyChild),
-    metric: buildMetric(hierarchyChild.formula),
+    formula: collapseNewlines(hierarchyChild.formula),
     sort: toSortValue(hierarchyChild.sort),
     hierarchies: [
       {
@@ -444,7 +443,7 @@ const createChildFromLevel = (level, parentKey) => {
     domain: level.business?.domain ?? level.domain ?? "",
     businessDescription: level.business?.description ?? "",
     isBusinessView: isBusinessEntry(level),
-    formula: level.metric?.formula || "",
+    formula: readFormulaFromEntry(level),
     filter: "",
     ...readAiContextFromEntry(level),
     topic: level.business?.topic ?? level.topic ?? "",
@@ -514,7 +513,7 @@ const createChildFromDimension = (dimension) => {
     topic: dimension.business?.topic ?? dimension.topic ?? "",
     businessDescription: dimension.business?.description ?? "",
     isBusinessView: isBusinessEntry(dimension),
-    formula: dimension.metric?.formula || "",
+    formula: readFormulaFromEntry(dimension),
     filter: "",
     ...readAiContextFromEntry(dimension),
     fieldsDropdownOpen: false,
@@ -544,7 +543,7 @@ const createHierarchyChildFromLevel = (level, parentKey) => {
     columnId: level.columnId || "",
     defaultFunction: level.defaultFunction || "",
     semanticType: level.semanticType || "",
-    formula: level.metric?.formula || "",
+    formula: readFormulaFromEntry(level),
     filter: "",
     example: "",
     synonyms: "",
@@ -597,7 +596,7 @@ const createChildFromAgentDimension = (dimension) => {
       columnName: level.columnName || dimension.columnName,
       semanticType: level.semanticType ?? dimension.semanticType,
       defaultFunction: level.defaultFunction ?? dimension.defaultFunction,
-      metric: level.metric ?? dimension.metric,
+      formula: readFormulaFromEntry(level) || readFormulaFromEntry(dimension),
       sort: level.sort ?? dimension.sort,
     });
   }
@@ -612,7 +611,7 @@ const createChildFromAgentDimension = (dimension) => {
     columnId: hierarchy.primaryColumnId || dimension.columnId || "",
     defaultFunction: dimension.defaultFunction || "",
     semanticType: dimension.semanticType || "",
-    formula: dimension.metric?.formula || "",
+    formula: readFormulaFromEntry(dimension),
     filter: "",
     example: "",
     synonyms: "",
@@ -648,7 +647,7 @@ const createChildFromMeasure = (measure) => {
     topic: measure.business?.topic ?? measure.topic ?? "",
     businessDescription: measure.business?.description ?? "",
     isBusinessView: isBusinessEntry(measure),
-    formula: measure.metric?.formula || "",
+    formula: readFormulaFromEntry(measure),
     filter: "",
     ...readAiContextFromEntry(measure),
     fieldsDropdownOpen: false,
@@ -691,7 +690,7 @@ export const createColumnChildFromDropRecord = (
   semanticTypeOptions,
 ) => {
   const isNumeric = record.dataType === "numeric";
-  const isDateOrText = ["date", "dateTime", "text"].includes(record.dataType);
+  const isDimension = !isNumeric;
   const semanticType = getDefaultSemanticTypeForRole(
     isNumeric,
     "agent",
@@ -706,7 +705,7 @@ export const createColumnChildFromDropRecord = (
     fields: record.alias,
     tableId: record.tableId,
     fieldsDropdownOpen: false,
-    isDimensionCheck: isDateOrText,
+    isDimensionCheck: isDimension,
     measure: {
       isMeasureCheck: isNumeric,
       DataType: isNumeric ? cubeEditorMeasureData[0].dataType : "",
@@ -714,8 +713,8 @@ export const createColumnChildFromDropRecord = (
     },
     isVisible: true,
     sort: {
-      isSortCheck: isDateOrText,
-      value: isDateOrText ? "Ascending" : "",
+      isSortCheck: false,
+      value: isDimension ? "Natural" : "",
     },
     aggregation: {
       isAggregationCheck: isNumeric,
@@ -1047,18 +1046,17 @@ const mergeLevelList = (storedLevels = [], displayLevels = []) => {
   return displayLevels.map((item) => {
     const key = fieldKey(item.tableId, item.columnId, item.columnName);
     const previous = storedByKey.get(key) || {};
+    const { metric: _previousMetric, ...previousRest } = previous;
+    const { metric: _itemMetric, ...itemRest } = item;
     return {
-      ...previous,
-      ...item,
+      ...previousRest,
+      ...itemRest,
       levelName: item.levelName || previous.levelName || "",
       columnName: item.columnName || previous.columnName || "",
       tableId: item.tableId || previous.tableId || "",
       columnId: item.columnId || previous.columnId || "",
       defaultFunction: item.defaultFunction || previous.defaultFunction || "",
-      metric: {
-        ...buildMetric(previous.metric?.formula),
-        ...item.metric,
-      },
+      formula: readFormulaFromEntry(item) || readFormulaFromEntry(previous),
       sortOrder: item.sortOrder ?? previous.sortOrder,
     };
   });
@@ -1101,20 +1099,19 @@ const mergeFieldList = (stored = [], display = [], kind) => {
       item.columnName,
     );
     const previous = storedByKey.get(key) || {};
+    const { metric: _previousMetric, ...previousRest } = previous;
+    const { metric: _itemMetric, ...itemRest } = item;
     if (kind === "dimension") {
       const merged = {
-        ...previous,
-        ...item,
+        ...previousRest,
+        ...itemRest,
         dimensionName: item.dimensionName || previous.dimensionName || "",
         columnName: item.columnName || previous.columnName || "",
         tableId: item.tableId || previous.tableId || "",
         columnId: item.columnId || previous.columnId || "",
         defaultFunction:
           item.defaultFunction || previous.defaultFunction || "",
-        metric: {
-          ...buildMetric(previous.metric?.formula),
-          ...item.metric,
-        },
+        formula: readFormulaFromEntry(item) || readFormulaFromEntry(previous),
         sortOrder: item.sortOrder ?? previous.sortOrder,
       };
       if (item.hierarchies?.length || previous.hierarchies?.length) {
@@ -1126,17 +1123,14 @@ const mergeFieldList = (stored = [], display = [], kind) => {
       return merged;
     }
     return {
-      ...previous,
-      ...item,
+      ...previousRest,
+      ...itemRest,
       measureName: item.measureName || previous.measureName || "",
       columnName: item.columnName || previous.columnName || "",
       tableId: item.tableId || previous.tableId || "",
       columnId: item.columnId || previous.columnId || "",
       defaultFunction: item.defaultFunction || previous.defaultFunction || "",
-      metric: {
-        ...buildMetric(previous.metric?.formula),
-        ...item.metric,
-      },
+      formula: readFormulaFromEntry(item) || readFormulaFromEntry(previous),
       sortOrder: item.sortOrder ?? previous.sortOrder,
     };
   });

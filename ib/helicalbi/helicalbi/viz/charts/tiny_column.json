@@ -26,6 +26,20 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 1 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max 1"
+    ],
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "title": "Chart title"
+  },
   "instructions": [
     "TinyColumn sparkline. Config: xField, yField; autoFit.",
     "Polish: no axes/legend; compact bars; discrete comparison only."
@@ -33,11 +47,10 @@
   "code": [
     "function DrawTinyColumn() {",
     "  const { TinyColumn } = components;",
-    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
-    "  const measureFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
-    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
     "    const fmt = measureFormats[field];",
     "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
     "    if (!fmt || raw == null || raw === '') return raw;",
@@ -46,22 +59,24 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return raw;",
     "  };",
     "  const config = {",
     "    data,",
-    "    xField: 'dimension_column',",
-    "    yField: 'measure_column',",
-    "    autoFit: true,",
+    "    xField: setting.dimensions.name,",
+    "    yField: setting.measures[0],",
+    "    ...(setting.color ? { color: setting.color } : {}),",
     "    meta: {",
-    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "      [measureField]: { alias: setting.title || measureField, formatter: (v) => formatMeasure(v, measureField) }",
     "    }",
     "  };",
     "  return <div><TinyColumn {...config} /></div>;",

@@ -28,6 +28,20 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 0 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max 2"
+    ],
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "title": "Chart title"
+  },
   "instructions": [
     "Gauge. Config: percent [0,1]; range.color; indicator pointer/pin muted.",
     "Polish: actual/target -> percent; soft track color; no noisy ticks; keep label minimal."
@@ -35,11 +49,10 @@
   "code": [
     "function DrawGauge() {",
     "  const { Gauge } = components;",
-    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
-    "  const measureFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
-    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
     "    const fmt = measureFormats[field];",
     "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
     "    if (!fmt || raw == null || raw === '') return raw;",
@@ -48,31 +61,32 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return raw;",
     "  };",
-    "  const measureField = 'measure_column';",
-    "  const targetField = 'target_column';",
+    "  const targetField = setting.measures[1];",
     "  const total = data.reduce((sum, row) => sum + (row[measureField] || 0), 0);",
-    "  const target = data[0]?.[targetField] ?? total;",
+    "  const target = targetField ? (data[0]?.[targetField] ?? total) : total;",
     "  const percent = target > 0 ? total / target : 0;",
     "  const config = {",
     "    percent,",
     "    range: {",
-    "      color: ['#5B8FF9', '#E8EDF3']",
+    "      color: setting.color || ['#5B8FF9', '#E8EDF3']",
     "    },",
     "    indicator: {",
     "      pointer: { style: { stroke: '#D0D0D0' } },",
     "      pin: { style: { stroke: '#D0D0D0' } }",
     "    },",
     "    meta: {",
-    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "      [measureField]: { alias: setting.title || measureField, formatter: (v) => formatMeasure(v, measureField) }",
     "    }",
     "  };",
     "  return <div><Gauge {...config} /></div>;",

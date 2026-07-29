@@ -3,7 +3,7 @@
   "dims_max": null,
   "measures_min": 0,
   "measures_max": null,
-  "instruction": "Exact row-level values or many columns matter most.",
+  "instruction": "Exact row-level values or many columns matter most. Do not prefer for a single categorical list (modes, mediums, reasons) — use wordcloud instead.",
   "aliases": [
     "data table",
     "flat table",
@@ -29,6 +29,21 @@
     },
     "omit_when_missing": []
   },
+  "settings": {
+    "dimensions": {
+      "names": "provide dimension names separated by comma, min 0 max any"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 0 max any"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    }
+  },
   "instructions": [
     "Table. Config: columns from Object.keys(data[0]); dataSource=data; rowKey index; pagination.",
     "Polish: humanize headers (underscore->space); pagination true; no fake sorts unless asked; wrap in div.",
@@ -38,11 +53,8 @@
   "code": [
     "function DrawTable() {",
     "  const { Table } = components;",
-    "  // conversionHints: xField: 'dimension_column', yField: 'measure_column'",
-    "  // Fill from provided Excel format strings for matching column/measure names only.",
-    "  const columnFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
+    "  const setting = ${setting};",
+    "  const columnFormats = setting.measure_formats || {};",
     "  const formatCell = (key, value) => {",
     "    const fmt = columnFormats[key];",
     "    if (!fmt || value == null || value === '') return value;",
@@ -51,12 +63,14 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return value;",
     "  };",

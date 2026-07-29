@@ -54,6 +54,7 @@ def test_chat_response_includes_similar_chart():
     payload = response.to_dict()
     assert payload["viz"]["chart_name"] == "bar"
     assert payload["viz"]["similar_chart"] == [
+        {"vf.bar": "bar"},
         {"vf.column": "column"},
         {"vf.pie": "pie"},
     ]
@@ -61,11 +62,29 @@ def test_chat_response_includes_similar_chart():
     assert payload["viz"]["vf_template"]
 
 
+def test_spaced_chart_name_becomes_vf_underscore_key():
+    """chart_name may contain whitespace; wire key uses underscores."""
+    response = ChatResponse.from_model_state(
+        {
+            "viz_hint": "dual_line",
+            "vf_title": "Cost trend",
+            "viz_reason": "dual axis",
+            "similar_chart": ["column_line", "circle packing"],
+            "vf_string": "function DrawDualLine() { return null; }",
+        }
+    )
+    payload = response.to_dict()
+    assert payload["viz"]["chart_name"] == "dual line"
+    assert payload["viz"]["similar_chart"][0] == {"vf.dual_line": "dual line"}
+    assert {"vf.column_line": "column line"} in payload["viz"]["similar_chart"]
+    assert {"vf.circle_packing": "circle packing"} in payload["viz"]["similar_chart"]
+
+
 def test_hydrate_saved_viz_fills_missing_similar_on_open():
     _reload_charts()
     payload = hydrate_saved_viz(
         {
-            "chart_name": "bar",
+            "chart_name": "circle packing",
             "vf_title": "Sales",
             "vf_template": "",
             "settings": {"backgroundColor": "#ffffff"},
@@ -75,11 +94,6 @@ def test_hydrate_saved_viz_fills_missing_similar_on_open():
             {"name": "amount", "type": "numeric"},
         ],
     )
-    assert payload["chart_name"] == "bar"
+    assert payload["chart_name"] == "circle packing"
     assert "settings" not in payload
-    names = [
-        next(iter(item.keys()))[3:]
-        for item in payload["similar_chart"]
-        if item
-    ]
-    assert "column" in names
+    assert payload["similar_chart"][0] == {"vf.circle_packing": "circle packing"}

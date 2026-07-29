@@ -1,0 +1,73 @@
+// HelicalBI pytest + coverage on Jenkins (HI7SourceCode workspace).
+//
+// Suggested job setup:
+//   - Multibranch / Pipeline from SCM, or paste into existing HI7 Jenkinsfile as a stage.
+//   - Agent that can reach:
+//       /home/helical/.jenkins/workspace/HI7SourceCode/ib/helicalbi
+//
+// Artifacts:
+//   - JUnit:   ib/helicalbi/reports/junit.xml
+//   - Coverage XML: ib/helicalbi/reports/coverage.xml
+//   - HTML:    ib/helicalbi/htmlcov/**
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    timeout(time: 60, unit: 'MINUTES')
+  }
+
+  environment {
+    // Override in job if the InstantBI path differs under HI7SourceCode.
+    WORKSPACE_ROOT = "${env.WORKSPACE ?: '/home/helical/.jenkins/workspace/HI7SourceCode'}"
+    HELICALBI_ROOT = "${env.HELICALBI_ROOT ?: "${WORKSPACE_ROOT}/ib/helicalbi"}"
+    HELICALBI_LLM_MODE = 'stub'
+  }
+
+  parameters {
+    booleanParam(
+      name: 'SKIP_LLM',
+      defaultValue: true,
+      description: 'Skip DeepEval LLM marker tests (recommended for PR / nightly CI)'
+    )
+    booleanParam(
+      name: 'CONTINUE_ON_COLLECTION_ERRORS',
+      defaultValue: false,
+      description: 'Pass --continue-on-collection-errors to pytest'
+    )
+  }
+
+  stages {
+    stage('HelicalBI Tests') {
+      steps {
+        sh '''
+          set -euo pipefail
+          echo "WORKSPACE_ROOT=${WORKSPACE_ROOT}"
+          echo "HELICALBI_ROOT=${HELICALBI_ROOT}"
+          test -f "${HELICALBI_ROOT}/pytest.ini"
+          chmod +x "${HELICALBI_ROOT}/scripts/run_tests_with_report.sh"
+          ARGS=""
+          if [ "${SKIP_LLM}" = "true" ]; then
+            ARGS="${ARGS} --skip-llm"
+          fi
+          if [ "${CONTINUE_ON_COLLECTION_ERRORS}" = "true" ]; then
+            ARGS="${ARGS} --continue-on-collection-errors"
+          fi
+          # shellcheck disable=SC2086
+          bash "${HELICALBI_ROOT}/scripts/run_tests_with_report.sh" ${ARGS}
+        '''
+      }
+      post {
+        always {
+          // Paths relative to Jenkins $WORKSPACE (HI7SourceCode root).
+          junit allowEmptyResults: true, testResults: '**/ib/helicalbi/reports/junit.xml'
+          archiveArtifacts artifacts: '**/ib/helicalbi/reports/**,**/ib/helicalbi/htmlcov/**', allowEmptyArchive: true
+          // Optional if Cobertura plugin is installed:
+          // cobertura coberturaReportFile: '**/ib/helicalbi/reports/coverage.xml'
+        }
+      }
+    }
+  }
+}

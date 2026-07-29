@@ -33,6 +33,22 @@
       "series_column"
     ]
   },
+  "settings": {
+    "dimensions": {
+      "name": "provide the dimension name min 1 and max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max 1"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "series": "optional series / group / stack field name"
+  },
   "instructions": [
     "Rose. Config: xField=category, yField=measure; seriesField optional; radius~0.9; label offset -15.",
     "Polish: element-active; legend if series; limit categories; soft palette; autoFit."
@@ -40,11 +56,10 @@
   "code": [
     "function DrawRoseChart() {",
     "  const { Rose } = components;",
-    "  // Fill from Excel format strings for matching measure names only; omit unused keys.",
-    "  const measureFormats = {",
-    "    measure_column: '0.00'",
-    "  };",
-    "  const formatMeasure = (v, field = 'measure_column') => {",
+    "  const setting = ${setting};",
+    "  const measureFormats = setting.measure_formats || {};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const formatMeasure = (v, field = measureField) => {",
     "    const fmt = measureFormats[field];",
     "    const raw = (v != null && typeof v === 'object') ? (v[field] ?? v.value ?? v) : v;",
     "    if (!fmt || raw == null || raw === '') return raw;",
@@ -53,25 +68,25 @@
     "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
     "      return num.toFixed((fmt.split('.')[1] || '').length);",
     "    }",
-    "    if (fmt.includes('#') || fmt.includes(',')) {",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
     "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
-    "      return num.toLocaleString(undefined, {",
+    "      let out = num.toLocaleString(undefined, {",
     "        minimumFractionDigits: decimals,",
     "        maximumFractionDigits: decimals || 0",
     "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
     "    }",
     "    return raw;",
     "  };",
     "  const config = {",
     "    data,",
-    "    xField: 'dimension_column',",
-    "    yField: 'measure_column',",
-    "    seriesField: 'series_column',",
-    "    radius: 0.9,",
-    "    label: { offset: -15 },",
-    "    interactions: [{ type: 'element-active' }],",
+    "    xField: setting.dimensions.name,",
+    "    yField: setting.measures[0],",
+    "    seriesField: setting.dimensions.name,",
+    "    ...(setting.color ? { color: setting.color } : {}),",
     "    meta: {",
-    "      measure_column: { alias: 'measure_column', formatter: (v) => formatMeasure(v, 'measure_column') }",
+    "      [measureField]: { alias: setting.labelsY || measureField, formatter: (v) => formatMeasure(v, measureField) }",
     "    }",
     "  };",
     "  return <div><Rose {...config} /></div>;",

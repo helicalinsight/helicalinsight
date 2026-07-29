@@ -42,3 +42,10 @@ hide_prompt_reason = bool(_feature_flags.get("hide_prompt_reason", False))
 _api_cache_settings = _app_config.get("api_cache", {})
 api_cache_enabled = bool(_api_cache_settings.get("enabled", True))
 api_cache_max_entries = max(1, int(_api_cache_settings.get("max_entries", 100)))
+
+_kpi_settings = _app_config.get("kpi", {})
+kpi_suggestion_query = str(
+    _kpi_settings.get(
+        "suggestion_query", "Suggest few Measurable and timebound KPIS"
+    )
+)

@@ -1,12 +1,15 @@
 import React from "react";
-import { Col, Row, Typography } from "antd";
+import { Col, Row, Tooltip, Typography } from "antd";
+import { InfoCircleOutlined } from "@ant-design/icons";
 import { Cube } from "../../../../hi-cube/cube";
 import { useAgentName } from "../../../../common/agent-name-context";
 import { CustomIcon } from "../../../../common/custom-icons/CustomIcon";
+import { getCubeEditorTooltipText } from "../../../../hi-cube/cubeEditorTooltips";
 
 const { Paragraph } = Typography;
 
 const DEFAULT_AGENT_NAME = "Model_1";
+const MODEL_NAME_TOOLTIP = getCubeEditorTooltipText("Semantic Model", "agent");
 
 /** Agent_1 shelf: name bar + Fields (cube) editor */
 export function CubeShelf({ showBusinessFields = false }) {
@@ -21,16 +24,24 @@ export function CubeShelf({ showBusinessFields = false }) {
             <CustomIcon name="Cube" />
           </Col>
           <Col span={22} className="metadata-name-edit-name">
-            <Paragraph
-              ellipsis={{ tooltip: displayName }}
-              editable={{
-                tooltip: "Edit",
-                text: displayName,
-                onChange: (value) => onAgentNameChange?.(value),
-              }}
-            >
-              {displayName}
-            </Paragraph>
+            <span className="cube-shelf-name-row">
+              <Paragraph
+                className="cube-shelf-name-text"
+                ellipsis={{ tooltip: displayName }}
+                editable={{
+                  tooltip: "Edit",
+                  text: displayName,
+                  onChange: (value) => onAgentNameChange?.(value),
+                }}
+              >
+                {displayName}
+              </Paragraph>
+              {MODEL_NAME_TOOLTIP ? (
+                <Tooltip title={MODEL_NAME_TOOLTIP} placement="right">
+                  <InfoCircleOutlined className="cube-info-icon cube-shelf-name-info" />
+                </Tooltip>
+              ) : null}
+            </span>
           </Col>
         </Row>
       </div>

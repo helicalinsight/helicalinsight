@@ -4,7 +4,11 @@ Each file name is the visualization_type. Add a chart by dropping a new JSON
 file into that folder — no Python module required.
 
 Optional JSON keys:
-- ``instructions`` / ``code``: list of lines (joined with ``\\n`` for the LLM)
+- ``settings``: LLM fill schema (dimensions / measures / labels / color)
+- ``instructions``: short polish notes for the LLM (no JS)
+- ``code``: local JS/JSX skeleton filled from settings (never sent to the LLM),
+  except ``other`` where the starter template *is* sent for full JS generation
+- ``base``: ``default`` (settings fill) or ``other`` (LLM returns DrawOther JS)
 - ``conversion``: non-LLM interconversion contract (family, field roles, omit keys)
 
 Similar charts are deduced at runtime from ``possible_chart_options`` in
@@ -24,6 +28,10 @@ from helicalbi.viz._chart_selection import (
     _build_chart_selection_table,
     format_similar_chart_wire,
     resolve_similar_charts,
+)
+from helicalbi.viz._chart_settings import (
+    settings_template_from_payload,
+    settings_template_to_prompt,
 )
 from helicalbi.viz._template_instructions import BASE_RULES, OTHER_BASE_RULES
 
@@ -81,6 +89,7 @@ class ChartDefinition:
     template: str
     code: str = ""
     conversion: Optional[ChartConversion] = None
+    settings: Optional[dict[str, Any]] = None
 
 
 _CACHE: Optional[dict[str, ChartDefinition]] = None
@@ -96,15 +105,57 @@ def _join_lines(value: Any) -> str:
     return str(value)
 
 
-def _build_template(payload: dict) -> str:
+def _build_other_code_template(payload: dict) -> str:
+    """LLM prompt for the catch-all ``other`` chart: full JS, not ChartSettings."""
+    base = OTHER_BASE_RULES
+    instructions = _join_lines(payload.get("instructions", "")).strip()
+    code = _join_lines(payload.get("code", "")).strip()
+    parts = [
+        "",
+        base.strip(),
+        "",
+        "Return ONLY a complete DrawOther() JavaScript/JSX function.",
+        "Do NOT return ChartSettings JSON — settings injection does not work for other charts.",
+        "Adapt the starter template to the user question and result-column metadata.",
+        "Replace any `${setting}` / setting.* bindings with real field names from metadata.",
+        "Keep function name DrawOther. Keep `data` as the data source.",
+        "",
+        "### STARTER TEMPLATE (adapt this)",
+        code or "// function DrawOther() { ... }",
+    ]
+    if instructions:
+        parts.extend(["", "### CHART INSTRUCTIONS", instructions])
+    parts.append("")
+    return "\n".join(parts)
+
+
+def _build_template(payload: dict, settings_template: dict[str, Any]) -> str:
+    """LLM fill prompt for a chart.
+
+    Default charts: base rules + polish notes + settings template (no JS code).
+    ``other`` (base=other): instructions + starter JS — LLM returns DrawOther code.
+    """
+    if str(payload.get("base") or "").strip().lower() == "other":
+        return _build_other_code_template(payload)
+
     base = _BASE_RULES.get(payload.get("base", "default"), BASE_RULES)
-    instructions = "\n" + _join_lines(payload.get("instructions", "")).strip() + "\n"
-    code = _join_lines(payload.get("code", ""))
-    if code and not code.startswith("\n"):
-        code = "\n" + code
-    if code and not code.endswith("\n"):
-        code = code + "\n"
-    return "\n" + base + instructions + code
+    instructions = _join_lines(payload.get("instructions", "")).strip()
+    settings_json = settings_template_to_prompt(settings_template)
+    parts = [
+        "",
+        base.strip(),
+        "",
+        "Return ChartSettings JSON only — do NOT return JavaScript / JSX.",
+        "Fill the settings template below with real result-column names and labels.",
+        "The filled settings object will be injected into the chart code at ${setting}.",
+        "",
+        "### CHART SETTINGS TEMPLATE (fill these fields)",
+        settings_json,
+    ]
+    if instructions:
+        parts.extend(["", "### CHART POLISH NOTES", instructions])
+    parts.append("")
+    return "\n".join(parts)
 
 
 def _aliases_from_payload(payload: dict) -> tuple[str, ...]:
@@ -196,12 +247,14 @@ def load_charts() -> dict[str, ChartDefinition]:
     for path in sorted(CHARTS_DIR.glob("*.json")):
         name = path.stem
         payload = json.loads(path.read_text(encoding="utf-8"))
+        settings = settings_template_from_payload(payload)
         charts[name] = ChartDefinition(
             name=name,
             option=_option_from_payload(name, payload),
-            template=_build_template(payload),
+            template=_build_template(payload, settings),
             code=_join_lines(payload.get("code", "")).strip(),
             conversion=_conversion_from_payload(name, payload),
+            settings=settings,
         )
     return charts
 
@@ -226,7 +279,7 @@ def get_charts() -> dict[str, ChartDefinition]:
 
 
 def get_chart_config() -> dict[str, str]:
-    """Return visualization_type -> template string (LLM fill prompts)."""
+    """Return visualization_type -> LLM settings prompt (no JS skeleton)."""
     return {name: chart.template for name, chart in get_charts().items()}
 
 
@@ -234,6 +287,12 @@ def get_chart_code(chart_name: str) -> str:
     """Return the raw JS/JSX skeleton for ``chart_name`` (no LLM instructions)."""
     chart = get_chart_definition(chart_name)
     return chart.code if chart else ""
+
+
+def get_chart_settings_schema(chart_name: str) -> Optional[dict[str, Any]]:
+    """Return the settings *template* the LLM must fill for ``chart_name``."""
+    chart = get_chart_definition(chart_name)
+    return dict(chart.settings) if chart and chart.settings else None
 
 
 def get_chart_definition(chart_name: str) -> Optional[ChartDefinition]:
@@ -281,6 +340,14 @@ def resolve_chart_name(chart_name: str) -> Optional[str]:
     return _alias_index().get(key)
 
 
+def is_other_chart(chart_name: str) -> bool:
+    """True when the type is the catch-all ``other`` chart (or unknown → other)."""
+    resolved = resolve_chart_name(chart_name)
+    if not resolved:
+        return True
+    return resolved == "other"
+
+
 def hydrate_saved_viz(viz: Any, *, data_types: Any = None) -> dict[str, Any]:
     """Fill missing similar_chart on a saved InstantBI viz payload.
 
@@ -306,7 +373,10 @@ def hydrate_saved_viz(viz: Any, *, data_types: Any = None) -> dict[str, Any]:
             )
             similar = []
 
-    payload["similar_chart"] = format_similar_chart_wire(similar)
+    payload["similar_chart"] = format_similar_chart_wire(
+        similar,
+        chart_name=chart_name,
+    )
 
     # Drop legacy InstantBI chart settings if present on older saves.
     payload.pop("settings", None)
