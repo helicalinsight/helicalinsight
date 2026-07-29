@@ -19,6 +19,7 @@ const {
   dashboardDesignerUrl,
   reportViewUrl,
   instantBIUrl,
+  agentUrl,
   hiUrl,
 } = routesUrl;
 const { NORMAL_LOGOUT, IMPERSONATE_LOGOUT } = actionTypes;
@@ -126,6 +127,13 @@ export const executeTutorial = ({ activeRoute, dispatch, toggleMainNavbar, user 
       })
     );
     return;
+  } else if (activeRoute.match(agentUrl)) {
+    dispatch(
+      appActions.changeTutorialData({
+        moduleKey: "agent",
+        key: "hi-agent-metadata-shelf",
+      })
+    );
   } else if (activeRoute.match("helical-report")) {
     dispatch(
       appActions.changeTutorialData({
