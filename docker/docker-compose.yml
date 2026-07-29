@@ -83,10 +83,7 @@ services:
       - hinet
 
   instantbi:
-    build:
-      context: ./instantbi/helicalbi
-      dockerfile: Dockerfile
-    image: helicalinsight/instantbi:local
+    image: python:3.9-slim
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
@@ -94,12 +91,10 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
-    environment:
-      HOST: 0.0.0.0
-      PORT: 8000
-    # Optional: override LLM settings without rebuilding
-    # env_file:
-    #   - ./instantbi/helicalbi/.env
+    volumes:
+      - ./instantbi/helicalbi:/app
+    working_dir: /app              # Set /app as the working directory inside the container
+    command: bash -c "pip install -r requirements.txt && python app.py" 
     networks:
       - hinet
 
