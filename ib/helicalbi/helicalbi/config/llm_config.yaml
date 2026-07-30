@@ -1,5 +1,5 @@
 #Provide the llm provider for Instant BI
-default_provider: openai
+default_provider:
 #Provide base url of the hi-ee application along with port number
 #base_url: http://hiee:8080/hi-ee
 base_url: http://hiee:8080/hi-ee
@@ -10,7 +10,7 @@ providers:
     temperature: 0.1
     # ChartFiller returns structured JSON wrapping a full JS VF; grid/pivot need headroom.
     max_tokens: 4000
-    api_key: ${OPENAI_API_KEY}
+    api_key:
 
   anthropic:
     model: claude-opus-4-6
