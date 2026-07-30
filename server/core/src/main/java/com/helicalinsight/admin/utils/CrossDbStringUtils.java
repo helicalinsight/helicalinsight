@@ -10,6 +10,11 @@ public final class CrossDbStringUtils {
 	}
 
 	public static String toDatabaseValue(String value) {
+		
+		if (!DialectSupport.shouldConvert()) {
+			return value;
+		}
+		
 		if (value == null) {
 			return null;
 		}

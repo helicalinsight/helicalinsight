@@ -55,14 +55,26 @@ def get_ant_visualization_response_model():
 
 
 class ChartFillerResponse(BaseModel):
-    """LLM chart fill output: settings only (JS is filled locally from the skeleton)."""
+    """LLM chart settings fill (encodings only — formats are a separate step)."""
 
     settings: ChartSettings = Field(
         description=(
             "Filled chart settings matching the chart settings template. "
             "Use dimensions.name (or dimensions.names), measures, labelsX/labelsY/title, "
-            "color, and measure_formats — do not return JavaScript."
+            "and color — do not return JavaScript or measure_formats."
         )
+    )
+
+
+class ChartFormatResponse(BaseModel):
+    """LLM chart format fill: measure_formats only."""
+
+    measure_formats: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Excel-style format strings keyed by result column / metric names "
+            "used in the chart (e.g. total_travel_cost). Omit unused cube aliases."
+        ),
     )
 
 

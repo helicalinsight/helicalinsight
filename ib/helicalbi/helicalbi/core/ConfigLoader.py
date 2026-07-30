@@ -4,15 +4,14 @@ import yaml
 class ConfigLoader:
 
     @staticmethod
-    def load_config(path="lm_config.yml"):
-        # Get current file directory (core/)
+    def resolve_path(path="llm_config.yaml") -> str:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Go one level up → project/
         project_root = os.path.abspath(os.path.join(base_dir, ".."))
+        return os.path.join(project_root, "config", path)
 
-        # Build full path → project/config/llm_config.yaml
-        config_path = os.path.join(project_root, "config", path)
+    @staticmethod
+    def load_config(path="lm_config.yml"):
+        config_path = ConfigLoader.resolve_path(path)
 
         with open(config_path, "r") as f:
             raw = yaml.safe_load(f)
