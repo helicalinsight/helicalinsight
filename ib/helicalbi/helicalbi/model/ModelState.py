@@ -69,3 +69,6 @@ class ModelState(MessagesState):
     column_sort_orders: str
     sql_domain_context: str
     viz_column_context: dict
+    use_other_fallback: bool
+    fallback_reason: str
+    chart_settings: dict

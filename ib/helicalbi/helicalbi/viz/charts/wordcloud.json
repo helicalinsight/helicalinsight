@@ -45,6 +45,7 @@
     "function DrawWordcloud() {",
     "  const { WordCloud } = components;",
     "  const setting = ${setting};",
+    "  const measure_formats = ${format};",
     "  const wordField = setting.dimensions.name || (setting.dimensions.names && setting.dimensions.names[0]);",
     "  const measureField = setting.measures && setting.measures[0];",
     "  const weightField = measureField || '__weight';",

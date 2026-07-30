@@ -178,7 +178,7 @@ describe("AgentSidebar", () => {
     });
   });
 
-  test("opens metadata change modal before connecting to another metadata file", () => {
+  test("opens file browser immediately when connecting to metadata", () => {
     const store = createStore(baseState);
     render(
       <Provider store={store}>
@@ -187,8 +187,44 @@ describe("AgentSidebar", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Connect metadata" }));
     expect(
-      screen.getByText(/Are you sure you want to open another file/i),
+      screen.queryByText(/Are you sure you want to open another (metadata|model) file/i),
+    ).not.toBeInTheDocument();
+    expect(defaultProps.setFilebrowserFor).toHaveBeenCalledWith("");
+    expect(store.dispatch).toHaveBeenCalledWith({
+      type: actionTypes.TOGGLE_FILE_BROWSER,
+      payload: true,
+    });
+  });
+
+  test("shows metadata change modal only after selecting another metadata file", () => {
+    const store = createStore(baseState);
+    render(
+      <Provider store={store}>
+        <AgentSidebar {...defaultProps} />
+      </Provider>,
+    );
+    fireEvent.click(screen.getByTestId("fb-double-click"));
+    expect(
+      screen.getByText(/Are you sure you want to open another metadata file/i),
     ).toBeInTheDocument();
+  });
+
+  test("opens file browser immediately from resource file browser without confirm dialog", () => {
+    const store = createStore(baseState);
+    render(
+      <Provider store={store}>
+        <AgentSidebar {...defaultProps} />
+      </Provider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Open file browser" }));
+    expect(
+      screen.queryByText(/Are you sure you want to open another (metadata|model) file/i),
+    ).not.toBeInTheDocument();
+    expect(defaultProps.setFilebrowserFor).toHaveBeenCalledWith("edit");
+    expect(store.dispatch).toHaveBeenCalledWith({
+      type: actionTypes.TOGGLE_FILE_BROWSER,
+      payload: true,
+    });
   });
 
   it("should fetch metadata tables on mount and allows aborting the request", () => {

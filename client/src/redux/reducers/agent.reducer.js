@@ -10,7 +10,7 @@ export const agentReducer = (state = initialStates.agentInitialState, action) =>
         case actionTypes.ON_EXPAND_AGENT_TABLE: {
             let { key } = action.payload || {};
             let defaultexpandedRowKeys = [ ...(state.metadataTablesData.defaultexpandedRowKeys || []) ];
-            if (defaultexpandedRowKeys.lenght) {
+            if (defaultexpandedRowKeys.length) {
                 if (defaultexpandedRowKeys.includes(key)) {
                     defaultexpandedRowKeys = defaultexpandedRowKeys.filter((item) => item !== key);
                 } else {
@@ -41,6 +41,11 @@ export const agentReducer = (state = initialStates.agentInitialState, action) =>
         }
         case actionTypes.AGENT_METADATA_TABLES_DATA: {
             const data = { ...action.payload, uid: uuidv4() };
+            if (data.tables) {
+                Object.keys(data.tables).forEach((tableName) => {
+                    data.tables[tableName].key = data.tables[tableName].key || uuidv4();
+                });
+            }
             return { ...state, metadataTablesData: data || {} };
         }
         case actionTypes.AGENT_SEMANTIC_TYPES: {

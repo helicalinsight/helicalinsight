@@ -370,20 +370,50 @@ def _normalize_chart_settings(
     )
 
 
-def settings_to_js_literal(settings: ChartSettings) -> str:
+def settings_to_js_literal(
+    settings: ChartSettings,
+    *,
+    include_formats: bool = True,
+) -> str:
     """Serialize filled settings as a JS object literal for ``${setting}``."""
-    return json.dumps(settings.to_js_object(), ensure_ascii=False, indent=2)
+    payload = settings.to_js_object()
+    if not include_formats:
+        payload.pop("measure_formats", None)
+    return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def formats_to_js_literal(measure_formats: Optional[dict[str, str]] = None) -> str:
+    """Serialize measure_formats as a JS object literal for ``${format}``."""
+    payload = {
+        str(key).strip(): str(value).strip()
+        for key, value in (measure_formats or {}).items()
+        if str(key or "").strip() and str(value or "").strip()
+    }
+    return json.dumps(payload, ensure_ascii=False, indent=2)
 
 
 _SETTING_PLACEHOLDER = re.compile(r"\$\{\s*setting\s*\}")
+_FORMAT_PLACEHOLDER = re.compile(r"\$\{\s*format\s*\}")
 
 
 def inject_setting_object(code: str, settings: ChartSettings) -> str:
-    """Replace ``${setting}`` with the filled settings JS object literal."""
-    literal = settings_to_js_literal(settings)
-    if not _SETTING_PLACEHOLDER.search(code or ""):
-        return code
-    return _SETTING_PLACEHOLDER.sub(literal, code, count=1)
+    """Replace ``${setting}`` / ``${format}`` with settings and measure_formats literals."""
+    text = code or ""
+    has_format_placeholder = bool(_FORMAT_PLACEHOLDER.search(text))
+    formats = dict(settings.measure_formats or {})
+
+    if _SETTING_PLACEHOLDER.search(text):
+        # When ${format} is present, keep encodings in setting and formats separate.
+        setting_literal = settings_to_js_literal(
+            settings, include_formats=not has_format_placeholder
+        )
+        text = _SETTING_PLACEHOLDER.sub(setting_literal, text, count=1)
+
+    if has_format_placeholder:
+        text = _FORMAT_PLACEHOLDER.sub(
+            formats_to_js_literal(formats), text, count=1
+        )
+    return text
 
 
 def apply_chart_settings(

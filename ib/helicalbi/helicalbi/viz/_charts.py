@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -346,6 +347,39 @@ def is_other_chart(chart_name: str) -> bool:
     if not resolved:
         return True
     return resolved == "other"
+
+
+_FUNCTIONAL_FORMAT_RE = re.compile(
+    r"(?i)\b("
+    r"custom\s+format(?:ter|ting)?|"
+    r"format(?:ter|ting)?\s+function|"
+    r"functional\s+format(?:ting)?|"
+    r"write\s+(?:a\s+)?format(?:ter|ting)?|"
+    r"axis\s+format(?:ter|ting)?|"
+    r"label\s+format(?:ter|ting)?|"
+    r"tooltip\s+format(?:ter|ting)?|"
+    r"toFixed|"
+    r"Intl\.NumberFormat|"
+    r"abbreviate|abbreviation|"
+    r"format\s+as\s+(?:k|m|million|billion|percent|percentage|currency)|"
+    r"show\s+as\s+(?:k|m|million|billion)|"
+    r"conditional\s+(?:format|color|label)|"
+    r"custom\s+(?:label|tooltip|axis)\s+format"
+    r")\b"
+)
+
+
+def requests_functional_formatting(user_query: str) -> bool:
+    """True when the user asks for custom/JS functional formatting beyond Excel formats."""
+    text = str(user_query or "").strip()
+    if not text:
+        return False
+    return bool(_FUNCTIONAL_FORMAT_RE.search(text))
+
+
+def needs_other_fallback(chart_name: str, user_query: str = "") -> bool:
+    """Route to Fallback (full DrawOther JS) for ``other`` charts or custom formatters."""
+    return is_other_chart(chart_name) or requests_functional_formatting(user_query)
 
 
 def hydrate_saved_viz(viz: Any, *, data_types: Any = None) -> dict[str, Any]:

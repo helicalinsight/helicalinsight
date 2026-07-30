@@ -28,14 +28,39 @@ public class CrossDbEmptyStringConverterTest {
 	}
 
 	@Test
-	public void convertToDatabaseColumn_empty_returnsBlankMarker() {
-		assertEquals(BLANK_MARKER, converter.convertToDatabaseColumn(""));
-	}
-
-	@Test
 	public void convertToDatabaseColumn_whitespace_returnsBlankMarker() {
-		assertEquals(BLANK_MARKER, converter.convertToDatabaseColumn("   "));
-		assertEquals(BLANK_MARKER, converter.convertToDatabaseColumn("\t\n"));
+		assertEquals("", converter.convertToDatabaseColumn(""));
+		assertEquals("\t\n", converter.convertToDatabaseColumn("\t\n"));
+	}
+	
+	@Test
+	public void convertToDatabaseColumn_whitespace_returnsWhiteSpace() {
+		try (MockedStatic<DialectSupport> dialect = mockStatic(DialectSupport.class)) {
+			dialect.when(DialectSupport::shouldConvert).thenReturn(false);
+			assertEquals("", converter.convertToDatabaseColumn(""));
+			assertEquals("", converter.convertToEntityAttribute(""));
+		}
+	}
+	
+	@Test
+	public void convertToDatabaseColumn_null_returnsNullWithDialectSupport() {
+		try (MockedStatic<DialectSupport> dialect = mockStatic(DialectSupport.class)) {
+			dialect.when(DialectSupport::shouldConvert).thenReturn(true);
+			assertEquals(null, converter.convertToDatabaseColumn(null));
+			assertEquals(null, converter.convertToEntityAttribute(null));
+		}
+	}
+	
+	
+	@Test
+	public void convertToDatabaseColumn_whitespace_returnsBlankMarkerWithSupportedDatabse() {
+		try (MockedStatic<DialectSupport> dialect = mockStatic(DialectSupport.class)) {
+			dialect.when(DialectSupport::shouldConvert).thenReturn(true);
+			assertEquals(BLANK_MARKER, converter.convertToDatabaseColumn(""));
+			assertEquals("", converter.convertToEntityAttribute(BLANK_MARKER));
+			assertEquals("value", converter.convertToDatabaseColumn("value"));
+			assertEquals("value", converter.convertToEntityAttribute("value"));
+		}
 	}
 
 	@Test

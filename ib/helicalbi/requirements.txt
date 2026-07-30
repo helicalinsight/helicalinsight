@@ -1,4 +1,5 @@
 flask
+watchdog
 waitress
 python-dotenv
 langchain-core

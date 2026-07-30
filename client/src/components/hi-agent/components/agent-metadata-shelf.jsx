@@ -33,10 +33,9 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
   const [metadataChangeModalVisible, setMetadataChangeModalVisible] =
     useState(false);
   const [metadataToBeChanged, setMetadataToBeChanged] = useState(null);
-  const [modalSource, setModalSource] = useState(null);
+  const [pendingEditRecord, setPendingEditRecord] = useState(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const skipMetadataFetch = useRef(false);
-  const skipMetadataChangeConfirm = useRef(false);
   const metadataApiRef = useRef(null);
   const metadataAbortedRef = useRef(false);
 
@@ -57,9 +56,9 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
     dispatch(fileBrowserActions.setGlobalFbVisibility(false));
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
+  const checkIsMetadataPresent = () => Boolean(path && fileName);
 
   const applyMetadataSelection = (record) => {
-    skipMetadataChangeConfirm.current = false;
     const fileDtls = record.path.split("/");
     const selectedFileName = fileDtls.pop();
     const selectedPath = fileDtls.join("/");
@@ -78,19 +77,48 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
     document.title = "HI: Semantic Model";
   };
 
+  const changeMetadata = (record) => {
+    if (checkIsMetadataPresent()) {
+      setMetadataToBeChanged(record);
+      setMetadataChangeModalVisible(true);
+    } else {
+      applyMetadataSelection(record);
+    }
+  };
+
+  const applyEditSelection = (record) => {
+    dispatch(
+      appActions.setEditModeInfo({
+        dir: record.path,
+        file: record.name,
+        extension: record.extension,
+        title: record.title,
+      }),
+    );
+  };
+
+  const handleMetadataModalOkClick = () => {
+    if (pendingEditRecord) {
+      applyEditSelection(pendingEditRecord);
+      setPendingEditRecord(null);
+    } else if (metadataToBeChanged) {
+      applyMetadataSelection(metadataToBeChanged);
+      setMetadataToBeChanged(null);
+    }
+    setMetadataChangeModalVisible(false);
+  };
+
   const onFbDoubleClick = (record) => {
     if (props.filebrowserFor === "edit") {
-      dispatch(
-        appActions.setEditModeInfo({
-          dir: record.path,
-          file: record.name,
-          extension: record.extension,
-          title: record.title,
-        }),
-      );
+      if (checkIsMetadataPresent()) {
+        setPendingEditRecord(record);
+        setMetadataChangeModalVisible(true);
+      } else {
+        applyEditSelection(record);
+      }
       return;
     }
-    promptMetadataChange(record, "doubleClick");
+    changeMetadata(record);
   };
 
   useEffect(() => {
@@ -135,12 +163,6 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
   }, [path, fileName]);
 
   useEffect(() => {
-    if (!showFileBrowser) {
-      skipMetadataChangeConfirm.current = false;
-    }
-  }, [showFileBrowser]);
-
-  useEffect(() => {
     if (Object.keys(urlObj).length && urlObj.dir && urlObj.file) {
       const fileArr = urlObj.file.split(".");
       const extension = fileArr[fileArr.length - 1];
@@ -154,44 +176,6 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
       }
     }
   }, [urlObj]);
-
-  const checkIsMetadataPresent = () => Boolean(path && fileName);
-
-  const promptMetadataChange = (record, source) => {
-    if (skipMetadataChangeConfirm.current) {
-      applyMetadataSelection(record);
-      return;
-    }
-    if (checkIsMetadataPresent()) {
-      setMetadataChangeModalVisible(true);
-      setMetadataToBeChanged(record);
-      setModalSource(source);
-    } else {
-      applyMetadataSelection(record);
-    }
-  };
-
-  const handleMetadataModalOkClick = () => {
-    if (modalSource === "openFileBrowser") {
-      skipMetadataChangeConfirm.current = true;
-      dispatch(setAgentMode("edit"));
-      openComponentFileBrowser();
-      props.setFilebrowserFor("edit");
-    } else if (modalSource === "connectToMetadata") {
-      skipMetadataChangeConfirm.current = true;
-      props.setFilebrowserFor("");
-      openComponentFileBrowser();
-    } else if (metadataToBeChanged) {
-      applyMetadataSelection(metadataToBeChanged);
-    }
-    setMetadataToBeChanged(null);
-    setModalSource(null);
-    setMetadataChangeModalVisible(false);
-  };
-
-  const changeMetadata = (record) => {
-    promptMetadataChange(record, "callback");
-  };
 
   let fbProperties = {
     extensionOptions: ["metadata"],
@@ -218,26 +202,14 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
   }
 
   const openFileBrowser = () => {
-    if (checkIsMetadataPresent()) {
-      setMetadataChangeModalVisible(true);
-      setMetadataToBeChanged(null);
-      setModalSource("openFileBrowser");
-    } else {
-      dispatch(setAgentMode("edit"));
-      openComponentFileBrowser();
-      props.setFilebrowserFor("edit");
-    }
+    dispatch(setAgentMode("edit"));
+    openComponentFileBrowser();
+    props.setFilebrowserFor("edit");
   };
 
   const onConnectToMetadata = () => {
-    if (checkIsMetadataPresent()) {
-      setMetadataChangeModalVisible(true);
-      setMetadataToBeChanged(null);
-      setModalSource("connectToMetadata");
-    } else {
-      props.setFilebrowserFor("");
-      openComponentFileBrowser();
-    }
+    props.setFilebrowserFor("");
+    openComponentFileBrowser();
   };
 
   return (
@@ -294,19 +266,16 @@ export function AgentMetadataShelf({ urlObj = {}, className = "", ...props }) {
         />
       )}
       <Modal
-        title={"Open another metadata file?"}
-        open={metadataChangeModalVisible}
+        title={`Open another ${pendingEditRecord ? "model" : "metadata"} file?`}        open={metadataChangeModalVisible}
         onOk={handleMetadataModalOkClick}
         onCancel={() => {
-          skipMetadataChangeConfirm.current = false;
           setMetadataToBeChanged(null);
-          setModalSource(null);
+          setPendingEditRecord(null);
           setMetadataChangeModalVisible(false);
         }}
       >
         <Text>
-          Are you sure you want to open another file? All your changes will be
-          lost.
+          {`Are you sure you want to open another ${pendingEditRecord ? "model" : "metadata"} file? All your changes will be lost.`}
         </Text>
       </Modal>
     </div>
