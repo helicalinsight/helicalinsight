@@ -429,20 +429,6 @@ export const cubeTableDataSource = ({dataSource}) => {
 	return dataSource;
 }
 
-export const partitionCubeFieldsByRole = (dataSource = []) => {
-	const rows = cubeTableDataSource({ dataSource });
-	const dimensions = [];
-	const measures = [];
-	rows.forEach((row) => {
-		if (row.isHierarchy || row.isDimensionCheck || !row.measure?.isMeasureCheck) {
-			dimensions.push(row);
-		} else {
-			measures.push(row);
-		}
-	});
-	return { dimensions, measures };
-};
-
 export const handleLevelToHierarchy = ({restCurchild, state, dupCubeFieldsData, parentKey}) => { // test cases
 	restCurchild.fields = handleHierarachyTitle({
 		value: restCurchild.fields,

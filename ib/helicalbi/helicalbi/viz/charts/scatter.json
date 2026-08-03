@@ -29,7 +29,7 @@
   },
   "settings": {
     "dimensions": {
-      "name": "provide the dimension name min 0 and max 1"
+      "names": "provide dimension names as JSON array, min 0 max 1"
     },
     "measures": [
       "provide measure names separated by comma, min 2 max any"
@@ -43,8 +43,12 @@
     }
   },
   "instructions": [
-    "Scatter. Config: xField, yField (prefer 2 measures or dim+measure); shape circle; colorField optional.",
-    "Polish: autoFit; size 4-6; opacity 0.7 if n>50; interactions element-active; axis titles; legend if colorField; regression only if asked."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "measures[0]=x, measures[1]=y (both numeric). Optional dimensions.names[0] for color groups.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawScatter() {",
@@ -54,7 +58,7 @@
     "  const measureField = (setting.measures && setting.measures[0]) || '';",
     "  const config = {",
     "    data,",
-    "    xField: setting.dimensions.name,",
+    "    xField: setting.dimensions.names[0],",
     "    yField: setting.measures[0],",
     "    ...(setting.color ? { color: setting.color } : {}),",
     "    ...(setting.series ? { seriesField: setting.series } : {}),",

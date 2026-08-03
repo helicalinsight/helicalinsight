@@ -669,9 +669,10 @@ class TestHierarchyAndAiContext:
         sort_by_name = {entry["name"]: entry for entry in prepared["sort_orders"]}
         assert sort_by_name["address"]["direction"] == "ASC"
         assert sort_by_name["location"]["direction"] == "DESC"
-        assert sort_by_name["metric_1"]["direction"] == "ASC"
+        assert "metric_1" not in sort_by_name
         assert "address: ASC" in prepared["column_sort_orders"]
         assert "location: DESC" in prepared["column_sort_orders"]
+        assert "metric_1" not in prepared["column_sort_orders"]
 
     def test_extract_domain_topics_supports_object_topics(self):
         domains, topics = extract_domain_topics(self._AGENT)
@@ -685,11 +686,16 @@ class TestFormatStringAndSortOrder:
         assert sort_direction_from_value(1) == "DESC"
         assert sort_direction_from_value(2) == "ASC"
         assert sort_direction_from_value("asc") == "ASC"
+        assert sort_direction_from_value("Asc") == "ASC"
         assert sort_direction_from_value("Ascending") == "ASC"
         assert sort_direction_from_value("DESC") == "DESC"
+        assert sort_direction_from_value("Desc") == "DESC"
         assert sort_direction_from_value("Descending") == "DESC"
         assert sort_direction_from_value("none") is None
         assert sort_direction_from_value("None") is None
+        assert sort_direction_from_value("Natural") is None
+        assert sort_direction_from_value("Natrual") is None
+        assert sort_direction_from_value("custom") is None
         assert sort_direction_from_value("") is None
         assert sort_direction_from_value(None) is None
 
@@ -730,8 +736,9 @@ class TestFormatStringAndSortOrder:
             }
         ]
         orders = sort_orders_from_cube_info(cube_info)
-        assert [o["name"] for o in orders] == ["address", "location", "metric_1"]
-        assert [o["direction"] for o in orders] == ["ASC", "DESC", "ASC"]
+        assert [o["name"] for o in orders] == ["address", "location"]
+        assert [o["direction"] for o in orders] == ["ASC", "DESC"]
+        assert "metric_1" not in [o["name"] for o in orders]
 
     def test_sort_key_ascending_descending_strings(self):
         """Cube payloads may use ``sort: Ascending|Descending`` instead of sortOrder."""
@@ -756,14 +763,14 @@ class TestFormatStringAndSortOrder:
         orders = sort_orders_from_cube_info(cube_info)
         by_name = {entry["name"]: entry for entry in orders}
         assert by_name["booking_platform"]["direction"] == "ASC"
-        assert by_name["travel_cost"]["direction"] == "DESC"
+        assert "travel_cost" not in by_name
 
         mapping = format_strings_from_cube_info(cube_info)
         assert mapping["travel_cost"] == "0.00"
 
         prompt_text = format_sort_orders_for_prompt(orders)
         assert "booking_platform: ASC" in prompt_text
-        assert "travel_cost: DESC" in prompt_text
+        assert "travel_cost" not in prompt_text
         assert "0.00" in format_format_strings_for_prompt(mapping)
 
     def test_none_sort_excluded_from_sort_list(self):
@@ -792,6 +799,11 @@ class TestFormatStringAndSortOrder:
                         "columnName": "travel_details.source",
                         "sort": "",
                     },
+                    {
+                        "dimensionName": "client_destination",
+                        "columnName": "travel_details.destination",
+                        "sort": "Natural",
+                    },
                 ],
                 "measures": [
                     {
@@ -805,18 +817,19 @@ class TestFormatStringAndSortOrder:
         orders = sort_orders_from_cube_info(cube_info)
         names = [entry["name"] for entry in orders]
         assert "booking_platform" in names
-        assert "travel_cost" in names
+        assert "travel_cost" not in names
         assert "travel_type" not in names
         assert "source" not in names
+        assert "client_destination" not in names
 
         filtered = filter_sort_orders_for_picked(
             orders, ["booking_platform", "travel_type", "travel_cost"]
         )
         filtered_names = [entry["name"] for entry in filtered]
-        assert filtered_names == ["booking_platform", "travel_cost"]
+        assert filtered_names == ["booking_platform"]
         prompt = format_sort_orders_for_prompt(filtered)
         assert "booking_platform: ASC" in prompt
-        assert "travel_cost: DESC" in prompt
+        assert "travel_cost" not in prompt
         assert "travel_type" not in prompt
 
         domain_ctx = filter_domain_context_for_sql(

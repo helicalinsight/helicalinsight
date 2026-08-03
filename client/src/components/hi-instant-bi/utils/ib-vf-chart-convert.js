@@ -38,8 +38,8 @@ export const IB_CHART_COMPONENT = {
   tiny_column: "Tiny.Column",
   kpi: "Statistic",
   table: "Table",
-  grid_table: "GridTable",
-  pivot_table: "GridTable",
+  grid_table: "Table",
+  pivot_table: "Table",
 };
 
 const PASCAL = (type) => {

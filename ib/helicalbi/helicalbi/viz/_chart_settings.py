@@ -20,17 +20,15 @@ def synthesize_settings_template(payload: dict) -> dict[str, Any]:
     conversion = payload.get("conversion") if isinstance(payload.get("conversion"), dict) else {}
     family = str((conversion or {}).get("family") or "").strip().lower()
 
-    if dims_max == 1 or (dims_min <= 1 and dims_max is None and dims_min == 1):
+    if dims_min == 0 and (dims_max == 0 or dims_max is None) and family == "kpi":
         dimensions: Any = {
-            "name": f"provide the dimension name min {dims_min} and max {dims_max if dims_max is not None else dims_min}"
+            "names": "optional dimension names as JSON array (usually unused for KPI)"
         }
-    elif dims_min == 0 and (dims_max == 0 or dims_max is None) and family == "kpi":
-        dimensions = {"name": "optional dimension name (usually unused for KPI)"}
     else:
         max_txt = "any" if dims_max is None else str(dims_max)
         dimensions = {
             "names": (
-                f"provide dimension names separated by comma, "
+                f"provide dimension names as JSON array, "
                 f"min {dims_min} max {max_txt}"
             )
         }
@@ -46,11 +44,11 @@ def synthesize_settings_template(payload: dict) -> dict[str, Any]:
         "measures": [measures],
         "labelsX": "Label for x field",
         "labelsY": "Label for y field",
-        "color": {
-            "mode": "optional",
-            "optional": True,
-            "description": "Solid hex string or palette array of hex colors",
-        },
+        # Plain string — avoid nested schema objects the LLM may echo back.
+        "color": (
+            "optional solid hex string (e.g. '#5B8FF9') "
+            "or palette array of hex colors"
+        ),
     }
 
     if family in {"pie", "kpi", "percent", "hierarchy", "tiny"}:
@@ -66,13 +64,11 @@ def synthesize_settings_template(payload: dict) -> dict[str, Any]:
         template["labelsZ"] = "Label for secondary measure"
     elif family == "heatmap":
         template["dimensions"] = {
-            "names": "provide dimension names separated by comma, min 2 max 2"
+            "names": "provide dimension names as JSON array, min 2 max 2"
         }
-        template["color"] = {
-            "mode": "palette",
-            "optional": False,
-            "description": "Sequential hex palette for the heat scale",
-        }
+        template["color"] = (
+            "required sequential hex palette array for the heat scale"
+        )
 
     # Optional series when conversion declares a series role.
     fields = (conversion or {}).get("fields") or {}
@@ -101,4 +97,25 @@ def settings_template_from_payload(payload: dict) -> dict[str, Any]:
 
 
 def settings_template_to_prompt(template: dict[str, Any]) -> str:
-    return json.dumps(template, indent=2, ensure_ascii=False)
+    return json.dumps(_prompt_safe_settings_template(template), indent=2, ensure_ascii=False)
+
+
+def _prompt_safe_settings_template(template: dict[str, Any]) -> dict[str, Any]:
+    """Flatten nested schema hints (e.g. color.mode/optional) into plain fill hints."""
+    out = dict(template)
+    color = out.get("color")
+    if isinstance(color, dict):
+        desc = str(color.get("description") or "").strip()
+        mode = str(color.get("mode") or "").strip().lower()
+        optional = bool(color.get("optional"))
+        if not desc:
+            desc = (
+                "sequential hex palette array"
+                if mode == "palette"
+                else "solid hex string or palette array of hex colors"
+            )
+        prefix = "optional " if optional or mode == "optional" else ""
+        if mode == "palette" and not optional:
+            prefix = "required "
+        out["color"] = f"{prefix}{desc}".strip()
+    return out

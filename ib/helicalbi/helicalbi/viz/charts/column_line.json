@@ -33,7 +33,7 @@
   },
   "settings": {
     "dimensions": {
-      "name": "provide the dimension name min 1 and max 1"
+      "names": "provide dimension names as JSON array, min 1 max 1"
     },
     "measures": [
       "provide measure names separated by comma, min 2 max 2"
@@ -48,8 +48,13 @@
     "labelsZ": "Label for secondary measure"
   },
   "instructions": [
-    "DualAxes column+line. Config: data:[data,data]; xField; yField:[m1,m2]; geometryOptions [{geometry:'column'},{geometry:'line', lineStyle:{lineWidth:2}}].",
-    "Polish: bars for volume, line for trend; dual y titles; legend; autoFit."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names[0] = shared x; measures[0]=column value, measures[1]=line value.",
+    "Set labelsX / labelsY / labelsZ for the two measure axes.",
+    "Set labelsX, labelsY, labelsZ to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawColumnLine() {",
@@ -58,7 +63,7 @@
     "  const measure_formats = ${format};",
     "  const config = {",
     "    data: [data, data],",
-    "    xField: setting.dimensions.name,",
+    "    xField: setting.dimensions.names[0],",
     "    yField: [setting.measures[0], setting.measures[1]],",
     "    ...(setting.color ? { color: setting.color } : {}),",
     "    geometryOptions: [",

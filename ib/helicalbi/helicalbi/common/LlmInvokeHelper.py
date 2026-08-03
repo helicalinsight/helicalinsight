@@ -7,8 +7,7 @@ from typing import Any, Optional
 
 from helicalbi.common import app_config
 from helicalbi.core.ConfigLoader import ConfigLoader
-from helicalbi.core.TokenUsageFactoryResolver import TokenUsageFactoryResolver
-from helicalbi.integration.TokenUsageFactory import TokenUsageFactory
+from helicalbi.integration.TokenUsageExtractor import TokenUsageExtractor
 from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
 
@@ -71,12 +70,23 @@ def log_prompt(prompt_or_text: Any, inputs: Any = None) -> None:
     )
 
 
-def get_token_usage_factory(provider: Optional[str] = None) -> TokenUsageFactory:
-    """Return the token-usage factory for the configured (or given) LLM provider."""
+def get_token_usage_extractor(
+    provider: Optional[str] = None,
+    config_path: str = "llm_config.yaml",
+) -> TokenUsageExtractor:
+    """Return a YAML-driven token-usage extractor (``providers.<name>.usage_path``)."""
+    config = ConfigLoader.load_config(config_path)
     if not provider:
-        config = ConfigLoader.load_config("llm_config.yaml")
-        provider = config["default_provider"]
-    return TokenUsageFactoryResolver.get_factory(provider)
+        provider = config.get("default_provider")
+    return TokenUsageExtractor.from_config(
+        config_path=config_path,
+        provider=provider,
+        llm_config=config,
+    )
+
+
+# Backward-compatible alias used by invoke helpers / tests.
+get_token_usage_factory = get_token_usage_extractor
 
 
 def read_token_usage(state: dict) -> TokenUsage:

@@ -16,7 +16,6 @@ import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
   cubeTableDataSource,
-  partitionCubeFieldsByRole,
   handleCubeTitleEdit,
   handleHeader,
   handleHierarachyTitle,
@@ -653,13 +652,6 @@ export function CubeEditor({ showBusinessFields = true }) {
     </span>
   );
 
-  const renderAgentFieldsCategoryHeader = (category, actions = null) => (
-    <div className="cube-fields-category-header">
-      <span className="cube-fields-category-title">{category}</span>
-      {actions}
-    </div>
-  );
-
   const renderAgentAddMetricAction = () => (
     <ToolbarIconButton
       title={
@@ -671,37 +663,13 @@ export function CubeEditor({ showBusinessFields = true }) {
       className="cube-add-metric-action cube-add-metric-action--inline"
       stopPropagation
       disabled={!canMutateAgentStructure}
-      onClick={handleAddManualMetric}
+      onClick={(e) => {
+        e?.stopPropagation?.();
+        handleAddManualMetric();
+      }}
     >
       <PlusOutlined className="cube-add-metric-icon" />
     </ToolbarIconButton>
-  );
-
-  const renderAgentFieldsPaneHeader = () => (
-    <Table
-      className="schedule-table cube-fields-pane-header-table"
-      columns={[
-        {
-          ...fieldsColumn,
-          sorter: true,
-          sortOrder: fieldsListSortOrder,
-          showSorterTooltip: {
-            title:
-              fieldsListSort === "ascending"
-                ? "Sorted A to Z — click for Z to A"
-                : fieldsListSort === "descending"
-                  ? "Sorted Z to A — click to reset default order"
-                  : "Click to sort fields by name",
-          },
-        },
-      ]}
-      dataSource={[]}
-      pagination={false}
-      size="small"
-      showHeader
-      onChange={handleFieldsListSortChange}
-      locale={{ emptyText: <></> }}
-    />
   );
 
   const renderCubeDimensionMeasureCell = (record) => (
@@ -823,7 +791,42 @@ export function CubeEditor({ showBusinessFields = true }) {
       dataIndex: "fields",
       key: "fields",
       width: isCubeTableModeNormal ? "10%" : "20%",
+      ...(isAgent && !showAgentBusinessFields
+        ? {
+            sorter: true,
+            sortOrder: fieldsListSortOrder,
+            showSorterTooltip: {
+              title:
+                fieldsListSort === "ascending"
+                  ? "Sorted A to Z — click for Z to A"
+                  : fieldsListSort === "descending"
+                    ? "Sorted Z to A — click to reset default order"
+                    : "Click to sort fields by name",
+            },
+          }
+        : {}),
       ...getColumnSearchProps("fields"),
+      ...(isAgent && !showAgentBusinessFields
+        ? {
+            filterIcon: (filtered) => (
+              <span className="cube-fields-header-trailing-actions">
+                <SearchOutlined
+                  className="cube-fields-header-search-icon"
+                  style={{
+                    color: filtered ? "#1890ff" : undefined,
+                  }}
+                />
+                <span
+                  className="cube-fields-header-add-metric"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                >
+                  {renderAgentAddMetricAction()}
+                </span>
+              </span>
+            ),
+          }
+        : {}),
       render: (text, record, i) => {
         const sourceTableTooltip = getFieldSourceTableTooltip(record);
         const fieldDropdown = (
@@ -1690,62 +1693,14 @@ export function CubeEditor({ showBusinessFields = true }) {
         ]),
   ];
 
-  const tableDataSource = showAgentBusinessFields
-    ? cubeFieldsData.businessViewEntries || []
-    : cubeTableDataSource({ dataSource: cubeFieldsData.children });
+  const tableDataSource = cubeFieldsData.businessViewEntries || [];
 
-  const { dimensions: dimensionFields, measures: measureFields } = useMemo(() => {
-    if (!(isAgent && !showAgentBusinessFields)) {
-      return { dimensions: [], measures: [] };
-    }
-    const partitioned = partitionCubeFieldsByRole(cubeFieldsData.children);
-    const query = String(fieldSearchText || "")
-      .trim()
-      .toLowerCase();
-    const matches = (row) =>
-      String(row.fields || "")
-        .toLowerCase()
-        .includes(query) ||
-      (row.children || []).some((child) =>
-        String(child.fields || "")
-          .toLowerCase()
-          .includes(query),
-      );
-    const filtered = query
-      ? {
-          dimensions: partitioned.dimensions.filter(matches),
-          measures: partitioned.measures.filter(matches),
-        }
-      : partitioned;
-    return {
-      dimensions: sortFieldRowsByName(filtered.dimensions, fieldsListSort),
-      measures: sortFieldRowsByName(filtered.measures, fieldsListSort),
-    };
-  }, [
-    isAgent,
-    showAgentBusinessFields,
-    cubeFieldsData.children,
-    fieldSearchText,
-    fieldsListSort,
-  ]);
-
-  const renderAgentFieldsTable = (dataSource) => (
-    <Table
-      className="schedule-table cube-fields-category-table"
-      columns={columns}
-      dataSource={dataSource}
-      {...tableVirtualProps}
-      pagination={false}
-      size="small"
-      showHeader={false}
-      locale={{ emptyText: "No data" }}
-      rowClassName={(record) =>
-        isAgent && missingMetadataFieldKeys.has(record.key)
-          ? "agent-field-missing-metadata"
-          : ""
-      }
-    />
-  );
+  const fieldsTableDataSource = useMemo(() => {
+    const rows = cubeTableDataSource({
+      dataSource: cubeFieldsData.children,
+    });
+    return isAgent ? sortFieldRowsByName(rows, fieldsListSort) : rows;
+  }, [isAgent, cubeFieldsData.children, fieldsListSort]);
 
   return (
     <div className="cube-editor" ref={drop}>
@@ -1959,33 +1914,46 @@ export function CubeEditor({ showBusinessFields = true }) {
           </div>
         </div>
       ) : isAgent ? (
-        <div className="cube-fields-categories">
-          {renderAgentFieldsPaneHeader()}
-          <div className="cube-fields-category cube-fields-category--dimensions">
-            {renderAgentFieldsCategoryHeader("Dimensions")}
-            {renderAgentFieldsTable(dimensionFields)}
-          </div>
-          <div className="cube-fields-category cube-fields-category--measures">
-            {renderAgentFieldsCategoryHeader(
-              "Measures",
-              renderAgentAddMetricAction(),
-            )}
-            {renderAgentFieldsTable(measureFields)}
-          </div>
+        <div className="cube-fields-pane">
+          <Table
+            className={`schedule-table${
+              fieldsTableDataSource.length === 0
+                ? " cube-fields-pane-header-table"
+                : ""
+            }`}
+            columns={columns}
+            dataSource={fieldsTableDataSource}
+            {...tableVirtualProps}
+            pagination={false}
+            size="small"
+            onChange={handleFieldsListSortChange}
+            locale={{ emptyText: <></> }}
+            rowClassName={(record) =>
+              missingMetadataFieldKeys.has(record.key)
+                ? "agent-field-missing-metadata"
+                : ""
+            }
+          />
+          {fieldsTableDataSource.length === 0 ? (
+            <div className="cube-fields-empty-hint">
+              <p className="cube-fields-empty-hint-title">
+                Drag and drop columns from Metadata
+              </p>
+              <p className="cube-fields-empty-hint-desc">
+                Drop columns here to add Dimensions and Measures to your
+                Semantic Model.
+              </p>
+            </div>
+          ) : null}
         </div>
       ) : (
         <Table
           className="schedule-table"
           columns={columns}
-          dataSource={tableDataSource}
+          dataSource={fieldsTableDataSource}
           {...tableVirtualProps}
           pagination={false}
           size="small"
-          rowClassName={(record) =>
-            isAgent && missingMetadataFieldKeys.has(record.key)
-              ? "agent-field-missing-metadata"
-              : ""
-          }
         />
       )}
       {!showAgentBusinessFields && !isAgent && (

@@ -129,31 +129,20 @@ public class HCRRegularReportGenerator implements IHCRGenerator {
      * @return the ResultSet obtained from executing the report
      */
 	public ResultSet prepareExecuteJasperReport(JsonObject formData) {
-        boolean refreshCache = GsonUtility.optBooleanValue(formData,"refresh", false);
-        Boolean cacheRequired = false;
-        CacheManager cacheManager = null;
-        ResultSet resultSet = null;
-        JsonObject connectionDetails = formData.getAsJsonObject("connectionDetails");
-        if (!connectionDetails.entrySet().isEmpty()) {
-        	String tempUuid = GsonUtility.optStringValue(connectionDetails, "temp_uuid","");
-        	if ( StringUtils.isNotBlank(tempUuid)) {
-	            String cacheName = CacheUtils.getCacheNameFromConnection(formData);
-	            cacheManager = CacheUtils.getCacheManager("/hcrResultSet");
-	            cacheManager.setRequestData(formData.toString());
-	            Cache cache = cacheHelper.prepareCacheFromRequest(cacheManager);
-	            cacheRequired = cacheHelper.processCache(null, null, cacheName, refreshCache, cache, cacheManager);
-	            String designCacheKey = cacheHelper.designCacheKeyFor(cache);
-	            if (designCacheKey != null) {
-	                formData.addProperty("designCacheKey", designCacheKey);
-	            }
-	            if (cacheRequired && cacheManager instanceof HCRQueryProcessCacheManagerForResultSet) {
-	                HCRQueryProcessCacheManagerForResultSet hcrObj = (HCRQueryProcessCacheManagerForResultSet) cacheManager;
-	                resultSet = hcrObj.getResult();
-	            }
-        	}
-        }
-        return resultSet;
-    }
+		boolean refreshCache = GsonUtility.optBooleanValue(formData, "refresh", false);
+		JsonObject connectionDetails = formData.getAsJsonObject("connectionDetails");
+
+		if (connectionDetails == null || connectionDetails.entrySet().isEmpty()) {
+			return null;
+		}
+		String tempUuid = GsonUtility.optStringValue(connectionDetails, "temp_uuid", "");
+
+		if (StringUtils.isBlank(tempUuid)) {
+			return null;
+		}
+
+		return hcrHelper.prepareExecuteJasperReport(formData, refreshCache, null);
+	}
 	
 	/**
    
@@ -244,7 +233,7 @@ public class HCRRegularReportGenerator implements IHCRGenerator {
                 	try {
                 		filler.fill(context.getParameters(), context.getDataSource());
                 	} catch (JRException e) {
-                		throw new EfwServiceException(e.getMessage());
+                		throw new EfwServiceException(e.getMessage(), e);
                 	}
                 }, requestId);
                 

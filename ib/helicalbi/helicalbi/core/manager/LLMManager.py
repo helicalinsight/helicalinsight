@@ -3,9 +3,8 @@ import threading
 
 from helicalbi.core.ConfigLoader import ConfigLoader
 from helicalbi.core.ConfigWatcher import ConfigWatcher
-from helicalbi.core.LLMFactoryResolver import LLMFactoryResolver
-from helicalbi.core.TokenUsageFactoryResolver import TokenUsageFactoryResolver
-from helicalbi.integration.TokenUsageFactory import TokenUsageFactory
+from helicalbi.core.llm_loader import create_llm
+from helicalbi.integration.TokenUsageExtractor import TokenUsageExtractor
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +60,7 @@ class LLMManager:
                 return None
 
             try:
-                factory = LLMFactoryResolver.get_factory(effective_provider, provider_config)
-                llm = factory.create_llm()
+                llm = create_llm(effective_provider, provider_config)
                 if llm is not None:
                     self._cached_llm = llm
                     self._cached_provider = effective_provider
@@ -73,11 +71,29 @@ class LLMManager:
                 )
                 return None
 
-    def get_token_usage_factory(self, provider=None) -> TokenUsageFactory:
+    def get_token_usage_extractor(self, provider=None) -> TokenUsageExtractor:
         with self._lock:
             effective_provider = provider or self.config.get("default_provider")
-        return TokenUsageFactoryResolver.get_factory(effective_provider)
+            config = self.config
+        return TokenUsageExtractor.from_config(provider=effective_provider, llm_config=config)
+
+    # Backward-compatible alias
+    get_token_usage_factory = get_token_usage_extractor
 
     def get_baseUrl(self):
         with self._lock:
             return self.config.get("base_url")
+
+    def reload_from_disk(self) -> None:
+        """Reload ``llm_config.yaml`` and drop the cached chat model."""
+        with self._lock:
+            try:
+                self.config = self._load()
+            except Exception:
+                logger.exception(
+                    "Failed to reload llm_config.yaml; keeping previous config."
+                )
+                raise
+            self._cached_llm = None
+            self._cached_provider = None
+        logger.info("LLM configuration reloaded from disk.")

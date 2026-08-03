@@ -15,8 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.IOException;
 
+/**
+ * InstantBI HTTP facade. Chat / insight endpoints plus Admin Settings utility
+ * proxies under {@code /ai/utility/*} that forward to the Python InstantBI service.
+ */
 @Controller
-@RequestMapping(value = "/ai", method = {RequestMethod.GET, RequestMethod.POST})
+@RequestMapping(value = "/ai", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT})
 public class InstantBIController {
 
     @Autowired
@@ -95,6 +99,60 @@ public class InstantBIController {
         InstantBIServiceFactory.getListChartsService().execute(request, response);
     }
 
+    // ------------------------------------------------------------------
+    // Admin InstantBI Settings — explicit utility proxies
+    // ------------------------------------------------------------------
+
+    @RequestMapping("/utility/settings")
+    public void utilitySettings(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/settings", request, response);
+    }
+
+    @RequestMapping("/utility/llm")
+    public void utilityLlm(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm", request, response);
+    }
+
+    @RequestMapping("/utility/llm/models")
+    public void utilityLlmModels(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm/models", request, response);
+    }
+
+    @RequestMapping("/utility/llm/change-model")
+    public void utilityChangeModel(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm/change-model", request, response);
+    }
+
+    @RequestMapping("/utility/llm/default-provider")
+    public void utilityDefaultProvider(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm/default-provider", request, response);
+    }
+
+    @RequestMapping("/utility/llm/provider")
+    public void utilityLlmProvider(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm/provider", request, response);
+    }
+
+    @RequestMapping("/utility/llm/config")
+    public void utilityLlmConfig(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/llm/config", request, response);
+    }
+
+    @RequestMapping("/utility/app-config")
+    public void utilityAppConfig(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/app-config", request, response);
+    }
+
+    @RequestMapping("/utility/logging")
+    public void utilityLogging(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/logging", request, response);
+    }
+
+    @RequestMapping("/utility/question-config")
+    public void utilityQuestionConfig(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/utility/question-config", request, response);
+    }
+
     @RequestMapping("/load-chat")
     public void loadPastChat(
             @RequestParam("chat_sequence_id") String chatSeqId,
@@ -122,10 +180,30 @@ public class InstantBIController {
         InstantBIServiceFactory.getLlmUsageAuditService().execute(request, response);
     }
 
+    private void proxyUtility(String utilityPath, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getUtilityConfigService().execute(utilityPath, request, response);
+    }
+
+    static String resolveUtilityPath(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        int idx = uri == null ? -1 : uri.indexOf("/utility");
+        String utilityPath = idx >= 0 ? uri.substring(idx) : "/utility";
+        if (utilityPath.length() > "/utility".length() && utilityPath.endsWith("/")) {
+            utilityPath = utilityPath.substring(0, utilityPath.length() - 1);
+        }
+        // Drop servlet context noise after utility path (query already excluded from URI path).
+        int semicolon = utilityPath.indexOf(';');
+        if (semicolon >= 0) {
+            utilityPath = utilityPath.substring(0, semicolon);
+        }
+        return StringUtils.defaultIfBlank(utilityPath, "/utility");
+    }
+
     private void validateStatus() {
         if (this.statusValidator.isStatusNotOkay()) {
             throw new EfwServiceException("Unexpected error occurred!");
         }
     }
 }
-

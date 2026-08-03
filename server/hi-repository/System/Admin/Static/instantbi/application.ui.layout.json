@@ -1,0 +1,82 @@
+{
+  "id": "instantbi-application",
+  "title": "Application",
+  "description": "InstantBI application_config.yaml application settings",
+  "sections": [
+    {
+      "key": "kpi",
+      "title": "Question / KPI",
+      "fields": [
+        {
+          "name": "suggestion_query",
+          "label": "Suggestion query",
+          "type": "textarea",
+          "span": 24,
+          "rows": 4
+        }
+      ]
+    },
+    {
+      "key": "feature_flags",
+      "title": "Feature flags",
+      "fields": [
+        {
+          "name": "enable_llm_usage_audit",
+          "label": "Enable LLM usage audit",
+          "type": "boolean",
+          "span": 12
+        },
+        {
+          "name": "hide_prompt_reason",
+          "label": "Hide prompt reason",
+          "type": "boolean",
+          "span": 12
+        },
+        {
+          "name": "enable_cache",
+          "label": "Enable cache",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "enable_streaming",
+          "label": "Enable streaming",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "enable_memory",
+          "label": "Enable memory",
+          "type": "boolean",
+          "span": 8
+        }
+      ]
+    },
+    {
+      "key": "sql_cache",
+      "title": "SQL & API cache",
+      "fields": [
+        {
+          "name": "default_limit",
+          "label": "Default SQL limit",
+          "type": "number",
+          "span": 12,
+          "min": 1
+        },
+        {
+          "name": "api_cache_enabled",
+          "label": "API cache enabled",
+          "type": "boolean",
+          "span": 12
+        },
+        {
+          "name": "api_cache_max_entries",
+          "label": "API cache max entries",
+          "type": "number",
+          "span": 12,
+          "min": 1
+        }
+      ]
+    }
+  ]
+}

@@ -31,7 +31,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 0 max any"
+      "names": "provide dimension names as JSON array, min 0 max any"
     },
     "measures": [
       "provide measure names separated by comma, min 0 max any"
@@ -45,10 +45,12 @@
     }
   },
   "instructions": [
-    "Table. Config: columns from Object.keys(data[0]); dataSource=data; rowKey index; pagination.",
-    "Polish: humanize headers (underscore->space); pagination true; no fake sorts unless asked; wrap in div.",
-    "REQUIRED: keep the conversionHints comment and replace dimension_column / measure_column with the real category and measure column names used in the result (xField=dimension, yField=measure). Example: // conversionHints: xField: 'Travel Type', yField: 'Travel Cost'.",
-    "REQUIRED when Excel format strings are provided: build a columnFormats map { columnOrMeasureName: formatString } for matching fields only, and add column.render that applies the Excel pattern (e.g. toFixed for 0.00 / 0.0#, or leave string as-is if not numeric). Example: render: (value) => { const fmt = columnFormats[key]; if (fmt && value != null && value !== '' && !isNaN(Number(value))) { if (fmt === '0.00') return Number(value).toFixed(2); if (fmt === '0.0') return Number(value).toFixed(1); if (fmt.includes('#,##0')) return Number(value).toLocaleString(undefined, { minimumFractionDigits: (fmt.split('.')[1] || '').replace(/[^0]/g, '').length, maximumFractionDigits: (fmt.split('.')[1] || '').replace(/[^0]/g, '').length }); return String(value); } return value; }. Do not invent formats for unmatched columns."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names / measures list the columns to emphasize; empty arrays mean use all result columns.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawTable() {",

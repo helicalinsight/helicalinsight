@@ -1,5 +1,5 @@
 x-test-common: &test-common
-  image: python:3.9-slim
+  image: python:3.13-slim
   working_dir: /app
   volumes:
     - .:/app

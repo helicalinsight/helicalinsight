@@ -9,6 +9,7 @@ from bl.helpers import (
     RequestAborted,
     build_chat_memory_payload,
     build_chat_response_from_item,
+    clean_sql,
     domain_topics_from_chat_response,
     ensure_not_aborted,
     json_response,
@@ -19,7 +20,7 @@ from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug
 from helicalbi.common.auth import bind_request_identity
-from helicalbi.sql.SqlSanitizer import extract_sql, format_sql
+from helicalbi.sql.SqlSanitizer import as_sql_markdown, format_sql
 
 logger = logging.getLogger(__name__)
 
@@ -63,11 +64,11 @@ def register(flask_app) -> None:
 
             sql_section = loaded_item.get("sql") or {}
             dialect = sql_section.get("dialect") or metadata_fun_ref.get("reference", "")
-            raw_sql = extract_sql(sql_section.get("raw_sql", ""), dialect)
+            # Strip any existing ```sql fences before normalize/pretty/re-wrap.
+            raw_sql = clean_sql(sql_section.get("raw_sql", ""), dialect)
             logger.info("Load-chat resolved SQL thread=%s chat_seq_id=%s has_sql=%s", thread_id, chat_seq_id, bool(raw_sql))
-            replaced_sql = raw_sql.replace("```sql", "").replace("```", "").strip()
             formatted_sql = format_sql(raw_sql, dialect=dialect, pretty=True) if raw_sql else ""
-            display_sql = f"```sql\n{formatted_sql}" if formatted_sql else ""
+            display_sql = as_sql_markdown(formatted_sql)
 
             data_rows: list[Any] = []
             metadata_rows: list[Any] = []
@@ -77,7 +78,7 @@ def register(flask_app) -> None:
                     session_cookie=session_cookie,
                     md_location=md_location,
                     md_file_name=med_file_name,
-                    sql=replaced_sql,
+                    sql=raw_sql,
                     request_id=request_id or str(thread_id),
                 )
                 ensure_not_aborted(request_id)

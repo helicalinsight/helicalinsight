@@ -49,6 +49,7 @@ public class ModelImportHandler extends AbstractResourceImportHandler {
 
 				HIResourceAIModel dbModel = resource.getAiModel();
 				dbModel.setAiModelName(model.getAiModelName());
+				dbModel.setDescription(model.getDescription());
 				dbModel.setState(model.getState());
 
 				Date date = context.getDate();
