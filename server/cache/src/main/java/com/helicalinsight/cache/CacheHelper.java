@@ -10,6 +10,7 @@ import com.helicalinsight.cache.model.CacheReport;
 import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.concurrent.StreamedResultset;
 import com.helicalinsight.efw.HIManagedThread;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.utility.CloningUtils;
 import com.helicalinsight.efw.utility.SplitterUtils;
 import com.helicalinsight.cache.store.ApplicationCacheStore;
@@ -255,7 +256,7 @@ public class CacheHelper {
         } catch (Exception ex) {
             logger.error("Exception in refresh Cache " + ex.getMessage(), ex);
             rollBack(cacheId);
-            return false;
+            throw new EfwServiceException(ex);
         }
     }
     

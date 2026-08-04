@@ -22,7 +22,10 @@ export const uriConfig = {
   instantConvertChart: "ai/convert-chart",
   instantListCharts: "ai/list-charts",
   instantBIDomain: "ai/recommendation/domain",
-  instantBIRecommendation: "ai/recommendation/analyst"
+  instantBIRecommendation: "ai/recommendation/analyst",
+  instantBIUtilityLlm: "ai/utility/llm",
+  instantBIUtilitySettings: "ai/utility/settings",
+  instantBIUtilityPrefix: "ai/utility",
 };
 
 function instantBI(dispatch) {
@@ -157,6 +160,15 @@ function instantBI(dispatch) {
     return instantBIPostRequest(dispatch, uri, formData, callback, errback);
   }
 
+  const instantBIUtilityRequest = ({
+    formData = {},
+    uri,
+    callback = () => { },
+    errback = () => { },
+  }) => {
+    return instantBIPostRequest(dispatch, uri, formData, callback, errback);
+  }
+
   return {
     postInstantBIRequest,
     getMetadata,
@@ -171,6 +183,7 @@ function instantBI(dispatch) {
     instantBIFetchRecommendation,
     instantBIConvertChartRequest,
     instantBIListChartsRequest,
+    instantBIUtilityRequest,
   };
 }
 

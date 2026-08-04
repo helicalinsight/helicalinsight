@@ -12,6 +12,7 @@ from bl.list_charts import register as register_list_charts
 from bl.load_chat import register as register_load_chat
 from bl.suggest_domain import register as register_suggest_domain
 from bl.top_n_question import register as register_top_n_question
+from bl.utility_config import register as register_utility_config
 
 
 def register_routes(app) -> None:
@@ -28,3 +29,4 @@ def register_routes(app) -> None:
     register_get_semantic_data(app)
     register_convert_chart(app)
     register_list_charts(app)
+    register_utility_config(app)

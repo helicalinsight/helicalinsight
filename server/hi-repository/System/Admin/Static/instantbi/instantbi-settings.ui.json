@@ -1,0 +1,38 @@
+{
+  "id": "instantbi-settings",
+  "title": "InstantBI Settings",
+  "description": "Layout-driven InstantBI runtime configuration for Admin → Configurations.",
+  "version": "1.0.0",
+  "panels": [
+    {
+      "key": "provider",
+      "title": "Add / Edit Provider",
+      "description": "Create or update a LangChain provider entry in llm_config.yaml.",
+      "layout": "Static/instantbi/provider.ui.layout"
+    },
+    {
+      "key": "logging",
+      "title": "Logging",
+      "description": "InstantBI logging level and activity flags.",
+      "layout": "Static/instantbi/logging.ui.layout"
+    },
+    {
+      "key": "application",
+      "title": "Application",
+      "description": "KPI suggestion query, feature flags, SQL, and API cache.",
+      "layout": "Static/instantbi/application.ui.layout"
+    }
+  ],
+  "endpoints": {
+    "settings": "ai/utility/settings",
+    "listProviders": "ai/utility/llm",
+    "listModels": "ai/utility/llm/models",
+    "changeModel": "ai/utility/llm/change-model",
+    "defaultProvider": "ai/utility/llm/default-provider",
+    "upsertProvider": "ai/utility/llm/provider",
+    "llmConfig": "ai/utility/llm/config",
+    "appConfig": "ai/utility/app-config",
+    "logging": "ai/utility/logging",
+    "questionConfig": "ai/utility/question-config"
+  }
+}

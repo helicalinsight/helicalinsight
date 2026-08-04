@@ -1,13 +1,14 @@
 import React from "react";
-import { Col, Row, Tooltip, Typography } from "antd";
+import { Col, Empty, Row, Tooltip, Typography } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
+import { useSelector } from "react-redux";
 import { Cube } from "../../../../hi-cube/cube";
 import { useAgentName } from "../../../../common/agent-name-context";
 import { CustomIcon } from "../../../../common/custom-icons/CustomIcon";
 import TutorialInfo from "../../../../common/hi-tutorial";
 import { getCubeEditorTooltipText } from "../../../../hi-cube/cubeEditorTooltips";
 
-const { Paragraph } = Typography;
+const { Paragraph, Text } = Typography;
 
 const DEFAULT_AGENT_NAME = "Model_1";
 const MODEL_NAME_TOOLTIP = getCubeEditorTooltipText("Semantic Model", "agent");
@@ -16,6 +17,12 @@ const MODEL_NAME_TOOLTIP = getCubeEditorTooltipText("Semantic Model", "agent");
 export function CubeShelf({ showBusinessFields = false }) {
   const { agentName, onAgentNameChange } = useAgentName();
   const displayName = agentName || DEFAULT_AGENT_NAME;
+  const metadataDetails = useSelector(
+    (state) => state.agent.metadataDetails || {},
+  );
+  const isMetadataLoaded = Boolean(
+    metadataDetails.path && metadataDetails.fileName,
+  );
 
   return (
     <div className="cube-shelf">
@@ -49,7 +56,26 @@ export function CubeShelf({ showBusinessFields = false }) {
         </div>
       </TutorialInfo>
       <div className="cube-shelf-cube-area">
-        <Cube showBusinessFields={showBusinessFields} />
+        {!isMetadataLoaded ? (
+          <div className="cube-shelf-no-metadata">
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <>
+                  <Text strong className="cube-shelf-no-metadata-title">
+                    No Metadata Connected
+                  </Text>
+                  <br />
+                  <Text type="secondary" className="cube-shelf-no-metadata-desc">
+                    Connect a Metadata file to load Dimensions and Measures.
+                  </Text>
+                </>
+              }
+            />
+          </div>
+        ) : (
+          <Cube showBusinessFields={showBusinessFields} />
+        )}
       </div>
     </div>
   );

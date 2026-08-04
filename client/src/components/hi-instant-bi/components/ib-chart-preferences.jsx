@@ -1,16 +1,18 @@
 import {
   AreaChartOutlined,
+  AppstoreOutlined,
   BarChartOutlined,
   CalendarOutlined,
   CodeOutlined,
   CreditCardOutlined,
   DotChartOutlined,
+  FunnelPlotOutlined,
   HeatMapOutlined,
+  LayoutOutlined,
   LineChartOutlined,
   Loading3QuartersOutlined,
   PieChartOutlined,
   RadarChartOutlined,
-  SettingOutlined,
   SlidersOutlined,
   TableOutlined,
 } from "@ant-design/icons";
@@ -45,51 +47,58 @@ const chartLabel = (name = "") =>
     .replace(/_/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const ICON_GROUPS = [
-  [
-    [
-      "bar",
-      "column",
-      "tiny_column",
-      "histogram",
-      "stacked_column",
-      "grouped_column",
-      "grouped_column_line",
-      "stacked_column_line",
-      "stacked_and_grouped_column_line",
-    ],
-    <BarChartOutlined />,
-  ],
-  [["line", "tiny_line", "dual_line", "column_line"], <LineChartOutlined />],
-  [["area", "tiny_area"], <AreaChartOutlined />],
-  [
-    ["pie", "arc", "rose_chart", "sunburst", "treemap", "circle_packing"],
-    <PieChartOutlined />,
-  ],
-  [["donut", "doughnut"], <ChartIcon name="doughnut-chart" />],
-  [["point", "scatter", "bubble_chart"], <DotChartOutlined />],
-  [["heatmap"], <HeatMapOutlined />],
-  [["waterfall", "funnel_chart"], <SlidersOutlined />],
-  [["radar"], <RadarChartOutlined />],
-  [["progress", "gauge"], <Loading3QuartersOutlined />],
-  [["calendar"], <CalendarOutlined />],
-  [["wordcloud"], <ChartIcon name="word-cloud" />],
-  [
-    ["relation"],
+const CHART_ICONS = {
+  bar: <BarChartOutlined />,
+  column: <ChartIcon name="column-chart" />,
+  line: <LineChartOutlined />,
+  area: <AreaChartOutlined />,
+  point: <DotChartOutlined />,
+  pie: <PieChartOutlined />,
+  arc: <PieChartOutlined />,
+  donut: <ChartIcon name="doughnut-chart" />,
+  doughnut: <ChartIcon name="doughnut-chart" />,
+  heatmap: <HeatMapOutlined />,
+  waterfall: <SlidersOutlined />,
+  radar: <RadarChartOutlined />,
+  progress: <Loading3QuartersOutlined />,
+  calendar: <CalendarOutlined />,
+  wordcloud: <ChartIcon name="word-cloud" />,
+  relation: (
     <span className="ib-chart-preferences__custom-icon" data-icon="relation">
       <ChartIcon name="relation-chart" />
-    </span>,
-  ],
-  [["table", "grid_table", "pivot_table"], <TableOutlined />],
-  [["kpi", "other"], <CreditCardOutlined />],
-];
+    </span>
+  ),
+  table: <TableOutlined />,
+  grid_table: <ChartIcon name="s2-table-new" />,
+  pivot_table: <ChartIcon name="pivot-table-new" />,
+  kpi: <CreditCardOutlined />,
+  other: <AppstoreOutlined />,
+  scatter: <ChartIcon name="scatter-chart" />,
+  bubble_chart: <ChartIcon name="bubble-chart" />,
+  stacked_column: <ChartIcon name="stacking-column-chart" />,
+  tiny_column: <ChartIcon name="tiny-column-chart" />,
+  histogram: <ChartIcon name="histogram-chart" />,
+  grouped_column: <ChartIcon name="grouped-column-chart" />,
+  grouped_column_line: <ChartIcon name="grouped-column-line-chart" />,
+  stacked_column_line: <ChartIcon name="stacked-column-line-chart" />,
+  stacked_and_grouped_column_line: (
+    <ChartIcon name="stacked-and-grouped-column-line-chart" />
+  ),
+  tiny_line: <ChartIcon name="tiny-line-chart" />,
+  dual_line: <ChartIcon name="dual-line-chart" />,
+  column_line: <ChartIcon name="column-line-chart" />,
+  tiny_area: <ChartIcon name="tiny-area-chart" />,
+  rose_chart: <ChartIcon name="rose-chart" />,
+  sunburst: <ChartIcon name="sunburst-chart" />,
+  treemap: <LayoutOutlined />,
+  circle_packing: <ChartIcon name="circle-packing-chart" />,
+  funnel_chart: <FunnelPlotOutlined />,
+  gauge: <ChartIcon name="gauge-chart" />,
+};
 
 const getChartIcon = (type = "") => {
   const key = chartKey(type);
-  for (const [names, icon] of ICON_GROUPS) {
-    if (names.includes(key)) return icon;
-  }
-  return <BarChartOutlined />;
+  return CHART_ICONS[key] || <BarChartOutlined />;
 };
 
 const parseSimilarItem = (item) => {
@@ -274,7 +283,7 @@ const IbChartPreferences = ({
           size="small"
           type="text"
           className="ib-chart-preferences__trigger"
-          icon={<SettingOutlined />}
+          icon={<ChartIcon name="convert-chart" />}
           onClick={openDrawer}
           data-testid="ib-chart-preferences-open"
         />

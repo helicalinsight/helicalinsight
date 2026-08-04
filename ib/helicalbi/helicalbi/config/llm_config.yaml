@@ -1,31 +1,93 @@
-#Provide the llm provider for Instant BI
+# Provide the llm provider for Instant BI
+# Switch providers by changing only default_provider (e.g. openai, anthropic, google-genai, deepseek, ollama).
 default_provider:
-#Provide base url of the hi-ee application along with port number
+# Provide base url of the hi-ee application along with port number
 #base_url: http://hiee:8080/hi-ee
 base_url: http://hiee:8080/hi-ee
 
 providers:
   openai:
+    package: langchain-openai
     model: gpt-4.1-mini
-    temperature: 0.1
-    # ChartFiller returns structured JSON wrapping a full JS VF; grid/pivot need headroom.
-    max_tokens: 4000
-    api_key:
+    parameters:
+      temperature: 0.1
+      # ChartFiller returns structured JSON wrapping a full JS VF; grid/pivot need headroom.
+      max_tokens: 4000
+      api_key: ${OPENAI_API_KEY}
+    usage_path: usage_metadata
 
   anthropic:
+    package: langchain-anthropic
     model: claude-opus-4-6
-    temperature: 0.1
-    max_tokens: 4000
-    api_key:
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${ANTHROPIC_API_KEY}
+    usage_path: usage_metadata
 
-  gemini:
+  google-genai:
+    package: langchain-google-genai
     model: gemini-2.5-flash
-    temperature: 0.1
-    max_tokens: 4000
-    api_key:
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${GOOGLE_API_KEY}
+    usage_path: usage_metadata
+
+  # Alias kept for existing deployments that set default_provider: gemini
+  gemini:
+    package: langchain-google-genai
+    model: gemini-2.5-flash
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${GOOGLE_API_KEY}
+    usage_path: usage_metadata
+
+  groq:
+    package: langchain-groq
+    model: llama-3.3-70b-versatile
+    parameters:
+      temperature: 0
+      api_key: ${GROQ_API_KEY}
+    usage_path: usage_metadata
 
   ollama:
+    package: langchain-ollama
     model: deepseek-coder-v2
-    temperature: 0.1
-    max_tokens: 4000
-    base_url:
+    parameters:
+      temperature: 0.1
+      # Override via OLLAMA_BASE_URL in .env if needed: ${OLLAMA_BASE_URL}
+      base_url: http://localhost:11434
+    # Ollama typically puts counts on response_metadata (prompt_eval_count / eval_count).
+    usage_path: response_metadata
+
+  mistralai:
+    package: langchain-mistralai
+    model: mistral-large-latest
+    parameters:
+      api_key: ${MISTRAL_API_KEY}
+    usage_path: usage_metadata
+
+  fireworks:
+    package: langchain-fireworks
+    model: accounts/fireworks/models/llama-v3p1-70b-instruct
+    parameters:
+      api_key: ${FIREWORKS_API_KEY}
+    usage_path: usage_metadata
+
+  together:
+    package: langchain-together
+    model: meta-llama/Llama-3.3-70B-Instruct-Turbo
+    parameters:
+      api_key: ${TOGETHER_API_KEY}
+    usage_path: usage_metadata
+
+  deepseek:
+    package: langchain-deepseek
+    model: deepseek-chat
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${DEEPSEEK_API_KEY}
+    usage_path: usage_metadata

@@ -1,5 +1,3 @@
-# Maps provider keyword -> fully qualified factory class name.
-factories:
-  openai: helicalbi.integration.openai.OpenAIFactory.OpenAIFactory
-  anthropic: helicalbi.integration.anthropic.AnthropicFactory.AnthropicFactory
-  gemini: helicalbi.integration.gemeni.GeminiFactory.GeminiFactory
+# Legacy registry — unused. Providers are declared in llm_config.yaml
+# (package + model + parameters) and loaded via helicalbi.core.llm_loader.
+factories: {}

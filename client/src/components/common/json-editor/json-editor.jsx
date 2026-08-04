@@ -52,6 +52,8 @@ export function MonacoJsonEditor({
   handleAbort,
   isActive = true,
   className = "monaco-json-editor",
+  editorRef,
+  onMount,
 }) {
   const [localValue, setLocalValue] = useState(value);
   const lastEmittedRef = useRef(value);
@@ -71,6 +73,13 @@ export function MonacoJsonEditor({
     onChange?.(normalized);
   };
 
+  const handleEditorMount = (editor, monaco) => {
+    if (editorRef) {
+      editorRef.current = editor;
+    }
+    onMount?.(editor, monaco);
+  };
+
   if (isLoading) {
     return (
       <EditorLoadingView handleAbort={handleAbort} className={className} />
@@ -85,6 +94,7 @@ export function MonacoJsonEditor({
         language="json"
         value={localValue}
         onChange={handleEditorChange}
+        onMount={handleEditorMount}
         theme="vs-light"
         options={{
           minimap: { enabled: true },

@@ -6,7 +6,7 @@ client-friendly payload with the shape::
 
     chat_response: {
         viz:     { vf_template, chart_name, vf_title, vf_reason,
-                   similar_chart },
+                   similar_chart, viz_model },
         sql:     { raw_sql, dialect, required_domain, required_topic,
                    required_table, required_column, required_join, required_cube_info,
                    reason },
@@ -21,7 +21,7 @@ client-friendly payload with the shape::
 import base64
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -45,6 +45,14 @@ class VizSection(BaseModel):
             "Current chart plus alternate types that also fit this data "
             '(wire format: [{"vf.heatmap": "heatmap"}, {"vf.column": "column"}, '
             '{"vf.dual_line": "dual line"}, ...]).'
+        ),
+    )
+    viz_model: Optional[dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Structured visualization model: data shelves (rows/columns/filters/hidden), "
+            "chart (viz/mark), and properties (labels, title, color/gradient/theme, "
+            "formatting, custom formatters)."
         ),
     )
 
@@ -129,6 +137,7 @@ class ChatResponse(BaseModel):
             vf_title=_as_str(state.get("vf_title")),
             vf_reason=_as_str(state.get("viz_reason")),
             similar_chart=similar_chart,
+            viz_model=_as_viz_model(state.get("viz_model")),
         )
 
         required_tables = (
@@ -246,6 +255,25 @@ def _as_str(value: Any) -> str:
     if isinstance(value, str):
         return value
     return str(value)
+
+
+def _as_viz_model(value: Any) -> Optional[dict[str, Any]]:
+    """Normalize ModelState.viz_model to a plain dict for the wire response."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, dict):
+        return value
+    if hasattr(value, "model_dump"):
+        try:
+            return value.model_dump()
+        except Exception:
+            logger.debug("Unable to dump viz_model via model_dump", exc_info=True)
+    if hasattr(value, "dict"):
+        try:
+            return value.dict()
+        except Exception:
+            logger.debug("Unable to dump viz_model via dict()", exc_info=True)
+    return None
 
 
 def _as_list(value: Any) -> list:

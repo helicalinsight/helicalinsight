@@ -312,6 +312,30 @@
     min-height: 0;
   }
 
+  .agent-workspace-no-metadata {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background: $hi-white;
+
+    .agent-workspace-no-metadata-title {
+      display: block;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+
+    .agent-workspace-no-metadata-desc {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      max-width: 280px;
+      text-align: center;
+      line-height: 1.6;
+    }
+  }
+
   .display-none {
     display: none;
   }
@@ -342,6 +366,31 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+  }
+
+  .cube-shelf-no-metadata {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+    background: $hi-white;
+    padding: 16px;
+
+    .cube-shelf-no-metadata-title {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+
+    .cube-shelf-no-metadata-desc {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      max-width: 200px;
+      text-align: center;
+      line-height: 1.5;
+    }
   }
 
   .cube-shelf-name-bar {

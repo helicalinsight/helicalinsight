@@ -17,6 +17,7 @@ def fake_response_payload(sample_model_data):
         "response": {
             "data": {
                 "state": sample_model_data,
+                "description": "Retail analytics model",
                 "metadata": {
                     "location": "/meta/dir",
                     "metadataFileName": "metadata.json",
@@ -36,7 +37,7 @@ class TestModelLayerHelper:
 
         assert helper.model_data == fake_response_payload["response"]
         payload = mock_fetch.call_args.kwargs["service_json"]
-        assert payload["service"] == "getAiModelForEdit"
+        assert payload["service"] == "getAiAgentForEdit"
         assert payload["serviceType"] == "instant"
         assert mock_fetch.call_args.kwargs["session_cookie"] == session_cookie
 
@@ -68,6 +69,36 @@ class TestModelLayerHelper:
         ):
             helper = ModelLayerHelper(session_cookie, "model.json", "/model/dir")
         assert helper.get_model_semantic_layer() == sample_model_data
+
+    def test_description_fallback_when_no_domain_or_topic(self, session_cookie):
+        payload = {
+            "status": 1,
+            "response": {
+                "data": {
+                    "description": "Travel spend analytics",
+                    "state": {"domain": [], "cube": []},
+                    "metadata": {
+                        "location": "/meta/dir",
+                        "metadataFileName": "metadata.json",
+                    },
+                }
+            },
+        }
+        with patch(
+            "helicalbi.service.modelservice.ModelLayerHelper.fetch_service_api",
+            return_value=payload,
+        ):
+            helper = ModelLayerHelper(session_cookie, "model.json", "/model/dir")
+
+        assert helper.get_model_description() == "Travel spend analytics"
+        state = helper.get_model_semantic_layer()
+        assert state["domain"] == [
+            {
+                "domain_name": "Travel spend analytics",
+                "description": "Travel spend analytics",
+                "topics": [],
+            }
+        ]
 
     def test_raises_when_service_returns_error_status(
         self, session_cookie

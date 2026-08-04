@@ -20,9 +20,9 @@ export const CUBE_EDITOR_TOOLTIPS = {
   Measure:
     "Convert this measure into a dimension.",
   "Semantic Type":
-    "Classify the column (e.g., currency, email) so semantic models and reports interpret values correctly.",
+    "Classify the column (e.g., currency, email,etc..) so semantic models and reports interpret values correctly.",
   Synonyms:
-    "Alternate names users might say for this field. Enter comma-separated values (e.g., users, clients).",
+    "Alternate names users might say for this field. Enter comma-separated values (e.g., users, clients,etc..).",
   Instructions:
     "Guidance for how the semantic model should interpret or use this field when answering questions.",
   Examples:
@@ -63,23 +63,23 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Remove field from topic":
     "Removes this field from this topic only. The field remains available in the Fields list and in any other topics it belongs to.",
   Fields:
-    "To build your Semantic Model, drag and drop fields from Metadata. Numeric columns are placed under Measures; other types under Dimensions. Right-click a field for more actions. Hierarchies can only include Dimension fields.",
+    "To build your Semantic Model, drag and drop fields from Metadata. Right-click a field for more actions. Hierarchies can only include Dimension fields.",
   "Sort fields":
-    "Sort Dimensions and Measures by name. Click to cycle A–Z, Z–A, then reset to the default (drag/drop) order.",
+    "Sort fields by name. Click to cycle A–Z, Z–A, then reset to the default (drag/drop) order.",
   Sort:
     "Choose ascending, descending, or natural order for this dimension when it is used in reports.",
   Aggregation:
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure.",
   Format:
-    "Choose how values are displayed (e.g., General, 0.00). Available formats depend on the selected semantic type.",
+    "Choose how values are displayed (eg:: 0,0.00 etc..). Available formats depend on the selected semantic type.",
   "Semantic Type":
-    "Classify the column (e.g., currency, email) so the semantic model interprets values correctly.",
+    "Classify the column (e.g., currency, email, etc..) so the semantic model interprets values correctly.",
   Formula:
-    "Write the calculation for this field as an aggregation over your source columns (e.g., SUM(order_amount), AVG(total_price)).",
+    "Write the calculation for this field as an aggregation over your source columns (e.g.,COUNT(table_name.column_name)).",
   Instructions:
     "Guidance for how the semantic model should interpret or use this field when answering questions.",
   Synonyms:
-    "Alternate names users might say for this field. Enter comma-separated values (e.g., users, clients).",
+    "Alternate names users might say for this field. Enter comma-separated values (e.g., users, clients,etc..).",
   Examples:
     "Examples teach the semantic model how to map plain language to database values (e.g., term -> column or value).",
   "AI Context":
@@ -95,7 +95,7 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Business Topic":
     "A business topic groups related fields inside a domain (e.g., Orders under Sales). Drop fields from the Fields list onto a topic to assign them. Drag a hierarchy to assign all of its columns at once. The same field can belong to multiple topics. Right-click the topic name to add a description.",
   "Semantic Model":
-    "The name of this semantic model file (e.g., Model_1). This is used when saving the semantic model.",
+    "Give your name for this semantic model (e.g., Sales_Analytics , Model_1 ,etc..). You can click the pencil icon anytime to rename it. This name will be used when saving and helps you quickly recognize the model later.",
   "Delete Description":
     "Clears only the description text. The domain or topic itself is not deleted.",
   "Clear Description": "Clears the description text for this domain or topic.",
@@ -106,7 +106,7 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Add to an existing Hierarchy":
     "Add this field as a member of an existing hierarchy so it can be browsed and drilled into alongside related fields.",
   "Convert to Measure":
-    "Convert this dimension into a measure so it can be aggregated (e.g., summed, averaged).",
+    "Convert this dimension into a measure so it can be aggregated (e.g., sum, avg, etc..).",
   "Convert to Dimension":
     "Convert this measure into a dimension so it can be used for grouping and filtering.",
 };

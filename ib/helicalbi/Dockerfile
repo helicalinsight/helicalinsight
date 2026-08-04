@@ -1,5 +1,5 @@
 # Instant BI runtime image — deps baked in so containers start without pip install each time.
-FROM python:3.9-slim
+FROM python:3.13-slim
 
 WORKDIR /app
 

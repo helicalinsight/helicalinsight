@@ -4,7 +4,28 @@ import {
   StackingAreaSvg, StackingColumn100Svg, StackingArea100Svg, ScatterChartSvg, ParetoChartSvg, StepAreaChartSvg, MapChartSvg, VFChartSvg, S2TableSvg, RelationChartSvg,
   PivotTableSvgNew,
   VFChartSvgNew,
-  WordCloudSvg
+  WordCloudSvg,
+  HorizontalBarChartSvg,
+  ColumnChartSvg,
+  HistogramChartSvg,
+  GroupedColumnSvg,
+  TinyColumnSvg,
+  DualLineSvg,
+  ColumnLineSvg,
+  TinyLineSvg,
+  TinyAreaSvg,
+  RoseChartSvg,
+  SunburstSvg,
+  TreemapSvg,
+  CirclePackingSvg,
+  BubbleChartSvg,
+  FunnelChartSvg,
+  GaugeChartSvg,
+  GroupedColumnLineSvg,
+  StackedColumnLineSvg,
+  StackedAndGroupedColumnLineSvg,
+  GridTableChartSvg,
+  ConvertChartSvg,
 } from "./chart-icons-svg"
 
 const style = { marginRight: "5px" }
@@ -29,6 +50,27 @@ const VFChartIconNew = () => <Icon component={VFChartSvgNew} style={style} />;
 const S2TableIcon = () => <Icon component={S2TableSvg} />;
 const RelationChartIcon = () => <Icon component={RelationChartSvg} />;
 const WordCloudIcon = () => <Icon component={WordCloudSvg} />;
+const HorizontalBarChartIcon = () => <Icon component={HorizontalBarChartSvg} style={style} />;
+const ColumnChartIcon = () => <Icon component={ColumnChartSvg} style={style} />;
+const HistogramChartIcon = () => <Icon component={HistogramChartSvg} style={style} />;
+const GroupedColumnIcon = () => <Icon component={GroupedColumnSvg} style={style} />;
+const TinyColumnIcon = () => <Icon component={TinyColumnSvg} style={style} />;
+const DualLineIcon = () => <Icon component={DualLineSvg} style={style} />;
+const ColumnLineIcon = () => <Icon component={ColumnLineSvg} style={style} />;
+const TinyLineIcon = () => <Icon component={TinyLineSvg} style={style} />;
+const TinyAreaIcon = () => <Icon component={TinyAreaSvg} style={style} />;
+const RoseChartIcon = () => <Icon component={RoseChartSvg} style={style} />;
+const SunburstIcon = () => <Icon component={SunburstSvg} style={style} />;
+const TreemapIcon = () => <Icon component={TreemapSvg} style={style} />;
+const CirclePackingIcon = () => <Icon component={CirclePackingSvg} style={style} />;
+const BubbleChartIcon = () => <Icon component={BubbleChartSvg} style={style} />;
+const FunnelChartIcon = () => <Icon component={FunnelChartSvg} style={style} />;
+const GaugeChartIcon = () => <Icon component={GaugeChartSvg} style={style} />;
+const GroupedColumnLineIcon = () => <Icon component={GroupedColumnLineSvg} style={style} />;
+const StackedColumnLineIcon = () => <Icon component={StackedColumnLineSvg} style={style} />;
+const StackedAndGroupedColumnLineIcon = () => <Icon component={StackedAndGroupedColumnLineSvg} style={style} />;
+const GridTableChartIcon = () => <Icon component={GridTableChartSvg} style={style} />;
+const ConvertChartIcon = () => <Icon component={ConvertChartSvg} />;
 
 
 const ChartIcon = (props) => {
@@ -76,6 +118,48 @@ const ChartIcon = (props) => {
       return <RelationChartIcon />;
     case "word-cloud":
       return <WordCloudIcon />;
+    case "horizontal-bar-chart":
+      return <HorizontalBarChartIcon />;
+    case "column-chart":
+      return <ColumnChartIcon />;
+    case "histogram-chart":
+      return <HistogramChartIcon />;
+    case "grouped-column-chart":
+      return <GroupedColumnIcon />;
+    case "tiny-column-chart":
+      return <TinyColumnIcon />;
+    case "dual-line-chart":
+      return <DualLineIcon />;
+    case "column-line-chart":
+      return <ColumnLineIcon />;
+    case "tiny-line-chart":
+      return <TinyLineIcon />;
+    case "tiny-area-chart":
+      return <TinyAreaIcon />;
+    case "rose-chart":
+      return <RoseChartIcon />;
+    case "sunburst-chart":
+      return <SunburstIcon />;
+    case "treemap-chart":
+      return <TreemapIcon />;
+    case "circle-packing-chart":
+      return <CirclePackingIcon />;
+    case "bubble-chart":
+      return <BubbleChartIcon />;
+    case "funnel-chart":
+      return <FunnelChartIcon />;
+    case "gauge-chart":
+      return <GaugeChartIcon />;
+    case "grouped-column-line-chart":
+      return <GroupedColumnLineIcon />;
+    case "stacked-column-line-chart":
+      return <StackedColumnLineIcon />;
+    case "stacked-and-grouped-column-line-chart":
+      return <StackedAndGroupedColumnLineIcon />;
+    case "grid-table-chart":
+      return <GridTableChartIcon />;
+    case "convert-chart":
+      return <ConvertChartIcon />;
     default:
       return <ParetoChartIcon />;
 

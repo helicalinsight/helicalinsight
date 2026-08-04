@@ -56,30 +56,39 @@ base_url: http://hiee:8080/hi-ee
 
 providers:
   openai:
-    model: gpt-5.4-mini
-    temperature: 0.1
-    max_tokens: 1000
-    api_key: <YOUR_OPENAI_API_KEY>
+    package: langchain-openai
+    model: gpt-4.1-mini
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${OPENAI_API_KEY}
 
   anthropic:
+    package: langchain-anthropic
     model: claude-opus-4-6
-    temperature: 0.1
-    max_tokens: 1500
-    api_key: <YOUR_ANTHROPIC_API_KEY>
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${ANTHROPIC_API_KEY}
 
-  gemini:
+  google-genai:
+    package: langchain-google-genai
     model: gemini-2.5-flash
-    temperature: 0.1
-    max_tokens: 1500
-    api_key: <YOUR_GEMINI_API_KEY>
+    parameters:
+      temperature: 0.1
+      max_tokens: 4000
+      api_key: ${GOOGLE_API_KEY}
 ```
+
+API keys live in the project `.env` (see `.env.example`). Switch providers by changing only `default_provider`.
 
 | Setting | Description |
 |---------|-------------|
-| `default_provider` | Active LLM provider (`openai`, `anthropic`, or `gemini`). **Required.** |
+| `default_provider` | Active LLM provider (`openai`, `anthropic`, `google-genai`, `ollama`, …). **Required.** |
 | `base_url` | Base URL of the hi-ee application, including context path and port. **Required.** |
+| `providers.<name>.package` | LangChain provider package (installed on demand). **Required.** |
 | `providers.<name>.model` | Model name for that provider. **Required** for the selected provider. |
-| `providers.<name>.api_key` | API key for that provider. **Required** for the selected provider. |
+| `providers.<name>.parameters.api_key` | API key (use `${ENV_VAR}` from `.env`). **Required** for cloud providers. |
 
 | Environment | `base_url` |
 |-------------|------------|
@@ -89,7 +98,8 @@ providers:
 ### Notes
 
 - When running locally (outside Docker), use `http://localhost:8085/hi-ee` for `base_url`.
-- Set `api_key` only for the provider named in `default_provider`; unused providers can leave `api_key` empty.
+- Set the env var for the provider named in `default_provider`; unused providers can leave their keys empty.
+- Provider packages are installed automatically the first time that provider is selected.
 ---
 
 ## Checklist
@@ -97,4 +107,4 @@ providers:
 - [ ] `setting.xml` → `instantbiConfig.serviceUrl` points to InstantBI
 - [ ] `llm_config.yaml` → `base_url` points to hi-ee
 - [ ] `llm_config.yaml` → `default_provider` is set
-- [ ] `llm_config.yaml` → selected provider has `model` and `api_key`
+- [ ] `.env` → selected provider API key (or Ollama `OLLAMA_BASE_URL`) is set

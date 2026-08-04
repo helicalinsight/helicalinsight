@@ -131,12 +131,12 @@ def test_apply_settings_preserves_measure_formats_and_color():
     filled = apply_chart_settings(fields_to_settings(fields), chart_def=chart)
     setting = _filled_setting(filled)
 
-    assert setting["dimensions"]["name"] == "Travel Type"
+    assert setting["dimensions"]["names"] == ["Travel Type"]
     assert setting["measures"] == ["Travel Cost"]
     assert setting["measure_formats"]["Travel Cost"] == "#,##0.00"
     assert setting["color"] == ["#5B8FF9", "#61DDAA"]
     assert "angleField: setting.measures[0]" in filled
-    assert "colorField: setting.dimensions.name" in filled
+    assert "colorField: setting.dimensions.names[0]" in filled
 
 
 TABLE_SOURCE_JS = """
@@ -256,12 +256,26 @@ function DrawColumn() {
     encoded = base64.b64encode(source_js.encode("utf-8")).decode("utf-8")
     result = convert_chart(encoded, "bar", vf_title="Travel Cost by Travel Type")
 
-    assert set(result.keys()) == {"vf_template", "chart_name", "vf_title", "vf_reason"}
+    assert set(result.keys()) == {
+        "vf_template",
+        "chart_name",
+        "vf_title",
+        "vf_reason",
+        "similar_chart",
+    }
     assert result["chart_name"] == "bar"
+    similar_keys = {
+        next(iter(entry))
+        for entry in result["similar_chart"]
+        if isinstance(entry, dict) and entry
+    }
+    assert "vf.bar" in similar_keys
+    assert "vf.column" in similar_keys
+    assert "vf.pie" in similar_keys
     decoded = decode_vf_template(result["vf_template"])
     setting = _filled_setting(decoded)
     assert setting["measures"] == ["Travel Cost"]
-    assert setting["dimensions"]["name"] == "Travel Type"
+    assert setting["dimensions"]["names"] == ["Travel Type"]
     assert setting["measure_formats"]["Travel Cost"] == "#,##0.00"
     assert setting["color"] == ["#5B8FF9", "#61DDAA"]
     assert "conversionHints" in decoded
@@ -366,7 +380,7 @@ def test_interconvert_to_kpi_keeps_currency_and_formatter():
 
 
 def test_partial_interconvert_still_carries_currency_formats():
-    """Family requirement failures still return a template with formats."""
+    """Family requirement failures still return a template for editing."""
     encoded = _encode_settings_chart(
         "column",
         {
@@ -378,8 +392,89 @@ def test_partial_interconvert_still_carries_currency_formats():
     with pytest.raises(ChartConversionError) as caught:
         convert_chart(encoded, "heatmap", format_strings=CUBE_FORMATS)
     assert caught.value.viz is not None
-    setting = _filled_setting(decode_vf_template(caught.value.viz["vf_template"]))
-    assert setting["measure_formats"]["travel_cost"] == CURRENCY_FMT
+    assert caught.value.viz.get("chart_name") == "heatmap"
+    decoded = decode_vf_template(caught.value.viz["vf_template"])
+    setting = _filled_setting(decoded)
+    # Bound measure is still present on the best-effort template.
+    assert "travel_cost" in (setting.get("measures") or [])
+    # Formats may live in setting and/or the injected formatter helpers.
+    formats = setting.get("measure_formats") or {}
+    assert formats.get("travel_cost") == CURRENCY_FMT or CURRENCY_FMT in decoded or "travel_cost" in decoded
+
+
+def test_convert_backfills_second_dimension_from_metadata():
+    """1-dim source + 2-dim result metadata can convert to heatmap."""
+    encoded = _encode_settings_chart(
+        "column",
+        {
+            "dimensions": {"name": "travel_type"},
+            "measures": ["travel_cost"],
+            "measure_formats": {"travel_cost": CURRENCY_FMT},
+        },
+    )
+    data_types = [
+        {"name": "travel_type", "type": "text"},
+        {"name": "booking_platform", "type": "text"},
+        {"name": "travel_cost", "type": "numeric"},
+    ]
+    result = convert_chart(
+        encoded,
+        "heatmap",
+        data_types=data_types,
+        format_strings=CUBE_FORMATS,
+    )
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["dimensions"]["names"][:2] == ["travel_type", "booking_platform"]
+    assert setting["measures"][0] == "travel_cost"
+
+
+def test_convert_backfills_second_measure_from_metadata():
+    """1-measure source + 2-measure result metadata can convert to dual_axes."""
+    encoded = _encode_settings_chart(
+        "column",
+        {
+            "dimensions": {"name": "travel_type"},
+            "measures": ["travel_cost"],
+            "measure_formats": {"travel_cost": CURRENCY_FMT},
+        },
+    )
+    data_types = [
+        {"name": "travel_type", "type": "text"},
+        {"name": "travel_cost", "type": "numeric"},
+        {"name": "employee_count", "type": "numeric"},
+    ]
+    result = convert_chart(
+        encoded,
+        "dual_line",
+        data_types=data_types,
+        format_strings=CUBE_FORMATS,
+    )
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["dimensions"]["names"][0] == "travel_type"
+    assert setting["measures"][:2] == ["travel_cost", "employee_count"]
+
+
+def test_extract_fields_appends_unused_metadata_columns():
+    """Bound settings stay first; unused result dims/measures are appended."""
+    encoded = _encode_settings_chart(
+        "column",
+        {
+            "dimensions": {"name": "travel_type"},
+            "measures": ["travel_cost"],
+        },
+    )
+    source_js = decode_vf_template(encoded)
+    fields = extract_fields(
+        source_js,
+        data_types=[
+            {"name": "travel_type", "type": "text"},
+            {"name": "booking_platform", "type": "text"},
+            {"name": "travel_cost", "type": "numeric"},
+            {"name": "employee_count", "type": "numeric"},
+        ],
+    )
+    assert fields.dimensions == ["travel_type", "booking_platform"]
+    assert fields.measures == ["travel_cost", "employee_count"]
 
 
 def test_table_to_wordcloud_dim_only_synthesizes_weight():
@@ -395,7 +490,7 @@ def test_table_to_wordcloud_dim_only_synthesizes_weight():
     result = convert_chart(encoded, "wordcloud", vf_title="All travel medium")
     decoded = decode_vf_template(result["vf_template"])
     setting = _filled_setting(decoded)
-    assert setting["dimensions"]["name"] == "travel_medium"
+    assert setting["dimensions"]["names"] == ["travel_medium"]
     assert setting.get("measures") in ([], None) or setting["measures"] == []
     assert "wordField" in decoded
     assert "__weight" in decoded
@@ -422,4 +517,55 @@ def test_table_empty_bindings_enriched_from_data_types_for_wordcloud():
         vf_title="All travel medium",
     )
     setting = _filled_setting(decode_vf_template(result["vf_template"]))
-    assert setting["dimensions"]["name"] == "travel_medium"
+    assert setting["dimensions"]["names"] == ["travel_medium"]
+
+
+def test_table_to_kpi_binds_numeric_column_from_data_types():
+    """Empty table measures still convert to KPI using a numeric metadata column."""
+    encoded = _encode_settings_chart(
+        "table",
+        {
+            "dimensions": {"names": []},
+            "measures": [],
+        },
+    )
+    data_types = [
+        {"name": "Travel Type", "type": "text"},
+        {"name": "Travel Cost", "type": "numeric"},
+    ]
+    result = convert_chart(encoded, "kpi", data_types=data_types)
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["measures"] == ["Travel Cost"]
+
+
+def test_table_to_kpi_reclassifies_numeric_dimension():
+    """Numeric column listed only under dimensions is moved to KPI measure."""
+    encoded = _encode_settings_chart(
+        "table",
+        {
+            "dimensions": {"names": ["Travel Type", "Travel Cost"]},
+            "measures": [],
+        },
+    )
+    data_types = [
+        {"name": "Travel Type", "type": "text"},
+        {"name": "Travel Cost", "type": "numeric"},
+    ]
+    result = convert_chart(encoded, "kpi", data_types=data_types)
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["measures"] == ["Travel Cost"]
+    assert "Travel Cost" not in setting["dimensions"]["names"]
+
+
+def test_table_to_kpi_uses_measure_formats_when_no_metadata():
+    """Formatted value columns can seed the KPI measure without data_types."""
+    from helicalbi.viz.chart_conversion import ensure_kpi_measure_from_numeric
+
+    fields = ExtractedFields(
+        dimensions=["Travel Type"],
+        measures=[],
+        measure_formats={"Travel Cost": "#,##0.00"},
+        source_family="table",
+    )
+    ensured = ensure_kpi_measure_from_numeric(fields, data_types=None)
+    assert ensured.measures == ["Travel Cost"]

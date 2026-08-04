@@ -30,9 +30,12 @@ class TestRoot:
 # /suggestDomain
 # ---------------------------------------------------------------------------
 class TestSuggestDomain:
-    def test_returns_static_sales_operation(self, app_module, flask_client, session_auth):
+    def test_returns_domain_name_from_model(self, app_module, flask_client, session_auth):
         helper_mock = MagicMock()
-        helper_mock.get_model_semantic_layer.return_value = {"domain": []}
+        helper_mock.get_model_semantic_layer.return_value = {
+            "domain": [{"domain_name": "Sales Operation", "topics": []}]
+        }
+        helper_mock.get_model_description.return_value = ""
 
         with patch.object(app_module, "ModelLayerHelper", return_value=helper_mock):
             resp = flask_client.post(
@@ -45,6 +48,23 @@ class TestSuggestDomain:
 
         assert resp.status_code == 200
         assert resp.data.decode() == "Sales Operation"
+
+    def test_falls_back_to_model_description(self, app_module, flask_client, session_auth):
+        helper_mock = MagicMock()
+        helper_mock.get_model_semantic_layer.return_value = {"domain": []}
+        helper_mock.get_model_description.return_value = "Travel spend analytics"
+
+        with patch.object(app_module, "ModelLayerHelper", return_value=helper_mock):
+            resp = flask_client.post(
+                "/suggestDomain",
+                json={
+                    **session_auth,
+                    "model": {"file": "a.json", "dir": "/models"},
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.data.decode() == "Travel spend analytics"
 
 
 # ---------------------------------------------------------------------------
@@ -813,3 +833,42 @@ class TestGetSemanticData:
         ) as mock_transform:
             flask_client.post("/getSemanticData", json=payload)
         mock_transform.assert_called_once_with(session_auth["sessionCookie"], "meta.json", "/dir", [])
+
+
+# ---------------------------------------------------------------------------
+# /utility/*
+# ---------------------------------------------------------------------------
+class TestUtilityConfig:
+    def test_list_llm_providers(self, flask_client):
+        resp = flask_client.get("/utility/llm")
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert "providers" in body
+        assert body["default_provider"] == "openai"
+
+    def test_list_models_for_package(self, flask_client):
+        resp = flask_client.get(
+            "/utility/llm/models",
+            query_string={"package": "langchain-openai"},
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert body["package"] == "langchain-openai"
+        assert "gpt-4.1-mini" in body["models"]
+
+    def test_list_models_requires_package_or_provider(self, flask_client):
+        resp = flask_client.get("/utility/llm/models")
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 0
+        assert body["error"]
+
+    def test_get_app_config(self, flask_client):
+        resp = flask_client.get("/utility/app-config")
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert "logging" in body["config"]
+        assert "kpi" in body["config"]

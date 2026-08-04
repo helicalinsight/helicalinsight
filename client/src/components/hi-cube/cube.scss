@@ -314,114 +314,6 @@
 			padding: 4px 8px 0;
 			flex-shrink: 0;
 		}
-		.cube-fields-categories {
-			display: flex;
-			flex-direction: column;
-			flex: 1;
-			min-height: 0;
-			overflow: auto;
-			@include hi-cube-scrollbar;
-		}
-		.cube-fields-pane-header-table {
-			flex: 0 0 auto !important;
-			height: auto !important;
-			max-height: none !important;
-			overflow: visible !important;
-
-			.ant-spin-nested-loading,
-			.ant-spin-container,
-			.ant-table,
-			.ant-table-container,
-			.ant-table-content {
-				height: auto !important;
-			}
-
-			.ant-table-body,
-			.ant-table-tbody,
-			.ant-table-placeholder {
-				display: none !important;
-				height: 0 !important;
-				min-height: 0 !important;
-				padding: 0 !important;
-				margin: 0 !important;
-				border: none !important;
-			}
-
-			.ant-table-thead > tr > th {
-				padding-top: 4px;
-				padding-bottom: 4px;
-			}
-
-			.ant-table-column-sorter {
-				margin-left: 4px;
-			}
-		}
-		.cube-fields-category {
-			display: flex;
-			flex-direction: column;
-			flex-shrink: 0;
-
-			.schedule-table {
-				.ant-table-placeholder {
-					.ant-empty-normal {
-						margin: 8px 0;
-					}
-				}
-			}
-		}
-		.cube-fields-category-header {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			gap: 8px;
-			padding: 6px 8px;
-			background: #fafafa;
-			border-bottom: 1px solid #f0f0f0;
-			border-top: 1px solid #f0f0f0;
-
-			.cube-add-metric-action {
-				display: inline-flex;
-				align-items: center;
-				justify-content: center;
-				flex-shrink: 0;
-				margin-left: auto;
-				width: 22px;
-				height: 22px;
-				border-radius: 4px;
-				cursor: pointer;
-				line-height: 1;
-
-				&:hover {
-					background-color: transparent;
-				}
-
-				&.is-disabled {
-					cursor: not-allowed;
-					opacity: 1;
-
-					.cube-add-metric-icon {
-						color: #c0c0c0;
-					}
-
-					&:hover .cube-add-metric-icon {
-						color: #c0c0c0;
-					}
-				}
-			}
-
-			.cube-add-metric-icon {
-				font-size: 14px;
-				color: rgba(0, 0, 0, 0.75);
-			}
-		}
-		.cube-fields-category-title {
-			font-size: 12px;
-		}
-		.cube-fields-category-table {
-			.ant-table-thead {
-				display: none;
-			}
-		}
 		.schedule-table {
 			.ant-table-body {
 				overflow-y: auto !important;
@@ -464,14 +356,19 @@
 				overflow-y: auto;
 				padding: 8px 12px;
 				@include hi-cube-scrollbar;
+				display: flex;
+				flex-direction: column;
+				justify-content: flex-start;
+
+				.business-view-entry {
+					justify-content: initial;
+				}
 			}
 		}
 		.business-view-empty {
-			margin: 16px 0 0;
+			margin: auto;
 			text-align: center;
 			max-width: 320px;
-			margin-left: auto;
-			margin-right: auto;
 			color: rgba(0, 0, 0, 0.45);
 
 			.business-view-empty-title {
@@ -692,7 +589,7 @@
 	.agent-workspace-cube-shelf {
 		.cube-editor > .ant-table-wrapper,
 		.cube-editor > .schedule-table,
-		.cube-editor > .cube-fields-categories {
+		.cube-editor > .cube-fields-pane {
 			flex: 1 1 auto;
 			min-height: 0;
 			overflow: auto;
@@ -707,10 +604,68 @@
 			}
 		}
 
-		.cube-editor > .cube-fields-categories > .cube-fields-pane-header-table {
-			flex: 0 0 auto !important;
-			height: auto !important;
-			overflow: visible !important;
+		.cube-fields-pane {
+			display: flex;
+			flex-direction: column;
+			height: 100%;
+
+			.schedule-table {
+				flex: 1 1 auto;
+				min-height: 0;
+			}
+
+			.cube-fields-pane-header-table {
+				flex: 0 0 auto !important;
+				height: auto !important;
+				max-height: none !important;
+				overflow: visible !important;
+
+				.ant-spin-nested-loading,
+				.ant-spin-container,
+				.ant-table,
+				.ant-table-container,
+				.ant-table-content {
+					height: auto !important;
+				}
+
+				.ant-table-body,
+				.ant-table-tbody,
+				.ant-table-placeholder {
+					display: none !important;
+					height: 0 !important;
+					min-height: 0 !important;
+					padding: 0 !important;
+					margin: 0 !important;
+					border: none !important;
+				}
+			}
+		}
+
+		.cube-fields-empty-hint {
+			flex: 1 1 auto;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			text-align: center;
+			padding: 16px;
+			min-height: 0;
+
+			.cube-fields-empty-hint-title {
+				margin: 0 0 6px;
+				font-size: 14px;
+				font-weight: 500;
+				color: rgba(0, 0, 0, 0.65);
+				line-height: 1.4;
+			}
+
+			.cube-fields-empty-hint-desc {
+				margin: 0;
+				max-width: 220px;
+				font-size: 12px;
+				line-height: 1.45;
+				color: rgba(0, 0, 0, 0.45);
+			}
 		}
 
 		.ant-table-thead > tr > th {
@@ -722,29 +677,73 @@
 			display: inline-flex;
 			align-items: center;
 			gap: 6px;
-			width: 100%;
-			padding-right: 4px;
+		}
 
+		.ant-table-filter-trigger {
+			display: inline-flex;
+			align-items: center;
+			line-height: 1;
+		}
+
+		.cube-fields-header-trailing-actions {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			line-height: 1;
+			height: 14px;
+			vertical-align: middle;
+
+			.anticon {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 14px;
+				line-height: 1;
+				vertical-align: middle;
+			}
+		}
+
+		.cube-fields-header-search-icon {
+			font-size: 14px;
+			line-height: 1;
+		}
+
+		.cube-fields-header-add-metric {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			height: 14px;
+			line-height: 1;
+
+			.ant-tooltip-open,
 			.cube-add-metric-action--inline {
-				margin-left: auto;
-				height: 18px;
-				width: 18px;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				height: 14px;
+				width: 14px;
+				line-height: 1;
+			}
+
+			.cube-add-metric-icon {
+				font-size: 14px;
+				line-height: 1;
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+			}
+
+			.cube-add-metric-action--inline.is-disabled {
+				cursor: not-allowed;
+				opacity: 1;
 
 				.cube-add-metric-icon {
-					font-size: 13px;
+					color: #c0c0c0;
 				}
 
-				&.is-disabled {
-					cursor: not-allowed;
-					opacity: 1;
-
-					.cube-add-metric-icon {
-						color: #c0c0c0;
-					}
-
-					&:hover .cube-add-metric-icon {
-						color: #c0c0c0;
-					}
+				&:hover .cube-add-metric-icon {
+					color: #c0c0c0;
 				}
 			}
 		}
@@ -814,10 +813,17 @@
 
 		.business-view-hierarchy-body {
 			padding: 4px 8px 8px;
+			display: flex;
+			flex-direction: column;
+			justify-content: flex-start;
+
+			.business-view-entry {
+				justify-content: initial;
+			}
 		}
 
 		.business-view-empty {
-			margin: 24px auto 0;
+			margin: auto;
 			max-width: 320px;
 			text-align: center;
 

@@ -43,7 +43,7 @@ Result-column thematic context (aiContext, formatString, sort, semanticType for 
 Column / measure format strings (Excel-style). Match by column, metric, dimension, or measure name.
 Apply these formats on chart labels, legends, axis ticks, value labels, and tooltips when the field is used.
 For table / GridTable / pivot charts, apply matching formats on cell values
-(Ant Design Table column render, or GridTable report.reportData.properties.format.formatFields with enableCustomFormatting + customFormat).
+(Ant Design Table column render for flat table and growable grid_table).
 {column_format_strings}
 
 Field-level AI instructions (from cube aiContext.instructions). Match by column, metric, dimension, or measure name.
@@ -64,7 +64,7 @@ Honor these when selecting chart type and configuring encodings, labels, tooltip
 5. Apply override rules only when their condition clearly matches user intent or data shape.
 6. When format strings are provided above, use them in the generated graph config for matching fields
    (ant-design plots label, legend, axis, value, and tooltip formatters; for tables use column render
-   or GridTable properties.format.formatFields with the Excel customFormat). Do not invent formats for other fields.
+   or Ant Design Table column render for table / grid_table). Do not invent formats for other fields.
 7. When field-level AI instructions are provided above, follow them for matching fields.
 
 ---

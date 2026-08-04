@@ -262,6 +262,8 @@
         <intercept-url pattern="/ai/convert-chart*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-hreport/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-hreport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/utility/**" access="hasAnyRole('ROLE_ADMIN')"/>
+        <intercept-url pattern="/ai/utility*" access="hasAnyRole('ROLE_ADMIN')"/>
 
         <intercept-url pattern="/services*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 

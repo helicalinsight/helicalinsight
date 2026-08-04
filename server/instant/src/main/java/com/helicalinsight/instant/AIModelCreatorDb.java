@@ -79,7 +79,6 @@ public class AIModelCreatorDb implements IComponent {
                 hiResource.setTitle(modelName);
             }
 
-            
             instantModelEdit(hiResource, createdDate, formDataJson, state, metadataResource);
             hiResource.setLastUpdatedTime(createdDate);
             serviceDB.editHIResource(hiResource);
@@ -95,6 +94,7 @@ public class AIModelCreatorDb implements IComponent {
                 throw new IllegalArgumentException("The parameter modelName is not present");
             }
             String modelName = formDataJson.get("modelName").getAsString();
+            String description = formDataJson.has("description")?formDataJson.get("description").getAsString():"";
             //modelName = DBProcessor.checkAndReplaceSpecialChars(modelName).trim();
             hiResource = serviceDB.getResourceByUrl(location + "/" + checkAndReplaceSpecialChars(modelName) + requiredExtension);
             if (modelName.length() < 3) {
@@ -118,7 +118,7 @@ public class AIModelCreatorDb implements IComponent {
             hiResource.setTitle(modelName);
             String resourcePath = DBProcessor.checkAndReplaceSpecialChars(modelName).trim();
             hiResource.setResourceType(resourceTypeServiceDB.getResourceTypeByTypeAndExtension("model", ".model"));
-            saveAiModel(hiResource, createdDate, formDataJson, state, metadataResource, createdBy, modelName);
+            saveAiModel(hiResource, createdDate, formDataJson, state, metadataResource, createdBy, modelName,description);
             String resourceUrl = location + "/" + newName;
             hiResource.setResourcePath(resourcePath);
             hiResource.setResourceURL(resourceUrl);
@@ -152,11 +152,12 @@ public class AIModelCreatorDb implements IComponent {
      * @param createdBy     The user ID who created the report.
      * @param modelName    The name of the report.
      */
-    private void saveAiModel(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource metadataResource, String createdBy, String modelName) {
+    private void saveAiModel(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource metadataResource, String createdBy, String modelName,String description) {
         HIResourceAIModel aiModel = new HIResourceAIModel();
         aiModel.setCreatedDate(createdDate);
         aiModel.setCreatedBy(Integer.valueOf(createdBy));
         aiModel.setAiModelName(modelName);
+        aiModel.setDescription(description);
         coreSave(aiModel, createdDate, formDataJson, state, metadataResource);
         hiResource.setAiModel(aiModel);
     }
@@ -172,6 +173,12 @@ public class AIModelCreatorDb implements IComponent {
      */
     private void instantModelEdit(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource metadataResource) {
         HIResourceAIModel aiModel = hiResource.getAiModel();
+        if (formDataJson.has("modelName")) {
+            aiModel.setAiModelName(formDataJson.get("modelName").getAsString());
+        }
+        if (formDataJson.has("description")) {
+            aiModel.setDescription(formDataJson.get("description").getAsString());
+        }
         coreSave(aiModel, createdDate, formDataJson, state, metadataResource);
     }
 

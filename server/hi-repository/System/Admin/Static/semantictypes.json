@@ -84,7 +84,6 @@
           "label": "Number",
           "value": "numeric.number",
           "formats": [
-            "General",
             "0",
             "0.00",
             "#,##0.00"

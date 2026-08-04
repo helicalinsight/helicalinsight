@@ -38,9 +38,15 @@ export function ToolShelf({
         const tooltip =
           (isDisabled && disabledToolTips[tool.key]) || tool.tooltip;
         return (
-          <Tooltip key={tool.key} title={tooltip} placement="right">
-            <TutorialInfo elementKey={tool.tutorialKey}>
-              <span className={isDisabled ? "tool-shelf-item-wrap is-disabled" : "tool-shelf-item-wrap"}>
+          <TutorialInfo key={tool.key} elementKey={tool.tutorialKey}>
+            <Tooltip title={tooltip} placement="right">
+              <span
+                className={
+                  isDisabled
+                    ? "tool-shelf-item-wrap is-disabled"
+                    : "tool-shelf-item-wrap"
+                }
+              >
                 <button
                   type="button"
                   className={`tool-shelf-item${
@@ -58,8 +64,8 @@ export function ToolShelf({
                   <span className="tool-shelf-label">{tool.label}</span>
                 </button>
               </span>
-            </TutorialInfo>
-          </Tooltip>
+            </Tooltip>
+          </TutorialInfo>
         );
       })}
     </div>

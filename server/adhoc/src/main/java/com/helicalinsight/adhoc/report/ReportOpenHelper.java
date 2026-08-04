@@ -246,6 +246,7 @@ public class ReportOpenHelper {
 
         HIResourceAIModel hiResourceHReport = hiResource.getAiModel();
         adhocReport.setReportName(hiResourceHReport.getAiModelName());
+        adhocReport.setDescription(hiResourceHReport.getDescription());
         Integer hiResourceMetadata = hiResourceHReport.getHiResourceMetadata();
         if (hiResourceMetadata != null) {
             HIResource hiResourceById = serviceDB.getHIResourceById(hiResourceMetadata);
@@ -369,6 +370,7 @@ public class ReportOpenHelper {
 
 
         GsonUtility.accumulate(data, "modelName", adhocReport.getReportName());
+        GsonUtility.accumulate(data, "description", adhocReport.getDescription());
 
         JsonObject metadata = new JsonObject();
 

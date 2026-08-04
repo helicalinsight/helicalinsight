@@ -1,0 +1,5 @@
+{
+  "serviceUrlNote": "HI InstantBI service URL lives in setting.xml under instantbiConfig.serviceUrl. LLM and application settings below are managed at runtime by the InstantBI Python service via Admin → Configurations → InstantBI Settings.",
+  "managedBy": "Static/instantbi",
+  "editor": "instantbi"
+}
