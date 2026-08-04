@@ -1,6 +1,6 @@
 services:
   pyflask:
-    image: python:3.9-slim
+    image: python:3.13-slim
     container_name: pyflask
     working_dir: /app
     volumes:

@@ -32,7 +32,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 2 max 2"
+      "names": "provide dimension names as JSON array, min 2 max 2"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max 1"
@@ -46,8 +46,13 @@
     }
   },
   "instructions": [
-    "Heatmap matrix. Config: xField, yField cats; colorField=measure; meta type cat.",
-    "Polish: color MUST be a hex array (e.g. [\"#B8E1FF\", \"#5B8FF9\", \"#00318A\"]); never color: { type: \"sequential\" }. Legend bottom; element-active; readable axis ticks; tooltip with value. Apply Excel format strings to measure tooltip/legend when provided."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names must have exactly 2 entries [xDim, yDim]; measures[0] = heat value.",
+    "color should be a sequential hex palette array.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawHeatmap() {",
@@ -55,8 +60,8 @@
     "  const setting = ${setting};",
     "  const measure_formats = ${format};",
     "  const measureField = (setting.measures && setting.measures[0]) || '';",
-    "  const xDim = (setting.dimensions.names && setting.dimensions.names[0]) || setting.dimensions.name;",
-    "  const yDim = (setting.dimensions.names && setting.dimensions.names[1]) || setting.dimensions.name;",
+    "  const xDim = setting.dimensions.names[0];",
+    "  const yDim = setting.dimensions.names[1];",
     "  const config = {",
     "    data,",
     "    xField: xDim,",

@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import {
-  Row,
-  Col,
   List,
   Input,
   Empty,
@@ -13,14 +11,18 @@ import {
   Collapse,
   Tooltip,
   Space,
+  Tabs,
 } from "antd";
 import {
   SyncOutlined,
+  SearchOutlined,
+  CloseOutlined,
   FileOutlined,
-  InfoCircleOutlined,
-  FormOutlined,
+  FileTextOutlined,
   CodeOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
+import { Panel as ResizePanel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import requests from "../../../../base/requests";
 import { uriConfig } from "../../../../base/requests/admin.request";
 import { fetchUiLayout, hasLayoutSections } from "../../../common/ui-generator";
@@ -28,11 +30,11 @@ import notify from "../../../hi-notifications/notify";
 import PropertiesEditor from "./components/PropertiesEditor";
 import CodeEditor from "./components/CodeEditor";
 import LayoutFormEditor from "./components/LayoutFormEditor";
-import { CONFIG_TYPES, getFileTypeLabel } from "./utils/config-tree-utils";
+import InstantBISettingsEditor from "./components/InstantBISettingsEditor";
+import { CONFIG_TYPES } from "./utils/config-tree-utils";
 import {
   CONFIGURATION_LAYOUT_CONTENT_ID,
   buildCategorizedFiles,
-  canToggleRawEditor,
   contentToEditorText,
   editorTextToSaveContent,
   filterCategorizedFiles,
@@ -43,24 +45,53 @@ import {
 } from "./utils/configuration-layout";
 import "./hi-configurations.scss";
 
-const { Search } = Input;
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
-const typeColor = {
-  [CONFIG_TYPES.PROPERTIES]: "blue",
-  [CONFIG_TYPES.XML]: "green",
-  [CONFIG_TYPES.JSON]: "orange",
-  [CONFIG_TYPES.OTHER]: "default",
+const getFileExtension = (fileName = "") => {
+  const parts = String(fileName).split(".");
+  if (parts.length < 2) return "";
+  return parts.pop().toLowerCase();
 };
+
+const getExtensionIcon = (fileName, fileType) => {
+  const extension = getFileExtension(fileName);
+  if (extension === "xml" || fileType === CONFIG_TYPES.XML) {
+    return <CodeOutlined className="hi-config-file-type-icon hi-config-file-type-icon--xml" />;
+  }
+  if (extension === "json" || fileType === CONFIG_TYPES.JSON) {
+    return (
+      <FileTextOutlined className="hi-config-file-type-icon hi-config-file-type-icon--json" />
+    );
+  }
+  if (extension === "properties" || fileType === CONFIG_TYPES.PROPERTIES) {
+    return (
+      <FileTextOutlined className="hi-config-file-type-icon hi-config-file-type-icon--properties" />
+    );
+  }
+  if (extension === "groovy") {
+    return <CodeOutlined className="hi-config-file-type-icon hi-config-file-type-icon--groovy" />;
+  }
+  return <FileOutlined className="hi-config-file-type-icon" />;
+};
+
+const FileTypeIcon = ({ fileName, fileType }) => (
+  <Tooltip title={fileName}>
+    <span className="hi-config-file-type-icon-wrap">
+      {getExtensionIcon(fileName, fileType)}
+    </span>
+  </Tooltip>
+);
 
 const HIConfigurations = ({ apiRef }) => {
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
 
+  const [activeConfigTab, setActiveConfigTab] = useState("system");
   const [layout, setLayout] = useState(null);
   const [files, setFiles] = useState([]);
   const [fileFilter, setFileFilter] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [editorUi, setEditorUi] = useState(null);
   const [fileLayout, setFileLayout] = useState(null);
@@ -129,12 +160,7 @@ const HIConfigurations = ({ apiRef }) => {
 
   const useFormLayout = hasLayoutSections(fileLayout) && !forceRawEditor;
 
-  const showEditorToggle = canToggleRawEditor({
-    fileType: selectedFile?.type || filePayload?.type,
-    editorUi,
-    fileLayout,
-    fileName: selectedFile?.name,
-  });
+  const showEditorToggle = hasLayoutSections(fileLayout);
 
   const rawEditorLanguage = resolveRawEditorLanguage(
     filePayload?.type || selectedFile?.type,
@@ -325,6 +351,7 @@ const HIConfigurations = ({ apiRef }) => {
         </div>
       );
     }
+
     if (!filePayload) {
       return <Empty description="Unable to load file content" />;
     }
@@ -381,32 +408,67 @@ const HIConfigurations = ({ apiRef }) => {
     selectedFile?.description ||
     null;
 
-  return (
-    <Row className="hi-configurations" gutter={12}>
-      <Col span={7} className="hi-config-file-panel">
+  const renderSystemConfig = () => (
+    <PanelGroup
+      direction="horizontal"
+      autoSaveId="hi-configurations-system-split"
+      className="hi-config-system-row"
+    >
+      <ResizePanel
+        defaultSize={28}
+        minSize={18}
+        maxSize={50}
+        className="hi-config-file-panel"
+      >
         <div className="hi-config-file-panel-header">
-          <Title level={5}>{layout?.title || "Configuration Files"}</Title>
-          <Button
-            icon={<SyncOutlined spin={listLoading} />}
-            onClick={() => {
-              fetchLayout();
-              fetchFiles();
-            }}
-            size="small"
-          />
+          {searchOpen ? (
+            <Input
+              allowClear
+              autoFocus
+              size="small"
+              placeholder="Filter files"
+              value={fileFilter}
+              onChange={(event) => setFileFilter(event.target.value)}
+              className="hi-config-file-search-inline"
+              prefix={<SearchOutlined />}
+            />
+          ) : (
+            <Title level={5}>{layout?.title || "Configuration Files"}</Title>
+          )}
+          <Space size={4} className="hi-config-file-panel-actions">
+            <Tooltip title={searchOpen ? "Hide search" : "Search files"}>
+              <Button
+                icon={searchOpen ? <CloseOutlined /> : <SearchOutlined />}
+                size="small"
+                type={searchOpen || fileFilter ? "primary" : "default"}
+                ghost={!!(searchOpen || fileFilter)}
+                onClick={() => {
+                  setSearchOpen((open) => {
+                    if (open) {
+                      setFileFilter("");
+                    }
+                    return !open;
+                  });
+                }}
+              />
+            </Tooltip>
+            <Tooltip title="Refresh">
+              <Button
+                icon={<SyncOutlined spin={listLoading} />}
+                onClick={() => {
+                  fetchLayout();
+                  fetchFiles();
+                }}
+                size="small"
+              />
+            </Tooltip>
+          </Space>
         </div>
-        {layout?.description ? (
+        {layout?.description && !searchOpen ? (
           <Text type="secondary" className="hi-config-layout-description">
             {layout.description}
           </Text>
         ) : null}
-        <Search
-          allowClear
-          placeholder="Filter by name or description"
-          value={fileFilter}
-          onChange={(event) => setFileFilter(event.target.value)}
-          className="hi-config-file-search"
-        />
         <Spin spinning={listLoading}>
           {filteredCategories.length ? (
             <Collapse
@@ -423,37 +485,37 @@ const HIConfigurations = ({ apiRef }) => {
                   <List
                     className="hi-config-file-list"
                     size="small"
+                    split={false}
                     dataSource={category.files}
-                    renderItem={(item) => (
-                      <List.Item
-                        className={
-                          selectedFile?.name === item.name
-                            ? "hi-config-file-item active"
-                            : "hi-config-file-item"
-                        }
-                        onClick={() => loadFile(item)}
-                      >
-                        <List.Item.Meta
-                          avatar={<FileOutlined />}
-                          title={
-                            <Tooltip title={item.name}>
-                              <span>{item.title || item.name}</span>
-                            </Tooltip>
+                    renderItem={(item) => {
+                      const displayName = item.title || item.name;
+                      return (
+                        <List.Item
+                          className={
+                            selectedFile?.name === item.name
+                              ? "hi-config-file-item active"
+                              : "hi-config-file-item"
                           }
-                          description={
-                            item.description ? (
-                              <Text
-                                type="secondary"
-                                className="hi-config-file-description"
-                                ellipsis={{ tooltip: item.description }}
-                              >
-                                {item.description}
-                              </Text>
-                            ) : null
-                          }
-                        />
-                      </List.Item>
-                    )}
+                          onClick={() => loadFile(item)}
+                        >
+                          <List.Item.Meta
+                            avatar={
+                              <FileTypeIcon
+                                fileName={item.name}
+                                fileType={item.type}
+                              />
+                            }
+                            title={
+                              <Tooltip title={item.description || undefined}>
+                                <span className="hi-config-file-name">
+                                  {displayName}
+                                </span>
+                              </Tooltip>
+                            }
+                          />
+                        </List.Item>
+                      );
+                    }}
                   />
                 </Panel>
               ))}
@@ -462,10 +524,15 @@ const HIConfigurations = ({ apiRef }) => {
             <Empty description="No configuration files found" />
           )}
         </Spin>
-      </Col>
-      <Col span={17} className="hi-config-editor-panel">
+      </ResizePanel>
+      <PanelResizeHandle className="hi-config-resize-handle" />
+      <ResizePanel
+        defaultSize={72}
+        minSize={40}
+        className="hi-config-editor-panel"
+      >
         <div className="hi-config-editor-header">
-          <div>
+          <div className="hi-config-editor-header-text">
             <Title level={5} className="hi-config-editor-title">
               {editorTitle}
             </Title>
@@ -473,44 +540,44 @@ const HIConfigurations = ({ apiRef }) => {
               <Text type="secondary">{editorDescription}</Text>
             ) : null}
           </div>
-          <Space>
-            {showEditorToggle && (
-              <Button
-                size="small"
-                icon={forceRawEditor ? <FormOutlined /> : <CodeOutlined />}
-                onClick={() => {
-                  // Keep raw text in sync when leaving structured properties/json editors.
-                  if (!forceRawEditor && filePayload) {
-                    setRawContent(
-                      contentToEditorText(filePayload.type, filePayload.content)
-                    );
-                  }
-                  setForceRawEditor((prev) => !prev);
-                }}
-              >
-                {forceRawEditor
-                  ? hasLayoutSections(fileLayout)
-                    ? "Form"
-                    : "Editor"
-                  : "Raw"}
-              </Button>
-            )}
-            {selectedFile && (
-              <Tag color={typeColor[selectedFile.type] || "default"}>
-                {(
-                  (forceRawEditor && "RAW") ||
-                  (useFormLayout && "LAYOUT") ||
-                  editorUi?.editor ||
-                  selectedFile.type ||
-                  ""
-                ).toUpperCase()}
-              </Tag>
-            )}
-          </Space>
+          {showEditorToggle ? (
+            <Typography.Link
+              className="hi-config-editor-mode-link"
+              onClick={() => {
+                if (!forceRawEditor && filePayload) {
+                  setRawContent(
+                    contentToEditorText(filePayload.type, filePayload.content)
+                  );
+                }
+                setForceRawEditor((prev) => !prev);
+              }}
+            >
+              {forceRawEditor ? "See form" : "See content"}
+            </Typography.Link>
+          ) : null}
         </div>
         <div className="hi-config-editor-body">{renderEditor()}</div>
-      </Col>
-    </Row>
+      </ResizePanel>
+    </PanelGroup>
+  );
+
+  return (
+    <div className="hi-configurations">
+      <Tabs
+        className="hi-config-main-tabs"
+        activeKey={activeConfigTab}
+        onChange={setActiveConfigTab}
+      >
+        <Tabs.TabPane tab="System Config" key="system">
+          {renderSystemConfig()}
+        </Tabs.TabPane>
+        <Tabs.TabPane tab="InstantBI Config" key="instantbi">
+          <div className="hi-config-instantbi-panel">
+            <InstantBISettingsEditor />
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
+    </div>
   );
 };
 

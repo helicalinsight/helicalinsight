@@ -319,7 +319,6 @@ export const instantBiChatAPI = ({ formData, dispatch, onAIMessage = () => { }, 
         vf: "",
         sql: "",
         error: true,
-        summary: e.message,
         botMessage: IB_CHART_RENDER_ERROR,
         abortedRequest: false,
       })
@@ -591,7 +590,7 @@ export const loadInstantBIDataInsight = ({
       if (response?.error) {
         Notify?.error?.({
           type: "Frontend",
-          message: response.error,
+          message: IB_CHART_RENDER_ERROR,
         });
         onComplete({ success: false });
         return;
@@ -618,10 +617,12 @@ export const loadInstantBIDataInsight = ({
       );
       onComplete({ success: true, response });
     },
-    errorCB: () => {
+    errorCB: (err) => {
       const aborted = Boolean(abortedRef?.current);
       if (abortedRef?.current) {
         abortedRef.current = false;
+      } else {
+        Notify?.error?.({ type: "Frontend", message: IB_CHART_RENDER_ERROR });
       }
       onComplete({ success: false, aborted });
     },
@@ -730,7 +731,7 @@ export const convertInstantBIChart = ({
       return;
     }
 
-    notifyError(errorMessage || payload?.message || "Unable to convert chart.");
+    notifyError(errorMessage || payload?.message || IB_CHART_RENDER_ERROR);
     onComplete({ success: false });
   };
 
@@ -741,8 +742,9 @@ export const convertInstantBIChart = ({
     chatId,
     chatSequenceId,
     successCB: (response) => finish(response),
-    errorCB: (err) =>
-      finish(err, err?.message || "Unable to convert chart."),
+    errorCB: (err) => {
+      finish(err, IB_CHART_RENDER_ERROR);
+    },
   });
 };
 

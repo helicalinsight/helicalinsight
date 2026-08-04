@@ -26,6 +26,7 @@ from helicalbi.viz._chart_selection import (
     _is_meta_entry,
     _normalize_type_token,
     _type_from_column_desc,
+    format_similar_chart_wire,
     resolve_similar_charts,
 )
 from helicalbi.viz._charts import (
@@ -68,7 +69,6 @@ _FAMILY_BY_NAME: dict[str, str] = {
     "progress": "percent",
     "table": "table",
     "grid_table": "table",
-    "pivot_table": "table",
     "histogram": "other",
     "wordcloud": "other",
     "other": "other",
@@ -240,6 +240,27 @@ def encode_vf_template(code: str) -> str:
     return base64.b64encode((code or "").encode("utf-8")).decode("utf-8")
 
 
+def _data_types_for_similar(
+    data_types: Any,
+    fields: ExtractedFields,
+) -> Any:
+    """Prefer executeQuery metadata; otherwise synthesize types from extracted fields.
+
+    Lets ``resolve_similar_charts`` keep shape-based recommendations (bar/column/…)
+    even when chat memory has no metadata.
+    """
+    if data_types is not None:
+        return data_types
+    synthetic: list[dict[str, str]] = []
+    for name in fields.dimensions or []:
+        if str(name).strip():
+            synthetic.append({"name": str(name).strip(), "type": "text"})
+    for name in fields.measures or []:
+        if str(name).strip():
+            synthetic.append({"name": str(name).strip(), "type": "numeric"})
+    return synthetic or None
+
+
 def color_expr_from_settings(color: Any) -> Optional[str]:
     """Convert a color value into a JS expression string."""
     if color is None or color == "":
@@ -303,12 +324,7 @@ def fields_to_settings(fields: ExtractedFields) -> ChartSettings:
             color_value = expr.strip("'\"")
 
     dims = list(fields.dimensions or [])
-    if len(dims) > 1:
-        dimension = DimensionSetting(name=dims[0], names=dims)
-    elif dims:
-        dimension = DimensionSetting(name=dims[0])
-    else:
-        dimension = DimensionSetting()
+    dimension = DimensionSetting(names=dims)
 
     return ChartSettings(
         dimensions=dimension,
@@ -350,12 +366,7 @@ def _normalize_chart_settings(
         else:
             title = meas0 or dim0 or None
 
-    if len(dims) > 1:
-        dimension = DimensionSetting(name=dims[0], names=dims)
-    elif dims:
-        dimension = DimensionSetting(name=dims[0])
-    else:
-        dimension = DimensionSetting(name=settings.dimensions.name)
+    dimension = DimensionSetting(names=dims)
 
     return ChartSettings(
         dimensions=dimension,
@@ -400,12 +411,15 @@ def inject_setting_object(code: str, settings: ChartSettings) -> str:
     """Replace ``${setting}`` / ``${format}`` with settings and measure_formats literals."""
     text = code or ""
     has_format_placeholder = bool(_FORMAT_PLACEHOLDER.search(text))
-    formats = dict(settings.measure_formats or {})
+    # Temporary fixes: drop color and inject blank measure_formats until
+    # color/format injection is stable in the chart templates.
+    formats: dict[str, str] = {}
+    inject_settings = settings.model_copy(update={"color": None, "measure_formats": {}})
 
     if _SETTING_PLACEHOLDER.search(text):
         # When ${format} is present, keep encodings in setting and formats separate.
         setting_literal = settings_to_js_literal(
-            settings, include_formats=not has_format_placeholder
+            inject_settings, include_formats=not has_format_placeholder
         )
         text = _SETTING_PLACEHOLDER.sub(setting_literal, text, count=1)
 
@@ -426,7 +440,7 @@ def apply_chart_settings(
     """Fill a chart skeleton from ChartSettings (LLM fill or conversion).
 
     Preferred path: chart ``code`` contains ``const setting = ${setting}`` and
-    references ``setting.dimensions.name``, ``setting.measures[0]``, etc.
+    references ``setting.dimensions.names[0]``, ``setting.measures[0]``, etc.
 
     Legacy path: charts without ``${setting}`` still use placeholder replacement
     via ``fill_skeleton``.
@@ -502,6 +516,14 @@ def convert_chart(
     )
     title = (vf_title or fields.title or "").strip()
     chart_label = target_def.name.replace("_", " ")
+    similar_types = resolve_similar_charts(
+        target_def.name,
+        data_types=_data_types_for_similar(data_types, fields),
+    )
+    similar_wire = format_similar_chart_wire(
+        similar_types,
+        chart_name=chart_label,
+    )
 
     def _viz_payload(filled_code: str, *, reason: str) -> dict[str, Any]:
         return {
@@ -509,6 +531,7 @@ def convert_chart(
             "chart_name": chart_label,
             "vf_title": title,
             "vf_reason": reason,
+            "similar_chart": similar_wire,
         }
 
     try:
@@ -548,11 +571,9 @@ def convert_chart(
     )
     filled = transform_chart_code(filled)
 
-    #similar = resolve_similar_charts(target_def.name, data_types=data_types)
-
     logger.info(
         "Converted chart source=%s family=%s target=%s dims=%s measures=%s series=%s "
-        "formats=%s color=%s",
+        "formats=%s color=%s similar=%s",
         fields.source_chart,
         fields.source_family,
         target_def.name,
@@ -561,6 +582,7 @@ def convert_chart(
         fields.series,
         fields.measure_formats,
         bool(fields.color),
+        similar_types,
     )
 
     return _viz_payload(
@@ -685,21 +707,9 @@ def extract_fields(
         )
         if not fields.color:
             fields.color = _extract_color(source_js)
-        # Tables often leave dimensions/measures empty (all columns render);
-        # fill gaps from result metadata so conversion (e.g. → wordcloud) works.
-        if data_types is not None and (not fields.dimensions or not fields.measures):
-            meta_dims, meta_measures = _infer_columns_from_metadata(data_types)
-            if not fields.dimensions:
-                measure_set = set(fields.measures)
-                fields.dimensions = _unique(
-                    [d for d in meta_dims if d not in measure_set]
-                )
-            if not fields.measures:
-                dim_set = set(fields.dimensions)
-                fields.measures = _unique(
-                    [m for m in meta_measures if m not in dim_set]
-                )
-        return fields
+        # Prefer bound settings, then append any unused result columns so a
+        # 1-dim/1-measure chart can convert to targets that need more fields.
+        return _enrich_fields_from_metadata(fields, data_types)
 
     source_chart = _detect_source_chart(source_js)
     source_def = get_chart_definition(source_chart) if source_chart else None
@@ -791,18 +801,16 @@ def extract_fields(
                     dimensions.append(value)
 
     if data_types is not None:
-        meta_dims, meta_measures = _infer_columns_from_metadata(data_types)
-        if source_family == "table":
-            measure_set = set(measures)
-            if not dimensions:
-                dimensions.extend(d for d in meta_dims if d not in measure_set)
-            if not measures:
-                measures.extend(meta_measures)
-        else:
-            if not dimensions:
-                dimensions.extend(meta_dims)
-            if not measures:
-                measures.extend(meta_measures)
+        # Append unused metadata columns (and fill empties) after family mapping.
+        # Bound source fields stay first so index-0 roles remain stable.
+        interim = ExtractedFields(
+            dimensions=list(dimensions),
+            measures=list(measures),
+            series=series,
+        )
+        enriched = _enrich_fields_from_metadata(interim, data_types)
+        dimensions = list(enriched.dimensions)
+        measures = list(enriched.measures)
 
     dimensions = _unique(dimensions)
     measures = _unique([m for m in measures if m not in set(dimensions)])
@@ -1098,6 +1106,67 @@ def _infer_columns_from_metadata(data_types: Any) -> tuple[list[str], list[str]]
         else:
             dimensions.append(name)
     return _unique(dimensions), _unique(measures)
+
+
+def _enrich_fields_from_metadata(
+    fields: ExtractedFields,
+    data_types: Any,
+) -> ExtractedFields:
+    """Append unused result columns so conversion can satisfy richer targets.
+
+    Source charts often bind only a subset (e.g. 1 dim + 1 measure) even when
+    the query returned more columns. Keep bound fields first, then append any
+    metadata dimensions/measures that are not already in the bag. Does not
+    invent columns when ``data_types`` is absent.
+    """
+    if data_types is None or not isinstance(fields, ExtractedFields):
+        return fields
+
+    meta_dims, meta_measures = _infer_columns_from_metadata(data_types)
+    if not meta_dims and not meta_measures:
+        return fields
+
+    used = {
+        str(name).strip()
+        for name in list(fields.dimensions or []) + list(fields.measures or [])
+        if str(name).strip()
+    }
+    if fields.series and str(fields.series).strip():
+        used.add(str(fields.series).strip())
+
+    extra_dims = [
+        name
+        for name in meta_dims
+        if name and name not in used
+    ]
+    for name in extra_dims:
+        used.add(name)
+
+    extra_measures = [
+        name
+        for name in meta_measures
+        if name and name not in used
+    ]
+
+    if extra_dims:
+        fields.dimensions = _unique(list(fields.dimensions or []) + extra_dims)
+    if extra_measures:
+        fields.measures = _unique(list(fields.measures or []) + extra_measures)
+
+    # Keep roles disjoint: a name kept as a dimension is not also a measure.
+    dim_set = set(fields.dimensions or [])
+    fields.measures = [m for m in (fields.measures or []) if m not in dim_set]
+
+    if extra_dims or extra_measures:
+        logger.info(
+            "conversion.enrich_from_metadata dims=%s measures=%s "
+            "added_dims=%s added_measures=%s",
+            fields.dimensions,
+            fields.measures,
+            extra_dims,
+            extra_measures,
+        )
+    return fields
 
 
 def _extract_color(source_js: str) -> Optional[str]:

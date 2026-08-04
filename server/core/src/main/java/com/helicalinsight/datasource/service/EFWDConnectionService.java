@@ -76,7 +76,11 @@ public interface EFWDConnectionService {
 	HIEfwdConnSecurity findEfConnectionSecurityByConnectionId(Integer connectionId);
 	List<HIEfwdConnSecurity> findEFWDSecurityByConnectionId(Integer connectionId);
 	List<HIEfwdConnSecurityDTO> findEFWDConnectionSecurityByConnectionId(Integer connectionId);
+	
+	@Deprecated
 	List<HIEfwdConnSecurity> getAllConnectionsFromShared(String type);
+	List<HIEfwdConnSecurityDTO> findAllConnectionsFromShared(String type);
+	
 	List<EfwdConnDTO> getAllConnectionOfLoggedInUser(Integer createdBy, List<Integer> collect,String type);
 	List<String> getTypeByAllEfwdIds(List<Integer> efwdIdList, Set<String> efwdTypeList);
 	List<HIEfwdConnection> findAllRequiredEFWDConnection(Set<Integer> connIds);

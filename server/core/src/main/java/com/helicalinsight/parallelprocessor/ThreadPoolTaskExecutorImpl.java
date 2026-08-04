@@ -100,6 +100,7 @@ public class ThreadPoolTaskExecutorImpl extends ThreadPoolTaskExecutor implement
             catch (InterruptedException e) {  
             	Thread.currentThread().interrupt();
             	logger.warn("Task interrupted for requestId : {}", requestId);
+            	throw new RuntimeException(e);
 			}
             catch (Exception e) {
             	logger.error("Task execution failed for requestId : {}", requestId,e);
@@ -129,6 +130,10 @@ public class ThreadPoolTaskExecutorImpl extends ThreadPoolTaskExecutor implement
                 Thread.currentThread().interrupt();
                 throw e;
             } 
+            catch (Exception e) {
+            	logger.error("Task execution failed for requestId : {}", requestId,e);
+            	throw e;
+            }
         };
     	
     	Future<?> future =  super.submit(getNewWrappedCallable(wrappedTask, a));

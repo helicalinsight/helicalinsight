@@ -9,10 +9,7 @@ from helicalbi.model.output.ColumnResponse import ColumnResponse
 from helicalbi.model.output.DomainTopicReason import DomainTopicReason
 from helicalbi.model.output.KpiData import KpiSchema
 from helicalbi.common.LlmInvokeHelper import merge_time_consumed, merge_token_usage, read_time_consumed, read_token_usage
-from helicalbi.integration.ollama.OllamaTokenUsageFactory import OllamaTokenUsageFactory
-from helicalbi.integration.openai.OpenAITokenUsageFactory import OpenAITokenUsageFactory
-from helicalbi.integration.anthropic.AnthropicTokenUsageFactory import AnthropicTokenUsageFactory
-from helicalbi.integration.gemeni.GeminiTokenUsageFactory import GeminiTokenUsageFactory
+from helicalbi.integration.TokenUsageExtractor import TokenUsageExtractor
 from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
 from helicalbi.model.output.SqlGen import SqlGen, get_sql_gen_model
@@ -45,19 +42,19 @@ class TestUpdateRephrase:
 class TestTokenUsage:
     @pytest.fixture
     def openai_factory(self):
-        return OpenAITokenUsageFactory()
+        return TokenUsageExtractor.from_config(provider="openai")
 
     @pytest.fixture
     def ollama_factory(self):
-        return OllamaTokenUsageFactory()
+        return TokenUsageExtractor.from_config(provider="ollama")
 
     @pytest.fixture
     def anthropic_factory(self):
-        return AnthropicTokenUsageFactory()
+        return TokenUsageExtractor.from_config(provider="anthropic")
 
     @pytest.fixture
     def gemini_factory(self):
-        return GeminiTokenUsageFactory()
+        return TokenUsageExtractor.from_config(provider="google-genai")
 
     def test_derives_total_when_omitted(self):
         usage = TokenUsage(input_tokens=10, output_tokens=5)
@@ -409,6 +406,21 @@ class TestKpiSchema:
         m = KpiSchema(answer=["kpi1", "kpi2"], reason="ok")
         assert m.answer == ["kpi1", "kpi2"]
 
+    def test_coerces_bare_list_to_answer(self):
+        from helicalbi.model.output.KpiData import get_kpi_schema_model
+
+        model = get_kpi_schema_model()
+        parsed = model.model_validate(
+            [
+                "What is the total travel cost per client?",
+                "What is the count of meetings per employee?",
+            ]
+        )
+        assert parsed.answer == [
+            "What is the total travel cost per client?",
+            "What is the count of meetings per employee?",
+        ]
+
 
 class TestDomainTopicReason:
     def test_accepts_lists(self):
@@ -444,14 +456,14 @@ class TestVisualizationResponses:
 
         m = ChartFillerResponse(
             settings=ChartSettings(
-                dimensions=DimensionSetting(name="Travel Type"),
+                dimensions=DimensionSetting(names=["Travel Type"]),
                 measures=["Travel Cost"],
                 labelsX="Travel Type",
                 labelsY="Travel Cost",
                 title="Cost by Type",
             )
         )
-        assert m.settings.dimensions.name == "Travel Type"
+        assert m.settings.dimensions.names == ["Travel Type"]
         assert m.settings.measures == ["Travel Cost"]
         assert m.settings.labelsX == "Travel Type"
         assert m.settings.title == "Cost by Type"
@@ -471,20 +483,70 @@ class TestVisualizationResponses:
             }
         )
         assert m.settings.dimensions.names == ["travel_medium", "travel_type"]
-        assert m.settings.dimensions.name == "travel_medium"
         assert m.settings.measures == ["travel_cost"]
         assert m.settings.measure_formats["travel_cost"] == "$#,##0.00"
 
-    def test_chart_filler_coerces_comma_separated_measures(self):
+    def test_chart_filler_coerces_null_measure_formats(self):
         m = ChartFillerResponse.model_validate(
             {
                 "settings": {
-                    "dimensions": {"name": "travel_type"},
-                    "measures": "travel_cost,trip_count",
+                    "dimensions": {"name": "Meeting By"},
+                    "measures": ["Employee_ID", "Cost by Cancellation"],
+                    "labelsX": "Meeting By",
+                    "labelsY": "Count / Average",
+                    "labelsZ": None,
+                    "title": "Average Meeting Duration by Employee",
+                    "series": None,
+                    "color": "#5B8FF9",
+                    "measure_formats": None,
                 }
             }
         )
-        assert m.settings.measures == ["travel_cost", "trip_count"]
+        assert m.settings.measure_formats == {}
+        assert m.settings.dimensions.names == ["Meeting By"]
+
+    def test_chart_filler_coerces_wrapped_color_schema(self):
+        m = ChartFillerResponse.model_validate(
+            {
+                "settings": {
+                    "dimensions": {"name": "Client Name"},
+                    "measures": [],
+                    "labelsX": "Successful Clients",
+                    "labelsY": "",
+                    "color": {
+                        "mode": "optional",
+                        "optional": True,
+                        "description": "Solid hex string or palette array of hex colors",
+                        "value": ["#5B8FF9"],
+                    },
+                }
+            }
+        )
+        assert m.settings.color == ["#5B8FF9"]
+
+
+class TestTableResponse:
+    def test_coerces_bare_list_to_required_tables(self):
+        from helicalbi.model.output.TableResponse import get_table_response_model
+
+        model = get_table_response_model()
+        parsed = model.model_validate(
+            ["travel_details", "meeting_details", "employee_details"]
+        )
+        assert parsed.required_tables == [
+            "travel_details",
+            "meeting_details",
+            "employee_details",
+        ]
+
+    def test_accepts_object_shape(self):
+        from helicalbi.model.output.TableResponse import get_table_response_model
+
+        model = get_table_response_model()
+        parsed = model.model_validate(
+            {"required_tables": ["travel_details", "meeting_details"]}
+        )
+        assert parsed.required_tables == ["travel_details", "meeting_details"]
 
 
 class TestOptionalPromptReason:

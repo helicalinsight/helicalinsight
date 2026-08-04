@@ -292,12 +292,12 @@ public class HeadlessChromeManager extends PhantomExportService {
 
                 String poweredBy = ExportWatermarkHelper.getPrintWatermarkLabel();
                 String brandLink = ExportWatermarkHelper.getWatermarkLink();
-                
+                String spanStyle = ExportWatermarkHelper.shouldApplyPrintWatermark() ? "inline" : "none";
                 String headerTemplate = bodyElement.has("headerTemplate") ? bodyElement.get("headerTemplate").getAsString() : bodyElementDefault.get("headerTemplate").getAsString();
-                headerTemplate=headerTemplate.formatted(brandLink, poweredBy);
+                headerTemplate=headerTemplate.formatted(brandLink, poweredBy, spanStyle);
                 params.put("headerTemplate", headerTemplate);
                 String footerTemplate = bodyElement.has("footerTemplate") ?bodyElement.get("footerTemplate").getAsString() : bodyElementDefault.get("footerTemplate").getAsString();
-                footerTemplate = footerTemplate.formatted(brandLink, poweredBy);
+                footerTemplate = footerTemplate.formatted(brandLink, poweredBy, spanStyle);
                 params.put("footerTemplate", footerTemplate);
                 if (bodyElement.has("footer")) {
                     params.put("footerTemplate", buildTemplateDiv(bodyElement.get("footer").getAsJsonObject()));

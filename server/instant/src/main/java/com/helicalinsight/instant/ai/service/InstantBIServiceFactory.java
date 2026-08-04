@@ -24,6 +24,8 @@ public final class InstantBIServiceFactory {
             "com.helicalinsight.instant.ai.service.impl.AiConvertChartServiceImpl";
     private static final String LIST_CHARTS_SERVICE_IMPL =
             "com.helicalinsight.instant.ai.service.impl.AiListChartsServiceImpl";
+    private static final String UTILITY_CONFIG_SERVICE_IMPL =
+            "com.helicalinsight.instant.ai.service.impl.AiUtilityConfigServiceImpl";
 
     private InstantBIServiceFactory() {
     }
@@ -66,5 +68,9 @@ public final class InstantBIServiceFactory {
 
     public static IAiListChartsService getListChartsService() {
         return FactoryMethodWrapper.getTypedInstance(LIST_CHARTS_SERVICE_IMPL, IAiListChartsService.class);
+    }
+
+    public static IAiUtilityConfigService getUtilityConfigService() {
+        return FactoryMethodWrapper.getTypedInstance(UTILITY_CONFIG_SERVICE_IMPL, IAiUtilityConfigService.class);
     }
 }

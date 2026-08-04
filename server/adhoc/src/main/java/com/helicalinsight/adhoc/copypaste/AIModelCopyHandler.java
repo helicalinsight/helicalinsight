@@ -63,6 +63,7 @@ public class AIModelCopyHandler extends HiResourceCopyHandler {
         HIResourceAIModel sourceModel = sourceHiResource.getAiModel();
 
         aiModel.setAiModelName(sourceModel.getAiModelName());
+        aiModel.setDescription(sourceModel.getDescription());
         aiModel.setHiResourceMetadata(sourceModel.getHiResourceMetadata());
         aiModel.setCreatedBy(Integer.valueOf(AuthenticationUtils.getUserId()));
         aiModel.setLastUpdatedTime(new Date());

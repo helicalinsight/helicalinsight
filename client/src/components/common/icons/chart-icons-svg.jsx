@@ -442,3 +442,161 @@ export const WordCloudSvg = () => {
         </svg>
     )
 }
+
+const chartSvgProps = {
+    width: "1em",
+    height: "1em",
+    viewBox: "0 0 24 24",
+    fill: "currentColor",
+    xmlns: "http://www.w3.org/2000/svg",
+};
+
+export const HorizontalBarChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 3v18h18v-2H5V3H3zm4 12h10v2H7v-2zm0-4h14v2H7v-2zm0-4h8v2H7V7z" />
+    </svg>
+);
+
+export const ColumnChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3zm5-2V10h2.5v9H8zm4.5 0V6H15v13h-2.5zm4.5 0v-5H20v5h-2.5z" />
+    </svg>
+);
+
+export const HistogramChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 3v18h18v-2H5V3H3zm2 14h3V9H5v8zm4 0h3V5H9v12zm4 0h3v-6h-3v6zm4 0h3V7h-3v10z" />
+    </svg>
+);
+
+export const GroupedColumnSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3zm4-2V11h2v8H7zm3 0V7h2v12h-2zm5 0v-6h2v6h-2zm3 0V9h2v10h-2z" />
+    </svg>
+);
+
+export const TinyColumnSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M7 17h2V9H7v8zm4 0h2V5h-2v12zm4 0h2v-6h-2v6zM4 19h16v2H4v-2z" />
+    </svg>
+);
+
+export const DualLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3.5 18.5l5-6 4 3 7.5-9.5-.8-.6-6.7 8.5-4-3-5.5 6.6.5.5z" />
+        <path d="M3.5 14.5l4.5-4 3.5 2.5 8-7-.7-.6-7.3 6.4-3.5-2.5-5 4.5.5.7z" opacity="0.55" />
+        <path d="M3 21V3h2v16h16v2H3z" />
+    </svg>
+);
+
+export const ColumnLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3zm4-2V12h2v7H7zm4 0V8h2v11h-2zm4 0v-5h2v5h-2z" />
+        <path d="M7 11l4-4 4 3 5-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+);
+
+export const TinyLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M5 16l4-5 3 2.5L19 6l-.8-.6-6.2 7.1-3-2.5-4.5 5.6L5 16z" />
+        <path d="M4 19h16v2H4v-2z" />
+    </svg>
+);
+
+export const TinyAreaSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M4 18V8l4 3 3-4 5 3 4-5v13H4z" opacity="0.35" />
+        <path d="M4 8l4 3 3-4 5 3 4-5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        <path d="M4 19h16v2H4v-2z" />
+    </svg>
+);
+
+export const RoseChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M12 3c1.2 0 2.8 2.4 3.6 5.2.5 1.8.6 3.5.3 4.5L12 12V3zm0 0c-1.2 0-2.8 2.4-3.6 5.2-.5 1.8-.6 3.5-.3 4.5L12 12V3z" />
+        <path d="M15.9 12.7c1.8.9 3.8 2.6 4.6 4.3.5 1.1.4 2.1-.2 2.5L12 12l3.9.7z" />
+        <path d="M8.1 12.7c-1.8.9-3.8 2.6-4.6 4.3-.5 1.1-.4 2.1.2 2.5L12 12l-3.9.7z" />
+        <path d="M12 12l7.5 7.5c-.9.9-3.2.4-5.5-.6-2.1-.9-3.8-2.3-4.5-3.4L12 12z" opacity="0.7" />
+        <circle cx="12" cy="12" r="1.6" />
+    </svg>
+);
+
+export const SunburstSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M12 2a10 10 0 1 0 10 10h-4a6 6 0 1 1-6-6V2z" opacity="0.35" />
+        <path d="M12 6a6 6 0 1 0 6 6h-3a3 3 0 1 1-3-3V6z" opacity="0.65" />
+        <circle cx="12" cy="12" r="2.2" />
+        <path d="M12 2v4M22 12h-4M12 22v-4M2 12h4" fill="none" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+);
+
+export const TreemapSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 3h18v18H3V3zm2 2v14h8V5H5zm10 0v6h6V5h-6zm0 8v6h6v-6h-6z" />
+    </svg>
+);
+
+export const CirclePackingSvg = () => (
+    <svg {...chartSvgProps}>
+        <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="9" cy="11" r="4" />
+        <circle cx="15.5" cy="9.5" r="2.5" />
+        <circle cx="15" cy="15.5" r="3" opacity="0.55" />
+    </svg>
+);
+
+export const BubbleChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 3v18h18v-2H5V3H3z" />
+        <circle cx="9" cy="15" r="2" />
+        <circle cx="13" cy="9" r="3.2" />
+        <circle cx="18" cy="13" r="2.6" />
+    </svg>
+);
+
+export const FunnelChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M4 4h16l-4.5 6.5V20l-3 1.5V10.5L4 4zm2.3 2l2.9 4.2.3.5v8.1l1.5-.7V10.7l.3-.5L16.7 6H6.3z" />
+    </svg>
+);
+
+export const GaugeChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M12 4a9 9 0 0 0-9 9h2a7 7 0 0 1 14 0h2a9 9 0 0 0-9-9z" opacity="0.35" />
+        <path d="M12 4a9 9 0 0 1 7.8 4.5l-1.7 1A7 7 0 0 0 12 6V4z" />
+        <circle cx="12" cy="13" r="1.8" />
+        <path d="M12 13l5-5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M5 18h14v2H5v-2z" />
+    </svg>
+);
+
+export const GroupedColumnLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3z" />
+        <path d="M7 17V11h1.5v6H7zm2 0V8h1.5v9H9zm4 0v-5h1.5v5H13zm2 0V10h1.5v7H15z" />
+        <path d="M7.5 10l4-3.5 3 2 4.5-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const StackedColumnLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3z" />
+        <path d="M8 17V9h3v8H8zm.8-4.5h1.4V16H8.8v-3.5zM14 17v-9h3v9h-3zm.8-5h1.4V16h-1.4v-4z" />
+        <path d="M7 8l5-3 5 2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const StackedAndGroupedColumnLineSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 21V3h2v16h16v2H3z" />
+        <path d="M6.5 17V10h2v7h-2zm2.5 0V8h2v9H9zm4.5 0v-6h2v6h-2zm2.5 0V9h2v8h-2z" />
+        <path d="M6.5 17v-3h2v3h-2zm2.5 0v-4h2v4H9zm4.5 0v-2.5h2V17h-2zm2.5 0v-3.5h2V17h-2z" opacity="0.45" />
+        <path d="M7 9l4-3 4 2 4-3" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const GridTableChartSvg = () => (
+    <svg {...chartSvgProps}>
+        <path d="M3 3h18v18H3V3zm2 2v3h3V5H5zm5 0v3h4V5h-4zm6 0v3h3V5h-3zM5 10v4h3v-4H5zm5 0v4h4v-4h-4zm6 0v4h3v-4h-3zM5 16v3h3v-3H5zm5 0v3h4v-3h-4zm6 0v3h3v-3h-3z" />
+    </svg>
+);

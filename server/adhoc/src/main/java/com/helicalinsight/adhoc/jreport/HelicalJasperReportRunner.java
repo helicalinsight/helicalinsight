@@ -47,6 +47,7 @@ public class HelicalJasperReportRunner implements CancellableRunnable {
         if (bool.booleanValue()) {
             IHCRGenerator generator = (IHCRGenerator) ApplicationContextAccessor.getBean(JsonUtils.getHCRGeneratorType());
             long now = System.currentTimeMillis();
+            try {
             if ( session != null ) {
             	generator.generateHCReportStreaming(formData, session);
             }
@@ -56,8 +57,14 @@ public class HelicalJasperReportRunner implements CancellableRunnable {
 	            	response.add(key, responseFromJasper.get(key));
 	            }
             }
-            long time = System.currentTimeMillis();
-            logger.info("Time taken for Entire Report :" + (time - now) + ".ms");
+            }
+            catch (Exception e) {
+            	throw e;
+			}
+            finally {
+            	long time = System.currentTimeMillis();
+            	logger.info("Time taken for Entire Report :" + (time - now) + ".ms");
+            }
         }
     }
 }

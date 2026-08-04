@@ -2,15 +2,16 @@ flask
 watchdog
 waitress
 python-dotenv
-langchain-core
+PyYAML
+langchain>=1.0
+langchain-core>=1.0
 langchain-community
 langgraph
 sqlglot
-langchain-openai
-langchain-anthropic
-langchain-google-genai
 langgraph-checkpoint-postgres
 langgraph-checkpoint-sqlite
-google-generativeai
-openai
 psycopg[binary]
+
+# Provider packages (langchain-openai, langchain-anthropic, langchain-deepseek,
+# langchain-ollama, etc.) are NOT listed here — helicalbi.core.llm_loader
+# installs the selected provider on demand from llm_config.yaml `package:`.

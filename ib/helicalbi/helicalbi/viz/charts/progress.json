@@ -30,7 +30,7 @@
   },
   "settings": {
     "dimensions": {
-      "name": "provide the dimension name min 0 and max 1"
+      "names": "provide dimension names as JSON array, min 0 max 1"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max 2"
@@ -43,8 +43,12 @@
     "title": "Chart title"
   },
   "instructions": [
-    "RingProgress. Config: percent in [0,1] from actual/target; color [progress, track]; statistic content as %.",
-    "Polish: clamp percent; 2-color palette; fontSize~14; no fake axes; title via statistic if needed."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "measures[0]=progress value (and measures[1]=target when present).",
+    "Set title to a short chart heading.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawProgress() {",

@@ -15,6 +15,8 @@ public class HIResourceAIModel implements Serializable {
     @Column(name = "report_name", table = "hi_resource_model")
     private String aiModelName;
 
+    @Column(name = "description")
+    private String description;
 
     @Column(name = "state", table = "hi_resource_model", length = Integer.MAX_VALUE)
     @Lob
@@ -32,6 +34,14 @@ public class HIResourceAIModel implements Serializable {
 
     @Column(name = "metadata_id", table = "hi_resource_model")
     private Integer hiResourceMetadata;
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     public Integer getHiResourceMetadata() {
         return hiResourceMetadata;

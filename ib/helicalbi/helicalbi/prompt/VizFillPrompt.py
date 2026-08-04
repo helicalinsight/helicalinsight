@@ -59,7 +59,7 @@ Sort directions for result columns (Ascending=ASC, Descending=DESC; ignore none/
 {chart_function}
 
 Return ChartSettings only matching the template
-(dimensions.name / dimensions.names, measures, labelsX, labelsY, labelsZ, title, series, color).
+(dimensions.names, measures, labelsX, labelsY, labelsZ, title, series, color).
 Do NOT include measure_formats — formats are filled by a separate step.
 Use JSON arrays for dimensions.names and measures (e.g. ["travel_medium","travel_type"]), never a comma-separated string.
 
@@ -186,7 +186,7 @@ Sort directions for result columns (Ascending=ASC, Descending=DESC; ignore none/
    when it is a real chart) and implement the requested formatting in JS.
 5. Adapt the other-chart starter template below into a working DrawOther() function.
 6. Do NOT return ChartSettings JSON. Return the JS/JSX function code only (in the schema field).
-7. Replace any `${setting}` / `${format}` / setting.* bindings with concrete field names
+7. Replace any `${{setting}}` / `${{format}}` / setting.* bindings with concrete field names
    and inline formatters from the result columns.
 
 ### OUTPUT REQUIREMENTS

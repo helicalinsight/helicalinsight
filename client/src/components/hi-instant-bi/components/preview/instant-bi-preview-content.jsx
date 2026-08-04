@@ -1,10 +1,9 @@
 import { Row } from 'antd';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import IBCustomChart from '../ib-custom-chart';
 import InstantBITooltip from '../../instant-bi-tooltip-title';
-import { tabItems, isIbKpiChart, isIbTableChart } from '../../utils/common-utils';
+import { tabItems, ChartView, isIbTableChart } from '../../utils/common-utils';
 import CommonMarkdownTable from '../../utils/common-markdown-table';
 import InstantBIResponseMetadata from '../instant-bi-response-metadata';
 
@@ -22,39 +21,12 @@ const InstantBIPreviewContent = (props) => {
             tokenUsage = {},
         } = {}
     } = props || {}
-    const [chartAreaWidth, setChartAreaWidth] = useState(10);
-    const [chartAreaHeight, setChartAreaHeight] = useState(10);
     const [activeTab, setActiveTab] = useState("preview");
     const userMessageCount = messageList.filter((message) => message.isUser).length;
-
-    const chartAreaRef = useRef();
 
     useEffect(() => {
         setActiveTab("preview");
     }, [previewId, userMessageCount]);
-
-    useEffect(() => {
-        function outputsize() {
-            if (chartAreaRef?.current?.parentNode) {
-                let parentNode = chartAreaRef.current.parentNode;
-                if (parentNode.offsetHeight - 10 !== chartAreaHeight) {
-                    setChartAreaHeight(parentNode.offsetHeight - 10);
-                }
-                if (parentNode.offsetWidth - 5 !== chartAreaWidth) {
-                    setChartAreaWidth(parentNode.offsetWidth - 5);
-                }
-            }
-        }
-
-        if (
-            chartAreaRef?.current?.parentNode &&
-            process.env.NODE_ENV !== "test"
-        ) {
-            new ResizeObserver(outputsize).observe(
-                chartAreaRef.current.parentNode
-            );
-        }
-    }, [chartAreaRef?.current]);
 
     const visible = !(!code || !data);
     const isTableChart = isIbTableChart(vizDetails?.chart_name, code);
@@ -85,7 +57,7 @@ const InstantBIPreviewContent = (props) => {
                 </Row>
             )}
 
-            <div ref={chartAreaRef} className='ib-preview-area'>
+            <div className='ib-preview-area'>
                 {visible ? (
                     <>
                         {activeTab === "preview" && (
@@ -94,20 +66,12 @@ const InstantBIPreviewContent = (props) => {
                                     <CommonMarkdownTable data={data || []} />
                                 </div>
                             ) : (
-                                <IBCustomChart
+                                <ChartView
                                     data={data}
-                                    showToolbar={false}
-                                    customChart={{
-                                        code: code
-                                    }}
-                                    {...{
-                                        chartAreaHeight,
-                                        chartAreaWidth,
-                                        dataId
-                                    }}
-                                    autoFit={true}
-                                    isKpiChart={isIbKpiChart(vizDetails?.chart_name, code)}
+                                    vf={code}
+                                    id={dataId || previewId}
                                     chartName={vizDetails?.chart_name || ""}
+                                    className="chart-wrapper--preview-panel"
                                 />
                             )
                         )}

@@ -185,7 +185,7 @@ public class HCRHelper {
 			logger.debug("providing jasperPrint");
 		} catch (Exception ex) {
 			logger.error("Exception occurred while Generating HCReport {}", ex);
-			throw new HCRException(ex.getMessage());
+			throw new HCRException(ex.getMessage(), ex);
 		}
 		return jasperPrint;
 	}
@@ -275,7 +275,7 @@ public class HCRHelper {
 			}
 		} catch (Exception ex) {
 			logger.error("Exception occurred while Generating HCReport {}", ex);
-			throw new HCRException(ex.getMessage());
+			throw new HCRException(ex.getMessage(), ex);
 		}
 		return response;
 	}
@@ -342,7 +342,7 @@ public class HCRHelper {
 			}
 		} catch (Exception ex) {
 			logger.error("Exception occurred while Generating HCReport {}", ex);
-			throw new HCRException(ex.getMessage());
+			throw new HCRException(ex.getMessage(), ex);
 		}
 		return response;
 	}
@@ -711,6 +711,45 @@ public class HCRHelper {
 		}
 		return new LazySubDatasetDataSourceFactory(connectionDetails);
 	}
+	
+	
+	/**
+	 * Shared /hcrResultSet prepare path used by HCR generate (incl. streaming) and subdataset helpers.
+	 * Datasource EXECUTE is re-validated inside the cache manager during prepareCacheFromRequest.
+	 *
+	 * @param formData          must contain connectionDetails (full generate payload or a wrapper)
+	 * @param refreshCache      whether to bypass existing query cache
+	 * @param fallbackCacheName used when getCacheNameFromConnection is blank (e.g. subdataset uuid)
+	 * @return ResultSet from cache manager when available; otherwise null
+	 */
+	public ResultSet prepareExecuteJasperReport(JsonObject formData, boolean refreshCache, String fallbackCacheName) {
+		if (formData == null) {
+			return null;
+		}
+		JsonObject connectionDetails = GsonUtility.optJsonObject(formData, "connectionDetails");
+		if (connectionDetails == null || connectionDetails.entrySet().isEmpty()) {
+			return null;
+		}
+		String cacheName = CacheUtils.getCacheNameFromConnection(formData);
+		if (StringUtils.isBlank(cacheName)) {
+			cacheName = StringUtils.defaultString(fallbackCacheName);
+		}
+		CacheManager cacheManager = CacheUtils.getCacheManager("/hcrResultSet");
+		cacheManager.setRequestData(formData.toString());
+		
+		// Checks connection permission.
+		cacheManager.getConnectionId();
+		Cache cache = cacheHelper.prepareCacheFromRequest(cacheManager);
+		boolean cacheRequired = cacheHelper.processCache(null, null, cacheName, refreshCache, cache, cacheManager);
+		String designCacheKey = cacheHelper.designCacheKeyFor(cache);
+		if (designCacheKey != null) {
+			formData.addProperty("designCacheKey", designCacheKey);
+		}
+		if (cacheRequired && cacheManager instanceof HCRQueryProcessCacheManagerForResultSet hcrObj) {
+			return hcrObj.getResult();
+		}
+		return null;
+	}
 
 	/**
 	 * Executes a subdataset query through the existing /hcrResultSet cache layer.
@@ -719,17 +758,7 @@ public class HCRHelper {
 	public ResultSet fetchSubdatasetResultSet(JsonObject connectionDetails) {
 		JsonObject connectionDetailsFormData = new JsonObject();
 		connectionDetailsFormData.add("connectionDetails", connectionDetails);
-		String reportName = CacheUtils.getCacheNameFromConnection(connectionDetailsFormData);
-		CacheManager resultsetCacheManager = CacheUtils.getCacheManager("/hcrResultSet");
-		resultsetCacheManager.setRequestData(connectionDetailsFormData.toString());
-		Cache cache = cacheHelper.prepareCacheFromRequest(resultsetCacheManager);
-		final String cacheName = StringUtils.isBlank(reportName) ? "" : reportName;
-		boolean cacheRequired = cacheHelper.processCache(null, null, cacheName, false, cache,
-				resultsetCacheManager);
-		if (cacheRequired && resultsetCacheManager instanceof HCRQueryProcessCacheManagerForResultSet hcrObj) {
-			return hcrObj.getResult();
-		}
-		return null;
+		return prepareExecuteJasperReport(connectionDetailsFormData, false, "");
 	}
 
 	private JsonObject extractConnectionDetails(JsonObject requestParameters, String parameterName) {
@@ -750,17 +779,9 @@ public class HCRHelper {
 		}
 		JsonObject connectionDetailsFormData = new JsonObject();
 		connectionDetailsFormData.add("connectionDetails", connectionDetails);
-		String reportName = CacheUtils.getCacheNameFromConnection(connectionDetailsFormData);
-		CacheManager resultsetCacheManager = CacheUtils.getCacheManager("/hcrResultSet");
-		resultsetCacheManager.setRequestData(connectionDetailsFormData.toString());
-		Cache cache = cacheHelper.prepareCacheFromRequest(resultsetCacheManager);
-		final String cacheName = StringUtils.isBlank(reportName) ? uuid : reportName;
-		boolean cacheRequired = cacheHelper.processCache(null, null,cacheName, false, cache, resultsetCacheManager);
-		if (cacheRequired && resultsetCacheManager instanceof HCRQueryProcessCacheManagerForResultSet) {
-			HCRQueryProcessCacheManagerForResultSet hcrObj = (HCRQueryProcessCacheManagerForResultSet) resultsetCacheManager;
-			ResultSet rs =  hcrObj.getResult();
+		ResultSet rs = prepareExecuteJasperReport(connectionDetailsFormData, false, uuid);
+		if (rs != null) {
 			return new ResultSetDataSourceFactory(rs);
-			
 		}
 		return null;
 	}
@@ -874,7 +895,7 @@ public class HCRHelper {
 			return new JRVerticalFiller(context, jasperReport, null);
 		}
 		catch (JRException  e) {
-			throw new EfwServiceException(e.getMessage());
+			throw new EfwServiceException(e.getMessage(), e);
 		}
 	}
 }
