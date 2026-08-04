@@ -600,3 +600,33 @@ export const GridTableChartSvg = () => (
         <path d="M3 3h18v18H3V3zm2 2v3h3V5H5zm5 0v3h4V5h-4zm6 0v3h3V5h-3zM5 10v4h3v-4H5zm5 0v4h4v-4h-4zm6 0v4h3v-4h-3zM5 16v3h3v-3H5zm5 0v3h4v-3h-4zm6 0v3h3v-3h-3z" />
     </svg>
 );
+
+export const ConvertChartSvg = () => (
+    <svg {...chartSvgProps} fill="none">
+        <g
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.65"
+            strokeLinejoin="miter"
+            strokeLinecap="butt"
+        >
+            <rect x="2.8" y="16.6" width="3.5" height="4.8" />
+            <rect x="7.6" y="14.1" width="3.5" height="7.3" />
+            <rect x="12.4" y="11.4" width="3.5" height="10" />
+            <rect x="17.2" y="8.6" width="3.5" height="12.8" />
+        </g>
+        <path
+            d="M4.55 11.2 L9.35 8.6 L14.15 4.6 L16.55 6.2 L21 2.8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <circle cx="4.55" cy="11.2" r="1.25" fill="currentColor" />
+        <circle cx="9.35" cy="8.6" r="1.25" fill="currentColor" />
+        <circle cx="14.15" cy="4.6" r="1.25" fill="currentColor" />
+        <circle cx="16.55" cy="6.2" r="1.25" fill="currentColor" />
+        <circle cx="21" cy="2.8" r="1.25" fill="currentColor" />
+    </svg>
+);

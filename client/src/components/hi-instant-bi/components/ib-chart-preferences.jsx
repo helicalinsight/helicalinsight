@@ -13,7 +13,6 @@ import {
   Loading3QuartersOutlined,
   PieChartOutlined,
   RadarChartOutlined,
-  SettingOutlined,
   SlidersOutlined,
   TableOutlined,
 } from "@ant-design/icons";
@@ -284,7 +283,7 @@ const IbChartPreferences = ({
           size="small"
           type="text"
           className="ib-chart-preferences__trigger"
-          icon={<SettingOutlined />}
+          icon={<ChartIcon name="convert-chart" />}
           onClick={openDrawer}
           data-testid="ib-chart-preferences-open"
         />

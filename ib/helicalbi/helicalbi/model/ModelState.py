@@ -72,3 +72,5 @@ class ModelState(MessagesState):
     use_other_fallback: bool
     fallback_reason: str
     chart_settings: dict
+    viz_model: dict
+    viz_form_data: dict

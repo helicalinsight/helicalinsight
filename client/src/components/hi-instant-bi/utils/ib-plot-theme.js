@@ -147,9 +147,12 @@ const mergeLegendTheme = (legend, { circular = false, compact = false } = {}) =>
   };
 };
 
+const shouldHideDenseLabels = (data) =>
+  Array.isArray(data) && data.length > IB_MAX_LABEL_POINTS;
+
 const mergeDataLabel = (label, data, { polar = false } = {}) => {
   if (!label) return label;
-  if (Array.isArray(data) && data.length > IB_MAX_LABEL_POINTS) {
+  if (shouldHideDenseLabels(data)) {
     return false;
   }
   const base = label === true ? {} : { ...label };
@@ -163,6 +166,19 @@ const mergeDataLabel = (label, data, { polar = false } = {}) => {
 
 const applyLabelOnConfig = (config = {}, { polar = false } = {}) => {
   const next = { ...config };
+  const hideDense = shouldHideDenseLabels(next.data);
+
+  if (hideDense) {
+    next.label = false;
+    next.conversionTag = false;
+    if (Array.isArray(next.geometryOptions)) {
+      next.geometryOptions = next.geometryOptions.map((geo) =>
+        geo?.label ? { ...geo, label: false } : geo,
+      );
+    }
+    return next;
+  }
+
   if (next.label) {
     next.label = mergeDataLabel(next.label, next.data, { polar });
   }
@@ -244,13 +260,6 @@ export const applyIbCompactPlotTheme = (config = {}, options = {}) => {
     next = applyCircularLayout(next, { compact, plotName });
   }
   if (plotName === "Rose" && next.label == null) {
-    next.label = false;
-  } else if (
-    polar &&
-    next.label == null &&
-    Array.isArray(next.data) &&
-    next.data.length > IB_MAX_LABEL_POINTS
-  ) {
     next.label = false;
   }
   next = applyLabelOnConfig(next, { polar });

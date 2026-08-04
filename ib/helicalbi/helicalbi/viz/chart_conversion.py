@@ -514,6 +514,10 @@ def convert_chart(
         data_types=data_types,
         format_strings=format_strings,
     )
+    # KPI needs a numeric measure; tables often leave measures empty ("all columns").
+    # Bind the first numeric result column (or format-map key) when missing.
+    if target_def.conversion.family == "kpi":
+        fields = ensure_kpi_measure_from_numeric(fields, data_types=data_types)
     title = (vf_title or fields.title or "").strip()
     chart_label = target_def.name.replace("_", " ")
     similar_types = resolve_similar_charts(
@@ -1166,6 +1170,70 @@ def _enrich_fields_from_metadata(
             extra_dims,
             extra_measures,
         )
+    return fields
+
+
+def _numeric_columns_from_metadata(data_types: Any) -> list[str]:
+    """Return column names classified as numeric measures from result metadata."""
+    return _unique(
+        [
+            name
+            for name, role in _iter_named_columns(data_types)
+            if role == "measure" and str(name).strip()
+        ]
+    )
+
+
+def ensure_kpi_measure_from_numeric(
+    fields: ExtractedFields,
+    *,
+    data_types: Any = None,
+) -> ExtractedFields:
+    """Bind a numeric column into ``fields.measures`` when KPI has none.
+
+    Tables often leave ``measures`` empty (meaning “use all columns”). KPI needs
+    exactly one numeric value field. Prefer, in order:
+
+    1. Existing measures (unchanged)
+    2. Keys from ``measure_formats`` (formatted value columns)
+    3. Numeric columns from ``data_types`` metadata
+    4. Dimensions that metadata classifies as numeric (reclassified)
+    """
+    if not isinstance(fields, ExtractedFields):
+        return fields
+    if fields.measures:
+        return fields
+
+    numeric_meta = _numeric_columns_from_metadata(data_types)
+    numeric_set = set(numeric_meta)
+
+    candidates: list[str] = []
+    for key in fields.measure_formats or {}:
+        name = str(key or "").strip()
+        if name and name not in _PLACEHOLDER_FORMAT_KEYS and not name.endswith("_column"):
+            candidates.append(name)
+
+    candidates.extend(numeric_meta)
+
+    for dim in fields.dimensions or []:
+        name = str(dim or "").strip()
+        if name and name in numeric_set:
+            candidates.append(name)
+
+    candidates = _unique(candidates)
+    if not candidates:
+        return fields
+
+    chosen = candidates[0]
+    fields.measures = [chosen]
+    fields.dimensions = [
+        dim for dim in (fields.dimensions or []) if str(dim).strip() != chosen
+    ]
+    logger.info(
+        "kpi.ensure_measure bound numeric column=%s from candidates=%s",
+        chosen,
+        candidates,
+    )
     return fields
 
 

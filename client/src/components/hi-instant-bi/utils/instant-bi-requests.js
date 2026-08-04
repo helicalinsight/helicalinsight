@@ -708,9 +708,6 @@ export const convertInstantBIChart = ({
         chart_name: viz.chart_name || payload?.chart_name || selectedChart,
         vf: nextVf,
         vf_template: nextTemplate || btoa(nextVf),
-        ...(Array.isArray(viz.similar_chart) && viz.similar_chart.length
-          ? { similar_chart: viz.similar_chart }
-          : {}),
       })
     );
     return nextVf;
