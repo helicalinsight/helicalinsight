@@ -1,6 +1,7 @@
 package com.helicalinsight.export;
 
 import java.io.File;
+import java.time.Instant;
 import java.util.List;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -9,8 +10,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.helicalinsight.efw.ApplicationInformation;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.helicalinsight.admin.utils.JacksonUtility;
 import com.helicalinsight.efw.ApplicationProperties;
+import com.helicalinsight.efw.utility.ResponseMetadataEnricher;
 import com.helicalinsight.efw.utility.TempDirectoryCleaner;
 import com.helicalinsight.export.crypto.FileCryptoHandler;
 import com.helicalinsight.export.dto.Manifest;
@@ -58,7 +61,9 @@ public class ExportResourceManager {
 	public byte[] write(List<HIResourceDTO> resources, String path, ResourceOptions options , HttpServletResponse response) throws Exception {
 		Manifest manifest = new Manifest();
 		manifest.setVersion(props.getManifestVersion());
-		manifest.setAppVersion(ApplicationInformation.getInstance().getVersion());
+		ObjectNode metadata =  JacksonUtility.fromObject(ResponseMetadataEnricher.getMetaObject().toString());
+		metadata.put("time", Instant.now().toString());
+		manifest.setMetadata(metadata);
 		String timeStamp = String.valueOf(System.currentTimeMillis());
 		HIResourceDTO  parent = resources.get(0);
 		path = StringUtils.isBlank(path) ? "AllResources" : parent.getName().strip();

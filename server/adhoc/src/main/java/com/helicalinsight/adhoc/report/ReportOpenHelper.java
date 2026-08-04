@@ -370,6 +370,7 @@ public class ReportOpenHelper {
 
 
         GsonUtility.accumulate(data, "modelName", adhocReport.getReportName());
+        GsonUtility.accumulate(data, "description", adhocReport.getDescription());
 
         JsonObject metadata = new JsonObject();
 

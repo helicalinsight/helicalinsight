@@ -332,7 +332,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 			if (logger.isErrorEnabled()) {
 				e.printStackTrace();
 			}
-			throw new ResourceImportException("Error occurred while importing datasource.");
+			throw new ResourceImportException("Error occurred while importing datasource.", e);
 		}
 	}
 
@@ -500,7 +500,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 			if (logger.isErrorEnabled()) {
 				e.printStackTrace();
 			}
-			throw new ResourceImportException("Error occurred while importing datasource.");
+			throw new ResourceImportException("Error occurred while importing datasource.", e);
 		}
 		return oldMappingNewMapping;
 	}
