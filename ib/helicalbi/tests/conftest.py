@@ -61,6 +61,8 @@ def _install_configuration_stub() -> None:
     Tests should never hit a real LLM, so we register a tiny stand-in module
     that exposes the symbols imported elsewhere in the codebase.
     """
+    import threading
+
     module_name = "helicalbi.common.configuration"
     if module_name in sys.modules:
         return
@@ -70,6 +72,20 @@ def _install_configuration_stub() -> None:
     fake_llm.invoke.return_value = MagicMock(content="stub-llm-response")
     stub.llm = fake_llm
     stub.llm_manager = MagicMock(name="stub_llm_manager")
+    stub.llm_manager._lock = threading.RLock()
+    stub.llm_manager.config = {
+        "default_provider": "openai",
+        "base_url": "https://stub.invalid/hi-ee",
+        "providers": {
+            "openai": {
+                "package": "langchain-openai",
+                "model": "gpt-4.1-mini",
+                "parameters": {"api_key": "sk-test", "temperature": 0.1},
+                "usage_path": "usage_metadata",
+            }
+        },
+    }
+    stub.llm_manager.get_baseUrl.return_value = stub.llm_manager.config["base_url"]
     stub.baseUrl = "https://stub.invalid/hi-ee"
     stub.rule_strategy = "basic"
     stub.result_llm = MagicMock(content="stub-llm-response")

@@ -44,7 +44,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 2 max 2"
+      "names": "provide dimension names as JSON array, min 2 max 2"
     },
     "measures": [
       "provide measure names separated by comma, min 2 max any"
@@ -60,8 +60,14 @@
     "series": "optional series / group / stack field name"
   },
   "instructions": [
-    "DualAxes grouped column+line. Config: column isGroup+seriesField; line seriesField.",
-    "Polish: group for comparison + trend line; legend; autoFit; avoid overlapping colors."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names = [x, group] (2); measures[0]=column, measures[1]=line (more measures ok).",
+    "Optional series when needed for grouping/stacking.",
+    "Set labelsX, labelsY, labelsZ to user-friendly axis titles (aliases OK; need not equal column names).",
+    "Set series only when a result column should split color/group/stack; else omit/null.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawGroupedColumnLine() {",
@@ -70,7 +76,7 @@
     "  const measure_formats = ${format};",
     "  const config = {",
     "    data: [data, data],",
-    "    xField: setting.dimensions.name,",
+    "    xField: setting.dimensions.names[0],",
     "    yField: [setting.measures[0], setting.measures[1]],",
     "    ...(setting.color ? { color: setting.color } : {}),",
     "    geometryOptions: [",

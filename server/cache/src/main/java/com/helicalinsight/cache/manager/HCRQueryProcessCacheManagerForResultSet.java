@@ -217,12 +217,12 @@ public class HCRQueryProcessCacheManagerForResultSet extends CacheManager {
             formData.addProperty("dir", getDirectory());
             formData.addProperty("access", DataSourceSecurityUtility.EXECUTE);
             if (requestParameterJson.has("efwd"))
-                formData.add("efwd", requestParameterJson.getAsJsonObject("efwd"));
+                formData.add("efwd", GsonUtility.optJsonObject(requestParameterJson, "efwd"));
             if (requestParameterJson.has("temp_uuid")) {
                 JsonObject efwd = new JsonObject();
                 efwd.addProperty("file", requestParameterJson.get("temp_uuid").getAsString() + "." + JsonUtils.getEfwdExtension());
                 formData.add("efwd", efwd);
-                DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(JSONObject.fromObject(formData.toString()));
+                DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(formData);
             } else
                 DataSourceSecurityUtility.isDataSourceAuthenticated(formData);
             return (long) connectionId;
@@ -299,7 +299,7 @@ public class HCRQueryProcessCacheManagerForResultSet extends CacheManager {
         try {
 			return resultSet == null ? RowSetProvider.newFactory().createCachedRowSet() : resultSet;
 		} catch (SQLException e) {
-			throw new EfwServiceException(e.getMessage());
+			throw new EfwServiceException(e.getMessage(), e);
 		}
     }
     
@@ -315,7 +315,7 @@ public class HCRQueryProcessCacheManagerForResultSet extends CacheManager {
         	try {
 				callBack.process(RowSetProvider.newFactory().createCachedRowSet());
 			} catch (SQLException e) {
-				throw new EfwServiceException(e.getMessage());
+				throw new EfwServiceException(e.getMessage(), e);
 			}
         }
     }

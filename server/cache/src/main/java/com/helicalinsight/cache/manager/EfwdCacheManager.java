@@ -220,7 +220,7 @@ public class EfwdCacheManager extends CacheManager {
             newFormData.addProperty("dir", TempDirectoryCleaner.getTempDirectory().getAbsolutePath());
             newFormData.addProperty("access", DataSourceSecurityUtility.EXECUTE);
 
-            DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(JSONObject.fromObject(newFormData.toString()));
+            DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(newFormData);
         } else
             DataSourceSecurityUtility.isDataSourceAuthenticated(formData);
         return (long) connectionId;

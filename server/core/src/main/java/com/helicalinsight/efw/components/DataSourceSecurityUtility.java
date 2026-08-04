@@ -1,11 +1,19 @@
 package com.helicalinsight.efw.components;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.POJONode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.helicalinsight.admin.dto.EfwdConnDTO;
+import com.helicalinsight.admin.dto.HIEfwdConnSecurityDTO;
+import com.helicalinsight.admin.dto.HIEfwdDTO;
+import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.GlobalJdbcTypeUtils;
+import com.helicalinsight.datasource.GsonUtility;
+import com.helicalinsight.datasource.HCRUtils;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.AccessDeniedException;
@@ -32,8 +40,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * @author Somen
@@ -86,7 +97,7 @@ public class DataSourceSecurityUtility {
         return required;
     }
     
-   
+    @Deprecated
     public static void checkEfwdPermission(String id, File efwdFile, String operation) {
         IProcessor processor = ResourceProcessorFactory.getIProcessor();
         JSONObject fileAsJson = processor.getJSONObject(efwdFile.toString(), true);
@@ -159,18 +170,38 @@ public class DataSourceSecurityUtility {
 
         String accessLevel = formJson.optString("access");
         if (!dir.isEmpty()) {
-        	isEFWDAccessible(id);
+        	isEFWDAccessible(id, accessLevel);
 
         } else {
             isGlobalAccessible(id, accessLevel);
         }
     }
     
-    private static void isEFWDAccessible(String id) {
+    private static void isEFWDAccessible(String id, String accessLevel) {
     	if(StringUtils.isBlank(id)) return ;
+    	
+    	Integer connectionId = Integer.parseInt(id);
+    	
     	EFWDConnectionService efwdService =  ApplicationContextAccessor.getBean(EFWDConnectionService.class);
     	if(Boolean.TRUE.equals(efwdService.isDeleted(id))) {
     		throwResourceNotFoundException();
+    	}
+    	
+    	JsonArray extensions = new JsonArray();
+		extensions.add("efwd");
+		EfwdReaderUtility efwdReaderUtility = new EfwdReaderUtility(extensions);
+    	List<ObjectNode> plainConnections = new ArrayList<>();
+    	efwdReaderUtility.addDataSources(plainConnections, "all", accessLevel); 
+    	Map<Integer, Integer> permissionMap = new HashMap<>();
+    	for(JsonNode node : plainConnections ) {
+    		POJONode dataNode =  (POJONode) node.get("data");
+    		ObjectNode objectNode =  (ObjectNode) dataNode.getPojo();
+    		int connId = objectNode.get("id").asInt();
+    		int permissionLevel = node.get("permissionLevel").asInt();
+    		permissionMap.put(connId, permissionLevel);
+    	}
+    	if (!permissionMap.containsKey(connectionId)) {
+    		throwException();
     	}
     }
     
@@ -194,25 +225,70 @@ public class DataSourceSecurityUtility {
         throwException();
     }
 
-    public static void isDataSourceAuthenticatedFromTemp(JSONObject formJson) {
-        String id = formJson.optString("id");
-        String dir = formJson.optString("dir");
+    public static void isDataSourceAuthenticatedFromTemp(JsonObject formJson) {
+        
+        String dir = GsonUtility.optString(formJson, "dir");
+        String accessLevel = GsonUtility.optString(formJson, "access");
+        
         String tempFileName = null;
+        
         if (formJson.has("efwd")) {
-            tempFileName = formJson.getJSONObject("efwd").getString("file");
+            JsonObject efwd = GsonUtility.optJsonObject(formJson, "efwd");
+            tempFileName =  GsonUtility.optString(efwd, "file");
         }
-        String accessLevel = formJson.optString("access");
-        if (dir.isEmpty()) {
-            dir = TempDirectoryCleaner.getTempDirectory().getAbsolutePath();
-            File efwdFile = null;
-            if (tempFileName != null) {
-                efwdFile = ApplicationUtilities.getEfwdFileFromTemp(dir, tempFileName);
-            } else if (tempFileName == null) {
-                efwdFile = ApplicationUtilities.getTempEfwdFile(dir);
-            }
-            checkEfwdPermission(id, efwdFile, accessLevel);
+        
+        if ( StringUtils.isBlank(dir) || "null".equals(dir)) {
+        	authenticateTempReport(tempFileName, accessLevel);
+        	return ;
         }
+        authenticateSavedReport(tempFileName, accessLevel);
+    }
+    
+    private static void authenticateTempReport(String tempFileName, String accessLevel) {
+    	String tempDir = TempDirectoryCleaner.getTempDirectory().getAbsolutePath();
+    	File efwdFile = StringUtils.isNotBlank(tempFileName)
+    			? ApplicationUtilities.getEfwdFileFromTemp(tempDir, tempFileName)
+    			: ApplicationUtilities.getTempEfwdFile(tempDir);
+    	IProcessor processor = ResourceProcessorFactory.getIProcessor();
+        JsonObject fileAsJson = processor.getJsonObject(efwdFile.toString(), true);
+        checkPermission(fileAsJson, accessLevel);
+    }
+    
+    private static void authenticateSavedReport(String tempFileName, String accessLevel) {
+    	if (StringUtils.isBlank(tempFileName)) return ;
+    	
+    	String prefix = tempFileName.replace("hi_hcr_db.efwd", "");
+    	if(!StringUtils.isNumeric(prefix)) {
+    		return ;
+    	}
+    	JsonObject connectionDetails = HCRUtils.prepareConnectionJson(prefix);
+    	checkPermission(connectionDetails, accessLevel);
+    }
+    
+    private static void checkPermission(JsonObject connectionDetails, String accessLevel) {
+    	JsonObject requiredConnectionDetails =  getRequiredConnectionDetails(connectionDetails);
+		String type = GsonUtility.optString(requiredConnectionDetails, "type");
+		String connectionId = GsonUtility.optString(requiredConnectionDetails, "connectionId");
+		if(GlobalJdbcTypeUtils.isGlobalJdbc(type)) {
+			isGlobalAccessible(connectionId, accessLevel);
+		}
+		else {
+			isEFWDAccessible(connectionId, accessLevel);
+		}
+    }
+    
+    public static JsonObject getRequiredConnectionDetails(JsonObject connectionDetails) {
+    	JsonObject requiredDetails = new JsonObject();
+    	JsonObject dataSource = GsonUtility.getJsonObjectIfNotEmpty(connectionDetails, "DataSources");
+		JsonObject connection = GsonUtility.getJsonObjectIfNotEmpty(dataSource, "Connection");
+		String type = GsonUtility.optString(connection, "type");
+		String connectionId = StringUtils.defaultIfBlank(
+		        GsonUtility.optString(connection, "globalId"),
+		        GsonUtility.optString(connection, "efwdId"));
 
+		requiredDetails.addProperty("connectionId", connectionId);
+		requiredDetails.addProperty("type", type);
+		return requiredDetails;
     }
 
     public static void validateGlobalDataSourceAccessForWriteOperation(String id, String mode) {

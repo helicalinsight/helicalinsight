@@ -188,7 +188,7 @@ public class HCRQueryProcessCacheManager extends CacheManager {
             JsonObject efwd = new JsonObject();
             efwd.addProperty("file", requestParameterJson.get("temp_uuid").getAsString() + "." + JsonUtils.getEfwdExtension());
             formData.add("efwd", efwd);
-            DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(JSONObject.fromObject(formData.toString()));
+            DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(formData);
         } else
             DataSourceSecurityUtility.isDataSourceAuthenticated(formData);
         return (long) connectionId;

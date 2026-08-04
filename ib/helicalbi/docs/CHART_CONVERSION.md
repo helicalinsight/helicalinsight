@@ -135,7 +135,7 @@ Each file under `helicalbi/viz/charts/<viz_type>.json` may include:
 | hierarchy | treemap, circle_packing, relation, sunburst |
 | percent | gauge, progress |
 | kpi | kpi |
-| table | table, grid_table, pivot_table |
+| table | table, grid_table |
 | other | histogram, wordcloud, other |
 
 ### Minimum bag sizes (`_FAMILY_REQUIREMENTS`)

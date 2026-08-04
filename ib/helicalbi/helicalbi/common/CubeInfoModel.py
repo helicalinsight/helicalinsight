@@ -572,10 +572,9 @@ def cube_info_to_cube_metadata(
                 "description": measure.get("description") or measure.get("measureName") or "",
                 "semantic_type": measure.get("semanticType"),
                 "format_string": _format_string_from_cube_item(measure) or None,
-                "sort_order": _sort_order_raw_from_cube_item(measure),
-                "sort_direction": sort_direction_from_value(
-                    _sort_order_raw_from_cube_item(measure)
-                ),
+                # Measures are never ORDER BY candidates — omit sort metadata.
+                "sort_order": None,
+                "sort_direction": None,
                 "default_function": _default_function_from_cube_item(measure, metadata_response) or None,
                 "synonyms": measure.get("synonyms") or [],
             }
@@ -617,13 +616,18 @@ def _format_string_from_cube_item(item: dict) -> str:
     return ""
 
 
+_NO_SORT_STRINGS = frozenset(
+    ("none", "null", "n/a", "-", "undefined", "natural")
+)
+
+
 def _sort_order_raw_from_cube_item(item: dict) -> Any:
     """Return the raw sortOrder / sort_order / sort value when present.
 
     Cube payloads may use numeric ``sortOrder`` (0=ASC, 1=DESC or priority)
     or an explicit ``sort`` direction string such as ``Ascending`` / ``Descending``.
-    Values of ``none`` / empty are treated as absent so they are omitted from
-    the final-SQL sort list.
+    Values of ``none`` / ``Natural`` / empty are treated as absent so they are
+    omitted from the final-SQL sort list.
     """
     for key in ("sortOrder", "sort_order", "sort"):
         if key not in item:
@@ -631,13 +635,7 @@ def _sort_order_raw_from_cube_item(item: dict) -> Any:
         value = item.get(key)
         if value in (None, ""):
             continue
-        if isinstance(value, str) and value.strip().lower() in (
-            "none",
-            "null",
-            "n/a",
-            "-",
-            "undefined",
-        ):
+        if isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
             continue
         return value
     metric_obj = item.get("metric") if isinstance(item.get("metric"), dict) else {}
@@ -647,13 +645,7 @@ def _sort_order_raw_from_cube_item(item: dict) -> Any:
         value = metric_obj.get(key)
         if value in (None, ""):
             continue
-        if isinstance(value, str) and value.strip().lower() in (
-            "none",
-            "null",
-            "n/a",
-            "-",
-            "undefined",
-        ):
+        if isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
             continue
         return value
     return None
@@ -663,15 +655,15 @@ def sort_direction_from_value(value: Any) -> Optional[str]:
     """Map cube sortOrder values to SQL directions.
 
     ``0`` / ``"asc"`` / ``"Ascending"`` → ASC, ``1`` / ``"desc"`` / ``"Descending"`` → DESC.
-    ``none`` / empty / missing → no sort (omit from ORDER BY hints).
-    Other integers default to ASC so sequential sort priorities (0, 1, 2, ...) still
-    produce valid ORDER BY clauses.
+    ``none`` / ``Natural`` / empty / missing / any other non ASC|DESC string → no sort
+    (omit from ORDER BY hints). Other integers default to ASC so sequential sort
+    priorities (0, 1, 2, ...) still produce valid ORDER BY clauses.
     """
     if value is None or value == "":
         return None
     if isinstance(value, str):
         lowered = value.strip().lower()
-        if not lowered or lowered in ("none", "null", "n/a", "-", "undefined"):
+        if not lowered or lowered in _NO_SORT_STRINGS:
             return None
         if lowered in ("0", "asc", "ascending"):
             return "ASC"
@@ -680,7 +672,8 @@ def sort_direction_from_value(value: Any) -> Optional[str]:
         try:
             value = int(lowered)
         except ValueError:
-            return lowered.upper()
+            # Only Ascending/Descending (and numeric priorities) are sort candidates.
+            return None
     try:
         num = int(value)
     except (TypeError, ValueError):
@@ -793,6 +786,9 @@ def ai_instructions_from_cube_info(cube_info: list) -> Dict[str, str]:
 def sort_orders_from_cube_info(cube_info: list) -> List[dict]:
     """Collect sortOrder entries for final SQL ORDER BY hints.
 
+    Only **dimensions** are ORDER BY candidates. Measures (physical column or
+    formula) are never included, even when they carry Ascending/Descending.
+
     Each entry: ``{name, direction, priority, raw}`` sorted by priority.
     Direction mapping: ``0``→ASC, ``1``→DESC (or explicit asc/desc strings).
     """
@@ -830,9 +826,7 @@ def sort_orders_from_cube_info(cube_info: list) -> List[dict]:
         for dim in cube.get("dimensions") or []:
             if isinstance(dim, dict):
                 _append(dim, "dimensionName")
-        for measure in cube.get("measures") or []:
-            if isinstance(measure, dict):
-                _append(measure, "measureName")
+        # Measures (column or formula) are not ORDER BY candidates.
 
     entries.sort(key=lambda e: (e["priority"], e["name"]))
     return entries
@@ -868,7 +862,7 @@ def filter_sort_orders_for_picked(
     sort_orders: Optional[List[dict]],
     picked_names: Optional[List[str]],
 ) -> List[dict]:
-    """Keep ASC/DESC sort hints that match picked dimension/measure names only."""
+    """Keep ASC/DESC sort hints that match picked dimension names only."""
     allowed = {
         str(name).strip().lower()
         for name in (picked_names or [])
@@ -1128,7 +1122,14 @@ def build_viz_column_context(
         if not ai_text and ai_context:
             ai_text = str(ai_context.get("instructions") or "").strip() or None
         sort_entry = sort_by_name.get(field_name.lower())
-        if not sort_entry and cube_item.get("sort_direction") in ("ASC", "DESC"):
+        kind = cube_item.get("kind")
+        is_measure = kind in ("measure", "computed_measure") or bool(
+            cube_item.get("measure_name") or cube_item.get("aggregator")
+        )
+        # Measures (column or formula) are never ORDER BY / sort candidates.
+        if is_measure:
+            sort_entry = None
+        elif not sort_entry and cube_item.get("sort_direction") in ("ASC", "DESC"):
             sort_entry = {
                 "name": field_name,
                 "direction": cube_item.get("sort_direction"),
@@ -1747,6 +1748,48 @@ def format_topic_mappings_for_prompt(topic_mappings: Optional[list]) -> str:
                 name = _strip_component_alias(token)
                 if name:
                     lines.append(f"  - {name}")
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
+def format_topic_mappings_compact(topic_mappings: Optional[list]) -> str:
+    """One-line-per-topic mapping for FindTables (names + owning table when known)."""
+    if not topic_mappings:
+        return ""
+    lines = [
+        "Topics → components (prefer tables that own these; names only):",
+    ]
+    for entry in topic_mappings:
+        if not isinstance(entry, dict):
+            continue
+        topic_name = entry.get("topic_name")
+        if not topic_name:
+            continue
+        names: List[str] = []
+        rich = entry.get("components")
+        if isinstance(rich, list) and rich:
+            for component in rich:
+                if not isinstance(component, dict):
+                    continue
+                name = str(component.get("name") or "").strip()
+                if not name:
+                    continue
+                column_ref = str(component.get("columnName") or "").strip()
+                table_hint = ""
+                if "." in column_ref:
+                    table_hint = column_ref.rsplit(".", 1)[0].strip().strip('"').strip("`")
+                if table_hint:
+                    names.append(f"{name}@{table_hint}")
+                else:
+                    names.append(name)
+        else:
+            for token in entry.get("component") or []:
+                name = _strip_component_alias(token)
+                if name:
+                    names.append(name)
+        if names:
+            lines.append(f"- {topic_name}: {', '.join(names)}")
+        else:
+            lines.append(f"- {topic_name}")
     return "\n".join(lines) if len(lines) > 1 else ""
 
 

@@ -1,8 +1,11 @@
 import { ConsoleSqlOutlined, DatabaseOutlined, EyeOutlined, TableOutlined } from "@ant-design/icons";
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import IBCustomChart, { IB_CHART_RENDER_ERROR } from "../components/ib-custom-chart";
+import IBCustomChart, { IbResponseError } from "../components/ib-custom-chart";
 import CommonMarkdownTable from "./common-markdown-table";
+import { isIbCircularChart } from "./ib-plot-theme";
+
+export { isIbCircularChart, isIbCircularChartType } from "./ib-plot-theme";
 
 export const cx = (...args) => {
     return args
@@ -177,7 +180,9 @@ export const cleanSQL = (sqlText = "") => {
     .trim();
 };
 
-const COMPACT_CHART_ASPECT_RATIO = 400 / 1200;
+/** Shared compact viewport for every chart type (same size in chat preview). */
+const COMPACT_CHART_ASPECT_RATIO = 420 / 1000;
+const COMPACT_CHART_MIN_HEIGHT = 220;
 const CHART_PREVIEW_MODAL_HEIGHT_OFFSET = 140;
 const MIN_CHART_SIZE = 1;
 
@@ -185,6 +190,30 @@ export const getChartPreviewModalHeight = () =>
   typeof window !== "undefined"
     ? Math.max(window.innerHeight - CHART_PREVIEW_MODAL_HEIGHT_OFFSET, 400)
     : 600;
+
+export const getIbChartViewportSize = ({
+  width,
+  height,
+  compact = false,
+  isKpiChart = false,
+} = {}) => {
+  const chartWidth = Math.max(Number(width) || 0, MIN_CHART_SIZE);
+  if (isKpiChart) {
+    return { width: chartWidth, height: compact ? undefined : Math.max(Number(height) || 0, MIN_CHART_SIZE) };
+  }
+  if (compact) {
+    const compactHeight = Math.max(
+      chartWidth * COMPACT_CHART_ASPECT_RATIO,
+      COMPACT_CHART_MIN_HEIGHT,
+      MIN_CHART_SIZE,
+    );
+    return { width: chartWidth, height: compactHeight };
+  }
+  return {
+    width: chartWidth,
+    height: Math.max(Number(height) || getChartPreviewModalHeight(), MIN_CHART_SIZE),
+  };
+};
 
 const useChartContainerSize = (containerRef, { width, height, observe }) => {
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -217,11 +246,11 @@ export const isIbKpiChart = (chartName = "", vf = "") => {
 
 export const isIbTableChart = (chartName = "", vf = "") => {
   const name = String(chartName).toLowerCase();
-  // GridTable / pivot use AntV S2 — do not route them to markdown flat table.
+  // Grid / pivot VF uses Ant Design Table in DrawGridTable — not markdown flat table.
   if (name === "grid_table" || name === "pivot_table") return false;
   if (name === "table") return true;
   const vfText = String(vf);
-  if (/\bGridTable\b/.test(vfText)) return false;
+  if (/\bGridTable\b/.test(vfText) || /\bDrawGridTable\b/.test(vfText)) return false;
   return (
     /function\s+DrawTable\b/.test(vfText) ||
     /<Table[\s/>]/.test(vfText)
@@ -246,33 +275,6 @@ export const parseBackendErrorMessage = (error) => {
     .trim();
 };
 
-const IBPreviewErrorMessage = ({ className = "", backendError }) => {
-  const [showDetails, setShowDetails] = useState(false);
-  const errorMessage = parseBackendErrorMessage(backendError);
-  const hasDetails = Boolean(errorMessage);
-
-  return (
-    <div className={`ib-response-error ${className}`.trim()}>
-      <span>{IB_CHART_RENDER_ERROR}</span>
-      {hasDetails && (
-        <>
-          {" "}
-          <button
-            type="button"
-            className="ib-response-error__details-link"
-            onClick={() => setShowDetails((prev) => !prev)}
-          >
-            {showDetails ? "Hide Details" : "View Details"}
-          </button>
-        </>
-      )}
-      {showDetails && hasDetails && (
-        <div className="ib-response-error__details">{errorMessage}</div>
-      )}
-    </div>
-  );
-};
-
 export const ChartView = ({
   data,
   vf,
@@ -288,15 +290,14 @@ export const ChartView = ({
   const containerRef = useRef(null);
   const isTableChart = isIbTableChart(chartName, vf);
   const isKpiChart = isIbKpiChart(chartName, vf);
+  const isCircular = !isTableChart && !isKpiChart && isIbCircularChart(chartName, vf);
   const [lockedWidth, setLockedWidth] = useState(null);
   const observe = !lockedWidth && (width == null || (!compact && height == null));
   const { width: measuredWidth, height: measuredHeight } = useChartContainerSize(
     containerRef,
     { width, height, observe: observe && !isTableChart },
   );
-  const [hasError, setHasError] = useState(
-    () => !isTableChart && !String(vf || "").trim(),
-  );
+  const hasVfError = !isTableChart && !String(vf || "").trim();
 
   useEffect(() => {
     setLockedWidth(null);
@@ -309,19 +310,11 @@ export const ChartView = ({
 
   useEffect(() => {
     if (isTableChart) {
-      setHasError(false);
       onPreviewError?.(false);
       return;
     }
-    const hasVfError = !String(vf || "").trim();
-    setHasError(hasVfError);
-    onPreviewError?.(hasVfError);
-  }, [vf, id, isTableChart, onPreviewError]);
-
-  const handlePreviewError = (error) => {
-    setHasError(Boolean(error));
-    onPreviewError?.(error);
-  };
+    if (hasVfError) onPreviewError?.(true);
+  }, [vf, id, isTableChart, hasVfError, onPreviewError]);
 
   if (isTableChart) {
     return (
@@ -337,33 +330,34 @@ export const ChartView = ({
     );
   }
 
-  if (hasError) {
+  if (hasVfError) {
     return (
-      <IBPreviewErrorMessage className={className} backendError={backendError} />
+      <IbResponseError
+        className={className}
+        details={parseBackendErrorMessage(backendError)}
+      />
     );
   }
 
-  const chartWidth = Math.max(lockedWidth || measuredWidth, MIN_CHART_SIZE);
-  const compactHeight =
-    compact && !isKpiChart
-      ? Math.max(chartWidth * COMPACT_CHART_ASPECT_RATIO, MIN_CHART_SIZE)
-      : undefined;
-  const chartHeight = compact
-    ? compactHeight
-    : Math.max(measuredHeight || getChartPreviewModalHeight(), MIN_CHART_SIZE);
+  const { width: chartWidth, height: chartHeight } = getIbChartViewportSize({
+    width: lockedWidth || measuredWidth,
+    height: measuredHeight,
+    compact,
+    isKpiChart,
+  });
 
   return (
     <div
       ref={containerRef}
       className={`chart-wrapper${compact ? " chart-wrapper--compact" : ""}${
         isKpiChart ? " chart-wrapper--kpi" : ""
-      } ${className}`.trim()}
+      }${isCircular ? " chart-wrapper--circular" : ""} ${className}`.trim()}
       style={
         lockedWidth
-          ? { width: lockedWidth, maxWidth: lockedWidth, height: compactHeight }
+          ? { width: lockedWidth, maxWidth: lockedWidth, height: isKpiChart ? undefined : chartHeight }
           : {
               ...(width == null ? { width: "100%" } : { width }),
-              ...(compactHeight != null ? { height: compactHeight } : null),
+              ...(chartHeight != null && !isKpiChart ? { height: chartHeight } : null),
             }
       }
     >
@@ -378,7 +372,7 @@ export const ChartView = ({
             compact={compact}
             isKpiChart={isKpiChart}
             chartName={chartName}
-            onPreviewError={handlePreviewError}
+            onPreviewError={onPreviewError}
             chartAreaWidth={chartWidth}
             chartAreaHeight={chartHeight}
           />

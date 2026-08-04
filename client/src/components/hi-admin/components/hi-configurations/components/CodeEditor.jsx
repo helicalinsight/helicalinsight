@@ -8,6 +8,10 @@ const DEFAULT_OPTIONS = {
   automaticLayout: true,
   fontSize: 13,
   wordWrap: "on",
+  wrappingStrategy: "advanced",
+  scrollbar: {
+    alwaysConsumeMouseWheel: false,
+  },
   tabSize: 2,
   formatOnPaste: true,
   formatOnType: true,

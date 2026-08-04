@@ -14,9 +14,18 @@ from helicalbi.prompt.FindTablesPrompt import find_tables_prompt_string
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.service.modelservice.ModelLayerHelper import ModelLayerHelper
 from helicalbi.service.modelservice.InformationProvider import InformationProvider
-from helicalbi.sql.GetContextForSQL import get_table_col_description
+from helicalbi.sql.GetContextForSQL import get_table_selection_description
 
 logger = logging.getLogger(__name__)
+
+# FindTables only needs recent turns; older history bloats local-model prompts.
+_MAX_FIND_TABLES_CHATS = 3
+
+
+def _trim_last_chats(last_chats) -> list:
+    if not isinstance(last_chats, list) or not last_chats:
+        return []
+    return last_chats[-_MAX_FIND_TABLES_CHATS:]
 
 
 class FindTablesFromTopics:
@@ -28,13 +37,11 @@ class FindTablesFromTopics:
         known_tables: List[str],
     ) -> List[str]:
         user_query = state.get("query", "")
-        last_chats = state.get("last_chats", [])
-        table_column_description = get_table_col_description(
+        last_chats = _trim_last_chats(state.get("last_chats", []))
+        table_column_description = get_table_selection_description(
             cube_metadata,
-            table_names=None,
-            user_query=user_query,
             model_data=model_data,
-            domain_context=state.get("domain_context"),
+            topics=state.get("topics"),
         )
 
         parser = PydanticOutputParser(pydantic_object=get_table_response_model())

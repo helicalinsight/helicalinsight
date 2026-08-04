@@ -238,7 +238,7 @@ User-facing chart names map to the file stem (`visualization_type`):
 "aliases": ["pivot", "pivot table", "crosstab table", "PivotView"]
 ```
 
-→ chart key `pivot_table`. Selection rules map aliases to the key; responses must return the key, never the alias.
+→ chart key `grid_table`. Selection rules map aliases to the key; responses must return the key, never the alias.
 
 ---
 
@@ -276,7 +276,7 @@ Visualization does **not** read the raw agent JSON. It consumes:
 | Chart file | Typical shape |
 |------------|---------------|
 | `bar.json` | 1 dim, 1 measure |
-| `pivot_table.json` | ≥2 dims, ≥1 measure |
+| `grid_table.json` | ≥1 dim, ≥1 measure (pivot / GridTable) |
 | `kpi.json` | measures-focused |
 | `other.json` | catch-all / fallback |
 
@@ -298,12 +298,12 @@ formatString                 →  properties.format.formatFields[].values.custom
 aiContext.instructions       →  column_ai_instructions in VizFill / Antd prompts
 ```
 
-**Pivot / GridTable example** (`pivot_table.json`):
+**Pivot / GridTable example** (`grid_table.json`):
 
-- Dimensions → `addedAs: row|column`, `floatingType: discrete`
-- Measures → `addedAs: row`, `floatingType: continous`
-- `autogen_alias` is required on every field
-- When Excel formats exist, fill `formatFields` with `enableCustomFormatting` + `customFormat`
+- Ant Design `Table` customized as a growable grid (antd has no native pivot)
+- Dimensions then measures → column order
+- Excel formats via `column.render` / `measure_formats`
+- Pagination on; no fixed `scroll.y` so height grows with rows
 
 ### Prompt injection (viz)
 
@@ -345,8 +345,8 @@ Use this when adding or changing a cube:
 | formatString | Viz `formatFields` / formatted display matches model |
 | Missing dimensionName | Alias falls back to metadata column alias |
 | Empty legacy columns | `prevalidate_cube_metadata` rebuilds from metadata API |
-| Chart alias | “show as pivot” → `visualization_type: pivot_table` |
-| Dim/measure counts | 2+ dims + measure → pivot eligible; 1+1 → bar/line/etc. |
+| Chart alias | “show as pivot” → `visualization_type: grid_table` |
+| Dim/measure counts | 2+ dims + measure → grid_table eligible; 1+1 → bar/line/etc. |
 | Hierarchy | Levels appear as selectable dims; parent-only empty fields do not block children |
 
 **Automated coverage:** `tests/functional/test_cube_info_model.py`, `test_cube_info_picker.py`, `test_cube_info_sql_generator.py`, and [TESTING.md](../TESTING.md).

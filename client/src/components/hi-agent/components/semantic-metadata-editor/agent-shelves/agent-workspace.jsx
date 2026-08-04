@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Row } from "antd";
+import { Row, Empty, Typography } from "antd";
 import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { useDispatch, useSelector } from "react-redux";
@@ -18,6 +18,7 @@ import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import "./agent-shelves.scss";
 
+const { Text } = Typography;
 const ResponsiveGridLayout = WidthProvider(Responsive);
 const BPS = ["lg", "md", "sm", "xs", "xxs"];
 
@@ -110,10 +111,10 @@ export function AgentWorkspace({
   const calculatedH = offsetHeight / 12 || 52;
 
   useEffect(() => {
-    if (!isMetadataLoaded && activeTool === TOOL_AGENT_JSON) {
+    if (!isMetadataLoaded) {
       setActiveTool(TOOL_BUSINESS_VIEW);
     }
-  }, [isMetadataLoaded, activeTool]);
+  }, [isMetadataLoaded]);
 
   // Fallback until Redux is initialized (same default as before)
   const activeLayouts =
@@ -256,7 +257,25 @@ export function AgentWorkspace({
               )}
             </div>
             <div className="agent-workspace-main">
-              {activeTool === TOOL_AGENT_JSON ? (
+              {!isMetadataLoaded ? (
+                <div className="agent-workspace-no-metadata">
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <>
+                        <Text strong className="agent-workspace-no-metadata-title">
+                          No Metadata Connected
+                        </Text>
+                        <br />
+                        <Text type="secondary" className="agent-workspace-no-metadata-desc">
+                          Please connect a Metadata file to configure the Semantic Model.
+                          Business View and JSON will be available once Metadata is connected.
+                        </Text>
+                      </>
+                    }
+                  />
+                </div>
+              ) : activeTool === TOOL_AGENT_JSON ? (
                 <AgentJsonPanel
                   value={jsonText}
                   onChange={onJsonChange}

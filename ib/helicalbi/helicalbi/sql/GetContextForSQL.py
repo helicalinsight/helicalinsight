@@ -4,13 +4,17 @@ from typing import Any
 
 from helicalbi.common.JsonToPara import (
     generate_bare_minimum_context,
+    generate_compact_table_catalog,
     generate_semantic_hint,
     is_bare_minimum_config,
     iter_cube_entries,
     split_table_column_ref,
     unquote_identifier,
 )
-from helicalbi.common.CubeInfoModel import format_topic_mappings_for_prompt
+from helicalbi.common.CubeInfoModel import (
+    format_topic_mappings_compact,
+    format_topic_mappings_for_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +73,32 @@ def get_table_col_description(
     if schema:
         parts.append(schema)
     return "\n\n".join(part for part in parts if part)
+
+
+def get_table_selection_description(
+    cube_metadata,
+    model_data=None,
+    topics=None,
+) -> str:
+    """Compact schema for FindTables — table/column names + slim topic hints only.
+
+    Omits per-column descriptions, formulas, aiContext, and full domain prose so
+    local models (e.g. Ollama) stay within context / memory limits.
+    """
+    catalog = generate_compact_table_catalog(cube_metadata)
+    model_data = model_data or {}
+    topic_mappings = model_data.get("topic_mappings") or []
+    if topics:
+        wanted = {str(t).strip().lower() for t in topics if t}
+        if wanted:
+            topic_mappings = [
+                entry
+                for entry in topic_mappings
+                if str(entry.get("topic_name") or "").strip().lower() in wanted
+            ] or topic_mappings
+    topic_block = format_topic_mappings_compact(topic_mappings)
+    parts = [part for part in (topic_block, catalog) if part]
+    return "\n\n".join(parts)
 
 
 def _normalize_query_plan(query_plan: Any) -> dict:
@@ -187,22 +217,24 @@ def _strip_format_string(meta: dict) -> dict:
 
 
 def _sql_sort_label(meta: dict) -> str:
-    """Return ASC/DESC for SQL hints; omit none/empty."""
+    """Return ASC/DESC for SQL hints; omit none/empty and all measures."""
+    # Measures (physical column or formula) are never ORDER BY candidates.
+    kind = _item_kind(meta)
+    if kind in ("measure", "computed_measure") or meta.get("measure_name"):
+        return ""
     direction = meta.get("sort_direction")
     if direction in ("ASC", "DESC"):
         return str(direction)
     raw = meta.get("sort_order")
     if raw in (None, ""):
         return ""
-    if isinstance(raw, str) and raw.strip().lower() in (
-        "none",
-        "null",
-        "n/a",
-        "-",
-        "undefined",
-    ):
+    from helicalbi.common.CubeInfoModel import (
+        _NO_SORT_STRINGS,
+        sort_direction_from_value,
+    )
+
+    if isinstance(raw, str) and raw.strip().lower() in _NO_SORT_STRINGS:
         return ""
-    from helicalbi.common.CubeInfoModel import sort_direction_from_value
 
     resolved = sort_direction_from_value(raw)
     return resolved if resolved in ("ASC", "DESC") else ""

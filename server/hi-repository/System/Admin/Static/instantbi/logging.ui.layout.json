@@ -1,0 +1,70 @@
+{
+  "id": "instantbi-logging",
+  "title": "Logging",
+  "description": "InstantBI application_config.yaml logging settings",
+  "sections": [
+    {
+      "key": "logging",
+      "title": "Log output",
+      "fields": [
+        {
+          "name": "level",
+          "label": "Log level",
+          "type": "select",
+          "span": 12,
+          "options": [
+            { "label": "DEBUG", "value": "DEBUG" },
+            { "label": "INFO", "value": "INFO" },
+            { "label": "WARNING", "value": "WARNING" },
+            { "label": "ERROR", "value": "ERROR" },
+            { "label": "CRITICAL", "value": "CRITICAL" }
+          ]
+        },
+        {
+          "name": "backup_days",
+          "label": "Backup days",
+          "type": "number",
+          "span": 12,
+          "min": 1
+        },
+        {
+          "name": "file",
+          "label": "Log file",
+          "type": "text",
+          "span": 12
+        },
+        {
+          "name": "error_file",
+          "label": "Error log file",
+          "type": "text",
+          "span": 12
+        },
+        {
+          "name": "show_llm_activity",
+          "label": "Show LLM activity",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "show_endpoint_log",
+          "label": "Show endpoint log",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "show_api_call_log",
+          "label": "Show API call log",
+          "type": "boolean",
+          "span": 8
+        },
+        {
+          "name": "app_debug",
+          "label": "App debug",
+          "type": "boolean",
+          "span": 12,
+          "description": "Required together with logging.level=DEBUG for debug logs"
+        }
+      ]
+    }
+  ]
+}

@@ -2,63 +2,68 @@
 
 Each chart JSON declares a ``settings`` *template* (prompts / shapes). The LLM
 fills the same shape; the filled object is injected into the chart skeleton at
-``${setting}`` and referenced as ``setting.dimensions.name``, ``setting.measures``,
+``${setting}`` and referenced as ``setting.dimensions.names``, ``setting.measures``,
 ``setting.labelsX``, etc.
 """
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class DimensionSetting(BaseModel):
-    """Dimension binding(s).
+    """Dimension binding(s) — always a list, same pattern as measures.
 
-    Single-dim charts use ``name``. Multi-dim charts (e.g. heatmap) use ``names``.
+    Single-dim charts use one entry (``names[0]``). Multi-dim charts
+    (e.g. heatmap) use multiple ordered entries.
     """
 
-    name: Optional[str] = Field(
-        default=None,
-        description="Primary dimension column name from result metadata.",
-    )
-    names: Optional[list[str]] = Field(
-        default=None,
+    names: list[str] = Field(
+        default_factory=list,
         description=(
-            "Ordered dimension column names when the chart needs more than one. "
+            "Ordered dimension column names from result metadata. "
             "Must be a JSON array of strings (not a comma-separated string)."
         ),
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_legacy_name(cls, value: object) -> object:
+        """Accept legacy ``name`` / ``name``+``names`` payloads from older saves / LLMs."""
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        legacy = data.pop("name", None)
+        names = data.get("names")
+        if names is None and legacy is not None:
+            text = str(legacy).strip()
+            data["names"] = [text] if text else []
+        elif isinstance(names, str) and not names.strip() and legacy is not None:
+            text = str(legacy).strip()
+            data["names"] = [text] if text else []
+        return data
 
     @field_validator("names", mode="before")
     @classmethod
     def _coerce_names(cls, value: object) -> object:
         """Accept LLM quirks: comma-separated string or a single name string."""
         if value is None:
-            return None
+            return []
         if isinstance(value, str):
             text = value.strip()
             if not text:
-                return None
+                return []
             # "a,b" → ["a", "b"]; bare "a" → ["a"]
-            parts = [part.strip() for part in text.split(",") if part.strip()]
-            return parts or None
+            return [part.strip() for part in text.split(",") if part.strip()]
         if isinstance(value, list):
             return value
         return value
 
     @model_validator(mode="after")
-    def _require_name_or_names(self) -> "DimensionSetting":
-        if not (self.name or "").strip() and not (self.names or []):
-            # Allow empty during partial construction; callers normalize.
-            return self
-        if self.names:
-            cleaned = [str(n).strip() for n in self.names if str(n).strip()]
-            self.names = cleaned or None
-            if self.names and not (self.name or "").strip():
-                self.name = self.names[0]
-        if (self.name or "").strip() and not self.names:
-            self.name = self.name.strip()
+    def _clean_names(self) -> "DimensionSetting":
+        cleaned = [str(n).strip() for n in (self.names or []) if str(n).strip()]
+        self.names = cleaned
         return self
 
 
@@ -67,7 +72,7 @@ class ChartSettings(BaseModel):
 
     dimensions: DimensionSetting = Field(
         default_factory=DimensionSetting,
-        description="Dimension column binding(s). Use dimensions.name (or names for multi-dim).",
+        description="Dimension column binding(s). Always dimensions.names (JSON array).",
     )
     measures: list[str] = Field(
         default_factory=list,
@@ -107,6 +112,34 @@ class ChartSettings(BaseModel):
         ),
     )
 
+    @field_validator("color", mode="before")
+    @classmethod
+    def _coerce_color(cls, value: object) -> object:
+        """Unwrap LLM echoes of the settings template schema for color."""
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            # e.g. {"mode":"optional","value":["#5B8FF9"]} or {"value":"#5B8FF9"}
+            if "value" in value:
+                value = value.get("value")
+            else:
+                return None
+        if isinstance(value, str):
+            text = value.strip()
+            return text or None
+        if isinstance(value, list):
+            colors = [str(item).strip() for item in value if str(item).strip()]
+            return colors or None
+        return value
+
+    @field_validator("measure_formats", mode="before")
+    @classmethod
+    def _coerce_measure_formats(cls, value: object) -> object:
+        """LLMs often emit null for unused measure_formats; treat as empty map."""
+        if value is None:
+            return {}
+        return value
+
     @field_validator("measures", mode="before")
     @classmethod
     def _split_measures(cls, value: object) -> object:
@@ -122,32 +155,19 @@ class ChartSettings(BaseModel):
             return {}
         if isinstance(value, str):
             text = value.strip()
-            return {"name": text} if text else {}
+            return {"names": [text]} if text else {"names": []}
         if isinstance(value, list):
             names = [str(item).strip() for item in value if str(item).strip()]
-            if not names:
-                return {}
-            if len(names) == 1:
-                return {"name": names[0]}
-            return {"name": names[0], "names": names}
+            return {"names": names}
         return value
 
     def dimension_names(self) -> list[str]:
-        if self.dimensions.names:
-            return list(self.dimensions.names)
-        if self.dimensions.name:
-            return [self.dimensions.name]
-        return []
+        return list(self.dimensions.names or [])
 
     def to_js_object(self) -> dict:
         """Plain dict suitable for JSON/JS injection (stable key order)."""
-        dims: dict = {}
-        if self.dimensions.name:
-            dims["name"] = self.dimensions.name
-        if self.dimensions.names:
-            dims["names"] = list(self.dimensions.names)
-        payload: dict = {
-            "dimensions": dims,
+        payload: dict[str, Any] = {
+            "dimensions": {"names": list(self.dimensions.names or [])},
             "measures": list(self.measures or []),
         }
         if self.labelsX is not None:

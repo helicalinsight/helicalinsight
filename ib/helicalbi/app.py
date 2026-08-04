@@ -1,8 +1,12 @@
 import logging
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# `import app` and needs the same module (Flask app, graphs, helpers).
+sys.modules.setdefault("app", sys.modules[__name__])
 
 load_dotenv(Path(__file__).resolve().parent / ".env")
 

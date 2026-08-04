@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, create_model
+from pydantic import BaseModel, Field, create_model, field_validator
 
 from helicalbi.model.output.reason_field import reason_field_kwargs
 from helicalbi.model.output.viz.ChartSettings import (  # noqa: F401
@@ -60,7 +60,7 @@ class ChartFillerResponse(BaseModel):
     settings: ChartSettings = Field(
         description=(
             "Filled chart settings matching the chart settings template. "
-            "Use dimensions.name (or dimensions.names), measures, labelsX/labelsY/title, "
+            "Use dimensions.names, measures, labelsX/labelsY/title, "
             "and color — do not return JavaScript or measure_formats."
         )
     )
@@ -76,6 +76,13 @@ class ChartFormatResponse(BaseModel):
             "used in the chart (e.g. total_travel_cost). Omit unused cube aliases."
         ),
     )
+
+    @field_validator("measure_formats", mode="before")
+    @classmethod
+    def _coerce_measure_formats(cls, value: object) -> object:
+        if value is None:
+            return {}
+        return value
 
 
 class OtherChartFillerResponse(BaseModel):

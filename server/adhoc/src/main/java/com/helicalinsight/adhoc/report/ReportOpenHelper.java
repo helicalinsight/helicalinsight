@@ -246,6 +246,7 @@ public class ReportOpenHelper {
 
         HIResourceAIModel hiResourceHReport = hiResource.getAiModel();
         adhocReport.setReportName(hiResourceHReport.getAiModelName());
+        adhocReport.setDescription(hiResourceHReport.getDescription());
         Integer hiResourceMetadata = hiResourceHReport.getHiResourceMetadata();
         if (hiResourceMetadata != null) {
             HIResource hiResourceById = serviceDB.getHIResourceById(hiResourceMetadata);

@@ -54,6 +54,44 @@ def _reload() -> None:
     logger.info("Application configuration reloaded successfully.")
 
 
+def reload_from_disk() -> None:
+    """Reload ``application_config.yaml`` into the in-memory snapshot."""
+    _reload()
+
+
+def get_snapshot() -> dict:
+    """Return a deep copy of the current application configuration."""
+    from copy import deepcopy
+
+    with _lock:
+        return deepcopy(_raw)
+
+
+def apply_runtime_logging() -> None:
+    """Apply the current effective log level to the root logger at runtime."""
+    from logging.handlers import TimedRotatingFileHandler
+
+    level_name = effective_log_level_name()
+    level = getattr(logging, level_name, logging.INFO)
+    root = logging.getLogger()
+    root.setLevel(level)
+
+    error_file = str(__getattr__("log_error_file")).replace("\\", "/")
+    error_name = error_file.rsplit("/", 1)[-1]
+
+    for handler in root.handlers:
+        base = getattr(handler, "baseFilename", None)
+        if (
+            base
+            and isinstance(handler, TimedRotatingFileHandler)
+            and str(base).replace("\\", "/").endswith(error_name)
+        ):
+            continue
+        handler.setLevel(level)
+
+    logger.info("Runtime log level applied: %s", level_name)
+
+
 # Initial load
 with _lock:
     _raw = _load()

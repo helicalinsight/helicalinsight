@@ -350,6 +350,62 @@ def generate_bare_minimum_context(user_query: Optional[str], cube_metadata) -> s
     return "\n".join(lines)
 
 
+def generate_compact_table_catalog(cube_metadata) -> str:
+    """Compact table/column listing for table-selection prompts (no aiContext/formulas)."""
+    lines = [
+        "Tables and columns (select table names only from this list):",
+    ]
+    for table in iter_cube_entries(cube_metadata):
+        table_name = table.get("database_table") or ""
+        if not table_name:
+            continue
+        table_alias = table.get("table_alias") or ""
+        description = (table.get("description") or "").strip()
+        header = table_name
+        if table_alias and table_alias != table_name:
+            header = f"{table_name} (alias: {table_alias})"
+        if description:
+            # Keep table blurb short — FindTables only needs to pick tables.
+            if len(description) > 120:
+                description = description[:117].rstrip() + "..."
+            header = f"{header}: {description}"
+        lines.append(f"- {header}")
+
+        labels: List[str] = []
+        seen: set[str] = set()
+
+        def _add_label(col_name: str, alias_name: Optional[str] = None) -> None:
+            name = str(col_name or "").strip()
+            if not name or name in seen:
+                return
+            seen.add(name)
+            alias = str(alias_name or "").strip()
+            if alias and alias != name:
+                labels.append(f"{name} ({alias})")
+            else:
+                labels.append(name)
+
+        for column in table.get("columns") or []:
+            if not isinstance(column, dict):
+                continue
+            _add_label(column.get("column_name"), column.get("alias_name"))
+        for measure in table.get("measures") or []:
+            if not isinstance(measure, dict):
+                continue
+            col_name = measure.get("column_name")
+            if col_name:
+                _add_label(col_name, measure.get("alias_name") or measure.get("measure_name"))
+            else:
+                # Blank-column / computed measure: name only.
+                _add_label(
+                    measure.get("alias_name") or measure.get("measure_name"),
+                    None,
+                )
+        if labels:
+            lines.append(f"  cols: {', '.join(labels)}")
+    return "\n".join(lines) if len(lines) > 1 else ""
+
+
 def generate_semantic_hint(metadata_json: list) -> str:
     """
     Convert metadata JSON into LLM-friendly semantic hint string

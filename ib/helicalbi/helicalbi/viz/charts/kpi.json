@@ -26,7 +26,7 @@
   },
   "settings": {
     "dimensions": {
-      "name": "optional dimension name (usually unused for KPI)"
+      "names": "optional dimension names as JSON array (usually unused for KPI)"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max 1"
@@ -39,8 +39,12 @@
     "title": "KPI title"
   },
   "instructions": [
-    "KPI Statistic in Card. Config: title; value=data[0][measure]; valueStyle; Card border 0.",
-    "Polish: one primary number; short title; strong color (#262626 or brand); width flexible; no chart chrome."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "measures[0] = KPI value; dimensions usually empty; set title.",
+    "Set title to a short chart heading.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawKPI() {",

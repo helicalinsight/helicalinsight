@@ -5,7 +5,7 @@ file into that folder — no Python module required.
 
 Optional JSON keys:
 - ``settings``: LLM fill schema (dimensions / measures / labels / color)
-- ``instructions``: short polish notes for the LLM (no JS)
+- ``instructions``: settings-fill guidance for the LLM (no JS); ``other`` keeps full JS guidance
 - ``code``: local JS/JSX skeleton filled from settings (never sent to the LLM),
   except ``other`` where the starter template *is* sent for full JS generation
 - ``base``: ``default`` (settings fill) or ``other`` (LLM returns DrawOther JS)
@@ -133,7 +133,7 @@ def _build_other_code_template(payload: dict) -> str:
 def _build_template(payload: dict, settings_template: dict[str, Any]) -> str:
     """LLM fill prompt for a chart.
 
-    Default charts: base rules + polish notes + settings template (no JS code).
+    Default charts: base rules + settings-fill notes + settings template (no JS code).
     ``other`` (base=other): instructions + starter JS — LLM returns DrawOther code.
     """
     if str(payload.get("base") or "").strip().lower() == "other":
@@ -154,7 +154,7 @@ def _build_template(payload: dict, settings_template: dict[str, Any]) -> str:
         settings_json,
     ]
     if instructions:
-        parts.extend(["", "### CHART POLISH NOTES", instructions])
+        parts.extend(["", "### SETTINGS FILL NOTES", instructions])
     parts.append("")
     return "\n".join(parts)
 

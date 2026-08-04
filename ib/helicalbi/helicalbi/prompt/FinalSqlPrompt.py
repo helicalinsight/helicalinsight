@@ -60,7 +60,8 @@ Default column/measure functions (use when aggregating or grouping)
 
 -----------------------------------------------------
 Column sort orders for ORDER BY
-Only Ascending=ASC and Descending=DESC are listed. Ignore none/empty sorts.
+Only dimension Ascending=ASC and Descending=DESC are listed.
+Ignore none/empty sorts. Do not ORDER BY measures (column or formula).
 Prefer this ordering when the user question does not request a different sort.
  {column_sort_orders}
 
@@ -83,7 +84,13 @@ Business metrics for required columns
 
 
 Generate the SQL request now based on the above details.  
-Always use alias for selected columns.
+Always use an alias for every selected column/expression in the SELECT clause.
+Prefer provided dimension/measure/hierarchy display names when available.
+If the only label is a physical or technical name (snake_case / underscore_separated,
+camelCase, ALLCAPS, comma-separated tokens, or similar), rewrite it as a short
+business-friendly Title Case alias (e.g. travel_cost → "Travel Cost",
+meet_cancellation_status → "Meet Cancellation Status").
+Do not leave raw underscore_separated or other machine-style names as the visible alias.
 Make sure syntactically proper query is generated. 
 Add limit always (limit {default_sql_limit})
 

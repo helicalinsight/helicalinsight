@@ -83,18 +83,19 @@ services:
       - hinet
 
   instantbi:
-    image: python:3.9-slim
+    image: python:3.13-slim
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')" ]
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 120s
     volumes:
       - ./instantbi/helicalbi:/app
-    working_dir: /app              # Set /app as the working directory inside the container
-    command: bash -c "pip install -r requirements.txt && python app.py" 
+    working_dir: /app
+    # Nuitka dist: pip libs + ./app; source checkout: falls back to python app.py
+    command: bash -c "pip install -r requirements.txt && if [ -f ./app ]; then chmod +x ./app && ./app; else python app.py; fi"
     networks:
       - hinet
 

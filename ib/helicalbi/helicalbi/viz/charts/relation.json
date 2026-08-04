@@ -28,7 +28,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 2 max any"
+      "names": "provide dimension names as JSON array, min 2 max any"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max any"
@@ -41,8 +41,12 @@
     "title": "Chart title"
   },
   "instructions": [
-    "Hierarchy as Treemap. Config: nest data {name, children[{name,value}]}; colorField name; label fields.",
-    "Polish: readable labels; muted palette; interactions element-active; avoid deep nesting >2 levels unless data requires."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names = hierarchy/relation levels (2+); measures = related values.",
+    "Set title to a short chart heading.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawRelation() {",
@@ -50,7 +54,7 @@
     "  const setting = ${setting};",
     "  const measure_formats = ${format};",
     "  const measureField = (setting.measures && setting.measures[0]) || '';",
-    "  const dimensionField = setting.dimensions.name || (setting.dimensions.names && setting.dimensions.names[0]);",
+    "  const dimensionField = setting.dimensions.names[0];",
     "  const chartData = {",
     "    name: 'root',",
     "    children: data.map((item) => ({",

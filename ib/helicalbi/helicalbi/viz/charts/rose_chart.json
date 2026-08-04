@@ -35,7 +35,7 @@
   },
   "settings": {
     "dimensions": {
-      "name": "provide the dimension name min 1 and max 1"
+      "names": "provide dimension names as JSON array, min 1 max 1"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max 1"
@@ -50,8 +50,13 @@
     "series": "optional series / group / stack field name"
   },
   "instructions": [
-    "Rose. Config: xField=category, yField=measure; seriesField optional; radius~0.9; label offset -15.",
-    "Polish: element-active; legend if series; limit categories; soft palette; autoFit."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names[0] = sector category; measures[0] = sector value.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "Set series only when a result column should split color/group/stack; else omit/null.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawRoseChart() {",
@@ -61,9 +66,9 @@
     "  const measureField = (setting.measures && setting.measures[0]) || '';",
     "  const config = {",
     "    data,",
-    "    xField: setting.dimensions.name,",
+    "    xField: setting.dimensions.names[0],",
     "    yField: setting.measures[0],",
-    "    seriesField: setting.dimensions.name,",
+    "    seriesField: setting.dimensions.names[0],",
     "    ...(setting.color ? { color: setting.color } : {}),",
     "    meta: {",
     "      [measureField]: { alias: setting.labelsY || measureField }",

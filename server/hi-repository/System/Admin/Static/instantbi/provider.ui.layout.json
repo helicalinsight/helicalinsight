@@ -1,0 +1,48 @@
+{
+  "id": "instantbi-provider",
+  "title": "Add / Edit Provider",
+  "description": "Persist a provider block to llm_config.yaml",
+  "sections": [
+    {
+      "key": "identity",
+      "title": "Provider",
+      "fields": [
+        {
+          "name": "provider",
+          "label": "Provider id",
+          "type": "text",
+          "span": 12,
+          "required": true,
+          "placeholder": "openai",
+          "description": "Package is derived as langchain-<provider>"
+        },
+        {
+          "name": "model",
+          "label": "Model",
+          "type": "select",
+          "span": 12,
+          "required": true,
+          "editable": true,
+          "showSearch": true,
+          "allowClear": true,
+          "options": [],
+          "placeholder": "Select or type a model id",
+          "description": "Catalog models for the package; you can also type a custom model id"
+        },
+        {
+          "name": "usage_path",
+          "label": "Usage path",
+          "type": "text",
+          "span": 12,
+          "placeholder": "usage_metadata"
+        },
+        {
+          "name": "set_as_default",
+          "label": "Set as default provider",
+          "type": "boolean",
+          "span": 12
+        }
+      ]
+    }
+  ]
+}

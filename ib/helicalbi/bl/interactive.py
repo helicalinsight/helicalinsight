@@ -32,7 +32,7 @@ from helicalbi.common.auth import bind_request_identity
 from helicalbi.core.flows.SqlExecutor import SqlExecutor
 from helicalbi.common.LlmInvokeHelper import set_total_time_consumed
 from helicalbi.model.output.ChatResponse import ChatResponse
-from helicalbi.sql.SqlSanitizer import format_sql
+from helicalbi.sql.SqlSanitizer import format_sql, as_sql_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -234,7 +234,7 @@ def register(flask_app) -> None:
 
             result["user_input"] = data
             if sql:
-                result["sql"] = f"```sql\n{formatted_sql}"
+                result["sql"] = as_sql_markdown(formatted_sql)
 
             set_total_time_consumed(result, time.perf_counter() - request_started)
             chat_response_dict = ChatResponse.from_model_state(result).to_dict()

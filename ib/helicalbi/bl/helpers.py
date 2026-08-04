@@ -18,7 +18,7 @@ from helicalbi.model.output.ChatResponse import (
     SummarySection,
     VizSection,
 )
-from helicalbi.sql.SqlSanitizer import extract_sql
+from helicalbi.sql.SqlSanitizer import extract_sql, strip_sql_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +33,10 @@ def clean_sql(raw_sql: str, dialect: str = "") -> str:
     """Strip markdown fences and normalize SQL text."""
     if not raw_sql:
         return ""
-    if "```" in raw_sql:
-        raw_sql = extract_sql(raw_sql, dialect)
-    return raw_sql.replace("```sql", "").replace("```", "").strip()
+    raw_sql = strip_sql_markdown(raw_sql)
+    if not raw_sql:
+        return ""
+    return strip_sql_markdown(extract_sql(raw_sql, dialect) or "")
 
 
 def resolve_sql_from_request(

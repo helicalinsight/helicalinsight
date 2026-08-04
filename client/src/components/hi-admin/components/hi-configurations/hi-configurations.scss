@@ -2,18 +2,89 @@
 
 .hi-configurations {
   height: 100%;
-  min-height: 520px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+
+  .hi-config-main-tabs {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    > .ant-tabs-nav {
+      margin-bottom: 8px;
+      flex-shrink: 0;
+    }
+
+    > .ant-tabs-content-holder {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .ant-tabs-content,
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+
+    .ant-tabs-tabpane-active {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+  }
+
+  .hi-config-system-row {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .hi-config-resize-handle {
+    width: 6px;
+    flex-shrink: 0;
+    margin: 0 4px;
+    border-radius: 3px;
+    background: transparent;
+    transition: background 0.15s ease;
+
+    &:hover,
+    &[data-resize-handle-active] {
+      background: $hi-light-blue;
+    }
+  }
+
+  .hi-config-instantbi-panel {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow: auto;
+    background: $hi-white;
+    border: 1px solid $hi-light-gray;
+    border-radius: 4px;
+    padding: 12px;
+
+    .ui-form-generator-section {
+      background: transparent !important;
+      border: none !important;
+    }
+  }
 
   .hi-config-file-panel,
   .hi-config-editor-panel {
     background: $hi-white;
     border: 1px solid $hi-light-gray;
     border-radius: 4px;
-    height: calc(100vh - 160px);
-    min-height: 480px;
+    height: 100%;
+    min-height: 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     padding: 12px;
+    overflow: hidden;
   }
 
   .hi-config-file-panel-header,
@@ -22,10 +93,23 @@
     align-items: center;
     justify-content: space-between;
     margin-bottom: 8px;
+    gap: 8px;
+    flex-shrink: 0;
 
     h5 {
       margin: 0;
+      flex: 1;
+      min-width: 0;
     }
+  }
+
+  .hi-config-file-panel-actions {
+    flex-shrink: 0;
+  }
+
+  .hi-config-file-search-inline {
+    flex: 1;
+    min-width: 0;
   }
 
   .hi-config-file-panel {
@@ -35,6 +119,7 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
     }
   }
 
@@ -42,15 +127,50 @@
     display: block;
     margin-bottom: 8px;
     font-size: 12px;
+    flex-shrink: 0;
   }
 
-  .hi-config-file-search {
-    margin-bottom: 8px;
+  .hi-config-file-type-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    color: $hi-text-color;
+  }
+
+  .hi-config-file-type-icon {
+    font-size: 14px;
+
+    &--xml {
+      color: #389e0d;
+    }
+
+    &--json {
+      color: #d48806;
+    }
+
+    &--properties {
+      color: #096dd9;
+    }
+
+    &--groovy {
+      color: #722ed1;
+    }
+  }
+
+  .hi-config-file-name {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: bottom;
   }
 
   .hi-config-category-collapse {
     flex: 1;
     overflow: auto;
+    min-height: 0;
 
     .ant-collapse-header {
       padding: 6px 0 !important;
@@ -84,7 +204,9 @@
   .hi-config-file-list {
     .hi-config-file-item {
       cursor: pointer;
-      padding: 8px 10px;
+      padding: 6px 8px;
+      border: none !important;
+      border-bottom: none !important;
       border-radius: 4px;
 
       &:hover {
@@ -95,42 +217,79 @@
         background: $hi-light-blue;
       }
 
+      .ant-list-item-meta {
+        align-items: center;
+      }
+
       .ant-list-item-meta-title {
         font-size: 13px;
-        margin-bottom: 2px;
+        margin-bottom: 0;
         word-break: break-word;
       }
 
-      .ant-list-item-meta-description {
-        margin-top: 0;
+      .ant-list-item-meta-avatar {
+        margin-right: 8px;
       }
     }
   }
 
-  .hi-config-file-description {
-    display: block;
-    font-size: 12px;
-    line-height: 1.35;
+  .hi-config-editor-header {
+    .hi-config-editor-header-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+  }
+
+  .hi-config-editor-mode-link {
+    font-size: 13px;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .hi-config-editor-body {
     flex: 1;
     overflow: hidden;
+    overflow-x: hidden;
     padding-top: 8px;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
     display: flex;
     flex-direction: column;
+
+    > * {
+      min-width: 0;
+      max-width: 100%;
+    }
   }
 
   .hi-config-layout-form-editor {
     flex: 1;
     overflow: auto;
+    overflow-x: hidden;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
     padding-right: 4px;
 
     .hi-config-layout-form {
+      max-width: 100%;
+
+      .ant-form-item,
+      .ant-input,
+      .ant-select,
+      .ant-input-number,
+      textarea.ant-input {
+        max-width: 100%;
+      }
+
       .ui-form-generator-section {
-        background: $hi-white;
+        background: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
       }
     }
   }
@@ -140,14 +299,24 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
   }
 
   .hi-config-code-editor-body {
     flex: 1;
-    min-height: 320px;
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
     border: 1px solid $hi-light-gray;
     border-radius: 4px;
     overflow: hidden;
+
+    .monaco-editor,
+    .overflow-guard {
+      width: 100% !important;
+    }
   }
 
   .hi-config-editor-loading {

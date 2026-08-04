@@ -192,8 +192,9 @@
   }
 
   .chart-wrapper--modal {
-    align-items: flex-start;
-    justify-content: flex-start;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
     height: calc(100vh - 140px);
     min-height: 320px;
@@ -201,6 +202,9 @@
     .chart-wrapper__content {
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     &.chart-wrapper--table {
@@ -311,6 +315,12 @@
     }
   }
 
+  &.chart-wrapper--table {
+    height: auto !important;
+    min-height: 0;
+    overflow: visible;
+  }
+
   &.chart-wrapper--kpi .ib-live-preview--kpi {
     height: auto;
     min-height: 0;
@@ -340,9 +350,18 @@
 .ib-live-preview {
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   > div {
     width: 100%;
     height: 100%;
+  }
+
+  &--circular > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }

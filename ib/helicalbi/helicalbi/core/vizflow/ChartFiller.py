@@ -310,12 +310,7 @@ def _coerce_settings_to_result_columns(
             if result_index[k] not in resolved_dims
         ] or list(dict.fromkeys(result_index.values()))
 
-    if len(resolved_dims) > 1:
-        settings.dimensions = DimensionSetting(
-            name=resolved_dims[0], names=resolved_dims
-        )
-    else:
-        settings.dimensions = DimensionSetting(name=resolved_dims[0])
+    settings.dimensions = DimensionSetting(names=resolved_dims)
     settings.measures = resolved_measures
 
     if settings.series:

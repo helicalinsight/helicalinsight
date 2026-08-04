@@ -28,7 +28,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 0 max any"
+      "names": "provide dimension names as JSON array, min 0 max any"
     },
     "measures": [
       "provide measure names separated by comma, min 0 max any"
@@ -87,7 +87,7 @@
     "  const ChartComponent = Column;",
     "  const config = {",
     "    data,",
-    "    xField: setting.dimensions.name,",
+    "    xField: setting.dimensions.names[0],",
     "    yField: setting.measures[0],",
     "    ...(setting.color ? { color: setting.color } : {}),",
     "    xAxis: { title: { text: setting.labelsX } },",

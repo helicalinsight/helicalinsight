@@ -6,6 +6,7 @@ import pytest
 from helicalbi.sql.GetContextForSQL import (
     get_required_column_description,
     get_table_col_description,
+    get_table_selection_description,
     get_tables_and_columns_by_topics,
 )
 
@@ -71,6 +72,91 @@ class TestGetTableColDescription:
         assert "destination_id" in result
         assert "alias: platform" in result
         assert "alias: destination_count" in result
+
+
+class TestGetTableSelectionDescription:
+    def test_compact_catalog_omits_column_descriptions_and_aicontext(
+        self, sample_cube_metadata
+    ):
+        cube_metadata = [
+            {
+                "database_table": "travel_details",
+                "description": "Travel data",
+                "columns": [
+                    {
+                        "column_name": "travel_date",
+                        "alias_name": "YEAR",
+                        "description": "Long column description that must not appear",
+                        "ai_context": {
+                            "instructions": "never ship this in FindTables",
+                            "examples": ["2024"],
+                        },
+                        "formula": "EXTRACT(YEAR from travel_date)",
+                    }
+                ],
+                "measures": [
+                    {
+                        "column_name": "travel_cost",
+                        "alias_name": "cost",
+                        "description": "Measure description",
+                        "formula": "sum(travel_cost)",
+                    }
+                ],
+            },
+            sample_cube_metadata[0],
+        ]
+        result = get_table_selection_description(
+            cube_metadata,
+            model_data={
+                "topic_mappings": [
+                    {
+                        "topic_name": "Sales",
+                        "components": [
+                            {
+                                "name": "travel_cost",
+                                "columnName": "travel_details.travel_cost",
+                                "formula": "sum(travel_cost)",
+                                "aiContext": {"instructions": "omit me"},
+                            }
+                        ],
+                    },
+                    {
+                        "topic_name": "Meetings",
+                        "components": [{"name": "client_name"}],
+                    },
+                ]
+            },
+            topics=["Sales"],
+        )
+        assert "travel_details" in result
+        assert "cols:" in result
+        assert "travel_date (YEAR)" in result
+        assert "travel_cost (cost)" in result
+        assert "travel_cost@travel_details" in result
+        assert "Sales:" in result
+        # Filtered to requested topics when present.
+        assert "Meetings:" not in result
+        assert "Long column description" not in result
+        assert "never ship this" not in result
+        assert "omit me" not in result
+        assert "EXTRACT(YEAR" not in result
+        assert "sum(travel_cost)" not in result
+        # Smaller than full semantic hint path.
+        full = get_table_col_description(cube_metadata, table_names=None)
+        assert len(result) < len(full)
+
+    def test_falls_back_to_all_topics_when_filter_empty(self, sample_cube_metadata):
+        result = get_table_selection_description(
+            sample_cube_metadata,
+            model_data={
+                "topic_mappings": [
+                    {"topic_name": "Travel", "component": ["Travel"]},
+                ]
+            },
+            topics=["UnknownTopic"],
+        )
+        assert "Travel:" in result
+        assert "employee_details" in result
 
 
 class TestGetRequiredColumnDescription:

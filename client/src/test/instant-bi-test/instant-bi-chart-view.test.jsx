@@ -6,11 +6,28 @@ import {
   parseBackendErrorMessage,
 } from "../../components/hi-instant-bi/utils/common-utils";
 
-jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => ({
-  __esModule: true,
-  default: () => <div data-testid="ib-custom-chart" />,
-  IB_CHART_RENDER_ERROR: "Something went wrong. Please try again.",
-}));
+jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => <div data-testid="ib-custom-chart" />,
+    IB_CHART_RENDER_ERROR: "Something went wrong. Please try again.",
+    IbResponseError: ({ details = "" }) => {
+      const [show, setShow] = React.useState(false);
+      return (
+        <div data-testid="ib-vf-template-error">
+          <span>Something went wrong. Please try again.</span>
+          {details ? (
+            <button type="button" onClick={() => setShow((v) => !v)}>
+              {show ? "Hide Details" : "View Details"}
+            </button>
+          ) : null}
+          {show && details ? <div>{details}</div> : null}
+        </div>
+      );
+    },
+  };
+});
 
 const tableData = [
   { alias: "Chennai", total_travel_cost: 1350 },

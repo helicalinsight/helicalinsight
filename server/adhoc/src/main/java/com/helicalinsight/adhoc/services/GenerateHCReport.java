@@ -18,6 +18,7 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 /**
@@ -40,7 +41,8 @@ public class GenerateHCReport implements IComponent {
 		HelicalJasperReportRunner runnable = new HelicalJasperReportRunner(formData, response, session);
 		try {
 			multiReportManager.registerAndExecute(runnable, requestId);
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			List<String> messageChain = ControllerUtils.getMessageChain(e);
 			logger.error("Error occurred ", e);
 			throw new HCRException(("" + messageChain + "").replaceAll("\\[", "").replaceAll("\\]", ""));
@@ -60,6 +62,9 @@ public class GenerateHCReport implements IComponent {
                 Future<?> future = multiReportManager.registerAndExecute(runnable, requestId);
                 future.get();
             } 
+            catch (ExecutionException e) {
+    		    throw new HCRException(e.getCause());
+    		}
             catch (Exception e) {
                 List<String> messageChain = ControllerUtils.getMessageChain(e);
                 logger.error("Error occurred ", e);

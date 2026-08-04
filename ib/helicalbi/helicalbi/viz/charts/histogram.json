@@ -24,7 +24,7 @@
   },
   "settings": {
     "dimensions": {
-      "names": "provide dimension names separated by comma, min 0 max 0"
+      "names": "provide dimension names as JSON array, min 0 max 0"
     },
     "measures": [
       "provide measure names separated by comma, min 1 max 1"
@@ -38,8 +38,12 @@
     }
   },
   "instructions": [
-    "Histogram. Config: binField=measure; binWidth sensible; columnStyle stroke #fff.",
-    "Polish: autoFit; element-active; no fake category axis; choose binWidth from data range."
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names usually empty; measures[0] = numeric field to bin.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
   ],
   "code": [
     "function DrawHistogram() {",

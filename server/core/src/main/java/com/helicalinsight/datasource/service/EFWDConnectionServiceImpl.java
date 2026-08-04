@@ -3,6 +3,7 @@ package com.helicalinsight.datasource.service;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -279,6 +280,16 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
 	@Override
 	public List<HIEfwdConnSecurity> getAllConnectionsFromShared(String type) {
 		return efwdConnectionDAO.getAllConnectionsFromShared(type);
+	}
+	
+	@Transactional
+	@Override
+	public List<HIEfwdConnSecurityDTO> findAllConnectionsFromShared(String type) {
+		List<HIEfwdConnSecurity> securities =  efwdConnectionDAO.getAllConnectionsFromShared(type);
+		List<HIEfwdConnSecurityDTO> permissionsDtos =  securities.stream()
+    			.map(permission -> mapper.map(permission))
+    			.toList();
+    	return permissionsDtos;
 	}
 	
 	@Transactional
