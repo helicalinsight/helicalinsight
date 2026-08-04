@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+from typing import Any
 
 from helicalbi.api.HttpCallService import fetch_service_api
 from helicalbi.common.ErrorMessages import normalize_service_error_message
@@ -21,6 +22,36 @@ def _service_error_message(api_response) -> str:
         message = "Failed to fetch model."
 
     return normalize_service_error_message(str(message)) or "Failed to fetch model."
+
+
+def _topic_label(topic: Any) -> str:
+    if isinstance(topic, dict):
+        return str(
+            topic.get("topic")
+            or topic.get("topic_name")
+            or topic.get("name")
+            or ""
+        ).strip()
+    return str(topic or "").strip()
+
+
+def _has_domain_or_topic(state: dict) -> bool:
+    """True when the semantic layer already defines a domain and/or topic."""
+    for entry in state.get("domain") or []:
+        if not isinstance(entry, dict):
+            continue
+        if str(entry.get("domain_name") or "").strip():
+            return True
+        if str(entry.get("description") or "").strip():
+            return True
+        for topic in entry.get("topics") or []:
+            if _topic_label(topic):
+                return True
+            if isinstance(topic, dict) and str(topic.get("description") or "").strip():
+                return True
+    if state.get("topic_mappings"):
+        return True
+    return False
 
 
 class ModelLayerHelper:
@@ -53,5 +84,29 @@ class ModelLayerHelper:
     def get_metadata_layerfile(self):
         return self.model_data["data"]["metadata"]["metadataFileName"]
 
+    def get_model_description(self) -> str:
+        """Resource-level model description from getAiAgentForEdit (outside state)."""
+        data = (self.model_data or {}).get("data") or {}
+        return str(data.get("description") or "").strip()
+
     def get_model_semantic_layer(self):
-        return self.model_data["data"]["state"]
+        state = self.model_data["data"]["state"]
+        if not isinstance(state, dict) or _has_domain_or_topic(state):
+            return state
+        description = self.get_model_description()
+        if not description:
+            return state
+        # When domain/topic are absent, use the saved model description as context.
+        enriched = dict(state)
+        enriched["domain"] = [
+            {
+                "domain_name": description,
+                "description": description,
+                "topics": [],
+            }
+        ]
+        logger.info(
+            "Using model description as domain/topic fallback model=%s",
+            self.model_file_name,
+        )
+        return enriched

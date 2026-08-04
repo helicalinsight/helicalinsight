@@ -17,7 +17,7 @@ def register(flask_app) -> None:
     def top_n_question():
         data = request.get_json()
         log_endpoint_input("/topNQuestion", data)
-        domain = data["domain"]
+        domain = str(data.get("domain") or "").strip()
         top_n = data["topN"]
         session_cookie, username, user_id, _org_id = bind_request_identity(data)
         model_file_name = data["model"]["file"]
@@ -33,10 +33,24 @@ def register(flask_app) -> None:
         token_usage = {}
         request_status = "SUCCESS"
         error_message = None
-        user_query = f"Suggest KPIs for domain: {domain}"
+        user_query = f"Suggest KPIs for domain: {domain}" if domain else "Suggest KPIs"
         try:
             helper = app().ModelLayerHelper(session_cookie, model_file_name, location)
-            model_data = helper.get_model_semantic_layer()
+            model_data = helper.get_model_semantic_layer() or {}
+            if not domain:
+                domains = model_data.get("domain") or []
+                if domains and isinstance(domains[0], dict):
+                    domain = str(domains[0].get("domain_name") or "").strip()
+                    if not domain:
+                        domain = str(domains[0].get("description") or "").strip()
+                if not domain:
+                    domain = helper.get_model_description()
+                if domain:
+                    logger.info(
+                        "Top N using model description as domain fallback domain=%s model=%s",
+                        domain,
+                        model_file_name,
+                    )
             try:
                 md_file_name = helper.get_metadata_layerfile()
                 md_location = helper.get_metadata_layerlocation()

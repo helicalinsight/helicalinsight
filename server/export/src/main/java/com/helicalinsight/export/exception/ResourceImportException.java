@@ -12,12 +12,16 @@ package com.helicalinsight.export.exception;
  * </p>
  * @see ResourceException
  */
-public class ResourceImportException  extends ResourceException{
+public class ResourceImportException  extends ResourceException {
 	
 
 	private static final long serialVersionUID = 1L;
 
 	public ResourceImportException(String message) {
 		super(message);
+	}
+	
+	public ResourceImportException(String message, Throwable throwable) {
+		super(message, throwable);
 	}
 }

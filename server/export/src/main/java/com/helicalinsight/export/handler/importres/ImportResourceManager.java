@@ -8,6 +8,8 @@ import java.util.Date;
 import java.util.List;
 import org.apache.commons.compress.utils.FileNameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -30,6 +32,8 @@ import com.helicalinsight.export.utils.ResourceDependencySorter;
 import com.helicalinsight.export.utils.ResourceFileUtils;
 import com.helicalinsight.export.utils.ZipUtils;
 import com.helicalinsight.resourcedb.Deleted;
+
+import jakarta.transaction.Transactional;
 /**
  * Manages the import of resources, including handling file extraction, decryption,
  * and resource import operations based on a provided manifest.
@@ -53,7 +57,7 @@ public class ImportResourceManager {
 	@Autowired
 	private HIResourceServiceDB serviceDb;
 	
-	
+	private static final Logger logger = LoggerFactory.getLogger(ImportResourceManager.class);
 	private static final String TEMPDIR = TempDirectoryCleaner.getTempDirectory().getAbsolutePath();
 	/**
      * Imports a file based on the provided MultipartFile, ImportRequest, and ImportResponse.
@@ -65,6 +69,7 @@ public class ImportResourceManager {
      * @return a message indicating the result of the import operation
      * @throws Exception if an error occurs during the import process
      */
+	@Transactional
 	public String importFile(MultipartFile file, ImportRequest request,ImportResponse response) throws Exception {
 		String extractedFolder = "";
 		String tempAbsolutePath = "";
@@ -116,8 +121,16 @@ public class ImportResourceManager {
 		if (!resourcePaths.isEmpty() && request.getUpload()) {
 			ResourceDependencySorter sorter = new ResourceDependencySorter(context);
 			List<String> sortedPaths = sorter.sort();
-			doImport(sortedPaths, context);
-			fileUtils.cleanDir(timeStamp);
+			try {
+				doImport(sortedPaths, context);
+			}
+			catch (Exception e) {
+				logger.error("Error occurred ! Rolling back the changes ", e);
+				throw new ResourceImportException(e.getMessage(), e);
+			}
+			finally {
+				fileUtils.cleanDir(timeStamp);
+			}
 			return "Imported Successfully";
 		} else {
 			ObjectNode data = JacksonUtility.emptyNode();
@@ -150,8 +163,17 @@ public class ImportResourceManager {
 				continue;
 			}
 			path = StringUtils.isNotBlank(destination) ? String.join("/", destination,path) : path;
-			HIResource resource =  handler.setContext(context).importResource(path);
-			context.getResourceUrlMap().put(path, resource);
+			try {
+				long start = System.currentTimeMillis();
+				HIResource resource =  handler.setContext(context).importResource(path);
+				Double duration = (System.currentTimeMillis()-start)/1000.0;
+				logger.debug("Successfully Imported {} in {} s " , path, duration);
+				context.getResourceUrlMap().put(path, resource);
+			}
+			catch (Exception e) {
+				logger.error("Could not import {} due to " , path, e);
+				throw new ResourceImportException("Could not import " + path , e);
+			}
 		}
 	}
 }

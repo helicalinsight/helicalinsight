@@ -6,15 +6,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.helicalinsight.efw.ApplicationProperties;
-
 public class Manifest implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	
 	private String version;
-	private String appVersion;
+	private Object metadata;
 	private List<String> resourcePaths = new ArrayList<>();
 	private Map<String, String> shares = new HashMap<>();
 	private Map<String,String> schedules = new HashMap<>();
@@ -99,11 +96,11 @@ public class Manifest implements Serializable {
 		this.version = version;
 	}
 	
-	public String getAppVersion() {
-		return appVersion;
+	public Object getMetadata() {
+		return metadata;
 	}
 	
-	public void setAppVersion(String appVersion) {
-		this.appVersion = appVersion;
+	public void setMetadata(Object metadata) {
+		this.metadata = metadata;
 	}
 }

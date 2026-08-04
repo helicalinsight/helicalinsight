@@ -26,8 +26,11 @@ class KpiProvider:
 
     def top_kpis(self):
         info_provider = InformationProvider(model_data=self.model_data)
-        domain_topic_string = info_provider.format_domain_info(self.input_domain)
-        topics = info_provider.get_topics(self.input_domain)
+        input_domain = str(self.input_domain or "").strip()
+        if not input_domain:
+            input_domain = info_provider.get_primary_domain()
+        domain_topic_string = info_provider.format_domain_info(input_domain)
+        topics = info_provider.get_topics(input_domain)
         semantic_string = info_provider.format_semantic_layer(topics)
         input_tables = info_provider.get_input_tables(topics)
         mapping_string = info_provider.get_attribute_string(topics)

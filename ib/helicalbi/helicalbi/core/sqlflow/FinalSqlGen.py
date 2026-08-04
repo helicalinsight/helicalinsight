@@ -17,6 +17,7 @@ from helicalbi.model.SQLModel import SQLModel
 from helicalbi.model.output.SqlGen import get_sql_gen_model
 from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
 from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.sql.SelectAliasRewriter import rewrite_select_aliases
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +164,18 @@ class FinalSqlGen:
             },
             state=state,
         )
-        state["final_sql"] = response.sql
+        rewritten_sql = rewrite_select_aliases(
+            response.sql,
+            cube_metadata=state.get("cube_metadata"),
+            dialect=dialect,
+        )
+        state["final_sql"] = rewritten_sql
         state["sql_reason"] = getattr(response, "reason", "") or ""
+        # Persist the rewritten SQL so chat history / viz reuse the same aliases.
+        if rewritten_sql != response.sql:
+            try:
+                response.sql = rewritten_sql
+            except Exception:
+                logger.debug("Could not mutate structured SQL response alias text", exc_info=True)
         add_sql(state["thread_id"], response)
         return state

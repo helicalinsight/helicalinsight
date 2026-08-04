@@ -70,8 +70,17 @@ class InformationProvider:
 
     def get_primary_domain(self) -> str:
         for d in self.model_data.get("domain") or []:
-            if isinstance(d, dict) and d.get("domain_name"):
-                return d["domain_name"]
+            if not isinstance(d, dict):
+                continue
+            name = str(d.get("domain_name") or "").strip()
+            if name:
+                return name
+        for d in self.model_data.get("domain") or []:
+            if not isinstance(d, dict):
+                continue
+            description = str(d.get("description") or "").strip()
+            if description:
+                return description
         return ""
 
     def format_domain_info(self, input_domains):
@@ -79,22 +88,32 @@ class InformationProvider:
         for d in domain_data:
             if not isinstance(d, dict):
                 continue
-            if d.get("domain_name") in input_domains:
-                domain_str = f'Here is your domain: ["{d["domain_name"]}"]'
+            name = str(d.get("domain_name") or "").strip()
+            description = str(d.get("description") or "").strip()
+            matched = bool(name and name in input_domains)
+            if not matched and description:
+                matched = description == input_domains or description in input_domains
+            if not matched:
+                continue
 
-                topic_parts: List[str] = []
-                for topic in d.get("topics") or []:
-                    name = _topic_name(topic)
-                    if not name:
-                        continue
-                    description = _topic_description(topic)
-                    if description:
-                        topic_parts.append(f'"{name}" (description: {description})')
-                    else:
-                        topic_parts.append(f'"{name}"')
-                topics_str = "Here is your topics: [" + ", ".join(topic_parts) + "]"
+            label = name or description
+            domain_str = f'Here is your domain: ["{label}"]'
+            if description and name and description != name:
+                domain_str += f"\nDomain description: {description}"
 
-                return domain_str + "\n" + topics_str
+            topic_parts: List[str] = []
+            for topic in d.get("topics") or []:
+                topic_name = _topic_name(topic)
+                if not topic_name:
+                    continue
+                topic_description = _topic_description(topic)
+                if topic_description:
+                    topic_parts.append(f'"{topic_name}" (description: {topic_description})')
+                else:
+                    topic_parts.append(f'"{topic_name}"')
+            topics_str = "Here is your topics: [" + ", ".join(topic_parts) + "]"
+
+            return domain_str + "\n" + topics_str
 
         return "No matching domain found"
 
@@ -104,7 +123,9 @@ class InformationProvider:
         for d in domain_data:
             if not isinstance(d, dict):
                 continue
-            if d.get("domain_name") == input_domains:
+            name = str(d.get("domain_name") or "").strip()
+            description = str(d.get("description") or "").strip()
+            if name == input_domains or (not name and description == input_domains):
                 topics_to_send.extend(_normalize_topic_names(d.get("topics") or []))
         return topics_to_send
 
@@ -168,6 +189,14 @@ class InformationProvider:
         if not descriptions and is_bare_minimum_config(self.model_data):
             for cube in iter_cube_entries(self.model_data.get("cube_metadata")):
                 description = cube.get("description")
+                if description:
+                    descriptions.append(description)
+
+        if not descriptions:
+            for d in self.model_data.get("domain") or []:
+                if not isinstance(d, dict):
+                    continue
+                description = str(d.get("description") or "").strip()
                 if description:
                     descriptions.append(description)
 

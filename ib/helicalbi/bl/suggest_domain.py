@@ -24,7 +24,14 @@ def register(flask_app) -> None:
             location,
         )
         helper = app().ModelLayerHelper(session_cookie, model_file_name, location)
-        model_data = helper.get_model_semantic_layer()
-        domain_name = model_data["domain"][0]["domain_name"]
+        model_data = helper.get_model_semantic_layer() or {}
+        domain_name = ""
+        domains = model_data.get("domain") or []
+        if domains and isinstance(domains[0], dict):
+            domain_name = str(domains[0].get("domain_name") or "").strip()
+            if not domain_name:
+                domain_name = str(domains[0].get("description") or "").strip()
+        if not domain_name:
+            domain_name = helper.get_model_description()
         logger.info("Domain suggestion resolved domain=%s", domain_name)
         return domain_name

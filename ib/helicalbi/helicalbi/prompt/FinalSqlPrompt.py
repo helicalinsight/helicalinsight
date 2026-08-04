@@ -85,18 +85,19 @@ Business metrics for required columns
 
 Generate the SQL request now based on the above details.  
 Always use an alias for every selected column/expression in the SELECT clause.
-Prefer provided dimension/measure/hierarchy display names when available.
-If the only label is a physical or technical name (snake_case / underscore_separated,
-camelCase, ALLCAPS, comma-separated tokens, or similar), rewrite it as a short
-business-friendly Title Case alias (e.g. travel_cost → "Travel Cost",
-meet_cancellation_status → "Meet Cancellation Status").
-Do not leave raw underscore_separated or other machine-style names as the visible alias.
+Prefer provided dimension/measure/hierarchy display names (alias labels) when available.
+If a SELECT alias is technical — underscore_separated / snake_case, camelCase, ALLCAPS,
+comma-separated tokens, or similar — replace it with a short business-friendly Title Case
+name (e.g. travel_cost → "Travel Cost", meetCancellationStatus → "Meet Cancellation Status").
+Do not leave raw underscore_separated or other machine-style names as the visible SELECT alias.
 Make sure syntactically proper query is generated. 
 Add limit always (limit {default_sql_limit})
 
 
 Previous sql generated: (Use this only when context is related.
 Ignore any previous SQL that uses tables/columns outside the provided columns list.)
+
+ 
 {prev_sql}
 
 

@@ -25,6 +25,7 @@ import {
   StackedColumnLineSvg,
   StackedAndGroupedColumnLineSvg,
   GridTableChartSvg,
+  ConvertChartSvg,
 } from "./chart-icons-svg"
 
 const style = { marginRight: "5px" }
@@ -69,6 +70,7 @@ const GroupedColumnLineIcon = () => <Icon component={GroupedColumnLineSvg} style
 const StackedColumnLineIcon = () => <Icon component={StackedColumnLineSvg} style={style} />;
 const StackedAndGroupedColumnLineIcon = () => <Icon component={StackedAndGroupedColumnLineSvg} style={style} />;
 const GridTableChartIcon = () => <Icon component={GridTableChartSvg} style={style} />;
+const ConvertChartIcon = () => <Icon component={ConvertChartSvg} />;
 
 
 const ChartIcon = (props) => {
@@ -156,6 +158,8 @@ const ChartIcon = (props) => {
       return <StackedAndGroupedColumnLineIcon />;
     case "grid-table-chart":
       return <GridTableChartIcon />;
+    case "convert-chart":
+      return <ConvertChartIcon />;
     default:
       return <ParetoChartIcon />;
 

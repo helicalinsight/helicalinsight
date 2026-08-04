@@ -79,7 +79,6 @@ public class AIModelCreatorDb implements IComponent {
                 hiResource.setTitle(modelName);
             }
 
-            
             instantModelEdit(hiResource, createdDate, formDataJson, state, metadataResource);
             hiResource.setLastUpdatedTime(createdDate);
             serviceDB.editHIResource(hiResource);
@@ -174,6 +173,12 @@ public class AIModelCreatorDb implements IComponent {
      */
     private void instantModelEdit(HIResource hiResource, Date createdDate, JsonObject formDataJson, String state, HIResource metadataResource) {
         HIResourceAIModel aiModel = hiResource.getAiModel();
+        if (formDataJson.has("modelName")) {
+            aiModel.setAiModelName(formDataJson.get("modelName").getAsString());
+        }
+        if (formDataJson.has("description")) {
+            aiModel.setDescription(formDataJson.get("description").getAsString());
+        }
         coreSave(aiModel, createdDate, formDataJson, state, metadataResource);
     }
 

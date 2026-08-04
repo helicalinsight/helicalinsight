@@ -22,7 +22,11 @@ export const FieldItem = ({ field }) => {
 }
 
 const getFieldsMenu = ({ modifiedFields }) => {
-    return <Menu selectedKeys={['dummy']} selectable={true}>
+    return <Menu
+        selectedKeys={['dummy']}
+        selectable={true}
+        style={{ maxHeight: 380, overflowY: 'auto' }}
+    >
         {modifiedFields?.map(field => {
             return <Menu.Item
                 style={{ padding: "1px 12px" }}

@@ -518,3 +518,54 @@ def test_table_empty_bindings_enriched_from_data_types_for_wordcloud():
     )
     setting = _filled_setting(decode_vf_template(result["vf_template"]))
     assert setting["dimensions"]["names"] == ["travel_medium"]
+
+
+def test_table_to_kpi_binds_numeric_column_from_data_types():
+    """Empty table measures still convert to KPI using a numeric metadata column."""
+    encoded = _encode_settings_chart(
+        "table",
+        {
+            "dimensions": {"names": []},
+            "measures": [],
+        },
+    )
+    data_types = [
+        {"name": "Travel Type", "type": "text"},
+        {"name": "Travel Cost", "type": "numeric"},
+    ]
+    result = convert_chart(encoded, "kpi", data_types=data_types)
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["measures"] == ["Travel Cost"]
+
+
+def test_table_to_kpi_reclassifies_numeric_dimension():
+    """Numeric column listed only under dimensions is moved to KPI measure."""
+    encoded = _encode_settings_chart(
+        "table",
+        {
+            "dimensions": {"names": ["Travel Type", "Travel Cost"]},
+            "measures": [],
+        },
+    )
+    data_types = [
+        {"name": "Travel Type", "type": "text"},
+        {"name": "Travel Cost", "type": "numeric"},
+    ]
+    result = convert_chart(encoded, "kpi", data_types=data_types)
+    setting = _filled_setting(decode_vf_template(result["vf_template"]))
+    assert setting["measures"] == ["Travel Cost"]
+    assert "Travel Cost" not in setting["dimensions"]["names"]
+
+
+def test_table_to_kpi_uses_measure_formats_when_no_metadata():
+    """Formatted value columns can seed the KPI measure without data_types."""
+    from helicalbi.viz.chart_conversion import ensure_kpi_measure_from_numeric
+
+    fields = ExtractedFields(
+        dimensions=["Travel Type"],
+        measures=[],
+        measure_formats={"Travel Cost": "#,##0.00"},
+        source_family="table",
+    )
+    ensured = ensure_kpi_measure_from_numeric(fields, data_types=None)
+    assert ensured.measures == ["Travel Cost"]

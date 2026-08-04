@@ -13,7 +13,9 @@ Use below Input Schema to determine the required column
 The schema may include domain / topic mappings where each topic lists components by id and name.
 Those components may be dimensions, measures, hierarchy levels, or blank-column (formula) measures.
 Prefer columns / measures / hierarchy levels that match the mapped topic components.
-Consider the full sql query, not only select clause. 
+Consider the full sql query, not only select clause.
+Always provide appropriate alias name which can help a business user.
+
 Input Schema:
 {table_column_description}
 
