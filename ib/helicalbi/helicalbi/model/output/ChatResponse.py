@@ -13,6 +13,7 @@ client-friendly payload with the shape::
         summary: { insight, reason },
         data:    [],
         metadata:    [],
+        data_model: { ... },  # temporary: sql_to_formdata formData
         token_usage: { input_tokens, output_tokens, total_tokens,
                         input_cost?, output_cost?, total_cost?, model_name? },
         time_consumed: { llm_seconds, total_seconds? }
@@ -87,6 +88,14 @@ class ChatResponse(BaseModel):
     summary: SummarySection = Field(default_factory=SummarySection)
     data: list[Any] = Field(default_factory=list, description="Raw rows returned by the SQL execution.")
     metadata: list[Any] = Field(default_factory=list, description="Metadata returned by the SQL execution.")
+    # Temporary: sql_to_formdata formData for interactive chart clients.
+    data_model: Optional[dict[str, Any]] = Field(
+        default=None,
+        description=(
+            "Temporary: formData from sql_to_form_data (SQL + metadata refs), "
+            "same path as /instant-to-hr."
+        ),
+    )
     token_usage: TokenUsage = Field(default_factory=TokenUsage, description="Accumulated LLM token usage for the request.")
     time_consumed: TimeConsumed = Field(default_factory=TimeConsumed, description="Elapsed time for LLM calls and the full request.")
     error: str = Field(default="", description="SQL execution or flow error message from the query API.")
@@ -208,13 +217,17 @@ class ChatResponse(BaseModel):
     
         data=state.get("data") or sql_result_dict.get("data") or []
         metadata=state.get("metadata") or sql_result_dict.get("metadata") or []
-       
+        data_model = state.get("viz_form_data")
+        if not isinstance(data_model, dict):
+            data_model = None
+
         return cls(
             viz=viz,
             sql=sql,
             summary=summary,
             data=data,
             metadata=metadata,
+            data_model=data_model,
             token_usage=read_token_usage(state),
             time_consumed=read_time_consumed(state),
             error=_resolved_sql_error(state.get("sql_error") or state.get("error")),

@@ -36,12 +36,10 @@ import AdvancedTableProperties from "./advancedTableProperties";
 import HCRCanvasParameters from "./canvasProperty/hcrCanvasParameters";
 import HCRCanvasProperty from "./canvasProperty/hcrCanvasProperty";
 import ChartProperties from "./chartsProperties";
-import CrosstabProperties from "./crosstabProperties";
 import CalculationsParameters from "./hcrCalculationsParameters";
 import { getAdvancedTableConfig, getTableDefaultStyles, hcrCanvasPaneHelperMethods } from "./hcrCanvasPaneHelperMethods";
 import HCRCanvasTabs from "./hcrCanvasTabs";
 import HCRChartsComponent from "./hcrCharts/hcrChartsComponent";
-import HCRCrossTabComponent from "./hcrCrossTab/hcrCrossTabComponent";
 import HCRFields from "./hcrFields";
 import ImageProperties from "./imageProperties";
 import LineProperties from "./lineProperties";
@@ -50,6 +48,8 @@ import PageBreakProperties from "./pageBreakProperties";
 import HCRShapeSearch from "./shapeSearch";
 import TextProperties from "./textProperties";
 import HCRCrosstabEditMode from "./advanceComponents/crosstab/hcrCrosstabEditMode";
+import HCRCrossTabComponentV2 from "./hcrCrossTab/hcrCrossTabComponentv2";
+import CrosstabPropertiesV2 from "./crosstabPropertiesv2";
 setLang("en_US");
 
 const {
@@ -89,7 +89,7 @@ export const CanvasService = (props) => {
 
   const handleQueryChange = (queryId) => {
     if (queryId) {
-      const advancedComponents = hcrDiagramNodesData.filter(({ category }) => ["advancedTable", "crosstab", "chart"].includes(category)) || [];
+      const advancedComponents = hcrDiagramNodesData.filter(({ category }) => ["advancedTable", "crosstabv2", "chart"].includes(category)) || [];
       const isPresentInSubDS = subDataSets.some(({ id }) => id === queryId)
       if (advancedComponents.length) {
         const isPresent = advancedComponents.some(({ selectedQueryID }) => selectedQueryID === queryId);
@@ -267,8 +267,8 @@ const NodeComponent = (props) => {
           pageBreak: (
             <PageBreakProperties {...propsList} />
           ),
-          crosstab: (
-            <CrosstabProperties {...propsList} />
+          crosstabv2: (
+            <CrosstabPropertiesV2 {...propsList} />
           ),
           chart: (
             <ChartProperties {...propsList} />
@@ -540,7 +540,7 @@ const HCRFlowchart = ({
         let width = 100, height = canvasDefaultNodeHeight;
         const nodeID = `node-${uuidv4()}`;
         const isAdvancedTable = record?.renderKey === "advancedTable";
-        const isCrossTab = record?.renderKey === "crosstab";
+        const isCrossTab = ["crosstabv2"].includes(record?.renderKey);
         const isChart = record?.renderKey === "chart";
         if (isAdvancedTable || isCrossTab || isChart) {
           width = record.nodeWidth;
@@ -667,10 +667,15 @@ const HCRFlowchart = ({
             }
             if (tableStyles.length) {
               const tableNodes = nodes.filter(node => node.category === "advancedTable").map(({ id }) => id);
-              const filteredStyles = tableStyles.filter((style) => {
+              const crosstabNodes = nodes.filter(node => node.category === "crosstabv2").map(({ id }) => id);
+              let filteredStyles = tableStyles.filter((style) => {
                 if (!style.tableId) return true
                 return tableNodes.includes(style.tableId);
               });
+              filteredStyles = filteredStyles.filter((style) => {
+                if (!style.crosstabId) return true
+                return crosstabNodes.includes(style.crosstabId);
+              })
               dispatch(hcrActions.hcrUpdateTableStyles({
                 actionType: "updateStyles",
                 styles: filteredStyles,
@@ -1058,13 +1063,13 @@ const HCRFlowchart = ({
                 type: "defaultNodes",
               },
               {
-                component: HCRCrossTabComponent,
-                popover: () => <div>Cross Tab</div>,
-                name: "crosstab",
-                label: "Cross Tab",
-                renderKey: "crosstab",
+                component: HCRCrossTabComponentV2,
+                popover: () => <div>Cross Tab V2</div>,
+                name: "crosstabv2",
+                label: "Cross Tab V2",
+                renderKey: "crosstabv2",
                 parentKey: "elements",
-                category: "crosstab",
+                category: "crosstabv2",
                 type: "defaultNodes",
               },
               {
@@ -1350,7 +1355,7 @@ const HCRFlowchart = ({
     if (!category) return null;
     return {
       "advancedTable": <HCRAdvancedTableEdit data={node} lastSelectedNodeRef={lastSelectedNodeRef} />,
-      "crosstab": <HCRCrosstabEditMode data={node} lastSelectedNodeRef={lastSelectedNodeRef} />
+      "crosstabv2": <HCRCrosstabEditMode data={node} lastSelectedNodeRef={lastSelectedNodeRef} />
     }[category]
   }
 

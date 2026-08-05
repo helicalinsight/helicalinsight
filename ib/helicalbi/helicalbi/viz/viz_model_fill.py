@@ -216,12 +216,19 @@ def _chart_viz_and_mark(chart_type: str) -> VizChart:
     return VizChart(viz=viz, mark=mark)
 
 
+def _wire_column_path(column: Any) -> str:
+    """Normalize formData column field (string or ``{name, id}``) to a path string."""
+    if isinstance(column, dict):
+        return str(column.get("name") or "").strip()
+    return str(column or "").strip()
+
+
 def _display_name(column_wire: dict) -> str:
     """Prefer SELECT alias (matches result headers); else leaf of column path."""
     alias = str(column_wire.get("alias") or "").strip()
     if alias:
         return alias
-    path = str(column_wire.get("column") or "").strip()
+    path = _wire_column_path(column_wire.get("column"))
     if not path:
         return ""
     return path.rsplit(".", 1)[-1].strip()
@@ -266,7 +273,10 @@ def _shelves_from_form_data(
         if col.get("hidden"):
             hidden.append(name)
             continue
-        if str(col.get("fieldType") or "").lower() == "measure":
+        is_measure = bool(col.get("aggregate")) or (
+            str(col.get("fieldType") or "").lower() == "measure"
+        )
+        if is_measure:
             columns.append(name)
         else:
             rows.append(name)
@@ -687,7 +697,7 @@ def _filter_name_from_form_item(item: dict[str, Any]) -> str:
     like SQL; otherwise use alias/label.
     """
     alias = str(item.get("alias") or item.get("label") or "").strip()
-    column = str(item.get("column") or "").strip()
+    column = _wire_column_path(item.get("column"))
     custom = str(item.get("customCondition") or item.get("custom_sql") or "").strip()
 
     # Explicit expression-looking column (custom SELECT / formula filters).

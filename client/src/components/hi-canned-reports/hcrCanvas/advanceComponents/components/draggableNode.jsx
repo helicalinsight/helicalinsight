@@ -1,24 +1,28 @@
 import { useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { HCR_TABLE_NODE, hcrContextMenuTypes } from '../../../hcr-constants';
+import { HCR_CROSSTAB_NODE, HCR_TABLE_NODE, hcrContextMenuTypes } from '../../../hcr-constants';
 import HCRChartsComponent from '../../hcrCharts/hcrChartsComponent';
-import HCRCrossTabComponent from '../../hcrCrossTab/hcrCrossTabComponent';
+import HCRCrossTabComponentV2 from '../../hcrCrossTab/hcrCrossTabComponentv2';
 import { ImageNode, LineNode, PageBreakNode } from '../../nodes';
 import TextNode from '../../nodes/textNode';
 import { HCR_NODE_RESIZE_HANDLES } from '../contants';
 import HCRAdvancedTableComponent from '../table/hcrAdvancedTableComponent';
-import { HCRTableContextMenu } from './tableOutlinePanel';
+import { OutlineCrosstabContextMenu, OutlineTableContextMenu } from './outlinePanel/outlineContextMenu';
 
 const DraggableNode = (props = {}) => {
-    const { node = {}, cellId, onNodeClick = () => { }, selectedNodes = [], tableData = {}, copiedNodes = [] } = props || {}
+    const { node = {}, cellId, onNodeClick = () => { }, selectedNodes = [], tableData = {}, crosstabData = {}, category, copiedNodes = [], mode = "edit" } = props || {}
+    const isTable = category === "advancedTable",
+        isCrosstab = category === "crosstabv2",
+        editable = mode === "edit";
 
     const isSelected = selectedNodes.includes(node.id);
     const [visible, setVisible] = useState(null)
+    const nodeType = isCrosstab ? HCR_CROSSTAB_NODE : HCR_TABLE_NODE;
 
     const [{ isDragging }, dragRef] = useDrag({
-        type: HCR_TABLE_NODE,
+        type: nodeType,
         item: {
-            type: HCR_TABLE_NODE,
+            type: nodeType,
             nodeId: node.id,
             sourceCellId: cellId
         },
@@ -38,29 +42,53 @@ const DraggableNode = (props = {}) => {
             className={`draggable-node ${isDragging ? 'dragging' : ''} ${isSelected ? 'selected' : ''}`}
             onClick={handleClick}
         >
-            <HCRTableContextMenu
-                onVisibleChange={(value) => setVisible(value)}
-                visible={visible}
-                title={(
+            {isTable &&
+                <OutlineTableContextMenu
+                    onVisibleChange={(value) => setVisible(value)}
+                    visible={visible}
+                    title={(
+                        <div className='main-node'>
+                            {{
+                                text: <TextNode data={node} />,
+                                image: <ImageNode data={node} />,
+                                line: <LineNode data={node} />,
+                                pageBreak: <PageBreakNode data={node} />,
+                                crosstabv2: <HCRCrossTabComponentV2 data={node} />,
+                                chart: <HCRChartsComponent data={node} />,
+                                advancedTable: <HCRAdvancedTableComponent data={node} />
+                            }[node.category]}
+                        </div>
+                    )}
+                    menuType={hcrContextMenuTypes.NODE}
+                    tableData={tableData}
+                    nodeId={node.id}
+                    copiedNodes={copiedNodes}
+                    cb={() => setVisible(false)}
+                    cellId={cellId}
+                />}
+
+            {isCrosstab ?
+                editable ?
+                    <OutlineCrosstabContextMenu
+                        onVisibleChange={(value) => setVisible(value)}
+                        visible={visible}
+                        title={(
+                            <div className='main-node'>
+                                <TextNode data={node} />
+                            </div>
+                        )}
+                        menuType={hcrContextMenuTypes.NODE}
+                        nodeId={node.id}
+                        copiedNodes={copiedNodes}
+                        cb={() => setVisible(false)}
+                        cellId={cellId}
+                        crosstabData={crosstabData}
+                    /> :
                     <div className='main-node'>
-                        {{
-                            text: <TextNode data={node} />,
-                            image: <ImageNode data={node} />,
-                            line: <LineNode data={node} />,
-                            pageBreak: <PageBreakNode data={node} />,
-                            crosstab: <HCRCrossTabComponent data={node} />,
-                            chart: <HCRChartsComponent data={node} />,
-                            advancedTable: <HCRAdvancedTableComponent data={node} />
-                        }[node.category]}
+                        <TextNode data={node} />
                     </div>
-                )}
-                menuType={hcrContextMenuTypes.NODE}
-                tableData={tableData}
-                nodeId={node.id}
-                copiedNodes={copiedNodes}
-                cb={() => setVisible(false)}
-                cellId={cellId}
-            />
+                : null
+            }
 
 
             {isSelected ? (

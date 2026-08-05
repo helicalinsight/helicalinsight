@@ -581,6 +581,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			Session currentSession = getSession();
 			
+			currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
 			String optimizedQuery1 = """
 					SELECT DISTINCT con
 					FROM HIEfwdConnection con
@@ -886,6 +887,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		return Collections.emptyMap();
 	}
 	
+	@Deprecated(forRemoval = true)
 	private boolean isItsRootDeleted(Integer resourceId, Map<Integer,HIResource> hierarchyMap, Map<Integer,Boolean> deleteMap,   Boolean flag) {
 		//This flag condition always returns TRUE because at this point we are NOT willing to find ROOT folder delete status 
 		if(!flag) return false;

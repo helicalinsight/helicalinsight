@@ -1265,7 +1265,18 @@ const CannedReportsPage = (props) => {
             });
             return reqPane;
           });
-          let nodes = parseHCRNodesData(res.diagramData.nodes);
+          let nodes = parseHCRNodesData(res.diagramData.nodes, dsPanes);
+          let ctStyles = [];
+          nodes = nodes.map((node) => {
+            if (node.category === "crosstabv2") {
+              const { tableStyles = [], ...rest } = node || {}
+              if (tableStyles?.length) {
+                ctStyles.push(...tableStyles)
+              }
+              return rest
+            }
+            return node;
+          })
           let subDataSets = [], tableStyles = [];
           if (res.state.subDataSets) {
             subDataSets = res.state.subDataSets
@@ -1277,7 +1288,7 @@ const CannedReportsPage = (props) => {
             tableStyles = res.state.tableStyles
           } else {
             const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
-            tableStyles = tStyles;
+            tableStyles = [...tStyles, ...ctStyles];
             nodes = alteredNodes;
           }
 
@@ -1402,7 +1413,19 @@ const CannedReportsPage = (props) => {
               });
               return reqPane;
             });
-            let nodes = parseHCRNodesData(res.diagramData.nodes);
+            let nodes = parseHCRNodesData(res.diagramData.nodes, dsPanes);
+
+            let ctStyles = [];
+            nodes = nodes.map((node) => {
+              if (node.category === "crosstabv2") {
+                const { tableStyles = [], ...rest } = node || {}
+                if (tableStyles?.length) {
+                  ctStyles.push(...tableStyles)
+                }
+                return rest
+              }
+              return node;
+            })
             let subDataSets = [], tableStyles = [];
             if (res.state.subDataSets) {
               subDataSets = res.state.subDataSets
@@ -1414,7 +1437,7 @@ const CannedReportsPage = (props) => {
               tableStyles = res.state.tableStyles
             } else {
               const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
-              tableStyles = tStyles;
+              tableStyles = [...tStyles, ...ctStyles];
               nodes = alteredNodes;
             }
 

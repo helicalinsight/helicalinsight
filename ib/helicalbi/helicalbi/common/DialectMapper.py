@@ -54,4 +54,7 @@ sql_glot_dialects = {
 
 
 def resolve_sqlglot_dialect(dialect):
-    return sql_glot_dialects.get(dialect) or dialect
+    if dialect is None or dialect == "":
+        return dialect
+    key = str(dialect).lower().strip()
+    return sql_glot_dialects.get(key) or key
