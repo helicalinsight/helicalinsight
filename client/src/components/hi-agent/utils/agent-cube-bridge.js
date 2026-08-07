@@ -1345,22 +1345,26 @@ const stripSortOrderFromDimension = (dimension = {}) => {
   };
 };
 
-const stripSortOrderFromCubeInfo = (cube = {}) => ({
-  ...cube,
-  cubeName: "",
-  dimensions: (cube.dimensions || []).map(stripSortOrderFromDimension),
-  measures: (cube.measures || []).map(stripFieldSortOrder),
-});
+const stripSortOrderFromCubeInfo = (cube = {}) => {
+  const { cubeName, ...rest } = cube;
+  return {
+    ...rest,
+    dimensions: (cube.dimensions || []).map(stripSortOrderFromDimension),
+    measures: (cube.measures || []).map(stripFieldSortOrder),
+  };
+};
 
 export const toPublicAgentData = (agentData) => {
   const data = normalizeAgentData(agentData);
   return {
-    cube: (data.cube || []).map((cube) => ({
-      ...cube,
-      cubeName: "",
-      dimensions: (cube.dimensions || []).map(groupDimensionAiContext),
-      measures: (cube.measures || []).map(groupMeasureAiContext),
-    })),
+    cube: (data.cube || []).map((cube) => {
+      const { cubeName, ...rest } = cube;
+      return {
+        ...rest,
+        dimensions: (cube.dimensions || []).map(groupDimensionAiContext),
+        measures: (cube.measures || []).map(groupMeasureAiContext),
+      };
+    }),
     domain: data.domain || [],
   };
 };

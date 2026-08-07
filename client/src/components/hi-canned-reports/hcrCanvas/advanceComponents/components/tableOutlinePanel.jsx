@@ -8,7 +8,7 @@ import useSubDataSet from '../../../../../hooks/useSubDataSet';
 import { hcrActions, hcrRedo, hcrUndo } from '../../../../../redux/actions';
 import { HCR_TABLE_DATA_CELL_WIDTH, hcrDSQuery } from '../../../hcr-constants';
 import { FieldItem } from '../../hcrFields';
-import { getHCRTableContextMenu, getHcrTableOutlineData, getHCRTableOutlineDSContextMenu, getParentKeys } from '../utils';
+import { getHCRTableContextMenu, getHcrTableOutlineData, getOutlineDSContextMenu, getParentKeys } from '../utils';
 import { getInitialGroupData, getSubDataSet } from '../../hcrCanvasPaneHelperMethods';
 
 export const HCRTableContextMenu = (props = {}) => {
@@ -230,7 +230,7 @@ const HCRTableDatasetContextMenu = (props = {}) => {
 
     const dispatch = useDispatch()
 
-    const menu = getHCRTableOutlineDSContextMenu({ menuType })
+    const menu = getOutlineDSContextMenu({ menuType })
     const handleMenuClick = ({ key, domEvent: e }) => {
         e.stopPropagation();
         let payload = {};

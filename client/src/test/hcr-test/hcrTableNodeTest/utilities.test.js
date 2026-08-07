@@ -1,9 +1,9 @@
+import { cloneDeep } from "lodash";
 import { hcrContextMenuTypes, hcrTableBandOrder, hcrTableBandsTypes } from "../../../components/hi-canned-reports/hcr-constants";
+import { getHCRTableContextMenu, getHCRTableOutlineDSContextMenu, getStylesOutline, getTableOutlinedata } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
 import { getAdvancedTableConfig, getTableStyles, hcrCanvasPaneHelperMethods, makeCellId } from "../../../components/hi-canned-reports/hcrCanvas/hcrCanvasPaneHelperMethods";
 import { addEscapedQuotes, checkIfBandIsDeleted, getEmptyGroupCell, getHCRParaTypeFormat, getInitialParameter, getNewStyle, getTableStylesFromReportState, isHCRDateVariable, updateCanvasTabViewComponent, updateTableStyles } from "../../../components/hi-canned-reports/hcrHelperMethods";
-import { getDatasetOutlineData, getHCRTableContextMenu, getHcrTableOutlineData, getHCRTableOutlineDSContextMenu, getStylesOutline, getTableOutlinedata } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
 import { tableOutlinedData } from "../constants";
-import { cloneDeep } from "lodash";
 
 const { getHcrTableCellsPositionDetails } = hcrCanvasPaneHelperMethods
 

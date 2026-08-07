@@ -350,6 +350,10 @@ const hcrUpdateTableStyles = (payload) => {
     return { type: actionTypes.HCR_UPDATE_TABLE_STYLES, payload };
 }
 
+const hcrUpdateCrosstabComponent = (payload) => {
+    return { type: actionTypes.HCR_UPDATE_CROSSTAB_COMPONENT, payload };
+}
+
 
 export const hcrActions = {
     handleHcrImageDel,
@@ -424,5 +428,6 @@ export const hcrActions = {
     hcrUpdatePreview,
     hcrUpdateTableClipboard,
     hcrUpdateSubdataSets,
-    hcrUpdateTableStyles
+    hcrUpdateTableStyles,
+    hcrUpdateCrosstabComponent
 };

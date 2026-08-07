@@ -62,6 +62,8 @@ class ParsedQuery:
     database_name: str = ""
     table_alias: str = ""
     table_name: str = ""
+    # SQL alias / name → physical table name (e.g. td → travel_details)
+    table_aliases: dict[str, str] = field(default_factory=dict)
     selects: list[SelectItem] = field(default_factory=list)
     group_by: list[ColumnRef] = field(default_factory=list)
     where_filters: list[FilterItem] = field(default_factory=list)

@@ -5,11 +5,11 @@ import { useState } from "react";
 import { useDrag } from "react-dnd";
 import { useSelector } from "react-redux";
 import { HCR_CROSSTAB_CELL_HEIGHT, HCR_CROSSTAB_CELL_WIDTH, HCR_TABLE_DATA_CELL_HEIGHT, HCR_TABLE_DATA_CELL_WIDTH, hcrTableBandOrder, } from "../hcr-constants";
-import TableOutlinePanel from "./advanceComponents/components/tableOutlinePanel";
+import OutlinePanel from "./advanceComponents/components/outlinePanel/outlinePanel";
 import HCRAdvancedTableComponent from "./advanceComponents/table/hcrAdvancedTableComponent";
 import HCRChartsComponent from "./hcrCharts/hcrChartsComponent";
-import HCRCrossTabComponent from "./hcrCrossTab/hcrCrossTabComponent";
 import { ImageNode, LineNode, PageBreakNode, TextNode } from "./nodes";
+import HCRCrossTabComponentV2 from "./hcrCrossTab/hcrCrossTabComponentv2";
 
 const { Search } = Input;
 
@@ -52,23 +52,42 @@ const advancedTableData = {
     isAppliedClicked: false,
 };
 
-const crossTabData = {
+// const crossTabData = {
+//     width: 103,
+//     height: 20,
+//     nodeWidth: HCR_CROSSTAB_CELL_WIDTH * 5,
+//     nodeHeight: HCR_CROSSTAB_CELL_HEIGHT * 3,
+//     name: 'crossTab',
+//     label: 'Cross Tab',
+//     renderKey: 'crosstab',
+//     parentKey: 'elements',
+//     isLeaf: true,
+//     repeat: 'na',
+//     category: 'crosstab',
+//     zIndex: 10,
+//     type: 'defaultNodes',
+//     fontSize: 14,
+//     fontFamily: 'questrialregular',
+//     borders: {},
+//     padding: {},
+// };
+
+const crossTabDatav2 = {
     width: 103,
     height: 20,
     nodeWidth: HCR_CROSSTAB_CELL_WIDTH * 5,
     nodeHeight: HCR_CROSSTAB_CELL_HEIGHT * 3,
-    name: 'crossTab',
+    name: 'crossTabv2',
     label: 'Cross Tab',
-    renderKey: 'crosstab',
+    renderKey: 'crosstabv2',
     parentKey: 'elements',
     isLeaf: true,
     repeat: 'na',
-    category: 'crosstab',
+    category: 'crosstabv2',
     zIndex: 10,
     type: 'defaultNodes',
     fontSize: 14,
     fontFamily: 'questrialregular',
-    // isGroup: true,
     borders: {},
     padding: {},
 };
@@ -105,10 +124,10 @@ const advancedTableNode = {
     key: 'advancedTable'
 }
 
-const crossTabNode = {
-    component: <HCRCrossTabComponent data={crossTabData} isElementRender={true} />,
-    data: crossTabData,
-    key: 'crosstab'
+const crossTabNodev2 = {
+    component: <HCRCrossTabComponentV2 data={crossTabDatav2} isElementRender={true} label={"Cross Tab"} />,
+    data: crossTabDatav2,
+    key: 'crosstabv2'
 }
 
 const hcrChartsNode = {
@@ -181,7 +200,7 @@ const pageBreakNode = {
     key: 'pageBreak'
 };
 
-const defaultNodes = [imageNode, lineNode, pageBreakNode, textNode, advancedTableNode, crossTabNode, hcrChartsNode];
+const defaultNodes = [imageNode, lineNode, pageBreakNode, textNode, advancedTableNode, crossTabNodev2, hcrChartsNode];
 
 const DefaultNodeItem = ({ node, isExperimental = false }) => {
     const canvasMargin = useSelector(state => state.cannedReports.present.hcrTabData.panes.find(pane => pane.key === state.cannedReports.present.hcrTabData.activeKey)?.canvasProperties?.margin || {});
@@ -270,6 +289,6 @@ export default function HcrCanvasSidebar() {
                 })}
             </Space>
         </Card>
-        <TableOutlinePanel />
+        <OutlinePanel />
     </Space>
 }

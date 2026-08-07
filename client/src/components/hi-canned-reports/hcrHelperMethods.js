@@ -1,11 +1,20 @@
+import { AreaChartOutlined, PlusOutlined } from "@ant-design/icons";
 import { Image, Menu, Space, Tooltip, Typography } from "antd";
+import { cloneDeep, isArray, isEmpty, isEqual } from "lodash";
+import moment from "moment";
+import { v4 as uuidv4 } from "uuid";
+import requests from "../../base/requests";
 import constants from "../../constants";
 import { fileBrowserActions, hcrActions } from "../../redux/actions";
-import { AreaChartOutlined, PlusOutlined } from "@ant-design/icons";
+import { hcrTabInitialState } from "../../redux/reducers/hCR.reducer";
 import {
-  COLUMN_DATA,
-  COLUMN_FOOTER,
-  COLUMN_HEADER,
+  checkRelativeDateFilter,
+  defaultAnchor,
+} from "../../utils/filter-utils";
+import { uuid } from "../../utils/uuid";
+import TutorialInfo from "../common/hi-tutorial";
+import HIIcon from "../common/icons/hi-icons";
+import {
   HCR_CROSSTAB_CELL_HEIGHT,
   HCR_CROSSTAB_CELL_WIDTH,
   HCR_CROSSTAB_COLUMN_GROUP,
@@ -14,7 +23,6 @@ import {
   HCR_CROSSTAB_ROW_GROUP,
   HCR_CROSSTAB_ROW_HEADER,
   HCR_CROSSTAB_ROW_TOTAL_HEADER,
-  HCR_TABLE_DATA_CELL_HEIGHT,
   HCR_TABLE_DATA_CELL_WIDTH,
   hcrDSParameter,
   hcrDSQuery,
@@ -25,36 +33,24 @@ import {
   hcrParaInput,
   hcrParaQueryBasedDropdownList,
   hcrTableBandOrder,
-  hcrTableBandsTypes,
-  TABLE_FOOTER,
-  TABLE_HEADER,
+  hcrTableBandsTypes
 } from "./hcr-constants";
-import {
-  checkRelativeDateFilter,
-  defaultAnchor,
-} from "../../utils/filter-utils";
-import moment from "moment";
-import { v4 as uuidv4 } from "uuid";
-import TutorialInfo from "../common/hi-tutorial";
-import HIIcon from "../common/icons/hi-icons";
-import requests from "../../base/requests";
-import { cloneDeep, isArray, isEmpty, isEqual, property, update } from "lodash";
-import { hcrTabInitialState } from "../../redux/reducers/hCR.reducer";
-import { uuid } from "../../utils/uuid";
+import { HCR_TABLE_CELL_PROPERTIES } from "./hcrCanvas/advanceComponents/contants";
 import {
   createCell,
+  getAdvancedTableConfig,
+  getAvailableBands,
+  getDroppedNodeData,
   getErrorMessage,
-  handleStreamResponse,
+  getInitialGroupData,
+  getTableStyles,
+  isGroupBand,
   makeCellId,
   hcrCanvasPaneHelperMethods,
-  getDroppedNodeData,
-  getAdvancedTableConfig,
-  isGroupBand,
-  getAvailableBands,
-  getInitialGroupData,
-  getTableStyles
+  getCrosstabStyles,
+  getCrosstabConfigV2
 } from "./hcrCanvas/hcrCanvasPaneHelperMethods";
-import { HCR_TABLE_CELL_PROPERTIES } from "./hcrCanvas/advanceComponents/contants";
+
 
 const randomString = uuid;
 const { Paragraph } = Typography;
@@ -1776,7 +1772,88 @@ const getPreviewBreak = (pageBreak) => {
   return nodeDetails;
 };
 
-const getPreviewCrosstab = (crosstab = {}) => {
+export const getCTNodesFormData = (crosstab = {}) => {
+  const { config = {}, styles = [] } = crosstab || {}
+  const { nodes = {}, columnGroups = [], rowGroups = [], measureCells = [], measures = [] } = config || {}
+
+  function getGroups(groups = [], headerLabel, totalHeaderLabel, nodes = {}, sizeUnit) {
+    return groups.map((cGrp) => {
+      const { cells = [], name } = cGrp || {};
+      const [headerCell, totalCell] = cells || [];
+      const { className = "", nodeIds: headerCellNodeIds = [], styleNameReference: hStyleId } = headerCell || {};
+      const { nodeIds: totalCellNodesIds = [], styleNameReference: tStyleId } = totalCell || {};
+      const header = nodes[headerCellNodeIds?.[0]] || {};
+      const totalHeader = nodes[totalCellNodesIds?.[0]] || {};
+
+      let hStyleNameReference = styles.find(({ id }) => id === hStyleId)?.styleName || null;
+      let tStyleNameReference = styles.find(({ id }) => id === tStyleId)?.styleName || null;
+
+      return {
+        name,
+        [sizeUnit]: header[sizeUnit],
+        bucket: {
+          className: className || "java.lang.String",
+          expression: `$F{${name}}`,
+        },
+        [headerLabel]: isEmpty(header) ? {} : {
+          styleNameReference: hStyleNameReference,
+          textField: getPreviewTextField({
+            ...header, x: 0, y: 0, label: header.label,
+          })
+        },
+        [totalHeaderLabel]: isEmpty(totalHeader) ? {} : {
+          styleNameReference: tStyleNameReference,
+          textField: addEscapedQuotes(
+            getPreviewTextField({
+              ...totalHeader, x: 0, y: 0, label: totalHeader.label
+            }))
+        }
+      }
+    })
+  }
+
+  function getCTCells(cells = [], nodes = {}) {
+    return cells.map((cell) => {
+      const { width, height, nodeIds = [], columnTotalGroup, rowTotalGroup, styleNameReference: styleId } = cell || {};
+      let styleNameReference = styles.find(({ id }) => id === styleId)?.styleName || null;
+
+      const returnObj = {
+        width,
+        height,
+        styleNameReference,
+        textField: nodeIds.map((id, index, arr) => {
+          const node = nodes[id];
+          if (node) {
+            let y = 0;
+            const prevNodeId = arr[index - 1];
+            if (prevNodeId) {
+              y = nodes[prevNodeId].height
+            }
+            return getPreviewTextField({ ...node, x: 0, y })
+          }
+          return null;
+        }).filter(Boolean)
+      }
+      if (columnTotalGroup) returnObj.columnTotalGroup = columnTotalGroup;
+      if (rowTotalGroup) returnObj.rowTotalGroup = rowTotalGroup;
+      return returnObj;
+    })
+  }
+
+  return {
+    columnGroups: getGroups(columnGroups, HCR_CROSSTAB_COLUMN_HEADER, HCR_CROSSTAB_COLUMN_TOTAL_HEADER, nodes, "height"),
+    rowGroups: getGroups(rowGroups, HCR_CROSSTAB_ROW_HEADER, HCR_CROSSTAB_ROW_TOTAL_HEADER, nodes, "width"),
+    measures: measures.map((measure) => {
+      return {
+        ...measure,
+        name: `${measure.name}_MEASURE`,
+      }
+    }),
+    crosstabCells: getCTCells(measureCells, nodes)
+  }
+}
+
+const getPreviewCrosstabV2 = (crosstab = {}) => {
   const {
     positionType,
     stretchType,
@@ -1795,12 +1872,12 @@ const getPreviewCrosstab = (crosstab = {}) => {
     height,
     dataSets = [],
     selectedQueryID,
-    formdata = {},
     repeatColumnHeaders,
     repeatRowHeaders,
     columnBreakOffset,
     properties = []
   } = crosstab || {};
+
   const selectedQuery =
     dataSets?.find((ele) => ele.id === selectedQueryID) || {};
   const { name = "", dataSetExpression = "" } = selectedQuery || {};
@@ -1834,7 +1911,8 @@ const getPreviewCrosstab = (crosstab = {}) => {
 
   let returnObj = {
     dataSetRun,
-    ...formdata,
+    //  add nodes details
+    ...getCTNodesFormData(crosstab),
   };
 
   if (Object.keys(borders).length) {
@@ -1881,7 +1959,7 @@ const getPreviewCrosstab = (crosstab = {}) => {
   returnObj.componentElementProperties = componentElementProperties;
 
   return returnObj;
-};
+}
 
 const getPreviewChart = (chart = {}) => {
   const {
@@ -2774,12 +2852,38 @@ const addNodeToBand = ({ formData, node, band, bandLimits }) => {
       reqObj.image.push(getPreviewImage(node));
     } else if (node.category === "pageBreak") {
       reqObj.break.push(getPreviewBreak(node));
-    } else if (node.category === "crosstab") {
-      reqObj?.crosstab?.push(getPreviewCrosstab(node));
     } else if (node.category === "chart") {
       reqObj?.chart?.push(getPreviewChart(node));
     } else if (node.category === "advancedTable") {
       reqObj?.table?.push(getPreviewAdvancedTable(node));
+    } else if (node.category === "crosstabv2") {
+      reqObj?.crosstab?.push(getPreviewCrosstabV2(node));
+    }
+
+    switch (node.category) {
+      case "text":
+        reqObj.textField.push(getPreviewTextField(node));
+        break;
+      case "line":
+        reqObj.lines.push(getPreviewLine(node));
+        break;
+      case "image":
+        reqObj.image.push(getPreviewImage(node));
+        break;
+      case "pageBreak":
+        reqObj.break.push(getPreviewBreak(node));
+        break;
+      case "chart":
+        reqObj?.chart?.push(getPreviewChart(node));
+        break;
+      case "advancedTable":
+        reqObj?.table?.push(getPreviewAdvancedTable(node));
+        break;
+      case "crosstabv2":
+        reqObj?.crosstab?.push(getPreviewCrosstabV2(node));
+        break;
+      default:
+        break;
     }
   }
 };
@@ -3007,20 +3111,20 @@ export const getPreviewFormData = ({
   nodes = nodes.filter((node) => !node.isTableCell && !node.isCrosstabCell);
   const crosstabCellsFormData = getCTFormData(crosstabCells);
   const includeDataset = nodes.some((node) =>
-    ["crosstab", "chart", "advancedTable"].includes(node.category),
+    ["crosstabv2", "chart", "advancedTable"].includes(node.category),
   );
   const isTableOnlyNodes = nodes.every((node) =>
-    ["crosstab", "chart", "advancedTable"].includes(node.category),
+    ["crosstabv2", "chart", "advancedTable"].includes(node.category),
   );
 
-  nodes = nodes.map((node) => { // assign table styles to table components
-    if (node.category === "advancedTable") {
+  nodes = nodes.map((node) => { // assign table and crosstab styles to table components
+    if (["advancedTable", "crosstabv2"].includes(node.category)) {
       node.styles = tableStyles
     }
     return node;
   })
 
-  const crosstabAndChartNodes = nodes.filter((node) => ["crosstab", "chart"].includes(node.category));
+  const crosstabAndChartNodes = nodes.filter((node) => ["chart"].includes(node.category));
 
   const formData = {
     format: format,
@@ -3299,24 +3403,15 @@ export const getPreviewFormData = ({
   }
 
   nodes = nodes.map((node) => {
-    if (node.category === "crosstab") {
-      return {
+    if (["crosstab", "crosstabv2", "chart", "advancedTable"].includes(node.category)) {
+      const value = {
         ...node,
-        formdata: crosstabCellsFormData?.[node.id] || {},
-        dataSets,
-      };
-    }
-    if (node.category === "chart") {
-      return {
-        ...node,
-        dataSets,
-      };
-    }
-    if (node.category === "advancedTable") {
-      return {
-        ...node,
-        dataSets,
-      };
+        dataSets
+      }
+      if (node.category === "crosstab") {
+        value.formdata = crosstabCellsFormData?.[node.id] || {}
+      }
+      return value;
     }
     return node;
   });
@@ -4785,6 +4880,7 @@ export const updateCanvasTabViewComponent = (node, actionType, payload = {}) => 
           }
         })
       }
+      break;
     }
     case "updateNodeProperties": {
       if (node.selectedNodes.length) {
@@ -4933,11 +5029,124 @@ const getConvertedAdvanceTableNodes = (nodes) => {
   })
 }
 
-export const parseHCRNodesData = (nodes = []) => {
+const getConvertedCrosstabNodes = (ctNodes = [], dsPanes = []) => {
+  if (!ctNodes.length) return []
+
+  function getQuery(queryId) {
+    const queriesMenu = dsPanes
+      ?.find((ele) => ele.dataSourcePane === hcrDSQuery)
+      ?.menu?.filter(
+        (ele) =>
+          ele.executeQueryData?.data.length ||
+          ele.executeQueryData?.field.length,
+      ) || [];
+    return queriesMenu?.find((ele) => ele.id === queryId);
+  }
+
+  let tableStyles = []
+  return ctNodes.map((component, index) => {
+    const {
+      id: nodeId,
+      selectedQueryID,
+      selectedColumnFields,
+      selectedRowFields,
+      selectedMeasures,
+      measuresAggregateMap,
+      padding,
+      height: cHeight,
+      width: cWidth,
+      childNodes = [],
+      category,
+      columnHeaders,
+      groupChildren,
+      groupChildrenSize,
+      isGroup,
+      name,
+      renderKey,
+      rowHeaders,
+      ...rest
+    } = component || {}
+
+    const { executeQueryData = {} } = getQuery(selectedQueryID) || {}
+    const { field = [] } = executeQueryData || {}
+
+    const config = getCrosstabConfigV2({
+      columnFields: selectedColumnFields,
+      rowFields: selectedRowFields,
+      measures: selectedMeasures,
+      nodeId,
+      fields: field,
+      measuresAggregateMap,
+      padding,
+      tableStyles
+    });
+
+    const {
+      columnGroups,
+      rowGroups,
+      measureCells,
+      crosstabHeader,
+      measures,
+      width,
+      height,
+      nodes,
+      styles = [],
+      colWidths,
+      rowHeights
+    } = config || {};
+
+    tableStyles = [...tableStyles, ...styles];
+
+    const updatedNodes = {}
+    for (let nId in nodes) {
+      const node = nodes[nId]
+      const nodeInChildren = childNodes.find((n) => n.value === node.value);
+      if (nodeInChildren) {
+        const { isCrosstabCell, group, parent, identifier, x, y, id, label, ...rest } = nodeInChildren || {}
+        updatedNodes[nId] = { ...node, ...rest }
+      } else {
+        updatedNodes[nId] = node
+      }
+    }
+
+    return {
+      id: nodeId,
+      selectedQueryID,
+      category: "crosstabv2",
+      name: "crossTabv2",
+      renderKey: "crosstabv2",
+      config: {
+        columnGroups,
+        rowGroups,
+        measureCells,
+        measures,
+        nodes: updatedNodes,
+        crosstabHeader,
+        colWidths,
+        rowHeights
+      },
+      width: width > cWidth ? width : cWidth,
+      height: height > cHeight ? height : cHeight,
+      selectedColumnFields,
+      selectedRowFields,
+      selectedMeasures,
+      measuresAggregateMap,
+      padding,
+      isAppliedClicked: true,
+      copiedConfig: {},
+      isCTConstructed: true,
+      tableStyles,
+      ...rest
+    }
+  })
+}
+
+export const parseHCRNodesData = (nodes = [], dsPanes = []) => {
   if (!nodes.length) return []
   let copiedNodes = cloneDeep(nodes)
   const isTableNodePresent = copiedNodes.find(node => node.category === "table")
-  if (!isTableNodePresent) return copiedNodes;
+  const isCTNodePresent = copiedNodes.find(node => node.category === "crosstab")
+  if (!isTableNodePresent && !isCTNodePresent) return copiedNodes;
 
   const tableNodes = copiedNodes
     .filter(node => ["table"].includes(node.category))
@@ -4947,23 +5156,39 @@ export const parseHCRNodesData = (nodes = []) => {
       tNode.tableCells = cells
       return tNode
     });
-  copiedNodes = copiedNodes.filter((node) => !["table"].includes(node.category) && !node.isTableCell);
-  copiedNodes = [...copiedNodes, ...(getConvertedAdvanceTableNodes(tableNodes) || [])]
+
+  const crosstabNodes = copiedNodes
+    .filter(node => ["crosstab"].includes(node.category))
+    .map((ctNode) => {
+      const id = ctNode.id
+      let nodes = copiedNodes.filter(node => node.parent === id) || []
+      ctNode.childNodes = nodes
+      return ctNode
+    });
+
+  copiedNodes = copiedNodes.filter((node) => !["table", "crosstab"].includes(node.category) && !node.isTableCell && !node.isCrosstabCell);
+  copiedNodes = [
+    ...copiedNodes,
+    ...(getConvertedAdvanceTableNodes(tableNodes) || []),
+    ...(getConvertedCrosstabNodes(crosstabNodes, dsPanes) || [])
+  ]
   return copiedNodes;
 }
 
 export const getSubDataSetsFromReportState = (nodes, dsPanes) => {
   if (!nodes.length) return []
 
-  const advancedTables = nodes.filter(node => node.category === "advancedTable");
-  if (!advancedTables.length) return [];
+  const advancedComponents = nodes.filter(node => ["advancedTable", "crosstabv2"].includes(node.category));
+  if (!advancedComponents.length) return [];
 
-  return advancedTables.map((table) => {
-    const { selectedQueryID, selectedGroupFields = [], selectedFields = [], id: tableId } = table || {}
-    if (!selectedQueryID) { // empty table usecase
-      return {
-        ...getInitialSubDataSet(),
-        id: `EMPTY_${tableId}`
+  return advancedComponents.map((component) => {
+    const { selectedQueryID, selectedGroupFields = [], selectedFields = [], id: compId, category } = component || {}
+    if (category === "advancedTable") {
+      if (!selectedQueryID) { // empty table usecase
+        return {
+          ...getInitialSubDataSet(),
+          id: `EMPTY_${compId}`
+        }
       }
     }
 
@@ -5320,16 +5545,45 @@ export const updateElementsWithStyles = (previousStyles = [], updatedStyle = [],
     return copiedCell;
   }
 
+  function getCells(component) {
+    const { columnGroups, rowGroups, measureCells } = component.config;
+    const cells = [
+      ...measureCells,
+      ...(columnGroups.flatMap(({ cells }) => cells)),
+      ...(rowGroups.flatMap(({ cells }) => cells)),
+    ]
+    return cells
+  }
+
+  function updateCTCell(cell = {}) {
+    if (cell.styleNameReference && !isStyleNameAvailableInBoth(cell.styleNameReference)) {
+      cell.styleNameReference = undefined
+    }
+  }
 
   return nodes.map((node) => {
-    if (["advancedTable"].includes(node.category)) {
-      const { cells = {}, nodes = {} } = node || {};
-      for (let nodeId in nodes) {
-        node.nodes[nodeId] = updateNormalNode(node.nodes[nodeId]);
-      }
+    if (["advancedTable", "crosstabv2"].includes(node.category)) {
+      if (node.category === "advancedTable") {
+        const { cells = {}, nodes = {} } = node || {};
+        for (let nodeId in nodes) {
+          node.nodes[nodeId] = updateNormalNode(node.nodes[nodeId]);
+        }
 
-      for (let cellId in cells) {
-        node.cells[cellId] = updateTableCell(node.cells[cellId])
+        for (let cellId in cells) {
+          node.cells[cellId] = updateTableCell(node.cells[cellId])
+        }
+      }
+      if (node.category === "crosstabv2") {
+        const { config = {} } = node || {}
+        const { nodes = {} } = config || {}
+        for (let nodeId in nodes) {
+          node.config.nodes[nodeId] = updateNormalNode(node.config.nodes[nodeId]);
+        }
+
+        const cells = getCells(node)
+        for (let cell of cells) {
+          updateTableCell(cell)
+        }
       }
     } else {
       node = updateNormalNode(node);
@@ -5436,5 +5690,423 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
     }
     default:
       break;
+  }
+}
+
+export const updateHCRCrosstabComponent = (component, actionType, payload = {}) => {
+  const {
+    nodeId,
+    cellId,
+    selectedNodes = [],
+    selectedCells = [],
+    selectedCalculation = [],
+    selectedGroup = [],
+    selectedParameter = [],
+    selectedStyle = [],
+    outlineDsSelectedField,
+    copiedNodes = [],
+    cutNodesData = [],
+    cellIds = [],
+    properties = {},
+    selectedCTGroup = [],
+    selectedCTMeasure = [],
+    measureId,
+    groupId,
+    groupType,
+    sourceCellId,
+    targetCellId,
+    width,
+    height,
+    colWidths,
+    rowHeights,
+    position,
+    cellsToUpdate = [],
+    type
+  } = payload || {}
+
+  const initialSelectionPayload = {
+    selectedNodes: [],
+    outlineDsSelectedField: null,
+    selectedCalculation: [],
+    selectedCells: [],
+    selectedGroup: [],
+    selectedParameter: [],
+    selectedStyle: [],
+    selectedCTGroup: [],
+    selectedCTMeasure: [],
+    selectedCrosstab: null
+  }
+  function resetSelection() {
+    for (let item in initialSelectionPayload) {
+      component[item] = initialSelectionPayload[item]
+    }
+  }
+
+  function getPastedNodeData(item = {}, cell = {}) {
+    const { id, width, nodeIds = [], height } = cell || {}
+    let prevNodes = nodeIds.length || 1
+    let node = {
+      ...item,
+      cellId: id,
+      id: `node-${uuidv4()}`,
+      width: width,
+      height: height / prevNodes,
+    }
+    return node;
+  }
+
+  function getCell(component, cellId) {
+    const { columnGroups, rowGroups, measureCells } = component.config;
+    const cells = [
+      ...measureCells,
+      ...(columnGroups.flatMap(({ cells }) => cells)),
+      ...(rowGroups.flatMap(({ cells }) => cells)),
+    ]
+    return cells.find((cell) => cell.id === cellId);
+  }
+
+  function updateCell(component, cellId, properties) {
+    const { columnGroups, rowGroups, measureCells } = component.config;
+    function mapOnCells(data) {
+      return data.map((grp) => {
+        return {
+          ...grp,
+          cells: grp.cells.map((cell) => {
+            if (cell.id === cellId) {
+              return {
+                ...cell,
+                ...properties
+              }
+            }
+            return cell;
+          })
+        }
+      })
+    }
+
+    component.config.columnGroups = mapOnCells(columnGroups)
+    component.config.rowGroups = mapOnCells(rowGroups)
+    component.config.measureCells = measureCells.map((cell) => {
+      if (cell.id === cellId) {
+        return {
+          ...cell,
+          ...properties
+        }
+      }
+      return cell;
+    })
+  }
+
+  function updateNode(component, nodeIds, cell, type) {
+    const width = cell.width;
+    const height = cell.height / nodeIds.length;
+
+    nodeIds.forEach((nodeId) => {
+      const node = component.config.nodes[nodeId]
+      if (node) {
+        switch (type) {
+          case "width": {
+            node.width = width;
+            break;
+          }
+          case "height": {
+            node.height = height;
+            break;
+          }
+          default:
+            break;
+        }
+      }
+    })
+  }
+
+  function resizeCell(component, { cellId, width = undefined, height = undefined }) {
+    const cell = getCell(component, cellId)
+    if (!cell) return;
+
+    if (width !== undefined) {
+      const widthFactor = width - cell.width;
+      cell.width = cell.width + widthFactor;
+
+      if (cell.nodeIds.length) {
+        updateNode(component, cell.nodeIds, cell, "width")
+      }
+    }
+    if (height !== undefined) {
+      const heightFactor = height - cell.height;
+      cell.height = cell.height + heightFactor;
+      if (cell.nodeIds.length) {
+        updateNode(component, cell.nodeIds, cell, "height")
+      }
+    }
+  }
+
+  switch (actionType) {
+    case "selectNodes": {
+      resetSelection()
+      component.selectedNodes = selectedNodes;
+      break;
+    }
+    case "selectNode": {
+      resetSelection()
+      component.selectedNodes = [nodeId];
+      break;
+    }
+    case "selectCells": {
+      resetSelection()
+      component.selectedCells = selectedCells;
+      break;
+    }
+    case "removeSelectedNode": {
+      resetSelection()
+      component.selectedNodes = (component.selectedNodes || []).filter((id) => id !== nodeId)
+      break;
+    }
+    case "removeSelectedCell": {
+      resetSelection()
+      component.selectedCells = (component.selectedCells || []).filter((id) => id !== cellId)
+      break;
+    }
+    case "selectOutlineDSField": {
+      resetSelection()
+      component.outlineDsSelectedField = outlineDsSelectedField;
+      break;
+    }
+    case "selectCalculation": {
+      resetSelection()
+      component.selectedCalculation = selectedCalculation;
+      break;
+    }
+    case "selectGroup": {
+      resetSelection()
+      component.selectedGroup = selectedGroup;
+      break;
+    }
+    case "selectParameter": {
+      resetSelection()
+      component.selectedParameter = selectedParameter;
+      break;
+    }
+    case "selectTableStyle": {
+      resetSelection()
+      component.selectedStyle = selectedStyle;
+      break;
+    }
+    case "selectCTGroup": {
+      resetSelection()
+      component.selectedCTGroup = selectedCTGroup;
+      break;
+    }
+    case "selectCTMeasure": {
+      resetSelection()
+      component.selectedCTMeasure = selectedCTMeasure;
+      break;
+    }
+    case "selectCrosstab": {
+      resetSelection()
+      component.selectedCrosstab = component.id;
+      break;
+    }
+    case "clearSelection": {
+      resetSelection()
+      break;
+    }
+    case "moveNode": {
+      const nodeToMove = component.config.nodes[nodeId]
+      const targetCell = getCell(component, targetCellId)
+      if (!nodeToMove || !targetCell) break;
+
+      const sourceCell = getCell(component, sourceCellId)
+      if (sourceCell) {
+        sourceCell.nodeIds = sourceCell.nodeIds.filter((id) => id !== nodeId);
+
+        // reset source cell nodes height
+        if (sourceCell.nodeIds.length) {
+          sourceCell.nodeIds.forEach((nId, i, arr) => {
+            let cellNode = component.config.nodes[nId]
+            cellNode.height = sourceCell.height / (arr.length || 1)
+          })
+        }
+      }
+      targetCell.nodeIds.push(nodeId);
+
+      nodeToMove.cellId = targetCellId;
+      nodeToMove.width = targetCell.width;
+      nodeToMove.height = targetCell.height;
+
+      // set targetCell nodes width and other properties
+      targetCell.nodeIds.forEach((nId, i, arr) => {
+        let cellNode = component.config.nodes[nId]
+        cellNode.height = targetCell.height / (arr.length || 1)
+        cellNode.width = targetCell.width
+        HCR_TABLE_CELL_PROPERTIES.forEach((property) => {
+          if (targetCell[property]) cellNode[property] = targetCell[property]
+        })
+      })
+      break;
+    }
+    case "deleteNode": {
+      if (component.selectedNodes.length) {
+        component.selectedNodes.forEach((nodeId) => {
+          const nodeToDelete = component.config.nodes[nodeId]
+          if (!nodeToDelete) return;
+
+          const cell = getCell(component, nodeToDelete.cellId)
+          if (cell) {
+            cell.nodeIds = cell.nodeIds.filter((id) => id !== nodeId);
+          }
+          delete component.config.nodes[nodeId];
+        })
+        component.selectedNodes = [];
+      } else {
+        if (nodeId) {
+          const nodeToDelete = component.config.nodes[nodeId];
+          if (!nodeToDelete) return;
+          const cell = getCell(component, nodeToDelete)
+          if (cell) {
+            cell.nodeIds = cell.nodeIds.filter((id) => id !== nodeId);
+          }
+          delete component.config.nodes[nodeId];
+        }
+      }
+      break;
+    }
+    case "pasteCopiedNodes": {
+      if (component.selectedCells.length || component.selectedNodes.length) {
+        function update(cell) {
+          copiedNodes.forEach((n) => {
+            let newNode = getPastedNodeData(n, cell)
+            cell.nodeIds.push(newNode.id)
+            component.config.nodes[newNode.id] = newNode
+          })
+
+          cell.nodeIds.forEach((nId, i, arr) => {
+            let cellNode = component.config.nodes[nId]
+            cellNode.height = cell.height / (arr.length || 1)
+          })
+        }
+        if (component.selectedNodes.length) {
+          component.selectedNodes.forEach((nodeId) => {
+            const cellId = component.config.nodes[nodeId].cellId;
+            let cell = getCell(component, cellId)
+            if (cell) {
+              update(cell)
+            }
+          })
+        } else {
+          let cell = getCell(component, component.selectedCells?.[0])
+          if (cell) {
+            update(cell)
+          }
+        }
+      } else {
+        copiedNodes.forEach((n) => {
+          let newId = `node-${uuidv4()}`
+          let cell = getCell(component, n.cellId)
+
+          if (cell) {
+            cell.nodeIds.push(newId)
+            component.config.nodes[newId] = { ...n, id: newId }
+
+            cell.nodeIds.forEach((nId, i, arr) => {
+              let cellNode = component.config.nodes[nId]
+              cellNode.height = cell.height / (arr.length || 1)
+            })
+          }
+        })
+      }
+      break;
+    }
+    case "cutNodes": {
+      if (cutNodesData.length) {
+        cutNodesData.forEach(({ id: nodeId, cellId }) => {
+          delete component.config.nodes[nodeId]
+          const cell = getCell(component, cellId)
+          if (cell) {
+            cell.nodeIds = cell.nodeIds.filter((nId) => nId !== nodeId)
+          }
+        })
+      }
+      break;
+    }
+    case "resizeCell": {
+      cellIds.forEach((cellId) => {
+        resizeCell(component, { cellId, width, height })
+      })
+      break;
+    }
+    case "updateNodeProperties": {
+      if (component.selectedNodes.length) {
+        component.selectedNodes.forEach((nodeId) => {
+          let nodeToUpdate = component.config.nodes?.[nodeId]
+          if (nodeToUpdate) {
+            component.config.nodes[nodeId] = { ...nodeToUpdate, ...properties }
+          }
+        })
+      }
+      break;
+    }
+    case "updateCellProperties": {
+      if (cellIds.length) {
+        cellIds.forEach((cellId) => {
+          updateCell(component, cellId, properties)
+        })
+      }
+      break;
+    }
+    case "updateMeasure": {
+      component.config.measures = component.config.measures.map((measure) => {
+        if (measure.id === measureId) {
+          return {
+            ...measure,
+            ...properties
+          }
+        }
+        return measure
+      })
+      break;
+    }
+    case "updateGroup": {
+      const group = groupType === "columnGroup" ? "columnGroups" : "rowGroups"
+      component.config[group] = component.config[group].map((group) => {
+        if (group.id === groupId) {
+          return {
+            ...group,
+            ...properties
+          }
+        }
+        return group;
+      })
+      break;
+    }
+    case "crosstabProperties": {
+      for (let property in properties) {
+        component[property] = properties[property]
+      }
+      break;
+    }
+    case "updateCrosstabLayout": {
+      component.config.colWidths = colWidths;
+      component.config.rowHeights = rowHeights;
+      if (cellsToUpdate.length) {
+        cellsToUpdate.forEach((cellId) => {
+          if (type === "col") {
+            resizeCell(component, {
+              cellId,
+              width: colWidths[position],
+            })
+          }
+          if (type === "row") {
+            resizeCell(component, {
+              cellId,
+              height: rowHeights[position],
+            })
+          }
+        })
+      }
+      break;
+    }
+    default:
+      break
   }
 }

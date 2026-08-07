@@ -796,7 +796,7 @@ export const agentGenerateAPI = ({ dir, file, dispatch, successCB, errorCB }) =>
   });
 };
 
-export const agentSaveAPI = ({ dir, file, agentDir, modelName, uuid,content, dispatch, successCB, errorCB }) => {
+export const agentSaveAPI = ({ dir, file, agentDir, modelName, description, uuid,content, dispatch, successCB, errorCB }) => {
   const parsedState =
     typeof content === "string" ? JSON.parse(content) : content;
   const formData = {
@@ -804,6 +804,7 @@ export const agentSaveAPI = ({ dir, file, agentDir, modelName, uuid,content, dis
     location: agentDir,
     state: parsedState,
     modelName: modelName,
+    description: description ?? "",
   };
   if (uuid) {
     formData.uuid = uuid;

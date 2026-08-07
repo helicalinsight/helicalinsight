@@ -32,9 +32,33 @@ from helicalbi.common.auth import bind_request_identity
 from helicalbi.core.flows.SqlExecutor import SqlExecutor
 from helicalbi.common.LlmInvokeHelper import set_total_time_consumed
 from helicalbi.model.output.ChatResponse import ChatResponse
-from helicalbi.sql.SqlSanitizer import format_sql, as_sql_markdown
+from helicalbi.sql.SqlSanitizer import format_sql, as_sql_markdown, strip_sql_markdown
+from helicalbi.sql_to_formdata import sql_to_form_data
 
 logger = logging.getLogger(__name__)
+
+
+def _sql_to_data_model(
+    sql: str,
+    *,
+    location: str,
+    metadata_dir: str,
+    metadata_file_name: str,
+    session_cookie: str,
+) -> dict[str, Any] | None:
+    """Temporary: build formData via sql_to_form_data (same args as instant-to-hr)."""
+    cleaned_sql = strip_sql_markdown(sql or "").strip()
+    if not cleaned_sql or not metadata_file_name or not (location or metadata_dir):
+        return None
+    return sql_to_form_data(
+        cleaned_sql,
+        location=location or metadata_dir,
+        metadata_dir=metadata_dir or location,
+        metadata_file_name=metadata_file_name,
+        session_cookie=session_cookie,
+        # Omit dialect override: FunctionCatalog maps API reference
+        # (postgresql → postgres) for sqlglot.
+    )
 
 
 def register(flask_app) -> None:
@@ -235,6 +259,25 @@ def register(flask_app) -> None:
             result["user_input"] = data
             if sql:
                 result["sql"] = as_sql_markdown(formatted_sql)
+
+            # Temporary: attach sql_to_formdata as data_model (same path as instant-to-hr).
+            try:
+                form_data = _sql_to_data_model(
+                    raw_sql,
+                    location=md_location,
+                    metadata_dir=md_location,
+                    metadata_file_name=med_file_name,
+                    session_cookie=session_cookie,
+                )
+                if form_data is not None:
+                    result["viz_form_data"] = form_data
+            except Exception:
+                logger.exception(
+                    "Interactive sql_to_formdata failed; data_model omitted "
+                    "thread=%s chat_seq_id=%s",
+                    thread_id,
+                    chat_seq_id,
+                )
 
             set_total_time_consumed(result, time.perf_counter() - request_started)
             chat_response_dict = ChatResponse.from_model_state(result).to_dict()

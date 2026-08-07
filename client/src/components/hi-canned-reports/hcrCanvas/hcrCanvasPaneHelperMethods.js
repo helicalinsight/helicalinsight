@@ -1,36 +1,26 @@
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Tooltip } from "antd";
+import { isEmpty } from "lodash";
+import { v4 as uuidv4 } from "uuid";
 import { hcrActions } from "../../../redux/actions";
+import notify from "../../hi-notifications/notify";
+import { antdChartCategoryColors } from "../../hi-reports/hi-viz-area/ant-charts/ant-utils";
 import {
   COLUMN_DATA,
   COLUMN_FOOTER,
   COLUMN_HEADER,
   HCR_CROSSTAB_CELL_HEIGHT,
   HCR_CROSSTAB_CELL_WIDTH,
-  HCR_CROSSTAB_COLUMN_GROUP,
-  HCR_CROSSTAB_COLUMN_HEADER,
-  HCR_CROSSTAB_COLUMN_TOTAL_GROUP,
-  HCR_CROSSTAB_COLUMN_TOTAL_HEADER,
-  HCR_CROSSTAB_ROW_GROUP,
-  HCR_CROSSTAB_ROW_HEADER,
-  HCR_CROSSTAB_ROW_TOTAL_GROUP,
-  HCR_CROSSTAB_ROW_TOTAL_HEADER,
   HCR_TABLE_DATA_CELL_HEIGHT,
   HCR_TABLE_DATA_CELL_WIDTH,
   hcrCanvasViews,
-  hcrDSQuery,
   hcrTableBandOrder,
   hcrTableBandsTypes,
-  hcrTableDefaultStyles,
   hcrTableStyleNameReferences,
   TABLE_FOOTER,
-  TABLE_HEADER,
+  TABLE_HEADER
 } from "../hcr-constants";
 import { checkIfBandIsDeleted, getReqNodeData } from "../hcrHelperMethods";
-import { v4 as uuidv4 } from "uuid";
-import { cloneDeep, isEmpty } from "lodash";
-import { antdChartCategoryColors } from "../../hi-reports/hi-viz-area/ant-charts/ant-utils";
-import { ArrowLeftOutlined } from "@ant-design/icons";
-import { current } from "immer";
 import { HCR_TABLE_CELL_PROPERTIES } from "./advanceComponents/contants";
 
 const {
@@ -354,28 +344,36 @@ const handleNodeSelection = (node, dispatch) => {
       }
     }
 
-    if (nodeData.category === "crosstab") {
-      switch (canvasView) {
-        case hcrCanvasViews.CANVAS:
-          viewData = {
-            id: id, label: "Crosstab", key: id,
-          }
-          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
-          break;
-
-        case hcrCanvasViews.TAB:
-          const present = tabViews.find(view => view.id === id);
-          if (present) {
-            dispatch(hcrActions.hcrUpdateCanvasView({ view: "updateActive", active: id }))
+    if (nodeData.category === "crosstabv2") {
+      if (nodeData.isCTConstructed) {
+        switch (canvasView) {
+          case hcrCanvasViews.CANVAS:
+            viewData = {
+              id: id, label: "Crosstab", key: id,
+            }
+            dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
             break;
-          }
-          viewData = {
-            id: id, label: "Crosstab", key: id,
-          }
-          dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
-          break;
-        default:
-          break;
+
+          case hcrCanvasViews.TAB:
+            const present = tabViews.find(view => view.id === id);
+            if (present) {
+              dispatch(hcrActions.hcrUpdateCanvasView({ view: "updateActive", active: id }))
+              break;
+            }
+            viewData = {
+              id: id, label: "Crosstab", key: id,
+            }
+            dispatch(hcrActions.hcrUpdateCanvasView({ view: hcrCanvasViews.TAB, viewData, active: id }))
+            break;
+          default:
+            break;
+        }
+      } else {
+        const Notify = notify(dispatch)
+        Notify.warning({
+          type: "Frontend",
+          message: "Please configure crosstab first.",
+        });
       }
     }
   }
@@ -482,76 +480,6 @@ export const getNextItemsLength = (next = []) => {
   return next?.flat(Infinity).length;
 };
 
-const getColumnHeaders = (columns = []) => {
-  if (!columns?.length) return [];
-  return columns
-    ?.map((column, index, arr) => {
-      if (Array.isArray(column)) return null;
-      const cellWidth =
-        HCR_CROSSTAB_CELL_WIDTH * (getNextItemsLength(arr) || 1);
-      const cellHeight = HCR_CROSSTAB_CELL_HEIGHT * getNextItemsLength(arr);
-      return {
-        key: column,
-        emptyCellHeight: cellHeight,
-        items: [
-          {
-            label: "$V",
-            value: column,
-            width: cellWidth,
-            height: HCR_CROSSTAB_CELL_HEIGHT,
-            identifier: HCR_CROSSTAB_COLUMN_TOTAL_GROUP,
-          },
-          {
-            label: "Total",
-            value: column,
-            width: HCR_CROSSTAB_CELL_WIDTH,
-            height: cellHeight,
-            isTotal: true,
-            identifier: HCR_CROSSTAB_COLUMN_TOTAL_GROUP,
-          },
-        ],
-        children: getColumnHeaders(arr[index + 1]),
-      };
-    })
-    .filter(Boolean);
-};
-
-const getRowHeaders = (rows = [], measures = []) => {
-  if (!rows?.length) return [];
-  return rows
-    ?.map((row, index, arr) => {
-      if (Array.isArray(row)) return null;
-      const measuresLength = measures?.length;
-      const cellWidth = HCR_CROSSTAB_CELL_WIDTH * getNextItemsLength(arr);
-      const cellHeight =
-        HCR_CROSSTAB_CELL_HEIGHT *
-        (getNextItemsLength(arr) || 1) *
-        (measuresLength || 1);
-      return {
-        key: row,
-        emptyCellWidth: cellWidth,
-        items: [
-          {
-            label: "$V",
-            value: row,
-            width: HCR_CROSSTAB_CELL_WIDTH,
-            height: cellHeight,
-            identifier: HCR_CROSSTAB_ROW_TOTAL_GROUP,
-          },
-          {
-            label: "Total",
-            value: row,
-            width: cellWidth,
-            height: HCR_CROSSTAB_CELL_HEIGHT * (measuresLength || 1),
-            isTotal: true,
-            identifier: HCR_CROSSTAB_ROW_TOTAL_GROUP,
-          },
-        ],
-        children: getRowHeaders(rows[index + 1], measures),
-      };
-    })
-    .filter(Boolean);
-};
 
 export const getNestedArr = (arr) => {
   if (arr.length === 0) return [];
@@ -559,7 +487,7 @@ export const getNestedArr = (arr) => {
   return [arr[0], getNestedArr(arr.slice(1))];
 };
 
-const calculatCTotalHeightAndWidth = (
+export const calculateCTTotalHeightAndWidth = (
   rows = [],
   columns = [],
   measures = [],
@@ -576,26 +504,20 @@ const calculatCTotalHeightAndWidth = (
   };
 };
 
-const getActualField = (fields = [], name) => {
+export const getActualField = (fields = [], name) => {
   return fields.find((field) => field.name === name);
 };
 
-const getCrossTabStaticNode = ({
-  height,
+export const getCTStaticTextNode = ({
   width,
-  value,
-  addExpression,
-  isTotal = false,
-  nodeId,
-  cell,
-  identifier,
-  x,
-  y,
+  height,
+  cellId,
+  label,
+  value
 }) => {
-  const id = `node-${uuidv4()}`;
   return {
-    id,
-    label: addExpression ? `Total \n${value}` : isTotal ? "Total" : "$V",
+    id: uuidv4(),
+    label,
     value,
     borders: {},
     padding: {},
@@ -610,37 +532,29 @@ const getCrossTabStaticNode = ({
     zIndex: 10,
     type: "defaultNodes",
     fontSize: 10,
-    group: nodeId,
-    parent: nodeId,
-    x,
-    y,
-    cell,
-    identifier,
-    isCrosstabCell: true,
+    x: 0,
+    y: 0,
+    cellId,
+    static: true
   };
-};
+}
 
-const getCrossTabTextNode = ({
-  height,
+export const getCTTextNode = ({
   width,
+  height,
+  cellId,
+  label,
   value,
-  addExpression,
-  nodeId,
-  cell,
-  identifier,
-  x,
-  y,
-  otherProps = {},
   actualField = {},
+  otherProps = {}
 }) => {
-  const id = `node-${uuidv4()}`;
   return {
-    id,
+    id: uuidv4(),
     name: value,
     value,
-    width: width,
-    height: height,
-    label: addExpression ? `$V{${value}}` : "$V",
+    width,
+    height,
+    label,
     renderKey: "text",
     isLeaf: true,
     zIndex: 10,
@@ -651,304 +565,311 @@ const getCrossTabTextNode = ({
     borders: {},
     padding: {},
     backendDataType: actualField?.clazz || "",
-    group: nodeId,
-    x,
-    y,
-    parent: nodeId,
-    cell,
-    identifier,
-    isCrosstabCell: true,
+    x: 0,
+    y: 0,
+    cellId,
     ...otherProps,
   };
-};
+}
 
-const getHeaderNodes = (
-  headers = [],
-  {
-    crossTabX,
-    crossTabY,
-    emptyCellWidth,
-    emptyCellHeight,
-    prevHeight = 0,
-    prevWidth = 0,
-    nodeId,
-    isColumnHeader = true,
-    fields,
-  },
-) => {
-  return headers
-    .map(({ items = [], children = [] }) => {
-      let headerNodes = [];
-      let childrenCount = children.length;
-      let prevNodeHeight = prevHeight;
-      let prevNodeWidth = prevWidth;
-      headerNodes = items.map(({ value, width, height }, i, arr) => {
-        let identifier = HCR_CROSSTAB_COLUMN_GROUP;
-        const actualField = getActualField(fields, value);
-        if (!isColumnHeader) identifier = HCR_CROSSTAB_ROW_GROUP;
-        if (i === 0) {
-          prevNodeHeight += height;
-          prevNodeWidth += width;
-          let sX = crossTabX + emptyCellWidth;
-          let sY = crossTabY + prevHeight;
-          let cell = HCR_CROSSTAB_COLUMN_HEADER;
-          if (!isColumnHeader) {
-            sX = crossTabX + prevWidth;
-            sY = crossTabY + emptyCellHeight;
-            cell = HCR_CROSSTAB_ROW_HEADER;
-          }
-          return getCrossTabTextNode({
-            value,
-            width,
-            height,
-            addExpression: childrenCount,
-            x: sX,
-            y: sY,
-            cell,
-            nodeId,
-            identifier,
-            actualField,
-          });
+export const getCTStylesReferences = (styles) => {
+  const CH = styles.find(({ styleName }) => styleName.includes("CH")),
+    CT = styles.find(({ styleName }) => styleName.includes("CT")),
+    CG = styles.find(({ styleName }) => styleName.includes("CG")),
+    CD = styles.find(({ styleName }) => styleName.includes("CD"))
+
+  return {
+    "CH": CH?.id,
+    "CT": CT?.id,
+    "CG": CG?.id,
+    "CD": CD?.id
+  }
+}
+
+export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) => {
+  const nodes = [];
+  const { CH, CT, CG } = getCTStylesReferences(styles);
+  const columnGroups = columnFields.map((field, i, arr) => {
+    const arrCount = arr.slice(i).length;
+    const cellWidth = HCR_CROSSTAB_CELL_WIDTH * arrCount,
+      cellHeight = HCR_CROSSTAB_CELL_HEIGHT * arrCount;
+
+    const headerCellId = uuidv4(),
+      totalCellId = uuidv4();
+
+    const actualField = getActualField(fields, field);
+
+    const headerNode = getCTTextNode({
+      width: cellWidth,
+      height: HCR_CROSSTAB_CELL_HEIGHT,
+      cellId: headerCellId,
+      label: `$V{${field}}`,
+      value: field,
+      actualField
+    });
+
+    const totalNode = getCTStaticTextNode({
+      width: HCR_CROSSTAB_CELL_WIDTH,
+      height: cellHeight,
+      cellId: totalCellId,
+      label: `Total ${field}`,
+      value: field,
+    });
+
+    nodes.push(headerNode, totalNode);
+
+    return {
+      id: uuidv4(),
+      name: field,
+      label: field,
+      type: "columnGroup",
+      headerCellWidth: cellWidth,
+      totalCellHeight: cellHeight,
+      className: "java.lang.String",
+      expression: `$F{${field}}`,
+      cells: [
+        {
+          id: headerCellId,
+          label: `Header ${field}`,
+          value: field,
+          width: cellWidth,
+          height: HCR_CROSSTAB_CELL_HEIGHT,
+          nodeIds: [headerNode.id],
+          className: actualField.clazz,
+          styleNameReference: CH
+        },
+        {
+          id: totalCellId,
+          label: `Total ${field}`,
+          value: field,
+          width: HCR_CROSSTAB_CELL_WIDTH,
+          height: cellHeight,
+          nodeIds: [totalNode.id],
+          styleNameReference: i > 0 ? CG : CT
         }
-        let tX = crossTabX + emptyCellWidth + arr[i - 1].width;
-        let tY = crossTabY + prevHeight;
+      ],
+    }
+  })
+  return { columnGroups, nodes }
+}
 
-        if (!isColumnHeader) {
-          tX = crossTabX + prevWidth;
-          tY = crossTabY + emptyCellHeight + arr[i - 1].height;
+export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = []) => {
+  const nodes = [];
+  const { CH, CT, CG } = getCTStylesReferences(styles);
+  const rowGroups = rowFields.map((field, i, arr) => {
+    const arrCount = arr.slice(i).length;
+    const measuresLength = measures?.length;
+
+    const cellWidth = HCR_CROSSTAB_CELL_WIDTH * arrCount,
+      cellHeight = HCR_CROSSTAB_CELL_HEIGHT * arrCount * (measuresLength || 1);
+
+    const headerCellId = uuidv4(),
+      totalCellId = uuidv4();
+
+    const actualField = getActualField(fields, field);
+
+    const headerNode = getCTTextNode({
+      width: HCR_CROSSTAB_CELL_WIDTH,
+      height: cellHeight,
+      cellId: headerCellId,
+      label: `$V{${field}}`,
+      value: field,
+      actualField,
+    });
+
+    const totalNode = getCTStaticTextNode({
+      width: cellWidth,
+      height: HCR_CROSSTAB_CELL_HEIGHT * (measuresLength || 1),
+      cellId: totalCellId,
+      label: `Total ${field}`,
+      value: field,
+    });
+    nodes.push(headerNode, totalNode);
+
+    return {
+      id: uuidv4(),
+      name: field,
+      label: field,
+      type: "rowGroup",
+      headerCellHeight: cellHeight,
+      totalCellWidth: cellWidth,
+      className: "java.lang.String",
+      expression: `$F{${field}}`,
+      cells: [
+        {
+          id: headerCellId,
+          label: `Header ${field}`,
+          value: field,
+          width: HCR_CROSSTAB_CELL_WIDTH,
+          height: cellHeight,
+          nodeIds: [headerNode.id],
+          className: actualField.clazz,
+          styleNameReference: CH
+        },
+        {
+          id: totalCellId,
+          label: `Total ${field}`,
+          value: field,
+          width: cellWidth,
+          height: HCR_CROSSTAB_CELL_HEIGHT * (measuresLength || 1),
+          nodeIds: [totalNode.id],
+          styleNameReference: i > 0 ? CG : CT
         }
+      ],
+    }
+  })
+  return { rowGroups, nodes }
+}
 
-        return getCrossTabStaticNode({
-          value,
-          width,
-          height,
-          prevNodeWidth: arr[i - 1].width,
-          addExpression: childrenCount,
-          x: tX,
-          y: tY,
-          cell: isColumnHeader
-            ? HCR_CROSSTAB_COLUMN_TOTAL_HEADER
-            : HCR_CROSSTAB_ROW_TOTAL_HEADER,
-          nodeId,
-          identifier,
-          isTotal: true,
-        });
-      });
+export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = [], fields = [], styles) => {
+  const nodes = [], cells = [];
+  const { CG, CT, CD } = getCTStylesReferences(styles);
+  const cols = ["Detail", ...(columnGroups?.map((col) => col.name)?.reverse() || [])];
+  let rows = ["Detail", ...(rowGroups?.map((row) => row.name) || [])];
 
-      if (childrenCount) {
-        headerNodes = [
-          ...headerNodes,
-          ...getHeaderNodes(children, {
-            crossTabX,
-            crossTabY,
-            emptyCellWidth,
-            emptyCellHeight,
-            prevHeight: prevNodeHeight,
-            prevWidth: prevNodeWidth,
-            nodeId,
-            isColumnHeader,
-            fields,
-          }),
-        ];
+  function getMeasures(measures, cellId, fields) {
+    return measures.map((measure) => {
+      const actualField = getActualField(fields, measure);
+      const node = getCTTextNode({
+        width: HCR_CROSSTAB_CELL_WIDTH,
+        height: HCR_CROSSTAB_CELL_HEIGHT,
+        cellId,
+        label: `$V{${measure}_MEASURE}`,
+        value: measure,
+        actualField,
+      })
+      return node;
+    })
+  }
+
+  rows.forEach((row, rowIndex, rowArr) => {
+    cols.forEach((col, colIndex, colArr) => {
+      const name = `${col}/${row}`;
+      const cellId = uuidv4();
+      const measureNodes = getMeasures(measures, cellId, fields);
+      nodes.push(...measureNodes);
+      const cell = {
+        id: cellId,
+        name,
+        label: name,
+        type: "measureCell",
+        nodeIds: measureNodes.map((node) => node.id),
+        cellIndex: rowIndex,
+        width: HCR_CROSSTAB_CELL_WIDTH,
+        height: HCR_CROSSTAB_CELL_HEIGHT * (measures?.length || 1),
+        styleNameReference: CG
+      }
+      if (col !== "Detail") {
+        cell.columnTotalGroup = col;
+      }
+      if (row !== "Detail") {
+        cell.rowTotalGroup = row;
       }
 
-      return headerNodes;
+      if (col === "Detail" && row === "Detail") {
+        cell.styleNameReference = CD
+      }
+
+      if (rowIndex === rowArr.length - 1 || colIndex === colArr.length - 1) {
+        cell.styleNameReference = CT
+      }
+
+      cells.push(cell);
     })
-    .flat(Infinity);
-};
+  })
 
-export const getHCRCrosstabCols = (columnHeaders) => {
-  return columnHeaders
-    .map(({ items = [], children = [] }) => {
-      return [
-        ...(children?.length
-          ? items.filter((item) => item.isTotal)
-          : items.reverse()),
-        ...(children?.length ? getHCRCrosstabCols(children) : []),
-      ];
+  return {
+    cells,
+    nodes
+  }
+}
+
+export const getCTMeasures = (measures, fields, measuresAggregateMap) => {
+  return measures.map((measure) => {
+    const actualField = getActualField(fields, measure);
+    return {
+      calculation: measuresAggregateMap[measure] || "Count",
+      className: actualField?.clazz || "",
+      measureExpression: `$F{${measure}}`,
+      name: measure,
+      label: `${measure}_MEASURE`,
+      id: uuidv4()
+    }
+  })
+}
+
+export const getCTComputedLayout = ({ columnGroups = [], rowGroups = [], measures = [] }) => {
+  const totalRowsCols = rowGroups.length + columnGroups.length + 1;
+
+  function getColumnWidths() {
+    const colLength = columnGroups.length;
+    return Array.from({ length: totalRowsCols }, (_, i) => {
+      return HCR_CROSSTAB_CELL_WIDTH;
     })
-    .flat(Infinity);
-};
+  }
 
-const getCellNodes = ({
-  measures = [],
-  crossTabX,
-  crossTabY,
-  emptyCellHeight,
-  emptyCellWidth,
-  nodeId,
-  columnHeaders,
-  rowHeaders,
-  fields = [],
-  measuresAggregateMap,
-}) => {
-  let cols = getHCRCrosstabCols(columnHeaders).reverse();
-  let rows = getHCRCrosstabCols(rowHeaders).reverse();
-  let rowHeight = 0;
-  return rows
-    .map((row) => {
-      const {
-        identifier: rowIdentifier,
-        isTotal: isRowTotal = false,
-        value: rowValue,
-      } = row || {};
-      return measures.map((measure) => {
-        let colWidth = 0;
-        const cells = cols.map((col) => {
-          const {
-            identifier: colIdentifier,
-            isTotal: isColTotal = false,
-            value: columnValue,
-          } = col || {};
-          const actualField = getActualField(fields, measure);
-          let commonProps = {
-            nodeId,
-            value: measure,
-            width: HCR_CROSSTAB_CELL_WIDTH,
-            height: HCR_CROSSTAB_CELL_HEIGHT,
-            addExpression: false,
-            x: crossTabX + emptyCellWidth + colWidth,
-            y: crossTabY + emptyCellHeight + rowHeight,
-            otherProps: {
-              measureLabel: `$V{${measure}_MEASURE}`,
-              aggregateFn: measuresAggregateMap[measure],
-            },
-            actualField,
-          };
-          if (!isRowTotal && !isColTotal) {
-            let cell = getCrossTabTextNode({ ...commonProps, identifier: {} });
-            colWidth += HCR_CROSSTAB_CELL_WIDTH;
-            return cell;
-          }
-          if (!isRowTotal && isColTotal) {
-            let cell = getCrossTabTextNode({
-              ...commonProps,
-              identifier: { [colIdentifier]: columnValue },
-            });
-            colWidth += HCR_CROSSTAB_CELL_WIDTH;
-            return cell;
-          }
-          if (isRowTotal && !isColTotal) {
-            let cell = getCrossTabTextNode({
-              ...commonProps,
-              identifier: { [rowIdentifier]: rowValue },
-            });
-            colWidth += HCR_CROSSTAB_CELL_WIDTH;
-            return cell;
-          }
-          if (isRowTotal && isColTotal) {
-            let cell = getCrossTabTextNode({
-              ...commonProps,
-              identifier: {
-                [rowIdentifier]: rowValue,
-                [colIdentifier]: columnValue,
-              },
-            });
-            colWidth += HCR_CROSSTAB_CELL_WIDTH;
-            return cell;
-          }
-        });
-        rowHeight += HCR_CROSSTAB_CELL_HEIGHT;
-        return cells;
-      });
+  function getRowHeights() {
+    const rowLength = rowGroups.length;
+    const colLength = columnGroups.length;
+    const measureLength = measures.length;
+    return Array.from({ length: totalRowsCols }, (_, i) => {
+      if (i < colLength) return HCR_CROSSTAB_CELL_HEIGHT;
+      return HCR_CROSSTAB_CELL_HEIGHT * measureLength;
     })
-    .flat(Infinity);
-};
+  }
 
-const getCrossTabNodes = ({
-  columnHeaders,
-  rowHeaders,
-  measures,
-  crossTabX,
-  crossTabY,
-  emptyCellHeight,
-  emptyCellWidth,
-  nodeId,
-  fields = [],
-  measuresAggregateMap = {},
-}) => {
-  const clmHeaders = cloneDeep(columnHeaders);
-  const rwHeaders = cloneDeep(rowHeaders);
-  const columnHeaderNodes = getHeaderNodes(clmHeaders, {
-    crossTabX,
-    crossTabY,
-    emptyCellWidth,
-    emptyCellHeight,
-    nodeId,
-    fields,
-  });
-  const rowHeaderNodes = getHeaderNodes(rwHeaders, {
-    crossTabX,
-    crossTabY,
-    emptyCellHeight,
-    emptyCellWidth,
-    nodeId,
-    isColumnHeader: false,
-    fields,
-  });
-  const cellNodes = getCellNodes({
-    measures,
-    crossTabX,
-    crossTabY,
-    emptyCellHeight,
-    emptyCellWidth,
-    nodeId,
-    columnHeaders: clmHeaders,
-    rowHeaders: rwHeaders,
-    fields,
-    measuresAggregateMap,
-  });
-  return [...columnHeaderNodes, ...rowHeaderNodes, ...cellNodes];
-};
+  return {
+    colWidths: getColumnWidths(),
+    rowHeights: getRowHeights()
+  }
+}
 
-const getCrosstabConfig = ({
+export const getCrosstabConfigV2 = ({
   columnFields = [],
   rowFields = [],
   measures = [],
-  crossTabX,
-  crossTabY,
   nodeId,
   fields = [],
-  measuresAggregateMap,
+  measuresAggregateMap = {},
   padding = {},
+  tableStyles = []
 }) => {
-  const columnHeaders = getColumnHeaders(getNestedArr(columnFields));
-  const rowHeaders = getRowHeaders(getNestedArr(rowFields), measures);
-  const emptyCellHeight = columnHeaders?.[0]?.emptyCellHeight;
-  const emptyCellWidth = rowHeaders?.[0]?.emptyCellWidth;
-  const { width, height } = calculatCTotalHeightAndWidth(
-    rowFields,
-    columnFields,
-    measures,
-  );
-  let crossTabNodes = getCrossTabNodes({
-    columnHeaders,
-    rowHeaders,
-    measures,
-    crossTabX,
-    crossTabY,
-    emptyCellHeight,
-    emptyCellWidth,
-    nodeId,
-    fields,
-    measuresAggregateMap,
-  });
-  if (!isEmpty(padding) && ("Top" in padding || "Left" in padding)) {
-    let pt = padding.Top || 0,
-      pl = padding.Left || 0;
-    crossTabNodes = crossTabNodes.map((node) => {
-      return {
-        ...cloneDeep(node),
-        offset: {
-          x: node.x - crossTabX,
-          y: node.y - crossTabY,
-        },
-        x: node.x + (pl > 1 ? pl : 0),
-        y: node.y + (pt > 1 ? pt : 0),
-      };
-    });
+  const styles = getCrosstabDefaultStyles(nodeId, tableStyles)
+  const { columnGroups, nodes: columnNodes = [] } = getCTColumnGroups(columnFields, fields, styles);
+  const { rowGroups, nodes: rowNodes = [] } = getCTRowGroups(rowFields, fields, measures, styles);
+  const { cells: measureCells, nodes: measureNodes = [] } = getCTMeasureCells(measures, columnGroups, rowGroups, fields, styles);
+  const { colWidths, rowHeights } = getCTComputedLayout({ columnGroups, rowGroups, measures });
+
+  const { width, height } = calculateCTTotalHeightAndWidth(rowFields, columnFields, measures);
+  const nodes = [...columnNodes, ...rowNodes, ...measureNodes].reduce((acc, curr) => {
+    acc[curr.id] = curr
+    return acc
+  }, {})
+  const totalCellHeight = columnGroups?.[0]?.totalCellHeight || 0;
+  const totalCellWidth = rowGroups?.[0]?.totalCellWidth || 0;
+
+  return {
+    columnGroups,
+    rowGroups,
+    measureCells,
+    measures: getCTMeasures(measures, fields, measuresAggregateMap),
+    colWidths,
+    rowHeights,
+    nodes,
+    crosstabHeaderCell: {
+      name: "crosstabHeaderCell",
+      id: uuidv4(),
+      width: totalCellWidth,
+      height: totalCellHeight,
+      nodeIds: [],
+      type: "crosstabHeaderCell",
+      label: "Crosstab Header",
+      styleNameReference: null
+    },
+    width,
+    height,
+    styles
   }
-  return { columnHeaders, rowHeaders, width, height, nodes: crossTabNodes };
 };
 
 const getHcrChartsDefaultProperties = () => {
@@ -1406,6 +1327,79 @@ export const getTableDefaultStyles = (tableId, previousStyles = []) => {
   return getTableStyles(tableId, counter);
 }
 
+export const getCrosstabStyles = (crosstabId, count) => {
+  function generateStyle(styleName, fill) {
+    return {
+      styleName,
+      id: uuidv4(),
+      crosstabId,
+      isChanged: false,
+      isConditionalStyleReq: true,
+      expression: "",
+      expressionBackColor: "#BFE1FF",
+      borders: {
+        Top: {
+          stroke: 1,
+          style: "SOLID",
+          color: "#000103"
+        },
+        Bottom: {
+          stroke: 1,
+          style: "SOLID",
+          color: "#000103"
+        },
+        Right: {
+          stroke: 1,
+          style: "SOLID",
+          color: "#000103"
+        },
+        Left: {
+          stroke: 1,
+          style: "SOLID",
+          color: "#000103"
+        }
+      },
+      padding: {
+        Top: 0,
+        Bottom: 0,
+        Right: 0,
+        Left: 0
+      },
+      lineStyles: {
+        stroke: 1,
+        style: "SOLID",
+        color: "#000000"
+      },
+      mode: "Opaque",
+      fontFill: "#000000",
+      fill,
+      fontSize: 10
+    }
+  }
+
+  function getName(prefix) {
+    return count > 0 ? `CROSSTAB ${count}_${prefix}` : `CROSSTAB_${prefix}`
+  }
+
+  return [
+    generateStyle(getName("CH"), "#F0F8FF"),
+    generateStyle(getName("CG"), "#BFE1FF"),
+    generateStyle(getName("CT"), "#005FB3"),
+    generateStyle(getName("CD"), "#FFFFFF"),
+  ]
+}
+
+export const getCrosstabDefaultStyles = (crosstabId, prevStyles = []) => {
+  if (!prevStyles?.length) return getCrosstabStyles(crosstabId, 0);
+
+  let counter = 1, styleName = `CROSSTAB ${counter}`;
+  while (prevStyles.some((style) => style.styleName.split("_")[0] === styleName)) {
+    counter++
+    styleName = `CROSSTAB ${counter}`
+  }
+  return getCrosstabStyles(crosstabId, counter)
+}
+
 export const getStyleNameReference = (styles, bandType) => {
   if (isEmpty(styles) || !bandType) return null;
   return styles.find((style) => style.bandsApplicable.includes(bandType))?.id || null;
@@ -1650,6 +1644,12 @@ export const getTableBandStyle = ({ bandType, tableStyles, tableId, isFirstRow, 
   return styleObj;
 }
 
+export const getCrosstabApplyStyles = ({ styles = [], crosstabId, cell = {} }) => {
+  const { borderBottom, borderLeft, borderRight, borderTop, ...rest } = getTableBandStyle({ tableStyles: styles, tableId: crosstabId, cell })
+  return rest;
+}
+
+
 export const hcrCanvasPaneHelperMethods = {
   pageSizeChange,
   pageOrientationChange,
@@ -1661,8 +1661,7 @@ export const hcrCanvasPaneHelperMethods = {
   onHCRCanvasConfigChange,
   onChildNodeMove,
   getHcrPropertyTooltipInfo,
-  getCrosstabConfig,
   getHcrChartsDefaultProperties,
   getHCRChartContainerStyles,
-  handleNodeSelection,
+  handleNodeSelection
 };

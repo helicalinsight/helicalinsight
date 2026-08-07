@@ -25,8 +25,9 @@ def build_functions(
             "column": col["column"],
             "function": (col.get("aggregateList") or ["db.generic.aggregate.sum"])[0],
             "alias": col.get("alias"),
-            "custom": bool(col.get("custom")),
         }
+        if col.get("custom"):
+            entry["custom"] = True
         if col.get("applyBeforeAggregate"):
             entry["applyBeforeAggregate"] = True
         aggregates.append(entry)

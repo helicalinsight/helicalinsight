@@ -508,7 +508,7 @@ const agentItems = [
   },
   {
     key: "hi-agent-fields-shelf",
-    title: "Fields",
+    title: "Model",
     description:
       "View and rename your semantic model, and drag fields from Metadata to build the Fields list used across your Business View.",
     moduleKey: "agent",

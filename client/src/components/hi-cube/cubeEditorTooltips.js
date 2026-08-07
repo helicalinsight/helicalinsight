@@ -4,7 +4,7 @@ export const CUBE_EDITOR_TOOLTIPS = {
   "Cube Description":
     "A short summary of what this cube contains and how it should be used. Required when saving the cube.",
   "Semantic Model Description":
-    "A short summary of what this semantic model covers and how it should be used. Required when saving the semantic model.",
+    "A short description of what this semantic model covers and how it should be used. Required when saving the semantic model.",
   Fields:
     "Display name for each column or hierarchy member in the cube. Right-click for more field actions; double-click the title to rename hierarchies.",
   Sort:
@@ -95,7 +95,7 @@ export const AGENT_EDITOR_TOOLTIPS = {
   "Business Topic":
     "A business topic groups related fields inside a domain (e.g., Orders under Sales). Drop fields from the Fields list onto a topic to assign them. Drag a hierarchy to assign all of its columns at once. The same field can belong to multiple topics. Right-click the topic name to add a description.",
   "Semantic Model":
-    "Give your name for this semantic model (e.g., Sales_Analytics , Model_1 ,etc..). You can click the pencil icon anytime to rename it. This name will be used when saving and helps you quickly recognize the model later.",
+    "Give your name for this semantic model (e.g., Sales_Analytics , Model_1 ,etc..). You can click the pencil icon anytime to rename it. This name will be used when saving and helps you quickly recognize the model later.Right-click the model to add a description.",
   "Delete Description":
     "Clears only the description text. The domain or topic itself is not deleted.",
   "Clear Description": "Clears the description text for this domain or topic.",

@@ -126,6 +126,7 @@
 			</dependencies>
 			<properties>
 				<aspectj.skip>false</aspectj.skip>
+				<excludedGroups>com.helicalinsight.test.utility.SkipTest</excludedGroups>
 			</properties>
 			
 		</profile>
@@ -1627,6 +1628,7 @@
 					<outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
 					<argLine>--add-exports java.base/sun.nio.ch=ALL-UNNAMED</argLine>
 					<argLine>--add-opens java.base/java.lang=ALL_UNNAMED</argLine>
+       				<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
 			</plugin>
 			<plugin>

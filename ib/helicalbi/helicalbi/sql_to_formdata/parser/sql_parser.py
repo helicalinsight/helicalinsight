@@ -7,22 +7,33 @@ from typing import Any
 import sqlglot
 from sqlglot import exp
 
-from ..functions_catalog import FunctionCatalog
+from ..functions_catalog import FunctionCatalog, REFERENCE_TO_SQLGLOT
 from ..mappings.conditions import sql_op_to_ui_condition
 from ..models import ColumnRef, FilterItem, OrderItem, ParsedQuery, SelectItem
+
+
+def _sqlglot_dialect(dialect: str | None, catalog: FunctionCatalog | None = None) -> str:
+    """Map API reference (postgresql) → sqlglot dialect (postgres)."""
+    if dialect:
+        key = str(dialect).lower().strip()
+        return REFERENCE_TO_SQLGLOT.get(key, key)
+    if catalog is not None:
+        return catalog.dialect
+    return "postgres"
 
 
 def parse_sql(
     sql: str,
     dialect: str = "postgres",
     catalog: FunctionCatalog | None = None,
+    database_name: str = "",
 ) -> ParsedQuery:
     if catalog is None:
         raise ValueError(
             "FunctionCatalog is required. Call getFunctions (/service) before parsing SQL."
         )
 
-    dialect = dialect or catalog.dialect
+    dialect = _sqlglot_dialect(dialect or catalog.dialect, catalog)
     tree = sqlglot.parse_one(sql, read=dialect)
     if not isinstance(tree, exp.Select):
         raise ValueError("Only SELECT statements are supported")
@@ -31,8 +42,12 @@ def parse_sql(
         dialect=dialect,
         function_catalog=catalog,
         sql=tree.sql(dialect=dialect),
+        database_name=database_name or "",
     )
     _extract_from(tree, parsed)
+    # Prefer metadata catalog.schema when provided (wire FQ names).
+    if database_name:
+        parsed.database_name = database_name
     parsed.selects = [_parse_select_expr(e, parsed) for e in tree.expressions]
 
     group = tree.args.get("group")
@@ -94,16 +109,38 @@ def _extract_from(tree: exp.Select, parsed: ParsedQuery) -> None:
             parsed.table_name = parts[0]
         parsed.table_alias = table.alias_or_name or parsed.table_name
 
+    # Register FROM + JOIN tables so column refs can resolve aliases → real names.
+    for t in tree.find_all(exp.Table):
+        _register_table(parsed, t)
+
+
+def _register_table(parsed: ParsedQuery, table: exp.Table) -> None:
+    name = table.name or ""
+    if not name:
+        return
+    alias = table.alias_or_name or name
+    parsed.table_aliases[alias] = name
+    parsed.table_aliases[name] = name
+
+
+def _resolve_table_name(table: str | None, parsed: ParsedQuery) -> str | None:
+    """Map SQL alias (td) to physical table name (travel_details)."""
+    if not table:
+        return parsed.table_name or parsed.table_alias or None
+    return parsed.table_aliases.get(table, table)
+
 
 def _column_ref(node: exp.Expression, parsed: ParsedQuery) -> ColumnRef:
     col = node
     if isinstance(node, exp.Alias):
         col = node.this
     if isinstance(col, exp.Column):
-        table = col.table or parsed.table_alias or parsed.table_name
+        raw_table = col.table or parsed.table_alias or parsed.table_name
+        table = _resolve_table_name(raw_table or None, parsed)
         return ColumnRef(table=table or None, name=col.name, catalog=parsed.database_name or None)
     # fallback: treat whole expression as name
-    return ColumnRef(table=parsed.table_alias or None, name=col.sql(dialect=parsed.dialect), catalog=parsed.database_name or None)
+    table = _resolve_table_name(parsed.table_alias or parsed.table_name or None, parsed)
+    return ColumnRef(table=table or None, name=col.sql(dialect=parsed.dialect), catalog=parsed.database_name or None)
 
 
 def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
@@ -238,6 +275,7 @@ def _build_db_fn(expr: exp.Expression, parsed: ParsedQuery) -> dict | None:
         dialect=parsed.dialect,
         database_name=parsed.database_name or "",
         table_alias=parsed.table_alias or parsed.table_name or "",
+        table_aliases=parsed.table_aliases,
     )
 
 

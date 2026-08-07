@@ -245,6 +245,9 @@ export function HIAGENT({ urlObj = {} }) {
     const file = metadataDetails?.fileName;
     const Notify = notify(dispatch);
     const finalName = name || agentName || DEFAULT_AGENT_NAME;
+    const { cubeFieldsData } =
+      semanticEditorRef.current?.getSaveState?.() || {};
+    const description = String(cubeFieldsData?.cubeDescription ?? "").trim();
     let content;
 
     try {
@@ -264,6 +267,7 @@ export function HIAGENT({ urlObj = {} }) {
       file,
       agentDir: onSaveData.path,
       modelName: finalName,
+      description,
       content,
       dispatch,
       successCB: (response) => {

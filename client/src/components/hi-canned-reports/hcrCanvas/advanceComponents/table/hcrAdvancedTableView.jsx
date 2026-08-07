@@ -1,9 +1,8 @@
 import { useSelector } from "react-redux";
-import { hcrTableBandOrder } from "../../../hcr-constants"
 import { checkIfBandIsDeleted } from "../../../hcrHelperMethods";
-import { getActiveBands, getAvailableBands, getTableBandStyle, isGroupBand, makeCellId } from "../../hcrCanvasPaneHelperMethods";
+import { getActiveBands, getTableBandStyle, isGroupBand, makeCellId } from "../../hcrCanvasPaneHelperMethods";
 import HCRChartsComponent from "../../hcrCharts/hcrChartsComponent";
-import HCRCrossTabComponent from "../../hcrCrossTab/hcrCrossTabComponent";
+import HCRCrossTabComponentV2 from "../../hcrCrossTab/hcrCrossTabComponentv2";
 import { ImageNode, LineNode, PageBreakNode, TextNode } from "../../nodes";
 import HCRAdvancedTableComponent from "./hcrAdvancedTableComponent";
 
@@ -15,7 +14,7 @@ const CategoryNode = ({ node }) => {
             image: <ImageNode data={node} />,
             line: <LineNode data={node} />,
             pageBreak: <PageBreakNode data={node} />,
-            crosstab: <HCRCrossTabComponent data={node} />,
+            crosstabv2: <HCRCrossTabComponentV2 data={node} />,
             chart: <HCRChartsComponent data={node} />,
             advancedTable: <HCRAdvancedTableComponent data={node} />
         }[category]}

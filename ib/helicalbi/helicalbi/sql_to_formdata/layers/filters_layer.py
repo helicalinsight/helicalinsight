@@ -1,11 +1,13 @@
-"""WHERE → formData.filters[] (getFilters / wire-filters.json)."""
+"""WHERE → formData.filters[] (getFilters / wire-filters)."""
 
 from __future__ import annotations
 
 from typing import Any
 
+from ..functions_catalog import to_wire_database_function
 from ..mappings.conditions import CONDITION_WIRE_MAP
 from ..mappings.types import infer_data_type
+from ..metadata import resolve_wire_column
 from ..models import FilterItem, ParsedQuery
 
 
@@ -18,11 +20,8 @@ def build_filters(parsed: ParsedQuery, metadata: dict | None = None) -> list[dic
     idx = 0
     for item in parsed.where_filters:
         if item.aggregate:
-            # Aggregated predicates belong in HAVING even if they appeared in WHERE
             continue
         if item.is_all:
-            # Placeholder '_all_' = '_all_' → skip in wire (UI valuesMode=all);
-            # optionally emit as EQUALS with empty values — omit from wire filters.
             continue
         wire = _to_wire_filter(item, parsed, meta, idx)
         out.append(wire)
@@ -37,11 +36,19 @@ def _to_wire_filter(item: FilterItem, parsed: ParsedQuery, meta: dict, idx: int)
     data_type = type_info["dataType"]
     backend = type_info["backendDataType"]
 
-    label = item.alias or col_name
-    column_path = _fq(parsed, col_short) if col_short else (item.custom_sql or "")
+    label = _label_for(item, meta, col_name)
+    if item.column:
+        column_ref = resolve_wire_column(
+            item.column.table,
+            item.column.name,
+            meta,
+            fallback_name=col_short or item.custom_sql or "",
+        )
+    else:
+        column_ref = item.custom_sql or col_name
 
     wire: dict[str, Any] = {
-        "column": column_path,
+        "column": column_ref,
         "label": label,
         "alias": label,
         "operator": item.operator or "AND",
@@ -51,7 +58,9 @@ def _to_wire_filter(item: FilterItem, parsed: ParsedQuery, meta: dict, idx: int)
     }
 
     if item.database_function:
-        wire["databaseFunction"] = item.database_function
+        wire_dbf = to_wire_database_function(item.database_function)
+        if wire_dbf:
+            wire["databaseFunction"] = wire_dbf
 
     if item.ui_condition == "CUSTOM" and item.custom_sql:
         wire["condition"] = "CUSTOM"
@@ -62,6 +71,17 @@ def _to_wire_filter(item: FilterItem, parsed: ParsedQuery, meta: dict, idx: int)
         return wire
 
     return _apply_condition_transform(wire, item, data_type)
+
+
+def _label_for(item: FilterItem, meta: dict, fallback: str) -> str:
+    by_column = meta.get("by_column") or {}
+    if item.column:
+        hit = by_column.get(item.column.short) or by_column.get(item.column.name)
+        if isinstance(hit, dict) and hit.get("alias"):
+            return str(hit["alias"])
+    if item.alias:
+        return item.alias
+    return fallback
 
 
 def _apply_condition_transform(wire: dict, item: FilterItem, data_type: str) -> dict:
@@ -86,6 +106,7 @@ def _apply_condition_transform(wire: dict, item: FilterItem, data_type: str) -> 
         wire["customCondition"] = " IN ("
         wire["values"] = [_format_in_list(values, data_type)]
         wire["isCustomValue"] = True
+        wire["encloseInQuotes"] = False
         return wire
 
     if ui == "IS_NOT_ONE_OF":
@@ -93,6 +114,7 @@ def _apply_condition_transform(wire: dict, item: FilterItem, data_type: str) -> 
         wire["customCondition"] = " NOT IN ("
         wire["values"] = [_format_in_list(values, data_type)]
         wire["isCustomValue"] = True
+        wire["encloseInQuotes"] = False
         return wire
 
     if ui in ("CONTAINS", "DOES_NOT_CONTAINS", "STARTS_WITH", "ENDS_WITH",
@@ -143,7 +165,6 @@ def _apply_condition_transform(wire: dict, item: FilterItem, data_type: str) -> 
         wire["customCondition"] = "IS NOT NULL"
         return wire
 
-    # Fallback
     wire["condition"] = "CUSTOM"
     wire["customCondition"] = item.raw_sql or ui
     wire["values"] = values
@@ -169,17 +190,12 @@ def _is_number(v: Any) -> bool:
 
 
 def _fq(parsed: ParsedQuery, short: str) -> str:
-    db = parsed.database_name or ""
-    if not db:
-        return short
-    if short.startswith(db + "."):
-        return short
-    return f"{db}.{short}"
+    return short
 
 
 def _type_for(col_short: str, col_name: str, meta: dict, has_aggregate: bool) -> dict:
     by_column = meta.get("by_column") or {}
     hit = by_column.get(col_short) or by_column.get(col_name) or {}
-    if hit.get("type"):
+    if isinstance(hit, dict) and hit.get("type"):
         return hit["type"]
     return infer_data_type(col_name, has_aggregate=has_aggregate)

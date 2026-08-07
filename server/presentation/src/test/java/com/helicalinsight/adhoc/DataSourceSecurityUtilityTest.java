@@ -30,6 +30,8 @@ import com.fasterxml.jackson.databind.node.POJONode;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
+import com.helicalinsight.datasource.GlobalJdbcType;
+import com.helicalinsight.datasource.GlobalJdbcTypeUtils;
 import com.helicalinsight.datasource.HCRUtils;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.efw.components.DataSourceSecurityUtility;
@@ -198,6 +200,31 @@ public class DataSourceSecurityUtilityTest {
 	    form.addProperty("id", "10");
 	    form.addProperty("dir", "");
 	    form.addProperty("access", DataSourceSecurityUtility.EXECUTE);
+
+	    try (MockedStatic<ApplicationContextAccessor> contextMock = Mockito
+				.mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<DataSourceSecurityUtility> securityMock = Mockito
+						.mockStatic(DataSourceSecurityUtility.class, Mockito.CALLS_REAL_METHODS)) {
+			GlobalDSReaderUtility globalReader = mock(GlobalDSReaderUtility.class);
+			contextMock.when(() -> ApplicationContextAccessor.getBean(GlobalDSReaderUtility.class)).thenReturn(globalReader);
+			securityMock.when(() -> DataSourceSecurityUtility.hasId("10")).thenReturn(true);
+			Map<String, Object> data = new HashMap<>();
+			Map<String, Object> inner = new HashMap<>();
+			inner.put("id", "10");
+			data.put("data", inner);
+			when(globalReader.addDataSourcesId(DataSourceSecurityUtility.EXECUTE, 10)).thenReturn(data);
+			DataSourceSecurityUtility.isDataSourceAuthenticated(form);
+			verify(globalReader).addDataSourcesId(DataSourceSecurityUtility.EXECUTE, 10);
+		}
+	}
+	
+	@Test
+	public void testIsDataSourceAuthenticated_GlobalAccessible_DirNotEmpty() {
+	    JsonObject form = new JsonObject();
+	    form.addProperty("id", "10");
+	    form.addProperty("dir", "Datasource");
+	    form.addProperty("access", DataSourceSecurityUtility.EXECUTE);
+	    form.addProperty("type", GlobalJdbcType.DYNAMIC_DATASOURCE);
 
 	    try (MockedStatic<ApplicationContextAccessor> contextMock = Mockito
 				.mockStatic(ApplicationContextAccessor.class);

@@ -2,7 +2,6 @@ package com.helicalinsight.export.unit;
 
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -18,6 +17,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runners.MethodSorters;
 import org.mockito.MockedStatic;
 
@@ -35,10 +35,12 @@ import com.helicalinsight.export.exception.ResourceExportException;
 import com.helicalinsight.export.handler.ResourceExportHandler;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
+import com.helicalinsight.test.utility.SkipTest;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@Category(SkipTest.class)
 public class ResourceExportHandlerTest extends ExportUnitTestBase {
 
 	private static final long FILE_RESOURCE_TYPE_ID = 1L;

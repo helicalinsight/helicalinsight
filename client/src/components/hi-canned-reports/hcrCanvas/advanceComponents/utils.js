@@ -1,7 +1,7 @@
 import { isEmpty } from "lodash";
-import { hcrContextMenuTypes, hcrTableBandOrder, hcrTableBandsLabels, hcrTableBandsTypes } from "../../hcr-constants";
+import { hcrContextMenuTypes, hcrDSQuery, hcrTableBandsLabels, hcrTableBandsTypes } from "../../hcr-constants";
+import { checkIfBandIsDeleted } from "../../hcrHelperMethods";
 import { getAvailableBands, isGroupBand, makeCellId } from "../hcrCanvasPaneHelperMethods";
-import { checkIfBandIsDeleted, getCalcParamsNode } from "../../hcrHelperMethods";
 import { COLLECTION_CLASSNAMES, NUMERIC_CLASSNAMES, STRING_CLASSNAMES } from "./contants";
 
 const getTableCellTextStyles = (node) => {
@@ -293,7 +293,36 @@ const getHCRTableContextMenu = (data = {}) => {
     }
 }
 
-const getHCRTableOutlineDSContextMenu = (data = {}) => {
+const getHCRCrosstabContextMenu = (data = {}) => {
+    const { menuType, copiedNodes = [] } = data || {}
+
+    const undoRedoItems = [
+        { key: "undo", label: "Undo" },
+        { key: "redo", label: "Redo", className: !copiedNodes?.length ? "" : "group-end" },
+    ]
+
+    switch (menuType) {
+        case hcrContextMenuTypes.CELL:
+            return [
+                ...undoRedoItems,
+                ...(copiedNodes?.length ? [{ key: "paste_node", label: "Paste" }] : [])
+            ]
+            break;
+        case hcrContextMenuTypes.NODE:
+            return [
+                { key: "cut_node", label: "Cut" },
+                { key: "copy_node", label: "Copy" },
+                { key: "delete_node", label: "Delete", className: "group-end" },
+                ...undoRedoItems,
+            ]
+            break;
+        default:
+            break;
+    }
+
+}
+
+const getOutlineDSContextMenu = (data = {}) => {
     const { menuType } = data || {}
 
     switch (menuType) {
@@ -371,7 +400,7 @@ const getHCRTableOutlineDSContextMenu = (data = {}) => {
 
 }
 
-const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedSubDataSet = {}) => {
+const getDatasetOutlineData = (subDataSetOptions = [], componentData = {}, selectedSubDataSet = {}) => {
     let parameters = subDataSetOptions.find((item) => item.value === "parameters"),
         variables = subDataSetOptions.find((item) => item.value === "variables"),
         calculations = subDataSetOptions.find((item) => item.value === "calculations"),
@@ -379,7 +408,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
 
     let groups = selectedSubDataSet?.groups || []
 
-    const { selectedFields = [] } = tableData;
+    const { selectedFields = [] } = componentData;
 
     function getItem(item) {
         return {
@@ -389,7 +418,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             className: "ant-tree-title-node-title",
             selectable: item.selectable || false,
             draggable: true,
-            tableData
+            componentData
         }
     }
 
@@ -465,7 +494,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
                 dsContextMenu: true,
                 menuType: "groups-item",
                 groupId: id,
-                tableData
+                componentData
             }
         })
     }
@@ -478,7 +507,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             selectable: false,
             dsContextMenu: true,
             menuType: "parameters",
-            tableData
+            componentData
         },
         {
             title: "Fields",
@@ -487,7 +516,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             selectable: false,
             dsContextMenu: true,
             menuType: "fields",
-            tableData,
+            componentData,
         },
         {
             title: "Variables",
@@ -496,7 +525,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             selectable: false,
             dsContextMenu: false,
             menuType: "variables",
-            tableData
+            componentData
         },
         {
             title: "Calculations",
@@ -505,7 +534,7 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             selectable: false,
             dsContextMenu: true,
             menuType: "calculations",
-            tableData
+            componentData
         },
         {
             title: "Groups",
@@ -514,13 +543,13 @@ const getDatasetOutlineData = (subDataSetOptions = [], tableData = {}, selectedS
             selectable: false,
             dsContextMenu: true,
             menuType: "groups",
-            tableData
+            componentData
         },
     ]
 }
 
-export const getStylesOutline = (tableStyles, tableData) => {
-    return tableStyles.map((style) => {
+export const getStylesOutline = (styles, componentData) => {
+    return styles.map((style) => {
         return {
             title: style.styleName,
             key: style.id,
@@ -530,15 +559,94 @@ export const getStylesOutline = (tableStyles, tableData) => {
             dsContextMenu: true,
             menuType: "table-style-item",
             styleId: style.id,
-            tableData
+            componentData
         }
     })
+}
+
+export const getCrosstabOutlineData = (crosstab = {}) => {
+    const { config = {} } = crosstab || {}
+    const {
+        columnGroups = [],
+        rowGroups = [],
+        measures = [],
+        measureCells = [],
+        nodes = {}
+    } = config || {}
+
+    function getItem(item, selectable = false, selectKey = "") {
+        return {
+            title: item.label,
+            key: item.id,
+            id: item.id,
+            selectable: selectable ? true : false,
+            selectKey,
+            currentData: item,
+        }
+    }
+
+    function getGroupsChildren(groups) {
+        return groups.map((rg) => {
+            return {
+                ...getItem(rg, true, "crosstab-group-item"),
+                children: rg.cells?.map((cell) => {
+                    return {
+                        ...getItem(cell, true, "cell"),
+                        children: cell.nodeIds?.map((nodeId) => {
+                            const node = nodes[nodeId]
+                            return {
+                                ...getItem(node, true, "node"),
+                                children: []
+                            }
+                        })
+                    }
+                })
+            }
+        })
+    }
+
+    function getMeasureCells() {
+        return measureCells.map((item) => {
+            return {
+                ...getItem(item, true, "cell"),
+                children: item.nodeIds?.map((nodeId) => {
+                    const node = nodes[nodeId]
+                    return {
+                        ...getItem(node, true, "node"),
+                        children: []
+                    }
+                })
+            }
+        })
+    }
+
+    return [
+        {
+            title: "Row Groups",
+            key: "row_groups",
+            children: getGroupsChildren(rowGroups),
+            selectable: false
+        },
+        {
+            title: "Column Groups",
+            key: "column_groups",
+            children: getGroupsChildren(columnGroups),
+            selectable: false
+        },
+        {
+            title: "Measures",
+            key: "measures",
+            children: measures.map((m) => getItem(m, true, "crosstab-measure-item")),
+            selectable: false
+        },
+        ...getMeasureCells(),
+    ]
 }
 
 const getHcrTableOutlineData = (selectedNode = {}, subDataSetOptions, selectedSubDataSet = {}, name, tableStyles = []) => {
     const { id: selectedNodeId, category } = selectedNode;
     const isTable = category === "advancedTable",
-        isCrosstab = category === "crosstab";
+        isCrosstab = category === "crosstabv2";
 
     const title = isTable ? "Table" : isCrosstab ? "Crosstab" : "";
     const selectedKey = isTable ? "table" : isCrosstab ? "crosstab" : "";
@@ -570,6 +678,53 @@ const getHcrTableOutlineData = (selectedNode = {}, subDataSetOptions, selectedSu
         {
             title: title,
             key: selectedNodeId,
+            children: selectedNodeData,
+            selectable: true,
+            selectKey: selectedKey
+        }
+    ]
+}
+
+const getDsAndStylesOutlineData = ({ data, name, tableStyles, subDataSetOptions, selectedSubDataSet }) => {
+    return [
+        {
+            title: "Styles",
+            key: "styles",
+            children: getStylesOutline(tableStyles, data),
+            selectable: false,
+            dsContextMenu: true,
+            menuType: "table-styles",
+            tooltip: "Apply styles to control the formatting and appearance of table elements such as headers, detail cells, footers, fonts, colors, borders, and alignment."
+        },
+        {
+            title: `Dataset ${name ? "(" + name + ")" : ""}`,
+            key: "dataset",
+            children: getDatasetOutlineData(subDataSetOptions, data, selectedSubDataSet),
+            selectable: false,
+            selectKey: "sub-dataset"
+        },
+    ]
+}
+
+const getOutlineTreeData = ({ currentComponentData = {}, subDataSetOptions = [], selectedSubDataSet = {}, name, tableStyles = [] }) => {
+    const { id: compId, category } = currentComponentData;
+    const isTable = category === "advancedTable",
+        isCrosstab = category === "crosstabv2";
+
+    const title = isTable ? "Table" : isCrosstab ? "Crosstab" : "Outline";
+    const selectedKey = isTable ? "table" : isCrosstab ? "crosstabv2" : "";
+    let selectedNodeData = []
+    if (isTable) {
+        selectedNodeData = getTableOutlinedata(currentComponentData);
+    }
+    if (isCrosstab) {
+        selectedNodeData = getCrosstabOutlineData(currentComponentData);
+    }
+    return [
+        ...(getDsAndStylesOutlineData({ data: currentComponentData, name, tableStyles, subDataSetOptions, selectedSubDataSet })),
+        {
+            title: title,
+            key: compId,
             children: selectedNodeData,
             selectable: true,
             selectKey: selectedKey
@@ -656,16 +811,181 @@ const getParentKeys = (data, targetKey) => {
     return result;
 }
 
+const getOutlinePanelTitle = (category) => {
+    return {
+        advancedTable: "Table Outline",
+        crosstabv2: "Crosstab Outline",
+    }[category]
+}
+
+
+const getQueryItems = (dsPaneTypes) => {
+    return dsPaneTypes
+        ?.find((ele) => ele.dataSourcePane === hcrDSQuery)
+        ?.menu?.filter(
+            (ele) =>
+                ele.executeQueryData?.data.length ||
+                ele.executeQueryData?.field.length,
+        ) || [];
+}
+
+const getSelectedKeys = (componentData = {}) => {
+    const { category } = componentData || {}
+    if (category === "advancedTable") {
+        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedTable, selectedCalculation, selectedGroup, selectedParameter, selectedStyle } = componentData || {};
+        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedTable || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0];
+    }
+    if (category === "crosstabv2") {
+        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedCalculation, selectedGroup, selectedParameter, selectedStyle, selectedCTGroup = [], selectedCTMeasure = [] } = componentData || {};
+        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0] || selectedCTGroup?.[0] || selectedCTMeasure?.[0];
+    }
+    return null;
+}
+
+const getCellsFromCrosstab = (crosstab = {}) => {
+    const { columnGroups = [], rowGroups = [], measureCells = [] } = crosstab.config || {};
+    const cells = [
+        ...measureCells,
+        ...(columnGroups.flatMap(({ cells = [] }) => cells) || []),
+        ...(rowGroups.flatMap(({ cells = [] }) => cells) || []),
+    ]
+    return cells.reduce((acc, next) => {
+        acc[next.id] = next;
+        return acc
+    }, {});
+}
+
+const getCTSelectedGroup = (crosstab = {}, groupId) => {
+    const { columnGroups = [], rowGroups = [] } = crosstab.config || {}
+    return [...columnGroups, ...rowGroups].find((group) => group.id === groupId) || {}
+}
+
+const getMeasureCellsByCellIndex = (measureCells) => {
+    return measureCells.reduce((acc, curr) => {
+        if (acc[curr.cellIndex]) {
+            acc[curr.cellIndex].push(curr);
+        } else {
+            acc[curr.cellIndex] = [curr];
+        }
+        return acc;
+    }, {})
+}
+
+
+const getCrosstabLayout = (config = {}) => {
+    const { columnGroups = [], rowGroups = [], measureCells = [], colWidths = [], rowHeights = [] } = config || {};
+    const rowLength = rowGroups.length,
+        columnLength = columnGroups.length;
+
+    const totalRowsCols = rowLength + columnLength + 1;
+    const columnEnd = columnLength + 1,
+        rowEnd = rowLength + 1;
+
+    const cells = [
+        { id: "crosstab_header_cell", col: [1, rowEnd], row: [1, columnEnd], widthUpdaters: rowGroups.map((_, i) => i), heightUpdaters: columnGroups.map((_, i) => i) }
+    ]
+
+    function getWIndexesWithoutRow() {
+        return colWidths.map((_, i) => i > rowLength - 1 ? i : null).filter(Boolean);
+    }
+
+    function getWIndexesWithoutColumn() {
+        return colWidths.map((_, i) => i < rowLength ? i : null).filter((item) => item !== null);
+    }
+
+    function getHIndexesWithoutRow() {
+        return rowHeights.map((_, i) => i < columnLength ? i : null).filter((item) => item !== null);
+    }
+
+    function getHIndexesWithRowOnly() {
+        return rowHeights.map((_, i) => i > columnLength - 1 ? i : null).filter(Boolean);
+    }
+
+
+    columnGroups.forEach((grp, cIndex, arr) => {
+        const nextArr = arr.slice(cIndex + 1);
+
+        const [hCell, tCell] = grp.cells || [];
+        const widths = getWIndexesWithoutRow();
+        const heights = getHIndexesWithoutRow();
+        cells.push({
+            col: [rowEnd, rowEnd + nextArr.length + 1],
+            row: [cIndex + 1, cIndex + 2],
+            widthUpdaters: widths.slice(0).filter((_, i, arr) => i < arr.length - 1 - cIndex),
+            heightUpdaters: [heights[cIndex]],
+            ...hCell
+        })
+        cells.push({
+            col: [rowEnd + nextArr.length + 1, totalRowsCols - cIndex],
+            row: [cIndex + 1, columnEnd],
+            widthUpdaters: [widths.reverse()[cIndex]],
+            heightUpdaters: heights.slice(cIndex),
+            ...tCell
+        })
+    })
+
+    rowGroups.forEach((grp, rIndex, arr) => {
+        const nextArr = arr.slice(rIndex + 1);
+        const [hCell, tCell] = grp.cells || [];
+        const widths = getWIndexesWithoutColumn()
+        const heights = getHIndexesWithRowOnly()
+
+        cells.push({
+            col: [rIndex + 1, nextArr.length ? rIndex + 2 : rowEnd],
+            row: [columnEnd, totalRowsCols - rIndex],
+            widthUpdaters: [widths[rIndex]],
+            heightUpdaters: heights.slice(0).filter((_, i, arr) => i < arr.length - 1 - rIndex),
+            ...hCell
+        })
+        cells.push({
+            col: [rIndex + 1, rowEnd],
+            row: [totalRowsCols - rIndex, totalRowsCols - rIndex + 1],
+            widthUpdaters: widths.slice(rIndex),
+            heightUpdaters: [heights.reverse()[rIndex]],
+            ...tCell
+        })
+    })
+
+    const measureCellsByCategory = Object.values(getMeasureCellsByCellIndex(measureCells));
+
+
+    measureCellsByCategory.forEach((mCells, rIndex) => {
+        const widths = getWIndexesWithoutRow();
+        const heights = getHIndexesWithRowOnly()
+
+        mCells.forEach((cell, cIndex) => {
+            cells.push({
+                col: [rowEnd + cIndex, rowEnd + cIndex + 1],
+                row: [columnEnd + rIndex, columnEnd + rIndex + 1],
+                widthUpdaters: [widths[cIndex]],
+                heightUpdaters: [heights[rIndex]],
+                ...cell
+            })
+        })
+    })
+
+    return cells;
+}
 
 export {
-    getHcrTableOutlineData,
-    getTableCellTextStyles,
-    getTableOutlinedata,
+    getActiveSubDSParameterType,
+    getCategoryClassNames,
+    getCellsFromCrosstab,
     getDatasetOutlineData,
     getHCRTableContextMenu,
-    getHCRTableOutlineDSContextMenu,
-    getCategoryClassNames,
-    getActiveSubDSParameterType,
+    getHcrTableOutlineData,
     getMappedParameters,
-    getParentKeys
+    getOutlineDSContextMenu,
+    getOutlinePanelTitle,
+    getOutlineTreeData,
+    getParentKeys,
+    getQueryItems,
+    getSelectedKeys,
+    getTableCellTextStyles,
+    getTableOutlinedata,
+    getCTSelectedGroup,
+    getHCRCrosstabContextMenu,
+    getMeasureCellsByCellIndex,
+    getCrosstabLayout
 };
+

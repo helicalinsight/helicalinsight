@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { hcrActions } from '../../../../../redux/actions';
 import { HCR_OUTSIDE_NODE, HCR_TABLE_NODE, hcrContextMenuTypes } from '../../../hcr-constants';
 import DraggableNode from './draggableNode';
-import { HCRTableContextMenu } from './tableOutlinePanel';
+import { OutlineTableContextMenu } from './outlinePanel/outlineContextMenu';
 
 const EditableCell = (props = {}) => {
     const {
@@ -14,6 +14,7 @@ const EditableCell = (props = {}) => {
         selectedCells = [],
         id,
         selectedNodes = [],
+        category
     } = props || {}
 
     const {
@@ -163,7 +164,7 @@ const EditableCell = (props = {}) => {
             }}
             onClick={handleCellClick}
         >
-            <HCRTableContextMenu
+            <OutlineTableContextMenu
                 onVisibleChange={(value) => setVisible(value)}
                 visible={visible}
                 title={<div style={{ width: "100%", height: "100%", position: 'absolute' }} onContextMenu={handleCellClick}>{null}</div>}
@@ -181,7 +182,7 @@ const EditableCell = (props = {}) => {
             <div className="cell-elements">
                 {cell?.nodeIds?.map((nodeId) => {
                     const node = nodes[nodeId] || {};
-                    return <DraggableNode key={nodeId} {...{ node, cellId, updateNode, selectedNodes, tableData, copiedNodes }} onNodeClick={onNodeClick} />
+                    return <DraggableNode key={nodeId} {...{ node, cellId, updateNode, selectedNodes, tableData, copiedNodes, category }} onNodeClick={onNodeClick} />
                 })}
             </div>
 
