@@ -6,7 +6,6 @@ import {
   Empty,
   Spin,
   Typography,
-  Tag,
   Button,
   Collapse,
   Tooltip,
@@ -20,7 +19,14 @@ import {
   FileOutlined,
   FileTextOutlined,
   CodeOutlined,
-  InfoCircleOutlined,
+  DatabaseOutlined,
+  SafetyCertificateOutlined,
+  CloudServerOutlined,
+  ApiOutlined,
+  CheckCircleOutlined,
+  MailOutlined,
+  SettingOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
 import { Panel as ResizePanel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import requests from "../../../../base/requests";
@@ -45,8 +51,27 @@ import {
 } from "./utils/configuration-layout";
 import "./hi-configurations.scss";
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 const { Panel } = Collapse;
+
+const CATEGORY_ICONS = {
+  sql: DatabaseOutlined,
+  "sql security": SafetyCertificateOutlined,
+  security: SafetyCertificateOutlined,
+  caching: CloudServerOutlined,
+  datasource: ApiOutlined,
+  validation: CheckCircleOutlined,
+  mail: MailOutlined,
+  system: SettingOutlined,
+  other: AppstoreOutlined,
+};
+
+const getCategoryIcon = (category) => {
+  const key = String(category?.icon || category?.key || "")
+    .trim()
+    .toLowerCase();
+  return CATEGORY_ICONS[key] || AppstoreOutlined;
+};
 
 const getFileExtension = (fileName = "") => {
   const parts = String(fileName).split(".");
@@ -153,10 +178,32 @@ const HIConfigurations = ({ apiRef }) => {
     [categorizedFiles, fileFilter]
   );
 
-  const activeCategoryKeys = useMemo(
-    () => filteredCategories.map((category) => category.key),
-    [filteredCategories]
-  );
+  const defaultOpenCategoryKeys = useMemo(() => {
+    if (!filteredCategories.length) return [];
+    if (selectedFile) {
+      const match = filteredCategories.find((category) =>
+        (category.files || []).some((file) => file.name === selectedFile.name)
+      );
+      if (match) return [match.key];
+    }
+    return [filteredCategories[0].key];
+  }, [filteredCategories, selectedFile]);
+
+  const [openCategoryKeys, setOpenCategoryKeys] = useState([]);
+
+  useEffect(() => {
+    setOpenCategoryKeys((prev) => {
+      if (fileFilter) {
+        return filteredCategories.map((category) => category.key);
+      }
+      if (!prev.length) return defaultOpenCategoryKeys;
+      const stillValid = prev.filter((key) =>
+        filteredCategories.some((category) => category.key === key)
+      );
+      if (stillValid.length) return stillValid;
+      return defaultOpenCategoryKeys;
+    });
+  }, [defaultOpenCategoryKeys, filteredCategories, fileFilter]);
 
   const useFormLayout = hasLayoutSections(fileLayout) && !forceRawEditor;
 
@@ -182,6 +229,11 @@ const HIConfigurations = ({ apiRef }) => {
 
   const loadFile = (fileMeta) => {
     setSelectedFile(fileMeta);
+    if (fileMeta?.category) {
+      setOpenCategoryKeys((prev) =>
+        prev.includes(fileMeta.category) ? prev : [...prev, fileMeta.category]
+      );
+    }
     setFilePayload(null);
     setEditorUi(null);
     setFileLayout(null);
@@ -381,17 +433,18 @@ const HIConfigurations = ({ apiRef }) => {
     return renderStructuredEditor();
   };
 
-  const renderCategoryHeader = (category) => (
-    <span className="hi-config-category-header">
-      <span>{category.title}</span>
-      <Tag className="hi-config-category-count">{category.files.length}</Tag>
-      {category.description ? (
-        <Tooltip title={category.description}>
-          <InfoCircleOutlined className="hi-config-category-info" />
+  const renderCategoryHeader = (category) => {
+    const Icon = getCategoryIcon(category);
+    return (
+      <span className="hi-config-category-header">
+        <Tooltip title={category.description || undefined} placement="right">
+          <Icon className="hi-config-category-icon" aria-hidden />
         </Tooltip>
-      ) : null}
-    </span>
-  );
+        <span className="hi-config-category-title">{category.title}</span>
+        <span className="hi-config-category-count">{category.files.length}</span>
+      </span>
+    );
+  };
 
   const editorTitle =
     (useFormLayout && fileLayout?.title) ||
@@ -415,9 +468,9 @@ const HIConfigurations = ({ apiRef }) => {
       className="hi-config-system-row"
     >
       <ResizePanel
-        defaultSize={28}
-        minSize={18}
-        maxSize={50}
+        defaultSize={18}
+        minSize={12}
+        maxSize={32}
         className="hi-config-file-panel"
       >
         <div className="hi-config-file-panel-header">
@@ -426,14 +479,14 @@ const HIConfigurations = ({ apiRef }) => {
               allowClear
               autoFocus
               size="small"
-              placeholder="Filter files"
+              placeholder="Search file"
               value={fileFilter}
               onChange={(event) => setFileFilter(event.target.value)}
               className="hi-config-file-search-inline"
               prefix={<SearchOutlined />}
             />
           ) : (
-            <Title level={5}>{layout?.title || "Configuration Files"}</Title>
+            <Title level={5}>Search file</Title>
           )}
           <Space size={4} className="hi-config-file-panel-actions">
             <Tooltip title={searchOpen ? "Hide search" : "Search files"}>
@@ -464,17 +517,15 @@ const HIConfigurations = ({ apiRef }) => {
             </Tooltip>
           </Space>
         </div>
-        {layout?.description && !searchOpen ? (
-          <Text type="secondary" className="hi-config-layout-description">
-            {layout.description}
-          </Text>
-        ) : null}
         <Spin spinning={listLoading}>
           {filteredCategories.length ? (
             <Collapse
               className="hi-config-category-collapse"
-              defaultActiveKey={activeCategoryKeys}
-              key={fileFilter || "all"}
+              activeKey={openCategoryKeys}
+              onChange={(keys) =>
+                setOpenCategoryKeys(Array.isArray(keys) ? keys : [keys])
+              }
+              expandIcon={() => null}
               ghost
             >
               {filteredCategories.map((category) => (
@@ -506,7 +557,7 @@ const HIConfigurations = ({ apiRef }) => {
                               />
                             }
                             title={
-                              <Tooltip title={item.description || undefined}>
+                              <Tooltip title={item.description || displayName}>
                                 <span className="hi-config-file-name">
                                   {displayName}
                                 </span>
@@ -521,24 +572,29 @@ const HIConfigurations = ({ apiRef }) => {
               ))}
             </Collapse>
           ) : (
-            <Empty description="No configuration files found" />
+            <Empty description="No configuration files found" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </Spin>
       </ResizePanel>
       <PanelResizeHandle className="hi-config-resize-handle" />
       <ResizePanel
-        defaultSize={72}
-        minSize={40}
+        defaultSize={82}
+        minSize={50}
         className="hi-config-editor-panel"
       >
         <div className="hi-config-editor-header">
           <div className="hi-config-editor-header-text">
-            <Title level={5} className="hi-config-editor-title">
-              {editorTitle}
-            </Title>
             {selectedFile && editorDescription ? (
-              <Text type="secondary">{editorDescription}</Text>
-            ) : null}
+              <Tooltip title={editorDescription}>
+                <Title level={5} className="hi-config-editor-title">
+                  {editorTitle}
+                </Title>
+              </Tooltip>
+            ) : (
+              <Title level={5} className="hi-config-editor-title">
+                {editorTitle}
+              </Title>
+            )}
           </div>
           {showEditorToggle ? (
             <Typography.Link
@@ -568,10 +624,10 @@ const HIConfigurations = ({ apiRef }) => {
         activeKey={activeConfigTab}
         onChange={setActiveConfigTab}
       >
-        <Tabs.TabPane tab="System Config" key="system">
+        <Tabs.TabPane tab="File Config" key="system">
           {renderSystemConfig()}
         </Tabs.TabPane>
-        <Tabs.TabPane tab="InstantBI Config" key="instantbi">
+        <Tabs.TabPane tab="InstantBI Settings" key="instantbi">
           <div className="hi-config-instantbi-panel">
             <InstantBISettingsEditor />
           </div>

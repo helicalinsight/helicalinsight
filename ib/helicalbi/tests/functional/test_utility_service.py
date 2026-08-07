@@ -42,9 +42,19 @@ class TestModelCatalogProvider:
         models = ModelCatalogProvider().list_models_for_package("langchain-openai")
         assert "gpt-4.1-mini" in models
 
-    def test_unknown_package_raises(self):
-        with pytest.raises(UtilityError, match="No model catalog"):
-            ModelCatalogProvider().list_models_for_package("langchain-unknown-xyz")
+    def test_unknown_package_returns_empty(self):
+        models = ModelCatalogProvider().list_models_for_package(
+            "langchain-unknown-xyz"
+        )
+        assert models == []
+        assert not ModelCatalogProvider().has_package("langchain-unknown-xyz")
+
+    def test_lists_models_for_vertexai_package(self):
+        models = ModelCatalogProvider().list_models_for_package(
+            "langchain-google-vertexai"
+        )
+        assert "gemini-2.5-flash" in models
+        assert ModelCatalogProvider().has_package("langchain-google-vertexai")
 
 
 class TestLlmConfigProvider:

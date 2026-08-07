@@ -1,0 +1,26 @@
+/* Label + tick control on one row (vertical form stays default for other fields). */
+.ui-form-item--tick-inline {
+  .ant-form-item-row {
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .ant-form-item-label {
+    padding: 0 !important;
+    flex: 0 1 auto;
+    max-width: calc(100% - 36px);
+
+    > label {
+      height: auto;
+      white-space: normal;
+    }
+  }
+
+  .ant-form-item-control {
+    flex: 0 0 auto;
+    width: auto !important;
+    max-width: none;
+    margin-left: 8px;
+  }
+}

@@ -368,6 +368,21 @@ class TestChatResponse:
         assert response.data_model is None
         assert response.to_dict()["data_model"] is None
 
+    def test_summary_insight_drops_traceback(self):
+        response = ChatResponse.from_model_state(
+            {
+                "output": (
+                    "Traceback (most recent call last):\n"
+                    '  File "/app/helicalbi/core/vizflow/VizPropertiesPolish.py", '
+                    "line 78, in process_flow\n"
+                    "ollama._types.ResponseError: an unknown error was encountered "
+                    "while running the model  (status code: -1)\n"
+                )
+            }
+        )
+        assert response.summary.insight == ""
+        assert "Traceback" not in response.to_dict()["summary"]["insight"]
+
 
 class TestSqlGen:
     def test_valid_payload_with_reason_when_flag_disabled(self, monkeypatch):

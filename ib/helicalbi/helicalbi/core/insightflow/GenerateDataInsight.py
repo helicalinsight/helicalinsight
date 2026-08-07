@@ -53,7 +53,7 @@ class GenerateDataInsight:
                     domain=json.dumps(selected_domain, default=str),
                     topics=json.dumps(selected_topics, default=str),
                     sample_data=json.dumps(sample_data, default=str),
-                    prev_responses=prev_responses,
+                    last_chats=prev_responses,
                 ),
                 state=state,
             )

@@ -339,6 +339,7 @@ const HCRCrosstabEditMode = (props = {}) => {
         data: data,
         classNames: classNames,
         onOutlineDsItemChange: handleOutlineDSItemChange,
+        onCrosstabPropertiesChange: handleCrosstabPropertiesChange,
         lastSelectedNodeRef,
         selectedSubDS,
         activeTab,
@@ -353,7 +354,6 @@ const HCRCrosstabEditMode = (props = {}) => {
         selectedNodes,
         onCloseSidePanel: handleSidePanelClose,
         copiedNodes,
-        onCrosstabPropertiesChange: handleCrosstabPropertiesChange
     }
 
     useEffect(() => {

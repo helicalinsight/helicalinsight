@@ -42,19 +42,6 @@ if [ -f "$GLOBAL_CONN" ]; then
   fi
 fi
 
-PERSISTENCE_PATCHED=0
-while IFS= read -r file; do
-  if patch_persistence_placeholders "$file"; then
-    PERSISTENCE_PATCHED=$((PERSISTENCE_PATCHED + 1))
-  fi
-done < <(collect_persistence_xml_files "$SERVER")
-
-if [ "$PERSISTENCE_PATCHED" -gt 0 ]; then
-  echo "[OK]   Normalized persistence.xml placeholders in ${PERSISTENCE_PATCHED} file(s)"
-else
-  echo "[SKIP] persistence.xml already uses Maven placeholders"
-fi
-
 
 if [ ! -f "$ROOT/.env" ] && [ -f "$ROOT/.env.example" ]; then
   cp "$ROOT/.env.example" "$ROOT/.env"

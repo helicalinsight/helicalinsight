@@ -1,11 +1,11 @@
 {
   "id": "instantbi-logging",
-  "title": "Logging",
+  "title": "Log Settings",
   "description": "InstantBI application_config.yaml logging settings",
   "sections": [
     {
       "key": "logging",
-      "title": "Log output",
+      "title": "Log Settings",
       "fields": [
         {
           "name": "level",
@@ -43,24 +43,28 @@
           "name": "show_llm_activity",
           "label": "Show LLM activity",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         },
         {
           "name": "show_endpoint_log",
           "label": "Show endpoint log",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         },
         {
           "name": "show_api_call_log",
           "label": "Show API call log",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         },
         {
           "name": "app_debug",
           "label": "App debug",
           "type": "boolean",
+          "control": "tick",
           "span": 12,
           "description": "Required together with logging.level=DEBUG for debug logs"
         }

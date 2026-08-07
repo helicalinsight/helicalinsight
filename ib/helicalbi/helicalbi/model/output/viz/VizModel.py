@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class VizFilter(BaseModel):
@@ -53,22 +53,25 @@ class VizChart(BaseModel):
     )
 
 
+_REMOVED_PROPERTY_KEYS = frozenset({"colorGradient", "theme", "formatter"})
+
+
 class VizProperties(BaseModel):
     """Display / encoding properties.
 
     Structural fields (labels, title, Excel-style formatting) are filled
-    deterministically. Domain-specific styling (color/gradient/theme/background)
-    and custom JS formatters are filled by a focused LLM polish step.
+    deterministically. Domain-specific styling (color / background) is filled
+    by a focused LLM polish step.
     Extra unknown keys are preserved via ``extra="allow"``.
     """
 
     model_config = ConfigDict(extra="allow")
 
-    labelsX: Optional[str] = Field(
+    labelX: Optional[str] = Field(
         default=None,
         description="X-axis / primary categorical label.",
     )
-    labelsY: Optional[str] = Field(
+    labelY: Optional[str] = Field(
         default=None,
         description="Y-axis / primary measure or secondary categorical label.",
     )
@@ -80,14 +83,6 @@ class VizProperties(BaseModel):
         default=None,
         description="Solid hex color or color field binding.",
     )
-    colorGradient: Optional[list[str]] = Field(
-        default=None,
-        description="Ordered hex palette / gradient stops for domain-themed coloring.",
-    )
-    theme: Optional[str] = Field(
-        default=None,
-        description="Visual theme name or token (e.g. finance-dark, retail-warm).",
-    )
     background: Optional[str] = Field(
         default=None,
         description="Chart background color or CSS background value.",
@@ -96,13 +91,24 @@ class VizProperties(BaseModel):
         default_factory=dict,
         description="Per-column Excel-style format strings (deterministic when possible).",
     )
-    formatter: dict[str, str] = Field(
-        default_factory=dict,
-        description=(
-            "Per-column custom JS formatter function bodies when Excel-style "
-            "formatting is not enough (e.g. domain units, conditional labels)."
-        ),
-    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_property_keys(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+        if payload.get("labelX") in (None, "") and "labelsX" in payload:
+            payload["labelX"] = payload.pop("labelsX")
+        else:
+            payload.pop("labelsX", None)
+        if payload.get("labelY") in (None, "") and "labelsY" in payload:
+            payload["labelY"] = payload.pop("labelsY")
+        else:
+            payload.pop("labelsY", None)
+        for key in _REMOVED_PROPERTY_KEYS:
+            payload.pop(key, None)
+        return payload
 
 
 class VizPropertiesPolish(BaseModel):
@@ -114,14 +120,6 @@ class VizPropertiesPolish(BaseModel):
         default=None,
         description="Solid hex color fitting the domain / topic mood, or empty.",
     )
-    colorGradient: Optional[list[str]] = Field(
-        default=None,
-        description="2+ hex colors forming a domain-appropriate gradient / palette.",
-    )
-    theme: Optional[str] = Field(
-        default=None,
-        description="Short theme token for the domain (e.g. travel-cool, sales-bold).",
-    )
     background: Optional[str] = Field(
         default=None,
         description="Background color/CSS for the chart canvas when thematically useful.",
@@ -130,23 +128,32 @@ class VizPropertiesPolish(BaseModel):
         default=None,
         description="Optional improved business-friendly title; omit to keep deterministic title.",
     )
-    labelsX: Optional[str] = Field(
+    labelX: Optional[str] = Field(
         default=None,
         description="Optional improved X label; omit to keep deterministic label.",
     )
-    labelsY: Optional[str] = Field(
+    labelY: Optional[str] = Field(
         default=None,
         description="Optional improved Y label; omit to keep deterministic label.",
     )
-    formatter: dict[str, str] = Field(
-        default_factory=dict,
-        description=(
-            "Map of result column name → JavaScript function body string "
-            "(args: value, datum). Only for columns that need custom logic "
-            "beyond Excel-style format strings. Example: "
-            "'return value == null ? \"—\" : value.toFixed(1) + \" km\";'"
-        ),
-    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _normalize_polish_keys(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+        if payload.get("labelX") in (None, "") and "labelsX" in payload:
+            payload["labelX"] = payload.pop("labelsX")
+        else:
+            payload.pop("labelsX", None)
+        if payload.get("labelY") in (None, "") and "labelsY" in payload:
+            payload["labelY"] = payload.pop("labelsY")
+        else:
+            payload.pop("labelsY", None)
+        for key in _REMOVED_PROPERTY_KEYS:
+            payload.pop(key, None)
+        return payload
 
 
 class VizModel(BaseModel):

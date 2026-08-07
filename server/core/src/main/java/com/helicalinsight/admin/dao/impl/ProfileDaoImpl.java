@@ -4,22 +4,18 @@ import com.helicalinsight.admin.dao.ProfileDao;
 import com.helicalinsight.admin.model.Profile;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 
-
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -44,9 +40,6 @@ public class ProfileDaoImpl implements ProfileDao {
     @Autowired
     private SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
 
     /**
      * this is override method get the current session from session factory
@@ -161,35 +154,37 @@ public class ProfileDaoImpl implements ProfileDao {
         return profileList;
     }
 
-    @Override
-    public Profile getProfileByNameAndUserId(String profileName, int userId) {
-    	Profile profile=null;
-    	try {
-     	CriteriaBuilder cb = em.getCriteriaBuilder();
-    	CriteriaQuery<Profile> cr=cb.createQuery(Profile.class);
-    	Root<Profile> resource = cr.from(Profile.class);
-    	cr.select(resource).where(cb.equal(resource.get("profile_name"), profileName),cb.equal(resource.get("user_id"), userId));
-        profile=em.createQuery(cr).getSingleResult();
-    	}
-    	catch(Exception e) {
+	@Override
+	public Profile getProfileByNameAndUserId(String profileName, int userId) {
+		Profile profile = null;
+		try {
+			Session currentSession = session.getCurrentSession();
+			CriteriaBuilder cb = currentSession.getCriteriaBuilder();
+			CriteriaQuery<Profile> cr = cb.createQuery(Profile.class);
+			Root<Profile> resource = cr.from(Profile.class);
+			cr.select(resource).where(cb.equal(resource.get("profile_name"), profileName),
+					cb.equal(resource.get("user_id"), userId));
+			profile = currentSession.createQuery(cr).getSingleResult();
+		} catch (Exception e) {
 			if (e instanceof NoResultException)
 				return null;
 			logger.error("Exception", e);
-    	}
-    	return profile;
-    }
-
+		}
+		return profile;
+	}
 
     @Override
     public List<Profile> getProfileListByNameAndUserId(String profileName, int userId) {
 
 		List<Profile> proList = null;
 		try {
-			CriteriaBuilder cb = em.getCriteriaBuilder();
+			Session currentSession = session.getCurrentSession();
+			CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 			CriteriaQuery<Profile> cr = cb.createQuery(Profile.class);
 			Root<Profile> resource = cr.from(Profile.class);
-			cr.select(resource).where(cb.equal(resource.get("profile_name"), profileName), cb.equal(resource.get("user_id"), userId));
-			proList = em.createQuery(cr).getResultList();
+			cr.select(resource).where(cb.equal(resource.get("profile_name"), profileName),
+					cb.equal(resource.get("user_id"), userId));
+			proList = currentSession.createQuery(cr).getResultList();
 		} catch (Exception e) {
 			if (e instanceof NoResultException)
 				return null;

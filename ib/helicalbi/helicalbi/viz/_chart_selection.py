@@ -68,12 +68,16 @@ def possible_chart_options(
     measure_count: int,
     ordered: bool = False,
 ) -> list[ChartOption]:
-    """Return chart options compatible with the given data shape."""
+    """Return chart options compatible with the given data shape.
+
+    The catch-all ``other`` type is never offered in selection lists.
+    """
     catalog = get_chart_options()
     matched = [
         option
         for option in catalog
-        if _matches(option, dimension_count, measure_count, ordered)
+        if option.visualization_type != "other"
+        and _matches(option, dimension_count, measure_count, ordered)
     ]
     logger.info(
         "chart_selection.filter dims=%s measures=%s ordered=%s "
@@ -311,10 +315,10 @@ def format_chart_selection_guide(
         used_fallback = True
         options = [
             opt for opt in get_chart_options()
-            if opt.visualization_type in {"table", "other"}
+            if opt.visualization_type == "table"
         ]
         logger.info(
-            "chart_selection.guide route=fallback_table_other types=%s",
+            "chart_selection.guide route=fallback_table types=%s",
             [opt.visualization_type for opt in options],
         )
     else:
@@ -386,7 +390,7 @@ def resolve_similar_charts(selected: str, data_types: Any = None) -> list[str]:
     if not options:
         options = [
             opt for opt in get_chart_options()
-            if opt.visualization_type in {"table", "other"}
+            if opt.visualization_type == "table"
         ]
 
     similar = sorted(
@@ -516,5 +520,9 @@ def __getattr__(name: str):
     if name == "CHART_OPTIONS":
         return get_chart_options()
     if name == "CHART_SELECTION_TABLE":
-        return _build_chart_selection_table(get_chart_options())
+        visible = tuple(
+            opt for opt in get_chart_options()
+            if opt.visualization_type != "other"
+        )
+        return _build_chart_selection_table(visible)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

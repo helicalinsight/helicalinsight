@@ -2,18 +2,13 @@ package com.helicalinsight.scheduling.dao.impl;
 
 import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.scheduling.dao.ResourceTypeDao;
-import com.helicalinsight.scheduling.model.HiResource;
-import com.helicalinsight.scheduling.model.Schedules;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 
 import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -30,11 +25,8 @@ public class ResourceTypeDaoImpl implements ResourceTypeDao {
     private static final Logger logger = LoggerFactory.getLogger(JobParametersDaoImpl.class);
     
     @Autowired
-    SessionFactory session;
+    private SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
     /**
      * addResourceType(ResourceType resourceType)
      * Stores {@link ResourceType} entity/object in database.

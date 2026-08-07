@@ -24,31 +24,36 @@
           "name": "enable_llm_usage_audit",
           "label": "Enable LLM usage audit",
           "type": "boolean",
+          "control": "tick",
           "span": 12
         },
         {
           "name": "hide_prompt_reason",
           "label": "Hide prompt reason",
           "type": "boolean",
+          "control": "tick",
           "span": 12
         },
         {
           "name": "enable_cache",
           "label": "Enable cache",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         },
         {
           "name": "enable_streaming",
           "label": "Enable streaming",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         },
         {
           "name": "enable_memory",
           "label": "Enable memory",
           "type": "boolean",
-          "span": 8
+          "control": "tick",
+          "span": 12
         }
       ]
     },
@@ -67,6 +72,7 @@
           "name": "api_cache_enabled",
           "label": "API cache enabled",
           "type": "boolean",
+          "control": "tick",
           "span": 12
         },
         {

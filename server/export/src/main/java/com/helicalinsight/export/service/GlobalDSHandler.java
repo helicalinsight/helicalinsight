@@ -371,32 +371,8 @@ return  oldMappingNewMapping;
 		GlobalConnections gConnection = connectionService.getGlobalConnectionBy(lookup);
 		if( gConnection == null ) {
 			connection.setGlobalId(null);
-			
 			Object createdByObj = connection.getCreatedBy();
-			
-			User createdBy =  null;
-			boolean shouldFallBack = true;
-			
-			if ( createdByObj instanceof User user) {
-				if ( user.getUsername() != null ) {
-					createdBy = shareUtils.getOrInsertUser(dtoMapper.map(user));
-					shouldFallBack = false;
-				}
-			}
-			
-			if (shouldFallBack)  {
-				JsonObject settingsJson =  JsonUtils.newGetSettingsJson();
-				String defaultOwnerId = GsonUtility.optString(settingsJson,"defaultOwnerId");
-				if (StringUtils.isNotBlank(defaultOwnerId) && !"null".equalsIgnoreCase(defaultOwnerId)) {
-					User user = userService.findUser(Integer.parseInt(defaultOwnerId));
-					if ( user != null ) {
-						createdBy = user;
-					}
-					else {
-						logger.debug("Could not find user with given id {} , making the resource public.", defaultOwnerId);
-					}
-				}
-			}
+			User createdBy =  resolveUser(createdByObj);
 			connection.setCreatedBy(createdBy);
 			connectionService.addGlobalConnections(connection);
 			gConnection = connection;

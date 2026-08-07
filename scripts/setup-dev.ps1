@@ -42,19 +42,6 @@ if (Test-Path $GlobalConn) {
     }
 }
 
-$persistencePatched = 0
-foreach ($file in Get-PersistenceXmlFiles -ServerRoot $Server) {
-    if (Restore-PersistencePlaceholders -FilePath $file) {
-        $persistencePatched++
-    }
-}
-
-if ($persistencePatched -gt 0) {
-    Write-Host "[OK]   Normalized persistence.xml placeholders in $persistencePatched file(s)" -ForegroundColor Green
-} else {
-    Write-Host '[SKIP] persistence.xml already uses Maven placeholders' -ForegroundColor Yellow
-}
-
 
 $EnvExample = Join-Path $Root ".env.example"
 $EnvFile = Join-Path $Root ".env"

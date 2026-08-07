@@ -6,21 +6,17 @@ import com.helicalinsight.scheduling.dao.HiResourceDao;
 import com.helicalinsight.scheduling.model.HiResource;
 import com.helicalinsight.scheduling.model.Schedules;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import jakarta.persistence.Query;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -31,6 +27,7 @@ import java.util.List;
  * Created by author on 3/13/2020.
  * @author Rajesh
  */
+@Deprecated(forRemoval = true)
 @Repository
 public class HiResourceDaoImpl implements HiResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(HiResourceDaoImpl.class);
@@ -38,9 +35,6 @@ public class HiResourceDaoImpl implements HiResourceDao {
     @Autowired
     SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
     /**
      * addHiResource(HiResource hiResource)
      * It adds hiResource entity in database
@@ -178,9 +172,9 @@ public class HiResourceDaoImpl implements HiResourceDao {
      */
     @Override
     public HiResource getHiResourceByPath(String path, Long parentId) {
-
+    	Session currentSession = session.getCurrentSession();
 		HiResource hiResource = null;
-		CriteriaBuilder cb = em.getCriteriaBuilder();
+		CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 		CriteriaQuery<HiResource> cr = cb.createQuery(HiResource.class);
 		Root<HiResource> resource = cr.from(HiResource.class);
 		Predicate p1 = cb.equal(resource.get("resourcePath"), path);
@@ -188,7 +182,7 @@ public class HiResourceDaoImpl implements HiResourceDao {
 			if (parentId == null) {
 				try {
 					cr.select(resource).where(p1);
-					hiResource = em.createQuery(cr).getSingleResult();
+					hiResource = currentSession.createQuery(cr).getSingleResult();
 				} catch (Exception e) {
 					if (e instanceof NoResultException)
 						return null;
@@ -197,7 +191,7 @@ public class HiResourceDaoImpl implements HiResourceDao {
 			} else {
 				try {
 					cr.select(resource).where(cb.and(p1, cb.equal(resource.get("parentId"), parentId)));
-					hiResource = em.createQuery(cr).getSingleResult();
+					hiResource = currentSession.createQuery(cr).getSingleResult();
 				} catch (Exception e) {
 					if (e instanceof NoResultException)
 						return null;

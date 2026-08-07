@@ -1,12 +1,11 @@
 """Deterministic VizModel shelves/chart fill (no LLM).
 
-Domain styling (color/gradient/theme/background/custom formatters) is polished
-in VizPropertiesPolish. Other/custom charts still route to Fallback.
+Domain styling (color/background) and label polish happen in VizPropertiesPolish.
+Other/custom charts still route to Fallback.
 """
 from __future__ import annotations
 
 import logging
-import traceback
 
 from helicalbi.model.ModelState import ModelState
 from helicalbi.viz._charts import (
@@ -117,6 +116,5 @@ class VizModelFiller:
             )
         except Exception:
             logger.exception("VizModelFiller flow failed")
-            state["output"] = traceback.format_exc()
 
         return state

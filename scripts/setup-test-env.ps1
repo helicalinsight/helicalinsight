@@ -5,7 +5,7 @@
 #   .\scripts\setup-test-env.ps1
 #   cd server; mvn test
 #
-# Presentation test resources (application-context.xml, persistence.xml, quartz.properties)
+# Presentation test resources (application-context.xml, quartz.properties)
 # are Maven-filtered from presentation/pom.xml profiles - no manual edits needed there.
 $ErrorActionPreference = "Stop"
 

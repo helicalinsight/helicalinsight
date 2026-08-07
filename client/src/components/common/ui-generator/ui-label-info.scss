@@ -1,0 +1,18 @@
+.ui-label-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #e6f7ff;
+  color: #69c0ff;
+  vertical-align: middle;
+  cursor: help;
+  line-height: 1;
+
+  &__icon {
+    font-size: 10px;
+  }
+}
