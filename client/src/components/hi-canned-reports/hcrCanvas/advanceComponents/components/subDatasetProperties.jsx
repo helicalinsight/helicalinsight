@@ -58,7 +58,6 @@ const SubDatasetProperties = (props = {}) => {
 
     const handleEditParameterMapping = (parameter = {}) => {
         const { id, expression } = parameter;
-        console.log({ parameter })
         updateParameterMapping({ paramId: id, expression })
     }
 

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
-from .functions_catalog import FunctionCatalog
+from .functions_catalog import FunctionCatalog, REFERENCE_TO_SQLGLOT
 from .layers import (
     attach_database_functions,
     build_columns,
@@ -14,8 +15,22 @@ from .layers import (
     build_functions,
     build_having,
 )
+from .metadata import build_column_index
 from .models import ParsedQuery
 from .parser import parse_sql
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_parse_dialect(
+    dialect: str | None,
+    catalog: FunctionCatalog,
+) -> str:
+    """Map API reference (e.g. postgresql) → sqlglot dialect (postgres)."""
+    if dialect:
+        key = str(dialect).lower().strip()
+        return REFERENCE_TO_SQLGLOT.get(key, key)
+    return catalog.dialect
 
 
 def load_function_catalog(
@@ -48,6 +63,50 @@ def load_function_catalog(
     return FunctionCatalog.from_api_payload(payload)
 
 
+def load_metadata_index(
+    *,
+    location: str,
+    metadata_file_name: str,
+    session_cookie: str = "",
+    metadata: dict | None = None,
+) -> dict[str, Any]:
+    """
+    Build column index from a metadata get payload.
+
+    When ``metadata`` is omitted and ``session_cookie`` is set, fetch via API.
+    """
+    if metadata is None and session_cookie and metadata_file_name:
+        try:
+            from helicalbi.api.Metadata import get_json_data_metadata
+
+            metadata = get_json_data_metadata(
+                session_cookie, metadata_file_name, location
+            )
+        except Exception:
+            logger.exception(
+                "sql_to_formdata: metadata get failed location=%s file=%s",
+                location,
+                metadata_file_name,
+            )
+            metadata = None
+
+    if not metadata:
+        return {"database": "", "by_column": {}, "by_alias": {}}
+
+    # Already an index (has by_column from build_column_index / report loader)
+    if isinstance(metadata.get("by_column"), dict) and (
+        "database" in metadata or "tables" not in metadata
+    ):
+        # Report loader shape — ensure database key exists
+        if "database" not in metadata:
+            metadata = {**metadata, "database": metadata.get("database") or ""}
+        # If report loader only, return as-is (string paths / ids may be partial)
+        if "tables" not in metadata:
+            return metadata
+
+    return build_column_index(metadata)
+
+
 def assemble_form_data(
     parsed: ParsedQuery,
     *,
@@ -75,6 +134,7 @@ def assemble_form_data(
         "location": location or meta.get("location", ""),
         "metadataFileName": metadata_file_name or meta.get("metadataFileName", ""),
         "columns": columns,
+        "prependTableNameToAlias": False,
     }
 
     if functions:
@@ -88,8 +148,8 @@ def assemble_form_data(
     if parsed.offset is not None:
         form_data["offset"] = parsed.offset
 
-    if db_fn_layer.get("appliedDbfs"):
-        form_data["appliedDbfs"] = db_fn_layer["appliedDbfs"]
+    #if db_fn_layer.get("appliedDbfs"):
+    #    form_data["appliedDbfs"] = db_fn_layer["appliedDbfs"]
 
     if filters:
         form_data["filters"] = filters
@@ -131,6 +191,9 @@ def sql_to_form_data(
     `location` and `metadata_file_name` are required alongside SQL (used for getFunctions
     unless `catalog` / `functions_file` is supplied). `metadata_dir` defaults to `location`
     when omitted.
+
+    When ``metadata`` is omitted and ``session_cookie`` is set, metadata get is fetched
+    so wire columns can include ``{name, id}`` FQ refs.
     """
     resolved_location = location or metadata_dir or ""
     if catalog is None:
@@ -141,11 +204,23 @@ def sql_to_form_data(
             functions_file=functions_file,
         )
 
-    resolved_dialect = dialect or catalog.dialect
-    parsed = parse_sql(sql, dialect=resolved_dialect, catalog=catalog)
+    column_index = load_metadata_index(
+        location=resolved_location,
+        metadata_file_name=metadata_file_name,
+        session_cookie=session_cookie,
+        metadata=metadata,
+    )
+
+    resolved_dialect = _resolve_parse_dialect(dialect, catalog)
+    parsed = parse_sql(
+        sql,
+        dialect=resolved_dialect,
+        catalog=catalog,
+        database_name=str(column_index.get("database") or ""),
+    )
     return assemble_form_data(
         parsed,
-        metadata=metadata,
+        metadata=column_index,
         location=resolved_location,
         metadata_file_name=metadata_file_name,
         include_layers=include_layers,

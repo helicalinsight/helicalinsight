@@ -162,7 +162,7 @@ describe("agent-cube-bridge", () => {
     const display = JSON.parse(serializeAgentDataForDisplay(sampleNewFormat));
     expect(display.cube_metadata).toBeUndefined();
     expect(display.cube).toBeDefined();
-    expect(display.cube[0].cubeName).toBe("");
+    expect(display.cube[0]).not.toHaveProperty("cubeName");
     expect(display.domain).toBeDefined();
     expect(display.topics).toBeUndefined();
     expect(display.domain[0].topics).toEqual([

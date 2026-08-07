@@ -43,4 +43,7 @@ export const cannedReportIncludingTypes = [
     actionTypes.HCR_RESIZE_NODE,
     actionTypes.HCR_DIAGRAM_NODES_DATA,
     actionTypes.HCR_UPDATE_CANVAS_TAB_VIEW_COMPONENT,
+    actionTypes.HCR_UPDATE_CROSSTAB_COMPONENT,
+    actionTypes.HCR_UPDATE_TABLE_STYLES,
+    actionTypes.HCR_UPDATE_SUB_DATASETS
 ]

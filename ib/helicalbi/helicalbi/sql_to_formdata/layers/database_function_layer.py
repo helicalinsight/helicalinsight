@@ -25,13 +25,17 @@ def attach_database_functions(
     for col in columns:
         item = by_alias.get(col.get("alias"))
         if item and item.database_function and "databaseFunction" not in col:
-            col["databaseFunction"] = item.database_function
+            from ..functions_catalog import to_wire_database_function
+
+            wire_dbf = to_wire_database_function(item.database_function)
+            if wire_dbf:
+                col["databaseFunction"] = wire_dbf
         db_fn = col.get("databaseFunction")
         if db_fn:
             applied.append({"target": "column", "alias": col.get("alias"), "databaseFunction": db_fn})
-            collect_applied_dbfs(db_fn, applied_dbfs)
-            if item and item.functions_definition and "functionsDefinition" not in col:
-                col["functionsDefinition"] = item.functions_definition
+            # appliedDbfs expects catalog-shaped entries; prefer parse model
+            catalog_dbf = item.database_function if item else db_fn
+            collect_applied_dbfs(catalog_dbf if isinstance(catalog_dbf, dict) else None, applied_dbfs)
 
     for bucket_name, bucket in (("filters", filters or []), ("having", having or [])):
         for f in bucket:

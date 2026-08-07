@@ -12,7 +12,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { hcrActions } from "../../../redux/actions";
 import { hcrCrosstabMeasuresAggregateFns, hcrDSQuery } from "../hcr-constants";
-import { hcrCanvasPaneHelperMethods } from "./hcrCanvasPaneHelperMethods";
+import { getCrosstabDefaultStyles, hcrCanvasPaneHelperMethods, NoDataTemplate, getCrosstabConfigV2 } from "./hcrCanvasPaneHelperMethods";
 import CommonProperties from "./hcrTable/commonProperties";
 import NodeBorders from "./nodeBorder";
 import NodePadding from "./nodePadding";
@@ -22,9 +22,7 @@ import { useFieldSelection } from "../../../hooks/useHCRFieldsSelection";
 import ElementProperties from "./elementProperties";
 const { getHcrPropertyTooltipInfo } = hcrCanvasPaneHelperMethods;
 
-const { getCrosstabConfig } = hcrCanvasPaneHelperMethods;
-
-const CrosstabProperties = ({
+const CrosstabPropertiesV2 = ({
   EditorPanels,
   nodeConfig,
   onNodeConfigChange = () => { },
@@ -54,14 +52,19 @@ const CrosstabProperties = ({
     height: cHeight,
     width: cWidth,
     padding = {},
+    isCTConstructed
   } = actualConfig || {};
+
   const activeTab =
     useSelector((state) =>
       state.cannedReports.present.hcrTabData.panes.find(
         (pane) => pane.key === state.cannedReports.present.hcrTabData.activeKey,
       ),
     ) || {};
-  const { dsPaneTypes, selectedQueryId: mainQuery = null } = activeTab || {};
+  const { dsPaneTypes, selectedQueryId: mainQuery = null, subDataSets = [], activeKey: reportKey, tableStyles = [] } = activeTab || {};
+  const subDataSet = subDataSets.find((ds) => ds.id === selectedQueryID),
+    isSubDataSetPresent = !isEmpty(subDataSet);
+
   const designerProperties = useSelector(
     (state) =>
       state.cannedReports.present?.hCROldConfigurations?.HCR?.HCR
@@ -188,7 +191,6 @@ const CrosstabProperties = ({
     }
   }, [selectedFields.length]);
 
-  // using common function component for fields
   const {
     searchStr,
     setSearchStr,
@@ -220,7 +222,10 @@ const CrosstabProperties = ({
       selectedColumnFields.length &&
       selectedRowFields.length &&
       selectedMeasures.length
-    ) || isAppliedClicked;
+    ) || isAppliedClicked,
+    isSelectionDisabled = isCTConstructed,
+    isDsItemSelectionDisabled = isCTConstructed || !isEmpty(subDataSet);
+
 
   let nodeValues = {
     ...actualConfig,
@@ -263,56 +268,76 @@ const CrosstabProperties = ({
     onPropertyChange({ key, value: isChecked });
   };
 
+  const handleQueryChange = (value) => {
+    let otherProperties = {};
+    const subDataSet = subDataSets.find((ds) => ds.id === value);
+    if (subDataSet) {
+      otherProperties.selectedFields = subDataSet.selectedFields || [];
+    }
+    onPropertyChange({ key: "selectedQueryID", value }, otherProperties);
+  }
+
   const handleApply = () => {
-    const { columnHeaders, rowHeaders, height, width, nodes } =
-      getCrosstabConfig({
+    let crosstabConfig = {}, crossTabWidth = cWidth, crossTabHeight = cHeight;
+    if (!isCTConstructed) {
+      const config = getCrosstabConfigV2({
         columnFields: selectedColumnFields,
         rowFields: selectedRowFields,
         measures: selectedMeasures,
-        crossTabX,
-        crossTabY,
         nodeId,
         fields,
         measuresAggregateMap,
         padding,
+        tableStyles
       });
-    if (
-      !isEqual(selectedColumnFields, prevSelectedColumnFields) ||
-      !isEqual(selectedRowFields, prevSelectedRowFields) ||
-      !isEqual(selectedMeasures, prevSelectedMeasures)
-    ) {
-      dispatch(
-        hcrActions.hcrAddNodes({
+      const { columnGroups, rowGroups, measureCells, crosstabHeader, measures, width, height, nodes, styles = [], colWidths, rowHeights } = config || {};
+      crossTabWidth = width > cWidth ? width : cWidth;
+      crossTabHeight = height > cHeight ? height : cHeight;
+      crosstabConfig = {
+        config: {
+          columnGroups,
+          rowGroups,
+          measureCells,
+          measures,
           nodes,
-          nodeId,
-          propertiesToBeChange: {
-            ...cloneDeep(copiedConfig),
-            isAppliedClicked: true,
-            copiedConfig: {},
-            rowHeaders,
-            columnHeaders,
-            height: cHeight > height ? cHeight : height,
-            width: cWidth > width ? cWidth : width,
-          },
-        }),
-      );
-    } else {
-      dispatch(
-        hcrActions.editNode({
-          nodeId,
-          multiple: true,
-          isCrosstab: true,
-          propertiesToBeChange: {
-            ...cloneDeep(copiedConfig),
-            isAppliedClicked: true,
-            copiedConfig: {},
-            height: cHeight > height ? cHeight : height,
-            width: cWidth > width ? cWidth : width,
-          },
-        }),
-      );
+          crosstabHeader,
+          colWidths,
+          rowHeights
+        }
+      }
+      dispatch(hcrActions.hcrUpdateTableStyles({
+        actionType: "addNewStyles",
+        newStyles: styles,
+      }))
     }
-  };
+    dispatch(
+      hcrActions.editNode({
+        nodeId,
+        multiple: true,
+        isCrosstab: true,
+        propertiesToBeChange: {
+          ...cloneDeep(copiedConfig),
+          ...crosstabConfig,
+          isAppliedClicked: true,
+          copiedConfig: {},
+          height: crossTabHeight,
+          width: crossTabWidth,
+          isCTConstructed: true
+        },
+      }),
+    );
+    if (!isSubDataSetPresent && !isCTConstructed && selectedQueryID) {
+      dispatch(hcrActions.hcrUpdateSubdataSets({
+        actionType: "add",
+        reportKey,
+        id: selectedQueryID,
+        name: selectedQuery.name,
+        groups: [],
+        fields,
+        selectedFields,
+      }))
+    }
+  }
 
   const measuresAggregation = (measures) => {
     return (
@@ -320,21 +345,25 @@ const CrosstabProperties = ({
         {measures.map((measure) => {
           return (
             <div>
-              <SelectField
-                label={<div className="property-label">{measure}</div>}
+              <div className="property-label">{measure}</div>
+              <Select
                 value={measuresAggregateMap[measure]}
+                size={"small"}
+                className="canvas-parameter-select"
+                style={{ width: "100%" }}
                 options={hcrCrosstabMeasuresAggregateFns.map((aggregate) => ({
                   label: aggregate,
                   value: aggregate,
                 }))}
-                width={110}
+                showArrow
                 onChange={(value) =>
                   onPropertyChange({
                     key: "measuresAggregateMap",
                     value: { ...measuresAggregateMap, [measure]: value },
                   })
                 }
-                placeholder="Please aggreate Fn"
+                placeholder="Please select aggregate Fn"
+                disabled={isSelectionDisabled}
               />
             </div>
           );
@@ -398,21 +427,10 @@ const CrosstabProperties = ({
                 }))}
               // width={"100%"}
               style={{ width: "100%" }}
-              onChange={(value) =>
-                onPropertyChange(
-                  { key: "selectedQueryID", value },
-                  !value || value !== selectedQueryID
-                    ? {
-                      selectedFields: [],
-                      selectedColumnFields: [],
-                      selectedRowFields: [],
-                      selectedMeasures: [],
-                    }
-                    : {},
-                )
-              }
+              onChange={(value) => handleQueryChange(value)}
               placeholder="Please select query"
               allowClear={selectedQueryID ? true : false}
+              disabled={isSelectionDisabled}
             />
           </div>
           <div>
@@ -462,6 +480,7 @@ const CrosstabProperties = ({
               onSearch={(value) => setSearchStr(value)}
               searchValue={searchStr}
               onDropdownVisibleChange={() => setSearchStr("")}
+              disabled={isDsItemSelectionDisabled}
             />
           </div>
           <div>
@@ -507,6 +526,7 @@ const CrosstabProperties = ({
               onSearch={(value) => setColumnSearchStr(value)}
               searchValue={columnSearchStr}
               onDropdownVisibleChange={() => setColumnSearchStr("")}
+              disabled={isSelectionDisabled}
             />
           </div>
           <div>
@@ -564,6 +584,7 @@ const CrosstabProperties = ({
               onSearch={(value) => setRowSearchStr(value)}
               searchValue={rowSearchStr}
               onDropdownVisibleChange={() => setRowSearchStr("")}
+              disabled={isSelectionDisabled}
             />
           </div>
           <div>
@@ -614,6 +635,7 @@ const CrosstabProperties = ({
               onSearch={(value) => setMeasureSearchStr(value)}
               searchValue={measureSearchStr}
               onDropdownVisibleChange={() => setMeasureSearchStr("")}
+              disabled={isSelectionDisabled}
             />
           </div>
           {selectedMeasures?.length ? (
@@ -757,4 +779,4 @@ const CrosstabProperties = ({
   );
 };
 
-export default CrosstabProperties;
+export default CrosstabPropertiesV2;

@@ -162,14 +162,8 @@ public class DataSourceSecurityUtility {
             dir = connectionDetails.getString("directory");
             id = connectionDetails.getString("connectionId");
         }
-        JSONObject efwd = formJson.optJSONObject("efwd");
-        String fileName = null;
-        if (efwd != null && efwd.has("file")) {
-            fileName = efwd.getString("file");
-        }
-
         String accessLevel = formJson.optString("access");
-        if (!dir.isEmpty()) {
+        if (!dir.isEmpty() && !GlobalJdbcTypeUtils.isJustGlobal(type)) {
         	isEFWDAccessible(id, accessLevel);
 
         } else {
@@ -186,7 +180,6 @@ public class DataSourceSecurityUtility {
     	if(Boolean.TRUE.equals(efwdService.isDeleted(id))) {
     		throwResourceNotFoundException();
     	}
-    	
     	JsonArray extensions = new JsonArray();
 		extensions.add("efwd");
 		EfwdReaderUtility efwdReaderUtility = new EfwdReaderUtility(extensions);

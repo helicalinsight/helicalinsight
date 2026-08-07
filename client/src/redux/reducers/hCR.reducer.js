@@ -1,26 +1,26 @@
-import actionTypes from '../actions/actionTypes';
 import produce from 'immer';
-import initialStates from './initialStates';
+import { cloneDeep, isEmpty } from 'lodash';
+import { v4 as uuidv4 } from 'uuid';
 import {
-    HCR_TABLE_DATA_CELL_WIDTH,
     hcrCanvasViews,
     hcrDSParameter,
     hcrDSQuery,
     hcrParaDate,
     hcrParaDateAndTime,
-    hcrParaInput,
+    hcrParaInput
 } from '../../components/hi-canned-reports/hcr-constants';
-import { v4 as uuidv4 } from 'uuid';
 import {
     handleDeletingGroup,
     removeCalculation,
     updateCanvasTabViewComponent,
     updateElementsWithStyles,
+    updateHCRCrosstabComponent,
     updateSubDataSets,
-    updateTableStyles,
+    updateTableStyles
 } from '../../components/hi-canned-reports/hcrHelperMethods';
 import { deleteItemById } from '../../components/hi-fileBrowser/helperMethods';
-import { cloneDeep, isEmpty } from 'lodash';
+import actionTypes from '../actions/actionTypes';
+import initialStates from './initialStates';
 
 // const {
 // 	HCR__OLD_CONFIGURATIONS,
@@ -1844,6 +1844,7 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 // for table delete 
                 const prevTableStyles = cloneDeep(reqPane.tableStyles);
                 reqPane.tableStyles = reqPane.tableStyles.filter((style) => !action.payload.includes(style.tableId))
+                reqPane.tableStyles = reqPane.tableStyles.filter((style) => !action.payload.includes(style.crosstabId))
                 reqPane.hcrDiagramNodesData = updateElementsWithStyles(prevTableStyles, reqPane.tableStyles, reqPane.hcrDiagramNodesData);
 
 
@@ -2262,6 +2263,25 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
             });
         }
 
+        case actionTypes.HCR_UPDATE_CROSSTAB_COMPONENT: {
+            const { reportKey, id, actionType, ...restPayload } = action.payload || {}
+            return produce(state, (draft) => {
+                let reqPane = getReqPaneByKey(draft, reportKey);
+                if (!reqPane) {
+                    reqPane = getReqPane(draft);
+                }
+                if (reqPane) {
+                    reqPane.hcrDiagramNodesData = reqPane.hcrDiagramNodesData.map(
+                        (node) => {
+                            if (node.id === id) {
+                                updateHCRCrosstabComponent(node, actionType, { ...restPayload, activeReport: reqPane })
+                            }
+                            return node
+                        }
+                    )
+                }
+            });
+        }
         // case NEW_CONFIGURATION:
         // 	return { ...state, propertyPaneData: { ...state.propertyPaneData, newConfiguration: action.payload } };
         // case HCR_GROUPS:

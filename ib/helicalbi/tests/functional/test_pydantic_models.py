@@ -357,6 +357,17 @@ class TestChatResponse:
             "picked_metrics": ["cost of travel"],
         }
 
+    def test_includes_data_model_from_viz_form_data(self):
+        form_data = {"columns": [{"name": "city"}], "filters": []}
+        response = ChatResponse.from_model_state({"viz_form_data": form_data})
+        assert response.data_model == form_data
+        assert response.to_dict()["data_model"] == form_data
+
+    def test_data_model_is_none_without_viz_form_data(self):
+        response = ChatResponse.from_model_state({})
+        assert response.data_model is None
+        assert response.to_dict()["data_model"] is None
+
 
 class TestSqlGen:
     def test_valid_payload_with_reason_when_flag_disabled(self, monkeypatch):

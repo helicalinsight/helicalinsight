@@ -1,6 +1,6 @@
 from langchain_core.prompts import PromptTemplate
 
-from helicalbi.common.app_config import default_sql_limit, hide_prompt_reason
+from helicalbi.common import app_config
 
 _FINAL_SQL_REASON_LINE = (
     "If you cannot generate the sql due to lack of more information "
@@ -9,7 +9,7 @@ _FINAL_SQL_REASON_LINE = (
 
 
 def _final_sql_important_block() -> str:
-    if hide_prompt_reason:
+    if app_config.hide_prompt_reason:
         return """#IMPORTANT
 Dont generate inappropriate sql other than provided table and column 
 Never invent tables from previous SQL — only use tables/columns listed above.
@@ -122,5 +122,5 @@ final_sql_prompt = final_sql_prompt.replace(
 
 final_sql_prompt_formatted = PromptTemplate.from_template(
     final_sql_prompt,
-    partial_variables={"default_sql_limit": default_sql_limit},
+    partial_variables={"default_sql_limit": app_config.default_sql_limit},
 )

@@ -2,9 +2,11 @@ import { Collapse } from 'antd'
 import React from 'react'
 import SubDatasetProperties from './subDatasetProperties'
 const TableOutlineProperties = (props = {}) => {
-    const { onChange = () => { }, tableData = {}, EditorPanels, queriesMenu = [] } = props || {}
-    const { id, selectedQueryID } = tableData || {}
+    const { onChange = () => { }, componentData = {}, EditorPanels, queriesMenu = [], } = props || {}
+    const { id, selectedQueryID, category } = componentData || {}
     const { InputFiled, SelectField } = EditorPanels || {}
+
+    const isCrosstab = category === "crosstabv2"
 
     return (
         <div>
@@ -14,7 +16,7 @@ const TableOutlineProperties = (props = {}) => {
                 className="node-property-collapse"
             >
                 <Collapse.Panel
-                    header={<span className="node-property-title">Table</span>}
+                    header={<span className="node-property-title">{isCrosstab ? "Crosstab" : "Table"}</span>}
                     key={"table"}
                     data-testid="hcr-outline-ds-node-table-collapse"
                 >

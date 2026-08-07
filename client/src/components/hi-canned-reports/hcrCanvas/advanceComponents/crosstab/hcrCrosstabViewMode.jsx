@@ -1,8 +1,8 @@
-import React from 'react'
+import CrosstabLayout from "./components/crosstabLayout";
 
-const HCRCrosstabViewMode = () => {
+const HCRCrosstabViewMode = (props = {}) => {
   return (
-    <div>HCRCrosstabViewMode</div>
+    <CrosstabLayout {...props} />
   )
 }
 

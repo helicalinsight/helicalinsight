@@ -1,11 +1,10 @@
-import React from 'react'
-import TextProperties from '../../textProperties'
-import LineProperties from '../../lineProperties'
-import ImageProperties from '../../imageProperties'
-import PageBreakProperties from '../../pageBreakProperties'
-import CrosstabProperties from '../../crosstabProperties'
-import ChartProperties from '../../chartsProperties'
 import AdvancedTableProperties from '../../advancedTableProperties'
+import ChartProperties from '../../chartsProperties'
+import CrosstabPropertiesV2 from '../../crosstabPropertiesv2'
+import ImageProperties from '../../imageProperties'
+import LineProperties from '../../lineProperties'
+import PageBreakProperties from '../../pageBreakProperties'
+import TextProperties from '../../textProperties'
 
 const NodeProperties = (props = {}) => {
     const {
@@ -44,8 +43,8 @@ const NodeProperties = (props = {}) => {
                 nodeConfig={nodeConfig}
             />
         ),
-        crosstab: (
-            <CrosstabProperties
+        crosstabv2: (
+            <CrosstabPropertiesV2
                 EditorPanels={EditorPanels}
                 onNodeConfigChange={onNodeConfigChange}
                 nodeConfig={nodeConfig}

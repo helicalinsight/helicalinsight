@@ -179,13 +179,11 @@ def effective_log_level_name() -> str:
 
 # ------------------------------------------------------------------
 # Module-level names kept for backwards-compat with direct imports.
-# These are snapshots taken at import time and are NOT hot-reloaded.
-# Use ``app_config.<name>`` pattern for live values.
+# These assignments become real module attributes and therefore shadow
+# ``__getattr__`` — they will NOT hot-reload.  Only snapshot values that
+# are treated as process-lifetime (env / debug).  For everything else use
+# ``app_config.<name>`` so each access reads the current ``_raw`` snapshot.
 # ------------------------------------------------------------------
 
 app_env = __getattr__("app_env")
 app_debug = __getattr__("app_debug")
-default_sql_limit = __getattr__("default_sql_limit")
-kpi_suggestion_query = __getattr__("kpi_suggestion_query")
-hide_prompt_reason = __getattr__("hide_prompt_reason")
-enable_llm_usage_audit = __getattr__("enable_llm_usage_audit")

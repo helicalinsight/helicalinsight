@@ -106,6 +106,10 @@ export function MonacoJsonEditor({
           formatOnPaste: true,
           formatOnType: true,
           readOnly: !isActive,
+          find: {
+            addExtraSpaceOnTop: false,
+          },
+          fixedOverflowWidgets: true,
         }}
       />
     </div>

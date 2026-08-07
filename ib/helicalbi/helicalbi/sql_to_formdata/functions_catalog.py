@@ -38,6 +38,16 @@ REFERENCE_TO_SQLGLOT = {
     "duckdb": "duckdb",
 }
 
+# sqlglot rewritten names → catalog SQL ``value`` tokens (postgresql.xml)
+SQLGLOT_TO_CATALOG_SQL = {
+    "TIME_TO_STR": "TO_CHAR",
+    "TO_CHAR": "TO_CHAR",
+    "TIMESTAMP_TRUNC": "DATETRUNC",
+    "DATE_TRUNC": "DATETRUNC",
+    "DATETRUNC": "DATETRUNC",
+    "DATETIME_TRUNC": "DATETTIMETRUNC",
+}
+
 
 @dataclass
 class FunctionCatalog:
@@ -112,7 +122,14 @@ class FunctionCatalog:
     def lookup_database_fn(self, fn_name: str) -> dict[str, Any] | None:
         if not fn_name:
             return None
-        return self.database_fn_by_sql.get(fn_name.upper())
+        key = fn_name.upper()
+        hit = self.database_fn_by_sql.get(key)
+        if hit:
+            return hit
+        alias = SQLGLOT_TO_CATALOG_SQL.get(key)
+        if alias:
+            return self.database_fn_by_sql.get(alias)
+        return None
 
     def map_database_function(self, fn_name: str, column_ref: str) -> dict | None:
         """
@@ -162,6 +179,7 @@ class FunctionCatalog:
         dialect: str,
         database_name: str = "",
         table_alias: str = "",
+        table_aliases: dict[str, str] | None = None,
     ) -> dict[str, Any] | None:
         """
         Build nested databaseFunction matching nested_agg formData shape.
@@ -184,7 +202,7 @@ class FunctionCatalog:
         out = copy.deepcopy(entry)
         signature = str(entry.get("signature") or "")
         param_defs = [p for p in (entry.get("parameters") or []) if isinstance(p, dict)]
-        args = _func_args(expr)
+        args = _func_args_for_catalog(expr, param_defs)
 
         # Peel signature wrappers e.g. length(cast(${string} as VARCHAR))
         peeled_args: list[exp.Expression] = []
@@ -204,6 +222,8 @@ class FunctionCatalog:
                 dialect=dialect,
                 database_name=database_name,
                 table_alias=table_alias,
+                table_aliases=table_aliases,
+                param_name=str(param_def.get("name") or ""),
             )
             param["value"] = value
             param["column"] = bool(is_column) if not isinstance(value, dict) else False
@@ -219,17 +239,32 @@ class FunctionCatalog:
         dialect: str,
         database_name: str,
         table_alias: str,
+        table_aliases: dict[str, str] | None = None,
+        param_name: str = "",
     ) -> tuple[Any, bool]:
         """Return (value, is_column_ref). Nested funcs become nested databaseFunction dicts."""
         arg = _unwrap_paren(arg)
 
         if isinstance(arg, exp.Column):
-            return _fq_column_ref(arg, database_name, table_alias), True
+            return _fq_column_ref(arg, database_name, table_alias, table_aliases), True
 
         if isinstance(arg, exp.Literal):
             if arg.is_string:
-                return f"'{arg.this}'", False
+                text = str(arg.this)
+                if param_name in ("formatMask", "format"):
+                    text = _restore_postgres_format(text)
+                # formatMask in expected wire is unquoted; unit keeps quotes
+                if param_name in ("formatMask", "format"):
+                    return text, False
+                return f"'{text}'", False
             return str(arg.this), False
+
+        if isinstance(arg, exp.Var):
+            # DATE_TRUNC unit often becomes Var(MONTH)
+            token = str(arg.this or arg)
+            if param_name == "unit":
+                return f"'{token.upper()}'", False
+            return token, False
 
         if isinstance(arg, exp.Null):
             return "NULL", False
@@ -237,13 +272,14 @@ class FunctionCatalog:
         if isinstance(arg, exp.Boolean):
             return str(arg.this).lower(), False
 
-        # Nested database function (e.g. CONCAT inside LENGTH)
+        # Nested database function (e.g. DATE_TRUNC inside TO_CHAR)
         if isinstance(arg, exp.Func) and not isinstance(arg, exp.AggFunc):
             nested = self.build_database_function(
                 arg,
                 dialect=dialect,
                 database_name=database_name,
                 table_alias=table_alias,
+                table_aliases=table_aliases,
             )
             if nested is not None:
                 return nested, False
@@ -257,6 +293,8 @@ class FunctionCatalog:
                 dialect=dialect,
                 database_name=database_name,
                 table_alias=table_alias,
+                table_aliases=table_aliases,
+                param_name=param_name,
             )
 
         return arg.sql(dialect=dialect), False
@@ -266,6 +304,42 @@ class FunctionCatalog:
         if not dbf:
             return ""
         return _functions_definition(dbf)
+
+
+def to_wire_database_function(catalog_dbf: dict[str, Any] | None) -> dict[str, Any] | None:
+    """
+    Convert catalog-shaped databaseFunction → Helical wire onion.
+
+    Catalog::
+        { key, returns, parameters: [{name, value, column}, ...] }
+
+    Wire::
+        { functionName, dataType, parameters: { name: value|nestedWire } }
+    """
+    if not catalog_dbf or not isinstance(catalog_dbf, dict):
+        return None
+    # Already wire-shaped
+    if catalog_dbf.get("functionName") and "key" not in catalog_dbf:
+        return catalog_dbf
+
+    params_out: dict[str, Any] = {}
+    for param in catalog_dbf.get("parameters") or []:
+        if not isinstance(param, dict):
+            continue
+        name = param.get("name")
+        if not name:
+            continue
+        value = param.get("value")
+        if isinstance(value, dict) and (value.get("key") or value.get("functionName")):
+            params_out[str(name)] = to_wire_database_function(value)
+        else:
+            params_out[str(name)] = value
+
+    return {
+        "functionName": catalog_dbf.get("key") or catalog_dbf.get("functionName"),
+        "dataType": catalog_dbf.get("returns") or catalog_dbf.get("dataType") or "text",
+        "parameters": params_out,
+    }
 
 
 def _sql_fn_name(node: exp.Func) -> str:
@@ -292,6 +366,56 @@ def _func_args(node: exp.Func) -> list[exp.Expression]:
     return exprs
 
 
+def _func_args_for_catalog(
+    node: exp.Func,
+    param_defs: list[dict[str, Any]],
+) -> list[exp.Expression]:
+    """
+    Map sqlglot AST args onto catalog parameter order.
+
+    Handles rewritten forms where args live in named fields:
+      TimeToStr(this, format=...)     → to_char(value, formatMask)
+      TimestampTrunc(this, unit=...)  → DATE_TRUNC(unit, date)
+    """
+    param_names = [str(p.get("name") or "") for p in param_defs]
+
+    # TO_CHAR / TimeToStr: this=value, format=formatMask
+    if isinstance(node, exp.TimeToStr) or (
+        set(param_names) >= {"value", "formatMask"} and node.args.get("format") is not None
+    ):
+        value = node.this
+        fmt = node.args.get("format")
+        ordered: list[exp.Expression] = []
+        for name in param_names:
+            if name in ("value", "datetime", "date", "column") and value is not None:
+                ordered.append(value)
+            elif name in ("formatMask", "format") and fmt is not None:
+                ordered.append(fmt)
+            elif name and node.args.get(name) is not None:
+                ordered.append(node.args[name])
+        if ordered:
+            return ordered
+
+    # DATE_TRUNC / TimestampTrunc: catalog wants unit then date
+    if isinstance(node, (exp.TimestampTrunc, exp.DateTrunc)) or (
+        "unit" in param_names and node.args.get("unit") is not None
+    ):
+        date_expr = node.this
+        unit_expr = node.args.get("unit")
+        ordered = []
+        for name in param_names:
+            if name == "unit" and unit_expr is not None:
+                ordered.append(unit_expr)
+            elif name in ("date", "datetime", "value", "column") and date_expr is not None:
+                ordered.append(date_expr)
+            elif name and node.args.get(name) is not None:
+                ordered.append(node.args[name])
+        if ordered:
+            return ordered
+
+    return _func_args(node)
+
+
 def _unwrap_paren(node: exp.Expression) -> exp.Expression:
     while isinstance(node, exp.Paren):
         node = node.this
@@ -316,11 +440,41 @@ def _peel_signature_wrappers(
     return arg
 
 
-def _fq_column_ref(col: exp.Column, database_name: str, table_alias: str) -> str:
+def _fq_column_ref(
+    col: exp.Column,
+    database_name: str,
+    table_alias: str,
+    table_aliases: dict[str, str] | None = None,
+) -> str:
+    """Wire column path: catalog.schema.table.column when database_name is set."""
     table = col.table or table_alias or ""
+    if table_aliases and table:
+        table = table_aliases.get(table, table)
     name = col.name
     parts = [p for p in (database_name, table, name) if p]
     return ".".join(parts) if parts else name
+
+
+def _restore_postgres_format(fmt: str) -> str:
+    """Reverse common sqlglot strftime rewrites back to to_char masks."""
+    text = fmt
+    replacements = (
+        ("%Y", "YYYY"),
+        ("%y", "YY"),
+        ("%m", "MM"),
+        ("%d", "DD"),
+        ("%H", "HH24"),
+        ("%I", "HH"),
+        ("%M", "MI"),
+        ("%S", "SS"),
+        ("%b", "Mon"),
+        ("%B", "Month"),
+        ("%a", "Dy"),
+        ("%A", "Day"),
+    )
+    for src, dst in replacements:
+        text = text.replace(src, dst)
+    return text
 
 
 def _functions_definition(dbf: dict[str, Any]) -> str:
