@@ -2,6 +2,7 @@ package com.helicalinsight.datasource.helper;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.admin.dto.PlainConnDTO;
+import com.helicalinsight.admin.dto.UserDTO;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.ResourcePermissionLevelsHolder;
 @Component
@@ -83,7 +85,7 @@ public class EfwDatasourceHelper {
 				name = connection.getName();
 				resource = connection.getEfwd();
 				id = connection.getEfwdId();
-				createdBy = resource.getCreatedBy();
+				createdBy = Optional.ofNullable(resource.getCreatedBy()).map(UserDTO::getId).orElse(null);
 				if( resource != null) {
 					dir =  resource.getResourceUrl();
 				}

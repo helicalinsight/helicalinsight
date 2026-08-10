@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -19,7 +20,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.dto.EfwdConnDTO;
+import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.admin.dto.PlainConnDTO;
+import com.helicalinsight.admin.dto.UserDTO;
 import com.helicalinsight.admin.model.HIEfwdConnSecurity;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
@@ -155,19 +158,25 @@ public class EfwdReaderUtility {
         }
         for (EfwdConnDTO connection : allConnections) {
         	efwdIdList.add(connection.getId());
-            Integer permission = idPermissionMap.get(connection.getId());
-				if (userId.equals(connection.getCreatedBy())) {
-					permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.OWNER);
-				} else if (connection.getCreatedBy() == null) {
+        	HIEfwdDTO resourceDTO = connection.getResource();
+            Integer resourceCreatedBy = Optional.ofNullable(resourceDTO.getCreatedBy())
+            		.map(UserDTO::getId)
+            		.orElse(null);
+            		
+			Integer permission = idPermissionMap.get(connection.getId());
+
+			if (currentLoggedInUserId.equals(resourceCreatedBy)) {
+				permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.OWNER);
+			} else if (resourceCreatedBy == null) {
+				permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
+			} else if (permission == null) {
+				permission = securityMap.get(resourceDTO.getResourceId());
+				if (permission == null) {
+					// considering it as public folder.
 					permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
-				} else if(permission == null) {
-					permission = securityMap.get(connection.getResource().getResourceId());
-					if ( permission == null) {
-						// considering it as public folder.
-						permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
-					}
-				}            
-            addADataSource(dataSources, connection, access, permission);
+				}
+			}
+			addADataSource(dataSources, connection, access, permission);
         }
     }
     public boolean addADataSource(@NotNull List<ObjectNode> dataSources, @NotNull EfwdConnDTO connection , String access, int actualPermission) {

@@ -26,20 +26,11 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.helicalinsight.admin.model.HIResource;
-import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.admin.model.User;
-import com.helicalinsight.scheduling.dao.impl.ResourceTypeDaoImpl;
 import com.helicalinsight.scheduling.dao.impl.ScheduleDaoImpl;
-import com.helicalinsight.scheduling.model.HiResource;
 import com.helicalinsight.scheduling.model.JobParameters;
 import com.helicalinsight.scheduling.model.Schedules;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.NoResultException;
-import jakarta.persistence.TypedQuery;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Root;
 
 public class ScheduleDaoImplTest {
 

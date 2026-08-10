@@ -86,6 +86,7 @@ const ArcChart = (props) => {
             pieStyle: {
                 stroke: null,
             },
+            ...(themeColors.length ? { theme: 'custom-theme' } : {})
         },
     };
     if (colorField) pieObj["options"]["colorField"] = colorField;

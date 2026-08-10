@@ -2,21 +2,18 @@ package com.helicalinsight.admin.dao.impl;
 
 import com.helicalinsight.admin.dao.CubeMetadataDao;
 import com.helicalinsight.admin.model.CubeMetadataInformation;
-import com.helicalinsight.admin.model.CubePhaseDetails;
 import com.helicalinsight.admin.utils.LimitOffsetModel;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.Query;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -32,9 +29,6 @@ public class CubeMetadataInformationDaoImpl implements CubeMetadataDao {
     @Autowired
     private SessionFactory session;
 
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
     
     @Override
     public Long addCubeMetadataInformation(CubeMetadataInformation cubeCubeMetadataInformation) {
@@ -83,11 +77,12 @@ public class CubeMetadataInformationDaoImpl implements CubeMetadataDao {
     public CubeMetadataInformation findUniqueCubeMetadataInformation(CubeMetadataInformation cubeMetadataInformation) {
 		CubeMetadataInformation info=null;
     	try {
-			CriteriaBuilder cb = em.getCriteriaBuilder();
+    		Session currentSession = session.getCurrentSession();
+			CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 			CriteriaQuery<CubeMetadataInformation> cr = cb.createQuery(CubeMetadataInformation.class);
 			Root<CubeMetadataInformation> resource = cr.from(CubeMetadataInformation.class);
 			cr.select(resource).where(cb.equal(resource.get("cubeId"), cubeMetadataInformation.getCubeId()));
-			info=em.createQuery(cr).getSingleResult();
+			info=currentSession.createQuery(cr).getSingleResult();
 		} catch (Exception ex) {
 			if (ex instanceof NoResultException)
 				return null;

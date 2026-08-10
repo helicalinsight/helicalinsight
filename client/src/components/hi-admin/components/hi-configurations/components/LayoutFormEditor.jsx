@@ -36,6 +36,8 @@ const LayoutFormEditor = ({
       <UiFormGenerator
         form={form}
         layout={layout}
+        dense
+        columns={2}
         className="hi-config-layout-form"
       />
       <div className="hi-config-editor-actions">

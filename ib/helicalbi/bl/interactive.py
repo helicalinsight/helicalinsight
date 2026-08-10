@@ -340,12 +340,10 @@ def register(flask_app) -> None:
                 request_status,
                 error_message,
             )
-            base_url = user_input.get("baseUrl") or ""
             audit_llm_usage_async(
                 endpoint="/interactive",
                 user_id=user_id,
                 session_cookie=session_cookie,
-                base_url=base_url,
                 user_query=user_query,
                 token_usage=extract_token_usage_dict(to_send),
                 request_status=request_status,

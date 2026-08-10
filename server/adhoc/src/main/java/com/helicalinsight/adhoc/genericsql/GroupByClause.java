@@ -7,9 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonPrimitive;
 import com.helicalinsight.datasource.GsonUtility;
-import com.helicalinsight.efw.utility.JsonUtils;
 
 /**
  * Represents a class for handling the generation of the GROUP BY clause in SQL queries.
@@ -106,11 +104,6 @@ final class GroupByClause {
      * @return {@code true} if the dialect follows strict ANSI SQL standard, {@code false} otherwise.
      */
     public static boolean followsStrictANSIStandard(String dialect) {
-        if (dialect == null) {
-            return false;
-        }
-        JsonObject adhocSqlSettings = JsonUtils.newGetAdhocSqlSettings();
-        JsonArray ansiGroupByDialects = adhocSqlSettings.getAsJsonObject("ansiGroupByDialects").getAsJsonArray("dialect");
-        return ansiGroupByDialects.contains(new JsonPrimitive(dialect));
+        return AdhocSqlDialectSettings.isAnsiGroupByDialect(dialect);
     }
 }

@@ -1,13 +1,12 @@
 """LLM polish for domain-specific VizModel properties only (1 call).
 
 Shelves and chart type stay frozen from VizModelFiller. This step fills
-color / gradient / theme / background / custom JS formatters.
+color / background and may refine title / axis labels.
 """
 from __future__ import annotations
 
 import json
 import logging
-import traceback
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -126,18 +125,18 @@ class VizPropertiesPolishNode:
             )
             add_viz_response(state["thread_id"], state["viz_model"])
             logger.info(
-                "VizPropertiesPolish done theme=%s color=%s gradient=%s formatters=%s",
-                viz_model.properties.theme,
+                "VizPropertiesPolish done color=%s background=%s labelX=%s labelY=%s",
                 viz_model.properties.color,
-                viz_model.properties.colorGradient,
-                list((viz_model.properties.formatter or {}).keys()),
+                viz_model.properties.background,
+                viz_model.properties.labelX,
+                viz_model.properties.labelY,
             )
         except Exception:
             logger.exception(
                 "VizPropertiesPolish failed; applying deterministic VizModel as-is"
             )
-            state["output"] = traceback.format_exc()
             # Fall back to deterministic VF injection so the chat still gets a chart.
+            # Keep the existing SQL insight in state["output"]; do not leak tracebacks.
             try:
                 viz_model = (
                     raw_model

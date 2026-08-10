@@ -1,3 +1,4 @@
+import json
 import logging
 
 from helicalbi.api.QueryExecutor import execute_query
@@ -6,7 +7,7 @@ from helicalbi.common.LlmInvokeHelper import invoke_llm
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
-from helicalbi.prompt.SqlSuccessPrompty import success_prompt_formatted, success_response_method
+from helicalbi.prompt.SqlSuccessPrompty import success_prompt_formatted
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +87,11 @@ class SqlExecutor:
             state["data"] = response_string["data"]
             state["metadata"] = response_string["metadata"]
 
-            formatted_format = success_prompt_formatted.format(user_query=user_query, sql_query=sql,
-                                                               metadata=metadata_to_send, )
+            formatted_format = success_prompt_formatted.format(
+                user_query=user_query,
+                sql_query=sql,
+                metadata=json.dumps(metadata_to_send, default=str),
+            )
             insight, _ = invoke_llm(
                 llm,
                 formatted_format,

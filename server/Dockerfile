@@ -1,12 +1,12 @@
-FROM eclipse-temurin:25-jdk AS tomcat
+FROM eclipse-temurin:25-jdk-noble AS tomcat
 
-ARG TOMCAT_VERSION=11.0.22
+ARG TOMCAT_VERSION=11.0.24
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && curl -fsSL "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" \
         -o /tmp/tomcat.tar.gz \
-    && mkdir /opt/tomcat11 \
+    && mkdir -p /opt/tomcat11 \
     && tar -xzf /tmp/tomcat.tar.gz \
         -C /opt/tomcat11 \
         --strip-components=1 \

@@ -2,11 +2,9 @@ package com.helicalinsight.admin.dao.impl;
 
 import com.helicalinsight.admin.dao.RoleDao;
 import com.helicalinsight.admin.model.Role;
-import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.LimitOffsetModel;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -21,7 +19,6 @@ import org.hibernate.query.SelectionQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;

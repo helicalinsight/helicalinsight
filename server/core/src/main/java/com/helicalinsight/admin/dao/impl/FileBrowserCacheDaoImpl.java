@@ -4,17 +4,16 @@ import com.google.gson.JsonArray;
 import com.helicalinsight.admin.dao.FileBrowserCacheDao;
 import com.helicalinsight.admin.model.FileBrowserCache;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -30,10 +29,6 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     @Autowired
     private SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
-
     @Override
     public int addFileBrowserCache(FileBrowserCache fileBrowserCache) {
         try {
@@ -74,12 +69,13 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     public FileBrowserCache findFileBrowserCache(String filePath) {
         FileBrowserCache fileBrowserCache = null;
         try {
+        	Session currentSession = session.getCurrentSession(); 
             List<FileBrowserCache> fileBrowserCacheList;
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	cr.select(resource).where(cb.equal(resource.get("filePath"), filePath));
-        	fileBrowserCacheList =em.createQuery(cr).getResultList();
+        	fileBrowserCacheList =currentSession.createQuery(cr).getResultList();
             if (fileBrowserCacheList != null && !fileBrowserCacheList.isEmpty())
                 fileBrowserCache = fileBrowserCacheList.get(0);
         } catch (Exception e) {
@@ -94,11 +90,12 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     public List<FileBrowserCache> getAllFileBrowserCache(int parentId) {
         List<FileBrowserCache> fileBrowserCacheList = new ArrayList<>();
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession(); 
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	cr.select(resource).where(cb.equal(resource.get("parentId"), parentId));
-        	fileBrowserCacheList =em.createQuery(cr).getResultList();
+        	fileBrowserCacheList =currentSession.createQuery(cr).getResultList();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
         		return null;
@@ -111,11 +108,12 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     public FileBrowserCache getFileBrowserById(int parentId) {
         FileBrowserCache fileBrowserCache = null;
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession(); 
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	cr.select(resource).where(cb.equal(resource.get("id"), parentId));
-        	fileBrowserCache =em.createQuery(cr).getSingleResult();
+        	fileBrowserCache =currentSession.createQuery(cr).getSingleResult();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
         		return null;
@@ -128,11 +126,12 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     public FileBrowserCache getFileBrowserByFileName(String fileName) {
         List<FileBrowserCache> listOfFileBrowserCache = null;
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession(); 
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	cr.select(resource).where(cb.equal(resource.get("fileName"), fileName));
-        	listOfFileBrowserCache =em.createQuery(cr).getResultList();
+        	listOfFileBrowserCache =currentSession.createQuery(cr).getResultList();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
         		return null;
@@ -191,8 +190,8 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     private List<FileBrowserCache> multiTypeSearchString(String searchString, JsonArray filterType) {
         List<FileBrowserCache> fileBrowserCacheList = new ArrayList<>();
         try {
-        	
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession(); 
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
             int size = filterType.size();
@@ -203,7 +202,7 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
                 prdicateList[index] = fileName;
             }
             cr.select(resource).where(cb.like(resource.get("logicalPath"),  "%" + searchString + "%"),cb.or(prdicateList));
-            fileBrowserCacheList = em.createQuery(cr).getResultList();
+            fileBrowserCacheList = currentSession.createQuery(cr).getResultList();
             // fileBrowserCacheList = session.getCurrentSession().createCriteria(FileBrowserCache.class).add(Restrictions.ilike("logicalPath", "%" + searchString + "%")).list();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
@@ -216,7 +215,8 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     private List<FileBrowserCache> onlyTypeSearch(JsonArray filterType) {
         List<FileBrowserCache> fileBrowserCacheList = new ArrayList<>();
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession(); 
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	
@@ -228,7 +228,7 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
                 criterionList[index] = fileName;
             }
             cr.where(criterionList);
-            fileBrowserCacheList = em.createQuery(cr).getResultList();
+            fileBrowserCacheList = currentSession.createQuery(cr).getResultList();
             // fileBrowserCacheList = session.getCurrentSession().createCriteria(FileBrowserCache.class).add(Restrictions.ilike("logicalPath", "%" + searchString + "%")).list();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
@@ -256,14 +256,15 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
 
     private List<FileBrowserCache> withTypeSearch(String searchString, String filterType, List<FileBrowserCache> fileBrowserCacheList) {
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession();
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	
             Predicate logicalPath = cb.like(resource.get("logicalPath"), "%" + searchString + "%");
             Predicate fileName = cb.like(resource.get("fileName"), "%." + filterType);
             cr.select(resource).where(cb.and(logicalPath,fileName));
-            fileBrowserCacheList = em.createQuery(cr).getResultList();
+            fileBrowserCacheList = currentSession.createQuery(cr).getResultList();
             // fileBrowserCacheList = session.getCurrentSession().createCriteria(FileBrowserCache.class).add(Restrictions.ilike("logicalPath", "%" + searchString + "%")).list();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
@@ -275,12 +276,12 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
 
     private List<FileBrowserCache> withOutTypeSearch(String searchString, List<FileBrowserCache> fileBrowserCacheList) {
         try {
-        	
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession();
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
         	Root<FileBrowserCache> resource = cr.from(FileBrowserCache.class);
         	cr.select(resource).where(cb.like(resource.get("logicalPath"), "%" + searchString + "%"));
-        	fileBrowserCacheList =em.createQuery(cr).getResultList();
+        	fileBrowserCacheList =currentSession.createQuery(cr).getResultList();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
         		return null;
@@ -294,9 +295,10 @@ public class FileBrowserCacheDaoImpl implements FileBrowserCacheDao {
     public boolean emptyCheckFileBrowserCache() {
         boolean status = false;
         try {
-        	CriteriaBuilder cb = em.getCriteriaBuilder();
+        	Session currentSession = session.getCurrentSession();
+        	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
         	CriteriaQuery<FileBrowserCache> cr=cb.createQuery(FileBrowserCache.class);
-        	status=em.createQuery(cr).setMaxResults(1).getResultList().isEmpty();
+        	status=currentSession.createQuery(cr).setMaxResults(1).getResultList().isEmpty();
         } catch (Exception e) {
             logger.error("Exception", e);
         }

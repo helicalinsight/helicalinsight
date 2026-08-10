@@ -13,7 +13,7 @@
     flex-direction: column;
 
     > .ant-tabs-nav {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       flex-shrink: 0;
     }
 
@@ -44,10 +44,10 @@
   }
 
   .hi-config-resize-handle {
-    width: 6px;
+    width: 4px;
     flex-shrink: 0;
-    margin: 0 4px;
-    border-radius: 3px;
+    margin: 0 2px;
+    border-radius: 2px;
     background: transparent;
     transition: background 0.15s ease;
 
@@ -65,7 +65,7 @@
     background: $hi-white;
     border: 1px solid $hi-light-gray;
     border-radius: 4px;
-    padding: 12px;
+    padding: 8px 10px;
 
     .ui-form-generator-section {
       background: transparent !important;
@@ -83,7 +83,7 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 12px;
+    padding: 8px;
     overflow: hidden;
   }
 
@@ -92,14 +92,16 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 8px;
-    gap: 8px;
+    margin-bottom: 6px;
+    gap: 6px;
     flex-shrink: 0;
 
     h5 {
       margin: 0;
       flex: 1;
       min-width: 0;
+      font-size: 14px;
+      line-height: 1.3;
     }
   }
 
@@ -113,6 +115,15 @@
   }
 
   .hi-config-file-panel {
+    padding: 6px 4px 6px 6px;
+
+    .hi-config-file-panel-header {
+      h5 {
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
     .ant-spin-nested-loading,
     .ant-spin-container {
       flex: 1;
@@ -123,23 +134,16 @@
     }
   }
 
-  .hi-config-layout-description {
-    display: block;
-    margin-bottom: 8px;
-    font-size: 12px;
-    flex-shrink: 0;
-  }
-
   .hi-config-file-type-icon-wrap {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 20px;
+    width: 16px;
     color: $hi-text-color;
   }
 
   .hi-config-file-type-icon {
-    font-size: 14px;
+    font-size: 13px;
 
     &--xml {
       color: #389e0d;
@@ -172,42 +176,91 @@
     overflow: auto;
     min-height: 0;
 
+    .ant-collapse-item {
+      border: none !important;
+    }
+
     .ant-collapse-header {
-      padding: 6px 0 !important;
+      padding: 4px 2px !important;
       align-items: center !important;
+      gap: 6px;
+    }
+
+    .ant-collapse-expand-icon {
+      display: none !important;
+    }
+
+    .ant-collapse-arrow {
+      display: none !important;
+    }
+
+    .ant-collapse-header-text {
+      flex: 1;
+      min-width: 0;
+      display: flex !important;
+      width: 100%;
+
+      > span {
+        display: flex !important;
+        width: 100%;
+        min-width: 0;
+      }
     }
 
     .ant-collapse-content-box {
-      padding: 0 0 8px !important;
+      padding: 0 0 4px 4px !important;
     }
   }
 
   .hi-config-category-header {
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    width: 100%;
+    min-height: 20px;
     gap: 6px;
+  }
+
+  .hi-config-category-icon {
+    flex-shrink: 0;
+    font-size: 13px;
+    color: $hi-text-color;
+    line-height: 1;
+    opacity: 0.9;
+    cursor: pointer;
+  }
+
+  .hi-config-category-title {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
     font-weight: 600;
+    line-height: 1.2;
+    color: $hi-text-color;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .hi-config-category-count {
-    margin: 0;
-    font-size: 11px;
-    line-height: 18px;
-  }
-
-  .hi-config-category-info {
-    color: $hi-text-color;
-    opacity: 0.55;
-    font-size: 12px;
+    margin-left: auto;
+    flex-shrink: 0;
+    min-width: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: right;
+    color: rgba(0, 0, 0, 0.45);
+    font-variant-numeric: tabular-nums;
   }
 
   .hi-config-file-list {
     .hi-config-file-item {
       cursor: pointer;
-      padding: 6px 8px;
+      padding: 4px 6px;
       border: none !important;
       border-bottom: none !important;
       border-radius: 4px;
+      min-height: 28px;
 
       &:hover {
         background: $hi-background-blue;
@@ -222,13 +275,14 @@
       }
 
       .ant-list-item-meta-title {
-        font-size: 13px;
+        font-size: 12px;
         margin-bottom: 0;
         word-break: break-word;
+        line-height: 1.3;
       }
 
       .ant-list-item-meta-avatar {
-        margin-right: 8px;
+        margin-right: 6px;
       }
     }
   }
@@ -238,11 +292,21 @@
       flex: 1;
       min-width: 0;
       overflow: hidden;
+
+      .hi-config-editor-title {
+        display: inline-block;
+        max-width: 100%;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        cursor: default;
+      }
     }
   }
 
   .hi-config-editor-mode-link {
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -251,7 +315,7 @@
     flex: 1;
     overflow: hidden;
     overflow-x: hidden;
-    padding-top: 8px;
+    padding-top: 4px;
     min-height: 0;
     min-width: 0;
     width: 100%;
@@ -271,7 +335,7 @@
     min-height: 0;
     min-width: 0;
     width: 100%;
-    padding-right: 4px;
+    padding-right: 2px;
 
     .hi-config-layout-form {
       max-width: 100%;
@@ -282,6 +346,19 @@
       .ant-input-number,
       textarea.ant-input {
         max-width: 100%;
+      }
+
+      .ant-form-item {
+        margin-bottom: 12px;
+      }
+
+      .ant-form-item-label {
+        padding-bottom: 2px;
+
+        > label {
+          font-size: 12px;
+          height: auto;
+        }
       }
 
       .ui-form-generator-section {
@@ -323,11 +400,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 240px;
+    min-height: 160px;
   }
 
   .hi-config-editor-actions {
-    margin-top: 16px;
+    margin-top: 12px;
     display: flex;
     justify-content: flex-end;
   }
@@ -369,14 +446,14 @@
 
   .hi-config-properties-form {
     .hi-config-property-field {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
 
     .hi-config-property-label {
       display: block;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       color: $hi-text-color;
-      font-size: 13px;
+      font-size: 12px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

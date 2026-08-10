@@ -38,7 +38,7 @@ fi
 
 unzip -o /usr/local/tomcat/webapps/hi-ee.war -d usr/local/tomcat/webapps/hi-ee
 
-sed -i "s|<efwSolution>\${INSTALL_PATH}\${FILE_SEPARATOR}hi-repository</efwSolution>|<efwSolution>${INSTALLATION_LOCATION}/hi/hi-repository</efwSolution>|; \
+sed -i "s|<efwSolution>.*</efwSolution>|<efwSolution>${INSTALLATION_LOCATION}/hi/hi-repository</efwSolution>|; \
             s|<BaseUrl>.*</BaseUrl>|<BaseUrl>https://${HOST_IP}/hi-ee/hi.html</BaseUrl>|; \
             s|<defaultBaseurl>true</defaultBaseurl>|<defaultBaseurl>false</defaultBaseurl>|; \
             " "${INSTALLATION_LOCATION}/hi/hi-repository/System/Admin/setting.xml"

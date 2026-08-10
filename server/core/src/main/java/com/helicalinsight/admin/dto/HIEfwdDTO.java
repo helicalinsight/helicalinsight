@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.helicalinsight.resourcedb.HIResourceDTO;
+import com.helicalinsight.serializer.UserDTODeserializer;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,7 +24,8 @@ public class HIEfwdDTO implements Serializable {
 	//quick access
 	private Integer resourceId;
 	private String resourceUrl;
-	private Integer createdBy;
+	@JsonDeserialize(using = UserDTODeserializer.class)
+	private UserDTO createdBy;
 	private Boolean isDeleted;
 	private String title;
 	private String resourcePath;
@@ -31,7 +34,7 @@ public class HIEfwdDTO implements Serializable {
 	private Date lastUpdatedTime;
 	
 	
-	public HIEfwdDTO(Integer resourceId, String resourceUrl, Integer createdBy, Boolean isDeleted, String title, String resourcePath) {
+	public HIEfwdDTO(Integer resourceId, String resourceUrl, UserDTO createdBy, Boolean isDeleted, String title, String resourcePath) {
 		this.resourceId = resourceId;
         this.resourceUrl = resourceUrl;
         this.createdBy = createdBy;
@@ -39,5 +42,6 @@ public class HIEfwdDTO implements Serializable {
         this.title = title;
         this.resourcePath = resourcePath;
 	}
+	
 	
 }

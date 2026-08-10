@@ -171,7 +171,6 @@ def audit_llm_usage_async(
     endpoint: str,
     user_id: Optional[int],
     session_cookie: str,
-    base_url: str,
     user_query: str,
     token_usage: Any,
     request_status: str,
@@ -179,12 +178,15 @@ def audit_llm_usage_async(
     chat_id: Optional[str] = None,
     chat_seq_id: Optional[str] = None,
 ) -> None:
-    """Fire-and-forget POST to Java ``/ai/llm-usage-audit``. No-op when disabled or tokens==0."""
+    """Fire-and-forget POST to Java ``/ai/llm-usage-audit``. No-op when disabled or tokens==0.
+
+    Always uses ``base_url`` from ``llm_config.yaml`` (never the request/browser BaseUrl).
+    """
     if not app_config.enable_llm_usage_audit:
         return
 
     resolved_session_cookie = (session_cookie or "").strip()
-    resolved_base_url = (base_url or configured_base_url or "").strip()
+    resolved_base_url = (configured_base_url or "").strip()
     resolved_user_id = user_id if user_id is not None else get_api_cache_user_id()
     if not resolved_session_cookie or not resolved_base_url or not resolved_user_id:
         logger.debug(

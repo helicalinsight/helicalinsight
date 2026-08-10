@@ -26,5 +26,10 @@ public class UserDTO implements Serializable {
     private OrganizationDTO organization;
     private List<RoleDTO> roles;
     private List<ProfileDTO> profile;
+    
+    public UserDTO(int id, String username) {
+    	this.id = id;
+    	this.username = username;
+    } 
    
 }

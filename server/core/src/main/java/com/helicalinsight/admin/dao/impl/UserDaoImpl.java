@@ -3,7 +3,6 @@ package com.helicalinsight.admin.dao.impl;
 import com.helicalinsight.admin.dao.UserDao;
 import com.helicalinsight.admin.enums.RecycleBinType;
 import com.helicalinsight.admin.model.HIRecycleBin;
-import com.helicalinsight.admin.model.HIRecycleBinHIResourceDB;
 import com.helicalinsight.admin.model.HIRecycleBinHUsers;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.User;
@@ -15,16 +14,11 @@ import com.helicalinsight.admin.utils.LimitOffsetModel;
 import com.helicalinsight.datasource.dao.GlobalConnectionDAO;
 import com.helicalinsight.datasource.model.DSTypeTomcat;
 import com.helicalinsight.datasource.model.GlobalConnections;
-import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.efw.ApplicationProperties;
-import com.helicalinsight.efw.utility.ApplicationUtilities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 
 import org.hibernate.query.MutationQuery;
@@ -33,20 +27,15 @@ import com.helicalinsight.resourcesecurity.SecurityUtils;
 
 
 import org.apache.commons.lang.StringUtils;
-import org.audit4j.core.util.Log;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.query.SelectionQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 
-import java.util.ArrayList;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 

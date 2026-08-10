@@ -9,7 +9,7 @@ import org.hibernate.annotations.DynamicUpdate;
 
 import java.io.Serializable;
 
-
+@Deprecated(forRemoval = true)
 @Entity
 @Table(name = "efwd_connections_sql_jdbc", indexes = {
         @Index(name = "idx_efwd_sql_jdbc_conn_id", columnList = "efwd_conn_id")

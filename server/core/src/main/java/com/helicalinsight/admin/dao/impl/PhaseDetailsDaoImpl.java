@@ -5,26 +5,22 @@ import com.helicalinsight.admin.model.CubePhaseDetails;
 import com.helicalinsight.admin.model.HIAuditDetails;
 import com.helicalinsight.admin.model.HIPhase;
 import com.helicalinsight.admin.model.HIResourcePhaseStatus;
-import com.helicalinsight.admin.service.AuditService;
 import com.helicalinsight.admin.utils.LimitOffsetModel;
 import com.helicalinsight.efw.exceptions.EfwdServiceException;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.Query;
 
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.query.SelectionQuery;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -38,9 +34,6 @@ public class PhaseDetailsDaoImpl implements PhaseDetailsDao {
     @Autowired
     private SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
 
     @Override
     public Long addPhaseDetails(CubePhaseDetails processDetails) {
@@ -90,11 +83,12 @@ public class PhaseDetailsDaoImpl implements PhaseDetailsDao {
     	
 		CubePhaseDetails cubePhaseDetails = null;
 		try {
-			CriteriaBuilder cb = em.getCriteriaBuilder();
+			Session currentSession = session.getCurrentSession();
+			CriteriaBuilder cb = currentSession.getCriteriaBuilder();
 			CriteriaQuery<CubePhaseDetails> cr = cb.createQuery(CubePhaseDetails.class);
 			Root<CubePhaseDetails> resource = cr.from(CubePhaseDetails.class);
 			cr.select(resource).where(cb.equal(resource.get("cubeId"), sample.getCubeId()));
-			cubePhaseDetails=em.createQuery(cr).getSingleResult();
+			cubePhaseDetails=currentSession.createQuery(cr).getSingleResult();
 		} catch (Exception e) {
 			if(e instanceof NoResultException)
         		return null;

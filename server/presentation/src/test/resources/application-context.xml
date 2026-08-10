@@ -52,7 +52,7 @@
                 <prop key="hibernate.show_sql">false</prop>
                 <prop key="hibernate.format_sql">false</prop>
                 <prop key="hibernate.hbm2ddl.auto">update</prop>
-                <prop key="current_session_context_class">thread</prop>
+                <!-- <prop key="current_session_context_class">thread</prop>  -->
 				<prop key="hibernate.cache.region.factory_class">jcache</prop>
 				<prop key="hibernate.javax.cache.provider">org.ehcache.jsr107.EhcacheCachingProvider</prop>
 				<prop key="hibernate.javax.cache.uri">hibernate-ehcache.xml</prop>
@@ -67,7 +67,7 @@
                 <prop key="hibernate.cache.use_second_level_cache">true</prop>
                 <prop key="hibernate.cache.use_query_cache">true</prop>
                 <prop key="hibernate.generate_statistics">true</prop>
-                <prop key="current_session_context_class">thread</prop>
+                <!-- <prop key="current_session_context_class">thread</prop> -->
                 
             </props>
         </property>

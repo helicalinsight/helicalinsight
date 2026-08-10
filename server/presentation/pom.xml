@@ -208,7 +208,6 @@
 				<directory>src/test/resources</directory>
 				<filtering>true</filtering>
 				<includes>
-					<include>META-INF/persistence.xml</include>
 					<include>application-context.xml</include>
 					<include>quartz.properties</include>
 				</includes>
@@ -217,7 +216,6 @@
 				<directory>src/test/resources</directory>
 				<filtering>false</filtering>
 				<excludes>
-					<exclude>META-INF/persistence.xml</exclude>
 					<exclude>application-context.xml</exclude>
 					<exclude>quartz.properties</exclude>
 				</excludes>

@@ -42,19 +42,6 @@ if (Test-Path $GlobalConn) {
     }
 }
 
-$persistencePatched = 0
-foreach ($file in Get-PersistenceXmlFiles -ServerRoot $Server) {
-    if (Restore-PersistencePlaceholders -FilePath $file) {
-        $persistencePatched++
-    }
-}
-
-if ($persistencePatched -gt 0) {
-    Write-Host "[OK]   Normalized persistence.xml placeholders in $persistencePatched file(s)" -ForegroundColor Green
-} else {
-    Write-Host '[SKIP] persistence.xml already uses Maven placeholders' -ForegroundColor Yellow
-}
-
 
 $EnvExample = Join-Path $Root ".env.example"
 $EnvFile = Join-Path $Root ".env"
@@ -69,6 +56,38 @@ if (-not (Test-Path $DockerEnv) -and (Test-Path $DockerEnvExample)) {
     Copy-Item $DockerEnvExample $DockerEnv
     Write-Host '[OK]   Created docker/.env from docker/.env.example' -ForegroundColor Green
 }
+# Link hi-repository into the shared Docker layout (same path the package uses)
+$hiRepositoryLink = Join-Path $Root "docker\hi\hi-repository"
+$hiRepositorySrc = Join-Path $Root "server\hi-repository"
+$hiRepositoryParent = Join-Path $Root "docker\hi"
+New-Item -ItemType Directory -Force -Path $hiRepositoryParent | Out-Null
+if ((Test-Path $hiRepositorySrc) -and -not (Test-Path $hiRepositoryLink)) {
+    try {
+        New-Item -ItemType Junction -Path $hiRepositoryLink -Target $hiRepositorySrc | Out-Null
+        Write-Host '[OK]   Linked docker/hi/hi-repository -> server/hi-repository' -ForegroundColor Green
+    } catch {
+        Copy-Item -Recurse $hiRepositorySrc $hiRepositoryLink
+        Write-Host '[OK]   Copied server/hi-repository ->  docker/hi/hi-repository' -ForegroundColor Green
+    }
+} elseif (Test-Path $hiRepositoryLink) {
+    Write-Host '[SKIP]  docker/hi/hi-repository already present' -ForegroundColor Yellow
+}
+# Link hi-ee.war into the shared Docker layout (same path the package uses)
+$hiwarLink = Join-Path $Root "docker\hi\hi-ee.war"
+$hiWarTarget = Join-Path $Root "server\presentation\target"
+$hiWarSrc = Get-ChildItem $hiWarTarget -Filter "hi-ee-*.war" -File -ErrorAction SilentlyContinue | Select-Object -First 1
+
+if ($HiWarSrc -and -not (Test-Path $HiWarLink)) {
+    try {
+		New-Item -ItemType SymbolicLink -Path $hiWarLink -Target $hiWarSrc.FullName | Out-Null
+		Write-Host "[OK] Linked docker/hi/hi-ee.war -> $($HiWarSrc.Name)" -ForegroundColor Green
+    } catch {
+		Copy-Item $HiWarSrc.FullName $HiWarLink
+       Write-Host "[OK] Copied $($HiWarSrc.Name) -> docker/hi/hi-ee.war" -ForegroundColor Green
+    }
+} elseif (Test-Path $hiWarLink) { 
+	Write-Host '[SKIP] docker/hi/hi-ee.war already present' -ForegroundColor Yellow 
+}
 
 # Link Instant BI into the shared Docker layout (same path the package uses)
 $InstantBiLink = Join-Path $Root "docker\instantbi\helicalbi"
@@ -78,10 +97,10 @@ New-Item -ItemType Directory -Force -Path $InstantBiParent | Out-Null
 if ((Test-Path $InstantBiSrc) -and -not (Test-Path $InstantBiLink)) {
     try {
         New-Item -ItemType Junction -Path $InstantBiLink -Target $InstantBiSrc | Out-Null
-        Write-Host '[OK]   Linked docker/instantbi/helicalbi → ib/helicalbi' -ForegroundColor Green
+        Write-Host '[OK]   Linked docker/instantbi/helicalbi -> ib/helicalbi' -ForegroundColor Green
     } catch {
         Copy-Item -Recurse $InstantBiSrc $InstantBiLink
-        Write-Host '[OK]   Copied ib/helicalbi → docker/instantbi/helicalbi' -ForegroundColor Green
+        Write-Host '[OK]   Copied ib/helicalbi -> docker/instantbi/helicalbi' -ForegroundColor Green
     }
 } elseif (Test-Path $InstantBiLink) {
     Write-Host '[SKIP] docker/instantbi/helicalbi already present' -ForegroundColor Yellow
@@ -90,7 +109,7 @@ if ((Test-Path $InstantBiSrc) -and -not (Test-Path $InstantBiLink)) {
 Write-Host ""
 Write-Host "Setup complete. See README.md for full paths." -ForegroundColor Green
 Write-Host ""
-Write-Host "Recommended (full stack — first start can take a few minutes):"
+Write-Host "Recommended (full stack - first start can take a few minutes):"
 Write-Host "  cd docker; docker compose up -d"
 Write-Host "  # Open https://localhost  (login: hiadmin / hiadmin)"
 Write-Host ""

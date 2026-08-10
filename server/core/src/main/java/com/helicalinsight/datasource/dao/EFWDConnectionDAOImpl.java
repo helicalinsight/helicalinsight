@@ -31,7 +31,6 @@ import com.helicalinsight.admin.model.EFWDConnSqlJDBC;
 import com.helicalinsight.admin.model.HIEFWD;
 import com.helicalinsight.admin.model.HIEfwdConnSecurity;
 import com.helicalinsight.admin.model.HIEfwdConnection;
-import com.helicalinsight.admin.model.HIEfwdDataMap;
 import com.helicalinsight.admin.model.HIHcrConnections;
 import com.helicalinsight.admin.model.HIHcrConnectionsEfwd;
 import com.helicalinsight.admin.model.HIHcrQueryParameters;
@@ -39,18 +38,19 @@ import com.helicalinsight.admin.model.HIMetadataConnectionEFWD;
 import com.helicalinsight.admin.model.HIRecycleBin;
 import com.helicalinsight.admin.model.HIRecycleBinHIEfwdConnection;
 import com.helicalinsight.admin.model.HIResource;
-import com.helicalinsight.admin.model.HIResourceMetadata;
 import com.helicalinsight.admin.model.HiHcrQuery;
 import com.helicalinsight.admin.model.MetadataDatabases;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
+import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.GlobalJdbcTypeUtils;
 import com.helicalinsight.admin.dto.EfwdConnDTO;
 import com.helicalinsight.admin.dto.EfwdDataSourceLookupDTO;
 import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.admin.dto.PlainConnDTO;
+import com.helicalinsight.admin.dto.UserDTO;
 import com.helicalinsight.efw.framework.FactoryMethodWrapper;
 import com.helicalinsight.efw.serviceframework.IComponent;
 import com.helicalinsight.efw.utility.EfwdDatasourceUtils;
@@ -75,11 +75,12 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 	@Autowired
 	private HIRecycleBinService recycleBinService;
 	
-    @Autowired
-    private HIResourceServiceDB hiServiceDB;
     
     @Autowired
     private SessionFactory sessionFactory;
+    
+    @Autowired
+    private ResourceDTOMapper mapper;
     
     
     private Session getSession() {
@@ -93,7 +94,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		session.disableFilter(IS_DELETED_FILTER);
 		return session;
 	}
-
+    
+    //TODO: Remove deprecated methods.
 	@Override
 	public HIEfwdConnection saveEFWDConnection(HIEfwdConnection hiEfwdConnection) {
 
@@ -106,7 +108,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			return null;
 		}
 	}
-
+	
+	//TODO: Remove deprecated methods.
 	@Override
 	public HIEFWD saveHIResourceEFWD(HIEFWD hiefwd) {
 		try {
@@ -148,7 +151,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			return Collections.emptyList();
 		}
 	}
-
+	
+	@Deprecated(forRemoval = true)
 	@Override
 	public EFWDConnSqlJDBC save(EFWDConnSqlJDBC efwdConnSqlJDBC) {
 
@@ -161,7 +165,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		}
 	}
 
-
+	@Deprecated(forRemoval = true)
 	@Override
 	public EFWDConnSqlJDBC edit(EFWDConnSqlJDBC efwdConnSqlJDBC) {
 		try {
@@ -187,7 +191,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 
 		return connectionIds;
 	}
-
+	@Deprecated(forRemoval = true)
 	@Override
 	public EFWDConnSqlJDBC findSQLJDBCConnectionById(Integer efwdConnectionId) {
 		try {
@@ -216,6 +220,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		return null;
 	}
 
+	@Deprecated(forRemoval = true)
 	@Override
 	public EFWDConnSqlJDBC findSQLJDBCConnectionByIdAndType(Integer connectionId,String type) {
 		try {
@@ -236,7 +241,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		HIRecycleBin bin = new HIRecycleBin();
     	bin.setRecycleBinType(RecycleBinType.HI_EFWD_CONNECTION);
     	bin.setDeletedBy(userDao.findUser(Integer.valueOf(SecurityUtils.securityObject().getCreatedBy())));
-    	User owner = userDao.findUser(connection.getHiResourceEFWD().getCreatedBy());
+    	User owner = connection.getHiResourceEFWD().getCreatedBy();
     	bin.setCreatedBy(owner);
     	bin.setOrgId(owner.getOrganization());
     	HIRecycleBinHIEfwdConnection binConnection = new HIRecycleBinHIEfwdConnection();
@@ -345,6 +350,11 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		}
 	}
 
+	/**
+	 * 
+	 * FIXME: Move this to proper repository & Replace deprecated code.
+	 *  EFWD does not own HIResource/HIResourceHCR .. maintaining this method here is not recommended.
+	 */
 	@SuppressWarnings("unchecked")
 	public List<HIResource> deleteHCRReports(HIEfwdConnection connection) {
 		List<HIResource> result = new ArrayList<>();
@@ -586,8 +596,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					SELECT DISTINCT con
 					FROM HIEfwdConnection con
 					JOIN con.hiResourceEFWD res
-					WHERE  res.createdBy = :createdBy 
-						OR res.createdBy IS NULL
+					WHERE  res.createdBy.id = :createdBy 
+						OR res.createdBy.id IS NULL
 						OR con.id IN (:efwdIds) 
 					
 					""";
@@ -665,7 +675,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					    new com.helicalinsight.admin.dto.HIEfwdDTO (
 				            r.resourceId,
 				            r.resourceURL,
-				            efwd.createdBy,
+				            new com.helicalinsight.admin.dto.UserDTO(
+					           user.id,
+					           user.username
+				            ),
 				            r.isDeleted,
 				            r.title,
 				            r.resourcePath
@@ -675,6 +688,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					JOIN c.hiEfwdConnection conn
 					JOIN conn.hiResourceEFWD efwd
 				    JOIN efwd.parentResource r
+				    JOIN efwd.createdBy user
 					WHERE c.efwdConnId IN (:ids)
 					""";
 
@@ -702,7 +716,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					    new com.helicalinsight.admin.dto.HIEfwdDTO(
 				            r.resourceId,
 				            r.resourceURL,
-				            efwd.createdBy,
+				            new com.helicalinsight.admin.dto.UserDTO(
+					           user.id,
+					           user.username
+				            ),
 				            r.isDeleted,
 				            r.title,
 				            r.resourcePath
@@ -713,6 +730,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					JOIN c.hiEfwdConnection conn
 					JOIN conn.hiResourceEFWD efwd
 				    JOIN efwd.parentResource r
+				    JOIN efwd.createdBy user
 					WHERE c.efwdConnId IN (:ids)
 					""";
 
@@ -739,13 +757,16 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			HIResource resource  =  conn.getHiResourceEFWD().getParentResource();
 			
 				final EfwdConnDTO dto = new EfwdConnDTO();
-				dto.setCreatedBy(String.valueOf(conn.getHiResourceEFWD().getCreatedBy()));
 				HIEfwdDTO resourceDto = new HIEfwdDTO();
 				resourceDto.setResourceId(resource.getResourceId());
 				resourceDto.setResourceUrl(resource.getResourceURL());
-				resourceDto.setCreatedBy(resource.getCreatedBy());
-				resourceDto.setIsDeleted(resource.isDeleted());
+				Integer createdBy = resource.getCreatedBy();
+				if ( createdBy != null) {
+					User user =  userDao.findUser(createdBy);
+					resourceDto.setCreatedBy(mapper.map(user));
+				}
 				
+				resourceDto.setIsDeleted(resource.isDeleted());
 				dto.setResource(resourceDto);				
 				dto.setId(conn.getId());	
 				dto.setType(conn.getType());
@@ -782,10 +803,11 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		for(HIEfwdConnection conn:efwd) {
 			if(isRequiredForRecycleBinFetch || (!conn.isDeleted())) {
 				final EfwdConnDTO dto = new EfwdConnDTO();
-				dto.setCreatedBy(String.valueOf(conn.getHiResourceEFWD().getCreatedBy()));
 				HIEfwdDTO  efwdResource = new HIEfwdDTO();
 				HIResource resource =  conn.getHiResourceEFWD().getParentResource();
-				efwdResource.setCreatedBy(resource.getCreatedBy());
+				User user = userDao.findUser(resource.getCreatedBy());
+				UserDTO userDTO = mapper.map(user);
+				efwdResource.setCreatedBy(userDTO);
 				efwdResource.setIsDeleted(resource.getDeleted());
 				efwdResource.setResourceId(resource.getResourceId());
 				efwdResource.setResourceUrl(resource.getResourceURL());
@@ -1190,7 +1212,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					    new com.helicalinsight.admin.dto.HIEfwdDTO(
 				            r.resourceId,
 				            r.resourceURL,
-				            efwd.createdBy,
+				            new com.helicalinsight.admin.dto.UserDTO(
+					           user.id,
+					           user.username
+				            ),
 				            r.isDeleted,
 				            r.title,
 				            r.resourcePath
@@ -1200,6 +1225,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					JOIN c.hiEfwdConnection conn
 				    JOIN conn.hiResourceEFWD efwd
 				    JOIN efwd.parentResource r
+				    JOIN efwd.createdBy user
 					WHERE c.efwdConnId =:connectionId
 					""";
 			SelectionQuery<PlainConnDTO> query = session.createSelectionQuery(sqlQuery,PlainConnDTO.class);
@@ -1229,7 +1255,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					    new com.helicalinsight.admin.dto.HIEfwdDTO(
 				            r.resourceId,
 				            r.resourceURL,
-				            efwd.createdBy,
+				            new com.helicalinsight.admin.dto.UserDTO(
+					           user.id,
+					           user.username
+				            ),
 				            r.isDeleted,
 				            r.title,
 				            r.resourcePath
@@ -1240,6 +1269,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					JOIN c.hiEfwdConnection conn
 					JOIN conn.hiResourceEFWD efwd
 				    JOIN efwd.parentResource r
+				    JOIN efwd.createdBy user
 					WHERE c.efwdConnId = :connectionId
 					""";
 			SelectionQuery<PlainConnDTO> query = session.createSelectionQuery(groovyQuery,PlainConnDTO.class);

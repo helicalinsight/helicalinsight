@@ -52,8 +52,8 @@ class VizSection(BaseModel):
         default=None,
         description=(
             "Structured visualization model: data shelves (rows/columns/filters/hidden), "
-            "chart (viz/mark), and properties (labels, title, color/gradient/theme, "
-            "formatting, custom formatters)."
+            "chart (viz/mark), and properties (labelX/labelY, title, color, background, "
+            "formatting)."
         ),
     )
 
@@ -210,7 +210,7 @@ class ChatResponse(BaseModel):
         )
 
         summary = SummarySection(
-            insight=_as_str(state.get("output")),
+            insight=_as_insight(state.get("output")),
             reason=_as_str(state.get("output2")),
         )
 
@@ -270,22 +270,44 @@ def _as_str(value: Any) -> str:
     return str(value)
 
 
+def _as_insight(value: Any) -> str:
+    """Map model-state output to a user-facing insight; never return a traceback."""
+    text = _as_str(value)
+    if "Traceback (most recent call last)" in text:
+        logger.warning("Dropping traceback from summary.insight")
+        return ""
+    return text
+
+
 def _as_viz_model(value: Any) -> Optional[dict[str, Any]]:
     """Normalize ModelState.viz_model to a plain dict for the wire response."""
     if value is None or value == "":
         return None
-    if isinstance(value, dict):
-        return value
-    if hasattr(value, "model_dump"):
-        try:
+    try:
+        from helicalbi.model.output.viz.VizModel import VizModel
+
+        if isinstance(value, VizModel):
             return value.model_dump()
-        except Exception:
-            logger.debug("Unable to dump viz_model via model_dump", exc_info=True)
-    if hasattr(value, "dict"):
-        try:
-            return value.dict()
-        except Exception:
-            logger.debug("Unable to dump viz_model via dict()", exc_info=True)
+        if isinstance(value, dict):
+            return VizModel.model_validate(value).model_dump()
+        if hasattr(value, "model_dump"):
+            return VizModel.model_validate(value.model_dump()).model_dump()
+        if hasattr(value, "dict"):
+            return VizModel.model_validate(value.dict()).model_dump()
+    except Exception:
+        logger.debug("Unable to normalize viz_model; returning raw payload", exc_info=True)
+        if isinstance(value, dict):
+            return value
+        if hasattr(value, "model_dump"):
+            try:
+                return value.model_dump()
+            except Exception:
+                logger.debug("Unable to dump viz_model via model_dump", exc_info=True)
+        if hasattr(value, "dict"):
+            try:
+                return value.dict()
+            except Exception:
+                logger.debug("Unable to dump viz_model via dict()", exc_info=True)
     return None
 
 

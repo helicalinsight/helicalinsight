@@ -4,13 +4,16 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.helicalinsight.admin.model.EFWDConnGroovy;
 import com.helicalinsight.admin.model.EFWDConnSqlJDBC;
 import com.helicalinsight.admin.model.HIEFWD;
 import com.helicalinsight.admin.model.HIEfwdConnection;
+import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.admin.utils.UUIDGenerator;
@@ -36,6 +39,10 @@ public class EfwdPlainConCopyHandler extends HiResourceCopyHandler{
 	
 	@Autowired
 	private ResourceDTOMapper mapper;
+	
+	@Autowired
+	@Qualifier(value = "userDetailsService")
+	private UserService userService;
 	
 	
 	private static final String SQLJDBC="sql.jdbc";
@@ -94,7 +101,11 @@ public class EfwdPlainConCopyHandler extends HiResourceCopyHandler{
 		hiefwd.setId(null);
 		hiefwd.setCreatedDate(new Date());
 		hiefwd.setLastUpdatedTime(new Date());
-		hiefwd.setCreatedBy(Integer.valueOf(AuthenticationUtils.getUserId()));
+		
+		Integer createdBy = Integer.parseInt(AuthenticationUtils.getUserId());
+		User user = userService.findUser(createdBy);
+		hiefwd.setCreatedBy(user);
+		
 		hiResourceServiceDB.addHIResourceEFWD(hiefwd);
 		return hiefwd;
 	}

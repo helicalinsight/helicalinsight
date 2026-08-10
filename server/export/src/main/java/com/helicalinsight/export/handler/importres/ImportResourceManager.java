@@ -171,8 +171,8 @@ public class ImportResourceManager {
 				context.getResourceUrlMap().put(path, resource);
 			}
 			catch (Exception e) {
-				logger.error("Could not import {} due to " , path, e);
-				throw new ResourceImportException("Could not import " + path , e);
+				logger.error("Failed to import resource: {}. Rolling back the transaction.", path, e);
+				throw new ResourceImportException("Could not import " + path + ".  The operation has been rolled back." , e);
 			}
 		}
 	}

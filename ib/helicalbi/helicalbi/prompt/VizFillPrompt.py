@@ -227,7 +227,7 @@ Sample row:
 Frozen VizModel (do not change data.rows / data.columns / chart):
 {frozen_viz_model}
 
-Existing Excel-style formatting already applied (prefer these; do not duplicate as formatter):
+Existing Excel-style formatting already applied (prefer these; do not invent custom JS formatters):
 {column_format_strings}
 
 Field-level AI instructions:
@@ -240,17 +240,10 @@ Result-column thematic context:
 
 Return ONLY polish fields for VizProperties:
 1. color — one solid hex when a single brand/domain color fits (e.g. "#2F6FED"), else omit/empty.
-2. colorGradient — 2–6 hex stops for a domain-appropriate palette/gradient when useful.
-3. theme — short domain theme token (e.g. "travel-cool", "finance-dark", "retail-warm").
-4. background — chart background when thematically useful (hex or simple CSS), else omit.
-5. title / labelsX / labelsY — only improve when clearly more business-friendly; otherwise omit.
-6. formatter — map of result column → JavaScript function BODY only when Excel-style
-   formatting is insufficient (domain units, conditional labels, custom abbreviations).
-   Function signature implied: (value, datum) => ...
-   Example body: return value == null ? "—" : Number(value).toFixed(1) + " km";
-   Do NOT wrap in function(...) {{ }} or markdown. Keys must be real result column names.
-   Skip columns that already have adequate Excel-style formats.
+2. background — chart background when thematically useful (hex or simple CSS), else omit.
+3. title / labelX / labelY — only improve when clearly more business-friendly; otherwise omit.
 
+Do NOT return colorGradient, theme, or formatter.
 Do NOT invent columns. Do NOT return rows/columns/filters/chart. Do NOT return JavaScript chart code.
 
 ### OUTPUT

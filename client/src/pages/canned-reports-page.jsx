@@ -1266,12 +1266,15 @@ const CannedReportsPage = (props) => {
             return reqPane;
           });
           let nodes = parseHCRNodesData(res.diagramData.nodes, dsPanes);
-          let ctStyles = [];
+          let ctStyles = [], ctSubDS = [];
           nodes = nodes.map((node) => {
             if (node.category === "crosstabv2") {
-              const { tableStyles = [], ...rest } = node || {}
+              const { tableStyles = [], subDS, ...rest } = node || {}
               if (tableStyles?.length) {
                 ctStyles.push(...tableStyles)
+              }
+              if (subDS) {
+                ctSubDS.push(subDS)
               }
               return rest
             }
@@ -1280,12 +1283,18 @@ const CannedReportsPage = (props) => {
           let subDataSets = [], tableStyles = [];
           if (res.state.subDataSets) {
             subDataSets = res.state.subDataSets
+            if (ctSubDS.length) {
+              subDataSets = [...subDataSets, ...ctSubDS]
+            }
           } else {
             subDataSets = getSubDataSetsFromReportState(nodes, dsPanes)
           }
 
           if (res.state.tableStyles) {
             tableStyles = res.state.tableStyles
+            if (ctStyles.length) {
+              tableStyles = [...tableStyles, ...ctStyles]
+            }
           } else {
             const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
             tableStyles = [...tStyles, ...ctStyles];
@@ -1415,12 +1424,15 @@ const CannedReportsPage = (props) => {
             });
             let nodes = parseHCRNodesData(res.diagramData.nodes, dsPanes);
 
-            let ctStyles = [];
+            let ctStyles = [], ctSubDS = [];
             nodes = nodes.map((node) => {
               if (node.category === "crosstabv2") {
-                const { tableStyles = [], ...rest } = node || {}
+                const { tableStyles = [], subDS, ...rest } = node || {}
                 if (tableStyles?.length) {
                   ctStyles.push(...tableStyles)
+                }
+                if (subDS) {
+                  ctSubDS.push(subDS)
                 }
                 return rest
               }
@@ -1429,12 +1441,18 @@ const CannedReportsPage = (props) => {
             let subDataSets = [], tableStyles = [];
             if (res.state.subDataSets) {
               subDataSets = res.state.subDataSets
+              if (ctSubDS.length) {
+                subDataSets = [...subDataSets, ...ctSubDS]
+              }
             } else {
               subDataSets = getSubDataSetsFromReportState(nodes, dsPanes)
             }
 
             if (res.state.tableStyles) {
               tableStyles = res.state.tableStyles
+              if (ctStyles.length) {
+                tableStyles = [...tableStyles, ...ctStyles]
+              }
             } else {
               const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
               tableStyles = [...tStyles, ...ctStyles];

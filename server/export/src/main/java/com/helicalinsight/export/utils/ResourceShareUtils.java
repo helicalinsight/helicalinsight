@@ -158,7 +158,7 @@ public class ResourceShareUtils {
 			final Profile existing = profileService.getProfileByNameAndUserId(profile.getProfile_name(),user.getId());
 			if(existing == null) {
 				Profile dbProfile = mapper.map(profile);
-				dbProfile.setUser(user);
+				dbProfile.setUser_id(user.getId());
 				profileService.add(dbProfile);
 			}
 			else {

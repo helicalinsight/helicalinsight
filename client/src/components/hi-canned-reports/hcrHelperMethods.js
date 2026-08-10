@@ -1776,26 +1776,41 @@ export const getCTNodesFormData = (crosstab = {}) => {
   const { config = {}, styles = [] } = crosstab || {}
   const { nodes = {}, columnGroups = [], rowGroups = [], measureCells = [], measures = [] } = config || {}
 
+  function getUpdateSize(node, style = {}) {
+    const clonedNode = cloneDeep(node)
+    const { padding = {} } = style || {}
+    const { Top = 0, Bottom = 0, Right = 0, Left = 0 } = padding || {};
+    const heightF = Top + Bottom, widthF = Left + Right;
+    clonedNode.width = clonedNode.width - widthF;
+    clonedNode.height = clonedNode.height - heightF;
+    return clonedNode;
+  }
+
   function getGroups(groups = [], headerLabel, totalHeaderLabel, nodes = {}, sizeUnit) {
     return groups.map((cGrp) => {
       const { cells = [], name } = cGrp || {};
       const [headerCell, totalCell] = cells || [];
       const { className = "", nodeIds: headerCellNodeIds = [], styleNameReference: hStyleId } = headerCell || {};
       const { nodeIds: totalCellNodesIds = [], styleNameReference: tStyleId } = totalCell || {};
-      const header = nodes[headerCellNodeIds?.[0]] || {};
-      const totalHeader = nodes[totalCellNodesIds?.[0]] || {};
+      let header = nodes[headerCellNodeIds?.[0]] || {};
+      let totalHeader = nodes[totalCellNodesIds?.[0]] || {};
 
-      let hStyleNameReference = styles.find(({ id }) => id === hStyleId)?.styleName || null;
-      let tStyleNameReference = styles.find(({ id }) => id === tStyleId)?.styleName || null;
+      let { styleName: hStyleNameReference = null, ...restHStyle } = styles.find(({ id }) => id === hStyleId) || {};
+      let { styleName: tStyleNameReference = null, ...restTStyle } = styles.find(({ id }) => id === tStyleId) || {};
+
+      header = getUpdateSize(header, restHStyle);
+      totalHeader = getUpdateSize(totalHeader, restTStyle);
 
       return {
         name,
-        [sizeUnit]: header[sizeUnit],
+        [sizeUnit]: headerCell[sizeUnit],
         bucket: {
           className: className || "java.lang.String",
           expression: `$F{${name}}`,
         },
         [headerLabel]: isEmpty(header) ? {} : {
+          width: headerCell.width,
+          height: headerCell.height,
           styleNameReference: hStyleNameReference,
           textField: getPreviewTextField({
             ...header, x: 0, y: 0, label: header.label,
@@ -1803,6 +1818,8 @@ export const getCTNodesFormData = (crosstab = {}) => {
         },
         [totalHeaderLabel]: isEmpty(totalHeader) ? {} : {
           styleNameReference: tStyleNameReference,
+          width: totalCell.width,
+          height: totalCell.height,
           textField: addEscapedQuotes(
             getPreviewTextField({
               ...totalHeader, x: 0, y: 0, label: totalHeader.label
@@ -1815,14 +1832,14 @@ export const getCTNodesFormData = (crosstab = {}) => {
   function getCTCells(cells = [], nodes = {}) {
     return cells.map((cell) => {
       const { width, height, nodeIds = [], columnTotalGroup, rowTotalGroup, styleNameReference: styleId } = cell || {};
-      let styleNameReference = styles.find(({ id }) => id === styleId)?.styleName || null;
+      let { styleName: styleNameReference, ...restStyle } = styles.find(({ id }) => id === styleId) || {};
 
       const returnObj = {
         width,
         height,
         styleNameReference,
         textField: nodeIds.map((id, index, arr) => {
-          const node = nodes[id];
+          let node = getUpdateSize(nodes[id], restStyle);
           if (node) {
             let y = 0;
             const prevNodeId = arr[index - 1];
@@ -5136,6 +5153,7 @@ const getConvertedCrosstabNodes = (ctNodes = [], dsPanes = []) => {
       copiedConfig: {},
       isCTConstructed: true,
       tableStyles,
+      subDS: getSubDSFromComponent(component, dsPanes),
       ...rest
     }
   })
@@ -5175,6 +5193,38 @@ export const parseHCRNodesData = (nodes = [], dsPanes = []) => {
   return copiedNodes;
 }
 
+export const getSubDSFromComponent = (component, dsPanes) => {
+  const { selectedQueryID, selectedFields = [], selectedGroupFields = [], id: compId } = component || {}
+  const queriesMenu = dsPanes
+    ?.find((ele) => ele.dataSourcePane === hcrDSQuery)
+    ?.menu?.filter(
+      (ele) =>
+        ele.executeQueryData?.data.length ||
+        ele.executeQueryData?.field.length,
+    ) || [];
+  const selectedQuery = queriesMenu?.find((ele) => ele.id === selectedQueryID);
+  if (!selectedQuery) return null;
+
+  const { executeQueryData, name } = selectedQuery || {};
+  const { field = [] } = executeQueryData || {};
+
+  let initialSubDataSet = getInitialSubDataSet();
+  initialSubDataSet = {
+    ...initialSubDataSet,
+    id: selectedQueryID,
+    name,
+    isEmpty: false,
+    fields: field.map((f) => ({ ...f, id: uuidv4() })),
+    selectedFields,
+    selectedGroupFields,
+  }
+
+  if (selectedGroupFields.length) {
+    initialSubDataSet.groups = selectedGroupFields.map((field) => getInitialGroupData(field));
+  }
+  return initialSubDataSet;
+}
+
 export const getSubDataSetsFromReportState = (nodes, dsPanes) => {
   if (!nodes.length) return []
 
@@ -5192,35 +5242,7 @@ export const getSubDataSetsFromReportState = (nodes, dsPanes) => {
       }
     }
 
-    const queriesMenu = dsPanes
-      ?.find((ele) => ele.dataSourcePane === hcrDSQuery)
-      ?.menu?.filter(
-        (ele) =>
-          ele.executeQueryData?.data.length ||
-          ele.executeQueryData?.field.length,
-      ) || [];
-    const selectedQuery = queriesMenu?.find((ele) => ele.id === selectedQueryID);
-    if (!selectedQuery) return null;
-
-    const { executeQueryData, name } = selectedQuery || {};
-    const { field = [] } = executeQueryData || {};
-
-    let initialSubDataSet = getInitialSubDataSet();
-    initialSubDataSet = {
-      ...initialSubDataSet,
-      id: selectedQueryID,
-      name,
-      isEmpty: false,
-      fields: field.map((f) => ({ ...f, id: uuidv4() })),
-      selectedFields,
-      selectedGroupFields,
-    }
-
-    if (selectedGroupFields.length) {
-      initialSubDataSet.groups = selectedGroupFields.map((field) => getInitialGroupData(field));
-    }
-    return initialSubDataSet;
-
+    return getSubDSFromComponent(component, dsPanes)
   }).filter(Boolean)
 }
 
@@ -5496,6 +5518,16 @@ export const getNewStyle = (tableId, prevStyles) => {
   }
 }
 
+function getCTCells(component) {
+  const { columnGroups, rowGroups, measureCells } = component.config;
+  const cells = [
+    ...measureCells,
+    ...(columnGroups.flatMap(({ cells }) => cells)),
+    ...(rowGroups.flatMap(({ cells }) => cells)),
+  ]
+  return cells
+}
+
 export const updateElementsWithStyles = (previousStyles = [], updatedStyle = [], nodes = []) => {
   if (!nodes.length || !previousStyles.length) return nodes;
 
@@ -5545,15 +5577,6 @@ export const updateElementsWithStyles = (previousStyles = [], updatedStyle = [],
     return copiedCell;
   }
 
-  function getCells(component) {
-    const { columnGroups, rowGroups, measureCells } = component.config;
-    const cells = [
-      ...measureCells,
-      ...(columnGroups.flatMap(({ cells }) => cells)),
-      ...(rowGroups.flatMap(({ cells }) => cells)),
-    ]
-    return cells
-  }
 
   function updateCTCell(cell = {}) {
     if (cell.styleNameReference && !isStyleNameAvailableInBoth(cell.styleNameReference)) {
@@ -5580,7 +5603,7 @@ export const updateElementsWithStyles = (previousStyles = [], updatedStyle = [],
           node.config.nodes[nodeId] = updateNormalNode(node.config.nodes[nodeId]);
         }
 
-        const cells = getCells(node)
+        const cells = getCTCells(node)
         for (let cell of cells) {
           updateTableCell(cell)
         }
@@ -5633,7 +5656,7 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
           }
         } else {
           if (node?.styleName === styleName) {
-            const { id = '', isChanged, isConditionalStyleReq, tableId, bandsApplicable, ...restStyles } = currentStyle || {}
+            const { id = '', isChanged, isConditionalStyleReq, tableId, crosstabId, bandsApplicable, ...restStyles } = currentStyle || {}
             node = {
               ...node,
               ...restStyles,
@@ -5644,14 +5667,26 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
       }
 
       activeReport.hcrDiagramNodesData = activeReport.hcrDiagramNodesData.map((node) => {
-        if (node.category === "advancedTable") {
-          const { nodes = {} } = node || {}
-          for (let nId in nodes) {
-            const element = nodes[nId];
-            node.nodes[nId] = updateStyle(element, styleName, currentStyle);
+        switch (node.category) {
+          case "advancedTable": {
+            const { nodes = {} } = node || {}
+            for (let nId in nodes) {
+              const element = nodes[nId];
+              node.nodes[nId] = updateStyle(element, styleName, currentStyle);
+            }
+            break;
           }
-        } else {
-          node = updateStyle(node, styleName, currentStyle)
+          case "crosstabv2": {
+            const { nodes = {} } = node?.config || {};
+            for (let nId in nodes) {
+              const element = nodes[nId];
+              node.config.nodes[nId] = updateStyle(element, styleName, currentStyle);
+            }
+            break;
+          }
+          default:
+            node = updateStyle(node, styleName, currentStyle)
+            break;
         }
         return node;
       })
@@ -5721,7 +5756,8 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     rowHeights,
     position,
     cellsToUpdate = [],
-    type
+    type,
+    resizeFactor
   } = payload || {}
 
   const initialSelectionPayload = {
@@ -5826,7 +5862,7 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
 
     if (width !== undefined) {
       const widthFactor = width - cell.width;
-      cell.width = cell.width + widthFactor;
+      cell.width = cell.width + (resizeFactor ? resizeFactor : widthFactor);
 
       if (cell.nodeIds.length) {
         updateNode(component, cell.nodeIds, cell, "width")
@@ -5834,7 +5870,7 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     }
     if (height !== undefined) {
       const heightFactor = height - cell.height;
-      cell.height = cell.height + heightFactor;
+      cell.height = cell.height + (resizeFactor ? resizeFactor : heightFactor);
       if (cell.nodeIds.length) {
         updateNode(component, cell.nodeIds, cell, "height")
       }

@@ -22,7 +22,6 @@ def register(flask_app) -> None:
         session_cookie, username, user_id, _org_id = bind_request_identity(data)
         model_file_name = data["model"]["file"]
         location = data["model"]["dir"]
-        base_url = data.get("baseUrl") or ""
         logger.info(
             "Top N questions requested user=%s domain=%s topN=%s model=%s",
             username,
@@ -112,7 +111,6 @@ def register(flask_app) -> None:
                 endpoint="/analyst",
                 user_id=user_id,
                 session_cookie=session_cookie,
-                base_url=base_url,
                 user_query=user_query,
                 token_usage=token_usage,
                 request_status=request_status,

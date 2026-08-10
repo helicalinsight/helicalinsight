@@ -5,15 +5,12 @@ import com.helicalinsight.admin.model.ApplicationCache;
 import com.helicalinsight.admin.model.DataSourceMapping;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
-import jakarta.persistence.Query;
 
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
@@ -32,7 +29,6 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 /**
  * @author Somen

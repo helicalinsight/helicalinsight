@@ -35,6 +35,7 @@ import com.helicalinsight.admin.model.HIMetadataConnectionEFWD;
 import com.helicalinsight.admin.model.HIMetadataConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
+import com.helicalinsight.admin.model.User;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceUtils;
@@ -229,7 +230,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					parentResource = getOrInsertParent(parentResource, efwdConnection);
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
-					efwd.setCreatedBy(parentResource.getCreatedBy());
+					Object createdByObj =  efwd.getCreatedBy();
+					User createdBy = resolveUser(createdByObj);
+					efwd.setCreatedBy(createdBy);
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
@@ -292,7 +295,11 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					parentResource = getOrInsertParent(parentResource, efwdConnection);
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
-					efwd.setCreatedBy(parentResource.getCreatedBy());
+					
+					Object createdByObj =  efwd.getCreatedBy();
+					User createdBy = resolveUser(createdByObj);
+					efwd.setCreatedBy(createdBy);
+					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					groovy.setHiEfwdConnection(efwdConnection);
@@ -389,7 +396,11 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					parentResource = getOrInsertParent(parentResource, efwdConnection);
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
-					efwd.setCreatedBy(parentResource.getCreatedBy());
+					
+					Object createdByObj =  efwd.getCreatedBy();
+					User createdBy = resolveUser(createdByObj);
+					efwd.setCreatedBy(createdBy);
+					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
@@ -457,7 +468,11 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					parentResource =  getOrInsertParent(parentResource, efwdConnection);
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
-					efwd.setCreatedBy(parentResource.getCreatedBy());
+					
+					Object createdByObj =  efwd.getCreatedBy();
+					User createdBy = resolveUser(createdByObj);
+					efwd.setCreatedBy(createdBy);
+					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					groovy.setHiEfwdConnection(efwdConnection);

@@ -42,19 +42,6 @@ if [ -f "$GLOBAL_CONN" ]; then
   fi
 fi
 
-PERSISTENCE_PATCHED=0
-while IFS= read -r file; do
-  if patch_persistence_placeholders "$file"; then
-    PERSISTENCE_PATCHED=$((PERSISTENCE_PATCHED + 1))
-  fi
-done < <(collect_persistence_xml_files "$SERVER")
-
-if [ "$PERSISTENCE_PATCHED" -gt 0 ]; then
-  echo "[OK]   Normalized persistence.xml placeholders in ${PERSISTENCE_PATCHED} file(s)"
-else
-  echo "[SKIP] persistence.xml already uses Maven placeholders"
-fi
-
 
 if [ ! -f "$ROOT/.env" ] && [ -f "$ROOT/.env.example" ]; then
   cp "$ROOT/.env.example" "$ROOT/.env"
@@ -67,6 +54,27 @@ if [ ! -f "$DOCKER_ENV" ] && [ -f "$DOCKER_ENV_EXAMPLE" ]; then
   cp "$DOCKER_ENV_EXAMPLE" "$DOCKER_ENV"
   echo "[OK]   Created docker/.env from docker/.env.example"
 fi
+
+# Link hi-repository into the shared Docker layout (same path the package uses)
+HI_REPO_LINK="$ROOT/docker/hi/hi-repository"
+HI_REPO_SRC="$ROOT/server/hi-repository"
+if [ -d "$HI_REPO_SRC" ] && [ ! -e "$HI_REPO_LINK" ]; then
+  ln -sfn "$HI_REPO_SRC" "$HI_REPO_LINK"
+  echo "[OK]   Linked docker/hi/hi-repository → server/hi-repository"
+elif [ -e "$HI_REPO_LINK" ]; then
+  echo "[SKIP] docker/hi/hi-repository already present"
+fi
+
+# Link hi-ee.war into the shared Docker layout (same path the package uses)
+HI_WAR_LINK="$ROOT/docker/hi/hi-ee.war"
+HI_WAR_SRC=$(find "$ROOT/server/presentation/target" -maxdepth 1 -name 'hi-ee-*.war' -type f | head -n 1)
+if [ -n "$HI_WAR_SRC" ] && [ ! -e "$HI_WAR_LINK" ]; then
+  ln -sfn "$HI_WAR_SRC" "$HI_WAR_LINK"
+   echo "[OK] Linked docker/hi/hi-ee.war → $(basename "$HI_WAR_SRC")"
+elif [ -e "$HI_WAR_LINK" ]; then
+  echo "[SKIP] docker/hi/hi-ee.war already present"
+fi
+
 
 # Link Instant BI into the shared Docker layout (same path the package uses)
 INSTANTBI_LINK="$ROOT/docker/instantbi/helicalbi"

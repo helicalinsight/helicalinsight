@@ -81,7 +81,7 @@ const CrosstabLayout = (props = {}) => {
     }
 
 
-    const updateCTLayout = ({ colWidths, rowHeights, index, type }) => {
+    const updateCTLayout = ({ colWidths, rowHeights, index, type, resizeFactor }) => {
         function getCellsWithIndex(type, index) {
             return cells.filter((cell) => {
                 if (type === "col") {
@@ -97,7 +97,7 @@ const CrosstabLayout = (props = {}) => {
             return cells.map((cell) => cell.id)
         }
 
-        let payload = { colWidths, rowHeights, type, cellsToUpdate: getCellIds(getCellsWithIndex(type, index)), position: index }
+        let payload = { colWidths, rowHeights, type, cellsToUpdate: getCellIds(getCellsWithIndex(type, index)), position: index, resizeFactor }
 
         updateCrosstab("updateCrosstabLayout", payload)
     }
@@ -129,14 +129,14 @@ const CrosstabLayout = (props = {}) => {
             const workingWidths = [...colWidths];
             const workingHeights = [...rowHeights];
 
-            dragRef.current = { type, index, startCoord, startSize, workingWidths, workingHeights };
+            dragRef.current = { type, index, startCoord, startSize, workingWidths, workingHeights, resizeFactor: 0 };
 
             const onMouseMove = (moveEvt) => {
                 const d = dragRef.current;
                 if (!d) return;
                 const coord = d.type === "col" ? moveEvt.clientX : moveEvt.clientY;
                 const delta = coord - d.startCoord;
-
+                dragRef.current.resizeFactor = delta;
                 if (d.type === "col") {
                     const newSize = Math.max(MIN_WIDTH, Math.round(d.startSize + delta));
                     d.workingWidths[d.index] = newSize;
@@ -159,7 +159,15 @@ const CrosstabLayout = (props = {}) => {
                 if (d) {
                     setColWidths(d.workingWidths);
                     setRowHeights(d.workingHeights);
-                    updateCTLayout({ colWidths: d.workingWidths, rowHeights: d.workingHeights, index: d.index, type: d.type })
+                    if (d.resizeFactor) {
+                        updateCTLayout({
+                            colWidths: d.workingWidths,
+                            rowHeights: d.workingHeights,
+                            index: d.index,
+                            type: d.type,
+                            resizeFactor: d.resizeFactor
+                        });
+                    }
                 }
                 dragRef.current = null;
                 window.removeEventListener("mousemove", onMouseMove);

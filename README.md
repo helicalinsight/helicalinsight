@@ -159,8 +159,9 @@ Download the [latest Docker package (ZIP)](https://github.com/helicalinsight/hel
 ```bash
 git clone https://github.com/helicalinsight/helicalinsight.git
 cd helicalinsight
+mvn clean package -DskipTests -Denv=docker -f server/pom.xml
 
-# One-time: link Instant BI + create docker/.env
+# One-time: link hi-repository + hi-ee.war + Instant BI + create docker/.env
 ./scripts/setup-dev.sh          # Linux / macOS
 # .\scripts\setup-dev.ps1       # Windows PowerShell
 

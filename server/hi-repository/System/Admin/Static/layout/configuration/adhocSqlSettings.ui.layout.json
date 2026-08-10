@@ -26,14 +26,6 @@
                                             "type":  "text",
                                             "span":  24,
                                             "description":  "JDBC driver class name. Must stay in sync with the dialect."
-                                        },
-                                        {
-                                            "name":  "mandatory",
-                                            "path":  "sqlSettings/@mandatory",
-                                            "label":  "Mandatory",
-                                            "type":  "boolean",
-                                            "span":  12,
-                                            "description":  "Whether sqlSettings is mandatory."
                                         }
                                     ]
                      }

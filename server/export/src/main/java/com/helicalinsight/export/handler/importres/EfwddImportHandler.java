@@ -188,17 +188,11 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
 			for (Integer id : idList) {
 				HIResourceMapping resourceEfwddResource = new HIResourceMapping();
 				resourceEfwddResource.setParentResource(resource);
-
-				HIResource hReportResource = null;
-
-				try {
-					hReportResource = serviceDb.getHIResourceById(id);
-				} catch (EfwServiceException resourceNotFoundException) {
-					continue;
+				HIResource hReportResource = serviceDb.getResourceByIdIgnoreFilter(id);
+				if ( hReportResource != null && !hReportResource.isDeleted()) {
+					resourceEfwddResource.setChildResource(hReportResource);
+					mappingList.add(resourceEfwddResource);
 				}
-
-				resourceEfwddResource.setChildResource(hReportResource);
-				mappingList.add(resourceEfwddResource);
 			}
 			pathService.saveBatch(mappingList);
 		}

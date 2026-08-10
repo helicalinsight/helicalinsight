@@ -7,7 +7,6 @@ import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
-import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.instant.ai.service.IAiInteractiveChatService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
@@ -43,11 +42,6 @@ public class AiInteractiveChatServiceImpl implements IAiInteractiveChatService {
                     userInput.add("model", modelJson);
                     userInput.addProperty("reportId", InstantBIUtils.extractJsessionId(request));
                 }
-                JsonObject settingsJson = JsonUtils.newGetSettingsJson();
-                String baseURL = settingsJson.get("BaseUrl").getAsString();
-                baseURL = baseURL.replace("/hi.html", "");
-
-                userInput.addProperty("baseUrl", baseURL);
                 Principal userDetails = AuthenticationUtils.getUserDetails();
                 User loggedInUser = userDetails.getLoggedInUser();
                 InstantBIUtils.addRoleProfile(loggedInUser, js);

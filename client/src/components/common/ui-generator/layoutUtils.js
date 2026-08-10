@@ -37,13 +37,19 @@ export const setNestedValue = (obj, path, value) => {
 
 export const flattenLayoutFields = (layout) => {
   const fields = [];
-  (layout?.sections || []).forEach((section) => {
-    (section.fields || []).forEach((field) => {
-      if (field?.name) {
-        fields.push(field);
+  const walk = (sections = []) => {
+    sections.forEach((section) => {
+      (section.fields || []).forEach((field) => {
+        if (field?.name) {
+          fields.push(field);
+        }
+      });
+      if (Array.isArray(section.sections) && section.sections.length) {
+        walk(section.sections);
       }
     });
-  });
+  };
+  walk(layout?.sections || []);
   return fields;
 };
 
@@ -58,13 +64,19 @@ export const hasLayoutSections = (layout) => {
   if (!Array.isArray(layout.sections)) {
     return false;
   }
-  return layout.sections.some(
-    (section) =>
-      section &&
-      (section.title ||
+  const walk = (sections = []) =>
+    sections.some((section) => {
+      if (!section) return false;
+      if (
+        section.title ||
         section.key ||
-        (Array.isArray(section.fields) && section.fields.length > 0))
-  );
+        (Array.isArray(section.fields) && section.fields.length > 0)
+      ) {
+        return true;
+      }
+      return Array.isArray(section.sections) && walk(section.sections);
+    });
+  return walk(layout.sections);
 };
 
 /**

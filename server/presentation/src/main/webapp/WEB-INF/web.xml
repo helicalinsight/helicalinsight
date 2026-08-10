@@ -307,7 +307,7 @@
             <param-value>classpath:dispatcher-servlet.xml</param-value>
         </init-param>
 		<multipart-config>
-			<max-file-size>52428800</max-file-size> <!-- 5MB -->
+			<max-file-size>52428800</max-file-size> <!-- 50MB -->
 			<max-request-size>104857600</max-request-size> <!-- 10MB -->
 			<file-size-threshold>0</file-size-threshold> <!-- No threshold -->
 		</multipart-config>
