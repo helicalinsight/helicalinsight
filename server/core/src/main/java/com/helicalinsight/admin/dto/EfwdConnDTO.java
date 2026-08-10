@@ -18,7 +18,6 @@ public class EfwdConnDTO implements Serializable {
 	
 	private Integer id;
 	private String type;
-	private String createdBy;
 	private List<PlainConnDTO> plainConnections = new ArrayList<>();
 	private HIEfwdDTO resource;
 	private boolean deleted;

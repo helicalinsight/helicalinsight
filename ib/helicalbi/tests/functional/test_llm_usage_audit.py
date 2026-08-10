@@ -20,7 +20,6 @@ class TestAuditLlmUsageAsync:
                 endpoint="/interactive",
                 user_id=42,
                 session_cookie="sess",
-                base_url="http://localhost/hi-ee",
                 user_query="show sales",
                 token_usage={"total_tokens": 10},
                 request_status="SUCCESS",
@@ -29,20 +28,19 @@ class TestAuditLlmUsageAsync:
 
     def test_no_op_when_total_tokens_zero(self):
         with patch.object(llm_usage_audit.app_config, "enable_llm_usage_audit", True), patch.object(
-            llm_usage_audit, "_executor"
-        ) as executor:
+            llm_usage_audit, "configured_base_url", "http://hiee:8080/hi-ee"
+        ), patch.object(llm_usage_audit, "_executor") as executor:
             audit_llm_usage_async(
                 endpoint="/interactive",
                 user_id=42,
                 session_cookie="sess",
-                base_url="http://localhost/hi-ee",
                 user_query="show sales",
                 token_usage={"total_tokens": 0},
                 request_status="SUCCESS",
             )
             executor.submit.assert_not_called()
 
-    def test_uses_configured_base_url_when_request_omits_it(self):
+    def test_uses_configured_base_url_only(self):
         usage = {"total_tokens": 10}
         with patch.object(llm_usage_audit.app_config, "enable_llm_usage_audit", True), patch.object(
             llm_usage_audit, "configured_base_url", "http://hiee:8080/hi-ee"
@@ -51,7 +49,6 @@ class TestAuditLlmUsageAsync:
                 endpoint="/interactive",
                 user_id=42,
                 session_cookie="sess",
-                base_url="",
                 user_query="show sales",
                 token_usage=usage,
                 request_status="SUCCESS",
@@ -62,13 +59,14 @@ class TestAuditLlmUsageAsync:
     def test_uses_api_cache_user_id_when_request_omits_it(self):
         usage = {"total_tokens": 10}
         with patch.object(llm_usage_audit.app_config, "enable_llm_usage_audit", True), patch.object(
+            llm_usage_audit, "configured_base_url", "http://hiee:8080/hi-ee"
+        ), patch.object(
             llm_usage_audit, "get_api_cache_user_id", return_value=99
         ), patch.object(llm_usage_audit, "_executor") as executor:
             audit_llm_usage_async(
                 endpoint="/interactive",
                 user_id=None,
                 session_cookie="sess",
-                base_url="http://localhost/hi-ee",
                 user_query="show sales",
                 token_usage=usage,
                 request_status="SUCCESS",
@@ -86,7 +84,6 @@ class TestAuditLlmUsageAsync:
                 endpoint="/interactive",
                 user_id=None,
                 session_cookie="",
-                base_url="",
                 user_query="show sales",
                 token_usage={"total_tokens": 10},
                 request_status="SUCCESS",
@@ -103,13 +100,12 @@ class TestAuditLlmUsageAsync:
             "total_cost": "not-a-number",
         }
         with patch.object(llm_usage_audit.app_config, "enable_llm_usage_audit", True), patch.object(
-            llm_usage_audit, "_executor"
-        ) as executor:
+            llm_usage_audit, "configured_base_url", "http://hiee:8080/hi-ee"
+        ), patch.object(llm_usage_audit, "_executor") as executor:
             audit_llm_usage_async(
                 endpoint="/interactive",
                 user_id=42,
                 session_cookie="sess",
-                base_url="http://localhost/hi-ee",
                 user_query="show sales",
                 token_usage=usage,
                 request_status="SUCCESS",
@@ -124,13 +120,12 @@ class TestAuditLlmUsageAsync:
     def test_submits_background_task_when_tokens_present(self):
         usage = {"input_tokens": 5, "output_tokens": 5, "total_tokens": 10}
         with patch.object(llm_usage_audit.app_config, "enable_llm_usage_audit", True), patch.object(
-            llm_usage_audit, "_executor"
-        ) as executor:
+            llm_usage_audit, "configured_base_url", "http://hiee:8080/hi-ee"
+        ), patch.object(llm_usage_audit, "_executor") as executor:
             audit_llm_usage_async(
                 endpoint="/data-insight",
                 user_id=42,
                 session_cookie="sess",
-                base_url="http://localhost/hi-ee",
                 user_query="insight",
                 token_usage=usage,
                 request_status="ERROR",
@@ -140,6 +135,7 @@ class TestAuditLlmUsageAsync:
             kwargs = executor.submit.call_args.kwargs
             assert kwargs["endpoint"] == "/data-insight"
             assert kwargs["token_usage"] == usage
+            assert kwargs["base_url"] == "http://hiee:8080/hi-ee"
 
     def test_post_audit_posts_json_payload(self):
         session = MagicMock()

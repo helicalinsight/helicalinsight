@@ -18,22 +18,6 @@
                                             "span":  24,
                                             "description":  "Human-readable description of configurable services.",
                                             "rows":  3
-                                        },
-                                        {
-                                            "name":  "coreMandatory",
-                                            "path":  "services/core/@mandatory",
-                                            "label":  "Core Mandatory",
-                                            "type":  "boolean",
-                                            "span":  12,
-                                            "description":  "Whether the core feature node is mandatory."
-                                        },
-                                        {
-                                            "name":  "adhocMandatory",
-                                            "path":  "services/adhoc/@mandatory",
-                                            "label":  "Adhoc Mandatory",
-                                            "type":  "boolean",
-                                            "span":  12,
-                                            "description":  "Whether the adhoc feature node is mandatory."
                                         }
                                     ]
                      }

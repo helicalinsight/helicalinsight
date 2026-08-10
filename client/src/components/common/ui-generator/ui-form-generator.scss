@@ -1,0 +1,35 @@
+.ui-form-generator-section {
+  &__title {
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  &__body {
+    /* Indent fields under section title so YAML groups read as hierarchy. */
+    padding-left: 14px;
+    border-left: 2px solid rgba(0, 0, 0, 0.06);
+  }
+
+  &--dense &__title {
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+
+  &--dense &__body {
+    padding-left: 12px;
+  }
+
+  &--level-1 &__title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &--level-2 &__title,
+  &--level-3 &__title {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.75);
+  }
+}

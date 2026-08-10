@@ -1,14 +1,14 @@
-FROM eclipse-temurin:25-jdk AS builder
+FROM eclipse-temurin:25-jdk-noble  AS builder
 
 RUN apt-get -qq update && apt-get install -y curl tar unzip
 
-ARG TOMCAT_VERSION=11.0.20
+ARG TOMCAT_VERSION=11.0.24
 
 #Put the updated war file for build purpose only
 COPY hi/hi-ee.war /tmp/hi-ee.war
 
-RUN curl -SL "https://dlcdn.apache.org/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" -o /tmp/tomcat11.tar.gz \
-    && mkdir /opt/tomcat11 \
+RUN curl -SL "https://archive.apache.org/dist/tomcat/tomcat-11/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz" -o /tmp/tomcat11.tar.gz \
+    && mkdir -p /opt/tomcat11 \
     && tar -xzf /tmp/tomcat11.tar.gz -C /opt/tomcat11 --strip-components=1 \
     && rm /tmp/tomcat11.tar.gz 
 	

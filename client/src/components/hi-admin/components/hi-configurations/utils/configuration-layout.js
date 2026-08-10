@@ -208,27 +208,34 @@ export const buildCategorizedFiles = (layout, files = []) => {
     categories.push({
       key,
       title: category.title || key,
+      icon: category.icon || key,
       description: category.description || "",
       path: categoryPath || undefined,
       files: items,
     });
   });
 
-  const uncategorized = (files || []).filter(
-    (file) => !categorizedKeys.has(fileKey(file.name, file.path))
-  );
-  if (uncategorized.length) {
-    categories.push({
-      key: "other",
-      title: "Other",
-      description: "Configuration files not assigned to a layout category.",
-      files: uncategorized.map((file) => ({
-        ...file,
-        title: file.title || file.name,
-        description: file.description || "",
-        path: file.path || "Admin",
-      })),
-    });
+  // Opt-in bucket for files not listed in any category. Default off — InstantBI
+  // and other dedicated UIs should not leak into a catch-all "Other" group.
+  const showUncategorized = layout?.showUncategorized === true;
+  if (showUncategorized) {
+    const uncategorized = (files || []).filter(
+      (file) => !categorizedKeys.has(fileKey(file.name, file.path))
+    );
+    if (uncategorized.length) {
+      categories.push({
+        key: "other",
+        title: "Other",
+        icon: "other",
+        description: "Configuration files not assigned to a layout category.",
+        files: uncategorized.map((file) => ({
+          ...file,
+          title: file.title || file.name,
+          description: file.description || "",
+          path: file.path || "Admin",
+        })),
+      });
+    }
   }
 
   return categories;

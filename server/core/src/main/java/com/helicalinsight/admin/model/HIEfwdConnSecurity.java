@@ -4,6 +4,9 @@ import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.helicalinsight.serializer.UserDeserializer;
+
 import jakarta.persistence.*;
 
 import java.io.Serializable;
@@ -29,8 +32,10 @@ public class HIEfwdConnSecurity implements Serializable {
     @Column(name = "id", nullable = false)
     private Integer id;
 
-    @Column(name="created_by")
-    private Integer createdBy;
+	@ManyToOne
+    @JoinColumn(name="created_by")
+	@JsonDeserialize(using = UserDeserializer.class)
+    private User createdBy;
 
     @Column(name="last_updated_time")
     private Date lastUpdatedTime;
@@ -62,11 +67,11 @@ public class HIEfwdConnSecurity implements Serializable {
         this.id = id;
     }
 
-    public Integer getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Integer createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 

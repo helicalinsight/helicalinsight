@@ -10,6 +10,8 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.helicalinsight.serializer.UserDeserializer;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -48,11 +50,14 @@ public class HIEFWD implements Serializable {
     @Column(name="created_date")
     private Date createdDate;
 
-    @Column(name="created_by")
-    private Integer createdBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="created_by")
+    @JsonDeserialize(using = UserDeserializer.class)
+    private User createdBy;
 
     @Column(name="last_updated_time")
     private Date lastUpdatedTime;
+    
     @JsonIgnore
     public Integer getId() {
         return id;
@@ -78,11 +83,11 @@ public class HIEFWD implements Serializable {
         this.createdDate = createdDate;
     }
 
-    public Integer getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(Integer createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 

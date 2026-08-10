@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -12,6 +13,8 @@ import com.helicalinsight.admin.model.EFWDConnGroovy;
 import com.helicalinsight.admin.model.EFWDConnSqlJDBC;
 import com.helicalinsight.admin.model.HIEFWD;
 import com.helicalinsight.admin.model.HIEfwdConnection;
+import com.helicalinsight.admin.model.User;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.admin.utils.UUIDGenerator;
 import com.helicalinsight.datasource.helper.EfwDatasourceHelper;
@@ -26,6 +29,10 @@ public class EFWDDBHandler {
 	
 	@Autowired
 	private EfwDatasourceHelper helper;
+	
+	@Autowired
+	@Qualifier(value = "userDetailsService")
+	private UserService userService;
 
 	public Integer saveHIEFWDConnection(ObjectNode jsonObject) {
 		if(!jsonObject.has("directory")){
@@ -65,8 +72,9 @@ public class EFWDDBHandler {
 	public HIEFWD saveHiResourceEFWD(String directory) {
 		HIEFWD hiEfwdResource = new HIEFWD();
 		String createdBy = AuthenticationUtils.getUserId();
+		User user = userService.findUser(Integer.parseInt(createdBy));
 		Date date = new Date();
-		hiEfwdResource.setCreatedBy(Integer.valueOf(createdBy));
+		hiEfwdResource.setCreatedBy(user);
 		hiEfwdResource.setCreatedDate(date);
 		hiEfwdResource.setLastUpdatedTime(date);
 		hiEfwdResource = efwdService.saveHIResourceEFWD(hiEfwdResource, directory);

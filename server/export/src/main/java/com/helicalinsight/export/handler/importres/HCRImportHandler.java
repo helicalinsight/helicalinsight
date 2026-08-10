@@ -200,16 +200,11 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
                 HIResourceMapping mapping = new HIResourceMapping();
                 mapping.setParentResource(resource);
                 HIResource imageResource = null; 
-                
-                try {
-                 	imageResource = serviceDb.getHIResourceById(imgId);
+                imageResource = serviceDb.getResourceByIdIgnoreFilter(imgId);
+                if ( imageResource != null && !imageResource.isDeleted()) {
+                	mapping.setChildResource(imageResource);
+                	mappingList.add(mapping);
                 }
-                catch (EfwServiceException resourceNotFoundException) {
-                	// image resource not found.. skipping the image
-                	continue;
-				}
-                mapping.setChildResource(imageResource);
-                mappingList.add(mapping);
             }
 
             mappingService.saveBatch(mappingList);

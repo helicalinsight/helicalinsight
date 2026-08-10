@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -51,19 +52,23 @@ public class EfwdConnectionOwnershipChangeHandler extends AbstractOwnershipChang
         HIEfwdConnection connection = requestedFromAdminRole() ?
                 efwdConnectionService.findConnectionById("" + efwdId, false)
                 : efwdConnectionService.findConnectionById("" + efwdId);
-
-        Integer currentOwnerId = connection.getHiResourceEFWD().getCreatedBy();
+        User user = connection.getHiResourceEFWD().getCreatedBy();
+        Integer currentOwnerId =  user.getId();
         if (currentOwnerId.equals(ownerId)) {
             throw new OwnershipTransferException("The ownership of the resource(s) cannot be changed to the same user, as it is already assigned. The ownership will remain unchanged.");
         }
-        User user = userService.findUser(ownerId);
         if (!isAdmin(user)) {
             throw new OwnershipTransferException("The user doesn't have admin rights. Please grant them admin privileges and try again.");
         }
 
 
         HIEFWD efwdResource = connection.getHiResourceEFWD();
-        Map<String, List<Object>> associatedFiles = recycleBinDao.getEfwdConnectionResources(efwdId, efwdResource.getCreatedBy());
+        
+        Integer userId = Optional.ofNullable(efwdResource.getCreatedBy())
+                .map(User::getId)
+                .orElse(null);
+        
+        Map<String, List<Object>> associatedFiles = recycleBinDao.getEfwdConnectionResources(efwdId, userId);
         if (associatedFiles == null) {
             throw new OwnershipTransferException("Failed to retrieve associated files for the EFWD connection.");
         }
@@ -93,7 +98,7 @@ public class EfwdConnectionOwnershipChangeHandler extends AbstractOwnershipChang
         }
 
 
-        connection.getHiResourceEFWD().setCreatedBy(user.getId());
+        connection.getHiResourceEFWD().setCreatedBy(user);
         efwdConnectionService.edit(connection);
         return true;
     }

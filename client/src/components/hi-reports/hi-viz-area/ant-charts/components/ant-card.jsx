@@ -261,8 +261,6 @@ const HiCard = (props) => {
     },
   }
 
-
-
   useEffect(() => {
     if (chartRef?.current) {
       let chart = chartRef.current;
@@ -322,7 +320,7 @@ const HiCard = (props) => {
             );
           }}
         />
-        {(!isCardTable && detailField && !isTrend && !isKPI) || (isTrend && displayTrend.includes('value') && !isCardTable && !isKPI) ? (
+        {detailField && ((!isCardTable && detailField && !isTrend && !isKPI) || (isTrend && displayTrend.includes('value') && !isCardTable && !isKPI)) ? (
           <TinyVizComp
             {...config}
             onReady={(plot) => {
@@ -333,7 +331,7 @@ const HiCard = (props) => {
           />
         ) : null}
 
-        {!isKPI && isTrend && !isCardTable && displayTrend.includes('trend') ?
+        {detailField && !isKPI && isTrend && !isCardTable && displayTrend.includes('trend') ?
           <>
             <TinyVizComp
               {...trendVizConfig}

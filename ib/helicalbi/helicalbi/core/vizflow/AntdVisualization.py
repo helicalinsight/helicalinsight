@@ -1,5 +1,4 @@
 import logging
-import traceback
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
@@ -116,6 +115,5 @@ class AntdVisualization:
             add_viz_response(state["thread_id"], response)
         except Exception:
             logger.exception("AntdVisualization flow failed")
-            state["output"] = traceback.format_exc()
 
         return state

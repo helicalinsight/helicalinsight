@@ -26,7 +26,6 @@ import com.helicalinsight.admin.model.EFWDConnSqlJDBC;
 import com.helicalinsight.admin.model.HIEFWD;
 import com.helicalinsight.admin.model.HIEfwdConnSecurity;
 import com.helicalinsight.admin.model.HIEfwdConnection;
-import com.helicalinsight.admin.model.HIEfwdDataMap;
 import com.helicalinsight.admin.model.HIHcrConnections;
 import com.helicalinsight.admin.model.HIHcrConnectionsEfwd;
 import com.helicalinsight.admin.model.HIHcrQueryParameters;
@@ -90,12 +89,14 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
 
     @Transactional
     @Override
+    @Deprecated(forRemoval = true)
     public EFWDConnSqlJDBC editEFWDConnection(EFWDConnSqlJDBC connection) {
         return efwdConnectionDAO.edit(connection);
     }
 
     @Transactional
     @Override
+    @Deprecated(forRemoval = true)
     public EFWDConnSqlJDBC save(EFWDConnSqlJDBC efwdConnSqlJDBC) {
         return efwdConnectionDAO.save(efwdConnSqlJDBC);
     }
@@ -125,6 +126,7 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
 
     @Transactional
     @Override
+    @Deprecated(forRemoval = true)
     public HIEfwdConnection findConnectionByIDAndType(Integer connectionId, String type) {
 
         HIEfwdConnection connection = null;
@@ -173,7 +175,6 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
     public void updateOrInsert(Integer connectionId, Integer userId, Integer roleId, Integer orgId,
                                Integer permissionLevel) {
         HIEfwdConnSecurity security = new HIEfwdConnSecurity();
-        String createdBy = AuthenticationUtils.getUserId();
         User user = null;
         Role role = null;
         Organization org = null;
@@ -191,7 +192,9 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
             org = orgDao.getOrganization(orgId);
             security.setOrgId(org);
         }
-        security.setCreatedBy(Integer.valueOf(createdBy));
+        Integer createdBy = Integer.parseInt(AuthenticationUtils.getUserId());
+        User createdByUser = userDao.findUser(createdBy);
+        security.setCreatedBy(createdByUser);
         security.setPermission(permissionLevel);
         security.setLastUpdatedTime(new Date());
         HIEfwdConnection connection = new HIEfwdConnection();
@@ -220,7 +223,8 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
     public EFWDConnGroovy save(EFWDConnGroovy efwdConnSqlJDBC) {
         return efwdConnectionDAO.save(efwdConnSqlJDBC);
     }
-
+    
+    @Deprecated(forRemoval = true)
     private Object findConnectionByType(String type, Integer id) {
 
         if ("sql.jdbc".equals(type)) {
@@ -264,6 +268,7 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
     
     @Transactional
 	@Override
+	@Deprecated(forRemoval = true)
 	public List<EFWDConnSqlJDBCDTO> findConnectionByParentId(int parentId) {
     	return efwdConnectionDAO.findConnectionByParentId(parentId)
     			.stream().map(con -> mapper.map(con)).toList();
@@ -459,6 +464,7 @@ public class EFWDConnectionServiceImpl implements EFWDConnectionService {
 
 	@Override
 	@Transactional
+	@Deprecated(forRemoval = true)
 	public EFWDConnSqlJDBCDTO findSqlConnectionByID(Integer connectionId) {
 		return mapper.map(findConnectionByID(connectionId));
 	}

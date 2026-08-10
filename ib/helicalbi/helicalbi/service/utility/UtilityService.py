@@ -56,6 +56,7 @@ class UtilityService:
             raise UtilityError("package or provider is required")
 
         models = self.catalog.list_models_for_package(resolved_package)
+        catalog_known = self.catalog.has_package(resolved_package)
         if current_model is None and provider:
             try:
                 current_model = self.llm.get_provider(provider).get("model")
@@ -71,6 +72,7 @@ class UtilityService:
             "provider": provider,
             "current_model": current_model,
             "models": models,
+            "catalog_known": catalog_known,
         }
 
     def change_model(

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -56,6 +57,7 @@ import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.admin.model.Role;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
+import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.efw.exceptions.EfwException;
@@ -71,7 +73,11 @@ public class ResourceDTOMapper {
 
 	@Autowired
 	private HIResourceServiceDB serviceDb;
-
+	
+	@Autowired
+	@Qualifier(value = "userDetailsService")
+	private UserService userService;
+	
 	public HIResourceDTO map(HIResource resource) {
 
 		if (resource != null) {
@@ -284,7 +290,7 @@ public class ResourceDTOMapper {
 		HIEfwdConnSecurityDTO dto = new HIEfwdConnSecurityDTO();
 
 		dto.setId(entity.getId());
-		dto.setCreatedBy(entity.getCreatedBy());
+		dto.setCreatedBy(map(entity.getCreatedBy()));
 		dto.setLastUpdatedTime(entity.getLastUpdatedTime());
 		dto.setPermission(entity.getPermission());
 
@@ -626,7 +632,7 @@ public class ResourceDTOMapper {
 
 	public HIEFWD map(HIEfwdDTO dto) {
 		HIEFWD hiefwd = new HIEFWD();
-		hiefwd.setCreatedBy(dto.getCreatedBy());
+		hiefwd.setCreatedBy(map(dto.getCreatedBy()));
 		hiefwd.setCreatedDate(new Date());
 
 		HIResource resource = new HIResource();
@@ -634,7 +640,12 @@ public class ResourceDTOMapper {
 		resource.setResourceURL(dto.getResourceUrl());
 		resource.setTitle(dto.getTitle());
 		resource.setDeleted(dto.getIsDeleted());
-		resource.setCreatedBy(dto.getCreatedBy());
+
+		Integer userId = Optional.ofNullable(dto.getCreatedBy())
+		        .map(UserDTO::getId)
+		        .orElse(null);
+		
+		resource.setCreatedBy(userId);
 		resource.setResourceId(dto.getResourceId());
 
 		hiefwd.setParentResource(resource);
@@ -646,7 +657,7 @@ public class ResourceDTOMapper {
 
 		HIEfwdDTO dto = new HIEfwdDTO();
 		HIResource resource = entity.getParentResource();
-		dto.setCreatedBy(entity.getCreatedBy());
+		dto.setCreatedBy(map(entity.getCreatedBy()));
 		dto.setIsDeleted(resource.isDeleted());
 		dto.setResourceId(resource.getResourceId());
 		dto.setResourcePath(resource.getResourcePath());
@@ -677,12 +688,13 @@ public class ResourceDTOMapper {
 		EfwdConnDTO dto = new EfwdConnDTO();
 		dto.setDeleted(connection.isDeleted());
 		dto.setId(connection.getId());
-
 		HIResource resource = connection.getHiResourceEFWD().getParentResource();
 		HIEfwdDTO resourceDto = new HIEfwdDTO();
 		resourceDto.setResourceId(resource.getResourceId());
 		resourceDto.setResourceUrl(resource.getResourceURL());
-		resourceDto.setCreatedBy(resource.getCreatedBy());
+		Integer userId = resource.getCreatedBy();
+		User user = userService.findUser(userId);
+		resourceDto.setCreatedBy(map(user));
 		resourceDto.setIsDeleted(resource.isDeleted());
 		dto.setResource(resourceDto);
 		return dto;

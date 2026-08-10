@@ -5,76 +5,118 @@
   "sections": [
     {
       "key": "kpi",
-      "title": "Question / KPI",
-      "fields": [
+      "title": "kpi",
+      "level": 0,
+      "description": "application_config.yaml → kpi",
+      "sections": [
         {
-          "name": "suggestion_query",
-          "label": "Suggestion query",
-          "type": "textarea",
-          "span": 24,
-          "rows": 4
+          "key": "kpi_fields",
+          "title": "question",
+          "level": 1,
+          "fields": [
+            {
+              "name": "suggestion_query",
+              "label": "Suggestion query",
+              "type": "textarea",
+              "span": 24,
+              "minRows": 1,
+              "maxRows": 10,
+              "autoSize": true
+            }
+          ]
         }
       ]
     },
     {
       "key": "feature_flags",
-      "title": "Feature flags",
-      "fields": [
+      "title": "feature_flags",
+      "level": 0,
+      "description": "application_config.yaml → feature_flags",
+      "sections": [
         {
-          "name": "enable_llm_usage_audit",
-          "label": "Enable LLM usage audit",
-          "type": "boolean",
-          "span": 12
-        },
-        {
-          "name": "hide_prompt_reason",
-          "label": "Hide prompt reason",
-          "type": "boolean",
-          "span": 12
-        },
-        {
-          "name": "enable_cache",
-          "label": "Enable cache",
-          "type": "boolean",
-          "span": 8
-        },
-        {
-          "name": "enable_streaming",
-          "label": "Enable streaming",
-          "type": "boolean",
-          "span": 8
-        },
-        {
-          "name": "enable_memory",
-          "label": "Enable memory",
-          "type": "boolean",
-          "span": 8
+          "key": "feature_flags_fields",
+          "title": "toggles",
+          "level": 1,
+          "fields": [
+            {
+              "name": "enable_llm_usage_audit",
+              "label": "Enable LLM usage audit",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            },
+            {
+              "name": "hide_prompt_reason",
+              "label": "Hide prompt reason",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            },
+            {
+              "name": "enable_cache",
+              "label": "Enable cache",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            },
+            {
+              "name": "enable_streaming",
+              "label": "Enable streaming",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            },
+            {
+              "name": "enable_memory",
+              "label": "Enable memory",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            }
+          ]
         }
       ]
     },
     {
       "key": "sql_cache",
-      "title": "SQL & API cache",
-      "fields": [
+      "title": "sql / api_cache",
+      "level": 0,
+      "description": "application_config.yaml → sql and api_cache",
+      "sections": [
         {
-          "name": "default_limit",
-          "label": "Default SQL limit",
-          "type": "number",
-          "span": 12,
-          "min": 1
+          "key": "sql_fields",
+          "title": "sql",
+          "level": 1,
+          "fields": [
+            {
+              "name": "default_limit",
+              "label": "Default SQL limit",
+              "type": "number",
+              "span": 12,
+              "min": 1
+            }
+          ]
         },
         {
-          "name": "api_cache_enabled",
-          "label": "API cache enabled",
-          "type": "boolean",
-          "span": 12
-        },
-        {
-          "name": "api_cache_max_entries",
-          "label": "API cache max entries",
-          "type": "number",
-          "span": 12,
-          "min": 1
+          "key": "api_cache_fields",
+          "title": "api_cache",
+          "level": 1,
+          "fields": [
+            {
+              "name": "api_cache_enabled",
+              "label": "API cache enabled",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6
+            },
+            {
+              "name": "api_cache_max_entries",
+              "label": "API cache max entries",
+              "type": "number",
+              "span": 12,
+              "min": 1
+            }
+          ]
         }
       ]
     }

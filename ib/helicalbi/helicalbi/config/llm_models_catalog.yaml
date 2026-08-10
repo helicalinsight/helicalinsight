@@ -25,6 +25,14 @@ langchain-google-genai:
   - gemini-1.5-pro
   - gemini-1.5-flash
 
+# Google Vertex AI (langchain-google-vertexai) — not the same as google-genai.
+langchain-google-vertexai:
+  - gemini-2.5-pro
+  - gemini-2.5-flash
+  - gemini-2.0-flash
+  - gemini-1.5-pro
+  - gemini-1.5-flash
+
 langchain-groq:
   - llama-3.3-70b-versatile
   - llama-3.1-8b-instant

@@ -127,26 +127,42 @@ public class DerivedTableFetchHandler implements IComponent {
      * @return A JSON string containing the query, query type, and labels.
      */
     private String response(JsonObject formData, View view) {
-        ViewLabelsRetrievalComponent component = new ViewLabelsRetrievalComponent();
-
         String query = view.getQuery().getUnprocessedQuery();
-        GsonUtility.accumulate(formData,"query", query);
         JsonObject model = new JsonObject();
-        GsonUtility.accumulate(model,"query", query);
+        GsonUtility.accumulate(model, "query", query);
         String type = view.getQuery().getType();
-        formData.addProperty("queryType", type);
-        GsonUtility.accumulate(model,"queryType", type);
+        GsonUtility.accumulate(model, "queryType", type);
 
-        String result = component.executeComponent(formData.toString());
-        JsonObject json = JsonParser.parseString(result).getAsJsonObject();
-        JsonArray labels = json.getAsJsonArray("labels");
-        filterLabels(view, labels);
-        model.add("labels", labels);
-        if (labels.size() == 0) {
+        JsonArray labels = new JsonArray();
+        // Prefer columns already stored on the view (existing metadata) so retrieveView
+        // does not open a datasource connection or re-execute the derived-table query.
+        if (hasExistingColumns(view)) {
             populateExistingTable(view, labels);
-            model.add("labels", labels);
+            for (JsonElement object : labels) {
+                object.getAsJsonObject().addProperty("checked", true);
+            }
+        } else {
+            ViewLabelsRetrievalComponent component = new ViewLabelsRetrievalComponent();
+            GsonUtility.accumulate(formData, "query", query);
+            formData.addProperty("queryType", type);
+            String result = component.executeComponent(formData.toString());
+            JsonObject json = JsonParser.parseString(result).getAsJsonObject();
+            labels = json.getAsJsonArray("labels");
+            filterLabels(view, labels);
+            if (labels.size() == 0) {
+                populateExistingTable(view, labels);
+            }
         }
+        model.add("labels", labels);
         return model.toString();
+    }
+
+    private boolean hasExistingColumns(View view) {
+        if (view.getTable() == null) {
+            return false;
+        }
+        Columns columns = view.getTable().getColumns();
+        return columns != null && columns.getColumn() != null && !columns.getColumn().isEmpty();
     }
     /**
      * Filters labels based on columns in the view.

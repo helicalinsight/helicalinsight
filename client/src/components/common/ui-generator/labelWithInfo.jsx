@@ -1,10 +1,9 @@
 import { Tooltip } from "antd";
 import { InfoCircleFilled } from "@ant-design/icons";
-
-const INFO_ICON_STYLE = { marginLeft: "5px", fontSize: "12px" };
+import "./ui-label-info.scss";
 
 /**
- * Label text with optional (i) tooltip — same pattern as admin Settings forms.
+ * Label text with optional (i) tooltip — light-blue circular info chip.
  */
 export const labelWithInfo = (label, description) => {
   if (!description) {
@@ -13,7 +12,9 @@ export const labelWithInfo = (label, description) => {
   return [
     label,
     <Tooltip key="info" title={description}>
-      <InfoCircleFilled style={INFO_ICON_STYLE} />
+      <span className="ui-label-info" aria-label="More information">
+        <InfoCircleFilled className="ui-label-info__icon" />
+      </span>
     </Tooltip>,
   ];
 };

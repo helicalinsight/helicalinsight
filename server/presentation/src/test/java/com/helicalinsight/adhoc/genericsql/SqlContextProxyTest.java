@@ -206,6 +206,12 @@ public class SqlContextProxyTest {
     }
 
     @Test
+    public void testIsApplyRollup() {
+        when(context.isApplyRollup()).thenReturn(true);
+        assertEquals(true, proxy.isApplyRollup());
+    }
+
+    @Test
     public void testGetPreConstructedFilters() {
         PreConstructedFilters filters = mock(PreConstructedFilters.class);
         when(context.getPreConstructedFilters()).thenReturn(filters);

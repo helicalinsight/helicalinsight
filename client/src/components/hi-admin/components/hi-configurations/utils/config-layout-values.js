@@ -45,7 +45,7 @@ const splitPath = (path) =>
 
 /**
  * Resolves an XML node from a slash path.
- * Supports trailing @attr for attributes, e.g. efwProject/security/@mandatory
+ * Supports trailing @attr for attributes, e.g. contexts/context/@name
  */
 export const resolveXmlNode = (xmlString, path) => {
   if (!xmlString || !path) {

@@ -10,7 +10,7 @@
 #     HI_ROOT=/home/helical/Performance/hi ./scripts/setup-test-env.sh
 #     cd server && mvn test -Denv=ci
 #
-# Presentation test resources (application-context.xml, persistence.xml, quartz.properties)
+# Presentation test resources (application-context.xml,  quartz.properties)
 # are Maven-filtered from presentation/pom.xml profiles � no manual edits needed there.
 set -eu
 (set -o pipefail) 2>/dev/null || true

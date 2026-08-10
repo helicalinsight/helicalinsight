@@ -4,6 +4,7 @@ import com.helicalinsight.admin.dao.HIResourceDBDAO;
 import com.helicalinsight.admin.model.*;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.ResourceTypeServiceDB;
+import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
@@ -31,6 +32,9 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 
     @Autowired
     private ResourceTypeServiceDB resourceTypeServiceDB;
+    
+    @Autowired
+    private ResourceDTOMapper mapper;
 
     @Override
     @Transactional
@@ -854,7 +858,7 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 		for(HIEFWD resource : resources ) {
 			HIResource parentResource = resource.getParentResource();
 			HIEfwdDTO dto = new HIEfwdDTO();
-			dto.setCreatedBy(resource.getCreatedBy());
+			dto.setCreatedBy(mapper.map(resource.getCreatedBy()));
 			dto.setIsDeleted(parentResource.isDeleted());
 			dto.setResourceId(resourceId);
 			dto.setResourcePath(parentResource.getResourcePath());

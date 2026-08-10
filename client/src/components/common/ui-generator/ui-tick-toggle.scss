@@ -1,0 +1,35 @@
+.ui-tick-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 2px 0 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  line-height: 1;
+  color: #bfbfbf;
+  transition: color 0.15s ease, transform 0.12s ease;
+  transform: translateY(1px);
+
+  &:hover:not(:disabled) {
+    color: #91d5ff;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  &--on {
+    color: #69c0ff;
+
+    &:hover:not(:disabled) {
+      color: #40a9ff;
+    }
+  }
+
+  &__icon {
+    font-size: 15px;
+  }
+}
