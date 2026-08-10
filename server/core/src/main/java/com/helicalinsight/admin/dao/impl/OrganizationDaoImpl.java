@@ -8,17 +8,10 @@ import com.helicalinsight.admin.model.HIRecycleBinOrganization;
 import com.helicalinsight.admin.model.Organization;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIRecycleBinService;
-import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.LimitOffsetModel;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import jakarta.persistence.Query;
 
 import com.helicalinsight.resourcesecurity.SecurityUtils;
@@ -31,12 +24,9 @@ import org.hibernate.query.SelectionQuery;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
-import java.util.ArrayList;
 
-import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.Date;
 

@@ -113,6 +113,8 @@ public final class SqlQueryContext {
     private boolean applyOrderBy = false;
     //True if having needs to be applied
     private boolean applyHaving = false;
+    //True if rollup/subtotals needs to be applied
+    private boolean applyRollup = false;
     //Actual query limit
     private String queryLimit;
     //Open quote for the sql identifier
@@ -155,6 +157,7 @@ public final class SqlQueryContext {
         this.unWrapSelect = GsonUtility.optBoolean(this.formData,"unWrapSelect");
 
         this.applyHaving = this.formData.has("having");
+        this.applyRollup = isSubTotalsRequested(this.formData);
 
         ConnectionDetails connectionDetails = this.metadata.getConnectionDetails();
 
@@ -684,6 +687,27 @@ public final class SqlQueryContext {
 
     public boolean isApplyHaving() {
         return applyHaving;
+    }
+
+    public boolean isApplyRollup() {
+        return applyRollup;
+    }
+
+    /**
+     * Returns true when formData analytics contains an entry with subTotals enabled.
+     */
+    private static boolean isSubTotalsRequested(JsonObject formData) {
+        if (formData == null || !formData.has("analytics") || formData.get("analytics").isJsonNull()) {
+            return false;
+        }
+        JsonArray instructions = formData.getAsJsonArray("analytics");
+        for (JsonElement instruction : instructions) {
+            if (instruction.isJsonObject()
+                    && GsonUtility.optBooleanValue(instruction.getAsJsonObject(), "subTotals", false)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public PreConstructedFilters getPreConstructedFilters() {

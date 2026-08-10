@@ -133,6 +133,10 @@ public class SqlContextProxy {
         return this.context.isApplyHaving();
     }
 
+    public boolean isApplyRollup() {
+        return this.context.isApplyRollup();
+    }
+
     public PreConstructedFilters getPreConstructedFilters() {
         return this.context.getPreConstructedFilters();
     }

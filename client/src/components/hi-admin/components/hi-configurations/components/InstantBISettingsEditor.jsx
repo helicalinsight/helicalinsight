@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
-  Checkbox,
+  Card,
   Col,
   Drawer,
   Empty,
@@ -11,13 +11,15 @@ import {
   Space,
   Spin,
   Tabs,
-  Table,
   Tooltip,
 } from "antd";
 import {
-  EditOutlined,
+  CheckCircleFilled,
   MinusCircleOutlined,
+  PlusCircleFilled,
   PlusOutlined,
+  SearchOutlined,
+  CloseOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
@@ -28,10 +30,22 @@ import {
 } from "../../../../common/ui-generator";
 import requests from "../../../../../base/requests";
 import { uriConfig } from "../../../../../base/requests/instantbi.requests";
+import { uriConfig as uriConfigAdmin } from "../../../../../base/requests/admin.request";
 import notify from "../../../../hi-notifications/notify";
+import ProviderLogo, {
+  displayProviderName,
+  labelsFromProviderLayout,
+  packagesFromProviderLayout,
+  registerProviderInLayout,
+  resolvePackageFromProvider,
+  setProviderLabels,
+  setProviderPackages,
+} from "./ProviderLogo";
 import "./instantbi-settings-editor.scss";
 
 const MANIFEST_CONTENT_ID = "Static/instantbi/instantbi-settings.ui";
+const PROVIDER_LAYOUT_FILE = "provider.ui.layout.json";
+const PROVIDER_LAYOUT_PATH = "Admin/Static/instantbi";
 
 const utilityRequest = (dispatch, path, body = {}) =>
   new Promise((resolve, reject) => {
@@ -53,6 +67,30 @@ const utilityRequest = (dispatch, path, body = {}) =>
         reject(new Error(err?.message || "InstantBI utility request failed")),
     });
   });
+
+const adminWriteRequest = (dispatch, formData) =>
+  new Promise((resolve, reject) => {
+    requests.admin(dispatch).postAdminRequest(
+      formData,
+      uriConfigAdmin.monitorSystemReadWrite,
+      (res) => resolve(res || {}),
+      (err) =>
+        reject(new Error(err?.message || "Failed to update provider UI layout"))
+    );
+  });
+
+/** Persist layout without ephemeral model dropdown options. */
+const layoutPayloadForWrite = (layout) => {
+  const next = cloneDeep(layout || { sections: [] });
+  (next.sections || []).forEach((section) => {
+    (section.fields || []).forEach((field) => {
+      if (field.name === "model") {
+        field.options = [];
+      }
+    });
+  });
+  return next;
+};
 
 const coerceParameterValue = (raw) => {
   if (raw == null) return "";
@@ -83,24 +121,116 @@ const entriesToParameters = (entries = []) => {
   return parameters;
 };
 
-/** Package follows langchain-<provider> (provider is the package suffix). */
-const resolvePackageFromProvider = (provider) => {
-  const name = String(provider || "").trim();
-  if (!name) return "";
-  if (name.startsWith("langchain-")) return name;
-  return `langchain-${name}`;
+const CANONICAL_PROVIDER_RANK = {
+  "google-genai": 0,
+  gemini: 1,
+  anthropic: 0,
+  claude: 1,
+  mistralai: 0,
+  mistral: 1,
+};
+
+/** One card per LangChain package (hides gemini + google-genai duplicates). */
+const dedupeProvidersByPackage = (rows = []) => {
+  const byPackage = new Map();
+  rows.forEach((row) => {
+    const pkg =
+      String(row?.package || "").trim() ||
+      resolvePackageFromProvider(row?.provider);
+    if (!pkg) return;
+    const existing = byPackage.get(pkg);
+    if (!existing) {
+      byPackage.set(pkg, row);
+      return;
+    }
+    if (row.is_default && !existing.is_default) {
+      byPackage.set(pkg, row);
+      return;
+    }
+    if (existing.is_default && !row.is_default) return;
+    const existingRank =
+      CANONICAL_PROVIDER_RANK[String(existing.provider || "").toLowerCase()] ?? 50;
+    const nextRank =
+      CANONICAL_PROVIDER_RANK[String(row.provider || "").toLowerCase()] ?? 50;
+    if (nextRank < existingRank) {
+      byPackage.set(pkg, row);
+    }
+  });
+  return Array.from(byPackage.values());
 };
 
 const setFieldOptions = (layout, fieldName, options) => {
   const next = cloneDeep(layout || { sections: [] });
-  (next.sections || []).forEach((section) => {
-    (section.fields || []).forEach((field) => {
-      if (field.name === fieldName) {
-        field.options = options;
+  const walk = (sections = []) => {
+    sections.forEach((section) => {
+      (section.fields || []).forEach((field) => {
+        if (field.name === fieldName) {
+          field.options = options;
+        }
+      });
+      if (Array.isArray(section.sections) && section.sections.length) {
+        walk(section.sections);
       }
     });
-  });
+  };
+  walk(next.sections || []);
   return next;
+};
+
+const getFieldOptions = (layout, fieldName) => {
+  let options = [];
+  const walk = (sections = []) => {
+    sections.forEach((section) => {
+      (section.fields || []).forEach((field) => {
+        if (field.name === fieldName) {
+          options = Array.isArray(field.options) ? field.options : [];
+        }
+      });
+      if (Array.isArray(section.sections) && section.sections.length) {
+        walk(section.sections);
+      }
+    });
+  };
+  walk(layout?.sections || []);
+  return options;
+};
+
+/** Hide providers (and same-package aliases) already present on the cards. */
+const filterAvailableProviderOptions = (
+  options = [],
+  configured = [],
+  { keepProvider } = {}
+) => {
+  const keep = String(keepProvider || "")
+    .trim()
+    .toLowerCase();
+  const usedIds = new Set();
+  const usedPackages = new Set();
+
+  configured.forEach((row) => {
+    const id = String(row?.provider || "")
+      .trim()
+      .toLowerCase();
+    if (id) usedIds.add(id);
+    const pkg = String(
+      row?.package || resolvePackageFromProvider(row?.provider) || ""
+    )
+      .trim()
+      .toLowerCase();
+    if (pkg) usedPackages.add(pkg);
+  });
+
+  return (options || []).filter((option) => {
+    const value = String(option?.value ?? option?.key ?? "")
+      .trim()
+      .toLowerCase();
+    if (!value) return false;
+    if (keep && value === keep) return true;
+    if (usedIds.has(value)) return false;
+    const pkg = resolvePackageFromProvider(value).toLowerCase();
+    if (pkg && usedPackages.has(pkg)) return false;
+    return true;
+  });
 };
 
 /**
@@ -127,6 +257,9 @@ const InstantBISettingsEditor = () => {
   const [reloadKey, setReloadKey] = useState(0);
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState(null);
+  const [providerSearchOpen, setProviderSearchOpen] = useState(false);
+  const [providerFilter, setProviderFilter] = useState("");
+  const providerOptionCatalogRef = useRef([]);
 
   const endpoints = useMemo(
     () => ({
@@ -158,6 +291,12 @@ const InstantBISettingsEditor = () => {
       const providerRows = boot.providers || boot.llm?.providers || [];
       setProviders(providerRows);
       setLayouts((prev) => ({ ...prev, ...layoutMap }));
+      setProviderLabels(labelsFromProviderLayout(layoutMap.provider));
+      setProviderPackages(packagesFromProviderLayout(layoutMap.provider));
+      providerOptionCatalogRef.current = getFieldOptions(
+        layoutMap.provider,
+        "provider"
+      );
 
       const config = boot.config || {};
       const logging = config.logging || {};
@@ -245,7 +384,7 @@ const InstantBISettingsEditor = () => {
           ...prev,
           provider: setFieldOptions(prev.provider, "model", []),
         }));
-        return;
+        return { catalog_known: false, models: [] };
       }
       setModelsLoading(true);
       try {
@@ -267,11 +406,13 @@ const InstantBISettingsEditor = () => {
           ...prev,
           provider: setFieldOptions(prev.provider, "model", options),
         }));
+        // Unknown packages return an empty catalog — not an error.
+        return {
+          catalog_known: !!modelsRes.catalog_known,
+          models,
+        };
       } catch (err) {
-        Notify.error({
-          type: "InstantBI Settings",
-          message: err?.message || "Failed to load models",
-        });
+        // Soft-fail: allow typing a custom model id for new providers.
         const fallback = currentModel
           ? [{ label: currentModel, value: currentModel }]
           : [];
@@ -279,11 +420,37 @@ const InstantBISettingsEditor = () => {
           ...prev,
           provider: setFieldOptions(prev.provider, "model", fallback),
         }));
+        return { catalog_known: false, models: [] };
       } finally {
         setModelsLoading(false);
       }
     },
-    [Notify, dispatch, endpoints.models]
+    [dispatch, endpoints.models]
+  );
+
+  const persistProviderLayout = useCallback(
+    async (provider, pkg) => {
+      const nextLayout = registerProviderInLayout(layouts.provider, {
+        provider,
+        package: pkg,
+        label: displayProviderName(provider),
+      });
+      setLayouts((prev) => ({ ...prev, provider: nextLayout }));
+      setProviderLabels(labelsFromProviderLayout(nextLayout));
+      setProviderPackages(packagesFromProviderLayout(nextLayout));
+      providerOptionCatalogRef.current = getFieldOptions(nextLayout, "provider");
+      try {
+        await adminWriteRequest(dispatch, {
+          action: "write",
+          file: PROVIDER_LAYOUT_FILE,
+          path: PROVIDER_LAYOUT_PATH,
+          content: layoutPayloadForWrite(nextLayout),
+        });
+      } catch (_err) {
+        // Provider save already succeeded; layout persistence is best-effort.
+      }
+    },
+    [dispatch, layouts.provider]
   );
 
   const closeProviderDrawer = () => {
@@ -291,6 +458,20 @@ const InstantBISettingsEditor = () => {
     setEditingProvider(null);
     providerForm.resetFields();
   };
+
+  const applyProviderSelectOptions = useCallback(
+    (layout, { keepProvider } = {}) => {
+      const catalog =
+        providerOptionCatalogRef.current.length > 0
+          ? providerOptionCatalogRef.current
+          : getFieldOptions(layout, "provider");
+      const available = filterAvailableProviderOptions(catalog, providers, {
+        keepProvider,
+      });
+      return setFieldOptions(layout, "provider", available);
+    },
+    [providers]
+  );
 
   const openAddProvider = () => {
     setEditingProvider(null);
@@ -302,7 +483,9 @@ const InstantBISettingsEditor = () => {
     });
     setLayouts((prev) => ({
       ...prev,
-      provider: setFieldOptions(prev.provider, "model", []),
+      provider: applyProviderSelectOptions(
+        setFieldOptions(prev.provider, "model", [])
+      ),
     }));
     setProviderDrawerOpen(true);
   };
@@ -319,6 +502,12 @@ const InstantBISettingsEditor = () => {
         ? parametersToEntries(params)
         : [{ key: "", value: "" }],
     });
+    setLayouts((prev) => ({
+      ...prev,
+      provider: applyProviderSelectOptions(prev.provider, {
+        keepProvider: row?.provider,
+      }),
+    }));
     setProviderDrawerOpen(true);
     await loadModelsForPackage(
       resolvePackageFromProvider(row.provider),
@@ -342,6 +531,8 @@ const InstantBISettingsEditor = () => {
         replace_parameters: true,
         set_as_default: !!values.set_as_default,
       });
+      // Once installed (saved), register provider in InstantBI ui layout.
+      await persistProviderLayout(values.provider, pkg);
       Notify.success({
         type: "InstantBI Settings",
         message: `Provider '${values.provider}' saved`,
@@ -377,123 +568,107 @@ const InstantBISettingsEditor = () => {
     }
   };
 
-  const saveLogging = async () => {
-    const values = await loggingForm.validateFields();
+  const saveDeveloperSettings = async () => {
+    const [loggingValues, applicationValues] = await Promise.all([
+      loggingForm.validateFields(),
+      applicationForm.validateFields(),
+    ]);
     setSaving(true);
     try {
       await utilityRequest(dispatch, endpoints.appConfig, {
         logging: {
-          level: values.level,
-          backup_days: values.backup_days,
-          file: values.file,
-          error_file: values.error_file,
-          show_llm_activity: !!values.show_llm_activity,
-          show_endpoint_log: !!values.show_endpoint_log,
-          show_api_call_log: !!values.show_api_call_log,
+          level: loggingValues.level,
+          backup_days: loggingValues.backup_days,
+          file: loggingValues.file,
+          error_file: loggingValues.error_file,
+          show_llm_activity: !!loggingValues.show_llm_activity,
+          show_endpoint_log: !!loggingValues.show_endpoint_log,
+          show_api_call_log: !!loggingValues.show_api_call_log,
         },
-        app: { debug: !!values.app_debug },
-      });
-      Notify.success({
-        type: "InstantBI Settings",
-        message: "Logging settings saved",
-      });
-      setReloadKey((key) => key + 1);
-    } catch (err) {
-      Notify.error({
-        type: "InstantBI Settings",
-        message: err?.message || "Failed to save logging",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveApplication = async () => {
-    const values = await applicationForm.validateFields();
-    setSaving(true);
-    try {
-      await utilityRequest(dispatch, endpoints.appConfig, {
-        kpi: { suggestion_query: values.suggestion_query },
+        app: { debug: !!loggingValues.app_debug },
+        kpi: { suggestion_query: applicationValues.suggestion_query },
         feature_flags: {
-          enable_llm_usage_audit: !!values.enable_llm_usage_audit,
-          hide_prompt_reason: !!values.hide_prompt_reason,
-          enable_cache: !!values.enable_cache,
-          enable_streaming: !!values.enable_streaming,
-          enable_memory: !!values.enable_memory,
+          enable_llm_usage_audit: !!applicationValues.enable_llm_usage_audit,
+          hide_prompt_reason: !!applicationValues.hide_prompt_reason,
+          enable_cache: !!applicationValues.enable_cache,
+          enable_streaming: !!applicationValues.enable_streaming,
+          enable_memory: !!applicationValues.enable_memory,
         },
-        sql: { default_limit: values.default_limit },
+        sql: { default_limit: applicationValues.default_limit },
         api_cache: {
-          enabled: !!values.api_cache_enabled,
-          max_entries: values.api_cache_max_entries,
+          enabled: !!applicationValues.api_cache_enabled,
+          max_entries: applicationValues.api_cache_max_entries,
         },
       });
       Notify.success({
         type: "InstantBI Settings",
-        message: "Application settings saved",
+        message: "Developer settings saved",
       });
       setReloadKey((key) => key + 1);
     } catch (err) {
       Notify.error({
         type: "InstantBI Settings",
-        message: err?.message || "Failed to save application settings",
+        message: err?.message || "Failed to save developer settings",
       });
     } finally {
       setSaving(false);
     }
   };
 
-  const providerColumns = [
-    { title: "Provider", dataIndex: "provider", key: "provider" },
-    { title: "Model", dataIndex: "model", key: "model" },
-    {
-      title: "Default",
-      dataIndex: "is_default",
-      key: "is_default",
-      width: 90,
-      align: "center",
-      render: (value, row) => (
-        <Checkbox
-          checked={!!value}
-          disabled={saving}
-          onChange={(event) => {
-            if (event.target.checked && !row.is_default) {
-              saveDefaultProvider(row.provider);
-            }
-          }}
-        />
-      ),
-    },
-    {
-      title: (
-        <span className="instantbi-settings-editor__actions-header">
-          <span>Actions</span>
-          <Tooltip title="Add provider">
-            <Button
-              type="link"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={openAddProvider}
-              aria-label="Add provider"
+  const filteredProviders = useMemo(() => {
+    const deduped = dedupeProvidersByPackage(providers);
+    const query = String(providerFilter || "").trim().toLowerCase();
+    if (!query) return deduped;
+    return deduped.filter((row) => {
+      const name = displayProviderName(row.provider).toLowerCase();
+      const provider = String(row.provider || "").toLowerCase();
+      const model = String(row.model || "").toLowerCase();
+      return (
+        name.includes(query) ||
+        provider.includes(query) ||
+        model.includes(query)
+      );
+    });
+  }, [providers, providerFilter]);
+
+  const renderProviderCard = (row) => {
+    const title = displayProviderName(row.provider);
+    const isDefault = !!row.is_default;
+    return (
+      <Card.Grid
+        key={row.provider}
+        className={`instantbi-provider-gridstyle${
+          isDefault ? " instantbi-provider-gridstyle--default" : ""
+        }`}
+        onClick={() => openEditProvider(row)}
+      >
+        {isDefault ? (
+          <Tooltip title="Default provider">
+            <CheckCircleFilled className="instantbi-provider-status-icon instantbi-provider-status-icon--default" />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Set as default">
+            <PlusCircleFilled
+              className="instantbi-provider-status-icon instantbi-provider-status-icon--set-default"
+              onClick={(event) => {
+                event.stopPropagation();
+                saveDefaultProvider(row.provider);
+              }}
             />
           </Tooltip>
+        )}
+        <ProviderLogo provider={row.provider} size={42} />
+        <span className="instantbi-provider-title ellipsis" title={title}>
+          {title}
         </span>
-      ),
-      key: "actions",
-      width: 90,
-      align: "center",
-      render: (_, row) => (
-        <Tooltip title="Edit">
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openEditProvider(row)}
-            aria-label={`Edit ${row.provider}`}
-          />
-        </Tooltip>
-      ),
-    },
-  ];
+        {row.model ? (
+          <span className="instantbi-provider-model ellipsis" title={row.model}>
+            {row.model}
+          </span>
+        ) : null}
+      </Card.Grid>
+    );
+  };
 
   if (error) {
     return (
@@ -529,40 +704,94 @@ const InstantBISettingsEditor = () => {
         >
           <Tabs.TabPane tab="LLM Providers" key="llm">
             <div className="instantbi-settings-editor__panel">
-              <Table
-                className="instantbi-settings-editor__table"
-                size="small"
-                rowKey="provider"
-                pagination={false}
-                columns={providerColumns}
-                dataSource={providers}
-                locale={{ emptyText: "No providers configured" }}
+              <div className="instantbi-provider-toolbar">
+                {providerSearchOpen ? (
+                  <Input
+                    allowClear
+                    autoFocus
+                    size="small"
+                    placeholder="Search providers"
+                    value={providerFilter}
+                    onChange={(event) => setProviderFilter(event.target.value)}
+                    className="instantbi-provider-search"
+                    prefix={<SearchOutlined />}
+                  />
+                ) : (
+                  <span className="instantbi-provider-toolbar-spacer" />
+                )}
+                <Tooltip title={providerSearchOpen ? "Hide search" : "Search providers"}>
+                  <Button
+                    size="small"
+                    icon={providerSearchOpen ? <CloseOutlined /> : <SearchOutlined />}
+                    type={providerSearchOpen || providerFilter ? "primary" : "default"}
+                    ghost={!!(providerSearchOpen || providerFilter)}
+                    onClick={() => {
+                      setProviderSearchOpen((open) => {
+                        if (open) setProviderFilter("");
+                        return !open;
+                      });
+                    }}
+                    aria-label="Search providers"
+                  />
+                </Tooltip>
+              </div>
+              <Card bordered={false} className="instantbi-provider-card">
+                {providers.length ? (
+                  filteredProviders.length || !providerFilter ? (
+                    <>
+                      {filteredProviders.map((row) => renderProviderCard(row))}
+                      <Card.Grid
+                        className="instantbi-provider-gridstyle instantbi-provider-gridstyle--add"
+                        onClick={openAddProvider}
+                      >
+                        <span className="instantbi-provider-status-icon instantbi-provider-status-icon--add" />
+                        <PlusCircleFilled className="instantbi-provider-add-icon" />
+                        <span className="instantbi-provider-title">Add Provider</span>
+                      </Card.Grid>
+                    </>
+                  ) : (
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="No matching providers"
+                      style={{ width: "100%", padding: "24px 0" }}
+                    />
+                  )
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="No providers configured"
+                    style={{ width: "100%", padding: "24px 0" }}
+                  >
+                    <Button type="primary" icon={<PlusOutlined />} onClick={openAddProvider}>
+                      Add provider
+                    </Button>
+                  </Empty>
+                )}
+              </Card>
+            </div>
+          </Tabs.TabPane>
+          <Tabs.TabPane tab="Developer Settings" key="developer">
+            <div className="instantbi-settings-editor__panel">
+              <UiFormGenerator
+                form={loggingForm}
+                layout={layouts.logging}
+                dense
+                columns={2}
               />
-            </div>
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="Logging" key="logging">
-            <div className="instantbi-settings-editor__panel">
-              <UiFormGenerator form={loggingForm} layout={layouts.logging} />
-              <Space className="instantbi-settings-editor__actions">
-                <Button type="primary" loading={saving} onClick={saveLogging}>
-                  Save logging
-                </Button>
-              </Space>
-            </div>
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="Application" key="application">
-            <div className="instantbi-settings-editor__panel">
+              <div className="instantbi-settings-editor__section-divider" />
               <UiFormGenerator
                 form={applicationForm}
                 layout={layouts.application}
+                dense
+                columns={2}
               />
               <Space className="instantbi-settings-editor__actions">
                 <Button
                   type="primary"
                   loading={saving}
-                  onClick={saveApplication}
+                  onClick={saveDeveloperSettings}
                 >
-                  Save application
+                  Save settings
                 </Button>
               </Space>
             </div>
@@ -606,6 +835,7 @@ const InstantBISettingsEditor = () => {
             <UiFormGenerator
               form={providerForm}
               layout={layouts.provider}
+              dense
               embedded
             />
           </Spin>

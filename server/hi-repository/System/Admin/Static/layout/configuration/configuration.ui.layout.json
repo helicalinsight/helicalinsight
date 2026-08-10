@@ -4,10 +4,12 @@
   "description": "Browse and edit System configuration files (Admin and Mail) grouped by category",
   "layoutDirectory": "Static/layout/configuration",
   "hideCategories": ["ignore"],
+  "showUncategorized": false,
   "categories": [
     {
       "key": "sql",
       "title": "SQL",
+      "icon": "sql",
       "description": "SQL dialects, functions, quotes, defaults, and query expression settings used by ad-hoc and report SQL generation.",
       "files": [
         {
@@ -60,6 +62,7 @@
     {
       "key": "sql security",
       "title": "SQL Security",
+      "icon": "security",
       "description": "SQL security policies and whitelist keywords that restrict or sanitize executable SQL.",
       "files": [
         {
@@ -77,6 +80,7 @@
     {
       "key": "caching",
       "title": "Caching",
+      "icon": "caching",
       "description": "Cache providers, TTL, and related caching behaviour for application data.",
       "files": [
         {
@@ -89,6 +93,7 @@
     {
       "key": "datasource",
       "title": "Datasource",
+      "icon": "datasource",
       "description": "Database drivers, CSV datasource options, and default driver validation queries.",
       "files": [
         {
@@ -109,20 +114,9 @@
       ]
     },
     {
-      "key": "middleware",
-      "title": "Middleware",
-      "description": "Drill-down and middleware integration configuration.",
-      "files": [
-        {
-          "name": "drillConfig.xml",
-          "title": "Drill Configuration",
-          "description": "Drill-down middleware configuration for report and dashboard navigation."
-        }
-      ]
-    },
-    {
       "key": "validation",
       "title": "Validation",
+      "icon": "validation",
       "description": "Regular expressions and validation rules used across form and request validation.",
       "files": [
         {
@@ -135,6 +129,7 @@
     {
       "key": "mail",
       "title": "Mail",
+      "icon": "mail",
       "description": "SMTP and email delivery settings from System/Mail.",
       "path": "Mail",
       "files": [
@@ -149,6 +144,7 @@
     {
       "key": "system",
       "title": "System",
+      "icon": "system",
       "description": "Core system services, settings, resource phases, threading, URL contexts, and release notes.",
       "files": [
         {
@@ -213,6 +209,16 @@
           "name": "map.properties",
           "title": "Map Properties",
           "description": "Internal mapping properties."
+        },
+        {
+          "name": "drillConfig.xml",
+          "title": "Drill Configuration",
+          "description": "Drill-down middleware configuration for report and dashboard navigation."
+        },
+        {
+          "name": "instantbiSettings.json",
+          "title": "InstantBI Settings",
+          "description": "InstantBI settings are edited from the InstantBI Config tab."
         }
       ]
     }

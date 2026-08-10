@@ -869,8 +869,8 @@ def build_viz_model(
         }
 
     title = _default_title(rows, columns, vf_title=vf_title)
-    labels_x = rows[0] if rows else None
-    labels_y = columns[0] if columns else (rows[1] if len(rows) > 1 else None)
+    label_x = rows[0] if rows else None
+    label_y = columns[0] if columns else (rows[1] if len(rows) > 1 else None)
 
     model = VizModel(
         data=VizData(
@@ -881,8 +881,8 @@ def build_viz_model(
         ),
         chart=_chart_viz_and_mark(chart_type),
         properties=VizProperties(
-            labelsX=labels_x,
-            labelsY=labels_y,
+            labelX=label_x,
+            labelY=label_y,
             title=title,
             color="",
             formatting=formatting,
@@ -905,18 +905,18 @@ def build_viz_model(
 def viz_model_to_chart_settings(model: VizModel) -> ChartSettings:
     """Bridge VizModel shelves/properties → ChartSettings for VF injection."""
     props = model.properties
-    color = props.color or None
-    if (not color) and props.colorGradient:
-        color = list(props.colorGradient)
     return ChartSettings(
         dimensions=DimensionSetting(names=list(model.data.rows or [])),
         measures=list(model.data.columns or []),
-        labelsX=props.labelsX,
-        labelsY=props.labelsY,
+        labelsX=props.labelX,
+        labelsY=props.labelY,
         title=props.title,
-        color=color,
+        color=props.color or None,
         measure_formats=dict(props.formatting or {}),
     )
+
+
+_DROPPED_PROPERTY_KEYS = frozenset({"colorGradient", "theme", "formatter", "labelsX", "labelsY"})
 
 
 def merge_properties_polish(model: VizModel, polish) -> VizModel:
@@ -932,7 +932,12 @@ def merge_properties_polish(model: VizModel, polish) -> VizModel:
     # Do not let polish wipe deterministic Excel-style formatting.
     incoming.pop("formatting", None)
 
-    for key in ("title", "labelsX", "labelsY"):
+    # Drop removed / renamed keys from both sides.
+    for key in _DROPPED_PROPERTY_KEYS:
+        current.pop(key, None)
+        incoming.pop(key, None)
+
+    for key in ("title", "labelX", "labelY"):
         text = str(incoming.get(key) or "").strip()
         if text:
             current[key] = text
@@ -940,26 +945,14 @@ def merge_properties_polish(model: VizModel, polish) -> VizModel:
 
     if "color" in incoming:
         current["color"] = incoming.pop("color") or ""
-    if "colorGradient" in incoming:
-        gradient = incoming.pop("colorGradient") or []
-        current["colorGradient"] = list(gradient) or None
-    if "theme" in incoming:
-        current["theme"] = incoming.pop("theme") or None
     if "background" in incoming:
         current["background"] = incoming.pop("background") or None
 
-    formatter = incoming.pop("formatter", None) or {}
-    if isinstance(formatter, dict) and formatter:
-        merged = dict(current.get("formatter") or {})
-        for key, value in formatter.items():
-            name = str(key or "").strip()
-            body = str(value or "").strip()
-            if name and body:
-                merged[name] = body
-        current["formatter"] = merged
-
-    # Preserve unknown polish keys on properties (extra="allow").
+    # Preserve unknown polish keys on properties (extra="allow"),
+    # but never reintroduce removed property keys.
     for key, value in incoming.items():
+        if key in _DROPPED_PROPERTY_KEYS:
+            continue
         current[key] = value
 
     model.properties = VizProperties.model_validate(current)

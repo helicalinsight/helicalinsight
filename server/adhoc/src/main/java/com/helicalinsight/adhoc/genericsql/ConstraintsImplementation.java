@@ -22,7 +22,8 @@ final class ConstraintsImplementation implements Constraints {
      * @return The modified SQL query with applied constraints.
      */
     public String constrain(String query) {
-        return limit(orderBy(having(groupBy(where(query)))));
+        String constrained = limit(orderBy(having(groupBy(where(query)))));
+        return rollup(constrained);
     }
     /**
      * Applies LIMIT and OFFSET constraints to the SQL query if requested.
@@ -50,9 +51,28 @@ final class ConstraintsImplementation implements Constraints {
      * @return The modified SQL query with applied ORDER BY.
      */
     private String orderBy(String query) {
+        if (this.context.isApplyRollup()) {
+            return query;
+        }
         if (this.context.isApplyOrderBy()) {
             OrderByClause orderByClause = new OrderByClause(this.context, query);
             return orderByClause.order();
+        }
+        return query;
+    }
+    /**
+     * Applies ROLLUP and ORDER BY after limit/offset when subTotals analytics is requested.
+     * @param query SQL query after limit handling.
+     * @return The modified SQL query with rollup applied, or the original query.
+     */
+    private String rollup(String query) {
+        if (this.context.isApplyRollup()) {
+            RollupHandler rollupHandler = new RollupHandler(query, this.context);
+            String queryWithRollup = rollupHandler.applyRollup();
+            if (queryWithRollup != null) {
+                return queryWithRollup.trim();
+            }
+            logger.error("RollupHandler returned null for the query.");
         }
         return query;
     }

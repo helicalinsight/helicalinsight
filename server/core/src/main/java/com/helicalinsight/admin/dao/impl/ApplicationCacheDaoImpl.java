@@ -2,11 +2,8 @@ package com.helicalinsight.admin.dao.impl;
 
 import com.helicalinsight.admin.dao.ApplicationCacheDao;
 import com.helicalinsight.admin.model.ApplicationCache;
-import com.helicalinsight.admin.model.DataSourceMapping;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -17,7 +14,6 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;

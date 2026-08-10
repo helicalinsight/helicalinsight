@@ -1,13 +1,10 @@
 package com.helicalinsight.admin.dao.impl;
 
-import com.google.common.base.Predicates;
 import com.helicalinsight.admin.dao.ProcessDetailsDao;
 import com.helicalinsight.admin.model.ProcessDetails;
 import com.helicalinsight.admin.utils.LimitOffsetModel;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.NoResultException;
-import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
@@ -15,10 +12,10 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.Query;
 
 import org.apache.commons.lang3.StringUtils;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -35,10 +32,6 @@ public class ProcessDetailsDaoImpl implements ProcessDetailsDao {
     @Autowired
     private SessionFactory session;
     
-    @Autowired
-    @Qualifier(value = "entityManager")
-    private EntityManager em;
-
     @Override
     public Long addProcessDetails(ProcessDetails processDetails) {
         try {
@@ -84,10 +77,10 @@ public class ProcessDetailsDaoImpl implements ProcessDetailsDao {
 
     @Override
     public ProcessDetails findUniqueProcessDetails(ProcessDetails sample) {
-    	
+    	Session currentSession = session.getCurrentSession();
     	ProcessDetails processDetails=null;
 		List<Predicate> predicates=new ArrayList<>();
-    	CriteriaBuilder cb = em.getCriteriaBuilder();
+    	CriteriaBuilder cb = currentSession.getCriteriaBuilder();
     	CriteriaQuery<ProcessDetails> cr=cb.createQuery(ProcessDetails.class);
     	Root<ProcessDetails> resource = cr.from(ProcessDetails.class);
     	
@@ -105,7 +98,7 @@ public class ProcessDetailsDaoImpl implements ProcessDetailsDao {
         } else {
 			try {
 				cr.select(resource).where(predicates.toArray(new Predicate[] {}));
-				processDetails = em.createQuery(cr).getSingleResult();
+				processDetails = currentSession.createQuery(cr).getSingleResult();
 			} catch (Exception e) {
 				if (e instanceof NoResultException)
 					return null;

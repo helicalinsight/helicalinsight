@@ -12,7 +12,7 @@
     },
     {
       "key": "logging",
-      "title": "Logging",
+      "title": "Log Settings",
       "description": "InstantBI logging level and activity flags.",
       "layout": "Static/instantbi/logging.ui.layout"
     },

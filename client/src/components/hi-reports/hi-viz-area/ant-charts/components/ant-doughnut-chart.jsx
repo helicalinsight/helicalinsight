@@ -177,7 +177,7 @@ const DonutChart = (props) => {
             },
         },
         eachView: (_v, f) => {
-            return { ...donutObj, options: { ...donutObj.options, data: f.data } };
+            return { ...donutObj, options: { ...donutObj.options, data: f.data, ...(themeColors.length ? { theme: 'custom-theme' } : {}) } };
         },
     };
     const config = {
