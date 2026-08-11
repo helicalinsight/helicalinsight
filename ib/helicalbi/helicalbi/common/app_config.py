@@ -144,6 +144,7 @@ def __getattr__(name: str):  # noqa: N807
         "api_cache_max_entries": lambda: max(1, int(_api_cache().get("max_entries", 100))),
         # sql
         "default_sql_limit":     lambda: int(_raw.get("sql", {}).get("default_limit", 100)),
+        "sql_repair_max_attempts": lambda: max(0, int(_raw.get("sql", {}).get("repair_max_attempts", 1))),
         # kpi
         "kpi_suggestion_query":  lambda: str(
             _kpi().get("suggestion_query", "Suggest few Measurable and timebound KPIS")

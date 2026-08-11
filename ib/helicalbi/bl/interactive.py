@@ -237,7 +237,7 @@ def register(flask_app) -> None:
 
             ensure_not_aborted(request_id)
             logger.debug("Executing SQL for thread=%s", thread_id)
-            result = SqlExecutor().process_flow(result)
+            result = SqlExecutor().process_flow(result, request_id=request_id)
             ensure_not_aborted(request_id)
             logger.debug("Invoking visualization graph for thread=%s", thread_id)
             result = app().viz_graph.invoke(result, config)
