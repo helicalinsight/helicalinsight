@@ -30,7 +30,11 @@ import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaDelete;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
+
+import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
+import org.hibernate.query.SelectionQuery;
+
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Session;
@@ -53,22 +57,22 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
     private static final String IS_DELETED_FILTER = "isDeletedFilter";
 
     @Autowired
-    SessionFactory sessionFactory;
+    private SessionFactory sessionFactory;
 
     @Autowired
-    UserDao userDao;
+    private UserDao userDao;
 
     @Autowired
-    OrganizationDao organizationDao;
+    private OrganizationDao organizationDao;
 
     @Autowired
-    RoleDao roleDao;
+    private RoleDao roleDao;
 
     @Autowired
-    HIResourceDBDAO dbDao;
+    private HIResourceDBDAO dbDao;
 
     @Autowired
-    HIRecycleBinService recycleBinService;
+    private HIRecycleBinService recycleBinService;
 
     @Override
     public int addGlobalConnections(GlobalConnections globalConnections) {
@@ -251,7 +255,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             String orgVal = orgId != null ? "orgId.id = :orgId" : "orgId IS NULL";
             String roleVal = roleId != null ? "roleId.id = :roleId" : "roleId IS NULL";
 
-            Query updateResourceQuery = (Query) getSession().createQuery("from GlobalConnectionSecurity where globalConnections.globalId=:id and " + userVal + " and " + orgVal + " and " + roleVal + " and permission=:permission");
+            SelectionQuery<GlobalConnectionSecurity> updateResourceQuery =  getSession().createSelectionQuery("from GlobalConnectionSecurity where globalConnections.globalId=:id and " + userVal + " and " + orgVal + " and " + roleVal + " and permission=:permission", GlobalConnectionSecurity.class);
 
             updateResourceQuery.setParameter("id", globalId);
             if (null != userId) {
@@ -265,11 +269,12 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             }
             updateResourceQuery.setParameter("permission", permission);
             List<GlobalConnectionSecurity> list = updateResourceQuery.getResultList();
+            User createdByUser = userDao.findUser(Integer.parseInt(createdBy));
             if (list.size() > 0) {
                 GlobalConnectionSecurity globalConnectionSecurityObj = list.get(0);
                 globalConnectionSecurityObj.setPermission(permission);
                 globalConnectionSecurityObj.setLastUpdatedTime(new Date());
-                globalConnectionSecurityObj.setCreatedBy(createdBy);
+                globalConnectionSecurityObj.setCreatedBy(createdByUser);
                 editGlobalConnectionSecurity(globalConnectionSecurityObj);
             } else {
                 GlobalConnectionSecurity globalConnectionSecurity1 = new GlobalConnectionSecurity();
@@ -291,7 +296,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
                 }
                 globalConnectionSecurity1.setLastUpdatedTime(new Date());
                 globalConnectionSecurity1.setPermission(permission);
-                globalConnectionSecurity1.setCreatedBy(createdBy);
+                globalConnectionSecurity1.setCreatedBy(createdByUser);
                 addGlobalConnectionSecurity(globalConnectionSecurity1);
             }
         } catch (Exception e) {

@@ -14,4 +14,5 @@ export {
   unflattenFormValues,
   isFieldReadOnly,
   getFieldRules,
+  toSentenceCaseLabel,
 } from "./layoutUtils";

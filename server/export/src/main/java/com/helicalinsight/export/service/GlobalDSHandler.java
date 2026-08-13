@@ -372,7 +372,7 @@ return  oldMappingNewMapping;
 		if( gConnection == null ) {
 			connection.setGlobalId(null);
 			Object createdByObj = connection.getCreatedBy();
-			User createdBy =  resolveUser(createdByObj);
+			User createdBy =  shareUtils.resolveUser(createdByObj);
 			connection.setCreatedBy(createdBy);
 			connectionService.addGlobalConnections(connection);
 			gConnection = connection;

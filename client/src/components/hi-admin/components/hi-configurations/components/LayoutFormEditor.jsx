@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Button, Form } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import { UiFormGenerator } from "../../../../common/ui-generator";
 import {
   readLayoutValues,
@@ -37,11 +38,23 @@ const LayoutFormEditor = ({
         form={form}
         layout={layout}
         dense
-        columns={2}
+        columns={1}
         className="hi-config-layout-form"
+        formProps={{
+          layout: "horizontal",
+          labelAlign: "left",
+          colon: false,
+          labelCol: { flex: "160px" },
+          wrapperCol: { flex: 1 },
+        }}
       />
       <div className="hi-config-editor-actions">
-        <Button type="primary" loading={saving} onClick={handleSave}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          loading={saving}
+          onClick={handleSave}
+        >
           Save
         </Button>
       </div>

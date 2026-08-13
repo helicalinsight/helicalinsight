@@ -899,6 +899,7 @@ export const handleHrShortcuts = (dispatch, keysPressed) => {
     "t": { paneId: "5", location: "HR ST" },
     "m": { paneId: "6", location: "HR MR" },
     "p": { paneId: "7", location: "HR PR" },
+    "j": { paneId: "8", location: "HR JSON" },
   };
   const shortcut = subModuleNavigation[keysPressed[1].toLowerCase()];
   if (shortcut) {

@@ -1,0 +1,94 @@
+{
+  "oracle": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "mysql": {
+    "rollup": true,
+    "syntax": "with"
+  },
+  "mariadb": {
+    "rollup": true,
+    "syntax": "with"
+  },
+  "sqlserver": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "sqlserver2012": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "postgresql": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2390": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2400": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "derby": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "calcite": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "drill": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "dremio": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "teradata": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "presto": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "trino": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "redshift": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "vertica": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "athena": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "duckdb": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "yugabyte": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "snowflake": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "spark": {
+    "rollup": true,
+    "syntax": "ansi"
+  }
+}

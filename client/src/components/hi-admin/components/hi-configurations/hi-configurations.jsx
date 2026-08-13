@@ -27,6 +27,8 @@ import {
   MailOutlined,
   SettingOutlined,
   AppstoreOutlined,
+  FormOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { Panel as ResizePanel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import requests from "../../../../base/requests";
@@ -48,6 +50,7 @@ import {
   resolveRawEditorLanguage,
   toEditorUiContentId,
   toFileLayoutContentId,
+  toSentenceCaseLabel,
 } from "./utils/configuration-layout";
 import "./hi-configurations.scss";
 
@@ -178,32 +181,21 @@ const HIConfigurations = ({ apiRef }) => {
     [categorizedFiles, fileFilter]
   );
 
-  const defaultOpenCategoryKeys = useMemo(() => {
-    if (!filteredCategories.length) return [];
-    if (selectedFile) {
-      const match = filteredCategories.find((category) =>
-        (category.files || []).some((file) => file.name === selectedFile.name)
-      );
-      if (match) return [match.key];
-    }
-    return [filteredCategories[0].key];
-  }, [filteredCategories, selectedFile]);
-
   const [openCategoryKeys, setOpenCategoryKeys] = useState([]);
 
   useEffect(() => {
-    setOpenCategoryKeys((prev) => {
-      if (fileFilter) {
-        return filteredCategories.map((category) => category.key);
-      }
-      if (!prev.length) return defaultOpenCategoryKeys;
-      const stillValid = prev.filter((key) =>
+    if (fileFilter) return undefined;
+    setOpenCategoryKeys((prev) =>
+      prev.filter((key) =>
         filteredCategories.some((category) => category.key === key)
-      );
-      if (stillValid.length) return stillValid;
-      return defaultOpenCategoryKeys;
-    });
-  }, [defaultOpenCategoryKeys, filteredCategories, fileFilter]);
+      )
+    );
+    return undefined;
+  }, [filteredCategories, fileFilter]);
+
+  const resolvedOpenCategoryKeys = fileFilter
+    ? filteredCategories.map((category) => category.key)
+    : openCategoryKeys;
 
   const useFormLayout = hasLayoutSections(fileLayout) && !forceRawEditor;
 
@@ -231,7 +223,9 @@ const HIConfigurations = ({ apiRef }) => {
     setSelectedFile(fileMeta);
     if (fileMeta?.category) {
       setOpenCategoryKeys((prev) =>
-        prev.includes(fileMeta.category) ? prev : [...prev, fileMeta.category]
+        prev.includes(fileMeta.category)
+          ? prev
+          : [...prev, fileMeta.category]
       );
     }
     setFilePayload(null);
@@ -446,13 +440,14 @@ const HIConfigurations = ({ apiRef }) => {
     );
   };
 
-  const editorTitle =
+  const editorTitle = toSentenceCaseLabel(
     (useFormLayout && fileLayout?.title) ||
-    fileLayout?.title ||
-    editorUi?.title ||
-    selectedFile?.title ||
-    selectedFile?.name ||
-    "Editor";
+      fileLayout?.title ||
+      editorUi?.title ||
+      selectedFile?.title ||
+      selectedFile?.name ||
+      "Editor"
+  );
 
   const editorDescription =
     (useFormLayout && fileLayout?.description) ||
@@ -521,7 +516,7 @@ const HIConfigurations = ({ apiRef }) => {
           {filteredCategories.length ? (
             <Collapse
               className="hi-config-category-collapse"
-              activeKey={openCategoryKeys}
+              activeKey={resolvedOpenCategoryKeys}
               onChange={(keys) =>
                 setOpenCategoryKeys(Array.isArray(keys) ? keys : [keys])
               }
@@ -597,8 +592,11 @@ const HIConfigurations = ({ apiRef }) => {
             )}
           </div>
           {showEditorToggle ? (
-            <Typography.Link
+            <Button
+              type="link"
+              size="small"
               className="hi-config-editor-mode-link"
+              icon={forceRawEditor ? <FormOutlined /> : <EditOutlined />}
               onClick={() => {
                 if (!forceRawEditor && filePayload) {
                   setRawContent(
@@ -608,8 +606,8 @@ const HIConfigurations = ({ apiRef }) => {
                 setForceRawEditor((prev) => !prev);
               }}
             >
-              {forceRawEditor ? "See form" : "See content"}
-            </Typography.Link>
+              {forceRawEditor ? "See form" : "Edit"}
+            </Button>
           ) : null}
         </div>
         <div className="hi-config-editor-body">{renderEditor()}</div>
@@ -627,7 +625,7 @@ const HIConfigurations = ({ apiRef }) => {
         <Tabs.TabPane tab="File Config" key="system">
           {renderSystemConfig()}
         </Tabs.TabPane>
-        <Tabs.TabPane tab="InstantBI Settings" key="instantbi">
+        <Tabs.TabPane tab="Instant BI" key="instantbi">
           <div className="hi-config-instantbi-panel">
             <InstantBISettingsEditor />
           </div>

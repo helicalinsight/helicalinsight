@@ -65,7 +65,10 @@ class TestFetchServiceApi:
         posted_url = session.post.call_args.args[0]
         assert posted_url.endswith("/services")
 
-    def test_caches_non_execute_query_responses(self, session_cookie):
+    def test_caches_non_execute_query_responses(self, session_cookie, monkeypatch):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "api_cache_enabled", True)
         session = self._session_with_status(200, {"status": 1, "response": {"ok": True}})
         service_json = {
             "service": "get",

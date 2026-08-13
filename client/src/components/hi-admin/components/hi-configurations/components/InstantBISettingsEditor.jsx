@@ -21,6 +21,7 @@ import {
   SearchOutlined,
   CloseOutlined,
   SyncOutlined,
+  SaveOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { cloneDeep } from "lodash";
@@ -114,11 +115,98 @@ const parametersToEntries = (parameters = {}) =>
 const entriesToParameters = (entries = []) => {
   const parameters = {};
   (entries || []).forEach((entry) => {
-    const key = String(entry?.key || "").trim();
+    const key = displayToSnakeKey(entry?.key);
     if (!key) return;
     parameters[key] = coerceParameterValue(entry?.value);
   });
   return parameters;
+};
+
+const PROVIDER_BASIC_FIELDS = ["provider", "model"];
+const API_KEY_PARAM = "api_key";
+const PARAM_KEY_ACRONYMS = new Set([
+  "api",
+  "sql",
+  "id",
+  "url",
+  "uri",
+  "llm",
+  "jdbc",
+  "xml",
+  "json",
+  "bi",
+  "ai",
+]);
+
+const snakeToTitleLabel = (key) =>
+  String(key || "")
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (PARAM_KEY_ACRONYMS.has(lower)) return lower.toUpperCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+
+const displayToSnakeKey = (text) =>
+  String(text || "")
+    .trim()
+    .replace(/([a-z])([A-Z])/g, "$1_$2")
+    .replace(/[\s-]+/g, "_")
+    .replace(/[^a-zA-Z0-9_]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
+    .toLowerCase();
+
+const isApiKeyParam = (key) => displayToSnakeKey(key) === API_KEY_PARAM;
+
+const ensureApiKeyEntries = (entries = []) => {
+  const list = Array.isArray(entries) ? entries.map((entry) => ({ ...entry })) : [];
+  if (!list.some((entry) => isApiKeyParam(entry?.key))) {
+    list.unshift({ key: API_KEY_PARAM, value: "" });
+  }
+  return list;
+};
+
+const ParameterKeyInput = ({ value, onChange, ...rest }) => {
+  const hasStoredKey = Boolean(String(value || "").trim());
+  const [draft, setDraft] = useState(
+    hasStoredKey ? snakeToTitleLabel(value) : ""
+  );
+  const [locked, setLocked] = useState(hasStoredKey);
+
+  useEffect(() => {
+    const nextLocked = Boolean(String(value || "").trim());
+    setLocked(nextLocked);
+    setDraft(nextLocked ? snakeToTitleLabel(value) : "");
+  }, [value]);
+
+  if (locked) {
+    return (
+      <Input
+        {...rest}
+        readOnly
+        className="instantbi-settings-editor__param-key-readonly"
+        value={snakeToTitleLabel(value)}
+        title={value}
+      />
+    );
+  }
+
+  return (
+    <Input
+      {...rest}
+      value={draft}
+      placeholder="Key (e.g. Max Tokens)"
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        const snake = displayToSnakeKey(draft);
+        onChange?.(snake);
+        if (snake) setLocked(true);
+      }}
+    />
+  );
 };
 
 const CANONICAL_PROVIDER_RANK = {
@@ -257,6 +345,7 @@ const InstantBISettingsEditor = () => {
   const [reloadKey, setReloadKey] = useState(0);
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState(null);
+  const [providerAdvancedOpen, setProviderAdvancedOpen] = useState(false);
   const [providerSearchOpen, setProviderSearchOpen] = useState(false);
   const [providerFilter, setProviderFilter] = useState("");
   const providerOptionCatalogRef = useRef([]);
@@ -453,9 +542,13 @@ const InstantBISettingsEditor = () => {
     [dispatch, layouts.provider]
   );
 
+  const extraParameters =
+    Form.useWatch("extra_parameters", providerForm) || [];
+
   const closeProviderDrawer = () => {
     setProviderDrawerOpen(false);
     setEditingProvider(null);
+    setProviderAdvancedOpen(false);
     providerForm.resetFields();
   };
 
@@ -475,11 +568,12 @@ const InstantBISettingsEditor = () => {
 
   const openAddProvider = () => {
     setEditingProvider(null);
+    setProviderAdvancedOpen(false);
     providerForm.resetFields();
     providerForm.setFieldsValue({
       usage_path: "usage_metadata",
       set_as_default: false,
-      extra_parameters: [{ key: "", value: "" }],
+      extra_parameters: ensureApiKeyEntries([]),
     });
     setLayouts((prev) => ({
       ...prev,
@@ -493,14 +587,14 @@ const InstantBISettingsEditor = () => {
   const openEditProvider = async (row) => {
     setEditingProvider(row?.provider || null);
     const params = row.parameters || {};
+    const paramEntries = ensureApiKeyEntries(parametersToEntries(params));
+    setProviderAdvancedOpen(false);
     providerForm.setFieldsValue({
       provider: row.provider,
       model: row.model,
       usage_path: row.usage_path || "usage_metadata",
       set_as_default: !!row.is_default,
-      extra_parameters: parametersToEntries(params).length
-        ? parametersToEntries(params)
-        : [{ key: "", value: "" }],
+      extra_parameters: paramEntries,
     });
     setLayouts((prev) => ({
       ...prev,
@@ -777,6 +871,7 @@ const InstantBISettingsEditor = () => {
                 layout={layouts.logging}
                 dense
                 columns={2}
+                flattenNestedSections
               />
               <div className="instantbi-settings-editor__section-divider" />
               <UiFormGenerator
@@ -784,10 +879,12 @@ const InstantBISettingsEditor = () => {
                 layout={layouts.application}
                 dense
                 columns={2}
+                flattenNestedSections
               />
               <Space className="instantbi-settings-editor__actions">
                 <Button
                   type="primary"
+                  icon={<SaveOutlined />}
                   loading={saving}
                   onClick={saveDeveloperSettings}
                 >
@@ -809,8 +906,13 @@ const InstantBISettingsEditor = () => {
         footer={
           <Space style={{ float: "right" }}>
             <Button onClick={closeProviderDrawer}>Cancel</Button>
-            <Button type="primary" loading={saving} onClick={saveProvider}>
-              Save provider
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={saving}
+              onClick={saveProvider}
+            >
+              Save
             </Button>
           </Space>
         }
@@ -831,68 +933,127 @@ const InstantBISettingsEditor = () => {
             }
           }}
         >
+          <div className="instantbi-settings-editor__advanced-toggle">
+            <Button
+              type="text"
+              className={`instantbi-settings-editor__advanced-btn${
+                providerAdvancedOpen
+                  ? " instantbi-settings-editor__advanced-btn--open"
+                  : ""
+              }`}
+              onClick={() => setProviderAdvancedOpen((open) => !open)}
+            >
+              Advanced
+            </Button>
+          </div>
           <Spin spinning={modelsLoading}>
             <UiFormGenerator
               form={providerForm}
               layout={layouts.provider}
               dense
               embedded
+              hideSectionTitles
+              includeFields={PROVIDER_BASIC_FIELDS}
             />
           </Spin>
-          <div className="instantbi-settings-editor__parameters">
-            <div className="instantbi-settings-editor__parameters-title">
-              Parameters
-            </div>
-            <Form.List name="extra_parameters">
-              {(fields, { add, remove }) => (
+          <Form.List name="extra_parameters">
+            {(fields, { add, remove }) => {
+              const entries =
+                extraParameters.length > 0
+                  ? extraParameters
+                  : providerForm.getFieldValue("extra_parameters") || [];
+              const apiKeyField = fields.find((field) =>
+                isApiKeyParam(entries[field.name]?.key)
+              );
+              const advancedFields = fields.filter(
+                (field) => !isApiKeyParam(entries[field.name]?.key)
+              );
+
+              return (
                 <>
-                  {fields.map((field) => (
-                    <Row
-                      key={field.key}
-                      gutter={8}
-                      align="middle"
-                      className="instantbi-settings-editor__param-row"
-                    >
-                      <Col span={10}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, "key"]}
-                          fieldKey={[field.fieldKey, "key"]}
-                          style={{ marginBottom: 8 }}
+                  {apiKeyField ? (
+                    <>
+                      <Form.Item
+                        name={[apiKeyField.name, "key"]}
+                        fieldKey={[apiKeyField.fieldKey, "key"]}
+                        style={{ display: "none" }}
+                      >
+                        <Input />
+                      </Form.Item>
+                      <Form.Item
+                        label="API Key"
+                        name={[apiKeyField.name, "value"]}
+                        fieldKey={[apiKeyField.fieldKey, "value"]}
+                        style={{ marginBottom: 12 }}
+                      >
+                        <Input.Password placeholder="API Key" />
+                      </Form.Item>
+                    </>
+                  ) : null}
+                  {providerAdvancedOpen ? (
+                    <div className="instantbi-settings-editor__advanced">
+                      <UiFormGenerator
+                        form={providerForm}
+                        layout={layouts.provider}
+                        dense
+                        embedded
+                        hideSectionTitles
+                        excludeFields={PROVIDER_BASIC_FIELDS}
+                      />
+                      {advancedFields.length ? (
+                        <div className="instantbi-settings-editor__parameters-title">
+                          Parameters
+                        </div>
+                      ) : null}
+                      {advancedFields.map((field) => (
+                        <Row
+                          key={field.key}
+                          gutter={8}
+                          align="middle"
+                          className="instantbi-settings-editor__param-row"
                         >
-                          <Input placeholder="Key (e.g. api_key)" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item
-                          {...field}
-                          name={[field.name, "value"]}
-                          fieldKey={[field.fieldKey, "value"]}
-                          style={{ marginBottom: 8 }}
-                        >
-                          <Input placeholder="Value" />
-                        </Form.Item>
-                      </Col>
-                      <Col span={2}>
-                        <MinusCircleOutlined
-                          className="instantbi-settings-editor__param-remove"
-                          onClick={() => remove(field.name)}
-                        />
-                      </Col>
-                    </Row>
-                  ))}
-                  <Button
-                    type="dashed"
-                    block
-                    icon={<PlusOutlined />}
-                    onClick={() => add({ key: "", value: "" })}
-                  >
-                    Add more parameters
-                  </Button>
+                          <Col span={10}>
+                            <Form.Item
+                              {...field}
+                              name={[field.name, "key"]}
+                              fieldKey={[field.fieldKey, "key"]}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <ParameterKeyInput />
+                            </Form.Item>
+                          </Col>
+                          <Col span={12}>
+                            <Form.Item
+                              {...field}
+                              name={[field.name, "value"]}
+                              fieldKey={[field.fieldKey, "value"]}
+                              style={{ marginBottom: 8 }}
+                            >
+                              <Input placeholder="Value" />
+                            </Form.Item>
+                          </Col>
+                          <Col span={2}>
+                            <MinusCircleOutlined
+                              className="instantbi-settings-editor__param-remove"
+                              onClick={() => remove(field.name)}
+                            />
+                          </Col>
+                        </Row>
+                      ))}
+                      <Button
+                        type="dashed"
+                        block
+                        icon={<PlusOutlined />}
+                        onClick={() => add({ key: "", value: "" })}
+                      >
+                        Add more parameters
+                      </Button>
+                    </div>
+                  ) : null}
                 </>
-              )}
-            </Form.List>
-          </div>
+              );
+            }}
+          </Form.List>
         </Form>
       </Drawer>
     </div>

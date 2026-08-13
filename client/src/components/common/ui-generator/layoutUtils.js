@@ -12,6 +12,53 @@
  * }
  */
 
+const SENTENCE_CASE_ACRONYMS = new Set([
+  "SQL",
+  "JDBC",
+  "XML",
+  "JSON",
+  "API",
+  "LLM",
+  "BI",
+  "JNDI",
+  "AI",
+  "SSO",
+  "LDAP",
+  "SMTP",
+  "SSL",
+  "TLS",
+  "URL",
+  "URI",
+  "ID",
+  "KPI",
+]);
+
+/**
+ * Sentence case for layout titles/labels.
+ * "feature_flags" → "Feature flags"
+ * "Adhoc SQL Settings" → "Adhoc SQL settings"
+ */
+export const toSentenceCaseLabel = (text) => {
+  if (!text || typeof text !== "string") return text;
+  const spaced = text.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!spaced) return text;
+  return spaced.split(" ").map((word, index) => {
+    const match = word.match(/^([^A-Za-z0-9]*)([A-Za-z0-9]+)([^A-Za-z0-9]*)$/);
+    if (!match) {
+      return index === 0 ? word : word.toLowerCase();
+    }
+    const [, prefix, core, suffix] = match;
+    if (SENTENCE_CASE_ACRONYMS.has(core.toUpperCase())) {
+      return `${prefix}${core.toUpperCase()}${suffix}`;
+    }
+    const cased =
+      index === 0
+        ? core.charAt(0).toUpperCase() + core.slice(1).toLowerCase()
+        : core.toLowerCase();
+    return `${prefix}${cased}${suffix}`;
+  }).join(" ");
+};
+
 export const getNestedValue = (obj, path) => {
   if (!path) {
     return undefined;

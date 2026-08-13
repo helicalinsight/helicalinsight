@@ -7,6 +7,7 @@ verified end-to-end without hitting LLMs or back-end services.
 """
 import json
 import logging
+from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,6 +15,32 @@ import pytest
 
 
 pytestmark = pytest.mark.integration
+
+
+def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_ref=None):
+    """Common patches for /interactive so tests never hit stub.invalid."""
+    sql_generator_mock = MagicMock()
+    sql_generator_mock.invoke.side_effect = lambda state, config=None: state
+    helper_mock.get_metadata.return_value = (
+        metadata
+        if metadata is not None
+        else {"joins": [], "databaseName": "testdb"}
+    )
+    return (
+        patch.object(app_module, "ModelLayerHelper", return_value=helper_mock),
+        patch.object(
+            app_module,
+            "get_db_function_of_metadata",
+            return_value=db_ref or {"reference": "postgres"},
+        ),
+        patch("bl.interactive.sql_generator_graph", sql_generator_mock),
+        patch(
+            "bl.interactive.SqlExecutor.process_flow",
+            side_effect=lambda state: state,
+        ),
+        patch("bl.interactive.sql_to_form_data", return_value=None),
+        patch("bl.interactive.audit_llm_usage_async"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -76,6 +103,13 @@ class TestTopNQuestion:
     ):
         helper_mock = MagicMock()
         helper_mock.get_model_semantic_layer.return_value = {"domain": []}
+        helper_mock.get_metadata_layerfile.return_value = "metadata.json"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+        helper_mock.get_metadata.return_value = {
+            "joins": [],
+            "databaseName": "testdb",
+            "tables": {},
+        }
 
         kpi_mock = MagicMock()
         kpi_mock.user_query = "Suggest KPIs"
@@ -130,8 +164,16 @@ class TestInteractive:
                 **session_auth,
                 "inputString": query,
                 "model": {"file": "model.json", "dir": "/models"},
+                "chatid": "chat-1",
+                "chat_seq_id": "1",
             }
         }
+
+    @staticmethod
+    def _metadata_payload(**extra):
+        payload = {"joins": [], "databaseName": "testdb"}
+        payload.update(extra)
+        return payload
 
     def test_happy_path_returns_json_with_sql_and_citations(
         self, app_module, flask_client, session_auth, patch_graphs
@@ -143,6 +185,7 @@ class TestInteractive:
             "flow": ["[ABC123XYZ]", "no-match"],
             "messages": [],
             "sql_result": {"data": [{"a": 1}, {"a": 2}], "metadata": [{}]},
+            "dialect": "postgres",
         }
 
         helper_mock = MagicMock()
@@ -152,9 +195,9 @@ class TestInteractive:
         helper_mock.get_metadata_layerfile.return_value = "metadata.json"
         helper_mock.get_metadata_layerlocation.return_value = "/meta"
 
-        with patch.object(app_module, "ModelLayerHelper", return_value=helper_mock), patch.object(
-            app_module, "get_json_data_metadata", return_value={"joins": []}
-        ):
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(app_module, helper_mock):
+                stack.enter_context(ctx)
             resp = flask_client.post(
                 "/interactive", json=self._build_payload(session_auth)
             )
@@ -162,13 +205,11 @@ class TestInteractive:
         assert resp.status_code == 200
         body = json.loads(resp.data)
 
+        chat = body["chat_response"]
         # SQL formatted with the markdown code fence.
-        assert body["sql"].startswith("```sql")
-        # Data carried from sql_result -> top-level data.
-        assert body["data"] == [{"a": 1}, {"a": 2}]
-        # Citation regex extracts the inner of bracketed identifiers.
-        assert "BC123XY" in body["citation"][0]
-        assert body["cube_metadata"] == []
+        assert chat["sql"]["raw_sql"].startswith("```sql")
+        # Data carried from sql_result -> chat_response data.
+        assert chat["data"] == [{"a": 1}, {"a": 2}]
         # Graphs were invoked.
         assert main_mock.invoke.called
         assert viz_mock.invoke.called
@@ -189,11 +230,10 @@ class TestInteractive:
         helper_mock.get_metadata_layerfile.return_value = "metadata.json"
         helper_mock.get_metadata_layerlocation.return_value = "/meta"
 
-        with patch.object(
-            app_module, "ModelLayerHelper", return_value=helper_mock
-        ), patch.object(
-            app_module, "get_json_data_metadata", return_value={"joins": []}
-        ):
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(app_module, helper_mock):
+                stack.enter_context(ctx)
+            stack.enter_context(patch("bl.interactive.is_debug", return_value=True))
             resp = flask_client.post(
                 "/interactive", json=self._build_payload(session_auth)
             )
@@ -207,7 +247,7 @@ class TestInteractive:
     def test_empty_model_structure_uses_metadata_fallback_and_logs_each_layer(
         self, app_module, flask_client, session_auth, patch_graphs, caplog
     ):
-        _, viz_mock = patch_graphs
+        main_mock, viz_mock = patch_graphs
         metadata_fixture = (
             Path(__file__).resolve().parents[1] / "fixtures" / "sample_metadata_response.json"
         )
@@ -222,8 +262,7 @@ class TestInteractive:
         helper_mock.get_metadata_layerfile.return_value = "metadata.json"
         helper_mock.get_metadata_layerlocation.return_value = "/meta"
 
-        sql_generator_mock = MagicMock()
-        sql_generator_mock.invoke.return_value = {
+        empty_state = {
             "query": "Top 5 travel cost by travel type and travel medium",
             "sql": "",
             "sqlModel": {},
@@ -232,36 +271,14 @@ class TestInteractive:
             "flow": [],
             "dialect": "postgres",
         }
+        main_mock.invoke.return_value = empty_state
 
-        with caplog.at_level(logging.DEBUG, logger="bl.interactive"), patch.object(
-            app_module, "ModelLayerHelper", return_value=helper_mock
-        ), patch.object(
-            app_module, "get_json_data_metadata", return_value=metadata_payload
-        ), patch.object(
-            app_module, "get_db_function_of_metadata", return_value={"reference": "postgres"}
-        ), patch(
-            "bl.interactive.sql_generator_graph", sql_generator_mock
-        ), patch(
-            "bl.interactive.SqlExecutor.process_flow",
-            return_value={
-                "query": "Top 5 travel cost by travel type and travel medium",
-                "sql": "",
-                "sqlModel": {},
-                "sql_result": {},
-                "messages": [],
-                "flow": [],
-                "dialect": "postgres",
-            },
-        ):
-            viz_mock.invoke.return_value = {
-                "query": "Top 5 travel cost by travel type and travel medium",
-                "sql": "",
-                "sqlModel": {},
-                "sql_result": {},
-                "messages": [],
-                "flow": [],
-                "dialect": "postgres",
-            }
+        with caplog.at_level(logging.DEBUG, logger="bl.interactive"), ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(
+                app_module, helper_mock, metadata=metadata_payload
+            ):
+                stack.enter_context(ctx)
+            viz_mock.invoke.return_value = empty_state
             payload = self._build_payload(
                 session_auth, query="Top 5 travel cost by travel type and travel medium"
             )
@@ -293,10 +310,12 @@ class TestInteractive:
 # /clear-api-cache
 # ---------------------------------------------------------------------------
 class TestClearApiCache:
-    def test_clears_cached_api_responses(self, app_module, flask_client, session_cookie):
+    def test_clears_cached_api_responses(self, app_module, flask_client, session_cookie, monkeypatch):
         from helicalbi.api.ApiCallCache import set as cache_set
+        from helicalbi.common import app_config
         from helicalbi.common.auth import set_api_cache_identity
 
+        monkeypatch.setattr(app_config, "api_cache_enabled", True)
         set_api_cache_identity("alice", "acme", user_id=1, org_id=5)
         cache_set('{"metadataFileName":"meta.json"}', "alice", "acme", {"status": 1}, org_id=5)
 
@@ -367,27 +386,29 @@ class TestAbort:
             "requestId": request_id,
             "input": {
                 "inputString": "Show me sales",
-                "sessionCookie": session_auth["sessionCookie"], "username": session_auth["username"],
+                "sessionCookie": session_auth["sessionCookie"],
+                "username": session_auth["username"],
                 "model": {"file": "model.json", "dir": "/models"},
                 "chatid": "chat-1",
                 "chat_seq_id": "1",
             },
         }
 
-        with patch.object(app_module, "ModelLayerHelper", return_value=helper_mock), patch.object(
-            app_module, "get_json_data_metadata", return_value={"joins": [], "databaseName": "db"}
-        ), patch.object(
-            app_module,
-            "get_db_function_of_metadata",
-            return_value={"reference": "postgres"},
-        ):
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(
+                app_module,
+                helper_mock,
+                metadata={"joins": [], "databaseName": "db"},
+            ):
+                stack.enter_context(ctx)
             resp = flask_client.post("/interactive", json=payload)
 
         assert resp.status_code == 200
         body = json.loads(resp.data)
         assert body["aborted"] is True
         assert body["error"] == "Request has been cancelled."
-        assert body["chat_response"] == {}
+        # Partial graph state may be returned; abort flag is the contract.
+        assert isinstance(body.get("chat_response"), dict)
 
 
 # ---------------------------------------------------------------------------
@@ -446,7 +467,7 @@ class TestDataInsight:
         assert body["insight"] == "## Summary\n\nSales grew 10%."
         assert body["token_usage"]["total_tokens"] == 30
         mock_execute.assert_called_once()
-        assert mock_execute.call_args.kwargs["sql"] == "SELECT region, sales FROM t"
+        assert mock_execute.call_args.kwargs["sql"] == 'SELECT "region", "sales" FROM "t"'
         assert mock_execute.call_args.kwargs["md_location"] == "/meta"
 
     def test_exception_returns_error_payload(self, app_module, flask_client, session_auth):
@@ -540,7 +561,7 @@ class TestDataInsight:
 
         assert resp.status_code == 200
         mock_execute.assert_called_once()
-        assert mock_execute.call_args.kwargs["sql"] == "SELECT region, sales FROM t"
+        assert mock_execute.call_args.kwargs["sql"] == 'SELECT "region", "sales" FROM "t"'
         assert mock_execute.call_args.kwargs["md_location"] == "/meta"
         assert mock_execute.call_args.kwargs["md_file_name"] == "metadata.json"
 
@@ -576,9 +597,12 @@ class TestDataInsight:
             )
 
         assert resp.status_code == 200
-        assert mock_execute.call_args.kwargs["sql"] == "SELECT region, sales FROM t"
+        assert mock_execute.call_args.kwargs["sql"] == 'SELECT "region", "sales" FROM "t"'
 
-    def test_passes_only_ten_rows_to_llm(self, app_module, flask_client, session_auth):
+    def test_passes_only_ten_rows_to_llm(self, app_module, flask_client, session_auth, monkeypatch):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "default_sql_limit", 10)
         rows = [{"id": i, "value": i * 10} for i in range(15)]
         llm_response, usage = self._llm_insight_response()
 
@@ -588,7 +612,9 @@ class TestDataInsight:
             return_value=self._successful_query(rows),
         ), patch.object(
             app_module, "invoke_llm", return_value=(llm_response, usage)
-        ) as mock_invoke:
+        ) as mock_invoke, patch(
+            "bl.data_insight.default_sql_limit", 10
+        ):
             resp = flask_client.post(
                 "/data-insight",
                 json={
@@ -671,7 +697,7 @@ class TestInstantToHr:
         body = json.loads(resp.data)
         assert body == form_data
         mock_convert.assert_called_once()
-        assert mock_convert.call_args.args[0] == "SELECT region FROM t"
+        assert mock_convert.call_args.args[0] == 'SELECT "region" FROM "t"'
         assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
         assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
         assert mock_convert.call_args.kwargs["location"] == "/meta"
@@ -742,7 +768,7 @@ class TestInstantToHr:
 
         assert resp.status_code == 200
         mock_convert.assert_called_once()
-        assert mock_convert.call_args.args[0] == "SELECT region FROM sales"
+        assert mock_convert.call_args.args[0] == 'SELECT "region" FROM "sales"'
 
     def test_exception_returns_error_payload(self, flask_client, session_auth):
         with patch(

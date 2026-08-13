@@ -1,8 +1,11 @@
 package com.helicalinsight.datasource.model;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.helicalinsight.admin.model.Organization;
 import com.helicalinsight.admin.model.Role;
 import com.helicalinsight.admin.model.User;
+import com.helicalinsight.serializer.UserDeserializer;
+
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
@@ -19,7 +22,12 @@ import java.util.Date;
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class GlobalConnectionSecurity implements Serializable {
 
-    @Id
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
@@ -45,8 +53,10 @@ public class GlobalConnectionSecurity implements Serializable {
     @Column(name="last_updated_time")
     private Date lastUpdatedTime;
 
-    @Column(name="created_by")
-    private String createdBy;
+    @JoinColumn(name="created_by")
+    @ManyToOne
+    @JsonDeserialize(using = UserDeserializer.class)
+    private User createdBy;
 
     public int getId() {
         return id;
@@ -135,11 +145,11 @@ public class GlobalConnectionSecurity implements Serializable {
         return result;
     }
 
-    public String getCreatedBy() {
+    public User getCreatedBy() {
         return createdBy;
     }
 
-    public void setCreatedBy(String createdBy) {
+    public void setCreatedBy(User createdBy) {
         this.createdBy = createdBy;
     }
 }
