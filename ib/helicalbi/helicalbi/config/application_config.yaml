@@ -26,6 +26,7 @@ api_cache:
 
 sql:
   default_limit: 100        # Default row limit appended to generated SQL queries
+  repair_max_attempts: 1    # Max automatic self-correction retries when generated SQL fails to execute (0 disables)
 
 kpi:
   suggestion_query: "Suggest few Measurable and timebound KPIS"  # Default KPI suggestion prompt; overridden by model JSON "suggestion_query" when present
