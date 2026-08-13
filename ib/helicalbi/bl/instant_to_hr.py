@@ -18,8 +18,10 @@ from helicalbi.sql_to_formdata import sql_to_form_data
 logger = logging.getLogger(__name__)
 
 
-def _resolve_metadata_inputs(user_input: dict, session_cookie: str) -> tuple[str, str, str]:
-    """Resolve location, metadata_dir, and metadata_file_name from the request."""
+def _resolve_metadata_inputs(
+    user_input: dict, session_cookie: str
+) -> tuple[str, str, str, dict | None]:
+    """Resolve location, metadata_dir, metadata_file_name, and optional metadata payload."""
     location = (
         user_input.get("location")
         or user_input.get("md_location")
@@ -38,6 +40,7 @@ def _resolve_metadata_inputs(user_input: dict, session_cookie: str) -> tuple[str
         or user_input.get("mdFileName")
         or ""
     )
+    metadata: dict | None = None
 
     model = user_input.get("model")
     if model and not (metadata_dir and metadata_file_name):
@@ -45,13 +48,29 @@ def _resolve_metadata_inputs(user_input: dict, session_cookie: str) -> tuple[str
         helper = app().ModelLayerHelper(session_cookie, model["file"], model["dir"])
         metadata_file_name = helper.get_metadata_layerfile()
         metadata_dir = helper.get_metadata_layerlocation()
+        metadata = helper.get_metadata()
         if not location:
             location = metadata_dir
+    elif model and not metadata:
+        # Model is present; prefer agent-load metadata over a separate metadata get.
+        try:
+            helper = app().ModelLayerHelper(session_cookie, model["file"], model["dir"])
+            metadata = helper.get_metadata()
+            if not metadata_file_name:
+                metadata_file_name = helper.get_metadata_layerfile()
+            if not metadata_dir:
+                metadata_dir = helper.get_metadata_layerlocation()
+            if not location:
+                location = metadata_dir
+        except Exception:
+            logger.exception(
+                "instant-to-hr could not load metadata from agent; falling back"
+            )
 
     if not location:
         location = metadata_dir
 
-    return location, metadata_dir, metadata_file_name
+    return location, metadata_dir, metadata_file_name, metadata
 
 
 def register(flask_app) -> None:
@@ -70,7 +89,7 @@ def register(flask_app) -> None:
         sql = resolve_sql_from_request(
             user_input, thread_id, chat_seq_id, context="instant-to-hr"
         )
-        location, metadata_dir, metadata_file_name = _resolve_metadata_inputs(
+        location, metadata_dir, metadata_file_name, metadata = _resolve_metadata_inputs(
             user_input, session_cookie
         )
         dialect = user_input.get("dialect") or None
@@ -104,6 +123,7 @@ def register(flask_app) -> None:
                 metadata_file_name=metadata_file_name,
                 session_cookie=session_cookie,
                 dialect=dialect,
+                metadata=metadata,
                 include_layers=include_layers,
             )
             to_send = form_data

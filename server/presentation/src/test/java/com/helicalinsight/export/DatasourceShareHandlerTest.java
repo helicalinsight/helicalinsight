@@ -111,6 +111,9 @@ public class DatasourceShareHandlerTest {
 	    field3.set(datasourceShareHandler, mapper);
 		
 		when(security.getUserId()).thenReturn(user);
+		User owner = mock(User.class);
+		when(security.getCreatedBy()).thenReturn(owner);
+		when(shareUtils.resolveUser(owner)).thenReturn(owner);
 		
 		method.invoke(datasourceShareHandler, security);
 	}
@@ -144,6 +147,9 @@ public class DatasourceShareHandlerTest {
 		when(security.getRoleId()).thenReturn(role);
 		when(mapper.map(any(Role.class))).thenReturn(roleDto);
 		when(shareUtils.getOrInsertRole(roleDto)).thenReturn(role);
+		User owner = mock(User.class);
+		when(security.getCreatedBy()).thenReturn(owner);
+		when(shareUtils.resolveUser(owner)).thenReturn(owner);
 		method.invoke(datasourceShareHandler, security);
 	}
 
@@ -175,6 +181,9 @@ public class DatasourceShareHandlerTest {
 
 		when(security.getUserId()).thenReturn(user);
 		when(security.getOrgId()).thenReturn(org);
+		User owner = mock(User.class);
+		when(security.getCreatedBy()).thenReturn(owner);
+		when(shareUtils.resolveUser(owner)).thenReturn(owner);
 
 		method.invoke(datasourceShareHandler, security);
 	}

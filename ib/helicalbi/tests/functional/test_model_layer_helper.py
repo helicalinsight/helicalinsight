@@ -21,6 +21,12 @@ def fake_response_payload(sample_model_data):
                 "metadata": {
                     "location": "/meta/dir",
                     "metadataFileName": "metadata.json",
+                    "databaseName": "sample.db",
+                    "data": {
+                        "tables": {"t1": {"columns": {}}},
+                        "databaseName": "sample.db",
+                        "sets": [["t1"]],
+                    },
                 },
             }
         },
@@ -42,7 +48,11 @@ class TestModelLayerHelper:
         assert mock_fetch.call_args.kwargs["session_cookie"] == session_cookie
 
         form_data = json.loads(payload["formData"])
-        assert form_data == {"dir": "/model/dir", "file": "model.json"}
+        assert form_data == {
+            "dir": "/model/dir",
+            "file": "model.json",
+            "provideMetadata": True,
+        }
 
     def test_get_metadata_layerlocation(self, session_cookie, fake_response_payload):
         with patch(
@@ -59,6 +69,17 @@ class TestModelLayerHelper:
         ):
             helper = ModelLayerHelper(session_cookie, "model.json", "/model/dir")
         assert helper.get_metadata_layerfile() == "metadata.json"
+
+    def test_get_metadata_returns_embedded_payload(self, session_cookie, fake_response_payload):
+        with patch(
+            "helicalbi.service.modelservice.ModelLayerHelper.fetch_service_api",
+            return_value=fake_response_payload,
+        ):
+            helper = ModelLayerHelper(session_cookie, "model.json", "/model/dir")
+        metadata = helper.get_metadata()
+        assert metadata["databaseName"] == "sample.db"
+        assert "t1" in metadata["tables"]
+        assert metadata["joins"] == []
 
     def test_get_model_semantic_layer_returns_state(
         self, session_cookie, fake_response_payload, sample_model_data
@@ -80,6 +101,7 @@ class TestModelLayerHelper:
                     "metadata": {
                         "location": "/meta/dir",
                         "metadataFileName": "metadata.json",
+                        "data": {"tables": {}, "databaseName": "db"},
                     },
                 }
             },

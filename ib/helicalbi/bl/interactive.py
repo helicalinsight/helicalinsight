@@ -45,6 +45,7 @@ def _sql_to_data_model(
     metadata_dir: str,
     metadata_file_name: str,
     session_cookie: str,
+    metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any] | None:
     """Temporary: build formData via sql_to_form_data (same args as instant-to-hr)."""
     cleaned_sql = strip_sql_markdown(sql or "").strip()
@@ -56,6 +57,7 @@ def _sql_to_data_model(
         metadata_dir=metadata_dir or location,
         metadata_file_name=metadata_file_name,
         session_cookie=session_cookie,
+        metadata=metadata,
         # Omit dialect override: FunctionCatalog maps API reference
         # (postgresql → postgres) for sqlglot.
     )
@@ -75,7 +77,7 @@ def register(flask_app) -> None:
         model_data = helper.get_model_semantic_layer()
         med_file_name = helper.get_metadata_layerfile()
         md_location = helper.get_metadata_layerlocation()
-        actual_md = app().get_json_data_metadata(session_cookie, med_file_name, md_location)
+        actual_md = helper.get_metadata()
         use_cube_info_flow = is_cube_info_model(model_data)
         cube_info_prepared = {}
         if use_cube_info_flow:
@@ -97,7 +99,7 @@ def register(flask_app) -> None:
                     md_location,
                     len(cube_metadata),
                 )
-        joins = actual_md["joins"]
+        joins = actual_md.get("joins") or []
         metadata_fun_ref = app().get_db_function_of_metadata(session_cookie, med_file_name, md_location)
 
         thread_id = user_input["chatid"]
@@ -268,6 +270,7 @@ def register(flask_app) -> None:
                     metadata_dir=md_location,
                     metadata_file_name=med_file_name,
                     session_cookie=session_cookie,
+                    metadata=actual_md,
                 )
                 if form_data is not None:
                     result["viz_form_data"] = form_data

@@ -46,6 +46,87 @@ _CHART_PREFERENCE = (
     "other",
 )
 
+# HI report mark (parent) → allowed child viz values.
+# ``mark`` on VizChart is the parent name; ``viz`` is one of the children
+# (or "" when the mark has no children).
+MARK_VIZ_CATALOG: list[dict[str, Any]] = [
+    {"name": "Card", "values": ["Area", "Bar", "Line", "Table"]},
+    {"name": "Maps", "values": ["Heatmap", "Line", "Point"]},
+    {
+        "name": "Chart",
+        "values": [
+            "Arc",
+            "Area",
+            "Bar",
+            "Calendar",
+            "Doughnut",
+            "Line",
+            "Point",
+            "Progress",
+            "Radar",
+            "Relation",
+            "Text",
+            "Waterfall",
+        ],
+    },
+    {
+        "name": "Grid Chart",
+        "values": [
+            "Arc",
+            "Area",
+            "Bar",
+            "Doughnut",
+            "Heatmap",
+            "Line",
+            "Point",
+            "Text",
+            "Tick",
+        ],
+    },
+    {"name": "Table", "values": []},
+    {"name": "Grid Table", "values": []},
+    {"name": "VF", "values": []},
+]
+
+# InstantBI catalog chart_type → (mark, viz) using MARK_VIZ_CATALOG.
+_CHART_TYPE_TO_MARK_VIZ: dict[str, tuple[str, str]] = {
+    "bar": ("Chart", "Bar"),
+    "column": ("Chart", "Bar"),
+    "line": ("Chart", "Line"),
+    "area": ("Chart", "Area"),
+    "pie": ("Chart", "Arc"),
+    "donut": ("Chart", "Doughnut"),
+    "doughnut": ("Chart", "Doughnut"),
+    "point": ("Chart", "Point"),
+    "scatter": ("Chart", "Point"),
+    "calendar": ("Chart", "Calendar"),
+    "progress": ("Chart", "Progress"),
+    "gauge": ("Chart", "Progress"),
+    "radar": ("Chart", "Radar"),
+    "relation": ("Chart", "Relation"),
+    "treemap": ("Chart", "Relation"),
+    "sunburst": ("Chart", "Relation"),
+    "circle_packing": ("Chart", "Relation"),
+    "waterfall": ("Chart", "Waterfall"),
+    "wordcloud": ("Chart", "Text"),
+    "heatmap": ("Maps", "Heatmap"),
+    "kpi": ("Card", "Bar"),
+    "tiny_line": ("Card", "Line"),
+    "tiny_column": ("Card", "Bar"),
+    "tiny_area": ("Card", "Area"),
+    "table": ("Table", ""),
+    "grid_table": ("Grid Table", ""),
+    "other": ("VF", ""),
+    "column_line": ("Chart", "Bar"),
+    "dual_line": ("Chart", "Line"),
+    "grouped_column_line": ("Chart", "Bar"),
+    "stacked_column_line": ("Chart", "Bar"),
+    "stacked_and_grouped_column_line": ("Chart", "Bar"),
+    "funnel_chart": ("VF", ""),
+    "rose_chart": ("Chart", "Arc"),
+    "bubble_chart": ("Chart", "Point"),
+}
+
 _META_ONLY_KEYS = frozenset({"rows", "row_count", "rowcount", "count", "total_rows"})
 _TYPE_KEYS = ("type", "data_type", "dataType", "dtype", "columnType")
 
@@ -202,18 +283,15 @@ def _pick_chart_type(
 
 
 def _chart_viz_and_mark(chart_type: str) -> VizChart:
-    """Map catalog type → VizChart(viz=component, mark=type/family mark)."""
-    chart_def = get_chart_definition(chart_type)
-    component = ""
-    family = ""
-    if chart_def and chart_def.conversion:
-        component = str(chart_def.conversion.component or "").strip()
-        family = str(chart_def.conversion.family or "").strip()
-    viz = component or chart_type.replace("_", " ").title()
-    mark = chart_type if chart_type else family or "bar"
-    if family == "pie" and not component:
-        viz = "arc"
-    return VizChart(viz=viz, mark=mark)
+    """Map catalog type → VizChart(mark=HI parent, viz=child under that mark)."""
+    key = resolve_chart_name(chart_type) or str(chart_type or "").strip().lower()
+    mapped = _CHART_TYPE_TO_MARK_VIZ.get(key)
+    if mapped:
+        mark, viz = mapped
+        return VizChart(viz=viz, mark=mark)
+
+    # Unknown catalog types fall back to VF (custom / no child viz).
+    return VizChart(viz="", mark="VF")
 
 
 def _wire_column_path(column: Any) -> str:
@@ -859,14 +937,8 @@ def build_viz_model(
         viz_context = dict(viz_context)
         viz_context["form_data"] = form_data
 
-    formatting = dict(viz_context.get("format_strings") or {})
-    if formatting and (rows or columns):
-        bound = {n.lower() for n in rows + columns}
-        formatting = {
-            key: value
-            for key, value in formatting.items()
-            if str(key).lower() in bound
-        }
+    # Temporary: keep properties.formatting empty until format injection is stable.
+    formatting: dict[str, str] = {}
 
     title = _default_title(rows, columns, vf_title=vf_title)
     label_x = rows[0] if rows else None
@@ -912,7 +984,8 @@ def viz_model_to_chart_settings(model: VizModel) -> ChartSettings:
         labelsY=props.labelY,
         title=props.title,
         color=props.color or None,
-        measure_formats=dict(props.formatting or {}),
+        # Temporary: keep measure_formats empty until format injection is stable.
+        measure_formats={},
     )
 
 

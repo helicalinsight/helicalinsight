@@ -2,6 +2,7 @@ import {
   CloseOutlined,
   ExportOutlined,
   FieldTimeOutlined,
+  FileTextOutlined,
   FilterOutlined,
   FolderViewOutlined,
   FunnelPlotOutlined,
@@ -77,6 +78,7 @@ import {
   hcrRedo,
   hcrUndo
 } from "../redux/actions/hcr.actions";
+import HCRJsonEditor from "../components/hi-canned-reports/hcr-json-editor";
 export let flowchartInstance, nodesPositions, queryTempuuidsMap;
 
 const CannedReportsPage = (props) => {
@@ -157,6 +159,7 @@ const CannedReportsPage = (props) => {
   const Notify = notify(dispatch);
 
   const [saveType, setSaveType] = useState("save");
+  const [openJsonViewer, setOpenJsonViewer] = useState(false);
   const tabNumbers = hcrTabData.panes.map((ele) => ele.key);
   const editCBRef = useRef(null);
   flowchartInstance = useRef(null);
@@ -1057,6 +1060,9 @@ const CannedReportsPage = (props) => {
     dispatch(fileBrowserActions.setShareModalVisibility());
   };
 
+  const handleOpenJSONViewer = () => setOpenJsonViewer(true);
+  const handeCloseJSONViewer = () => setOpenJsonViewer(false);
+
   const taskbarShare = {
     tooltip: "Share",
     icon: <HIIcon name="hi-share" />,
@@ -1071,8 +1077,15 @@ const CannedReportsPage = (props) => {
     itemClz: "hcr-mr-18",
   };
 
+  const jsonViewer = {
+    tooltip: "Canned Report Spec",
+    icon: <FileTextOutlined />,
+    callBack: handleOpenJSONViewer,
+    itemClz: "hcr-mr-18"
+  }
+
   // taskbar = showImage ? taskbar : [hcrShrtCuts, ...taskbar, taskbarShare, previewShowItem];
-  taskbar = [hcrShrtCuts, ...taskbar, taskbarShare, previewShowItem];
+  taskbar = [hcrShrtCuts, ...taskbar, taskbarShare, previewShowItem, jsonViewer];
 
   function onExport(format) {
     format = format.toLowerCase();
@@ -1927,6 +1940,13 @@ const CannedReportsPage = (props) => {
               }}
             />
           )}
+          {openJsonViewer ?
+            <HCRJsonEditor
+              activeReport={activeTab}
+              visible={openJsonViewer}
+              onCloseDrawer={handeCloseJSONViewer}
+            />
+            : null}
         </>
       )}
     </>

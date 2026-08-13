@@ -67,7 +67,6 @@ const typeFilters = [
   { text: "Other", value: "hwf" },
   { text: "Canned Report", value: "hcr" },
   { text: "Report", value: "efw" },
-  { text: "System", value: "system" },
 ];
 
 const scheduleTypes = {
@@ -205,9 +204,6 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
       formData,
       onSuccess: (res) => {
         setDeleteLoading(false);
-        if (res?.message) {
-          Notify.success({ type: "System Schedule", message: res.message });
-        }
         fetchSchedulingDetails(true);
       },
       onError: () => setDeleteLoading(false),
@@ -405,8 +401,12 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
       render: (_, record) => {
         return record.type ? <span>{scheduleTypes[record.type] || record.type}</span> : "";
       },
-      filters: typeFilters,
-      onFilter: (value, record) => (record.type || "").indexOf(value) === 0,
+      ...(!showSystemSchedules
+        ? {
+            filters: typeFilters,
+            onFilter: (value, record) => (record.type || "").indexOf(value) === 0,
+          }
+        : {}),
     },
     {
       title: "Job Id",

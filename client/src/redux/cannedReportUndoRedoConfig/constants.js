@@ -46,5 +46,6 @@ export const cannedReportIncludingTypes = [
     actionTypes.HCR_UPDATE_CROSSTAB_COMPONENT,
     actionTypes.HCR_UPDATE_TABLE_STYLES,
     actionTypes.HCR_UPDATE_SUB_DATASETS,
-    actionTypes.STORE_SELECTED_QUERY_ID
+    actionTypes.STORE_SELECTED_QUERY_ID,
+    actionTypes.HCR_UPDATE_REPORT_STATE_THROUGH_EDITOR
 ]

@@ -7,9 +7,8 @@
   }
 
   &__body {
-    /* Indent fields under section title so YAML groups read as hierarchy. */
-    padding-left: 14px;
-    border-left: 2px solid rgba(0, 0, 0, 0.06);
+    padding-left: 0;
+    border-left: none;
   }
 
   &--dense &__title {
@@ -18,7 +17,7 @@
   }
 
   &--dense &__body {
-    padding-left: 12px;
+    padding-left: 0;
   }
 
   &--level-1 &__title {

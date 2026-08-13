@@ -28,81 +28,103 @@ public class RollupHandlerTest {
 
 	private static final String BASE_QUERY =
 			"select booking_platform, sum(travel_cost) as sum_travel_cost "
-					+ "from travel_details "
-					+ "group by booking_platform "
-					+ "limit 1000";
+					+ "\nfrom travel_details "
+					+ "\ngroup by\n\tbooking_platform "
+					+ "\nlimit 1000";
 
 	private static final String POSTGRES_DIALECT = "org.hibernate.dialect.PostgreSQLDialect";
 	private static final String MYSQL_DIALECT = "org.hibernate.dialect.MySQLDialect";
 
 	@Test
 	public void ut_a1_testAnsiRollupUsesRollupFunction() {
-		SqlQueryContext context = mockContext(POSTGRES_DIALECT, true);
+		SqlQueryContext context = mockContext("postgresql", POSTGRES_DIALECT, true);
 
 		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
 				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
-			jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
+			stubJsonSettings(jsonUtils);
 
 			String result = new RollupHandler(BASE_QUERY, context).applyRollup();
 
-			System.out.println("=== ANSI rollup (PostgreSQL via JSQLParser) ===");
-			System.out.println("Input:");
-			System.out.println(BASE_QUERY);
-			System.out.println("Output:");
-			System.out.println(result);
-			System.out.println();
-
 			assertTrue(result.toUpperCase().contains("ROLLUP"));
-			assertTrue(result.toUpperCase().contains("GROUP BY"));
+			assertTrue(result.contains("\ngroup by\n\t"));
+			assertTrue(result.toUpperCase().contains("GROUPING"));
+			assertTrue(result.toLowerCase().contains("grouping_booking_platform"));
 			assertFalse(result.toUpperCase().contains("WITH ROLLUP"));
-			assertTrue(result.toUpperCase().contains("ORDER BY"));
+			assertTrue(result.contains("\norder by\n\t"));
 		}
 	}
 
 	@Test
 	public void ut_a2_testNonAnsiRollupUsesWithRollup() {
-		SqlQueryContext context = mockContext(MYSQL_DIALECT, false);
+		SqlQueryContext context = mockContext("mysql", MYSQL_DIALECT, false);
 
 		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
 				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
-			jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
+			stubJsonSettings(jsonUtils);
 
 			String result = new RollupHandler(BASE_QUERY, context).applyRollup();
 
-			System.out.println("=== Non-ANSI rollup (MySQL via JSQLParser) ===");
-			System.out.println("Input:");
-			System.out.println(BASE_QUERY);
-			System.out.println("Output:");
-			System.out.println(result);
-			System.out.println();
-
 			assertTrue(result.toUpperCase().contains("WITH ROLLUP"));
-			assertTrue(result.toUpperCase().contains("ORDER BY"));
+			assertTrue(result.toUpperCase().contains("GROUPING"));
+			assertTrue(result.toLowerCase().contains("grouping_booking_platform"));
+			assertTrue(result.contains("\norder by\n\t") || result.toUpperCase().contains("ORDER BY"));
 		}
 	}
 
 	@Test
 	public void ut_a3_testAnsiAndNonAnsiSideBySide() {
-		SqlQueryContext ansiContext = mockContext(POSTGRES_DIALECT, true);
-		SqlQueryContext nonAnsiContext = mockContext(MYSQL_DIALECT, false);
+		SqlQueryContext ansiContext = mockContext("postgresql", POSTGRES_DIALECT, true);
+		SqlQueryContext nonAnsiContext = mockContext("mysql", MYSQL_DIALECT, false);
 
 		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
 				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
-			jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
+			stubJsonSettings(jsonUtils);
 
 			String ansiResult = new RollupHandler(BASE_QUERY, ansiContext).applyRollup();
 			String nonAnsiResult = new RollupHandler(BASE_QUERY, nonAnsiContext).applyRollup();
 
-			System.out.println("=== Side-by-side ANSI vs Non-ANSI (JSQLParser) ===");
-			System.out.println("--- ANSI ---");
-			System.out.println(ansiResult);
-			System.out.println("--- Non-ANSI ---");
-			System.out.println(nonAnsiResult);
-			System.out.println();
-
 			assertTrue(ansiResult.toUpperCase().contains("ROLLUP(") || ansiResult.toUpperCase().contains("ROLLUP ("));
 			assertTrue(nonAnsiResult.toUpperCase().contains("WITH ROLLUP"));
 		}
+	}
+
+	@Test
+	public void ut_a4_testGroupingFlagOffSkipsGrouping() {
+		SqlQueryContext context = mockContext("postgresql", POSTGRES_DIALECT, true);
+		JsonObject formData = sampleFormData();
+		formData.getAsJsonArray("analytics").get(0).getAsJsonObject().addProperty("grouping", false);
+		when(context.getFormData()).thenReturn(formData);
+
+		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
+				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
+			stubJsonSettings(jsonUtils);
+
+			String result = new RollupHandler(BASE_QUERY, context).applyRollup();
+
+			assertTrue(result.toUpperCase().contains("ROLLUP"));
+			assertFalse(result.toUpperCase().contains("GROUPING"));
+		}
+	}
+
+	@Test
+	public void ut_a5_testUnconfiguredReferenceDefaultsToAnsiRollup() {
+		SqlQueryContext context = mockContext("h2", "org.hibernate.dialect.H2Dialect", true);
+
+		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
+				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
+			stubJsonSettings(jsonUtils);
+
+			String result = new RollupHandler(BASE_QUERY, context).applyRollup();
+
+			assertTrue(result.toUpperCase().contains("ROLLUP(") || result.toUpperCase().contains("ROLLUP ("));
+			assertFalse(result.toUpperCase().contains("WITH ROLLUP"));
+			assertTrue(result.contains("\ngroup by\n\t"));
+		}
+	}
+
+	private static void stubJsonSettings(MockedStatic<JsonUtils> jsonUtils) {
+		jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
+		jsonUtils.when(JsonUtils::getAdhocRollupSettings).thenReturn(adhocRollupSettings());
 	}
 
 	private static MockedStatic<AuthenticationUtils> mockAuth() {
@@ -116,17 +138,17 @@ public class RollupHandlerTest {
 		return authUtils;
 	}
 
-	private static SqlQueryContext mockContext(String dialect, boolean strictAnsiQuotes) {
+	private static SqlQueryContext mockContext(String reference, String dialect, boolean strictAnsiQuotes) {
 		SqlQueryContext context = mock(SqlQueryContext.class);
 		Metadata metadata = mock(Metadata.class);
 		ConnectionDetails connectionDetails = mock(ConnectionDetails.class);
 
 		JsonObject formData = sampleFormData();
 
-		when(context.getDriverClassName()).thenReturn(dialect.contains("MySQL") ? "com.mysql.jdbc.Driver" : "org.postgresql.Driver");
+		when(context.getDriverClassName()).thenReturn("mysql".equals(reference) ? "com.mysql.jdbc.Driver" : "org.postgresql.Driver");
 		when(context.getQueryOffset()).thenReturn("0");
 		when(context.getQueryLimit()).thenReturn("1000");
-		when(context.getReferenceFile()).thenReturn(dialect.contains("MySQL") ? "mysql" : "postgresql");
+		when(context.getReferenceFile()).thenReturn(reference);
 		when(context.getFormData()).thenReturn(formData);
 		when(context.getMetadata()).thenReturn(metadata);
 		when(metadata.getConnectionDetails()).thenReturn(connectionDetails);
@@ -176,6 +198,7 @@ public class RollupHandlerTest {
 		JsonArray analytics = new JsonArray();
 		JsonObject instruction = new JsonObject();
 		instruction.addProperty("subTotals", true);
+		instruction.addProperty("grouping", true);
 		analytics.add(instruction);
 		formData.add("analytics", analytics);
 		return formData;
@@ -184,15 +207,23 @@ public class RollupHandlerTest {
 	private static JsonObject adhocSqlSettings() {
 		JsonObject settings = new JsonObject();
 		JsonObject ansiGroupByDialects = new JsonObject();
-		JsonArray dialects = new JsonArray();
-
-		JsonObject postgres = new JsonObject();
-		postgres.addProperty("rollup", "true");
-		postgres.addProperty("", POSTGRES_DIALECT);
-		dialects.add(postgres);
-
-		ansiGroupByDialects.add("dialect", dialects);
+		JsonArray ansiDialects = new JsonArray();
+		ansiDialects.add(POSTGRES_DIALECT);
+		ansiGroupByDialects.add("dialect", ansiDialects);
 		settings.add("ansiGroupByDialects", ansiGroupByDialects);
+		return settings;
+	}
+
+	private static JsonObject adhocRollupSettings() {
+		JsonObject settings = new JsonObject();
+		JsonObject postgres = new JsonObject();
+		postgres.addProperty("rollup", true);
+		postgres.addProperty("syntax", "ansi");
+		settings.add("postgresql", postgres);
+		JsonObject mysql = new JsonObject();
+		mysql.addProperty("rollup", true);
+		mysql.addProperty("syntax", "with");
+		settings.add("mysql", mysql);
 		return settings;
 	}
 }

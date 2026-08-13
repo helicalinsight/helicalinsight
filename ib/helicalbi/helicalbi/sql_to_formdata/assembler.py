@@ -73,7 +73,9 @@ def load_metadata_index(
     """
     Build column index from a metadata get payload.
 
-    When ``metadata`` is omitted and ``session_cookie`` is set, fetch via API.
+    When ``metadata`` is omitted and ``session_cookie`` is set, metadata get is
+    fetched as a legacy fallback. Prefer passing metadata from agent load
+    (``ModelLayerHelper.get_metadata()`` / ``provideMetadata``).
     """
     if metadata is None and session_cookie and metadata_file_name:
         try:

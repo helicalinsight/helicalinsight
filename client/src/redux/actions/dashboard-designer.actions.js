@@ -208,3 +208,7 @@ export const replaceReportId = (obj) => {
 export const updateFreeFloatFilterSettings = (obj) => {
   return { type: actionTypes.UPDATE_FREE_FLOAT_FILTER_SETTINGS, payload: obj };
 }
+
+export const updateDashboardStateThroughEditor = (payload) => {
+  return { type: actionTypes.UPDATE_DASHBOARD_STATE_THROUGH_EDITOR, payload }
+}

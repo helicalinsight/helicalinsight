@@ -231,7 +231,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj);
 					efwd.setCreatedBy(createdBy);
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
@@ -297,7 +297,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
@@ -398,7 +398,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
@@ -470,7 +470,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());

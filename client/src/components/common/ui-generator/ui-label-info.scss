@@ -1,18 +1,12 @@
+.ui-label-info.anticon,
 .ui-label-info {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-left: 6px;
-  border-radius: 50%;
-  background: #e6f7ff;
-  color: #69c0ff;
+  margin-left: 5px;
+  font-size: 10px !important;
+  width: auto !important;
+  height: auto !important;
+  background: none !important;
+  border-radius: 0 !important;
+  color: rgba(0, 0, 0, 0.45) !important;
+  cursor: pointer;
   vertical-align: middle;
-  cursor: help;
-  line-height: 1;
-
-  &__icon {
-    font-size: 10px;
-  }
 }

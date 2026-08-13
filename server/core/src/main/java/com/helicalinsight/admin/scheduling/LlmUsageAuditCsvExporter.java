@@ -19,7 +19,7 @@ public class LlmUsageAuditCsvExporter {
     private static final Logger logger = LoggerFactory.getLogger(LlmUsageAuditCsvExporter.class);
 
     private static final String[] HEADERS = {
-            "id", "userId", "endpoint", "userQuery", "inputTokens", "outputTokens", "totalTokens",
+            "id", "userId", "organizationId", "endpoint", "userQuery", "inputTokens", "outputTokens", "totalTokens",
             "inputCost", "outputCost", "totalCost", "modelName", "requestStatus", "errorMessage",
             "chatId", "chatSeqId", "createdAt"
     };
@@ -44,6 +44,7 @@ public class LlmUsageAuditCsvExporter {
         List<String> row = new ArrayList<>();
         row.add(stringValue(record.getId()));
         row.add(stringValue(record.getUserId()));
+        row.add(stringValue(record.getOrganizationId()));
         row.add(stringValue(record.getEndpoint()));
         row.add(stringValue(record.getUserQuery()));
         row.add(stringValue(record.getInputTokens()));

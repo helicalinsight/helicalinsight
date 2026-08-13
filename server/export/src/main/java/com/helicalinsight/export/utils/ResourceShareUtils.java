@@ -5,10 +5,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.google.gson.JsonObject;
 import com.helicalinsight.admin.dto.OrganizationDTO;
 import com.helicalinsight.admin.dto.ProfileDTO;
 import com.helicalinsight.admin.dto.RoleDTO;
@@ -22,6 +24,8 @@ import com.helicalinsight.admin.service.ProfileService;
 import com.helicalinsight.admin.service.RoleService;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
+import com.helicalinsight.datasource.GsonUtility;
+import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.resourcedb.Deleted;
 /**
  * Utility class for managing resource sharing, including user, role, organization, and profile operations.
@@ -185,6 +189,40 @@ public class ResourceShareUtils {
 		fromDb.setRoles(roles);
 		fromDb.setEnabled(fromFile.isEnabled());
 		userService.editUser(fromDb);
+	}
+	
+	public User resolveUser(Object createdByObj) {
+		User createdBy = null;
+		boolean shouldFallBack = true;
+
+		if (createdByObj instanceof User user) {
+			if (user.getUsername() != null) {
+				createdBy = getOrInsertUser(mapper.map(user));
+				shouldFallBack = false;
+			}
+		}
+		
+		else if (createdByObj instanceof String idStr && StringUtils.isNotBlank(idStr) && !"null".equalsIgnoreCase(idStr)
+				&& StringUtils.isNumeric(idStr)) {
+			
+			User existing = userService.findUser(Integer.parseInt(idStr));
+			if (existing != null) {
+				createdBy = existing;
+				shouldFallBack = false;
+			}
+		}
+		
+		if (shouldFallBack) {
+			JsonObject settingsJson = JsonUtils.newGetSettingsJson();
+			String defaultOwnerId = GsonUtility.optString(settingsJson, "defaultOwnerId");
+			if (StringUtils.isNotBlank(defaultOwnerId) && !"null".equalsIgnoreCase(defaultOwnerId)) {
+				User user = userService.findUser(Integer.parseInt(defaultOwnerId));
+				if (user != null) {
+					createdBy = user;
+				}
+			}
+		}
+		return createdBy;
 	}
 
 }

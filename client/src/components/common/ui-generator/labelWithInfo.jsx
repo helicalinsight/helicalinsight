@@ -1,9 +1,16 @@
 import { Tooltip } from "antd";
-import { InfoCircleFilled } from "@ant-design/icons";
+import { QuestionCircleOutlined } from "@ant-design/icons";
 import "./ui-label-info.scss";
 
+const tooltipTitle = (description) => {
+  if (typeof description === "string" && description.includes("\n")) {
+    return <span style={{ whiteSpace: "pre-line" }}>{description}</span>;
+  }
+  return description;
+};
+
 /**
- * Label text with optional (i) tooltip — light-blue circular info chip.
+ * Label text with optional (?) tooltip — matches datasource info icons.
  */
 export const labelWithInfo = (label, description) => {
   if (!description) {
@@ -11,10 +18,11 @@ export const labelWithInfo = (label, description) => {
   }
   return [
     label,
-    <Tooltip key="info" title={description}>
-      <span className="ui-label-info" aria-label="More information">
-        <InfoCircleFilled className="ui-label-info__icon" />
-      </span>
+    <Tooltip key="info" title={tooltipTitle(description)}>
+      <QuestionCircleOutlined
+        className="ui-label-info"
+        aria-label="More information"
+      />
     </Tooltip>,
   ];
 };

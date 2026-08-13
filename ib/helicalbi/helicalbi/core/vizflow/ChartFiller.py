@@ -12,12 +12,10 @@ from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.prompt.VizFillPrompt import (
-    fill_formats_prompt_string,
     fill_settings_prompt_string,
 )
 from helicalbi.model.output.viz.VizResponse import (
     ChartFillerResponse,
-    ChartFormatResponse,
 )
 from helicalbi.viz._charts import (
     get_chart_config,
@@ -408,12 +406,9 @@ class ChartFiller:
                 domain_context=domain_context,
             )
             # Prefer result-column-filtered hints; never fall back to full-cube prompts.
-            column_format_strings = viz_context.get("column_format_strings") or ""
             column_ai_instructions = viz_context.get("column_ai_instructions") or ""
             column_sort_orders = viz_context.get("column_sort_orders") or ""
             column_viz_context = viz_context.get("column_context") or ""
-            # Formats keyed only by executeQuery / SQL result column names.
-            result_format_strings = viz_context.get("format_strings") or {}
             result_field_names = {
                 str(name).strip()
                 for name in (viz_context.get("field_names") or [])
@@ -430,7 +425,6 @@ class ChartFiller:
                 "data_types": data_md,
                 "sample_row": json.dumps(sample_row, default=str),
                 "chart_function": chart_function,
-                "column_format_strings": column_format_strings,
                 "column_ai_instructions": column_ai_instructions,
                 "column_sort_orders": column_sort_orders,
                 "column_viz_context": column_viz_context,
@@ -489,72 +483,20 @@ class ChartFiller:
             # Formats come from a dedicated prompt — clear any accidental bleed.
             settings.measure_formats = {}
 
+            # Temporary: keep measure_formats empty until format injection is stable.
+            # Skip the formats LLM step for now.
             logger.info(
-                "ChartFiller formats fill viz_hint=%s measures=%s "
-                "format_strings_chars=%s",
+                "ChartFiller skipping formats fill (temporary empty) viz_hint=%s "
+                "measures=%s",
                 viz_hint,
                 settings.measures,
-                len(column_format_strings),
-            )
-            format_vars = [
-                "domain",
-                "topics",
-                "domain_context",
-                "sql",
-                "user_question",
-                "data_types",
-                "sample_row",
-                "chosen_settings",
-                "column_format_strings",
-                "column_ai_instructions",
-            ]
-            format_inputs = {
-                "domain": prompt_inputs["domain"],
-                "topics": prompt_inputs["topics"],
-                "domain_context": domain_context,
-                "sql": sql,
-                "user_question": user_query,
-                "data_types": data_md,
-                "sample_row": prompt_inputs["sample_row"],
-                "chosen_settings": json.dumps(
-                    settings.to_js_object(), default=str
-                ),
-                "column_format_strings": column_format_strings,
-                "column_ai_instructions": column_ai_instructions,
-            }
-            format_parser = PydanticOutputParser(
-                pydantic_object=ChartFormatResponse
-            )
-            format_prompt = PromptTemplate(
-                template=fill_formats_prompt_string + format_instruction_string,
-                input_variables=format_vars,
-                partial_variables={
-                    "format_instructions": format_parser.get_format_instructions()
-                },
-            )
-            format_response, _ = invoke_structured(
-                format_prompt,
-                llm,
-                format_parser,
-                format_inputs,
-                state=state,
-            )
-            settings.measure_formats = dict(
-                format_response.measure_formats or {}
-            )
-            settings = _filter_settings_formats(
-                settings,
-                result_field_names,
-                result_format_strings,
-                format_strings=state.get("format_strings") or {},
-                cube_metadata=state.get("cube_metadata") or [],
             )
 
             settings_response.settings = settings
             filled = apply_chart_settings(
                 settings,
                 chart_def=chart_def,
-                format_strings=result_format_strings,
+                format_strings={},
             )
             state["vf_string"] = transform_chart_code(filled)
             state["chart_settings"] = settings

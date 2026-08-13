@@ -145,6 +145,10 @@ public class DatasourceShareHandler {
 			org = shareUtils.getOrInsertOrganiation(mapper.map(org));
 			security.setOrgId(org);
 		}
+		
+		Object obj  = security.getCreatedBy();
+		User createdBy = shareUtils.resolveUser(obj);
+		security.setCreatedBy(createdBy);
 		globalConnectionService.addGlobalConnectionSecurity(security);
 	}
 	

@@ -20,6 +20,7 @@ public class LlmUsageAuditCsvExporterTest {
         HILlmUsageAudit audit = new HILlmUsageAudit();
         audit.setId(1L);
         audit.setUserId(1);
+        audit.setOrganizationId(10);
         audit.setEndpoint("/interactive");
         audit.setUserQuery("line1\nline2");
         audit.setInputTokens(10);
@@ -45,8 +46,9 @@ public class LlmUsageAuditCsvExporterTest {
             String content = new String(Files.readAllBytes(exportFile.toPath()), StandardCharsets.UTF_8);
             assertTrue(content.contains("\"id\""));
             assertTrue(content.contains("\"userId\""));
+            assertTrue(content.contains("\"organizationId\""));
             assertTrue(content.contains("\"line1\nline2\""));
-            assertTrue(content.contains("\"1\",\"1\",\"/interactive\""));
+            assertTrue(content.contains("\"1\",\"1\",\"10\",\"/interactive\""));
         } finally {
             exportFile.delete();
             exportDir.delete();
@@ -58,8 +60,10 @@ public class LlmUsageAuditCsvExporterTest {
         HILlmUsageAudit audit = new HILlmUsageAudit();
         audit.setId(99L);
         audit.setUserId(1);
+        audit.setOrganizationId(7);
         String[] row = LlmUsageAuditCsvExporter.toRow(audit);
         assertEquals("99", row[0]);
         assertEquals("1", row[1]);
+        assertEquals("7", row[2]);
     }
 }

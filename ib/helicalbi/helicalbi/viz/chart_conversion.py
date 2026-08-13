@@ -69,7 +69,6 @@ _FAMILY_BY_NAME: dict[str, str] = {
     "progress": "percent",
     "table": "table",
     "grid_table": "table",
-    "histogram": "other",
     "wordcloud": "other",
     "other": "other",
     "waterfall": "cartesian",
@@ -100,7 +99,6 @@ _COMPONENT_TO_CHART: dict[str, str] = {
     "Treemap": "treemap",
     "Sunburst": "sunburst",
     "Progress": "progress",
-    "Histogram": "histogram",
     "Table": "table",
     "TinyLine": "tiny_line",
     "TinyColumn": "tiny_column",
@@ -123,7 +121,7 @@ _FAMILY_REQUIREMENTS: dict[str, dict[str, int]] = {
     "percent": {"measures": 1},
     "kpi": {"measures": 1},
     "table": {},
-    # Catch-all: per-field required flags enforce specifics (histogram, wordcloud, …).
+    # Catch-all: per-field required flags enforce specifics (wordcloud, …).
     "other": {},
 }
 

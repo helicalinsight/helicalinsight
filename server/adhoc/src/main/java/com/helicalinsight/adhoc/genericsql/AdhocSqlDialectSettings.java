@@ -7,11 +7,17 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.utility.JsonUtils;
 
 /**
- * Reads {@code ansiGroupByDialects} from adhocSqlSettings.xml.
- * Handles both plain dialect strings and dialect elements with attributes
- * (Jackson XmlMapper uses {@code rollup} / {@code ""}; legacy XMLSerializer uses {@code @rollup} / {@code #text}).
+ * Dialect helpers for adhoc SQL.
+ * <ul>
+ *   <li>{@code ansiGroupByDialects} from {@code adhocSqlSettings.xml} — strict ANSI GROUP BY rules</li>
+ *   <li>{@code adhocRollupSettings.json} — rollup style by SqlFunctions reference
+ *       (same keys as {@code LimitOffsetAppender} / {@code sqlFunctionsXmlMapping.properties},
+ *       e.g. {@code mysql}, {@code oracle})</li>
+ * </ul>
  */
 final class AdhocSqlDialectSettings {
+
+    private static final String SYNTAX_WITH = "with";
 
     private AdhocSqlDialectSettings() {
     }
@@ -21,24 +27,35 @@ final class AdhocSqlDialectSettings {
      * (same intent as the original GroupByClause lookup).
      */
     static boolean isAnsiGroupByDialect(String dialect) {
-        return findDialectEntry(dialect) != null;
+        return findAnsiDialectEntry(dialect) != null;
     }
 
     /**
-     * True when the matching dialect entry has {@code rollup="true"}
-     * (ANSI {@code GROUP BY ROLLUP(...)}). Otherwise use non-ANSI {@code WITH ROLLUP}.
+     * True when rollup should use ANSI {@code GROUP BY ROLLUP(...)}.
+     * Looks up {@code reference} (e.g. mysql, oracle) in {@code adhocRollupSettings.json}.
+     * Defaults to ANSI when the reference is missing or {@code syntax} is not {@code with}.
      */
-    static boolean supportsAnsiRollup(String dialect) {
-        JsonElement entry = findDialectEntry(dialect);
-        if (entry == null || !entry.isJsonObject()) {
-            return false;
+    static boolean usesAnsiRollupSyntax(String reference) {
+        JsonObject entry = getRollupEntry(reference);
+        if (entry == null) {
+            return true;
         }
-        JsonObject dialectObject = entry.getAsJsonObject();
-        return GsonUtility.optBooleanValue(dialectObject, "rollup", false)
-                || GsonUtility.optBooleanValue(dialectObject, "@rollup", false);
+        String syntax = firstNonEmpty(entry, "syntax");
+        return !SYNTAX_WITH.equalsIgnoreCase(syntax);
     }
 
-    private static JsonElement findDialectEntry(String dialect) {
+    private static JsonObject getRollupEntry(String reference) {
+        if (reference == null || reference.isEmpty()) {
+            return null;
+        }
+        JsonObject settings = JsonUtils.getAdhocRollupSettings();
+        if (settings == null || !settings.has(reference) || !settings.get(reference).isJsonObject()) {
+            return null;
+        }
+        return settings.getAsJsonObject(reference);
+    }
+
+    private static JsonElement findAnsiDialectEntry(String dialect) {
         if (dialect == null) {
             return null;
         }
@@ -90,10 +107,6 @@ final class AdhocSqlDialectSettings {
             return name;
         }
         for (java.util.Map.Entry<String, JsonElement> entry : dialectObject.entrySet()) {
-            String key = entry.getKey();
-            if ("rollup".equals(key) || "@rollup".equals(key)) {
-                continue;
-            }
             JsonElement value = entry.getValue();
             if (value != null && value.isJsonPrimitive()) {
                 String candidate = value.getAsString();
