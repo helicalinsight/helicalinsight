@@ -53,9 +53,7 @@ def register(flask_app) -> None:
             try:
                 md_file_name = helper.get_metadata_layerfile()
                 md_location = helper.get_metadata_layerlocation()
-                metadata_response = app().get_json_data_metadata(
-                    session_cookie, md_file_name, md_location
-                )
+                metadata_response = helper.get_metadata()
                 if is_cube_info_model(model_data):
                     cube_info_prepared = prepare_cube_info_model_data(
                         model_data,

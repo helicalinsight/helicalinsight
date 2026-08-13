@@ -65,6 +65,7 @@ class ModelLayerHelper:
         form_data = {
             "dir": self.location,
             "file": self.model_file_name,
+            "provideMetadata": True,
         }
         payload_json = {
             "type": "instantbi",
@@ -83,6 +84,23 @@ class ModelLayerHelper:
 
     def get_metadata_layerfile(self):
         return self.model_data["data"]["metadata"]["metadataFileName"]
+
+    def get_metadata(self) -> dict:
+        """Full metadata payload embedded by getAiAgentForEdit when provideMetadata=true."""
+        metadata = ((self.model_data or {}).get("data") or {}).get("metadata") or {}
+        payload = metadata.get("data")
+        if not isinstance(payload, dict):
+            raise RuntimeError(
+                "Agent load response did not include metadata.data; "
+                "ensure provideMetadata is supported by the service."
+            )
+        # Prefer nested databaseName; fall back to sibling field on metadata ref.
+        if not payload.get("databaseName") and metadata.get("databaseName"):
+            payload = {**payload, "databaseName": metadata["databaseName"]}
+        # Joins may be omitted from agent-load metadata; callers expect a list.
+        if "joins" not in payload:
+            payload = {**payload, "joins": []}
+        return payload
 
     def get_model_description(self) -> str:
         """Resource-level model description from getAiAgentForEdit (outside state)."""

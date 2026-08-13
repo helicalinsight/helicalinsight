@@ -167,48 +167,50 @@ python -m pytest \
 
 ## Jenkins CI/CD
 
-Use the checked-in pipeline script:
+Preferred job on the HI Jenkins controller: **Dev InstantBI Testcase** (same pattern as **Dev JUnit Testcase**).
 
-- Declarative pipeline: [`ci/Jenkinsfile.helicalbi-tests`](../ci/Jenkinsfile.helicalbi-tests)
-- Shell entrypoint used by the pipeline: [`scripts/run_tests_with_report.sh`](../scripts/run_tests_with_report.sh)
+Checked-in scripts:
 
-### Freestyle job (quick setup)
+- [`cicd/jenkins/InstantBITests/pipeline.groovy`](../../../cicd/jenkins/InstantBITests/pipeline.groovy)
+- [`ci/Jenkinsfile.helicalbi-tests`](../ci/Jenkinsfile.helicalbi-tests) (same pipeline under InstantBI)
+- Shell entrypoint: [`scripts/run_tests_with_report.sh`](../scripts/run_tests_with_report.sh)
 
-1. **Source**: checkout into `HI7SourceCode` (or your SCM root).
-2. **Build → Execute shell**:
+Flow (matches HI7EndToEnd InstantBI obfuscation via `pyflask`):
 
-   ```bash
-   bash "$WORKSPACE/ib/helicalbi/scripts/run_tests_with_report.sh" --skip-llm
-   ```
+1. `build job: 'HI7SourceCode'`
+2. `cd .../HI7SourceCode/ib && docker compose up -d pyflask`
+3. `docker compose exec -T pyflask bash scripts/run_tests_with_report.sh --no-venv --skip-llm`
+4. Publish `ib/helicalbi/reports/junit.xml` + archive reports/htmlcov
+5. `docker compose down`
 
-3. **Post-build**:
-   - **Publish JUnit**: `ib/helicalbi/reports/junit.xml`
-   - **Cobertura / Coverage**: `ib/helicalbi/reports/coverage.xml`
-   - **Archive**: `ib/helicalbi/reports/**`, `ib/helicalbi/htmlcov/**`
+Obfuscation reference (HI7EndToEnd):
 
-### Pipeline job
-
-Point the job at `ci/Jenkinsfile.helicalbi-tests` (or copy its `pipeline { ... }` into your existing HI7 Jenkinsfile as a stage named `HelicalBI Tests`).
-
-Default agent path assumptions:
-
-```groovy
-environment {
-  WORKSPACE_ROOT = '/home/helical/.jenkins/workspace/HI7SourceCode'
-  HELICALBI_ROOT = "${WORKSPACE_ROOT}/ib/helicalbi"
-}
+```bash
+cd /home/helical/.jenkins/workspace/HI7SourceCode/ib
+docker compose up -d pyflask
+docker compose exec -T pyflask sh -c '
+  python /app/scripts/obfuscate_instantbi.py --src /app --out /dist/instantbi --install-deps
+'
 ```
 
-Override `HELICALBI_ROOT` if InstantBI lives elsewhere under the same workspace.
+### Freestyle / host-shell fallback
 
-### Credentials (live LLM only)
+```bash
+bash /home/helical/.jenkins/workspace/HI7SourceCode/ib/helicalbi/scripts/run_tests_with_report.sh --skip-llm
+```
 
-Do **not** commit API keys or session cookies. For live runs:
+### Credentials / host config (live LLM only)
 
-| Secret | Jenkins binding | Env var |
-|--------|-----------------|---------|
-| OpenAI API key | Secret text | `OPENAI_API_KEY` |
-| Optional session cookie | Secret text | `HELICALBI_TEST_SESSION_COOKIE` |
+Do **not** commit API keys, session cookies, or environment host IPs in InstantBI source.
+Configure them on the Jenkins job (parameters / credentials) and pass into pyflask:
+
+| Setting | Jenkins | Env var |
+|---------|---------|---------|
+| hi-ee base URL | Job param `HELICALBI_TEST_BASE_URL` | `HELICALBI_TEST_BASE_URL` |
+| Model dir/file | Job params `HELICALBI_TEST_MODEL_*` | same names |
+| Metadata dir/file | Job params `HELICALBI_TEST_METADATA_*` | same names |
+| OpenAI API key | Secret text credential | `OPENAI_API_KEY` / `HELICALBI_TEST_OPENAI_API_KEY` |
+| Session cookie | Secret text credential | `HELICALBI_TEST_SESSION_COOKIE` |
 
 Keep CI default as `HELICALBI_LLM_MODE=stub` and `-m "not llm"` unless a dedicated night job needs live evaluation.
 

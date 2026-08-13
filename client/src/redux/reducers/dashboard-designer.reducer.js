@@ -1038,6 +1038,15 @@ const designerReducer = (
       })
     }
 
+    case actionTypes.UPDATE_DASHBOARD_STATE_THROUGH_EDITOR: {
+      return produce(state, (draft) => {
+        const designerState = action.payload;
+        for (let key in draft) {
+          draft[key] = designerState[key] ?? draft[key];
+        }
+      })
+    }
+
     default:
       return state;
   }

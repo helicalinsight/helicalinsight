@@ -126,3 +126,40 @@
   margin-left: 8px;
   white-space: nowrap;
 }
+
+.system-schedule-drawer {
+  .system-schedule-form {
+    .ui-form-generator-section__body {
+      padding-left: 0;
+      border-left: none;
+    }
+
+    &.ant-form-horizontal {
+      .ant-form-item-row {
+        flex-wrap: nowrap;
+        align-items: center;
+      }
+
+      .ant-form-item-label {
+        padding-bottom: 0;
+        padding-right: 8px;
+
+        > label {
+          height: auto;
+          white-space: normal;
+        }
+      }
+
+      .ui-form-item--tick-inline {
+        .ant-form-item-label {
+          flex: 0 0 140px;
+          max-width: 140px;
+        }
+
+        .ant-form-item-control {
+          margin-left: 0;
+        }
+      }
+    }
+  }
+}

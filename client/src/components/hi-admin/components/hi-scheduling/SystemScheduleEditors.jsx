@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Form, Input } from "antd";
+import { cloneDeep } from "lodash";
 import {
   UiFormDrawer,
+  UiFormGenerator,
   buildInitialValuesFromLayout,
   getNestedValue,
 } from "../../../common/ui-generator";
@@ -11,6 +13,45 @@ import {
   runSystemScheduleAction,
   toLayoutContentId,
 } from "./system-schedule.utils";
+
+const CRON_HELP =
+  "Quartz cron with 6 fields: second minute hour day-of-month month day-of-week.\n\n" +
+  "Examples:\n" +
+  "• 0 0 12 * * ? — every day at noon\n" +
+  "• 0 0/5 * * * ? — every 5 minutes\n" +
+  "• 0 0 9 ? * MON-FRI — weekdays at 09:00\n" +
+  "• 0 0 0 1 * ? — first day of each month at midnight\n\n" +
+  "Special characters: * any, ? no specific value, - range, / increment, , list.";
+
+const EXPIRE_DATE_HELP =
+  "Allowed values:\n" +
+  "• never — the schedule does not expire\n" +
+  "• yyyy-MM-dd'T'HH:mm:ss — expire at a specific date and time, for example 2026-12-31T23:59:59";
+
+const FIELD_HELP = {
+  id: "Unique identifier for this system schedule.",
+  enabled: "When ticked, this schedule is active and can run.",
+  paused: "When ticked, the schedule is kept but will not run until resumed.",
+  expireDate: EXPIRE_DATE_HELP,
+  cron: CRON_HELP,
+  scheduledTime: "Time of day in HH:mm:ss, for example 09:30:00.",
+  timeZone: "Optional time zone ID, for example Asia/Kolkata. Leave blank to use the server default.",
+  "task.class": "Fully qualified Java class that implements the scheduled task.",
+  "task.script": "Groovy script file name, for example cleanup.groovy.",
+  "task.function": "Method to invoke in the Groovy script. Defaults to execute.",
+};
+
+const TASK_TYPE_FIELD = {
+  name: "taskType",
+  label: "Task type",
+  type: "radio",
+  span: 24,
+  options: [
+    { label: "Java", value: "java" },
+    { label: "Groovy", value: "groovy" },
+  ],
+  description: "Choose whether this schedule runs a Java class or a Groovy script.",
+};
 
 const NEW_SCHEDULE_TEMPLATE = {
   id: "",
@@ -35,15 +76,35 @@ const FALLBACK_LAYOUT = {
   id: "system-schedule.default",
   title: "System Schedule",
   description: "Configure identity, timing, task, and email notification",
-  width: 860,
+  width: 720,
   sections: [
     {
       key: "identity",
       title: "Identity",
       fields: [
-        { name: "id", label: "Schedule Id", type: "text", required: true, readOnlyOnEdit: true, span: 24 },
-        { name: "enabled", label: "Enabled", type: "boolean", span: 12 },
-        { name: "paused", label: "Paused", type: "boolean", span: 12 },
+        {
+          name: "id",
+          label: "Schedule ID",
+          type: "text",
+          required: true,
+          readOnlyOnEdit: true,
+          span: 24,
+          description: FIELD_HELP.id,
+        },
+        {
+          name: "enabled",
+          label: "Enabled",
+          type: "boolean",
+          span: 12,
+          description: FIELD_HELP.enabled,
+        },
+        {
+          name: "paused",
+          label: "Paused",
+          type: "boolean",
+          span: 12,
+          description: FIELD_HELP.paused,
+        },
       ],
     },
     {
@@ -52,34 +113,169 @@ const FALLBACK_LAYOUT = {
       fields: [
         {
           name: "expireDate",
-          label: "Expire Date",
+          label: "Expire date",
           type: "text",
           span: 12,
-          placeholder: "never or yyyy-MM-dd'T'HH:mm:ss",
+          placeholder: "never or 2026-12-31T23:59:59",
+          description: FIELD_HELP.expireDate,
         },
-        { name: "scheduledTime", label: "Scheduled Time", type: "text", span: 12, placeholder: "HH:mm:ss" },
-        { name: "cron", label: "Cron Expression", type: "text", span: 16 },
-        { name: "timeZone", label: "Time Zone", type: "text", span: 8 },
+        {
+          name: "scheduledTime",
+          label: "Scheduled time",
+          type: "text",
+          span: 12,
+          placeholder: "HH:mm:ss",
+          description: FIELD_HELP.scheduledTime,
+        },
+        {
+          name: "cron",
+          label: "Cron expression",
+          type: "text",
+          span: 16,
+          placeholder: "0 0 12 * * ?",
+          description: FIELD_HELP.cron,
+        },
+        {
+          name: "timeZone",
+          label: "Time zone",
+          type: "text",
+          span: 8,
+          placeholder: "Asia/Kolkata",
+          description: FIELD_HELP.timeZone,
+        },
       ],
     },
     {
       key: "task",
       title: "Task",
       fields: [
-        { name: "task.class", label: "Java Class", type: "text", span: 24 },
-        { name: "task.script", label: "Groovy Script", type: "text", span: 16 },
-        { name: "task.function", label: "Function", type: "text", span: 8 },
+        TASK_TYPE_FIELD,
+        {
+          name: "task.class",
+          label: "Java class",
+          type: "text",
+          span: 24,
+          placeholder: "com.example.MyTask",
+          description: FIELD_HELP["task.class"],
+          visibleWhen: { field: "taskType", equals: "java" },
+        },
+        {
+          name: "task.script",
+          label: "Groovy script",
+          type: "text",
+          span: 16,
+          placeholder: "cleanup.groovy",
+          description: FIELD_HELP["task.script"],
+          visibleWhen: { field: "taskType", equals: "groovy" },
+        },
+        {
+          name: "task.function",
+          label: "Function",
+          type: "text",
+          span: 8,
+          placeholder: "execute",
+          description: FIELD_HELP["task.function"],
+          visibleWhen: { field: "taskType", equals: "groovy" },
+        },
       ],
     },
     {
       key: "email",
-      title: "Email Notification",
+      title: "Email notification",
       fields: [
-        { name: "email.enabled", label: "Send Email", type: "boolean", span: 8 },
-        { name: "email.to", label: "To", type: "text", span: 16, placeholder: "blank = systemadmin" },
+        {
+          name: "email.enabled",
+          label: "Send email",
+          type: "boolean",
+          span: 8,
+          description: "When ticked, an email is sent after the schedule runs.",
+        },
+        {
+          name: "email.to",
+          label: "To",
+          type: "text",
+          span: 16,
+          placeholder: "Leave blank to use systemadmin",
+        },
       ],
     },
   ],
+};
+
+const enhanceSystemScheduleLayout = (layout) => {
+  const next = cloneDeep(layout && layout.sections ? layout : FALLBACK_LAYOUT);
+  const walk = (sections = []) => {
+    sections.forEach((section) => {
+      const key = String(section.key || section.title || "").toLowerCase();
+      if (key === "task") {
+        const extras = (section.fields || []).filter((field) => {
+          const name = field?.name;
+          return (
+            name &&
+            name !== "taskType" &&
+            name !== "task.class" &&
+            name !== "task.script" &&
+            name !== "task.function"
+          );
+        });
+        const classField = (section.fields || []).find((field) => field.name === "task.class");
+        const scriptField = (section.fields || []).find((field) => field.name === "task.script");
+        const functionField = (section.fields || []).find(
+          (field) => field.name === "task.function"
+        );
+        section.fields = [
+          TASK_TYPE_FIELD,
+          {
+            ...(classField || {}),
+            name: "task.class",
+            label: classField?.label || "Java class",
+            type: classField?.type || "text",
+            span: 24,
+            placeholder: classField?.placeholder || "com.example.MyTask",
+            description: classField?.description || FIELD_HELP["task.class"],
+            visibleWhen: { field: "taskType", equals: "java" },
+          },
+          {
+            ...(scriptField || {}),
+            name: "task.script",
+            label: scriptField?.label || "Groovy script",
+            type: scriptField?.type || "text",
+            span: 16,
+            placeholder: scriptField?.placeholder || "cleanup.groovy",
+            description: scriptField?.description || FIELD_HELP["task.script"],
+            visibleWhen: { field: "taskType", equals: "groovy" },
+          },
+          {
+            ...(functionField || {}),
+            name: "task.function",
+            label: functionField?.label || "Function",
+            type: functionField?.type || "text",
+            span: 8,
+            placeholder: functionField?.placeholder || "execute",
+            description: functionField?.description || FIELD_HELP["task.function"],
+            visibleWhen: { field: "taskType", equals: "groovy" },
+          },
+          ...extras,
+        ];
+      }
+      (section.fields || []).forEach((field) => {
+        if (FIELD_HELP[field.name] && !field.description && !field.help) {
+          field.description = FIELD_HELP[field.name];
+        }
+        if (field.name === "cron" && !field.placeholder) {
+          field.placeholder = "0 0 12 * * ?";
+        }
+        if (field.name === "expireDate" && !field.placeholder) {
+          field.placeholder = "never or 2026-12-31T23:59:59";
+        }
+      });
+      if (Array.isArray(section.sections) && section.sections.length) {
+        walk(section.sections);
+      }
+    });
+  };
+  walk(next.sections || []);
+  return next;
 };
 
 const buildScheduleInitialValues = (record, isAdd, layout) => {
@@ -124,6 +320,9 @@ const buildScheduleInitialValues = (record, isAdd, layout) => {
   if (initial["task.function"] === undefined) {
     initial["task.function"] = getNestedValue(source, "task.function") || "execute";
   }
+  if (!initial.taskType) {
+    initial.taskType = initial["task.class"] ? "java" : "groovy";
+  }
 
   return initial;
 };
@@ -144,10 +343,11 @@ const valuesToSchedule = (values, selectedRecord, isAdd, layoutId) => {
       to: values["email.to"] || "",
     },
   };
-  if (values["task.class"]) {
-    schedule.task.class = values["task.class"];
-  }
-  if (values["task.script"]) {
+  if (values.taskType === "java") {
+    if (values["task.class"]) {
+      schedule.task.class = values["task.class"];
+    }
+  } else if (values["task.script"]) {
     schedule.task.script = values["task.script"];
     schedule.task.function = values["task.function"] || "execute";
   }
@@ -163,6 +363,7 @@ const valuesToSchedule = (values, selectedRecord, isAdd, layoutId) => {
     "task.class",
     "task.script",
     "task.function",
+    "taskType",
     "email.enabled",
     "email.to",
   ]);
@@ -200,7 +401,9 @@ export const useSystemScheduleEditors = ({ dispatch, Notify, onSaved }) => {
   const [jsonContent, setJsonContent] = useState("[]");
 
   const applyLayoutAndOpen = (layout, record, addMode) => {
-    const resolved = layout && layout.sections ? layout : FALLBACK_LAYOUT;
+    const resolved = enhanceSystemScheduleLayout(
+      layout && layout.sections ? layout : FALLBACK_LAYOUT
+    );
     setFormLayout(resolved);
     setLayoutId(
       toLayoutContentId(
@@ -289,9 +492,6 @@ export const useSystemScheduleEditors = ({ dispatch, Notify, onSaved }) => {
         onSuccess: (res) => {
           setSaving(false);
           setEditVisible(false);
-          if (res?.message) {
-            Notify.success({ type: "System Schedule", message: res.message });
-          }
           onSaved?.();
         },
         onError: () => setSaving(false),
@@ -312,9 +512,6 @@ export const useSystemScheduleEditors = ({ dispatch, Notify, onSaved }) => {
       onSuccess: (res) => {
         setSaving(false);
         setScriptVisible(false);
-        if (res?.message) {
-          Notify.success({ type: "System Schedule", message: res.message });
-        }
         onSaved?.();
       },
       onError: () => setSaving(false),
@@ -329,9 +526,6 @@ export const useSystemScheduleEditors = ({ dispatch, Notify, onSaved }) => {
       onSuccess: (res) => {
         setSaving(false);
         setJsonVisible(false);
-        if (res?.message) {
-          Notify.success({ type: "System Schedule", message: res.message });
-        }
         onSaved?.();
       },
       onError: () => setSaving(false),
@@ -359,7 +553,22 @@ export const useSystemScheduleEditors = ({ dispatch, Notify, onSaved }) => {
         form={form}
         isAdd={isAdd}
         className="my-drawer system-schedule-drawer"
-      />
+      >
+        <UiFormGenerator
+          form={form}
+          layout={formLayout}
+          isAdd={isAdd}
+          dense
+          className="system-schedule-form"
+          formProps={{
+            layout: "horizontal",
+            labelAlign: "left",
+            colon: false,
+            labelCol: { flex: "140px" },
+            wrapperCol: { flex: 1 },
+          }}
+        />
+      </UiFormDrawer>
 
       <UiFormDrawer
         visible={scriptVisible}

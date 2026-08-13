@@ -1,17 +1,24 @@
 package com.helicalinsight.export.unit;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 
+import com.google.gson.JsonObject;
 import com.helicalinsight.admin.dto.OrganizationDTO;
 import com.helicalinsight.admin.dto.ProfileDTO;
 import com.helicalinsight.admin.dto.RoleDTO;
@@ -25,6 +32,7 @@ import com.helicalinsight.admin.service.ProfileService;
 import com.helicalinsight.admin.service.RoleService;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
+import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.export.utils.ResourceShareUtils;
 import com.helicalinsight.resourcedb.Deleted;
 
@@ -183,6 +191,169 @@ public class ResourceShareUtilsTest extends ExportUnitTestBase {
 		User fromDb = new User();
 		utils.updateUser(fromFile, fromDb);
 		Assert.assertEquals("a@b.com", fromDb.getEmailAddress());
+	}
+
+	@Test
+	public void ut_c1_testResolveUserWithUsername() throws Exception {
+		ResourceShareUtils utils = spy(createUtilsWithMocks());
+		ResourceDTOMapper mapper = getField(utils, "mapper", ResourceDTOMapper.class);
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User input = new User();
+		input.setUsername("alice");
+		UserDTO dto = new UserDTO();
+		dto.setUsername("alice");
+		when(mapper.map(input)).thenReturn(dto);
+
+		User inserted = new User();
+		inserted.setUsername("alice");
+		doReturn(inserted).when(utils).getOrInsertUser(dto);
+
+		Assert.assertEquals(inserted, utils.resolveUser(input));
+		verify(userService, never()).findUser(anyInt());
+	}
+
+	@Test
+	public void ut_c2_testResolveUserWithNullUsernameFallsBackToDefaultOwner() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User input = new User();
+		User defaultOwner = new User();
+		defaultOwner.setId(5);
+		defaultOwner.setUsername("owner");
+
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "5");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			when(userService.findUser(5)).thenReturn(defaultOwner);
+			Assert.assertEquals(defaultOwner, utils.resolveUser(input));
+		}
+	}
+
+	@Test
+	public void ut_c3_testResolveUserNonNumericStringFallsBackToDefaultOwner() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User defaultOwner = new User();
+		defaultOwner.setId(7);
+		defaultOwner.setUsername("owner");
+
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "7");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			when(userService.findUser(7)).thenReturn(defaultOwner);
+			Assert.assertEquals(defaultOwner, utils.resolveUser("not-a-user"));
+		}
+	}
+
+	@Test
+	public void ut_c9_testResolveUserNumericStringId() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User existing = new User();
+		existing.setId(12);
+		existing.setUsername("owner");
+		when(userService.findUser(12)).thenReturn(existing);
+
+		Assert.assertEquals(existing, utils.resolveUser("12"));
+	}
+
+	@Test
+	public void ut_c10_testResolveUserNumericStringIdNotFoundFallsBack() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User defaultOwner = new User();
+		defaultOwner.setId(1);
+		defaultOwner.setUsername("default");
+
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "1");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			when(userService.findUser(42)).thenReturn(null);
+			when(userService.findUser(1)).thenReturn(defaultOwner);
+			Assert.assertEquals(defaultOwner, utils.resolveUser("42"));
+		}
+	}
+
+	@Test
+	public void ut_c4_testResolveUserNullFallsBackToDefaultOwner() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		User defaultOwner = new User();
+		defaultOwner.setId(3);
+		defaultOwner.setUsername("owner");
+
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "3");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			when(userService.findUser(3)).thenReturn(defaultOwner);
+			Assert.assertEquals(defaultOwner, utils.resolveUser(null));
+		}
+	}
+
+	@Test
+	public void ut_c5_testResolveUserBlankDefaultOwnerIdReturnsNull() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "  ");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			Assert.assertNull(utils.resolveUser(null));
+		}
+	}
+
+	@Test
+	public void ut_c6_testResolveUserNullStringDefaultOwnerIdReturnsNull() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "null");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			Assert.assertNull(utils.resolveUser(null));
+			verify(userService, never()).findUser(anyInt());
+		}
+	}
+
+	@Test
+	public void ut_c7_testResolveUserDefaultOwnerNotFoundReturnsNull() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+		JsonObject settings = new JsonObject();
+		settings.addProperty("defaultOwnerId", "99");
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+			when(userService.findUser(99)).thenReturn(null);
+			Assert.assertNull(utils.resolveUser(null));
+		}
+	}
+
+	@Test
+	public void ut_c8_testResolveUserMissingDefaultOwnerIdReturnsNull() throws Exception {
+		ResourceShareUtils utils = createUtilsWithMocks();
+		UserService userService = getField(utils, "userService", UserService.class);
+
+		try (MockedStatic<JsonUtils> json = mockStatic(JsonUtils.class)) {
+			json.when(JsonUtils::newGetSettingsJson).thenReturn(new JsonObject());
+			Assert.assertNull(utils.resolveUser(null));
+			verify(userService, never()).findUser(anyInt());
+		}
 	}
 
 	@SuppressWarnings("unchecked")

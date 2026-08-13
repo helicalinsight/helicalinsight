@@ -3,6 +3,7 @@ import {
   BgColorsOutlined,
   ConsoleSqlOutlined,
   EditOutlined,
+  FileTextOutlined,
   FunnelPlotOutlined,
   SettingOutlined,
   ToolOutlined
@@ -17,6 +18,7 @@ import TutorialInfo from "../../common/hi-tutorial";
 import { checkIfDrillThrough } from "../hi-viz-area/utils/utillities";
 import CodeEditor from "./components/editor/editor";
 import Filters from "./components/filters/filters";
+import HrJsonEditor from "./components/json/hr-json-editor";
 import HrPropertiesWrapper from "./components/properties/properties-wrapper";
 import Settings from "./components/settings/settings";
 import SqlEditor from "./components/sql/sql";
@@ -81,6 +83,14 @@ let editingOptions = [
     display: "Properties",
     icon: <SettingOutlined />,
     scText: "P",
+    scLocation: "HR"
+  },
+  {
+    id: "8",
+    elementKey: "hr-json",
+    display: "JSON",
+    icon: <FileTextOutlined />,
+    scText: "J",
     scLocation: "HR"
   },
 ];
@@ -200,6 +210,9 @@ const EditingArea = (props) => {
               />
             )}
             {activeTool === "7" && <HrPropertiesWrapper dataId={reportData?.dataId} loading={reportData?.loading} />}
+            {activeTool === "8" && (
+              <HrJsonEditor reportId={reportId} getApi={props.getApi} />
+            )}
           </div>
         </ErrorFallback>
       </div>

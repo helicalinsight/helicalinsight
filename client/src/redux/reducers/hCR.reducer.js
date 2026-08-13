@@ -105,16 +105,6 @@ export const hcrTabInitialState = {
             options: [],
             keyValuePairs: {
                 id: uuidv4(),
-                // name: '',
-                // className: '',
-                // calculation: '',
-                // resetType: '',
-                // resetGroup: '',
-                // increment: '',
-                // incrementGroup: '',
-                // expression: '',
-                // initialValueExp: '',
-                // incrementFactoryClassName: ''
             },
         },
         previewParameters: {
@@ -129,38 +119,9 @@ export const hcrTabInitialState = {
             selectStyles: '',
             options: [],
             keyValuePairs: {
-                // id : uuidv4(),
-                // styleName: '',
-                // fontFamily:'Aharoni',
-                // fontSize: 12,
-                // mode: 'Transparent',
-                // fontFill: '#000000',
-                // fill: '#ffffff',
-                // bold: false,
-                // italic: false,
-                // underLine: false,
-                // strikeThrough: false,
-                // horizontalAlign: 'center',
-                // verticalAlign: 'middle',
-                // rotation: 'None',
-                // markUp: 'none',
-                // blankWhenNull: false,
-                // defaultStyle: false,
-                // pattern: '',
-                borders: {
-                    // stroke: 1, style: 'SOLID', color: '#000000'
-                    // Top: {  },
-                    // Bottom: {  },
-                    // Right: {  },
-                    // Left: { },
-                },
-                padding: {
-                    // Top: 0,
-                    // Bottom: 0,
-                    // Right: 0,
-                    // Left: 0,
-                },
-                lineStyles: {}, // stroke: 1, style: 'SOLID', color: '#000000'
+                borders: {},
+                padding: {},
+                lineStyles: {}, 
             },
         },
     },
@@ -2282,6 +2243,22 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 }
             });
         }
+
+        case actionTypes.HCR_UPDATE_REPORT_STATE_THROUGH_EDITOR: {
+            const { key } = action.payload || {}
+            return produce(state, (draft) => {
+                let reqPane = getReqPaneByKey(draft, key);
+                if (!reqPane) {
+                    reqPane = getReqPane(draft);
+                }
+                if (reqPane) {
+                    for (let key in reqPane) {
+                        reqPane[key] = action.payload[key] ?? reqPane[key]
+                    }
+                }
+            });
+        }
+
         // case NEW_CONFIGURATION:
         // 	return { ...state, propertyPaneData: { ...state.propertyPaneData, newConfiguration: action.payload } };
         // case HCR_GROUPS:

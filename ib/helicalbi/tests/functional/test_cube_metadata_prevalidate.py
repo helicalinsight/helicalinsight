@@ -70,7 +70,8 @@ class TestPrevalidateCubeMetadata:
         result = prevalidate_cube_metadata(cube_metadata, _METADATA_API_RESPONSE)
         orders = result[0]
         assert orders["table_alias"] == "ord"
-        assert orders["columns"][0]["alias_name"] == "oid"
+        # Model-provided aliases are preserved; metadata API fills gaps only.
+        assert orders["columns"][0]["alias_name"] == "legacy_oid"
 
     def test_falls_back_to_metadata_api_when_model_cube_empty(self):
         result = prevalidate_cube_metadata([], _METADATA_API_RESPONSE)

@@ -216,8 +216,8 @@
             <getReportForEdit class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
             <getReport class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation"/>
             <saveAiAgent class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" />
-            <getAiAgentForEdit class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" />
-            <getAgent class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" />
+            <getAiAgentForEdit class="com.helicalinsight.adhoc.services.VisualizationService" />
+            <getAgent class="com.helicalinsight.adhoc.services.VisualizationService" />
             <generateAgent class="com.helicalinsight.efw.serviceframework.GenericServiceImplementation" />
         </instant>
 

@@ -1,56 +1,15 @@
-import React, { useCallback, useRef } from "react";
-import {
-  CopyOutlined,
-  SaveOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import { MonacoJsonEditor } from "../../../../common/json-editor";
-import { ToolbarIconButton } from "../../../../common/toolbar-icon-button";
+import React from "react";
+import { JsonEditorPanel } from "../../../../common/json-editor";
 
-export function AgentJsonPanel({
-  value = "",
-  onChange,
-  onSave,
-  onCopy,
-  hasUnsavedChanges = false,
-}) {
-  const editorRef = useRef(null);
-  const handleFindReplace = useCallback(() => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    editor.focus();
-    editor.getAction("editor.action.startFindReplaceAction")?.run();
-  }, []);
-
+export function AgentJsonPanel(props) {
   return (
-    <div className="agent-json-panel">
-      <div className="cube-business-view-toolbar agent-json-toolbar">
-        <ToolbarIconButton
-          title="Find & Replace"
-          onClick={handleFindReplace}
-        >
-          <SearchOutlined className="cube-add-metric-icon" />
-        </ToolbarIconButton>
-        <ToolbarIconButton title="Copy JSON" onClick={onCopy}>
-          <CopyOutlined className="cube-add-metric-icon" />
-        </ToolbarIconButton>
-        <ToolbarIconButton
-          title="Save JSON"
-          onClick={onSave}
-          disabled={!hasUnsavedChanges}
-          showIndicator={hasUnsavedChanges}
-        >
-          <SaveOutlined className="cube-add-metric-icon" />
-        </ToolbarIconButton>
-      </div>
-      <MonacoJsonEditor
-        value={value}
-        onChange={onChange}
-        isActive
-        editorRef={editorRef}
-        className="monaco-json-editor ai-agent-json-editor"
-      />
-    </div>
+    <JsonEditorPanel
+      className="json-editor-panel agent-json-panel"
+      toolbarClassName="json-editor-panel-toolbar agent-json-toolbar"
+      editorClassName="monaco-json-editor ai-agent-json-editor"
+      iconClassName="cube-add-metric-icon"
+      {...props}
+    />
   );
 }
 

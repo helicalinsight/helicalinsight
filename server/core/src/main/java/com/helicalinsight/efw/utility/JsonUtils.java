@@ -829,6 +829,22 @@ public class JsonUtils {
         final IProcessor processor = ResourceProcessorFactory.getIProcessor();
         return processor.getJsonObject(settingPath, false);
     }
+
+    /**
+     * Rollup style settings keyed by SqlFunctions reference name (mysql, oracle, …).
+     * File: {@code Admin/adhocRollupSettings.json}.
+     */
+    public static JsonObject getAdhocRollupSettings() {
+        final String settingPath = ApplicationProperties.getInstance().getSystemDirectory() + File.separator +
+                "Admin" + File.separator + "adhocRollupSettings.json";
+        File file = new File(settingPath);
+        if (!file.exists()) {
+            return null;
+        }
+        final IProcessor processor = ResourceProcessorFactory.getIProcessor();
+        return processor.getJsonObject(settingPath, false);
+    }
+
     public static String defaultDriverClassName() {
         JSONObject adhocSqlSettings = getAdhocSqlSettings();
         if (!adhocSqlSettings.has("defaultDriverClassName")) {

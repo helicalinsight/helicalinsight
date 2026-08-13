@@ -1,4 +1,4 @@
-import { AutoComplete, Input, InputNumber, Select, Switch } from "antd";
+import { AutoComplete, Input, InputNumber, Radio, Select, Switch } from "antd";
 import { CheckCircleFilled, CheckCircleOutlined } from "@ant-design/icons";
 import { isFieldReadOnly } from "./layoutUtils";
 
@@ -43,10 +43,10 @@ export const renderFieldControl = (field, { isAdd = false } = {}) => {
   switch (field.type) {
     case "boolean":
     case "switch":
-      if (field.control === "tick" || field.appearance === "tick") {
-        return <TickToggle disabled={commonProps.disabled} />;
+      if (field.control === "switch" || field.appearance === "switch") {
+        return <Switch disabled={commonProps.disabled} />;
       }
-      return <Switch disabled={commonProps.disabled} />;
+      return <TickToggle disabled={commonProps.disabled} />;
     case "number":
       return (
         <InputNumber
@@ -97,6 +97,15 @@ export const renderFieldControl = (field, { isAdd = false } = {}) => {
           mode={field.mode}
           showSearch={field.showSearch}
           optionFilterProp={field.optionFilterProp || "label"}
+        />
+      );
+    case "radio":
+      return (
+        <Radio.Group
+          disabled={commonProps.disabled}
+          options={field.options || []}
+          optionType={field.optionType || "button"}
+          buttonStyle={field.buttonStyle || "solid"}
         />
       );
     case "password":

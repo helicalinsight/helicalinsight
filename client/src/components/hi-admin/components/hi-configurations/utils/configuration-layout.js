@@ -1,5 +1,10 @@
 import { CONFIG_TYPES } from "./config-tree-utils";
-import { normalizeLayoutEntry } from "../../../../common/ui-generator";
+import {
+  normalizeLayoutEntry,
+  toSentenceCaseLabel,
+} from "../../../../common/ui-generator";
+
+export { toSentenceCaseLabel };
 
 export const CONFIGURATION_LAYOUT_CONTENT_ID =
   "Static/layout/configuration/configuration.ui.layout";

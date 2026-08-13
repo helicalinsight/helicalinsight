@@ -27,7 +27,7 @@ def test_polish_llm_failure_preserves_existing_insight(monkeypatch):
                 "filters": [],
                 "hidden": [],
             },
-            "chart": {"viz": "Bar", "mark": "bar"},
+            "chart": {"viz": "Bar", "mark": "Chart"},
             "properties": {"title": "Sales by City"},
         },
     }

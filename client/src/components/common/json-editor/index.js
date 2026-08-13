@@ -15,3 +15,5 @@ export {
   MonacoJsonEditor,
   JsonEditorShell,
 } from "./json-editor";
+
+export { JsonEditorPanel } from "./json-editor-panel";

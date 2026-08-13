@@ -14,7 +14,7 @@ from flask import Flask
 
 from GraphBuilderManger import viz_graph
 from bl import register_routes
-from helicalbi.api.Metadata import get_db_function_of_metadata, get_json_data_metadata
+from helicalbi.api.Metadata import get_db_function_of_metadata
 from helicalbi.api.QueryExecutor import execute_query
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.ConvertToBlankModel import transform_json

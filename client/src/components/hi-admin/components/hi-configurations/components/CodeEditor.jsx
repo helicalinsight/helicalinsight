@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import Editor from "@monaco-editor/react";
 
 const DEFAULT_OPTIONS = {
@@ -59,7 +60,12 @@ const CodeEditor = ({
         />
       </div>
       <div className="hi-config-editor-actions">
-        <Button type="primary" loading={saving} onClick={() => onSave?.(localValue)}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          loading={saving}
+          onClick={() => onSave?.(localValue)}
+        >
           Save
         </Button>
       </div>

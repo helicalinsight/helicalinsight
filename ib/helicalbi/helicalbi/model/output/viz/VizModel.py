@@ -43,13 +43,24 @@ class VizData(BaseModel):
 
 
 class VizChart(BaseModel):
-    """Chart type selection (high-level viz family + mark geometry)."""
+    """Chart type selection: HI mark category + child viz.
+
+    ``mark`` is the parent picker name (Card, Maps, Chart, Grid Chart,
+    Table, Grid Table, VF). ``viz`` is the selected child under that mark
+    (e.g. Bar, Line, Arc); empty when the mark has no children.
+    """
 
     viz: str = Field(
-        description='Visualization family, e.g. "Bar" or "arc".',
+        description=(
+            'Child visualization under ``mark``, e.g. "Bar", "Line", "Arc". '
+            "Empty string when the mark has no child values (Table, Grid Table, VF)."
+        ),
     )
     mark: str = Field(
-        description='Mark geometry, e.g. "bar" or "pie".',
+        description=(
+            'HI mark / visualization category, e.g. "Chart", "Card", "Maps", '
+            '"Grid Chart", "Table", "Grid Table", or "VF".'
+        ),
     )
 
 

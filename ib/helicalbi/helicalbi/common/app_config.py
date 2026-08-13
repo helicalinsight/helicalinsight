@@ -167,9 +167,16 @@ def is_debug() -> bool:
 
 
 def effective_log_level_name() -> str:
-    """DEBUG only when both app.debug and logging.level are DEBUG; never based on env."""
-    level = __getattr__("log_level_name")
-    debug = __getattr__("app_debug")
+    """DEBUG only when both app.debug and logging.level are DEBUG; never based on env.
+
+    Uses ``getattr`` on this module so monkeypatches / runtime attribute
+    overrides (e.g. tests) are honoured instead of always reading ``_raw``.
+    """
+    import sys
+
+    mod = sys.modules[__name__]
+    level = str(getattr(mod, "log_level_name")).upper()
+    debug = bool(getattr(mod, "app_debug"))
     if level == "DEBUG" and debug:
         return "DEBUG"
     if level == "DEBUG":

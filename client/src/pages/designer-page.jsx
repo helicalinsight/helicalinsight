@@ -69,6 +69,7 @@ import TutorialInfo from "../components/common/hi-tutorial";
 import { validateDesignerName } from "./utils/helperMethods";
 import { routesUrl } from "../app/constants";
 import useExportOptions from "../hooks/useExportOptions";
+import DashboardJsonEditor from "../components/hi-dashboard-designer/components/json-editor/dashboard-json-editor";
 
 const DashboardDesigner = (props) => {
   const gridItemsData = useSelector((state) =>
@@ -81,6 +82,7 @@ const DashboardDesigner = (props) => {
   );
   const { getMenuOptions } = useExportOptions();
   const [refresh, setRefreshFn] = useState(new Date());
+  const [openJSONEditor, setOpenJSONEditor] = useState(false);
   const setRefresh = (date) => {
     dispatch(appActions.setShotCutCurrentLocation(""));
     setRefreshFn(date)
@@ -999,13 +1001,17 @@ const DashboardDesigner = (props) => {
     handleUndo,
     handleRedo,
     setRefresh,
+    handleOpenJsonEditor: () => setOpenJSONEditor(true)
   });
 
   let content = (
-    <HILayout
-      header={<HINavbar taskbar={taskbarItems} />}
-      content={designerModule}
-    />
+    <>
+      <HILayout
+        header={<HINavbar taskbar={taskbarItems} />}
+        content={designerModule}
+      />
+      <DashboardJsonEditor visible={openJSONEditor} onCloseDrawer={() => setOpenJSONEditor(false)} />
+    </>
   );
 
   if (isOpenMode || isDashboardMode) {

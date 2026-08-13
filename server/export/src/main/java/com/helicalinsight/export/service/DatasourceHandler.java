@@ -27,28 +27,4 @@ public abstract class DatasourceHandler extends ResourceIOHandler {
 	public List<String> importResourceHCR( String dsFileName, String onConflict){
 		return  null;
 	}
-	
-	protected User resolveUser(Object createdByObj) {
-		User createdBy = null;
-		boolean shouldFallBack = true;
-
-		if (createdByObj instanceof User user) {
-			if (user.getUsername() != null) {
-				createdBy = shareUtils.getOrInsertUser(dtoMapper.map(user));
-				shouldFallBack = false;
-			}
-		}
-
-		if (shouldFallBack) {
-			JsonObject settingsJson = JsonUtils.newGetSettingsJson();
-			String defaultOwnerId = GsonUtility.optString(settingsJson, "defaultOwnerId");
-			if (StringUtils.isNotBlank(defaultOwnerId) && !"null".equalsIgnoreCase(defaultOwnerId)) {
-				User user = userService.findUser(Integer.parseInt(defaultOwnerId));
-				if (user != null) {
-					createdBy = user;
-				}
-			}
-		}
-		return createdBy;
-	}
 }

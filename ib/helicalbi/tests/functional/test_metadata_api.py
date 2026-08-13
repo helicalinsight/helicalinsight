@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from helicalbi.api.Metadata import TABLE_PATH, build_column, get_json_data_metadata
+from helicalbi.api.Metadata import build_column, get_json_data_metadata
 
 
 pytestmark = pytest.mark.functional
@@ -36,11 +36,17 @@ class TestGetJsonDataMetadata:
 
 
 class TestMetadataBuildColumn:
-    def test_qualifies_column_name_with_table_path(self):
+    def test_unqualified_column_when_dbname_empty(self):
         result = build_column("travel_id", "TID", col_id=200)
-        assert result["column"]["name"] == f"{TABLE_PATH}.travel_id"
+        assert result["column"]["name"] == "travel_id"
         assert result["alias"] == "TID"
         assert result["column"]["id"] == "200"
+        assert result["floatingType"] == "discrete"
+
+    def test_qualifies_column_name_with_dbname(self):
+        result = build_column("travel_id", "TID", col_id=200, dbname="sampletraveldata")
+        assert result["column"]["name"] == "sampletraveldata.travel_id"
+        assert result["alias"] == "TID"
 
     def test_default_id_is_1000(self):
         assert build_column("c", "a")["column"]["id"] == "1000"

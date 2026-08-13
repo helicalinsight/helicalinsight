@@ -1,4 +1,5 @@
 import { Input, Button, Empty, Row, Col } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 
 const PropertiesEditor = ({ content, saving, onSave }) => {
@@ -38,7 +39,12 @@ const PropertiesEditor = ({ content, saving, onSave }) => {
         ))}
       </Row>
       <div className="hi-config-editor-actions">
-        <Button type="primary" loading={saving} onClick={() => onSave(values)}>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          loading={saving}
+          onClick={() => onSave(values)}
+        >
           Save
         </Button>
       </div>

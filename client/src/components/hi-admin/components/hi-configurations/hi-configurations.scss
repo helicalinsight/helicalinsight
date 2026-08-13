@@ -144,21 +144,13 @@
 
   .hi-config-file-type-icon {
     font-size: 13px;
+    color: #595959;
 
-    &--xml {
-      color: #389e0d;
-    }
-
-    &--json {
-      color: #d48806;
-    }
-
-    &--properties {
-      color: #096dd9;
-    }
-
+    &--xml,
+    &--json,
+    &--properties,
     &--groovy {
-      color: #722ed1;
+      color: #595959;
     }
   }
 
@@ -309,6 +301,8 @@
     font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
+    padding: 0 4px;
+    height: auto;
   }
 
   .hi-config-editor-body {
@@ -361,12 +355,51 @@
         }
       }
 
+      &.ant-form-horizontal {
+        .ant-form-item-row {
+          flex-wrap: nowrap;
+          align-items: center;
+        }
+
+        .ant-form-item-label {
+          padding-bottom: 0;
+          padding-right: 8px;
+          flex: 0 0 160px;
+          max-width: 160px;
+
+          > label {
+            height: auto;
+            white-space: normal;
+          }
+        }
+
+        .ant-form-item-control {
+          min-width: 0;
+        }
+
+        .ui-form-item--tick-inline {
+          .ant-form-item-label {
+            flex: 0 0 160px;
+            max-width: 160px;
+          }
+
+          .ant-form-item-control {
+            margin-left: 0;
+          }
+        }
+      }
+
       .ui-form-generator-section {
         background: transparent !important;
         border: none !important;
         border-radius: 0 !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
+      }
+
+      .ui-form-generator-section__body {
+        padding-left: 0;
+        border-left: none;
       }
     }
   }

@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <sqlSettings mandatory="true">
     <ansiGroupByDialects>
-		<!-- rollup="true" => ANSI GROUP BY ROLLUP(...) in RollupHandler; absent => WITH ROLLUP -->
-		<dialect rollup="true">org.hibernate.dialect.Oracle8iDialect</dialect>
-		<dialect rollup="true">org.hibernate.dialect.OracleDialect</dialect>
-        <dialect rollup="true">org.hibernate.dialect.SQLServerDialect</dialect>
-        <dialect rollup="true">com.helicalinsight.adhoc.genericsql.CalciteHibernateDialect</dialect>
+		<dialect>org.hibernate.dialect.Oracle8iDialect</dialect>
+		<dialect>org.hibernate.dialect.OracleDialect</dialect>
+        <dialect>org.hibernate.dialect.SQLServerDialect</dialect>
+        <dialect>com.helicalinsight.adhoc.genericsql.CalciteHibernateDialect</dialect>
 		<!--PostgreSQLDialect is added in Ansi to support other depending database like Presto etc -->
-		<dialect rollup="true">org.hibernate.dialect.PostgreSQLDialect</dialect>
-		<dialect rollup="true">org.hibernate.dialect.DerbyDialect</dialect>
-		<dialect rollup="true">org.hibernate.dialect.DB2Dialect</dialect>
-		<dialect rollup="true">com.helicalinsight.adhoc.genericsql.AapacheDrillSqlDialect</dialect>
-		<dialect rollup="true">com.helicalinsight.adhoc.genericsql.TeradataHIDialect</dialect>
-		<dialect rollup="true">com.helicalinsight.adhoc.genericsql.DremioSqlDialect</dialect>
+		<dialect>org.hibernate.dialect.PostgreSQLDialect</dialect>
+		<dialect>org.hibernate.dialect.DerbyDialect</dialect>
+		<dialect>org.hibernate.dialect.DB2Dialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.AapacheDrillSqlDialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.TeradataHIDialect</dialect>
+		<dialect>com.helicalinsight.adhoc.genericsql.DremioSqlDialect</dialect>
 		
     </ansiGroupByDialects>
 

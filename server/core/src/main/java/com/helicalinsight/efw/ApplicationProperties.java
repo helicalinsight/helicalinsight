@@ -100,7 +100,6 @@ public enum ApplicationProperties {
     
     private String productWebsite;
     
-    private boolean initialized = false;
     
 
     private ApplicationProperties() {
@@ -426,10 +425,7 @@ public enum ApplicationProperties {
 	}
 	
 	public void setLicenseMetadata(LicenseMetadata licenseMetadata) {
-		if(!initialized) {
-			this.licenseMetadata = licenseMetadata;
-			initialized = true;
-		}
+		this.licenseMetadata = licenseMetadata;
 	}
 	
 	public String getProductWebSite() {

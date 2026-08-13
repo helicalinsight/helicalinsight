@@ -4,7 +4,6 @@ import {
   CodeOutlined,
   DeleteOutlined,
   EditOutlined,
-  FileTextOutlined,
   PauseOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -123,14 +122,14 @@ export const SystemScheduleActionsCard = ({ onRefresh, onAdd, onEditJson }) => (
             Add
           </Button>
         </Tooltip>
-        <Tooltip title="Edit systemschedule.json">
+        <Tooltip title="Edit configuration in JSON editor">
           <Button
             data-testid="system-edit-json"
             type="text"
-            icon={<FileTextOutlined />}
+            icon={<EditOutlined />}
             onClick={onEditJson}
           >
-            Edit JSON
+            Edit
           </Button>
         </Tooltip>
         <Tooltip title="Refresh system schedule list">

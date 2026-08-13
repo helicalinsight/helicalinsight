@@ -1,6 +1,11 @@
 """Functional tests for VizModel property key shape."""
 from helicalbi.model.output.viz.VizModel import VizModel, VizProperties
-from helicalbi.viz.viz_model_fill import merge_properties_polish, viz_model_to_chart_settings
+from helicalbi.viz.viz_model_fill import (
+    MARK_VIZ_CATALOG,
+    _chart_viz_and_mark,
+    merge_properties_polish,
+    viz_model_to_chart_settings,
+)
 
 
 def test_viz_properties_use_labelx_labely_and_drop_removed_keys():
@@ -26,11 +31,46 @@ def test_viz_properties_use_labelx_labely_and_drop_removed_keys():
     assert dumped["color"] == "#2F6FED"
 
 
+def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
+    assert _chart_viz_and_mark("bar").model_dump() == {"viz": "Bar", "mark": "Chart"}
+    assert _chart_viz_and_mark("pie").model_dump() == {"viz": "Arc", "mark": "Chart"}
+    assert _chart_viz_and_mark("donut").model_dump() == {
+        "viz": "Doughnut",
+        "mark": "Chart",
+    }
+    assert _chart_viz_and_mark("heatmap").model_dump() == {
+        "viz": "Heatmap",
+        "mark": "Maps",
+    }
+    assert _chart_viz_and_mark("kpi").model_dump() == {"viz": "Bar", "mark": "Card"}
+    assert _chart_viz_and_mark("table").model_dump() == {"viz": "", "mark": "Table"}
+    assert _chart_viz_and_mark("other").model_dump() == {"viz": "", "mark": "VF"}
+
+    by_name = {entry["name"]: entry["values"] for entry in MARK_VIZ_CATALOG}
+    assert by_name["Chart"] == [
+        "Arc",
+        "Area",
+        "Bar",
+        "Calendar",
+        "Doughnut",
+        "Line",
+        "Point",
+        "Progress",
+        "Radar",
+        "Relation",
+        "Text",
+        "Waterfall",
+    ]
+    assert by_name["Table"] == []
+    assert by_name["Grid Table"] == []
+    assert by_name["VF"] == []
+
+
 def test_merge_properties_polish_drops_removed_keys_and_renames_labels():
     model = VizModel.model_validate(
         {
             "data": {"rows": ["city"], "columns": ["sales"], "filters": [], "hidden": []},
-            "chart": {"viz": "Bar", "mark": "bar"},
+            "chart": {"viz": "Bar", "mark": "Chart"},
             "properties": {
                 "labelX": "city",
                 "labelY": "sales",

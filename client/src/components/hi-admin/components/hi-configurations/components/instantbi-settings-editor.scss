@@ -12,7 +12,8 @@
     border: none !important;
 
     .ui-form-generator-section__body {
-      border-left-color: rgba(0, 0, 0, 0.08);
+      padding-left: 0;
+      border-left: none;
     }
   }
 
@@ -71,6 +72,25 @@
   margin-top: 8px;
 }
 
+.instantbi-settings-editor__advanced-toggle {
+  text-align: right;
+  margin: 0 0 8px;
+}
+
+.instantbi-settings-editor__advanced-btn {
+  color: #000000;
+  padding: 0 4px;
+  height: auto;
+
+  &--open {
+    color: #1890ff;
+  }
+}
+
+.instantbi-settings-editor__advanced {
+  margin-top: 4px;
+}
+
 .instantbi-settings-editor__parameters-title {
   font-size: 14px;
   font-weight: 600;
@@ -89,6 +109,12 @@
   &:hover {
     color: #ff4d4f;
   }
+}
+
+.instantbi-settings-editor__param-key-readonly {
+  background: #fafafa;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: default;
 }
 
 .instantbi-provider-toolbar {

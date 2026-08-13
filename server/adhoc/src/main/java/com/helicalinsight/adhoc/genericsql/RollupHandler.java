@@ -1,8 +1,8 @@
 package com.helicalinsight.adhoc.genericsql;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,16 +10,14 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.helicalinsight.datasource.GsonUtility;
 
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
-import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.PlainSelect;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectBody;
@@ -27,11 +25,15 @@ import net.sf.jsqlparser.statement.select.SetOperationList;
 import net.sf.jsqlparser.statement.select.SubSelect;
 
 /**
- * Adds ROLLUP to the GROUP BY clause and applies ORDER BY after limit/offset handling.
- * Uses JSQLParser to rewrite the SQL AST. Triggered when formData analytics requests subTotals.
+ * Adds ROLLUP to the GROUP BY clause and ORDER BY after limit/offset handling.
+ * Optionally adds GROUPING() columns when analytics requests {@code grouping: true}.
+ * Triggered when formData analytics requests subTotals.
+ * Rewrites the original SQL string to preserve adhoc newline formatting.
  */
 final class RollupHandler {
     private static final Logger logger = LoggerFactory.getLogger(RollupHandler.class);
+    private static final String GROUPING_ALIAS_PREFIX = "grouping_";
+    private static final Pattern ORDER_BY = Pattern.compile("(?is)\\border\\s+by\\b");
 
     private String query;
     private final SqlQueryContext context;
@@ -42,9 +44,9 @@ final class RollupHandler {
     }
 
     /**
-     * Rewrites GROUP BY to ROLLUP / WITH ROLLUP and ensures ORDER BY via JSQLParser.
+     * Rewrites GROUP BY to ROLLUP / WITH ROLLUP, optionally adds GROUPING() select items, and ensures ORDER BY.
      *
-     * @return The SQL query with rollup and order by applied.
+     * @return The SQL query with rollup, optional grouping, and order by applied.
      */
     public String applyRollup() {
         if (this.query == null || this.query.isEmpty()) {
@@ -69,84 +71,108 @@ final class RollupHandler {
                 return this.query;
             }
 
-            if (usesAnsiRollupSyntax()) {
-                applyAnsiRollup(groupBy, groupByExpressions);
-            } else {
-                applyNonAnsiRollup(plainSelect, groupByExpressions);
-            }
+            boolean applyGrouping = isGroupingRequested();
+            boolean ansi = AdhocSqlDialectSettings.usesAnsiRollupSyntax(this.context.getReferenceFile());
+            String groupByBody = ansi
+                    ? OlapSqlRewriteHelper.ansiFunctionCall("ROLLUP", groupByExpressions)
+                    : OlapSqlRewriteHelper.joinExpressions(groupByExpressions);
+            String selectFragment = applyGrouping ? buildGroupingSelectFragment(groupByExpressions) : null;
+            String orderByBody = ORDER_BY.matcher(this.query).find()
+                    ? null
+                    : buildOrderByBody(groupByExpressions, applyGrouping);
 
-            if (plainSelect.getOrderByElements() == null || plainSelect.getOrderByElements().isEmpty()) {
-                plainSelect.setOrderByElements(buildOrderByElements(groupByExpressions));
-            }
-
-            this.query = select.toString();
+            this.query = OlapSqlRewriteHelper.rewrite(
+                    this.query,
+                    groupByBody,
+                    !ansi,
+                    "WITH ROLLUP",
+                    selectFragment,
+                    orderByBody);
         } catch (Exception ex) {
-            logger.error("Failed to apply rollup via JSQLParser; leaving query unchanged.", ex);
+            logger.error("Failed to apply rollup; leaving query unchanged.", ex);
         }
         return this.query;
     }
 
-    private void applyAnsiRollup(GroupByElement groupBy, List<Expression> groupByExpressions) {
-        Function rollup = new Function();
-        rollup.setName("ROLLUP");
-        ExpressionList parameters = new ExpressionList(groupByExpressions);
-        rollup.setParameters(parameters);
-        groupBy.setGroupByExpressions(Collections.singletonList(rollup));
-    }
-
-    /**
-     * JSQLParser 4.0 has no mysqlWithRollup flag; wrap GroupByElement.toString() to append WITH ROLLUP.
-     */
-    private void applyNonAnsiRollup(PlainSelect plainSelect, List<Expression> groupByExpressions) {
-        GroupByElement withRollup = new GroupByElement() {
-            @Override
-            public String toString() {
-                return super.toString() + " WITH ROLLUP";
+    private boolean isGroupingRequested() {
+        JsonObject formData = this.context.getFormData();
+        if (formData == null || !formData.has("analytics") || formData.get("analytics").isJsonNull()) {
+            return false;
+        }
+        JsonArray instructions = formData.getAsJsonArray("analytics");
+        for (JsonElement instruction : instructions) {
+            if (instruction.isJsonObject()
+                    && GsonUtility.optBooleanValue(instruction.getAsJsonObject(), "grouping", false)) {
+                return true;
             }
-        };
-        withRollup.setGroupByExpressions(groupByExpressions);
-        plainSelect.setGroupByElement(withRollup);
+        }
+        return false;
     }
 
-    private List<OrderByElement> buildOrderByElements(List<Expression> groupByExpressions) {
-        List<OrderByElement> orderByElements = new ArrayList<>();
+    private String buildGroupingSelectFragment(List<Expression> groupByExpressions) {
+        StringBuilder fragment = new StringBuilder();
+        List<String> groupByColumnNames = groupByColumnNames();
+        for (int i = 0; i < groupByExpressions.size(); i++) {
+            fragment.append(",\n\tGROUPING(")
+                    .append(groupByExpressions.get(i).toString())
+                    .append(") AS ")
+                    .append(groupingAlias(groupByColumnNames, i));
+        }
+        return fragment.toString();
+    }
+
+    private List<String> groupByColumnNames() {
+        List<String> names = new ArrayList<>();
+        JsonObject formData = this.context.getFormData();
+        if (formData == null || !formData.has("functions")) {
+            return names;
+        }
+        JsonObject functions = formData.getAsJsonObject("functions");
+        if (!functions.has("groupBy")) {
+            return names;
+        }
+        for (JsonElement object : functions.getAsJsonArray("groupBy")) {
+            JsonObject json = object.getAsJsonObject();
+            String alias = json.get("column").getAsString();
+            alias = AdhocUtils.sanitizeStringIfStartsWithDot(alias);
+            names.add(alias);
+        }
+        return names;
+    }
+
+    private String groupingAlias(List<String> groupByColumnNames, int index) {
+        String suffix;
+        if (index < groupByColumnNames.size()) {
+            suffix = groupByColumnNames.get(index).replace('.', '_').replace('"', ' ').replace('`', ' ').trim();
+            suffix = suffix.replaceAll("\\s+", "_");
+        } else {
+            suffix = String.valueOf(index);
+        }
+        return GROUPING_ALIAS_PREFIX + suffix;
+    }
+
+    private String buildOrderByBody(List<Expression> groupByExpressions, boolean applyGrouping) {
         if (this.context.isApplyOrderBy()) {
             String ordered = new OrderByClause(this.context, "").order().trim();
             String clause = ordered.replaceFirst("(?i)^order\\s+by\\s+", "").trim();
-            for (String part : clause.split(",")) {
-                String token = part.trim();
-                if (token.isEmpty()) {
-                    continue;
-                }
-                boolean desc = token.toLowerCase().endsWith(" desc");
-                boolean asc = token.toLowerCase().endsWith(" asc");
-                String expressionText = token;
-                if (desc) {
-                    expressionText = token.substring(0, token.length() - 4).trim();
-                } else if (asc) {
-                    expressionText = token.substring(0, token.length() - 3).trim();
-                }
-                try {
-                    OrderByElement element = new OrderByElement();
-                    element.setExpression(CCJSqlParserUtil.parseExpression(expressionText));
-                    element.setAsc(!desc);
-                    orderByElements.add(element);
-                } catch (Exception ignore) {
-                    // fall through to group-by based order
-                }
-            }
-            if (!orderByElements.isEmpty()) {
-                return orderByElements;
+            if (!clause.isEmpty()) {
+                return clause;
             }
         }
 
-        for (Expression expression : resolveOrderExpressions(groupByExpressions)) {
-            OrderByElement element = new OrderByElement();
-            element.setExpression(expression);
-            element.setAsc(true);
-            orderByElements.add(element);
+        StringBuilder body = new StringBuilder();
+        List<Expression> expressions = resolveOrderExpressions(groupByExpressions);
+        for (int i = 0; i < expressions.size(); i++) {
+            Expression expression = expressions.get(i);
+            if (i > 0) {
+                body.append(", ");
+            }
+            if (applyGrouping) {
+                body.append("GROUPING(").append(expression.toString()).append("), ");
+            }
+            body.append(expression.toString());
         }
-        return orderByElements;
+        return body.toString();
     }
 
     private List<Expression> resolveOrderExpressions(List<Expression> groupByExpressions) {
@@ -224,17 +250,5 @@ final class RollupHandler {
             return findPlainSelectWithGroupBy(((SubSelect) fromItem).getSelectBody());
         }
         return null;
-    }
-
-    /**
-     * ANSI rollup ({@code GROUP BY ROLLUP(...)}) when dialect has rollup="true"
-     * in adhocSqlSettings.xml; otherwise non-ANSI {@code WITH ROLLUP}.
-     */
-    private boolean usesAnsiRollupSyntax() {
-        String dialect = null;
-        if (this.context.getMetadata() != null && this.context.getMetadata().getConnectionDetails() != null) {
-            dialect = this.context.getMetadata().getConnectionDetails().getDialect();
-        }
-        return AdhocSqlDialectSettings.supportsAnsiRollup(dialect);
     }
 }
