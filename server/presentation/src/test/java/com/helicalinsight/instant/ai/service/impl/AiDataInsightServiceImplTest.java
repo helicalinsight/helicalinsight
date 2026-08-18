@@ -16,6 +16,7 @@ import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.instant.ai.payload.DataInsightPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -27,10 +28,6 @@ public class AiDataInsightServiceImplTest {
 
     private final AiDataInsightServiceImpl service = new AiDataInsightServiceImpl();
 
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test
     public void executeWithInputParamSendsInsightResponse() throws Exception {
@@ -63,7 +60,8 @@ public class AiDataInsightServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("1", "chat-1", "insight question", null, subject, "/data-insight", request, response);
+            service.execute(new DataInsightPayload("1", "chat-1", "insight question", null, subject, "/data-insight"),
+                    request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
@@ -103,7 +101,8 @@ public class AiDataInsightServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("1", "chat-1", "convert question", null, subject, "/instant-to-hr", request, response);
+            service.execute(new DataInsightPayload("1", "chat-1", "convert question", null, subject, "/instant-to-hr"),
+                    request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
@@ -142,7 +141,8 @@ public class AiDataInsightServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("1", "chat-1", "insight question", null, subject, "/data-insight", request, response);
+            service.execute(new DataInsightPayload("1", "chat-1", "insight question", null, subject, "/data-insight"),
+                    request, response);
 
             controllerUtils.verifyNoInteractions();
         }

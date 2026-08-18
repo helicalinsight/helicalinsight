@@ -26,7 +26,7 @@
 
 - [ ] Backend (`server/`)
 - [ ] Frontend (`client/`)
-- [ ] Instant BI (`ib/`)
+- [ ] Instant BI (`instantbi/`)
 - [ ] Docker / deployment
 - [ ] Docs / contributing
 

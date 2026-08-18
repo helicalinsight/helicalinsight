@@ -44,7 +44,8 @@ Docker ZIP contents:
 
 - `docker-compose.yml`, `.env` / `.env.example`, `config/`, `readme/`
 - `hi/hi-ee.war`, `hi/hi-repository/`, `hi/db/` (sample data), `hi/tomcat/logs/`
-- `instantbi/helicalbi/` (Instant BI app)
+- `instantbi/com/helicalinsight/instantbi/` (Instant BI app; bind-mounted to `/app`)
+- Instant BI YAML copied at package time into `hi/hi-repository/System/InstantBI/` (bind-mounted to `/app/helicalbi/config`)
 
 Local package (after building the WAR):
 

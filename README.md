@@ -214,7 +214,7 @@ Goal: spend time on product work, not path/XML/env hunting. Run the shared setup
 |-----------|-----------|-------|---------|
 | **Backend** | [`server/`](server/) | Java 25, Spring, Hibernate, Tomcat WAR | [server/README.md](server/README.md) |
 | **Frontend** | [`client/`](client/) | React 17, Redux, Ant Design | [client/README.md](client/README.md) |
-| **Instant BI** | [`ib/`](ib/) | Python, Flask, LangChain / LangGraph | [ib/README.md](ib/README.md) |
+| **Instant BI** | [`instantbi/`](instantbi/) | Python, Flask, LangChain / LangGraph | [instantbi/README.md](instantbi/README.md) |
 
 ```
 ┌────────────┐     /hi-ee/*     ┌────────────┐     Instant BI API     ┌────────────┐
@@ -252,7 +252,7 @@ Other Java IDEs (e.g. IntelliJ IDEA) work, but **Eclipse + Tomcat** is the suppo
 
 ### 2. One-time repo setup (required)
 
-Patches `hi-repository` paths for your machine, creates `.env` files, and links Instant BI into `docker/instantbi/helicalbi` (needed for Docker from a git checkout).
+Patches `hi-repository` paths for your machine, creates `.env` files, and links Instant BI app + config into `docker/` (needed for Docker from a git checkout).
 
 ```bash
 ./scripts/setup-dev.sh      # Linux / macOS
@@ -325,7 +325,7 @@ More: [client/README.md](client/README.md)
 <summary><strong>Instant BI</strong> — Python service on port 8000</summary>
 
 ```bash
-cd ib/helicalbi
+cd instantbi/src/com/helicalinsight/instantbi
 python -m venv .venv
 # Linux / macOS: source .venv/bin/activate
 # Windows:       .\.venv\Scripts\Activate.ps1
@@ -337,7 +337,7 @@ python app.py
 
 Or let Docker run it as part of the compose stack (after `setup-dev`).
 
-More: [ib/README.md](ib/README.md)
+More: [instantbi/README.md](instantbi/README.md)
 
 </details>
 
@@ -347,7 +347,7 @@ More: [ib/README.md](ib/README.md)
 |------------------|--------------|
 | UI only | Backend via Docker → `npm run start18` in `client/` |
 | Java APIs / reports | Build & deploy WAR (or `docker-compose.dev.yml`) → hit API or UI |
-| Instant BI / LLM | Run `ib/helicalbi` locally or Instant BI container → exercise from the product UI |
+| Instant BI / LLM | Run `instantbi/src/com/helicalinsight/instantbi` locally or Instant BI container → exercise from the product UI |
 | Everything | `cd docker && docker compose up -d` |
 
 ### Tests
@@ -360,7 +360,7 @@ cd server && mvn test
 cd client && npm test
 
 # Instant BI
-cd ib/helicalbi && pytest -m "not llm"
+cd instantbi/src/com/helicalinsight/instantbi && pytest -m "not llm"
 ```
 
 CI graph: [`.github/workflows/README.md`](.github/workflows/README.md)
@@ -375,8 +375,9 @@ CI graph: [`.github/workflows/README.md`](.github/workflows/README.md)
 │   ├── core/ adhoc/ export/ scheduling/ …
 │   ├── presentation/        # WAR packaging → hi-ee-7.0.0.war
 │   └── hi-repository/       # System config and templates
-├── ib/helicalbi/            # Instant BI (Python)
+├── instantbi/src/com/helicalinsight/instantbi/  # Instant BI (Python)
 ├── docker/                  # One-command product run (users + contributors)
+│   └── instantbi/com/helicalinsight/instantbi/  # app → /app; config mount → hi-repository/System/InstantBI
 ├── scripts/                 # setup-dev, prerequisite checks
 ├── docker-compose.dev.yml   # Build backend from source in Docker
 └── README.md

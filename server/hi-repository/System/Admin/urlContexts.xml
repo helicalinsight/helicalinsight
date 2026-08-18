@@ -539,25 +539,64 @@ Eg. if permission="2" then the resource is available  if the user is having  per
             <file optional="true">fileName</file>
          </formData>
       </subContext>
-	  <subContext permission="1">
-         <type>adhoc</type>
+      <subContext permission="3">
+         <type>instantbi</type>
          <serviceType>instant</serviceType>
          <service>saveReport</service>
+         <formData>
+            <directory>location</directory>
+            <file optional="true">uuid</file>
+         </formData>
+      </subContext>
+
+      <subContext permission="3">
+         <type>instantbi</type>
+         <serviceType>instant</serviceType>
+         <service>getReportForEdit</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="1">
+         <type>instantbi</type>
+         <serviceType>instant</serviceType>
+         <service>getReport</service>
          <formData>
             <directory>dir</directory>
             <file>file</file>
          </formData>
       </subContext>
 
-     <subContext permission="3">
-         <type>adhoc</type>
+      <subContext permission="3">
+         <type>instantbi</type>
          <serviceType>instant</serviceType>
-         <service>getReportForEdit</service>
+         <service>saveAiAgent</service>
          <formData>
             <directory>location</directory>
-            <file optional="true">fileName</file>
+            <file optional="true">uuid</file>
          </formData>
       </subContext>
+
+      <subContext permission="3">
+         <type>instantbi</type>
+         <serviceType>instant</serviceType>
+         <service>getAiAgentForEdit</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+      <subContext permission="1">
+         <type>instantbi</type>
+         <serviceType>instant</serviceType>
+         <service>getAgent</service>
+         <formData>
+            <directory>dir</directory>
+            <file>file</file>
+         </formData>
+      </subContext>
+
 
 
       <!-- No permission require for

@@ -5,11 +5,14 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
-import com.helicalinsight.instant.ai.service.IAiRecommendAnalystService;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.payload.RecommendAnalystPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,19 +21,17 @@ import java.util.List;
 
 import static com.helicalinsight.instant.ai.util.PatternExtractor.extractFromPattern;
 
-public class AiRecommendAnalystServiceImpl implements IAiRecommendAnalystService {
+@Service(InstantBIServiceFactory.RECOMMEND_ANALYST_SERVICE)
+public class AiRecommendAnalystServiceImpl implements IInstantBIService {
+
 
     @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
-
-    @Override
-    public void execute(String model, String domain, HttpServletRequest request, HttpServletResponse response)
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        RecommendAnalystPayload payload = (RecommendAnalystPayload) instantBIPayload;
         boolean isAjax = ControllerUtils.isAjax(request);
-        model = InstantBIUtils.getEncodedElseNormal(model);
-        domain = InstantBIUtils.getEncodedElseNormal(domain);
+        String model = InstantBIUtils.getEncodedElseNormal(payload.getModel());
+        String domain = InstantBIUtils.getEncodedElseNormal(payload.getDomain());
         JsonObject modelJson = GsonUtility.parseString(model, JsonObject.class);
 
         JsonObject js = new JsonObject();

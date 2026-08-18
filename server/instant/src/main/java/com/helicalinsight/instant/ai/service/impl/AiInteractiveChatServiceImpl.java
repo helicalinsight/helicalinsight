@@ -7,7 +7,9 @@ import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
-import com.helicalinsight.instant.ai.service.IAiInteractiveChatService;
+import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,21 +17,24 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-public class AiInteractiveChatServiceImpl implements IAiInteractiveChatService {
+@Service(InstantBIServiceFactory.INTERACTIVE_CHAT_SERVICE)
+public class AiInteractiveChatServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiInteractiveChatServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(String input, String chatid, String chatSeqId, String subject,
-                        HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        InteractiveChatPayload payload = (InteractiveChatPayload) instantBIPayload;
+        String input = payload.getInput();
+        String chatid = payload.getChatid();
+        String chatSeqId = payload.getChatSeqId();
+        String subject = payload.getSubject();
         try {
             String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
                 JsonObject js = new JsonObject();

@@ -3,12 +3,15 @@
 # Start (same for EE package, CE/open-source ZIP, or git + setup-dev):
 #   1. Copy .env.example to .env (set HOST_IP if needed)
 #   2. docker compose up -d
-#      (first run builds Instant BI image if missing; later starts reuse it)
+#      Instant BI bind-mounts:
+#        ./instantbi/com/helicalinsight/instantbi → /app
+#        ./hi/hi-repository/System/InstantBI → /app/helicalbi/config
+#        ./hi/hi-repository/System/Logs → /app/logs
+#      pip-installs on start (Nuitka ./app if present, else python app.py)
 #   3. Open https://localhost
 #
 # Login: hiadmin / hiadmin
-# Rebuild Instant BI after code/requirements changes:
-#   docker compose up -d --build instantbi
+# Git checkout: run scripts/setup-dev so that mount path exists.
 
 services:
   postgres:
@@ -92,7 +95,9 @@ services:
       retries: 5
       start_period: 120s
     volumes:
-      - ./instantbi/helicalbi:/app
+      - ./instantbi/com/helicalinsight/instantbi:/app
+      - ./hi/hi-repository/System/InstantBI:/app/helicalbi/config
+      - ./hi/hi-repository/System/Logs:/app/logs
     working_dir: /app
     # Nuitka dist: pip libs + ./app; source checkout: falls back to python app.py
     command: bash -c "pip install -r requirements.txt && if [ -f ./app ]; then chmod +x ./app && ./app; else python app.py; fi"
