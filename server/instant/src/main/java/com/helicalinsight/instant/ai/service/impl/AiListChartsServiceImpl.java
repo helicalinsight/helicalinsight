@@ -3,30 +3,30 @@ package com.helicalinsight.instant.ai.service.impl;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
-import com.helicalinsight.instant.ai.service.IAiListChartsService;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 /**
  * Proxies InstantBI chart catalog listing to the Python {@code /list-charts} service.
  */
-public class AiListChartsServiceImpl implements IAiListChartsService {
+@Service(InstantBIServiceFactory.LIST_CHARTS_SERVICE)
+public class AiListChartsServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiListChartsServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload payload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         boolean isAjax = ControllerUtils.isAjax(request);
         try {
             JsonObject js = new JsonObject();

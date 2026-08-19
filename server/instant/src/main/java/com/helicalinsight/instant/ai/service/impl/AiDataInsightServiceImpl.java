@@ -13,7 +13,9 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
-import com.helicalinsight.instant.ai.service.IAiDataInsightService;
+import com.helicalinsight.instant.ai.payload.DataInsightPayload;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,22 +23,26 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-public class AiDataInsightServiceImpl implements IAiDataInsightService {
+@Service(InstantBIServiceFactory.DATA_INSIGHT_SERVICE)
+public class AiDataInsightServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiDataInsightServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(String chatSeqId, String chatid, String inputParam, String formData, String subjectString,
-                        String downstreamEndpoint, HttpServletRequest request, HttpServletResponse response)
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        DataInsightPayload payload = (DataInsightPayload) instantBIPayload;
+        String chatSeqId = payload.getChatSeqId();
+        String chatid = payload.getChatid();
+        String inputParam = payload.getInputParam();
+        String formData = payload.getFormData();
+        String subjectString = payload.getSubjectString();
+        String downstreamEndpoint = payload.getDownstreamEndpoint();
         try {
             String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
                 JsonObject js = new JsonObject();

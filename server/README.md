@@ -430,5 +430,5 @@ Create a second database (`hischeduledata`) for Quartz if using the JDBC job sto
 ## Related documentation
 
 - [Frontend README](../client/README.md)
-- [Instant BI README](../ib/README.md)
+- [Instant BI README](../instantbi/README.md)
 - [Root README](../README.md) — pick your path (run vs develop)

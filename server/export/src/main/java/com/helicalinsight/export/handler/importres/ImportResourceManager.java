@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.JacksonUtility;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.utility.TempDirectoryCleaner;
 import com.helicalinsight.export.crypto.FileCryptoHandler;
 import com.helicalinsight.export.dto.ImportRequest;
@@ -93,6 +94,10 @@ public class ImportResourceManager {
 		
 		File timeStampFolder = new File(tempAbsolutePath);
 		File[] files = timeStampFolder.listFiles();
+		
+		if (files == null) {
+		    throw new EfwServiceException("The uploaded file is no longer available. Please upload the file again.");
+		}
 		
 		for (File extracted : files) {
 			if (!extracted.getName().contains(".zip")) {
@@ -171,8 +176,11 @@ public class ImportResourceManager {
 				context.getResourceUrlMap().put(path, resource);
 			}
 			catch (Exception e) {
-				logger.error("Failed to import resource: {}. Rolling back the transaction.", path, e);
-				throw new ResourceImportException("Could not import " + path + ".  The operation has been rolled back." , e);
+				String errorMessage = """
+						ImportError: We couldn’t import the file "%s", because an issue occurred during the import process. The operation has been rolled back, and no changes were made. Please correct the issue in the file and try importing it again.
+						""".formatted(path);
+				logger.error(errorMessage , e);
+				throw new ResourceImportException(errorMessage, e);
 			}
 		}
 	}

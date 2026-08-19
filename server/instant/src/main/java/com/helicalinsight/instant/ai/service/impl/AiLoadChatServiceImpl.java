@@ -13,28 +13,31 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
-import com.helicalinsight.instant.ai.service.IAiLoadChatService;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.payload.LoadChatPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-public class AiLoadChatServiceImpl implements IAiLoadChatService {
+@Service(InstantBIServiceFactory.LOAD_CHAT_SERVICE)
+public class AiLoadChatServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiLoadChatServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(String chatSeqId, String formData, HttpServletRequest request, HttpServletResponse response)
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        LoadChatPayload payload = (LoadChatPayload) instantBIPayload;
+        String chatSeqId = payload.getChatSeqId();
+        String formData = payload.getFormData();
         boolean isAjax = ControllerUtils.isAjax(request);
 
         try {

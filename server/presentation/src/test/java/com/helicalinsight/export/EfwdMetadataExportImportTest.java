@@ -154,7 +154,7 @@ public class EfwdMetadataExportImportTest {
 	@Test
 	public void exp_a7_cleanResources() throws Exception {
 		String plainDelete = "{\"driver\":\"org.apache.derby.jdbc.AutoloadedDriver\",\"id\":\""+plainJdbcId+"\",\"type\":\"simple\",\"classifier\":\"efwd\",\"directory\":\"EfwdMetadataExportImportTest\"}";
-		String groovyDelete = "{\"id\":\""+plainJdbcId+"\",\"type\":\"simple\",\"classifier\":\"efwd\",\"directory\":\"EfwdMetadataExportImportTest\"}";
+		String groovyDelete = "{\"id\":\""+groovyJdbcId+"\",\"type\":\"simple\",\"classifier\":\"efwd\",\"directory\":\"EfwdMetadataExportImportTest\"}";
 		testUtility.deleteDatasource(plainDelete);
 		testUtility.deleteDatasource(groovyDelete);
 		testUtility.deleteResource("EfwdMetadataExportImportTest");

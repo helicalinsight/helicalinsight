@@ -15,6 +15,7 @@ import com.helicalinsight.admin.model.Principal;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
+import com.helicalinsight.instant.ai.payload.RecommendAnalystPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -26,10 +27,6 @@ public class AiRecommendAnalystServiceImplTest {
 
   private final AiRecommendAnalystServiceImpl service = new AiRecommendAnalystServiceImpl();
 
-  @Test
-  public void isThreadSafeToCacheReturnsTrue() {
-    assertTrue(service.isThreadSafeToCache());
-  }
 
   @Test
   public void executeParsesQuestionsAndSendsResponse() throws Exception {
@@ -56,7 +53,7 @@ public class AiRecommendAnalystServiceImplTest {
       auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
       factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-      service.execute("{\"path\":\"/model\"}", "sales", request, response);
+      service.execute(new RecommendAnalystPayload("{\"path\":\"/model\"}", "sales"), request, response);
 
       controllerUtils.verify(() -> ControllerUtils.handleSuccess(
           eq(response),
@@ -89,7 +86,7 @@ public class AiRecommendAnalystServiceImplTest {
       auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
       factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-      service.execute("{\"path\":\"/model\"}", "sales", request, response);
+      service.execute(new RecommendAnalystPayload("{\"path\":\"/model\"}", "sales"), request, response);
 
       controllerUtils.verify(() -> ControllerUtils.handleSuccess(eq(response), eq(true), any(String.class)));
     }

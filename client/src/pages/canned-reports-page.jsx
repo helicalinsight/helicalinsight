@@ -1164,8 +1164,8 @@ const CannedReportsPage = (props) => {
     dispatch(hcrActions.setHcrTabActiveKey(activeKey));
   };
 
-  const handleUpdateQueryuuids = (connectionDetails) => {
-    if (!connectionDetails) return;
+  const handleUpdateQueryuuids = (connectionDetails = {}) => {
+    if (isEmpty(connectionDetails)) return;
     // let queryPane = dsPanes.find((pane) => pane.dataSourcePane === hcrDSQuery);
     // const tempUUIDsMap = queryPane?.menu?.reduce((acc, { id, temp_uuid }) => {
     //     acc[id] = temp_uuid;

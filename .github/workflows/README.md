@@ -6,17 +6,18 @@ Workflow file: [`maven.yml`](maven.yml) — **Build HelicalInsight**
 
 | Event | What runs |
 |-------|-----------|
-| Push (any branch) | `compile` → `Backend Test` |
-| Pull request → `master` | `compile` → `Backend Test` |
+| Push (any branch) | `Helical Insight Test` and `InstantBI Test` in parallel |
+| Pull request → `master` | `Helical Insight Test` and `InstantBI Test` in parallel |
 | Git tag (`v*` or `*.*.*`) | Above, plus **Package and release (WAR + Docker ZIP)** |
 
 ## Diagram
 
 ```mermaid
 flowchart TD
-  trigger["Push / PR / Tag"] --> compile["compile<br/>JDK 25 · mvn compile"]
-  compile --> test["Backend Test<br/>CI env · mvn test · coverage badge"]
+  trigger["Push / PR / Tag"] --> test["Helical Insight Test<br/>CI env · mvn test · coverage badge"]
+  trigger --> python["InstantBI Test<br/>3.13 · pytest -m not llm · coverage"]
   test --> release["Package and release<br/>frontend · WAR · Docker ZIP · GitHub Release"]
+  python --> release
 
   subgraph tagOnly ["Runs only on git tags"]
     release
@@ -25,9 +26,9 @@ flowchart TD
 
 ## Job details
 
-1. **compile** — Checkout, Temurin JDK 25, `mvn clean compile` (`-Dedition=hice`)
-2. **Backend Test** — Needs `compile`. Sets up CI test env, runs `mvn test`, writes JaCoCo badge
-3. **Package and release** *(tags only)* — Needs `Backend Test`:
+1. **Helical Insight Test** — Sets up CI test env, runs `mvn test`, writes JaCoCo badge
+2. **InstantBI Test** — Instant BI (`instantbi/src/com/helicalinsight/instantbi`). Python 3.13, pip install, `pytest -m "not llm"` with line + branch coverage (stub LLM mode; DeepEval tests skipped). Writes a job summary (Coverage / Branches) and uploads HTML + XML coverage artifacts
+3. **Package and release** *(tags only)* — Needs `Helical Insight Test` and `InstantBI Test`:
    - Build React frontend → copy into webapp
    - `mvn package -DskipTests` → WAR
    - [`scripts/package-docker.sh`](../../scripts/package-docker.sh) → runnable Docker ZIP
@@ -44,7 +45,8 @@ Docker ZIP contents:
 
 - `docker-compose.yml`, `.env` / `.env.example`, `config/`, `readme/`
 - `hi/hi-ee.war`, `hi/hi-repository/`, `hi/db/` (sample data), `hi/tomcat/logs/`
-- `instantbi/helicalbi/` (Instant BI app)
+- `instantbi/com/helicalinsight/instantbi/` (Instant BI app; bind-mounted to `/app`)
+- Instant BI YAML copied at package time into `hi/hi-repository/System/InstantBI/` (bind-mounted to `/app/helicalbi/config`)
 
 Local package (after building the WAR):
 
@@ -56,8 +58,8 @@ Local package (after building the WAR):
 ## Efficiency notes
 
 - **Concurrency** — cancels superseded runs on the same non-protected ref
-- **Caches** — Maven (`server/pom.xml`) and npm (`client/package-lock.json`)
-- **Release skips re-test** — packaging runs only after green `Backend Test`
+- **Caches** — Maven (`server/pom.xml`), npm (`client/package-lock.json`), pip (Instant BI `requirements*.txt`)
+- **Release skips re-test** — packaging runs only after green `Helical Insight Test` and `InstantBI Test`
 - **Single package script** — same ZIP locally or in CI
 
 ## Related product docs

@@ -60,5 +60,5 @@ InstantBI today often relies on server-generated visualization templates (`vf_te
 
 **Notes:**
 
-- Source of truth: `ib/helicalbi/helicalbi/model/output/viz/VizModel.py`
+- Source of truth: `instantbi/helicalbi/helicalbi/model/output/viz/VizModel.py`
 - Related work: deterministic `VizModelFiller` / viz model fill graph in InstantBI
