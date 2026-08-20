@@ -122,7 +122,7 @@ const entriesToParameters = (entries = []) => {
   return parameters;
 };
 
-const PROVIDER_BASIC_FIELDS = ["provider", "model"];
+const PROVIDER_BASIC_FIELDS = ["provider", "model", "set_as_default"];
 const API_KEY_PARAM = "api_key";
 const PARAM_KEY_ACRONYMS = new Set([
   "api",

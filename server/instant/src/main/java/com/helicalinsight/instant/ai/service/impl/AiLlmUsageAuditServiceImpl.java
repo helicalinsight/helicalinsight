@@ -7,13 +7,16 @@ import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
-import com.helicalinsight.instant.ai.service.IAiLlmUsageAuditService;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
+import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,17 +24,15 @@ import java.math.BigDecimal;
 import java.util.Date;
 import java.util.stream.Collectors;
 
-public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
+@Service(InstantBIServiceFactory.LLM_USAGE_AUDIT_SERVICE)
+public class AiLlmUsageAuditServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiLlmUsageAuditServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload payload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         JsonObject mainObject = new JsonObject();
         try {
             String body = readRequestBody(request);
@@ -42,8 +43,8 @@ public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
                 return;
             }
 
-            JsonObject payload = GsonUtility.parseString(body, JsonObject.class);
-            int payloadUserId = GsonUtility.optIntValue(payload, "userId", 0);
+            JsonObject payloadJson = GsonUtility.parseString(body, JsonObject.class);
+            int payloadUserId = GsonUtility.optIntValue(payloadJson, "userId", 0);
             int authenticatedUserId = Integer.parseInt(AuthenticationUtils.getUserId());
 
             if (payloadUserId <= 0 || payloadUserId != authenticatedUserId) {
@@ -53,7 +54,7 @@ public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
                 return;
             }
 
-            JsonObject tokenUsage = GsonUtility.optJsonObject(payload, "tokenUsage");
+            JsonObject tokenUsage = GsonUtility.optJsonObject(payloadJson, "tokenUsage");
             int totalTokens = tokenUsage == null ? 0 : GsonUtility.optIntValue(tokenUsage, "total_tokens", 0);
             if (totalTokens <= 0) {
                 mainObject.addProperty("status", 1);
@@ -62,7 +63,7 @@ public class AiLlmUsageAuditServiceImpl implements IAiLlmUsageAuditService {
                 return;
             }
 
-            HILlmUsageAudit audit = buildAuditRecord(payload, tokenUsage, totalTokens);
+            HILlmUsageAudit audit = buildAuditRecord(payloadJson, tokenUsage, totalTokens);
             ApplicationContextAccessor.getBean(LlmUsageAuditService.class).save(audit);
 
             mainObject.addProperty("status", 1);

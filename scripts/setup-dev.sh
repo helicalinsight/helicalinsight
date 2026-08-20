@@ -76,15 +76,39 @@ elif [ -e "$HI_WAR_LINK" ]; then
 fi
 
 
-# Link Instant BI into the shared Docker layout (same path the package uses)
-INSTANTBI_LINK="$ROOT/docker/instantbi/helicalbi"
-INSTANTBI_SRC="$ROOT/ib/helicalbi"
-mkdir -p "$ROOT/docker/instantbi"
+# Link Instant BI into the shared Docker layout (compose mounts ./instantbi/com/helicalinsight/instantbi)
+INSTANTBI_LINK="$ROOT/docker/instantbi/com/helicalinsight/instantbi"
+INSTANTBI_SRC="$ROOT/instantbi/src/com/helicalinsight/instantbi"
+mkdir -p "$ROOT/docker/instantbi/com/helicalinsight"
 if [ -d "$INSTANTBI_SRC" ] && [ ! -e "$INSTANTBI_LINK" ]; then
   ln -sfn "$INSTANTBI_SRC" "$INSTANTBI_LINK"
-  echo "[OK]   Linked docker/instantbi/helicalbi → ib/helicalbi"
+  echo "[OK]   Linked docker/instantbi/com/helicalinsight/instantbi → instantbi/src/com/helicalinsight/instantbi"
 elif [ -e "$INSTANTBI_LINK" ]; then
-  echo "[SKIP] docker/instantbi/helicalbi already present"
+  echo "[SKIP] docker/instantbi/com/helicalinsight/instantbi already present"
+fi
+
+# Docker mounts ./hi/hi-repository/System/InstantBI → /app/helicalbi/config.
+# YAML source of truth stays helicalbi/config; this link is for Compose only.
+INSTANTBI_CONFIG_SRC="$INSTANTBI_SRC/helicalbi/config"
+INSTANTBI_CONFIG_LINK="$ROOT/server/hi-repository/System/InstantBI"
+if [ -d "$INSTANTBI_CONFIG_LINK" ] && [ ! -L "$INSTANTBI_CONFIG_LINK" ]; then
+  rm -rf "$INSTANTBI_CONFIG_LINK"
+fi
+if [ -d "$INSTANTBI_CONFIG_SRC" ] && [ ! -e "$INSTANTBI_CONFIG_LINK" ]; then
+  ln -sfn "$INSTANTBI_CONFIG_SRC" "$INSTANTBI_CONFIG_LINK"
+  echo "[OK]   Linked hi-repository/System/InstantBI → helicalbi/config"
+elif [ -e "$INSTANTBI_CONFIG_LINK" ]; then
+  echo "[SKIP] hi-repository/System/InstantBI already present"
+fi
+
+# Remove leftover docker/config/instantbi from the previous layout
+DOCKER_INSTANTBI_CONFIG="$ROOT/docker/config/instantbi"
+if [ -L "$DOCKER_INSTANTBI_CONFIG" ]; then
+  rm -f "$DOCKER_INSTANTBI_CONFIG"
+  echo "[OK]   Removed leftover docker/config/instantbi symlink"
+elif [ -d "$DOCKER_INSTANTBI_CONFIG" ] && [ -z "$(ls -A "$DOCKER_INSTANTBI_CONFIG" 2>/dev/null)" ]; then
+  rmdir "$DOCKER_INSTANTBI_CONFIG"
+  echo "[OK]   Removed leftover empty docker/config/instantbi"
 fi
 
 echo ""
@@ -98,7 +122,7 @@ echo "Per component:"
 echo "  Backend:    cd server && mvn clean package -DskipTests"
 echo "              # Deploy presentation/target/hi-ee-7.0.0.war as \$CATALINA_HOME/webapps/hi-ee.war"
 echo "  Frontend:   cd client && npm ci --legacy-peer-deps && npm run start18"
-echo "  Instant BI: cd ib/helicalbi && pip install -r requirements.txt && python app.py"
+echo "  Instant BI: cd instantbi/src/com/helicalinsight/instantbi && pip install -r requirements.txt && python app.py"
 echo ""
 echo "Build backend from source in Docker:"
 echo "  docker compose -f docker-compose.dev.yml up --build"

@@ -16,6 +16,7 @@ import com.helicalinsight.admin.model.Principal;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
+import com.helicalinsight.instant.ai.payload.RecommendDomainPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -26,11 +27,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AiRecommendDomainServiceImplTest {
 
   private final AiRecommendDomainServiceImpl service = new AiRecommendDomainServiceImpl();
-
-  @Test
-  public void isThreadSafeToCacheReturnsTrue() {
-    assertTrue(service.isThreadSafeToCache());
-  }
 
   @Test
   public void executeCallsHttpServiceAndSendsDomainResponse() throws Exception {
@@ -55,7 +51,7 @@ public class AiRecommendDomainServiceImplTest {
       auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
       factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-      service.execute("{\"path\":\"/model\"}", request, response);
+      service.execute(new RecommendDomainPayload("{\"path\":\"/model\"}"), request, response);
 
       controllerUtils.verify(() -> ControllerUtils.handleSuccess(eq(response), eq(true), eq("{\"domain\":\"sales\"}")));
     }

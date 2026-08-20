@@ -25,14 +25,14 @@ Same steps for every Docker package. Copy `.env`, start Compose, open the browse
    docker compose up -d
    ```
 
-   First run builds the Instant BI image if it is not present yet. Later starts reuse that image (no `pip install` every time). Rebuild Instant BI only when its code or requirements change: `docker compose up -d --build instantbi`.
+   Instant BI bind-mounts the app (`instantbi/com/helicalinsight/instantbi` → `/app`), config (`hi/hi-repository/System/InstantBI` → `/app/helicalbi/config`), and logs (`hi/hi-repository/System/Logs` → `/app/logs`). It runs `pip install` on start (then Nuitka `./app` if present, else `python app.py`). First start can take several minutes.
 
 5. Wait until services are up (first run can take several minutes — see below), then open **https://localhost**  
    Login: **hiadmin** / **hiadmin**
 
 ### From a git clone
 
-Run the repo setup script once so Instant BI is linked and `docker/.env` exists:
+Run the repo setup script once so Instant BI app is linked (`docker/instantbi/com/helicalinsight/instantbi`), `hi-repository/System/InstantBI` points at `helicalbi/config`, and `docker/.env` exists:
 
 ```bash
 # from repository root
@@ -46,7 +46,7 @@ cd docker && docker compose up -d
 | Phase | What is happening |
 |-------|-------------------|
 | Pull | Images download (Postgres, Nginx, Helical Insight) |
-| Instant BI build | One-time image build (`pip install` baked into the image) |
+| Instant BI | Bind-mount + `pip install` on container start |
 | `hiee` | Tomcat boots; optional Chrome install for export |
 
 Check progress:
@@ -56,7 +56,7 @@ docker compose ps
 docker compose logs -f
 ```
 
-Open the UI only after `hiee` / `nginx` look healthy (or after logs show Tomcat is ready). **Later** `docker compose up -d` starts much faster — Instant BI no longer reinstalls Python packages on every start.
+Open the UI only after `hiee` / `nginx` look healthy (or after logs show Tomcat is ready). Instant BI reinstalls Python packages on each container start.
 
 **Faster first boot without export/PDF:** in `.env` set `INSTALL_CHROME=false`, then restart.
 

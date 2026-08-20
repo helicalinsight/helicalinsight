@@ -5,8 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.helicalinsight.admin.model.HIHcrConnections;
+import com.helicalinsight.admin.model.HIHcrConnectionsGlobal;
 import com.helicalinsight.admin.model.HIHcrQueryParameters;
 import com.helicalinsight.admin.model.HiHcrQuery;
+import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
@@ -141,7 +143,13 @@ public class HCRUtils {
         if (type.equals("sql.jdbc") || type.equals("sql.jdbc.groovy") || type.equals("sql.jdbc.groovy.managed")) {
             connectionObject.addProperty("efwdId", item.getHiHcrConnectionsEfwd().getHiEfwdConnection().getId());
         } else {
-            connectionObject.addProperty("globalId", item != null ? item.getHiHcrConnectionsGlobal().getGlobalConnections().getGlobalId() : 0);
+        	GlobalConnections connection = Optional.ofNullable(item)
+        			.map( it ->  it.getHiHcrConnectionsGlobal())
+        			.map(hcrConnection -> hcrConnection.getGlobalConnections())
+        			.orElse(null);
+        	if ( connection != null ) {
+        		connectionObject.addProperty("globalId", connection.getGlobalId());
+        	}
         }
         // Add connection to DataSources
         dataSourcesObject.add("Connection", connectionObject);
