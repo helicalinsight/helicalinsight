@@ -8,6 +8,7 @@ import com.helicalinsight.admin.model.HIHcrConnections;
 import com.helicalinsight.admin.model.HIHcrQueryParameters;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HiHcrQuery;
+import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 
 public abstract class AbstractHCRConnectionSave {
@@ -29,9 +30,9 @@ public abstract class AbstractHCRConnectionSave {
 	
 	public void addQueryAndParams(JsonObject dataMap) {
 			HiHcrQuery hcrQuery=new HiHcrQuery();
-			hcrQuery.setHcrQueryName(dataMap.get("Name").getAsString());
-		hcrQuery.setHcrQueryString(dataMap.get("Query").getAsString());
-			hcrQuery.setHcrQueryType(dataMap.get("type").getAsString());
+			hcrQuery.setHcrQueryName(GsonUtility.optStringValue(dataMap,"Name",""));
+			hcrQuery.setHcrQueryString(GsonUtility.optStringValue(dataMap,"Query",""));
+			hcrQuery.setHcrQueryType(GsonUtility.optStringValue(dataMap,"type",""));
 			hcrQuery.setHiHcrConnections(getHiHcrConnections());
 			efwServiceDB.addHiHcrQuery(hcrQuery);
 			if(dataMap.has("Parameters")){

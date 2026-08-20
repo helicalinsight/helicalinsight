@@ -38,6 +38,7 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.jasperintegration.bandcontents.HCRImage;
 import com.helicalinsight.resourcesecurity.filter.ResourceAuthenticationAndAuthorizationFilter;
 import com.helicalinsight.test.utility.IntegrationTestUtility;
+import com.helicalinsight.test.utility.LocalImageHttpServer;
 import com.helicalinsight.test.utility.TestUtility;
 
 import jakarta.servlet.ServletContext;
@@ -86,7 +87,6 @@ public class HCRImageTest {
 		this.efwMock = MockMvcBuilders.webAppContextSetup(this.context)
 				.addFilters(filterChainProxy, authenticationAndAuthorizationFilter).build();
 	}
-	
 	
 	@Test
     public void hcrImage_a1_FolderCreate() throws Exception {
@@ -149,11 +149,14 @@ public class HCRImageTest {
 	
 	@Test
 	public void hcrImage_a5_generateImageComponent_withLink() throws Exception {
-		String formData = "{\"format\":\"pdf\",\"page\":0,\"connectionDetails\":{},\"designerProperties\":{\"reportName\":\"Untitled 1\",\"groups\":[],\"fields\":[],\"designerStyles\":[],\"parameters\":[],\"variables\":[],\"designerStyle\":[],\"pageWidth\":595,\"pageHeight\":842,\"orientation\":\"Portrait\",\"columnCount\":1,\"title\":{\"bandHeight\":440,\"isImageAttached\":false,\"staticText\":[],\"textField\":[],\"image\":[{\"dir\":\"\",\"onErrorType\": \"Error\",\"file\":\"\",\"link\":\"https://randomwordgenerator.com/img/picture-generator/53e3d7454351ac14f1dc8460962e33791c3ad6e04e507440762e7ad3954fcd_640.jpg\",\"X\":103.18639999999903,\"Y\":0,\"imageHeight\":440,\"imageWidth\":370,\"imageResourceId\":17}],\"lines\":[],\"break\":[],\"table\":[],\"crosstab\":[],\"chart\":[]}},\"type\":\"pdf\",\"isPreview\":true,\"isExport\":\"true\",\"reportName\":\"Untitled 1\",\"designerChange\":{\"isChanged\":true,\"printUUID\":\"printUUID\"}}";
-		String resp = integrationTestUtility.generateHCRReport(formData);
-		JsonObject jsonObject = GsonUtility.parseString(resp,JsonObject.class);
-		int status = jsonObject.get("status").getAsInt();
-		Assert.assertEquals(1, status);
+		try (LocalImageHttpServer imageServer = LocalImageHttpServer.start()) {
+			String formData = "{\"format\":\"pdf\",\"page\":0,\"connectionDetails\":{},\"designerProperties\":{\"reportName\":\"Untitled 1\",\"groups\":[],\"fields\":[],\"designerStyles\":[],\"parameters\":[],\"variables\":[],\"designerStyle\":[],\"pageWidth\":595,\"pageHeight\":842,\"orientation\":\"Portrait\",\"columnCount\":1,\"title\":{\"bandHeight\":440,\"isImageAttached\":false,\"staticText\":[],\"textField\":[],\"image\":[{\"dir\":\"\",\"onErrorType\": \"Error\",\"file\":\"\",\"link\":\"%s\",\"X\":103.18639999999903,\"Y\":0,\"imageHeight\":440,\"imageWidth\":370,\"imageResourceId\":17}],\"lines\":[],\"break\":[],\"table\":[],\"crosstab\":[],\"chart\":[]}},\"type\":\"pdf\",\"isPreview\":true,\"isExport\":\"true\",\"reportName\":\"Untitled 1\",\"designerChange\":{\"isChanged\":true,\"printUUID\":\"printUUID\"}}"
+					.formatted(imageServer.imageUrl());
+			String resp = integrationTestUtility.generateHCRReport(formData);
+			JsonObject jsonObject = GsonUtility.parseString(resp,JsonObject.class);
+			int status = jsonObject.get("status").getAsInt();
+			Assert.assertEquals(1, status);
+		}
 	}
 	
 	@Test

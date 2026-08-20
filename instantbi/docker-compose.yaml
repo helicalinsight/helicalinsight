@@ -1,0 +1,10 @@
+services:
+  pyflask:
+    image: python:3.13-slim
+    container_name: pyflask
+    working_dir: /app
+    volumes:
+      - ./src/com/helicalinsight/instantbi:/app
+      - ./dist:/dist
+    command: tail -f /dev/null
+    restart: unless-stopped

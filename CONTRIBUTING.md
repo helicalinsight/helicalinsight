@@ -67,7 +67,7 @@ docker compose -f docker-compose.dev.yml up --build
 |------|------|------------------|
 | Backend | [server/README.md](server/README.md) | **Eclipse + Tomcat** ([guide](server/README.md#eclipse--tomcat-recommended)), or `cd server && mvn clean package -DskipTests` → deploy as `hi-ee.war` |
 | Frontend | [client/README.md](client/README.md) | `cd client && npm ci --legacy-peer-deps && npm run start18` |
-| Instant BI | [ib/README.md](ib/README.md) | `cd ib/helicalbi && pip install -r requirements.txt && python app.py` |
+| Instant BI | [instantbi/README.md](instantbi/README.md) | `cd instantbi/src/com/helicalinsight/instantbi && pip install -r requirements.txt && python app.py` |
 
 ### Maven profiles
 

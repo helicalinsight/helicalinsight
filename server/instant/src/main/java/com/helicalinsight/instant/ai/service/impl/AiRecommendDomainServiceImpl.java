@@ -3,25 +3,27 @@ package com.helicalinsight.instant.ai.service.impl;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
-import com.helicalinsight.instant.ai.service.IAiRecommendDomainService;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.payload.RecommendDomainPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-public class AiRecommendDomainServiceImpl implements IAiRecommendDomainService {
+@Service(InstantBIServiceFactory.RECOMMEND_DOMAIN_SERVICE)
+public class AiRecommendDomainServiceImpl implements IInstantBIService {
+
 
     @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
-
-    @Override
-    public void execute(String model, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        RecommendDomainPayload payload = (RecommendDomainPayload) instantBIPayload;
         boolean isAjax = ControllerUtils.isAjax(request);
-        model = InstantBIUtils.getEncodedElseNormal(model);
+        String model = InstantBIUtils.getEncodedElseNormal(payload.getModel());
         JsonObject modelPathJson = GsonUtility.parseString(model, JsonObject.class);
         JsonObject js = new JsonObject();
         js.add("model", modelPathJson);

@@ -291,5 +291,5 @@ Test results are also written to `jest-stare/` when using the default Jest repor
 ## Related documentation
 
 - [Backend README](../server/README.md)
-- [Instant BI README](../ib/README.md)
+- [Instant BI README](../instantbi/README.md)
 - [Root README](../README.md) — pick your path (run vs develop)

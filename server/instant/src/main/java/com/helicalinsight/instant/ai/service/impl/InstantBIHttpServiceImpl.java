@@ -4,12 +4,14 @@ import com.google.gson.JsonObject;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
+import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import com.helicalinsight.parallelprocessor.TaskExecutorService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -23,14 +25,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Service(InstantBIServiceFactory.HTTP_SERVICE)
 public class InstantBIHttpServiceImpl implements IInstantBIHttpService {
 
     private static final Logger logger = LoggerFactory.getLogger(InstantBIHttpServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
     public String callHttp(String endpoint, JsonObject body) {

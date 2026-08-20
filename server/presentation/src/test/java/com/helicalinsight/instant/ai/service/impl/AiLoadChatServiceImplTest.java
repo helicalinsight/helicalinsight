@@ -21,6 +21,7 @@ import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.instant.ai.payload.LoadChatPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -31,11 +32,6 @@ import jakarta.servlet.http.HttpServletResponse;
 public class AiLoadChatServiceImplTest {
 
     private final AiLoadChatServiceImpl service = new AiLoadChatServiceImpl();
-
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test
     public void executeLoadsChatAndSendsResponse() throws Exception {
@@ -77,7 +73,7 @@ public class AiLoadChatServiceImplTest {
             context.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class)).thenReturn(resourceService);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("2", formData, request, response);
+            service.execute(new LoadChatPayload("2", formData), request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),

@@ -7,7 +7,10 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.framework.FactoryMethodWrapper;
 import com.helicalinsight.efw.serviceframework.IService;
-import com.helicalinsight.instant.ai.service.IAiChatContextService;
+import com.helicalinsight.instant.ai.payload.ChatContextPayload;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,26 +18,28 @@ import jakarta.servlet.http.HttpServletResponse;
 import net.sf.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
-public class AiChatContextServiceImpl implements IAiChatContextService {
+@Service(InstantBIServiceFactory.CHAT_CONTEXT_SERVICE)
+public class AiChatContextServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiChatContextServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
+
 
     @Override
-    public void execute(String input, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        ChatContextPayload payload = (ChatContextPayload) instantBIPayload;
         boolean isAjax = ControllerUtils.isAjax(request);
 
         JsonObject js = new JsonObject();
-        js.addProperty("input", input);
+        js.addProperty("input", payload.getInput());
 
-        String chatOutput = InstantBIServiceFactory.getHttpService().callHttp("/chat", js);
+        IInstantBIHttpService httpService = InstantBIServiceFactory.getHttpService();
+        String chatOutput = httpService.callHttp("/chat", js);
         JsonObject outputJson = new JsonObject();
         try {
             JsonElement parsedOutput = JsonParser.parseString(chatOutput);
@@ -57,7 +62,7 @@ public class AiChatContextServiceImpl implements IAiChatContextService {
                 String result = iService.doService("adhoc", "metadata", "getMetadataForEdit", formData.toString());
                 JsonObject dataResult = GsonUtility.parseString(result, JsonObject.class);
                 JsonObject responseJson = dataResult.get("response").getAsJsonObject();
-                String output = InstantBIServiceFactory.getHttpService().callHttp("/metadataInsight", responseJson);
+                String output = httpService.callHttp("/metadataInsight", responseJson);
 
                 outputJson.addProperty("insightResponse", output);
             } else if ("report".equals(context)) {

@@ -2,6 +2,16 @@ package com.helicalinsight.instant.ai;
 
 import com.helicalinsight.efw.controllerutils.StatusValidator;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
+import com.helicalinsight.instant.ai.payload.ChatContextPayload;
+import com.helicalinsight.instant.ai.payload.ConvertChartPayload;
+import com.helicalinsight.instant.ai.payload.DataInsightPayload;
+import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
+import com.helicalinsight.instant.ai.payload.ListChartsPayload;
+import com.helicalinsight.instant.ai.payload.LlmUsageAuditPayload;
+import com.helicalinsight.instant.ai.payload.LoadChatPayload;
+import com.helicalinsight.instant.ai.payload.RecommendAnalystPayload;
+import com.helicalinsight.instant.ai.payload.RecommendDomainPayload;
+import com.helicalinsight.instant.ai.payload.UtilityConfigPayload;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,14 +40,16 @@ public class InstantBIController {
     public void aiRecommend(@RequestParam("model") String model, HttpServletRequest request,
                                          HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getRecommendDomainService().execute(model, request, response);
+        InstantBIServiceFactory.getRecommendDomainService()
+                .execute(new RecommendDomainPayload(model), request, response);
     }
 
     @RequestMapping("/recommendation/analyst")
     public void aiRecommendAnalyst(@RequestParam("model") String model, @RequestParam("domain") String domain,
                                                 HttpServletRequest request, HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getRecommendAnalystService().execute(model, domain, request, response);
+        InstantBIServiceFactory.getRecommendAnalystService()
+                .execute(new RecommendAnalystPayload(model, domain), request, response);
     }
 
     @RequestMapping("/interactive-chat")
@@ -49,7 +61,8 @@ public class InstantBIController {
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getInteractiveChatService().execute(input, chatid, chatSeqId, subject, request, response);
+        InstantBIServiceFactory.getInteractiveChatService()
+                .execute(new InteractiveChatPayload(input, chatid, chatSeqId, subject), request, response);
     }
 
     @RequestMapping("/data-insight")
@@ -63,7 +76,8 @@ public class InstantBIController {
             HttpServletResponse response) throws IOException {
         validateStatus();
         InstantBIServiceFactory.getDataInsightService()
-                .execute(chatSeqId, chatid, inputParam, formData, subjectString, "/data-insight", request, response);
+                .execute(new DataInsightPayload(chatSeqId, chatid, inputParam, formData, subjectString, "/data-insight"),
+                        request, response);
     }
 
     @RequestMapping("/convert-hreport")
@@ -77,7 +91,8 @@ public class InstantBIController {
             HttpServletResponse response) throws IOException {
         validateStatus();
         InstantBIServiceFactory.getDataInsightService()
-                .execute(chatSeqId, chatid, inputParam, formData, subjectString, "/instant-to-hr", request, response);
+                .execute(new DataInsightPayload(chatSeqId, chatid, inputParam, formData, subjectString, "/instant-to-hr"),
+                        request, response);
     }
 
     @RequestMapping("/convert-chart")
@@ -90,13 +105,13 @@ public class InstantBIController {
             HttpServletResponse response) throws IOException {
         validateStatus();
         InstantBIServiceFactory.getConvertChartService()
-                .execute(vfTemplate, selectedChart, chatId, chatSequenceId, request, response);
+                .execute(new ConvertChartPayload(vfTemplate, selectedChart, chatId, chatSequenceId), request, response);
     }
 
     @RequestMapping("/list-charts")
     public void listCharts(HttpServletRequest request, HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getListChartsService().execute(request, response);
+        InstantBIServiceFactory.getListChartsService().execute(new ListChartsPayload(), request, response);
     }
 
     // ------------------------------------------------------------------
@@ -160,7 +175,8 @@ public class InstantBIController {
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getLoadChatService().execute(chatSeqId, formData, request, response);
+        InstantBIServiceFactory.getLoadChatService()
+                .execute(new LoadChatPayload(chatSeqId, formData), request, response);
     }
 
     public String doGetSessionId(HttpServletRequest request) {
@@ -171,19 +187,21 @@ public class InstantBIController {
     public void aiChatForContext(@RequestParam("input") String input, HttpServletRequest request,
                                               HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getChatContextService().execute(input, request, response);
+        InstantBIServiceFactory.getChatContextService()
+                .execute(new ChatContextPayload(input), request, response);
     }
 
     @RequestMapping("/llm-usage-audit")
     public void auditLlmUsage(HttpServletRequest request, HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getLlmUsageAuditService().execute(request, response);
+        InstantBIServiceFactory.getLlmUsageAuditService().execute(new LlmUsageAuditPayload(), request, response);
     }
 
     private void proxyUtility(String utilityPath, HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getUtilityConfigService().execute(utilityPath, request, response);
+        InstantBIServiceFactory.getUtilityConfigService()
+                .execute(new UtilityConfigPayload(utilityPath), request, response);
     }
 
     static String resolveUtilityPath(HttpServletRequest request) {

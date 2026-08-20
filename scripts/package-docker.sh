@@ -43,7 +43,7 @@ if [ ! -d "$REPO_SRC" ]; then
   exit 1
 fi
 
-INSTANTBI_SRC="$ROOT/ib/helicalbi"
+INSTANTBI_SRC="$ROOT/instantbi/src/com/helicalinsight/instantbi"
 if [ ! -d "$INSTANTBI_SRC" ]; then
   echo "error: missing $INSTANTBI_SRC (Instant BI source)" >&2
   exit 1
@@ -107,7 +107,9 @@ mkdir -p "$PKG_DIR/hi/hi-repository/System/Logs"
 # WAR must be named hi-ee.war for compose volume mount / context path
 cp -a "$WAR_SRC" "$PKG_DIR/hi/hi-ee.war"
 
-# Instant BI (compose mounts ./instantbi/helicalbi)
+# Instant BI (compose mounts ./instantbi/com/helicalinsight/instantbi)
+INSTANTBI_PKG="$PKG_DIR/instantbi/com/helicalinsight/instantbi"
+mkdir -p "$(dirname "$INSTANTBI_PKG")"
 if command -v rsync >/dev/null 2>&1; then
   rsync -a \
     --exclude '.venv/' \
@@ -116,17 +118,34 @@ if command -v rsync >/dev/null 2>&1; then
     --exclude '.deepeval/' \
     --exclude 'tests/' \
     --exclude '.env' \
-    "$INSTANTBI_SRC/" "$PKG_DIR/instantbi/helicalbi/"
+    "$INSTANTBI_SRC/" "$INSTANTBI_PKG/"
 else
-  cp -a "$INSTANTBI_SRC" "$PKG_DIR/instantbi/helicalbi"
-  rm -rf "$PKG_DIR/instantbi/helicalbi/.venv" \
-         "$PKG_DIR/instantbi/helicalbi/__pycache__" \
-         "$PKG_DIR/instantbi/helicalbi/.pytest_cache" \
-         "$PKG_DIR/instantbi/helicalbi/tests" 2>/dev/null || true
+  cp -a "$INSTANTBI_SRC" "$INSTANTBI_PKG"
+  rm -rf "$INSTANTBI_PKG/.venv" \
+         "$INSTANTBI_PKG/__pycache__" \
+         "$INSTANTBI_PKG/.pytest_cache" \
+         "$INSTANTBI_PKG/tests" 2>/dev/null || true
 fi
 if [ -f "$INSTANTBI_SRC/.env.example" ]; then
-  cp -a "$INSTANTBI_SRC/.env.example" "$PKG_DIR/instantbi/helicalbi/.env.example"
+  cp -a "$INSTANTBI_SRC/.env.example" "$INSTANTBI_PKG/.env.example"
 fi
+
+# Compose mounts ./hi/hi-repository/System/InstantBI → /app/helicalbi/config.
+# Copy YAML from helicalbi/config into System (do not ship a copy inside /app).
+INSTANTBI_CONFIG_SRC="$INSTANTBI_SRC/helicalbi/config"
+INSTANTBI_CONFIG_PKG="$PKG_DIR/hi/hi-repository/System/InstantBI"
+rm -rf "$INSTANTBI_CONFIG_PKG"
+mkdir -p "$INSTANTBI_CONFIG_PKG"
+if [ -d "$INSTANTBI_CONFIG_SRC" ]; then
+  if command -v rsync >/dev/null 2>&1; then
+    rsync -a "$INSTANTBI_CONFIG_SRC/" "$INSTANTBI_CONFIG_PKG/"
+  else
+    cp -a "$INSTANTBI_CONFIG_SRC/." "$INSTANTBI_CONFIG_PKG/"
+  fi
+fi
+rm -rf "$INSTANTBI_PKG/helicalbi/config" "$INSTANTBI_PKG/logs"
+# Leftover from previous ZIP layout (config was under docker/config/instantbi)
+rm -rf "$PKG_DIR/config/instantbi"
 
 # Lightweight package README at zip root
 cat > "$PKG_DIR/README.md" <<EOF
@@ -141,7 +160,7 @@ docker compose up -d
 
 Open **https://localhost** — login: \`hiadmin\` / \`hiadmin\`
 
-Same \`docker/\` layout as the repo. First start builds Instant BI once if needed; later starts are fast.
+Same \`docker/\` layout as the repo. Instant BI bind-mounts \`instantbi/com/helicalinsight/instantbi\` and runs \`pip install\` on start.
 
 Full guide: \`readme/readme.md\`
 EOF

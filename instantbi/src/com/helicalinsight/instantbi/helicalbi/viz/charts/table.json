@@ -1,0 +1,101 @@
+{
+  "dims_min": 0,
+  "dims_max": null,
+  "measures_min": 0,
+  "measures_max": null,
+  "instruction": "Exact row-level values or many columns matter most.",
+  "aliases": [
+    "data table",
+    "flat table",
+    "row table",
+    "tabular"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "conversion": {
+    "family": "table",
+    "component": "Table",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0,
+        "optional": true
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0,
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "settings": {
+    "dimensions": {
+      "names": "provide dimension names as JSON array, min 0 max any"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 0 max any"
+    ],
+    "labelsX": "Label for x field",
+    "labelsY": "Label for y field",
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    }
+  },
+  "instructions": [
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "dimensions.names / measures list the columns to emphasize; empty arrays mean use all result columns.",
+    "Set labelsX, labelsY to user-friendly axis titles (aliases OK; need not equal column names).",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
+  ],
+  "code": [
+    "function DrawTable() {",
+    "  const { Table } = components;",
+    "  const setting = ${setting};",
+    "  const measure_formats = ${format};",
+    "  const columnFormats = measure_formats || {};",
+    "  const formatCell = (key, value) => {",
+    "    const fmt = columnFormats[key];",
+    "    if (!fmt || value == null || value === '') return value;",
+    "    const num = Number(value);",
+    "    if (isNaN(num)) return value;",
+    "    if (fmt === '0.00' || fmt === '0.0#' || /^0\\.0+$/.test(fmt)) {",
+    "      return num.toFixed((fmt.split('.')[1] || '').length);",
+    "    }",
+    "    if (fmt.includes('#') || fmt.includes(',') || fmt.includes('$')) {",
+    "      const decimals = (fmt.split('.')[1] || '').replace(/[^0]/g, '').length;",
+    "      let out = num.toLocaleString(undefined, {",
+    "        minimumFractionDigits: decimals,",
+    "        maximumFractionDigits: decimals || 0",
+    "      });",
+    "      if (fmt.trim().startsWith('$')) out = '$' + out;",
+    "      return out;",
+    "    }",
+    "    return value;",
+    "  };",
+    "  const columns =",
+    "    data.length > 0",
+    "      ? Object.keys(data[0]).map((key) => ({",
+    "          title: key.replace(/_/g, ' '),",
+    "          dataIndex: key,",
+    "          key,",
+    "          render: (value) => formatCell(key, value)",
+    "        }))",
+    "      : [];",
+    "  return (",
+    "    <div>",
+    "      <Table",
+    "        columns={columns}",
+    "        dataSource={data}",
+    "        rowKey={(record, index) => index}",
+    "        pagination={true}",
+    "      />",
+    "    </div>",
+    "  );",
+    "}"
+  ]
+}

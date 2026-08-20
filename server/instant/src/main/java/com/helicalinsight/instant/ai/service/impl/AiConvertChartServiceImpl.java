@@ -3,7 +3,9 @@ package com.helicalinsight.instant.ai.service.impl;
 import com.google.gson.JsonObject;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
-import com.helicalinsight.instant.ai.service.IAiConvertChartService;
+import com.helicalinsight.instant.ai.payload.ConvertChartPayload;
+import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
+import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,24 +13,27 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 
 /**
  * Proxies InstantBI chart-type conversion to the Python {@code /convert-chart} service.
  */
-public class AiConvertChartServiceImpl implements IAiConvertChartService {
+@Service(InstantBIServiceFactory.CONVERT_CHART_SERVICE)
+public class AiConvertChartServiceImpl implements IInstantBIService {
 
     private static final Logger logger = LoggerFactory.getLogger(AiConvertChartServiceImpl.class);
 
-    @Override
-    public boolean isThreadSafeToCache() {
-        return true;
-    }
 
     @Override
-    public void execute(String vfTemplate, String selectedChart, String chatId, String chatSequence,
-                        HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void execute(IInstantBIPayload instantBIPayload, HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        ConvertChartPayload payload = (ConvertChartPayload) instantBIPayload;
+        String vfTemplate = payload.getVfTemplate();
+        String selectedChart = payload.getSelectedChart();
+        String chatId = payload.getChatId();
+        String chatSequence = payload.getChatSequence();
         try {
             String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
                 JsonObject js = new JsonObject();

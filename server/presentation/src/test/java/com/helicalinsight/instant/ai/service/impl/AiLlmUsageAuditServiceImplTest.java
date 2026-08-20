@@ -20,6 +20,7 @@ import com.helicalinsight.admin.service.LlmUsageAuditService;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.instant.ai.payload.LlmUsageAuditPayload;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -28,10 +29,6 @@ public class AiLlmUsageAuditServiceImplTest {
 
     private final AiLlmUsageAuditServiceImpl service = new AiLlmUsageAuditServiceImpl();
 
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test
     public void executePersistsAuditWhenPayloadIsValid() throws Exception {
@@ -53,7 +50,7 @@ public class AiLlmUsageAuditServiceImplTest {
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 
-            service.execute(request, response);
+            service.execute(new LlmUsageAuditPayload(), request, response);
 
             verify(auditService).save(any(HILlmUsageAudit.class));
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
@@ -81,7 +78,7 @@ public class AiLlmUsageAuditServiceImplTest {
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 
-            service.execute(request, response);
+            service.execute(new LlmUsageAuditPayload(), request, response);
 
             verify(auditService, never()).save(any(HILlmUsageAudit.class));
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
@@ -109,7 +106,7 @@ public class AiLlmUsageAuditServiceImplTest {
             context.when(() -> ApplicationContextAccessor.getBean(LlmUsageAuditService.class))
                     .thenReturn(auditService);
 
-            service.execute(request, response);
+            service.execute(new LlmUsageAuditPayload(), request, response);
 
             verify(auditService, never()).save(any(HILlmUsageAudit.class));
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(

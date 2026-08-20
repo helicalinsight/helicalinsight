@@ -1,0 +1,93 @@
+{
+  "dims_min": 1,
+  "dims_max": 1,
+  "measures_min": 1,
+  "measures_max": 1,
+  "instruction": "User explicitly uses the 'donut' spelling.",
+  "aliases": [
+    "donut chart",
+    "doughnut",
+    "doughnut chart"
+  ],
+  "requires_ordered": false,
+  "base": "default",
+  "conversion": {
+    "family": "pie",
+    "component": "Pie",
+    "fields": {
+      "dimension_column": {
+        "role": "dimension",
+        "index": 0
+      },
+      "measure_column": {
+        "role": "measure",
+        "index": 0
+      },
+      "title_text": {
+        "role": "title",
+        "optional": true
+      }
+    },
+    "omit_when_missing": []
+  },
+  "settings": {
+    "dimensions": {
+      "names": "provide dimension names as JSON array, min 1 max 1"
+    },
+    "measures": [
+      "provide measure names separated by comma, min 1 max 1"
+    ],
+    "color": {
+      "mode": "optional",
+      "optional": true,
+      "description": "Solid hex string or palette array of hex colors"
+    },
+    "title": "Chart title"
+  },
+  "instructions": [
+    "Fill ChartSettings only (JSON). Do NOT invent JS/JSX or component props.",
+    "dimensions.names and measures must be real result-column names from data_types / sample_row (JSON arrays).",
+    "Same as pie: dimensions.names[0] = category; measures[0] = value; set title.",
+    "Set title to a short chart heading.",
+    "color: solid hex string or palette array when the template asks; omit if unused.",
+    "Do NOT return measure_formats here — formats are a separate step."
+  ],
+  "code": [
+    "function DrawDonut() {",
+    "  const { Pie } = components;",
+    "  const setting = ${setting};",
+    "  const measure_formats = ${format};",
+    "  const measureField = (setting.measures && setting.measures[0]) || '';",
+    "  const config = {",
+    "    appendPadding: 10,",
+    "    data,",
+    "    angleField: setting.measures[0],",
+    "    colorField: setting.dimensions.names[0],",
+    "    radius: 0.8,",
+    "    innerRadius: 0.6,",
+    "    statistic: {",
+    "      title: {",
+    "        style: { color: '#000', fontSize: 14 },",
+    "",
+    "      },",
+    "      content: {",
+    "        style: { fontSize: 14 },",
+    "        content: String(",
+    "          data.reduce((sum, row) => sum + (row[measureField] || 0), 0)",
+    "        )",
+    "      }",
+    "    },",
+    "    ...(setting.color ? { color: setting.color } : {}),",
+    "    label: {",
+    "      type: 'outer',",
+    "      content: '{name}: {percentage}'",
+    "    },",
+    "    interactions: [{ type: 'element-active' }],",
+    "    meta: {",
+    "      [measureField]: { alias: setting.title || measureField }",
+    "    }",
+    "  };",
+    "  return <div><Pie {...config} /></div>;",
+    "}"
+  ]
+}

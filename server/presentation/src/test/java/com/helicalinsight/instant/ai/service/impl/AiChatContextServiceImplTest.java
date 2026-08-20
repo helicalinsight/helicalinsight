@@ -12,6 +12,7 @@ import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
+import com.helicalinsight.instant.ai.payload.ChatContextPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -22,10 +23,6 @@ public class AiChatContextServiceImplTest {
 
     private final AiChatContextServiceImpl service = new AiChatContextServiceImpl();
 
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test
     public void executeSendsChatContextResponse() throws Exception {
@@ -41,7 +38,7 @@ public class AiChatContextServiceImplTest {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("show sales", request, response);
+            service.execute(new ChatContextPayload("show sales"), request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
@@ -63,7 +60,7 @@ public class AiChatContextServiceImplTest {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("show sales", request, response);
+            service.execute(new ChatContextPayload("show sales"), request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(eq(response), eq(true), any(String.class)));
         }

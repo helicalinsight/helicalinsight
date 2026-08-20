@@ -16,6 +16,7 @@ import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIHttpService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 
@@ -27,10 +28,6 @@ public class AiInteractiveChatServiceImplTest {
 
     private final AiInteractiveChatServiceImpl service = new AiInteractiveChatServiceImpl();
 
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test
     public void executeSendsInteractiveChatResponse() throws Exception {
@@ -61,7 +58,7 @@ public class AiInteractiveChatServiceImplTest {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("question", "chat-1", "1", null, request, response);
+            service.execute(new InteractiveChatPayload("question", "chat-1", "1", null), request, response);
 
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
@@ -85,7 +82,7 @@ public class AiInteractiveChatServiceImplTest {
             controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
             factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
 
-            service.execute("question", "chat-1", "1", null, request, response);
+            service.execute(new InteractiveChatPayload("question", "chat-1", "1", null), request, response);
 
             controllerUtils.verifyNoInteractions();
         }

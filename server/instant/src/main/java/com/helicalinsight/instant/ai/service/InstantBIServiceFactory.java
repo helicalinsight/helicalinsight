@@ -1,76 +1,70 @@
 package com.helicalinsight.instant.ai.service;
 
-import com.helicalinsight.efw.framework.FactoryMethodWrapper;
+import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 
 public final class InstantBIServiceFactory {
 
-    private static final String HTTP_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.InstantBIHttpServiceImpl";
-    private static final String RECOMMEND_DOMAIN_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiRecommendDomainServiceImpl";
-    private static final String RECOMMEND_ANALYST_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiRecommendAnalystServiceImpl";
-    private static final String INTERACTIVE_CHAT_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiInteractiveChatServiceImpl";
-    private static final String DATA_INSIGHT_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiDataInsightServiceImpl";
-    private static final String LOAD_CHAT_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiLoadChatServiceImpl";
-    private static final String CHAT_CONTEXT_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiChatContextServiceImpl";
-    private static final String LLM_USAGE_AUDIT_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiLlmUsageAuditServiceImpl";
-    private static final String CONVERT_CHART_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiConvertChartServiceImpl";
-    private static final String LIST_CHARTS_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiListChartsServiceImpl";
-    private static final String UTILITY_CONFIG_SERVICE_IMPL =
-            "com.helicalinsight.instant.ai.service.impl.AiUtilityConfigServiceImpl";
+    public static final String HTTP_SERVICE = "instantBIHttpService";
+    public static final String RECOMMEND_DOMAIN_SERVICE = "aiRecommendDomainService";
+    public static final String RECOMMEND_ANALYST_SERVICE = "aiRecommendAnalystService";
+    public static final String INTERACTIVE_CHAT_SERVICE = "aiInteractiveChatService";
+    public static final String DATA_INSIGHT_SERVICE = "aiDataInsightService";
+    public static final String LOAD_CHAT_SERVICE = "aiLoadChatService";
+    public static final String CHAT_CONTEXT_SERVICE = "aiChatContextService";
+    public static final String LLM_USAGE_AUDIT_SERVICE = "aiLlmUsageAuditService";
+    public static final String CONVERT_CHART_SERVICE = "aiConvertChartService";
+    public static final String LIST_CHARTS_SERVICE = "aiListChartsService";
+    public static final String UTILITY_CONFIG_SERVICE = "aiUtilityConfigService";
 
     private InstantBIServiceFactory() {
     }
 
     public static IInstantBIHttpService getHttpService() {
-        return FactoryMethodWrapper.getTypedInstance(HTTP_SERVICE_IMPL, IInstantBIHttpService.class);
+        return getService(HTTP_SERVICE);
     }
 
-    public static IAiRecommendDomainService getRecommendDomainService() {
-        return FactoryMethodWrapper.getTypedInstance(RECOMMEND_DOMAIN_SERVICE_IMPL, IAiRecommendDomainService.class);
+    public static IInstantBIService getRecommendDomainService() {
+        return getService(RECOMMEND_DOMAIN_SERVICE);
     }
 
-    public static IAiRecommendAnalystService getRecommendAnalystService() {
-        return FactoryMethodWrapper.getTypedInstance(RECOMMEND_ANALYST_SERVICE_IMPL, IAiRecommendAnalystService.class);
+    public static IInstantBIService getRecommendAnalystService() {
+        return getService(RECOMMEND_ANALYST_SERVICE);
     }
 
-    public static IAiInteractiveChatService getInteractiveChatService() {
-        return FactoryMethodWrapper.getTypedInstance(INTERACTIVE_CHAT_SERVICE_IMPL, IAiInteractiveChatService.class);
+    public static IInstantBIService getInteractiveChatService() {
+        return getService(INTERACTIVE_CHAT_SERVICE);
     }
 
-    public static IAiDataInsightService getDataInsightService() {
-        return FactoryMethodWrapper.getTypedInstance(DATA_INSIGHT_SERVICE_IMPL, IAiDataInsightService.class);
+    public static IInstantBIService getDataInsightService() {
+        return getService(DATA_INSIGHT_SERVICE);
     }
 
-    public static IAiLoadChatService getLoadChatService() {
-        return FactoryMethodWrapper.getTypedInstance(LOAD_CHAT_SERVICE_IMPL, IAiLoadChatService.class);
+    public static IInstantBIService getLoadChatService() {
+        return getService(LOAD_CHAT_SERVICE);
     }
 
-    public static IAiChatContextService getChatContextService() {
-        return FactoryMethodWrapper.getTypedInstance(CHAT_CONTEXT_SERVICE_IMPL, IAiChatContextService.class);
+    public static IInstantBIService getChatContextService() {
+        return getService(CHAT_CONTEXT_SERVICE);
     }
 
-    public static IAiLlmUsageAuditService getLlmUsageAuditService() {
-        return FactoryMethodWrapper.getTypedInstance(LLM_USAGE_AUDIT_SERVICE_IMPL, IAiLlmUsageAuditService.class);
+    public static IInstantBIService getLlmUsageAuditService() {
+        return getService(LLM_USAGE_AUDIT_SERVICE);
     }
 
-    public static IAiConvertChartService getConvertChartService() {
-        return FactoryMethodWrapper.getTypedInstance(CONVERT_CHART_SERVICE_IMPL, IAiConvertChartService.class);
+    public static IInstantBIService getConvertChartService() {
+        return getService(CONVERT_CHART_SERVICE);
     }
 
-    public static IAiListChartsService getListChartsService() {
-        return FactoryMethodWrapper.getTypedInstance(LIST_CHARTS_SERVICE_IMPL, IAiListChartsService.class);
+    public static IInstantBIService getListChartsService() {
+        return getService(LIST_CHARTS_SERVICE);
     }
 
-    public static IAiUtilityConfigService getUtilityConfigService() {
-        return FactoryMethodWrapper.getTypedInstance(UTILITY_CONFIG_SERVICE_IMPL, IAiUtilityConfigService.class);
+    public static IInstantBIService getUtilityConfigService() {
+        return getService(UTILITY_CONFIG_SERVICE);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T getService(String beanName) {
+        return (T) ApplicationContextAccessor.getBean(beanName);
     }
 }

@@ -89,21 +89,57 @@ if ($HiWarSrc -and -not (Test-Path $HiWarLink)) {
 	Write-Host '[SKIP] docker/hi/hi-ee.war already present' -ForegroundColor Yellow 
 }
 
-# Link Instant BI into the shared Docker layout (same path the package uses)
-$InstantBiLink = Join-Path $Root "docker\instantbi\helicalbi"
-$InstantBiSrc = Join-Path $Root "ib\helicalbi"
-$InstantBiParent = Join-Path $Root "docker\instantbi"
+# Link Instant BI into the shared Docker layout (compose mounts ./instantbi/com/helicalinsight/instantbi)
+$InstantBiLink = Join-Path $Root "docker\instantbi\com\helicalinsight\instantbi"
+$InstantBiSrc = Join-Path $Root "instantbi\src\com\helicalinsight\instantbi"
+$InstantBiParent = Join-Path $Root "docker\instantbi\com\helicalinsight"
 New-Item -ItemType Directory -Force -Path $InstantBiParent | Out-Null
 if ((Test-Path $InstantBiSrc) -and -not (Test-Path $InstantBiLink)) {
     try {
         New-Item -ItemType Junction -Path $InstantBiLink -Target $InstantBiSrc | Out-Null
-        Write-Host '[OK]   Linked docker/instantbi/helicalbi -> ib/helicalbi' -ForegroundColor Green
+        Write-Host '[OK]   Linked docker/instantbi/com/helicalinsight/instantbi -> instantbi/src/com/helicalinsight/instantbi' -ForegroundColor Green
     } catch {
         Copy-Item -Recurse $InstantBiSrc $InstantBiLink
-        Write-Host '[OK]   Copied ib/helicalbi -> docker/instantbi/helicalbi' -ForegroundColor Green
+        Write-Host '[OK]   Copied instantbi/src/com/helicalinsight/instantbi -> docker/instantbi/com/helicalinsight/instantbi' -ForegroundColor Green
     }
 } elseif (Test-Path $InstantBiLink) {
-    Write-Host '[SKIP] docker/instantbi/helicalbi already present' -ForegroundColor Yellow
+    Write-Host '[SKIP] docker/instantbi/com/helicalinsight/instantbi already present' -ForegroundColor Yellow
+}
+
+# Docker mounts ./hi/hi-repository/System/InstantBI → /app/helicalbi/config.
+# YAML source of truth stays helicalbi/config; this link is for Compose only.
+$InstantBiConfigSrc = Join-Path $InstantBiSrc "helicalbi\config"
+$InstantBiConfigLink = Join-Path $Root "server\hi-repository\System\InstantBI"
+$linkItem = Get-Item $InstantBiConfigLink -Force -ErrorAction SilentlyContinue
+if ($linkItem -and -not $linkItem.LinkType) {
+    Remove-Item -Recurse -Force $InstantBiConfigLink
+}
+if ((Test-Path $InstantBiConfigSrc) -and -not (Test-Path $InstantBiConfigLink)) {
+    try {
+        New-Item -ItemType Junction -Path $InstantBiConfigLink -Target $InstantBiConfigSrc | Out-Null
+        Write-Host '[OK]   Linked hi-repository/System/InstantBI -> helicalbi/config' -ForegroundColor Green
+    } catch {
+        cmd /c mklink /J "$InstantBiConfigLink" "$InstantBiConfigSrc" | Out-Null
+        if (Test-Path $InstantBiConfigLink) {
+            Write-Host '[OK]   Linked hi-repository/System/InstantBI -> helicalbi/config' -ForegroundColor Green
+        } else {
+            Copy-Item -Recurse $InstantBiConfigSrc $InstantBiConfigLink
+            Write-Host '[OK]   Copied helicalbi/config -> hi-repository/System/InstantBI' -ForegroundColor Green
+        }
+    }
+} elseif (Test-Path $InstantBiConfigLink) {
+    Write-Host '[SKIP] hi-repository/System/InstantBI already present' -ForegroundColor Yellow
+}
+
+# Remove leftover docker/config/instantbi from the previous layout
+$DockerInstantBiConfig = Join-Path $Root "docker\config\instantbi"
+$dockerCfgItem = Get-Item $DockerInstantBiConfig -Force -ErrorAction SilentlyContinue
+if ($dockerCfgItem -and $dockerCfgItem.LinkType) {
+    Remove-Item $DockerInstantBiConfig -Force
+    Write-Host '[OK]   Removed leftover docker/config/instantbi link' -ForegroundColor Green
+} elseif ($dockerCfgItem -and $dockerCfgItem.PSIsContainer -and -not (Get-ChildItem $DockerInstantBiConfig -Force -ErrorAction SilentlyContinue)) {
+    Remove-Item $DockerInstantBiConfig
+    Write-Host '[OK]   Removed leftover empty docker/config/instantbi' -ForegroundColor Green
 }
 
 Write-Host ""
@@ -117,7 +153,7 @@ Write-Host "Per component:"
 Write-Host "  Backend:    cd server; mvn clean package -DskipTests"
 Write-Host "              # Deploy presentation\target\hi-ee-7.0.0.war as %CATALINA_HOME%\webapps\hi-ee.war"
 Write-Host "  Frontend:   cd client; npm ci --legacy-peer-deps; npm run start18"
-Write-Host "  Instant BI: cd ib\helicalbi; pip install -r requirements.txt; python app.py"
+Write-Host "  Instant BI: cd instantbi\src\com\helicalinsight\instantbi; pip install -r requirements.txt; python app.py"
 Write-Host ""
 Write-Host "Build backend from source in Docker:"
 Write-Host "  docker compose -f docker-compose.dev.yml up --build"

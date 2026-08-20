@@ -24,10 +24,6 @@ public class InstantBIHttpServiceImplTest {
         RequestContext.clear();
     }
 
-    @Test
-    public void isThreadSafeToCacheReturnsTrue() {
-        assertTrue(service.isThreadSafeToCache());
-    }
 
     @Test(expected = EfwServiceException.class)
     public void executeCancellableCallThrowsWhenRequestAlreadyCancelled() {
