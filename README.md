@@ -169,7 +169,7 @@ cd docker
 docker compose up -d
 ```
 
-Open **https://localhost** — login: `hiadmin` / `hiadmin`
+Open **https://localhost/hi-ee** — login: `hiadmin` / `hiadmin`
 
 Full Docker guide (stop, logs, ports, updates): [docker/readme/readme.md](docker/readme/readme.md)
 
@@ -190,7 +190,7 @@ docker compose ps          # wait until services look healthy / running
 docker compose logs -f     # watch progress; Ctrl+C to stop following
 ```
 
-Then open **https://localhost**. Later starts are much faster (images and Instant BI deps are cached).
+Then open **https://localhost/hi-ee**. Later starts are much faster (images and Instant BI deps are cached).
 
 **Optional speed tip (no PDF/export needed):** in `docker/.env` set `INSTALL_CHROME=false`, then restart.
 
@@ -270,7 +270,7 @@ Runs backend + Postgres + Nginx + Instant BI with minimal local tooling:
 ```bash
 cd docker
 docker compose up -d
-# https://localhost  →  hiadmin / hiadmin
+# https://localhost/hi-ee  →  hiadmin / hiadmin
 ```
 
 Build the **backend from source** instead of the published image:

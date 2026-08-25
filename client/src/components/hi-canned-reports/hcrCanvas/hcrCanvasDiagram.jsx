@@ -65,7 +65,7 @@ const canvasLeftMargin = 10; // % value
 const canvasDefaultNodeHeight = 30;
 
 export const CanvasService = (props) => {
-  // console.log(props)
+  const { handleUpdateQueryuuids = () => { } } = props;
   const dispatch = useDispatch();
   const activeTab =
     useSelector((state) =>
@@ -73,6 +73,8 @@ export const CanvasService = (props) => {
         (pane) => pane.key === state.cannedReports.present.hcrTabData.activeKey
       )
     ) || {};
+  const hcrFutureState = useSelector((state) => state.cannedReports.future || []);
+  const undoPerformed = hcrFutureState.length > 0;
   const { dsPaneTypes, selectedQueryId, hcrDiagramNodesData = [], subDataSets = [] } = activeTab;
   const queriesMenu =
     dsPaneTypes
@@ -86,6 +88,10 @@ export const CanvasService = (props) => {
   const [shapeSearch, setShapeSearch] = useState("");
   const [modifiedFields, setModifiedFields] = useState([]);
   const [modifiedBuiltVariables, setModifiedBuiltVariables] = useState([]);
+
+  function getQuery(queryId) {
+    return queriesMenu?.find((ele) => ele.id === queryId);
+  }
 
   const handleQueryChange = (queryId) => {
     if (queryId) {
@@ -108,7 +114,18 @@ export const CanvasService = (props) => {
         });
         return
       }
+
+      if (!undoPerformed) {
+        const query = getQuery(queryId);
+        handleUpdateQueryuuids(query.temp_uuid, queryId);
+      }
+    } else {
+      if (!undoPerformed) {
+        const query = getQuery(selectedQueryId);
+        handleUpdateQueryuuids(query.temp_uuid, selectedQueryId);
+      }
     }
+
     dispatch(hcrActions.storeSelectedQueryId(queryId));
   };
 
@@ -383,11 +400,11 @@ const CanvasProperty = (props) => {
   return <HCRCanvasProperty EditorPanels={EditorPanels} />;
 };
 
-const controlMapService = (controlMap) => {
+const controlMapService = (controlMap, otherProps = {}) => {
   controlMap.set("custom-node-service", NodeService);
   controlMap.set("custom-parameter-service", CanvasParameter);
   controlMap.set("custom-property-service", CanvasProperty);
-  controlMap.set("custom-datasource-service", CanvasService);
+  controlMap.set("custom-datasource-service", (props) => <CanvasService {...props}{...otherProps} />);
   return controlMap;
 };
 
@@ -429,6 +446,7 @@ const HCRFlowchart = ({
   sideBarPortion,
   repeatItems,
   lastSelectedNodeRef,
+  handleUpdateQueryuuids
 }) => {
   const activeTab =
     useSelector((state) =>
@@ -1311,7 +1329,7 @@ const HCRFlowchart = ({
             bottom: 0,
             right: 25,
           },
-          controlMapService,
+          controlMapService: (controlMap) => controlMapService(controlMap, { handleUpdateQueryuuids }),
           formSchemaService,
           className: "hcr-flowchart-details-panel"
         }}
@@ -1413,6 +1431,7 @@ export default function CanvasDiagram({
   nodesPositions,
   sideBarPortion,
   lastSelectedNodeRef,
+  handleUpdateQueryuuids
 }) {
   return (
     <div className="flowchart-wrapper">
@@ -1421,6 +1440,7 @@ export default function CanvasDiagram({
         nodesPositions={nodesPositions}
         sideBarPortion={sideBarPortion}
         lastSelectedNodeRef={lastSelectedNodeRef}
+        handleUpdateQueryuuids={handleUpdateQueryuuids}
       />
     </div>
   );

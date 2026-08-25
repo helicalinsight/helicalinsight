@@ -31,6 +31,20 @@ final class AdhocSqlDialectSettings {
     }
 
     /**
+     * True when rollup is allowed for this SqlFunctions reference.
+     * Explicit {@code "rollup": false} in {@code adhocRollupSettings.json} disables rollup
+     * even if the UI sends {@code subTotals: true}.
+     * Missing reference / missing {@code rollup} key defaults to enabled ({@code true}).
+     */
+    static boolean isRollupEnabled(String reference) {
+        JsonObject entry = getRollupEntry(reference);
+        if (entry == null) {
+            return true;
+        }
+        return GsonUtility.optBooleanValue(entry, "rollup", true);
+    }
+
+    /**
      * True when rollup should use ANSI {@code GROUP BY ROLLUP(...)}.
      * Looks up {@code reference} (e.g. mysql, oracle) in {@code adhocRollupSettings.json}.
      * Defaults to ANSI when the reference is missing or {@code syntax} is not {@code with}.

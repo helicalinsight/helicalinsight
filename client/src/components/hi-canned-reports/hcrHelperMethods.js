@@ -720,7 +720,7 @@ export const handleRunQuery = ({
   const saveInstance = saveQueryReportState(
     formData,
     (res) => {
-      resetQueryuuids();
+      resetQueryuuids(reqQuery.id);
       dispatch(
         hcrActions.handleEditingDsPaneItem({
           dataSourcePane: selectedDS.dataSourcePane,
@@ -3608,8 +3608,8 @@ export const getPreviewFormData = ({
     }
 
     if (query?.executeQueryData?.field) {
-      let tempUUID = tempUUIDsMap
-        ? tempUUIDsMap?.temp_uuid || query?.temp_uuid
+      let tempUUID = tempUUIDsMap?.[query.id]
+        ? tempUUIDsMap?.[query.id] || query?.temp_uuid
         : query?.temp_uuid;
       formData.designerProperties.fields = query?.executeQueryData?.field;
       formData.connectionDetails.temp_uuid = tempUUID;
@@ -3760,9 +3760,7 @@ export const handleSaveHcr = ({
 
     if (obj.dataSourcePane === hcrDSQuery) {
       obj.menu = obj.menu.map((query) => {
-        if (query.id === selectedQueryId) {
-          query.temp_uuid = tempUUIDsMap ? tempUUIDsMap?.temp_uuid || query?.temp_uuid : query?.temp_uuid;
-        }
+          query.temp_uuid = tempUUIDsMap?.[query.id] ? tempUUIDsMap?.[query.id] || query?.temp_uuid : query?.temp_uuid;
         return query
       })
     }
@@ -3857,7 +3855,12 @@ export const handleSaveHcr = ({
         { key: "uuid", value: res.uuid },
       ];
       dispatch(hcrActions.storeHcrState(stateArr));
-      handleUpdateQueryuuids(res.previewFormData.connectionDetails);
+      const queriesMenu = dsPanes?.find((ele) => ele.dataSourcePane === hcrDSQuery) || {};
+      if (queriesMenu?.menu?.length) {
+        queriesMenu.menu.forEach((query) => {
+          handleUpdateQueryuuids(query.temp_uuid, query.id);
+        })
+      }
     },
     (err) => {
       console.log("in handle save ERROR", err);
