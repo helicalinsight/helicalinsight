@@ -3,8 +3,8 @@
 
     <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
     -->
-    <efwSolution>${INSTALL_PATH}${FILE_SEPARATOR}hi-repository</efwSolution>
-    <BaseUrl>http://localhost:${portnumber}/${contextname}/hi.html</BaseUrl>
+   <efwSolution>C:/Users/DELL/Documents/Helicilian/helicalinsight/server/hi-repository</efwSolution>
+<BaseUrl>http://localhost:8080/hi-ee/</BaseUrl>
 
     <!--change the defaultBaseurl to false when the BaseUrl is different then the server address -->
     <defaultBaseurl>true</defaultBaseurl>

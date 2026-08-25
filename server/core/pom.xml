@@ -13,29 +13,51 @@
         <version>${parent.version}</version>
         <relativePath>..</relativePath>
     </parent>
+    <dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-bom</artifactId>
+            <version>5.9.1</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+        <dependency>
+    <groupId>org.mongodb</groupId>
+    <artifactId>mongodb-driver-sync</artifactId>
+    <version>4.11.1</version>
+</dependency>
+    </dependencies>
+</dependencyManagement>
 
-    <build>
+
+   <build>
         <finalName>${name}-${parent.version}</finalName>
         <plugins>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>21</release>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
             </plugin>
             <plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>aspectj-maven-plugin</artifactId>
-					<configuration>
-					<skip>${aspectj.skip}</skip>
-				       <includes>
-				        	<include>com/helicalinsight/admin/service/impl/UserDetailsServiceImpl.java</include>
-				        	<include>com/helicalinsight/admin/customauth/CustomUserDetailService.java</include>
-				        	<include>com/helicalinsight/efw/serviceframework/ServiceUtils.java</include>
-				       </includes>
-				    </configuration>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>aspectj-maven-plugin</artifactId>
+                <configuration>
+                    <skip>${aspectj.skip}</skip>
+                    <includes>
+                        <include>com/helicalinsight/admin/service/impl/UserDetailsServiceImpl.java</include>
+                        <include>com/helicalinsight/admin/customauth/CustomUserDetailService.java</include>
+                        <include>com/helicalinsight/efw/serviceframework/ServiceUtils.java</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
