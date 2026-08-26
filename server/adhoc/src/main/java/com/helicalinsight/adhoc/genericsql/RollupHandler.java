@@ -52,6 +52,11 @@ final class RollupHandler {
         if (this.query == null || this.query.isEmpty()) {
             return this.query;
         }
+        if (!AdhocSqlDialectSettings.isRollupEnabled(this.context.getReferenceFile())) {
+            logger.info("Rollup skipped: reference '{}' has rollup disabled in adhocRollupSettings.json.",
+                    this.context.getReferenceFile());
+            return this.query;
+        }
         try {
             Statement statement = CCJSqlParserUtil.parse(this.query);
             if (!(statement instanceof Select)) {

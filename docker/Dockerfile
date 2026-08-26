@@ -23,7 +23,7 @@ RUN mkdir -p extracted && \
         WEB-INF/classes > deps.info && \
     cat deps.info && \
     jlink \
-        --add-modules $(cat deps.info),jdk.management \
+        --add-modules $(cat deps.info),jdk.management,jdk.charsets \
         --strip-debug \
         --compress zip-9 \
         --no-header-files \
