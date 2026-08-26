@@ -181,6 +181,7 @@
         <!--DataSource class="com.helicalinsight.datasource.calcite.CalciteAdapter" classifier="efwd" name="Virtual DataSource" type="sql.calcite"  hidden="true"/-->
         <DataSource class="com.helicalinsight.datasource.ExtJDBCDriver" classifier="efwd" name="Groovy Plain Jdbc DataSource" type="sql.jdbc.groovy"  hidden="false"/>
         <DataSource class="com.helicalinsight.datasource.GroovyManagedDriver" classifier="efwd" name="Groovy Managed Jdbc DataSource" type="sql.jdbc.groovy.managed"  hidden="false"/>
+        <DataSource class="com.helicalinsight.datasource.MongoDriver" classifier="efwd" name="MongoDB DataSource" type="nosql.mongodb" hidden="false"/>
     </DataSources>
     <visualizationTypes>
         <visualization name="Area" type="EFW-c3" subtype="Area" icon="AreaChart"/>

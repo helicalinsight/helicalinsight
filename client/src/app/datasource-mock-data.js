@@ -96,6 +96,16 @@ export const getDatasourceGetContentsResponse = (formData) => {
           driver: "com.helical.mongodb.MongoJdbcDriver",
         },
         {
+          url: "mongodb://{{hostName}}:{{port}}/{{database}}",
+          driver: "com.helical.mongodb.MongoDriver",
+          available: "true",
+          parameters: {
+            port: "27017",
+            hostName: "localhost",
+            database: "mydb",
+          },
+        },
+        {
           url: "jdbc:hive2://{{hostName}}:{{port}}/{{database}}",
           driver: "org.apache.hive.jdbc.HiveDriver",
           available: "true",
@@ -224,6 +234,13 @@ export const getDatasourceGetContentsResponse = (formData) => {
           classifier: "efwd",
           categoryName: "advanced",
           categoryType: "advanced",
+        },
+        {
+          type: "nosql.mongodb",
+          name: "MongoDB DataSource",
+          classifier: "efwd",
+          categoryName: "NoSQL",
+          categoryType: "nosql",
         },
       ],
       dataSources: [
@@ -433,6 +450,23 @@ export const getDatasourceGetContentsResponse = (formData) => {
           dataSourceProvider: "tomcat",
           classifier: "global",
           imgUrl: "../images/data_sources/defaut_datasource.png",
+        },
+        {
+          driver: "com.helical.mongodb.MongoDriver",
+          databaseDialect: "",
+          name: "MongoDB (Native)",
+          categoryName: "NoSQL",
+          categoryType: "nosql",
+          type: "nosql.mongodb",
+          dataSourceProvider: "nosql",
+          classifier: "efwd",
+          imgUrl: "../images/data_sources/defaut_datasource.png",
+          url: "mongodb://{{hostName}}:{{port}}/{{database}}",
+          parameters: {
+            port: "27017",
+            hostName: "localhost",
+            database: "mydb",
+          },
         },
         {
           driver: "org.sqlite.JDBC",
