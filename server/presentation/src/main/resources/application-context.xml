@@ -60,8 +60,9 @@
                 <!--<prop key="current_session_context_class">thread</prop>-->
 				<prop key="hibernate.cache.region.factory_class">jcache</prop>
 				<prop key="hibernate.javax.cache.provider">org.ehcache.jsr107.EhcacheCachingProvider</prop>
-				<prop key="hibernate.javax.cache.uri">hibernate-ehcache.xml</prop>
-				
+				<prop key="hibernate.javax.cache.uri">ehcache-mid.xml</prop>
+				<prop key="hibernate.javax.cache.missing_cache_strategy">create</prop>
+				<prop key="hibernate.cache.default_cache_concurrency_strategy">read-write</prop>
 				
 				<!--  <prop key="hibernate.cache.region.factory_class">org.hibernate.cache.ehcache.EhCacheRegionFactory</prop>  -->
                 <!-- For singleton factory -->

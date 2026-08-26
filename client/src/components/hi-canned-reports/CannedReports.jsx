@@ -68,7 +68,8 @@ function CannedReports({
   lastSelectedNodeRef,
   handleAbort,
   getApiInstance,
-  resetQueryuuids = () => { }
+  resetQueryuuids = () => { },
+  handleUpdateQueryuuids = () => { },
 }) {
   const activeTab =
     useSelector((state) =>
@@ -425,6 +426,7 @@ function CannedReports({
               tabNum={tabNum}
               contentTab={sidebarPaneActiveKey}
               lastSelectedNodeRef={lastSelectedNodeRef}
+              handleUpdateQueryuuids={handleUpdateQueryuuids}
             />
           ) : (
             <>

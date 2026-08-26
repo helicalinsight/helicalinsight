@@ -51,7 +51,7 @@ final class ConstraintsImplementation implements Constraints {
      * @return The modified SQL query with applied ORDER BY.
      */
     private String orderBy(String query) {
-        if (this.context.isApplyRollup()) {
+        if (shouldApplyRollup()) {
             return query;
         }
         if (this.context.isApplyOrderBy()) {
@@ -61,12 +61,13 @@ final class ConstraintsImplementation implements Constraints {
         return query;
     }
     /**
-     * Applies ROLLUP and ORDER BY after limit/offset when subTotals analytics is requested.
+     * Applies ROLLUP and ORDER BY after limit/offset when subTotals analytics is requested
+     * and the reference is not disabled via {@code adhocRollupSettings.json} ({@code "rollup": false}).
      * @param query SQL query after limit handling.
      * @return The modified SQL query with rollup applied, or the original query.
      */
     private String rollup(String query) {
-        if (this.context.isApplyRollup()) {
+        if (shouldApplyRollup()) {
             RollupHandler rollupHandler = new RollupHandler(query, this.context);
             String queryWithRollup = rollupHandler.applyRollup();
             if (queryWithRollup != null) {
@@ -75,6 +76,14 @@ final class ConstraintsImplementation implements Constraints {
             logger.error("RollupHandler returned null for the query.");
         }
         return query;
+    }
+
+    /**
+     * UI must request subTotals and the reference must not have {@code "rollup": false} in settings.
+     */
+    private boolean shouldApplyRollup() {
+        return this.context.isApplyRollup()
+                && AdhocSqlDialectSettings.isRollupEnabled(this.context.getReferenceFile());
     }
     /**
      * Applies HAVING constraint to the SQL query if requested.

@@ -420,21 +420,17 @@
 		<dependency>
 			<groupId>org.ehcache</groupId>
 			<artifactId>ehcache</artifactId>
-			<version>3.9.9</version>
+			<version>3.11.1</version>
+			<exclusions>
+				<exclusion>
+					<groupId>org.glassfish.jaxb</groupId>
+					<artifactId>jaxb-runtime</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
-
 		<dependency>
-			<groupId>org.hibernate.orm</groupId>
-			<artifactId>hibernate-ehcache</artifactId>
-			<version>6.0.0.Alpha7</version>
-		</dependency>
-
-		<!-- https://mvnrepository.com/artifact/net.sf.ehcache/ehcache -->
-		<!-- TODO: Remove this dependency-->
-		<dependency>
-			<groupId>net.sf.ehcache</groupId>
-			<artifactId>ehcache</artifactId>
-			<version>2.10.6</version>
+			<groupId>javax.cache</groupId>
+			<artifactId>cache-api</artifactId>
 		</dependency>
 
 		<!-- Logging. Logging using facade api -->
@@ -954,7 +950,7 @@
 
 			</exclusions>
 		</dependency>
-		
+
 
 		<!-- https://mvnrepository.com/artifact/io.methvin/directory-watcher -->
 		<dependency>
@@ -1055,7 +1051,6 @@
 		</dependency>
 
 		<!--- Custom visualization end -->
-
 
 
 		<!--
@@ -1303,8 +1298,8 @@
 				<artifactId>reactor-core</artifactId>
 				<version>3.8.4</version>
 			</dependency>
-			<!-- END -->
-		
+		<!-- END -->
+
 		<!-- Caffeine-->
 		
 		<dependency>
@@ -1434,6 +1429,12 @@
 				<groupId>com.thoughtworks.xstream</groupId>
 				<artifactId>xstream</artifactId>
 				<version>1.4.19</version>
+			</dependency>
+
+			<dependency>
+				<groupId>javax.cache</groupId>
+				<artifactId>cache-api</artifactId>
+				<version>1.1.1</version>
 			</dependency>
 
 			<!--

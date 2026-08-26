@@ -164,7 +164,7 @@ const CannedReportsPage = (props) => {
   const editCBRef = useRef(null);
   flowchartInstance = useRef(null);
   nodesPositions = useRef({});
-  queryTempuuidsMap = useRef(null);
+  queryTempuuidsMap = useRef({});
   const queries =
     dsPaneTypes?.find((ele) => ele.dataSourcePane === hcrDSQuery) || {};
   const parameters =
@@ -1164,18 +1164,12 @@ const CannedReportsPage = (props) => {
     dispatch(hcrActions.setHcrTabActiveKey(activeKey));
   };
 
-  const handleUpdateQueryuuids = (connectionDetails = {}) => {
-    if (isEmpty(connectionDetails)) return;
-    // let queryPane = dsPanes.find((pane) => pane.dataSourcePane === hcrDSQuery);
-    // const tempUUIDsMap = queryPane?.menu?.reduce((acc, { id, temp_uuid }) => {
-    //     acc[id] = temp_uuid;
-    //     return acc;
-    // }, {})
-    queryTempuuidsMap.current = { temp_uuid: connectionDetails.temp_uuid };
+  const handleUpdateQueryuuids = (temp_uuid, queryId) => {
+    queryTempuuidsMap.current = { ...queryTempuuidsMap.current, [queryId]: temp_uuid };
   };
 
-  const resetQueryuuids = () => {
-    queryTempuuidsMap.current = null;
+  const resetQueryuuids = (queryId) => {
+    delete queryTempuuidsMap.current[queryId];
   };
 
   const onFormSumbit = (arg, name) => {
@@ -1920,6 +1914,7 @@ const CannedReportsPage = (props) => {
                     getApiInstance={getApiInstance}
                     handleAbort={handleAbort}
                     resetQueryuuids={resetQueryuuids}
+                    handleUpdateQueryuuids={handleUpdateQueryuuids}
                   />
                 )}
               </div>

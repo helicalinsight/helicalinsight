@@ -122,6 +122,26 @@ public class RollupHandlerTest {
 		}
 	}
 
+	@Test
+	public void ut_a6_testRollupFalseInSettingsSkipsRollupDespiteSubTotals() {
+		SqlQueryContext context = mockContext("sqlite", "org.hibernate.dialect.SQLiteDialect", true);
+
+		try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
+				MockedStatic<AuthenticationUtils> authUtils = mockAuth()) {
+			JsonObject settings = adhocRollupSettings();
+			JsonObject sqlite = new JsonObject();
+			sqlite.addProperty("rollup", false);
+			settings.add("sqlite", sqlite);
+			jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
+			jsonUtils.when(JsonUtils::getAdhocRollupSettings).thenReturn(settings);
+
+			String result = new RollupHandler(BASE_QUERY, context).applyRollup();
+
+			assertFalse(result.toUpperCase().contains("ROLLUP"));
+			assertTrue(result.contains("\ngroup by\n\tbooking_platform"));
+		}
+	}
+
 	private static void stubJsonSettings(MockedStatic<JsonUtils> jsonUtils) {
 		jsonUtils.when(JsonUtils::newGetAdhocSqlSettings).thenReturn(adhocSqlSettings());
 		jsonUtils.when(JsonUtils::getAdhocRollupSettings).thenReturn(adhocRollupSettings());
