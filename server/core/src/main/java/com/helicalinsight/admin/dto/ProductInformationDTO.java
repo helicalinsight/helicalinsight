@@ -50,5 +50,18 @@ public class ProductInformationDTO {
 			private Integer users;
 			private Embed embed;
 			private Set<Module> modules;
-		}
+			public void setUsers(Integer userLimit) {
+				// TODO Auto-generated method stub
+				this.users = userLimit;
+			}
+			public void setEmbed(Embed embed2) {
+				// TODO Auto-generated method stub
+				this.embed = embed2;
+			}
+			public void setModules(Set<Module> modules2) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+					}
 }

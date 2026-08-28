@@ -41,7 +41,7 @@
 
 		<!-- All properties are placed here to manage the versions -->
 
-		<jdk.version>25</jdk.version>
+		<jdk.version>21</jdk.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-security-web.version>6.5.10</spring-security-web.version>
 		<spring.security.cas.version>6.5.10</spring.security.cas.version>
@@ -1656,6 +1656,9 @@
 						<source>${jdk.version}</source>
 						<target>
 							${jdk.version}</target>
+							<fork>true</fork>
+    <meminitial>128m</meminitial>
+    <maxmem>512m</maxmem>
 						<annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
