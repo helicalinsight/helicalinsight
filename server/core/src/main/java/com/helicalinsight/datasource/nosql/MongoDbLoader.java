@@ -1,5 +1,5 @@
 package com.helicalinsight.datasource.nosql;
-
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -41,9 +41,12 @@ public final class MongoDbLoader {
             MongoCollection<Document> collection = database.getCollection(collectionName);
             collection.estimatedDocumentCount();
             return true;
-        } catch (MongoException ex) {
-            return false;
-        }
+       } catch (MongoException ex) {
+    throw new EfwServiceException(
+            "Unable to connect to MongoDB or access the requested collection",
+            ex
+    );
+}
     }
 
     /**
@@ -65,9 +68,12 @@ public final class MongoDbLoader {
             List<Document> result = new ArrayList<>();
             collection.find().limit(limit).into(result);
             return result;
-        } catch (MongoException ex) {
-            throw new IllegalStateException("Unable to sample documents from MongoDB collection", ex);
-        }
+       } catch (MongoException ex) {
+    throw new EfwServiceException(
+            "Unable to sample documents from MongoDB collection",
+            ex
+    );
+}
     }
 
     private static void validateInputs(String uri, String databaseName, String collectionName) {
