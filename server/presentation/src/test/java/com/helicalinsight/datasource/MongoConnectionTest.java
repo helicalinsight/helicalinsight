@@ -2,9 +2,13 @@ package com.helicalinsight.datasource;
 
 import com.google.gson.JsonObject;
 import com.helicalinsight.adhoc.services.MongoDrillLoader;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -28,12 +32,33 @@ public class MongoConnectionTest {
         mongoLoader = new MongoDrillLoader();
     }
 
+    /**
+     * Checks whether a MongoDB server is reachable by attempting a plain TCP
+     * connection.  Used exclusively by {@link org.junit.Assume#assumeTrue} guards
+     * in positive-connection tests so that those tests are reported as SKIPPED
+     * (not FAILED) when no MongoDB instance is available (e.g. in CI).
+     */
+    private static boolean isMongoReachable(String host, int port) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), 1000);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     // ==========================================
     // POSITIVE TESTS
     // ==========================================
+    // These tests require a live MongoDB server.  When one is not available
+    // (e.g. in CI without a service container) they are skipped via
+    // Assume.assumeTrue so the build does not fail.
 
     @Test
     public void testPositiveMongoConnectionDirectHostPort() {
+        Assume.assumeTrue("MongoDB not available at localhost:27017 — skipping positive connection test",
+                isMongoReachable("localhost", 27017));
+
         JsonObject formData = new JsonObject();
         formData.addProperty("hostName", "localhost");
         formData.addProperty("port", 27017);
@@ -49,6 +74,10 @@ public class MongoConnectionTest {
 
     @Test
     public void testPositiveMongoConnectionWithUri() {
+        // URI is mongodb://localhost:27017/helical_test — probe the same host/port.
+        Assume.assumeTrue("MongoDB not available at localhost:27017 — skipping positive URI connection test",
+                isMongoReachable("localhost", 27017));
+
         JsonObject formData = new JsonObject();
         formData.addProperty("jdbcUrl", "mongodb://localhost:27017/helical_test");
         formData.addProperty("dataSourceProvider", "noSql");
@@ -61,6 +90,9 @@ public class MongoConnectionTest {
 
     @Test
     public void testPositiveMongoConnectionWithEmptyCredentials() {
+        Assume.assumeTrue("MongoDB not available at localhost:27017 — skipping positive empty-credentials test",
+                isMongoReachable("localhost", 27017));
+
         JsonObject formData = new JsonObject();
         formData.addProperty("hostName", "localhost");
         formData.addProperty("port", 27017);
@@ -149,6 +181,9 @@ public class MongoConnectionTest {
     public void testMongoConnectionDatabaseLazyHandling() {
         // In MongoDB, non-existent databases are created lazily upon document write.
         // Connecting and pinging a non-existent database verifies server connectivity.
+        Assume.assumeTrue("MongoDB not available at localhost:27017 — skipping lazy-database connection test",
+                isMongoReachable("localhost", 27017));
+
         JsonObject formData = new JsonObject();
         formData.addProperty("hostName", "localhost");
         formData.addProperty("port", 27017);
