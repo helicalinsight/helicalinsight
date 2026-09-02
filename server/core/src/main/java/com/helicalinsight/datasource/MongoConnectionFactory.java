@@ -14,25 +14,11 @@ import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
 
 
-/**
- * MongoConnectionFactory extends {@link DatabaseConnectionFactory}
- * Manages MongoDB database connections and provides methods for connecting to various data sources.
- * responsible for creating connections to MongoDB databases.
- */
 @SuppressWarnings("unused")
 public class MongoConnectionFactory extends DatabaseConnectionFactory {
 	
     private final HIResourceServiceDB serviceDB = ApplicationContextAccessor.getBean(HIResourceServiceDB.class);
 	private EFWDConnectionService efwdService=ApplicationContextAccessor.getBean(EFWDConnectionService.class);
-    
-    /**
-     * getConnection(String type, String jsonInfo)
-     * Retrieves a database connection based on the provided data source type and JSON information.
-     *
-     * @param type     Type of data source (e.g., "sql.jdbc", "global.jdbc").
-     * @param jsonInfo JSON information containing connection details.
-     * @return A {@link DriverConnection} object representing the database connection.
-     */
     
     @Override
     public DriverConnection getConnection(String type, String jsonInfo) {
@@ -67,10 +53,10 @@ public class MongoConnectionFactory extends DatabaseConnectionFactory {
 				driverClassName = connectionDetails.get("driverName").getAsString();
 			}
 
-			if ("mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName)) {
+			if ("mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName) || "com.helical.mongodb.MongoJdbcDriver".equalsIgnoreCase(driverClassName)) {
 				DriverConnection driverConnection = new DriverConnection();
 				driverConnection.setConnection(null);
-				driverConnection.setDriverClass("mongodb.jdbc.MongoDriver");
+				driverConnection.setDriverClass(driverClassName);
 				return driverConnection;
 
 			}
