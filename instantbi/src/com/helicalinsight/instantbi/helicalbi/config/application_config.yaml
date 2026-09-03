@@ -29,3 +29,7 @@ sql:
 
 kpi:
   suggestion_query: "Suggest few Measurable and timebound KPIS"  # Default KPI suggestion prompt; overridden by model JSON "suggestion_query" when present
+
+dashboard:
+  max_sub_questions: 5      # Absolute ceiling on agent-dashboard charts / sub-questions
+  default_mode: balanced    # fast | balanced | research (token vs depth)

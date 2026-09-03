@@ -14,9 +14,9 @@ from helicalbi.viz._charts import (
     requests_functional_formatting,
 )
 from helicalbi.viz.viz_model_fill import (
-    resolve_similar_for_model,
     viz_model_to_chart_settings,
     build_viz_model,
+    is_viz_update_intent,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class VizModelFiller:
         if state.get("skip"):
             return state
 
-        user_query = state.get("query", "")
+        user_query = state.get("viz_query") or state.get("query", "") or ""
         data_json = state.get("sql_result")
         if isinstance(data_json, str) and str(data_json).startswith("Not"):
             state["skip"] = True
@@ -48,6 +48,14 @@ class VizModelFiller:
             existing_hint = str(
                 state.get("viz_hint") or state.get("visualization") or ""
             ).strip()
+            viz_update = is_viz_update_intent(
+                action=str(state.get("action") or ""),
+                intent=str(
+                    state.get("classifyintent")
+                    or state.get("continuation_type")
+                    or ""
+                ),
+            )
             viz_model, chart_type, viz_context = build_viz_model(
                 data_types=data_md,
                 sql=sql,
@@ -68,12 +76,14 @@ class VizModelFiller:
                 md_location=str(state.get("md_location") or ""),
                 md_file_name=str(state.get("md_file_name") or ""),
                 dialect=state.get("dialect") or None,
+                viz_update=viz_update,
             )
 
             state["viz_model"] = viz_model.model_dump()
             state["visualization"] = chart_type
             state["viz_hint"] = chart_type
             state["vf_title"] = viz_model.properties.title or ""
+            state["similar_chart"] = list(viz_context.get("similar_chart") or [])
             form_source = (
                 "sql_to_formdata"
                 if (viz_context or {}).get("form_data") is not None
@@ -82,11 +92,12 @@ class VizModelFiller:
             state["viz_reason"] = (
                 f"Deterministic shelves via {form_source}; chart from result shape"
             )
-            state["similar_chart"] = resolve_similar_for_model(chart_type, data_md)
             state["viz_column_context"] = viz_context
             if (viz_context or {}).get("form_data") is not None:
                 state["viz_form_data"] = viz_context["form_data"]
-            state["chart_settings"] = viz_model_to_chart_settings(viz_model)
+            state["chart_settings"] = viz_model_to_chart_settings(
+                viz_model, data_types=data_md
+            )
 
             if needs_other_fallback(chart_type, user_query):
                 functional = requests_functional_formatting(user_query)

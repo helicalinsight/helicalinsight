@@ -126,7 +126,7 @@
 			</dependencies>
 			<properties>
 				<aspectj.skip>false</aspectj.skip>
-				<excludedGroups>com.helicalinsight.test.utility.SkipTest</excludedGroups>
+				<hiee.excludedTestGroups>com.helicalinsight.test.utility.SkipTest</hiee.excludedTestGroups>
 			</properties>
 			
 		</profile>
@@ -1629,7 +1629,6 @@
 					<outputDirectory>${basedir}/target/surefire-reports</outputDirectory>
 					<argLine>--add-exports java.base/sun.nio.ch=ALL-UNNAMED</argLine>
 					<argLine>--add-opens java.base/java.lang=ALL_UNNAMED</argLine>
-       				<excludedGroups>${excludedGroups}</excludedGroups>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -1647,41 +1646,34 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
-					<groupId>
-						org.apache.maven.plugins</groupId>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>
-						${maven-compiler-plugin.version}</version>
+					<version>${maven-compiler-plugin.version}</version>
 					<configuration>
 						<source>${jdk.version}</source>
-						<target>
-							${jdk.version}</target>
+						<target>${jdk.version}</target>
 						<annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>1.18.40</version>
-                        </path>
-                    </annotationProcessorPaths>
-
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+								<version>1.18.40</version>
+							</path>
+						</annotationProcessorPaths>
 					</configuration>
 				</plugin>
 
 
 				<plugin>
-					<groupId>
-						org.apache.maven.plugins</groupId>
+					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-jar-plugin</artifactId>
-					<version>
-						${maven-jar-plugin.version}</version>
+					<version>${maven-jar-plugin.version}</version>
 					<configuration>
 						<!--To remove pom files from all the jars -->
 						<archive>
 							<addMavenDescriptor>false</addMavenDescriptor>
 						</archive>
 						<excludes>
-							<exclude>
-								*.conf</exclude>
+							<exclude>*.conf</exclude>
 						</excludes>
 					</configuration>
 				</plugin>

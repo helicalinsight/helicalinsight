@@ -1,13 +1,11 @@
 package com.helicalinsight.adhoc.genericsql;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 
@@ -68,21 +66,7 @@ final class FiltersJsonValidator {
      * @param filters   		 JSON array containing filter information.
      */
     private void validate(@NotNull IMetadataStore container, @NotNull JsonArray filters) {
-        List<String> columns = new ArrayList<>();
-        for (JsonElement object : filters) {
-            JsonObject json = object.getAsJsonObject();
-            if (!json.has("custom")) {
-                String column = json.get("column").getAsString();
-                columns.add(column);
-            }
-
-            if (json.has("usedColumns")) {
-                JsonArray usedColumns = json.getAsJsonArray("usedColumns");
-                for (JsonElement column : usedColumns) {
-                    columns.add(column.getAsString());
-                }
-            }
-        }
+        List<String> columns = AdhocUtils.getUserInput(filters);
 
         final List<String> databaseColumns = container.getFullyQualifiedColumnsList();
         if (!databaseColumns.containsAll(columns)) {

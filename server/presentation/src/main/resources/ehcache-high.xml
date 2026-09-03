@@ -48,6 +48,8 @@
     
     
     <cache alias="com.helicalinsight.admin.model.ApplicationCache" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.cache.model.Cache" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.cache.model.CacheReport" uses-template="hi-jcache"/>
    
    
     <cache alias="com.helicalinsight.datasource.model.GlobalConnections" uses-template="hi-jcache"/>
@@ -76,4 +78,12 @@
     <cache alias="com.helicalinsight.admin.model.HIMetadataTables" uses-template="hi-jcache"/>
     <cache alias="com.helicalinsight.admin.model.MetadataDatabases" uses-template="hi-jcache"/>
     <cache alias="com.helicalinsight.admin.model.ResourceType" uses-template="hi-jcache"/>
+    
+        <!--  Recyclebin -->
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBin" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBinHIResourceDB" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBinDSGlobalConnections" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBinHUsers" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBinOrganization" uses-template="hi-jcache"/>
+    <cache alias="com.helicalinsight.admin.model.HIRecycleBinHIEfwdConnection" uses-template="hi-jcache"/>
 </config>

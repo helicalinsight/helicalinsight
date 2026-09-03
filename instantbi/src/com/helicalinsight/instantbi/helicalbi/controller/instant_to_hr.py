@@ -1,4 +1,3 @@
-import json
 import logging
 import traceback
 from typing import Any, Dict
@@ -13,7 +12,9 @@ from helicalbi.controller.helpers import (
 )
 from helicalbi.common.app_config import is_debug
 from helicalbi.common.auth import bind_request_identity
-from helicalbi.sql_to_formdata import sql_to_form_data
+from helicalbi.common.ChatGraphMemory import chat_graph_memory
+from helicalbi.sql_to_formdata import build_convert_hreport_parts, sql_to_form_data
+from helicalbi.sql_to_formdata.hr_parts import resolve_viz_from_sources
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +74,19 @@ def _resolve_metadata_inputs(
     return location, metadata_dir, metadata_file_name, metadata
 
 
+def _memory_node(thread_id: str, chat_seq_id: Any) -> dict:
+    if not thread_id or chat_seq_id is None:
+        return {}
+    if not chat_graph_memory.has_node(thread_id, chat_seq_id):
+        return {}
+    node = chat_graph_memory.get_node(thread_id, chat_seq_id) or {}
+    return node if isinstance(node, dict) else {}
+
+
 def register(flask_app) -> None:
     @flask_app.route("/instant-to-hr", methods=["POST"])
     def instant_to_hr():
-        """Convert SQL + metadata refs into a wire formData object via sql_to_form_data."""
+        """Split chat SQL + viz into parts for the frontend Helical Report builder."""
         logger.info("Instant-to-hr endpoint invoked")
         data = request.get_json()
         log_endpoint_input("/instant-to-hr", data)
@@ -93,8 +103,8 @@ def register(flask_app) -> None:
         metadata_dir = ""
         metadata_file_name = ""
         metadata = None
-        dialect = user_input.get("dialect") or None
-        include_layers = bool(user_input.get("include_layers") or user_input.get("layers"))
+        memory_node = _memory_node(thread_id, chat_seq_id)
+        dialect = user_input.get("dialect") or memory_node.get("dialect") or None
 
         to_send: Dict[str, Any] = {}
         try:
@@ -127,17 +137,26 @@ def register(flask_app) -> None:
                 session_cookie=session_cookie,
                 dialect=dialect,
                 metadata=metadata,
-                include_layers=include_layers,
             )
-            to_send = form_data
+            viz = resolve_viz_from_sources(user_input, memory_node)
+            to_send = build_convert_hreport_parts(
+                form_data,
+                viz=viz,
+                location=location or metadata_dir,
+                metadata_file_name=metadata_file_name,
+            )
             logger.info(
-                "Instant-to-hr completed user=%s columns=%s  form_data=%s",
+                "Instant-to-hr completed user=%s columns=%s filters=%s orderBy=%s mark=%s location=%s file=%s",
                 username,
-                len(form_data.get("columns") or []),
-                json.dumps(to_send)
+                len(to_send.get("sql_parts", {}).get("columns") or []),
+                len(to_send.get("sql_parts", {}).get("filters") or []),
+                len(to_send.get("sql_parts", {}).get("orderBy") or []),
+                (to_send.get("viz_parts") or {}).get("mark"),
+                (to_send.get("sql_parts") or {}).get("location"),
+                (to_send.get("sql_parts") or {}).get("metadataFileName"),
             )
         except Exception as e:
-            logger.exception("Error while converting SQL to formData user=%s", username)
+            logger.exception("Error while converting SQL to Helical Report parts user=%s", username)
             to_send["error"] = str(e)
             if is_debug():
                 to_send["stack"] = traceback.format_exc()

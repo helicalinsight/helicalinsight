@@ -10,6 +10,8 @@ import com.helicalinsight.efw.serviceframework.IComponent;
 import groovy.json.JsonSlurper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.quartz.Job;
+import org.quartz.JobDetail;
 import org.quartz.JobKey;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerMetaData;
@@ -39,7 +41,8 @@ public class SystemScheduleManager implements IComponent {
     private static final Logger logger = LoggerFactory.getLogger(SystemScheduleManager.class);
 
     private static final Set<String> KNOWN_KEYS = new LinkedHashSet<>(Arrays.asList(
-            "id", "layout", "enabled", "paused", "expireDate", "cron", "scheduledTime", "timeZone", "task", "email"
+            "id", "title", "description", "layout", "enabled", "paused", "expireDate", "cron",
+            "scheduledTime", "timeZone", "task", "email"
     ));
 
     private static final String DEFAULT_LAYOUT_ID = "Static/layout/system-schedule.default.ui.layout";
@@ -77,6 +80,7 @@ public class SystemScheduleManager implements IComponent {
                 default -> throw new EfwServiceException("Unsupported system schedule action: " + action);
             };
         } catch (EfwServiceException ex) {
+            logger.error("System schedule action {} failed: {}", action, ex.getMessage(), ex);
             throw ex;
         } catch (Exception ex) {
             logger.error("System schedule action {} failed", action, ex);
@@ -113,6 +117,7 @@ public class SystemScheduleManager implements IComponent {
         row.addProperty("slno", 0);
         row.addProperty("jobId", scheduleId);
         row.addProperty("id", scheduleId);
+        row.addProperty("title", SystemScheduleLoader.stringValue(schedule, "title", ""));
         row.addProperty("systemSchedule", true);
         row.addProperty("type", "system");
         row.addProperty("enabled", enabled);
@@ -138,7 +143,7 @@ public class SystemScheduleManager implements IComponent {
         row.addProperty("reportDirectory", "");
         row.addProperty("reportFile", "");
         row.addProperty("lastExecutedOn", "");
-        row.addProperty("description", "");
+        row.addProperty("description", SystemScheduleLoader.stringValue(schedule, "description", ""));
         row.addProperty("calendarName", "");
         row.addProperty("finalFireTime", "");
         row.addProperty("startDate", "");
@@ -259,13 +264,32 @@ public class SystemScheduleManager implements IComponent {
 
     private JsonObject triggerNow(JsonObject formJson) throws Exception {
         String scheduleId = requireScheduleId(formJson);
+        logger.info("Triggering system schedule {}", scheduleId);
         Scheduler scheduler = SchedulerUtility.getInstance();
         JobKey jobKey = JobKey.jobKey(scheduleId, SystemScheduleLoader.SYSTEM_JOB_GROUP);
         if (!scheduler.checkExists(jobKey)) {
+            logger.error("Cannot trigger system schedule {}: not active in memory", scheduleId);
             throw new EfwServiceException("Schedule " + scheduleId + " is not active in memory");
         }
-        scheduler.triggerJob(jobKey);
-        return message("Triggered schedule " + scheduleId);
+        JobDetail jobDetail = scheduler.getJobDetail(jobKey);
+        Job job;
+        try {
+            job = jobDetail.getJobClass().getDeclaredConstructor().newInstance();
+        } catch (Exception ex) {
+            logger.error("Cannot create job instance for system schedule {}", scheduleId, ex);
+            throw new EfwServiceException("System schedule " + scheduleId + " failed: " + ex.getMessage(), ex);
+        }
+        SystemScheduleTriggerContext context = new SystemScheduleTriggerContext(jobDetail);
+        try {
+            job.execute(context);
+        } catch (Exception ex) {
+            logger.error("Triggered system schedule {} failed", scheduleId, ex);
+            throw new EfwServiceException("System schedule " + scheduleId + " failed: " + ex.getMessage(), ex);
+        }
+        Object result = context.getResult();
+        logger.info("Triggered system schedule {} completed: {}", scheduleId, result);
+        String suffix = result == null ? "" : ": " + result;
+        return message("Triggered schedule " + scheduleId + suffix);
     }
 
     private JsonObject pause(JsonObject formJson) throws Exception {
@@ -349,6 +373,15 @@ public class SystemScheduleManager implements IComponent {
                 schedule.put("layout", existing.get("layout"));
             } else {
                 schedule.put("layout", DEFAULT_LAYOUT_ID);
+            }
+        }
+        Map<String, Object> existingSchedule = SystemScheduleLoader.findScheduleById(scheduleId);
+        if (existingSchedule != null) {
+            if (StringUtils.isBlank(SystemScheduleLoader.stringValue(schedule, "title", ""))) {
+                schedule.put("title", existingSchedule.get("title"));
+            }
+            if (StringUtils.isBlank(SystemScheduleLoader.stringValue(schedule, "description", ""))) {
+                schedule.put("description", existingSchedule.get("description"));
             }
         }
         SystemScheduleLoader.upsertSchedule(schedule);

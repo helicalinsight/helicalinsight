@@ -4,8 +4,7 @@ Each ``chatid`` (a.k.a. ``thread_id``) owns its own directed graph. Nodes are
 keyed by ``chat_seq_id`` and hold the rendered ``ChatResponse`` payload plus
 everything required to re-execute the SQL later (raw SQL, metadata file +
 location, dialect, original user query, etc.). Edges connect consecutive
-interactions within the same chat (``prev`` -> ``next``), which gives the
-``/load-chat`` endpoint a way to walk the conversation history if needed.
+interactions within the same chat (``prev`` -> ``next``).
 
 The store is intentionally process-local and protected by a re-entrant lock
 so it is safe to use from Flask's threaded request handlers. Swap it out for
@@ -92,6 +91,21 @@ class ChatGraphMemory:
         chat_key = self._key(chatid)
         with self._lock:
             return list(self._nodes.get(chat_key, {}).keys())
+
+    def clear(self, chatid: Any = None) -> None:
+        """Drop one chat graph, or the entire store (tests / process reset)."""
+        with self._lock:
+            if chatid is None:
+                self._nodes.clear()
+                self._edges_out.clear()
+                self._edges_in.clear()
+                self._last_seq.clear()
+                return
+            chat_key = self._key(chatid)
+            self._nodes.pop(chat_key, None)
+            self._edges_out.pop(chat_key, None)
+            self._edges_in.pop(chat_key, None)
+            self._last_seq.pop(chat_key, None)
 
 
 chat_graph_memory = ChatGraphMemory()

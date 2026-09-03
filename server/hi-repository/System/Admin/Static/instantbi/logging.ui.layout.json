@@ -1,13 +1,13 @@
 {
   "id": "instantbi-logging",
   "title": "Log Settings",
-  "description": "InstantBI application_config.yaml logging settings",
+  "description": "InstantBI logging level, file locations, retention, and activity traces",
   "sections": [
     {
       "key": "logging",
       "title": "logging",
       "level": 0,
-      "description": "application_config.yaml → logging",
+      "description": "Controls log severity, where files are written, how long daily files are kept, and optional traces for LLM, endpoint, and API activity.",
       "sections": [
         {
           "key": "logging_output",
@@ -19,6 +19,7 @@
               "label": "Log level",
               "type": "select",
               "span": 12,
+              "description": "Minimum severity written to the log. DEBUG also requires App debug to be on.",
               "options": [
                 { "label": "DEBUG", "value": "DEBUG" },
                 { "label": "INFO", "value": "INFO" },
@@ -32,19 +33,22 @@
               "label": "Backup days",
               "type": "number",
               "span": 12,
-              "min": 1
+              "min": 1,
+              "description": "Number of daily log files to keep before older files are removed."
             },
             {
               "name": "file",
               "label": "Log file",
               "type": "text",
-              "span": 12
+              "span": 12,
+              "description": "Path of the rotating application log file."
             },
             {
               "name": "error_file",
               "label": "Error log file",
               "type": "text",
-              "span": 12
+              "span": 12,
+              "description": "Path of the rotating log file for ERROR and above."
             }
           ]
         },
@@ -58,21 +62,24 @@
               "label": "Show LLM activity",
               "type": "boolean",
               "control": "tick",
-              "span": 6
+              "span": 6,
+              "description": "Write rendered LLM prompts and token activity to the logs."
             },
             {
               "name": "show_endpoint_log",
               "label": "Show endpoint log",
               "type": "boolean",
               "control": "tick",
-              "span": 6
+              "span": 6,
+              "description": "Write HTTP endpoint request payloads to the logs."
             },
             {
               "name": "show_api_call_log",
               "label": "Show API call log",
               "type": "boolean",
               "control": "tick",
-              "span": 6
+              "span": 6,
+              "description": "Write HI service API request and response payloads to the logs."
             },
             {
               "name": "app_debug",
@@ -80,7 +87,7 @@
               "type": "boolean",
               "control": "tick",
               "span": 6,
-              "description": "Required together with logging.level=DEBUG for debug logs"
+              "description": "Enables debug output. Required together with Log level DEBUG for debug logs."
             }
           ]
         }

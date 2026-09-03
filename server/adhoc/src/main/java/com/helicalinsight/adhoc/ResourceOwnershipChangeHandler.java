@@ -1,6 +1,5 @@
 package com.helicalinsight.adhoc;
 
-import com.helicalinsight.admin.dao.HIRecycleBinDao;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.core.request.RecycleBinResourceItem;
@@ -50,22 +49,21 @@ public  class ResourceOwnershipChangeHandler extends AbstractOwnershipChangeHand
 	@Override
 	boolean change(Integer resourceId, Integer ownerId) {
 		
-		HIResource resource = requestedFromAdminRole()?serviceDb.getResourceByIdIgnoreFilter(resourceId)
-				:serviceDb.getHIResourceById(resourceId);
+		HIResource resource = serviceDb.findResourceById(resourceId, !requestedFromAdminRole());
 		
 		if(resource == null ) {
 			throw new OwnershipTransferException("Resource not found.");
 		}
 		
 		Integer parentId = resource.getParentId();
-		if(parentId != null) {
-			try {
-				serviceDb.getHIResourceById(parentId);
-			}
-			catch (EfwServiceException e) {
-					throw new EfwServiceException("Can not change ownership , since the parent of the resource has been deleted.");
+		
+		if (parentId != null) {
+			HIResource parentResource = serviceDb.findResourceById(parentId, true);
+			if (parentResource == null) {
+				throw new EfwServiceException("Can not change ownership , since the parent of the resource has been deleted.");
 			}
 		}
+		
 		Integer oldOwner = resource.getCreatedBy();
 		if( oldOwner != null &&  oldOwner.equals(ownerId) ) {
 			throw new OwnershipTransferException("The ownership of the resource(s) cannot be changed to the same user, as it is already assigned. The ownership will remain unchanged.");
@@ -100,12 +98,11 @@ public  class ResourceOwnershipChangeHandler extends AbstractOwnershipChangeHand
 				? resources.stream().map(obj -> ((RecycleBinResourceItem) obj).getResourceId()).collect(Collectors.toList())
 				: new ArrayList<>();
 
-// Validate ownership eligibility
+		// Validate ownership eligibility
 		if (!listOfAssociatedResourceId.isEmpty() && !listOfPermittedResource.containsAll(listOfAssociatedResourceId)) {
 			throw new OwnershipTransferException("Ownership transfer failed. Not all associated files are available for the new owner.");
 		}
-		resource.setCreatedBy(user.getId());
-		serviceDb.editHIResource(resource);
+		serviceDb.updateOwner(resourceId, user.getId());
 		return true;
 	}
 

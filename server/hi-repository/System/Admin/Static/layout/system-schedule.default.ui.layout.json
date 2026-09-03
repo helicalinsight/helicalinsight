@@ -19,6 +19,21 @@
           "placeholder": "unique-schedule-id"
         },
         {
+          "name": "title",
+          "label": "Name",
+          "type": "text",
+          "span": 24,
+          "placeholder": "Display name"
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "textarea",
+          "span": 24,
+          "minRows": 1,
+          "maxRows": 3
+        },
+        {
           "name": "enabled",
           "label": "Enabled",
           "type": "boolean",

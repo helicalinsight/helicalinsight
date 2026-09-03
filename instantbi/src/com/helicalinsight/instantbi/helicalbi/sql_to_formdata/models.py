@@ -1,4 +1,4 @@
-"""Intermediate parse models shared across layers."""
+"""Intermediate parse models shared across parts."""
 
 from __future__ import annotations
 
@@ -31,6 +31,8 @@ class SelectItem:
     aggregate: str | None = None  # primary db.generic.aggregate.*
     aggregates: list[str] = field(default_factory=list)  # e.g. [sum, distinct]
     database_function: dict | None = None
+    # SQL of the database-function expression only (no AS alias / outer aggregate)
+    database_function_sql: str = ""
     functions_definition: str = ""
     custom_expression: str | None = None
     is_custom: bool = False
@@ -48,9 +50,12 @@ class FilterItem:
     operator: str = "AND"  # AND | OR joining to previous
     aggregate: str | None = None  # if set → having
     database_function: dict | None = None
+    # SQL of the filter's database-function expression (left side), no alias
+    database_function_sql: str = ""
     alias: str | None = None
     is_all: bool = False  # '_all_' = '_all_'
     custom_sql: str | None = None
+    used_columns: list[ColumnRef] = field(default_factory=list)
     raw_sql: str = ""
 
 

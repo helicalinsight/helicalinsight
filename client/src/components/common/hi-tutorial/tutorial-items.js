@@ -139,15 +139,22 @@ const adminItems = [
       "The Plugin section allows you to add and manage additional functionality to your system. You can install, activate, deactivate, and delete plugins as needed.",
     moduleKey: "admin",
   },
-  {
-    key: "hi-audit",
-    title: "Audit",
-    description:
-      "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
-    moduleKey: "admin",
-  },
-  {
-    key: "hi-configurations",
+    {
+      key: "hi-audit",
+      title: "Audit",
+      description:
+        "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
+      moduleKey: "admin",
+    },
+    {
+      key: "hi-instant-bi-admin",
+      title: "Instant BI",
+      description:
+        "Configure Instant BI providers, models, and developer settings.",
+      moduleKey: "admin",
+    },
+    {
+      key: "hi-configurations",
     title: "Configurations",
     description:
       "Browse and edit System/Admin configuration files. Properties files open as key/value forms; XML and JSON files open as searchable editable trees.",
@@ -283,15 +290,22 @@ const adminWithOrgItems = [
       "The Plugin section allows you to add and manage additional functionality to your system. You can install, activate, deactivate, and delete plugins as needed.",
     moduleKey: "adminWithOrg",
   },
-  {
-    key: "hi-audit",
-    title: "Audit",
-    description:
-      "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
-    moduleKey: "adminWithOrg",
-  },
-  {
-    key: "hi-configurations",
+    {
+      key: "hi-audit",
+      title: "Audit",
+      description:
+        "The Audit section allows you to review existing audit usage details with the same filters, search, export, and navigation behavior as before.",
+      moduleKey: "adminWithOrg",
+    },
+    {
+      key: "hi-instant-bi-admin",
+      title: "Instant BI",
+      description:
+        "Configure Instant BI providers, models, and developer settings.",
+      moduleKey: "adminWithOrg",
+    },
+    {
+      key: "hi-configurations",
     title: "Configurations",
     description:
       "Browse and edit System/Admin configuration files. Properties files open as key/value forms; XML and JSON files open as searchable editable trees.",

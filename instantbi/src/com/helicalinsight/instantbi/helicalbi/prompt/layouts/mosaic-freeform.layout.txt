@@ -1,0 +1,12 @@
+id: mosaic-freeform
+name: Mosaic / Free-form
+best_for: Modern BI where every visualization can have a different size.
+Widgets may have arbitrary x, y, width, height on the 12-column grid.
+
+┌──────────────┬──────────────┬───────────────┐
+│              │ KPI          │ KPI           │
+│  Large Chart ├──────────────┴───────────────┤
+│              │       Medium Chart           │
+├───────┬──────┴──────────────────────────────┤
+│ Chart │              Table                  │
+└───────┴─────────────────────────────────────┘

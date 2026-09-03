@@ -1,4 +1,5 @@
-import { getInstantBIAgentSubject } from "./common-utils";
+import { isEmpty, isEqual, pickBy } from "lodash";
+import { getInstantBIAgentSubject, getInstantBIMetadataForReport } from "./common-utils";
 export const getSaveData = ({ saveFileInfo, searchValue, dispatch }) => {
   // isHrReport: true,
   // columns: [
@@ -247,8 +248,52 @@ export const getSaveData = ({ saveFileInfo, searchValue, dispatch }) => {
   };
 };
 
+const getAllHreports = (dispatch) => {
+  let reports = [];
+  dispatch((_, getState) => {
+    reports = getState().hreport.present.reports || [];
+  })
+  return reports
+}
 
-export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) => {
+const getHreportDiffData = (activeReport = {}, dispatch) => {
+  const returnObj = {};
+  const hreports = getAllHreports(dispatch);
+  if (!hreports?.length) return returnObj;
+
+  const { hreportInteractions = {} } = activeReport || {}
+  if (isEmpty(hreportInteractions)) return returnObj;
+
+  for (let id in hreportInteractions) {
+    returnObj[id] = {}
+    const report = hreports.find(report => report.id === id);
+    const hreportInteraction = hreportInteractions[id];
+    if (report) {
+      const allMark = report?.marksList?.find((item) => item?.value === "_all_") || {};
+      returnObj[id] = {
+        ...returnObj[id],
+        selectedType: report.selectedType,
+        subVizType: allMark?.subVizType,
+        filters: hreportInteraction?.filters?.length ?
+          hreportInteraction.filters.map((fltr) => {
+            const hreportFilter = report?.filters?.find((filter) => filter.uid === fltr.uid) || null;
+            if (hreportFilter) {
+              delete hreportFilter.valuesList;
+              hreportFilter.active = false;
+              return hreportFilter
+            }
+            return null
+          }).filter(Boolean)
+          : []
+      }
+    }
+  }
+
+  return returnObj;
+}
+
+
+export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, dispatch }) => {
   const {
     reportInfo = {},
     chats = [],
@@ -260,17 +305,18 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
     loadedChatResponses: _loadedChatResponses,
     loadedChatResponseSources: _loadedChatResponseSources,
     botStatus: _botStatus,
+    metadataForHreport,
     ...rest
   } = activeReport || {}
   const activeChat = chats.find(chat => chat.chatID === activeReport.activeChatID)
-  const { activeChatID, metadata: _reportMetadata, ...stateRest } = rest
+  const { activeChatID, metadata: _reportMetadata, hreportInteractions, ...stateRest } = rest
   const messageList = activeChat?.messageList || []
   const botMessages = messageList.filter(msg => !msg.isUser && msg.userInput && msg.chatSequenceId)
   const inputs = botMessages.map(msg => ({
     chat_sequence_id: msg.chatSequenceId,
     input: msg.userInput
   }))
-  
+
   const chat_responses = botMessages.map(msg => {
     const loaded = (activeReport.loadedChatResponses || {})[msg.chatSequenceId] || {};
     const {
@@ -308,8 +354,9 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
       viz,
     };
   })
-  
+
   const modelSubject = getInstantBIAgentSubject(activeReport) || {};
+  // const metadataForReport = getInstantBIMetadataForReport(activeReport) || {};
   const subject = modelSubject.file && modelSubject.dir
     ? { model: modelSubject }
     : {}
@@ -318,19 +365,17 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {} }) =>
     classifier: "db.generic",
     reportName: saveFileInfo.reportName,
     location: saveFileInfo.location,
-    metadata: {
-      location: modelSubject.dir,
-      metadataFileName: modelSubject.file,
-    },
+    // metadata: metadataForReport,
     state: {
       inputs,
       chat_responses,
       subject,
       ...stateRest,
-      activeChatId: activeChatID
+      activeChatId: activeChatID,
+      hreportInteractions: getHreportDiffData(activeReport, dispatch)
     }
   }
-  if(saveFileInfo.uuid) {
+  if (saveFileInfo.uuid) {
     data.uuid = saveFileInfo.uuid
   }
   return data;

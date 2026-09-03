@@ -125,7 +125,6 @@ final class FunctionsJsonValidator {
     @NotNull
     JsonArray validateFunctionNameAndColumns(@NotNull JsonArray jsonArray, boolean optionalFunction) {
         JsonArray copy = new JsonArray();
-        List<String> columnsToCheck = new ArrayList<>();
         for (JsonElement object : jsonArray) {
             JsonObject json = object.getAsJsonObject();
             if (!optionalFunction) {
@@ -159,20 +158,10 @@ final class FunctionsJsonValidator {
             }
 
             isValid(json, "column");
-            String column = json.get("column").getAsString();
-            if (!json.has("custom")) {
-                columnsToCheck.add(column);
-            }
-
-            if (json.has("usedColumns")) {
-                JsonArray usedColumns = json.getAsJsonArray("usedColumns");
-                for (JsonElement usedColumn : usedColumns) {
-                    columnsToCheck.add(usedColumn.getAsString());
-                }
-            }
 
             copy.add(json);
         }
+        List<String> columnsToCheck = AdhocUtils.getUserInput(jsonArray);
         verifyColumns(columnsToCheck);
         return copy;
     }

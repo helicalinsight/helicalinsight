@@ -319,7 +319,7 @@ const DataTypes = {
 };
 
 
-let conditions = {
+export let conditions = {
     EQUALS: "Equals",
     NOT_EQUALS: "Not Equals",
     IS_ONE_OF: "Is One of",

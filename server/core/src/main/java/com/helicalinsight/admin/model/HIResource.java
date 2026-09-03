@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.helicalinsight.efw.utility.ResourceTypeIDMap;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -20,8 +21,8 @@ import java.util.List;
 @Entity
 @Table(
         name = "hi_resource_db",
-        uniqueConstraints = {@UniqueConstraint(columnNames = {"resource_url"})}
 
+        indexes = @Index(name="parent_idx",columnList = "parent_id")
 )
 @SecondaryTables(
         {
@@ -46,7 +47,9 @@ import java.util.List;
 @JsonSerialize(as = HIResource.class)
 public class HIResource implements Serializable {
 
-    @Id
+	private static final long serialVersionUID = 1L;
+
+	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "resource_id")
     private Integer resourceId;
@@ -185,7 +188,7 @@ public class HIResource implements Serializable {
         this.hiResourceImages = hiResourceImages;
     }
 
-    //@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     @OneToMany(mappedBy = "parentResource", fetch = FetchType.LAZY)
     private List<HIEFWD> hiResourceEfwd = new ArrayList<>();
 
@@ -200,7 +203,7 @@ public class HIResource implements Serializable {
     @Column(name = "is_deleted")
     private Boolean isDeleted;
     
-    //@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     @OneToMany(mappedBy = "hiResource", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<HIResourceSecurityDB> securityList = new ArrayList<>();
 

@@ -3,8 +3,11 @@ package com.helicalinsight.cache.model;
 import jakarta.persistence.*;
 import java.io.Serializable;
 
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+
 @Entity
 @Table(name = "cache_report")
+@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class CacheReport implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id

@@ -10,7 +10,7 @@ import requests
 import urllib3
 
 # --- edit these values ---
-BASE_URL = "http://localhost:8085/hi-ee"
+BASE_URL = "https://164.52.206.202/hi-ee"
 USERNAME = "hiadmin"
 PASSWORD = "hiadmin"
 ORGANIZATION = ""
@@ -55,16 +55,19 @@ class HiEeApiClient:
             )
         if not self.session.cookies.get("JSESSIONID"):
             raise RuntimeError("Login succeeded but JSESSIONID cookie was not set.")
+        print("Login is success=================================")
 
     def logout(self) -> None:
         self.session.post(f"{self.base_url}/logout", verify=False)
 
     def call_service(self, service_json: dict) -> dict | None:
         response = self.session.post(
-            f"{self.base_url}/services",
+            f"{self.base_url}/ai/agent-dashboard",
             data=service_json,
             verify=False,
         )
+        print(f"{self.base_url}/ai/agent-dashboard")
+        print(f"{service_json}")
         if response.status_code == 200:
             return response.json()
         print(
@@ -73,26 +76,6 @@ class HiEeApiClient:
         )
         return None
 
-    def get_metadata(self, md_location: str, md_file_name: str) -> dict:
-        payload = {
-            "type": "adhoc",
-            "serviceType": "metadata",
-            "service": "get",
-            "formData": json.dumps(
-                {
-                    "location": md_location,
-                    "uniqueId": True,
-                    "metadataFileName": md_file_name,
-                    "provideJoins": True,
-                    "replaceView":True
-                }
-            ),
-            "requestId": uuid.uuid4().hex,
-        }
-        api_response = self.call_service(payload)
-        if not api_response or api_response.get("status") != 1:
-            raise RuntimeError(f"Metadata fetch failed: {api_response}")
-        return api_response["response"]
 
     def execute_query(
         self,
@@ -101,21 +84,12 @@ class HiEeApiClient:
         sql: str,
         request_id: str | None = None,
     ) -> dict | None:
-        form_data = {
-            "location": md_location,
-            "uniqueId": True,
-            "metadataFileName": md_file_name,
-            "provideJoins": True,
-            "refresh": True,
-            "replaceView": True,
-            "classifier": "db.workflow",
-            "query": sql,
-        }
+
         payload = {
-            "type": "adhoc",
-            "serviceType": "report",
-            "service": "executeQuery",
-            "formData": json.dumps(form_data),
+            "input": "Where are we spending too much on travel, and how can we reduce the cost?",
+            "dashboardid": "0b4036ab-08f9-4d3c-8bea-144ddb928c98",
+            "dashboard_sequence_id": "13",
+            "subject": "eyJtb2RlbCI6eyJmaWxlIjoiYWlnZW4ubW9kZWwiLCJkaXIiOiIwMDA3In19",
             "requestId": request_id or str(uuid.uuid4()),
         }
         return self.call_service(payload)
@@ -144,11 +118,6 @@ def main() -> int:
 
     print(json.dumps(api_response, indent=2, default=str))
 
-    if api_response.get("status") != 1:
-        return 1
-
-    row_count = len(api_response.get("response", {}).get("data", []))
-    print(f"\nSuccess: {row_count} row(s) returned.")
     return 0
 
 

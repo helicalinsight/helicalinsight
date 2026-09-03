@@ -6,17 +6,11 @@ import com.helicalinsight.admin.model.Principal;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.serviceframework.IComponent;
-import jakarta.servlet.http.Cookie;
+import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
+import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 
 /**
@@ -46,51 +40,18 @@ public class GenerateModelFromMD implements IComponent {
         JsonObject userInput = new JsonObject();
         userInput.addProperty("location", directory);
         userInput.addProperty("fileName", fileName);
-        userInput.addProperty("sessionCookie", resolveSessionCookie());
+        InstantBIUtils.addSessionContext(currentRequest(), userInput);
         userInput.addProperty("username", userDetails.getLoggedInUser().getUsername());
-        userInput.addProperty("userId", userDetails.getLoggedInUser().getId());
-        Integer orgId = userDetails.getLoggedInUser().getOrg_id();
-        if (orgId != null) {
-            userInput.addProperty("orgId", orgId);
-        }
         js.add("input", userInput);
-        return callHttp("/getSemanticData", js);
+        return InstantBIServiceFactory.getHttpService().callHttp("/getSemanticData", js);
     }
 
-    private static String resolveSessionCookie() {
+    private static HttpServletRequest currentRequest() {
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes == null) {
             throw new EfwServiceException("Session cookie not found.");
         }
-        HttpServletRequest request = attributes.getRequest();
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("JSESSIONID".equals(cookie.getName()) && StringUtils.isNotBlank(cookie.getValue())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        throw new EfwServiceException("Session cookie not found.");
-    }
-
-    private String callHttp(String endpoint, JsonObject body) {
-        HttpClient client = HttpClient.newHttpClient();
-        String url = "http://pyflask:8000/";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url + endpoint))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                .build();
-
-        HttpResponse<String> response;
-        try {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-            throw new EfwServiceException("problem while loading the call " + endpoint);
-        }
-
-        return response.body();
+        return attributes.getRequest();
     }
 
     @Override

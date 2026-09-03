@@ -50,17 +50,16 @@ public class HIRecycleBinOrganizationDeleteHandler implements RecycleBinHandler 
 	public boolean handle(RecycleBinDTO bin) {
 		Integer organizationId = bin.getResourceId();
 		recycleBinService.delete(bin.getRecycleBinId());
-		List<User> users =  userService.getAllUsersOfOrganization(organizationId);
-		for( User user : users ) {
-			int userId = user.getId();
-			try {
-				HIRecycleBin binItem =  recycleBinService.findHIRecycleBinByUserId(userId);
-				recycleBinService.delete(binItem.getId());
+		List<Integer> userIds = userService.findUserIdsByOrganizationId(organizationId);
+		if (!userIds.isEmpty()) {
+			// Soft-delete any still-live users (creates user bins), then drop bins and hard-delete.
+			for (Integer userId : userIds) {
+				userService.deleteUser(userId);
 			}
-			catch (Exception e) {
-				logger.info("RecycleBin item not found.");
+			recycleBinService.deleteRecycleBinsByUserIds(userIds);
+			for (Integer userId : userIds) {
+				userService.deleteUser(userId);
 			}
-			userService.deleteUser(user.getId());
 		}
 		roleService.deleteOrganization(organizationId);
         organizationService.delete(organizationId);

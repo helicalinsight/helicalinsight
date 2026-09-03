@@ -8,6 +8,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -96,6 +98,65 @@ public class InstantBIUtilsTest {
     }
 
     @Test
+    public void prepareConvertHreportResponsePassesSqlAndVizParts() {
+        String botResponse = "{\"sql_parts\":{\"columns\":[{\"column\":\"region\"}],\"location\":\"/meta\",\"metadataFileName\":\"pg.metadata\"},\"viz_parts\":{\"mark\":\"Chart\",\"viz\":\"Bar\"},\"metadata\":{\"tables\":{\"t\":{\"alias\":\"t\"}}}}";
+        JsonObject response = InstantBIUtils.prepareConvertHreportResponse(botResponse);
+
+        assertEquals("region", response.getAsJsonObject("sql_parts")
+                .getAsJsonArray("columns").get(0).getAsJsonObject().get("column").getAsString());
+        assertEquals("Chart", response.getAsJsonObject("viz_parts").get("mark").getAsString());
+        assertEquals("/meta", response.getAsJsonObject("sql_parts").get("location").getAsString());
+        assertEquals("pg.metadata", response.getAsJsonObject("sql_parts").get("metadataFileName").getAsString());
+        assertFalse(response.has("metadata"));
+        assertFalse(response.has("insight"));
+    }
+
+    @Test
+    public void prepareConvertHreportResponseIncludesPythonError() {
+        JsonObject response = InstantBIUtils.prepareConvertHreportResponse("{\"error\":\"No SQL found\"}");
+        assertEquals("No SQL found", response.get("error").getAsString());
+    }
+
+    @Test
+    public void prepareConvertDashboardResponsePassesLayoutParts() {
+        String botResponse = "{\"items\":[{\"id\":\"seq-3\"}],\"layout\":[{\"itemId\":\"seq-3\",\"x\":0,\"y\":2,\"w\":6,\"h\":4}],\"theme\":{\"color\":\"#1677ff\"}}";
+        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
+        assertEquals("seq-3", response.getAsJsonArray("items").get(0).getAsJsonObject().get("id").getAsString());
+        assertEquals("seq-3", response.getAsJsonArray("layout").get(0).getAsJsonObject().get("itemId").getAsString());
+        assertEquals("#1677ff", response.getAsJsonObject("theme").get("color").getAsString());
+        assertFalse(response.has("gridItemsData"));
+        assertTrue(response.has("items"));
+    }
+
+    @Test
+    public void prepareConvertDashboardResponsePassesTemplateId() {
+        String botResponse = "{\"layout\":[],\"templateId\":\"executive-kpi-first\"}";
+        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
+        assertEquals("executive-kpi-first", response.get("templateId").getAsString());
+    }
+
+    @Test
+    public void prepareConvertDashboardResponsePassesDecorations() {
+        String botResponse = "{\"layout\":[],\"decorations\":[{\"kind\":\"separator\",\"w\":12,\"h\":1}]}";
+        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
+        assertEquals("separator", response.getAsJsonArray("decorations").get(0).getAsJsonObject().get("kind").getAsString());
+    }
+
+    @Test
+    public void prepareConvertDashboardResponseOmitsMetadata() {
+        String botResponse = "{\"layout\":[],\"metadata\":{\"tables\":{\"t\":{\"alias\":\"t\"}}}}";
+        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
+        assertFalse(response.has("metadata"));
+        assertTrue(response.has("layout"));
+    }
+
+    @Test
+    public void prepareConvertDashboardResponseIncludesPythonError() {
+        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse("{\"error\":\"No visualizations were provided\"}");
+        assertEquals("No visualizations were provided", response.get("error").getAsString());
+    }
+
+    @Test
     public void addRoleProfileAddsRolesAndProfiles() {
         Role role = new Role();
         role.setId(1);
@@ -115,6 +176,77 @@ public class InstantBIUtilsTest {
         assertEquals(1, target.getAsJsonArray("userRole").size());
         assertEquals("Admin", target.getAsJsonArray("userRole").get(0).getAsJsonObject().get("roleName").getAsString());
         assertEquals("sales", target.getAsJsonArray("userProfile").get(0).getAsJsonObject().get("value").getAsString());
+    }
+
+    @Test
+    public void buildInteractiveChatRequestMatchesInteractiveEnvelope() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getOrg_id()).thenReturn(5);
+        when(user.getRoles()).thenReturn(Collections.emptyList());
+        when(user.getProfile()).thenReturn(Collections.emptyList());
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject body = InstantBIUtils.buildInteractiveChatRequest(
+                    request,
+                    "Show sales by region",
+                    "chat-1",
+                    "3",
+                    "{\"model\":{\"dir\":\"MyFolder\",\"file\":\"Sales.agent\"}}");
+
+            JsonObject input = body.getAsJsonObject("input");
+            assertEquals("Show sales by region", input.get("inputString").getAsString());
+            assertEquals("chat-1", input.get("chatid").getAsString());
+            assertEquals("3", input.get("chat_seq_id").getAsString());
+            assertEquals("session-1", input.get("sessionCookie").getAsString());
+            assertEquals("tester", input.get("username").getAsString());
+            assertEquals("MyFolder", input.getAsJsonObject("model").get("dir").getAsString());
+            assertEquals("Sales.agent", input.getAsJsonObject("model").get("file").getAsString());
+            assertEquals("session-1", input.get("reportId").getAsString());
+        }
+    }
+
+    @Test
+    public void buildAgentDashboardRequestUsesDashboardidNotChatid() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getOrg_id()).thenReturn(5);
+        when(user.getRoles()).thenReturn(Collections.emptyList());
+        when(user.getProfile()).thenReturn(Collections.emptyList());
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject body = InstantBIUtils.buildAgentDashboardRequest(
+                    request,
+                    "Build a sales dashboard",
+                    "dash-1",
+                    "1",
+                    "{\"model\":{\"dir\":\"MyFolder\",\"file\":\"Sales.agent\"}}");
+
+            JsonObject input = body.getAsJsonObject("input");
+            assertEquals("Build a sales dashboard", input.get("inputString").getAsString());
+            assertEquals("dash-1", input.get("dashboardid").getAsString());
+            assertFalse(input.has("chatid"));
+            assertEquals("1", input.get("dashboard_sequence_id").getAsString());
+            assertFalse(input.has("chat_seq_id"));
+            assertFalse(input.has("max_sub_questions"));
+            assertEquals("MyFolder", input.getAsJsonObject("model").get("dir").getAsString());
+        }
     }
 
     @Test
@@ -151,6 +283,93 @@ public class InstantBIUtilsTest {
             auth.when(AuthenticationUtils::getUserDetails).thenReturn(mock(Principal.class));
             InstantBIUtils.addSessionContext(request, new JsonObject());
         }
+    }
+
+    @Test
+    public void addSessionContextForwardsJwtHeadersWhenSessionCookieMissing() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[0]);
+        when(request.getHeaderNames()).thenReturn(Collections.enumeration(
+                java.util.Arrays.asList("Authorization", "type", "Host", "Content-Type")));
+        when(request.getHeaders("Authorization"))
+                .thenReturn(Collections.enumeration(Collections.singletonList("Bearer jwt-token")));
+        when(request.getHeaders("type"))
+                .thenReturn(Collections.enumeration(Collections.singletonList("jwt")));
+        when(request.getHeaders("Host"))
+                .thenReturn(Collections.enumeration(Collections.singletonList("hi.example")));
+        when(request.getHeaders("Content-Type"))
+                .thenReturn(Collections.enumeration(Collections.singletonList("application/x-www-form-urlencoded")));
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("jwt-user");
+        when(user.getId()).thenReturn(7);
+        when(user.getOrg_id()).thenReturn(null);
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject target = new JsonObject();
+            InstantBIUtils.addSessionContext(request, target);
+
+            org.junit.Assert.assertFalse(target.has("sessionCookie"));
+            JsonObject headers = target.getAsJsonObject("headers");
+            assertEquals("Bearer jwt-token", headers.get("Authorization").getAsString());
+            assertEquals("jwt", headers.get("type").getAsString());
+            org.junit.Assert.assertFalse(headers.has("Host"));
+            org.junit.Assert.assertFalse(headers.has("Content-Type"));
+        }
+    }
+
+    @Test
+    public void addSessionContextCopiesAuthTokenRequestParamIntoHeaders() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+        when(request.getParameterNames())
+                .thenReturn(Collections.enumeration(java.util.Arrays.asList("authToken", "input", "type")));
+        when(request.getParameter("authToken")).thenReturn("Bearer sso-token");
+        when(request.getParameter("input")).thenReturn("show sales");
+        when(request.getParameter("type")).thenReturn("token");
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getOrg_id()).thenReturn(5);
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject target = new JsonObject();
+            target.addProperty("input", "show sales");
+            InstantBIUtils.addSessionContext(request, target);
+
+            JsonObject params = target.getAsJsonObject("requestParams");
+            assertEquals("Bearer sso-token", params.get("authToken").getAsString());
+            assertEquals("token", params.get("type").getAsString());
+            org.junit.Assert.assertFalse(params.has("input"));
+            assertEquals("Bearer sso-token", target.getAsJsonObject("headers").get("authToken").getAsString());
+        }
+    }
+
+    @Test
+    public void applyForwardedHeadersCopiesNestedInputHeaders() {
+        JsonObject headers = new JsonObject();
+        headers.addProperty("Authorization", "Bearer nested");
+        headers.addProperty("Host", "should-skip");
+        JsonObject input = new JsonObject();
+        input.add("headers", headers);
+        JsonObject body = new JsonObject();
+        body.add("input", input);
+
+        HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create("http://instantbi/interactive"));
+        InstantBIUtils.applyForwardedHeaders(builder, body);
+        HttpRequest request = builder.POST(HttpRequest.BodyPublishers.noBody()).build();
+
+        assertEquals("Bearer nested", request.headers().firstValue("Authorization").orElse(null));
+        org.junit.Assert.assertFalse(request.headers().firstValue("Host").isPresent());
     }
 
     @Test

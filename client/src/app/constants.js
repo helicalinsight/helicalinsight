@@ -120,13 +120,12 @@ export const defaultRoutes = [
     // isExpFeature: true
   },
   {
-    expId: "instant-bi",
     title: "Instant",
     url: routesUrl.instantBIUrl,
     addInNavbar: true,
     roles: ["ROLE_ADMIN", "ROLE_USER", "ROLE_DOWNLOAD"],
     tutorialElementKey: "hi-navbar-instant-bi",
-    // isExpFeature: true
+    isExpFeature: false
   },
   {
     expId: "hice",

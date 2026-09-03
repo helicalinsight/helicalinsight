@@ -25,6 +25,8 @@ _SESSION_KEYS = frozenset(
         "username",
         "userId",
         "orgId",
+        "headers",
+        "requestParams",
     }
 )
 
@@ -104,14 +106,14 @@ def register(flask_app) -> None:
         except Exception as exc:
             return _fail(exc)
 
-    @flask_app.route("/utility/llm/models", methods=["GET", "POST"])
+    @flask_app.route("/settings/models", methods=["GET", "POST"])
     def utility_list_llm_models():
-        """List available models for a LangChain provider package."""
+        """List available models for a provider package."""
         data = _request_data()
         package = data.get("package") or request.args.get("package")
         provider = data.get("provider") or request.args.get("provider")
         log_endpoint_input(
-            "/utility/llm/models",
+            "/settings/models",
             {"package": package, "provider": provider},
         )
         try:

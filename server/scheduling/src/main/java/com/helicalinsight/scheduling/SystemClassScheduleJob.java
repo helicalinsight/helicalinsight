@@ -31,7 +31,19 @@ public class SystemClassScheduleJob extends SystemScheduleJob {
         job.execute(context);
 
         Object result = context.getResult();
+        if (isFailureResult(result)) {
+            logger.error("System schedule {} class job {} reported failure: {}", scheduleId, taskClassName, result);
+            throw new IllegalStateException(String.valueOf(result));
+        }
         logger.info("System schedule {} class job {} completed", scheduleId, taskClassName);
         return result;
+    }
+
+    private static boolean isFailureResult(Object result) {
+        if (result == null) {
+            return false;
+        }
+        String text = String.valueOf(result).toLowerCase();
+        return text.contains(" failed");
     }
 }

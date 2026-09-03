@@ -10,7 +10,6 @@ import {
   Collapse,
   Tooltip,
   Space,
-  Tabs,
 } from "antd";
 import {
   SyncOutlined,
@@ -38,7 +37,6 @@ import notify from "../../../hi-notifications/notify";
 import PropertiesEditor from "./components/PropertiesEditor";
 import CodeEditor from "./components/CodeEditor";
 import LayoutFormEditor from "./components/LayoutFormEditor";
-import InstantBISettingsEditor from "./components/InstantBISettingsEditor";
 import { CONFIG_TYPES } from "./utils/config-tree-utils";
 import {
   CONFIGURATION_LAYOUT_CONTENT_ID,
@@ -115,7 +113,6 @@ const HIConfigurations = ({ apiRef }) => {
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
 
-  const [activeConfigTab, setActiveConfigTab] = useState("system");
   const [layout, setLayout] = useState(null);
   const [files, setFiles] = useState([]);
   const [fileFilter, setFileFilter] = useState("");
@@ -617,20 +614,7 @@ const HIConfigurations = ({ apiRef }) => {
 
   return (
     <div className="hi-configurations">
-      <Tabs
-        className="hi-config-main-tabs"
-        activeKey={activeConfigTab}
-        onChange={setActiveConfigTab}
-      >
-        <Tabs.TabPane tab="File Config" key="system">
-          {renderSystemConfig()}
-        </Tabs.TabPane>
-        <Tabs.TabPane tab="Instant BI" key="instantbi">
-          <div className="hi-config-instantbi-panel">
-            <InstantBISettingsEditor />
-          </div>
-        </Tabs.TabPane>
-      </Tabs>
+      {renderSystemConfig()}
     </div>
   );
 };

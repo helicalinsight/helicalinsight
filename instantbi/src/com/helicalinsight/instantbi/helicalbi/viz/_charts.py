@@ -1,19 +1,7 @@
 """Load chart definitions from ``viz/charts/*.json``.
 
-Each file name is the visualization_type. Add a chart by dropping a new JSON
-file into that folder — no Python module required.
-
-Optional JSON keys:
-- ``settings``: LLM fill schema (dimensions / measures / labels / color)
-- ``instructions``: settings-fill guidance for the LLM (no JS); ``other`` keeps full JS guidance
-- ``code``: local JS/JSX skeleton filled from settings (never sent to the LLM),
-  except ``other`` where the starter template *is* sent for full JS generation
-- ``base``: ``default`` (settings fill) or ``other`` (LLM returns DrawOther JS)
-- ``conversion``: non-LLM interconversion contract (family, field roles, omit keys)
-
-Similar charts are deduced at runtime from ``possible_chart_options`` in
-``_chart_selection.py`` (same filter used for the LLM viz prompt) — not from
-chart JSON.
+Only ``other.json`` remains as a VF template (DrawOther). Standard chart types
+are declared in ``_chart_catalog.py`` for selection and aliases.
 """
 from __future__ import annotations
 
@@ -24,12 +12,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
-from helicalbi.viz._chart_selection import (
-    ChartOption,
-    _build_chart_selection_table,
-    format_similar_chart_wire,
-    resolve_similar_charts,
-)
+from helicalbi.viz._chart_selection import ChartOption
 from helicalbi.viz._chart_settings import (
     settings_template_from_payload,
     settings_template_to_prompt,
@@ -260,22 +243,11 @@ def load_charts() -> dict[str, ChartDefinition]:
     return charts
 
 
-def _log_decision_table(charts: dict[str, ChartDefinition]) -> None:
-    options = tuple(chart.option for chart in charts.values())
-    table = _build_chart_selection_table(options)
-    logger.info(
-        "Loaded chart decision table (%s charts):\n%s",
-        len(options),
-        table,
-    )
-
-
 def get_charts() -> dict[str, ChartDefinition]:
     global _CACHE, _ALIAS_INDEX
     if _CACHE is None:
         _CACHE = load_charts()
         _ALIAS_INDEX = None
-        _log_decision_table(_CACHE)
     return _CACHE
 
 
@@ -311,7 +283,26 @@ def get_chart_conversion(chart_name: str) -> Optional[ChartConversion]:
 
 
 def get_chart_options() -> tuple[ChartOption, ...]:
-    return tuple(chart.option for chart in get_charts().values())
+    """Return static catalog options (plus ``other`` when present on disk)."""
+    from helicalbi.viz._chart_catalog import _CHART_OPTION_ROWS
+
+    options: list[ChartOption] = [
+        ChartOption(
+            visualization_type=row[0],
+            dims_min=row[1],
+            dims_max=row[2],
+            measures_min=row[3],
+            measures_max=row[4],
+            instruction=row[5],
+            requires_ordered=row[6],
+            aliases=tuple(row[7]),
+        )
+        for row in _CHART_OPTION_ROWS
+    ]
+    other = get_charts().get("other")
+    if other is not None:
+        options.append(other.option)
+    return tuple(options)
 
 
 def _normalize_chart_name(chart_name: str) -> str:
@@ -323,7 +314,9 @@ def _alias_index() -> dict[str, str]:
     global _ALIAS_INDEX
     if _ALIAS_INDEX is not None:
         return _ALIAS_INDEX
-    index: dict[str, str] = {}
+    from helicalbi.viz._chart_catalog import CHART_ALIASES
+
+    index: dict[str, str] = dict(CHART_ALIASES)
     for name, chart in get_charts().items():
         index[_normalize_chart_name(name)] = name
         for alias in chart.option.aliases:
@@ -382,37 +375,14 @@ def needs_other_fallback(chart_name: str, user_query: str = "") -> bool:
     return is_other_chart(chart_name) or requests_functional_formatting(user_query)
 
 
-def hydrate_saved_viz(viz: Any, *, data_types: Any = None) -> dict[str, Any]:
-    """Fill missing similar_chart on a saved InstantBI viz payload.
+def hydrate_saved_viz(viz: Any) -> dict[str, Any]:
+    """Normalize a saved InstantBI viz payload.
 
-    Used by ``/load-chat`` so open mode restores preferred chart type
-    even for older files that only stored ``chart_name`` / ``vf_template``.
+    Drops legacy fields (``settings``, ``plot_config``) so older files still load.
+    Keeps ``similar_chart`` when present so convert suggestions survive save/load.
     """
     payload = dict(viz or {}) if isinstance(viz, dict) else {}
-    chart_name = str(payload.get("chart_name") or "").strip()
-    similar = payload.get("similar_chart")
 
-    needs_similar = not isinstance(similar, list) or len(similar) == 0
-
-    if chart_name and needs_similar:
-        try:
-            similar = resolve_similar_charts(
-                chart_name,
-                data_types=data_types,
-            )
-        except Exception:
-            logger.exception(
-                "Failed to hydrate saved viz preferences for chart_name=%s",
-                chart_name,
-            )
-            similar = []
-
-    payload["similar_chart"] = format_similar_chart_wire(
-        similar,
-        chart_name=chart_name,
-    )
-
-    # Drop legacy InstantBI chart settings if present on older saves.
     payload.pop("settings", None)
     payload.pop("plot_config", None)
 

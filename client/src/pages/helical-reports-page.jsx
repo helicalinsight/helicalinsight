@@ -2,31 +2,29 @@ import {
   EditOutlined,
   ExportOutlined,
   FieldTimeOutlined,
-  FileExcelOutlined,
-  FilePdfOutlined,
   FunnelPlotOutlined,
   PushpinFilled,
   PushpinOutlined,
   ReloadOutlined,
-  SyncOutlined,
-  FilePptOutlined,
-  FileImageOutlined
+  SyncOutlined
 } from "@ant-design/icons";
 import { Modal, Progress, Typography } from "antd";
 import produce from "immer";
 import { cloneDeep, isEqual } from "lodash-es";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { HINavbar, HITabs } from "../components";
 import HIShortcuts from "../components/common/hi-shortcuts/HIShortcuts";
-import HIIcon from "../components/common/icons/hi-icons";
 import SaveItems from "../components/hi-fileBrowser/SaveItems";
 import { ShareFinalModal } from "../components/hi-fileBrowser/components";
 import { HIFileBrowser } from "../components/hi-fileBrowser/hi-fileBrowser";
 import notify from "../components/hi-notifications/notify";
+import Filters from "../components/hi-reports/hi-editing-area/components/filters/filters";
+import VizListNew from "../components/hi-reports/hi-editing-area/components/viz-items/viz-list-new";
 import EditingArea from "../components/hi-reports/hi-editing-area/hi-editing-area";
+import { getRelativeDateValues } from "../components/hi-reports/hi-editing-area/utils/filter-utils";
 import FieldsArea from "../components/hi-reports/hi-fields-area/hi-fields-area";
 import "../components/hi-reports/hi-reports.scss";
 import VizArea from "../components/hi-reports/hi-viz-area/hi-viz-area";
@@ -49,6 +47,8 @@ import { getMilliseconds, handleHrShortcuts, handleVizShortcuts, resetShortcuts 
 import MetadataArea from "../components/hi-sidebar/hr-hreportSidebar/hi-metadata-area";
 import useWindowResize from "../customHooks/useWindowResize";
 import { useWindowSize } from "../customHooks/useWindowSize";
+import useExportOptions from "../hooks/useExportOptions";
+import useHreportGridLayout from "../hooks/useHreportGridLayout";
 import HILayout from "../layouts/hi-layout";
 import { appActions, fileBrowserActions, setKeysPressed, setShotCutCurrentLocation } from "../redux/actions";
 import {
@@ -60,15 +60,17 @@ import {
   deleteDilldownFilter,
   loadIntialReport,
   loadReportData,
+  loadReportFromLocalStorage,
   removeAllReports,
   removeReport,
   resetActiveReport,
   setHReportEditLoading,
   setHrSidebar,
   updateFullScreenState,
-  updateReportLayout,
-  updateGridItemsLayout
+  updateGridItemsLayout,
+  updateReportLayout
 } from "../redux/actions/hreport.actions";
+import { getHreportInitialGridLayout } from "../redux/reducers/hreport.reducer";
 import { checkRelativeDateFilter } from "../utils/filter-utils";
 import {
   checkForAnchorRelativeParameters,
@@ -79,10 +81,6 @@ import {
   modifyFilters,
 } from "../utils/utilities";
 import { validateReportName } from "./utils/helperMethods";
-import useHreportGridLayout from "../hooks/useHreportGridLayout";
-import { getHreportInitialGridLayout } from "../redux/reducers/hreport.reducer";
-import { getRelativeDateValues } from "../components/hi-reports/hi-editing-area/utils/filter-utils";
-import useExportOptions from "../hooks/useExportOptions";
 
 const { Text } = Typography;
 
@@ -154,6 +152,10 @@ const HelicalReports = (props) => {
   const keysPressed = useSelector((state) => state.app.keysPressed);
   const currentSCLocation = useSelector((state) => state.app.currentSCLocation);
 
+  let localEditModeInfo = localStorage.getItem("hreport_active_report");
+  localEditModeInfo = localEditModeInfo ? JSON.parse(localEditModeInfo) : {};
+  const { activeHreport = null, fromInstantBI = false } = localEditModeInfo || {}
+
   // hreport past and future state 	
   const hreportPast = useSelector((state) => state.hreport.past);
   const hreportFuture = useSelector((state) => state.hreport.future);
@@ -176,9 +178,11 @@ const HelicalReports = (props) => {
 
   useEffect(() => {
     return () => {
-      dispatch(clearUndoRedoHistory())
-      if (!["dashboard", "filter"].includes(props?.mode)) {
-        dispatch(removeAllReports())
+      if (!isInstantBICreateMode && !isInstantBIOpenMode) {
+        dispatch(clearUndoRedoHistory())
+        if (!["dashboard", "filter"].includes(props?.mode)) {
+          dispatch(removeAllReports())
+        }
       }
     }
   }, [])
@@ -191,21 +195,7 @@ const HelicalReports = (props) => {
     let reportId = createReportId();
     setReportId(reportId);
     let { file, dashboardFilter } = props;
-    if (env === "development") {
-      //  mode = "open"
-      // file = {
-      // 	path: "1_naresh/child.hr",
-      // 	name: "child.hr"
-      // }
-      // editReport(file)
-      // to edit in dev mode
-      // mode = "filter"
-      // file = { path: "naresh/notify.hr", name: "notify.hr" }
-      // dashboardFilter = {
-      //     uid: '9d7448e7-7c34-49b8-aa70-b6b900a75e6f'
-      // }
-      // changeCube({ path: 'cube/hrCube.cube' })
-    }
+
     if (props.urlObj) {
       let { dir, file } = props.urlObj
       if (typeof dir === 'string' && dir.length && typeof file === 'string' && file.includes('.')) {
@@ -301,12 +291,18 @@ const HelicalReports = (props) => {
           });
       }
     } else {
-      dispatch(appActions.showNavbar(true));
-      if (!reports.length || !["dashboard", "filter"].includes(props.mode)) {
+      if (!["instant-bi-create", "instant-bi-open"].includes(props.mode)) dispatch(appActions.showNavbar(true));
+      if ((!reports.length || !["dashboard", "filter"].includes(props.mode)) && !["instant-bi-create", "instant-bi-open"].includes(props.mode) && !fromInstantBI) {
         if (props.testMode !== "viz") {
           dispatch(loadIntialReport({ reportId }));
         }
       }
+    }
+    if (fromInstantBI) {
+      if (activeHreport) {
+        dispatch(loadReportFromLocalStorage({ report: activeHreport }));
+      }
+      localStorage.removeItem("hreport_active_report");
     }
     document.addEventListener("fullscreenchange", (event) => {
       if (document.fullscreenElement) {
@@ -318,7 +314,10 @@ const HelicalReports = (props) => {
       }
     });
     return () => {
-      dispatch(removeReport({ id: reportId }))
+      if (!isInstantBICreateMode) {
+        dispatch(removeReport({ id: reportId }))
+      }
+      localStorage.removeItem("hreport_active_report");
     }
   }, []);
 
@@ -410,7 +409,7 @@ const HelicalReports = (props) => {
   }
 
   useEffect(() => {
-    !['open', 'dashboard', 'filter'].includes(props.mode) && setMapGeoJsonData()
+    !['open', 'dashboard', 'filter', 'instant-bi-create', 'instant-bi-open'].includes(props.mode) && setMapGeoJsonData()
   }, [])
 
 
@@ -493,7 +492,7 @@ const HelicalReports = (props) => {
     }
   }, [activeReportId]);
   useEffect(() => {
-    if (reportName && !["open", "dashboard", "filter"].includes(props.mode)) {
+    if (reportName && !["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open"].includes(props.mode)) {
       document.title = `${reportName} | HI:Helical-Report`;
     }
   }, [reportName]);
@@ -513,6 +512,8 @@ const HelicalReports = (props) => {
   let isOpenMode = ["open", "instant-bi"].includes(props.mode);
   let isInstantBIMode = ["instant-bi"].includes(props.mode);
   let isDashboardMode = props.mode === "dashboard";
+  const isInstantBICreateMode = ["instant-bi-create"].includes(props.mode);
+  const isInstantBIOpenMode = ["instant-bi-open"].includes(props.mode);
   let isFilterMode = ["filter"].includes(props.mode);
   const { metadataShelf, toolsAreaShelf, fieldsAreaShelf, gridItemsLayout: gridItems } = layout;
   const { handleToggle = () => { } } = useHreportGridLayout({ preview, fullscreen, metadataShelf, toolsAreaShelf })
@@ -531,6 +532,19 @@ const HelicalReports = (props) => {
         }
       });
   }, [savedLayout]);
+
+  useEffect(() => {
+    if (isInstantBICreateMode) {
+      if (props.reportId) {
+        if (typeof props.renderEditingArea === "function") {
+          renderEditingArea(props.reportId);
+        }
+        if (typeof props.renderFilters === "function") {
+          renderFilters(props.reportId);
+        }
+      }
+    }
+  }, [isInstantBICreateMode, props.reportId])
 
   useEffect(() => {
     !isTestMode && !activeReport?.selectedType === "MapChart" && setResizing(isWindowResizing)
@@ -553,7 +567,7 @@ const HelicalReports = (props) => {
 
 
   useEffect(() => {
-    if (!["open", "dashboard", "filter"].includes(props.mode)) {
+    if (!["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open"].includes(props.mode)) {
       if (keysPressed.length === 1 && keysPressed[0] === "Alt") {
         dispatch(setShotCutCurrentLocation("HR"))
       }
@@ -1016,6 +1030,7 @@ const HelicalReports = (props) => {
       },
     ]);
   };
+
   const addFilter = (data) => {
     if (typeof props.addFilter === "function") {
       props.addFilter(data);
@@ -1316,7 +1331,7 @@ const HelicalReports = (props) => {
   const vizAreaCommonProps = {
     getApi,
     abortFetchData,
-    reportId,
+    reportId: props.reportId ? props.reportId : reportId,
     activeDrillthroughId,
     addFilter,
     editReport,
@@ -1330,6 +1345,22 @@ const HelicalReports = (props) => {
     handleExport,
     handlePrintExport,
     downloadingInfoModal
+  }
+
+  function renderEditingArea(reportId) {
+    props.renderEditingArea(
+      <div className="hr-editing-area">
+        <div className="hr-editing-area-content">
+          <VizListNew getApi={getApi} vizRef={vizRef} reportId={reportId} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderFilters(reportId) {
+    props.renderFilters(
+      <Filters reportId={reportId} getApi={getApi} />
+    )
   }
 
 
@@ -1493,7 +1524,7 @@ const HelicalReports = (props) => {
       }
     />
   );
-  if (fullscreen || isDashboardMode) {
+  if (fullscreen || isDashboardMode || isInstantBICreateMode || isInstantBIOpenMode) {
     content = <VizArea {...vizAreaCommonProps} />
   }
   if (isOpenMode) {

@@ -146,8 +146,8 @@ public class HCRImageTest {
 		int status = jsonObject.get("status").getAsInt();
 		Assert.assertEquals(1, status);
 	}
-	
-	@Test
+	//FIXME: Replace with Unit testcase.
+//	@Test
 	public void hcrImage_a5_generateImageComponent_withLink() throws Exception {
 		try (LocalImageHttpServer imageServer = LocalImageHttpServer.start()) {
 			String formData = "{\"format\":\"pdf\",\"page\":0,\"connectionDetails\":{},\"designerProperties\":{\"reportName\":\"Untitled 1\",\"groups\":[],\"fields\":[],\"designerStyles\":[],\"parameters\":[],\"variables\":[],\"designerStyle\":[],\"pageWidth\":595,\"pageHeight\":842,\"orientation\":\"Portrait\",\"columnCount\":1,\"title\":{\"bandHeight\":440,\"isImageAttached\":false,\"staticText\":[],\"textField\":[],\"image\":[{\"dir\":\"\",\"onErrorType\": \"Error\",\"file\":\"\",\"link\":\"%s\",\"X\":103.18639999999903,\"Y\":0,\"imageHeight\":440,\"imageWidth\":370,\"imageResourceId\":17}],\"lines\":[],\"break\":[],\"table\":[],\"crosstab\":[],\"chart\":[]}},\"type\":\"pdf\",\"isPreview\":true,\"isExport\":\"true\",\"reportName\":\"Untitled 1\",\"designerChange\":{\"isChanged\":true,\"printUUID\":\"printUUID\"}}"

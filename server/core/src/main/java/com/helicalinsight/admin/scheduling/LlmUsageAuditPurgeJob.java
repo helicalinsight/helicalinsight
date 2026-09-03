@@ -19,11 +19,11 @@ public class LlmUsageAuditPurgeJob implements Job {
     public void execute(JobExecutionContext context) {
         JobDataMap dataMap = context.getJobDetail().getJobDataMap();
         String scheduleId = dataMap.getString("scheduleId");
-        int retentionDays = Integer.parseInt(dataMap.getString("retentionDays"));
-        String exportPath = dataMap.getString("exportPath");
-        Date cutoffDate = calculateCutoffDate(retentionDays);
-
         try {
+            int retentionDays = Integer.parseInt(dataMap.getString("retentionDays"));
+            String exportPath = dataMap.getString("exportPath");
+            Date cutoffDate = calculateCutoffDate(retentionDays);
+
             LlmUsageAuditService auditService = ApplicationContextAccessor.getBean(LlmUsageAuditService.class);
             int purgedCount = auditService.purgeOlderThan(cutoffDate, exportPath);
             String result = "System schedule " + scheduleId + " purged " + purgedCount
@@ -31,8 +31,10 @@ public class LlmUsageAuditPurgeJob implements Job {
             context.setResult(result);
             logger.info(result);
         } catch (Exception ex) {
+            String result = "System schedule " + scheduleId + " failed: " + ex.getMessage();
+            context.setResult(result);
             logger.error("System schedule {} failed while purging LLM audit records", scheduleId, ex);
-            context.setResult("System schedule " + scheduleId + " failed: " + ex.getMessage());
+            throw new RuntimeException(result, ex);
         }
     }
 

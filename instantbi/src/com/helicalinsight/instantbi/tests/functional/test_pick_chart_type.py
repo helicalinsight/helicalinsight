@@ -26,11 +26,11 @@ def test_column_chart_request_picks_column():
     )
 
 
-def test_one_dimension_two_measures_picks_radar_not_table():
+def test_one_dimension_two_measures_picks_bar_not_table():
     picked = _pick_chart_type(
         _md(("region", "text"), ("sales", "numeric"), ("cost", "numeric"))
     )
-    assert picked == "radar"
+    assert picked == "bar"
     assert picked != "table"
 
 
@@ -42,7 +42,8 @@ def test_two_dimensions_one_measure_picks_heatmap_not_table():
     assert picked != "table"
 
 
-def test_two_dimensions_two_measures_picks_relation_not_table():
+def test_two_dimensions_two_measures_picks_relation():
+    """Relation has no dim/measure cap — 2x2 still gets a chart."""
     picked = _pick_chart_type(
         _md(
             ("region", "text"),
@@ -52,10 +53,9 @@ def test_two_dimensions_two_measures_picks_relation_not_table():
         )
     )
     assert picked == "relation"
-    assert picked != "table"
 
 
-def test_three_dimensions_two_measures_picks_relation_not_table():
+def test_three_dimensions_two_measures_picks_relation():
     picked = _pick_chart_type(
         _md(
             ("region", "text"),
@@ -66,7 +66,6 @@ def test_three_dimensions_two_measures_picks_relation_not_table():
         )
     )
     assert picked == "relation"
-    assert picked != "table"
 
 
 def test_ordered_dimension_one_measure_picks_line():

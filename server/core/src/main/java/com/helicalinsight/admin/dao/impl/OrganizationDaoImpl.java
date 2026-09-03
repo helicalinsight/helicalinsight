@@ -184,22 +184,13 @@ public class OrganizationDaoImpl implements OrganizationDao {
 
 				Session currentSession = getSession();
 				currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-				
-				/*CriteriaBuilder cb = em.getCriteriaBuilder();
-				CriteriaQuery<Organization> cr = cb.createQuery(Organization.class);
-				Root<Organization> resource = cr.from(Organization.class);
-				if ("name".equalsIgnoreCase(searchOn)) {
-					searchPhrase = "%" + searchPhrase + "%";
-					cr.select(resource).where(cb.equal(resource.get("org_name"), searchPhrase))
-							.orderBy(cb.asc(resource.get("org_name")));
-				}
-				orgList = em.createQuery(cr).setFirstResult(offset).setMaxResults(limit).getResultList();*/
-				
 				if ("name".equalsIgnoreCase(searchOn)) {
 					searchPhrase = "%" + searchPhrase + "%";
 				}
-				Query query=currentSession.createQuery("FROM Organization where org_name like :searchPhrase ORDER BY org_name ASC LIMIT :limit OFFSET :offset");
+				SelectionQuery<Organization> query=currentSession.createSelectionQuery("FROM Organization where org_name like :searchPhrase ORDER BY org_name ASC LIMIT :limit OFFSET :offset",Organization.class);
 				query.setParameter("searchPhrase", searchPhrase);
+				query.setCacheable(true);
+				query.setReadOnly(true);
 				orgList = query.getResultList();
 			}
 		} catch (Exception e) {
@@ -224,7 +215,11 @@ public class OrganizationDaoImpl implements OrganizationDao {
 
         	Session currentSession = getSession();
         	currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-            Query query = currentSession.createQuery("from Organization");
+            SelectionQuery<Organization> query = currentSession.createSelectionQuery("from Organization", Organization.class);
+        	
+            query.setCacheable(true);
+			query.setReadOnly(true);
+			
             organizationList = ApplicationUtilities.castList(Organization.class,
                     query.setFirstResult(offset).setMaxResults(limit).getResultList());
         } catch (Exception e) {
@@ -260,9 +255,11 @@ public class OrganizationDaoImpl implements OrganizationDao {
 
         	Session currentSession = getSession();
         	currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-        	Query query=currentSession.createQuery("FROM Organization where org_name=:organizationName");
+        	SelectionQuery<Organization> query=currentSession.createSelectionQuery("FROM Organization where org_name=:organizationName", Organization.class);
         	query.setParameter("organizationName", organizationName);
-            org = (Organization)query.getSingleResult();
+        	query.setCacheable(true);
+			query.setReadOnly(true);
+        	org = (Organization)query.getSingleResult();
         } catch (Exception e) {
         	if(e instanceof NoResultException)
         		return null;
@@ -281,9 +278,11 @@ public class OrganizationDaoImpl implements OrganizationDao {
         	Session currentSession = getSession();
         	currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
         	organizationName = "%" + organizationName + "%";
-        	Query query=currentSession.createQuery("FROM Organization where org_name like :searchPhrase AND id=:orgId");
+        	SelectionQuery<Organization> query=currentSession.createSelectionQuery("FROM Organization where org_name like :searchPhrase AND id=:orgId", Organization.class);
 			query.setParameter("searchPhrase", organizationName);
 			query.setParameter("id", orgId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			org = query.getResultList();
         	
         } catch (Exception e) {
@@ -314,7 +313,9 @@ public class OrganizationDaoImpl implements OrganizationDao {
 	        	Session currentSession = getSession();
 	            SelectionQuery<Organization> organization = currentSession.createSelectionQuery("FROM Organization where org_name =:orgName",Organization.class);
 	        	organization.setParameter("orgName", organizationName);
-	            org = organization.uniqueResult();
+	            organization.setCacheable(true);
+	            organization.setReadOnly(true);
+	        	org = organization.uniqueResult();
 	        } catch (Exception e) {
 	            logger.error("Exception", e);
 	        }

@@ -1758,4 +1758,13 @@ Ex: JSON_VALID('{"a": 1}')results 1,JSON_VALID('hello')results 0, JSON_VALID('"h
       <description>Converts the number,date,dateTime,time to string.Eg:CAST(120) RESULTS:'120'.NOTE: column's value should be in quotes if the values is manually typing and its data type is "text/date/dateTime/time" type</description>
    </function>
 <!--Conversion specific functions must be there for every xml file ends-->
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>

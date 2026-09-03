@@ -1,12 +1,12 @@
 package com.helicalinsight.admin.service;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,6 +48,9 @@ public class HIRecycleBinServiceImplTest {
 
 	@Mock
 	private ResourceTypeServiceDB resourceTypeService;
+	
+	@Mock
+	private HIResourceServiceDB serviceDb;
 
 	@Test
 	public void saveDelegatesToDao() {
@@ -58,34 +62,34 @@ public class HIRecycleBinServiceImplTest {
 	}
 
 	@Test
-	public void deleteByIdLoadsPlainBinAndDeletes() {
-		HIRecycleBin bin = new HIRecycleBin();
-		bin.setId(1L);
-		when(hiRecycleBinDao.findHIRecycleBinByIdPlain(1L)).thenReturn(bin);
-		when(hiRecycleBinDao.delete(bin)).thenReturn(true);
+	public void deleteByIdDelegatesToDao() {
+		when(hiRecycleBinDao.delete(1L)).thenReturn(true);
 
 		assertTrue(service.delete(1L));
 
-		verify(hiRecycleBinDao).findHIRecycleBinByIdPlain(1L);
-		verify(hiRecycleBinDao).delete(bin);
+		verify(hiRecycleBinDao).delete(1L);
 	}
 
 	@Test
 	public void deleteBinDeletesEfwddChildrenBeforeDaoDelete() {
 		HIRecycleBin bin = resourceBin(10, ".efwdd");
+		HIRecycleBinHIResourceDB recycleBinResource = bin.getHiRecycleBinHIResourceDB();
+		when(serviceDb.findResourceById(recycleBinResource.getHiResourceId(), false)).thenReturn(recycleBinResource.getHiResource());
 		when(hiRecycleBinDao.delete(bin)).thenReturn(true);
-
 		assertTrue(service.delete(bin));
-
 		verify(resourceDao).deleteChildrenByParentId(10);
 		verify(hiRecycleBinDao).delete(bin);
 	}
 
 	@Test
 	public void deleteBinDeletesHcrChildrenBeforeDaoDelete() {
+		
+		HIRecycleBinHIResourceDB recycleBinResource = mock(HIRecycleBinHIResourceDB.class);
 		HIRecycleBin bin = resourceBin(11, "hcr");
+		
+		when(recycleBinResource.getHiResourceId()).thenReturn(11);
+		when(serviceDb.findResourceById(recycleBinResource.getHiResourceId(), false)).thenReturn(bin.getHiRecycleBinHIResourceDB().getHiResource());
 		when(hiRecycleBinDao.delete(bin)).thenReturn(true);
-
 		assertTrue(service.delete(bin));
 
 		verify(resourceDao).deleteChildrenByParentId(11);
@@ -211,6 +215,48 @@ public class HIRecycleBinServiceImplTest {
 	}
 
 	@Test
+	public void deleteRecycleBinsByResourceIdsDelegatesToDao() {
+		service.deleteRecycleBinsByResourceIds(List.of(1, 2));
+		verify(hiRecycleBinDao).deleteRecycleBinsByResourceIds(List.of(1, 2));
+	}
+
+	@Test
+	public void deleteRecycleBinsByUserIdsDelegatesToDao() {
+		service.deleteRecycleBinsByUserIds(List.of(9, 10));
+		verify(hiRecycleBinDao).deleteRecycleBinsByUserIds(List.of(9, 10));
+	}
+
+	@Test
+	public void findResourceBinsBlockedByLiveDependentsDelegatesToDao() {
+		when(hiRecycleBinDao.findResourceBinsBlockedByLiveDependents(Set.of(1L))).thenReturn(Set.of(1L));
+		assertEquals(Set.of(1L), service.findResourceBinsBlockedByLiveDependents(Set.of(1L)));
+	}
+
+	@Test
+	public void findGlobalBinsBlockedByLiveDependentsDelegatesToDao() {
+		when(hiRecycleBinDao.findGlobalBinsBlockedByLiveDependents(Set.of(2L))).thenReturn(Set.of());
+		assertTrue(service.findGlobalBinsBlockedByLiveDependents(Set.of(2L)).isEmpty());
+	}
+
+	@Test
+	public void findEfwdBinsBlockedByLiveDependentsDelegatesToDao() {
+		when(hiRecycleBinDao.findEfwdBinsBlockedByLiveDependents(Set.of(3L))).thenReturn(Set.of(3L));
+		assertEquals(Set.of(3L), service.findEfwdBinsBlockedByLiveDependents(Set.of(3L)));
+	}
+
+	@Test
+	public void findUserBinsBlockedByLiveDependentsDelegatesToDao() {
+		when(hiRecycleBinDao.findUserBinsBlockedByLiveDependents(Set.of(4L))).thenReturn(Set.of());
+		assertTrue(service.findUserBinsBlockedByLiveDependents(Set.of(4L)).isEmpty());
+	}
+
+	@Test
+	public void findOrgBinsBlockedByLiveDependentsDelegatesToDao() {
+		when(hiRecycleBinDao.findOrgBinsBlockedByLiveDependents(Set.of(5L))).thenReturn(Set.of(5L));
+		assertEquals(Set.of(5L), service.findOrgBinsBlockedByLiveDependents(Set.of(5L)));
+	}
+
+	@Test
 	public void findAllResourceOfRecycleBinItemDelegatesToDao() {
 		Map<String, List<Object>> resources = Map.of("resources", List.of());
 		when(hiRecycleBinDao.findAllResourceOfRecycleBinItem(16L)).thenReturn(resources);
@@ -228,6 +274,7 @@ public class HIRecycleBinServiceImplTest {
 
 		HIRecycleBinHIResourceDB resourceDb = new HIRecycleBinHIResourceDB();
 		resourceDb.setHiResource(resource);
+		resourceDb.setHiResourceId(resourceId);
 
 		HIRecycleBin bin = new HIRecycleBin();
 		bin.setHiRecycleBinHIResourceDB(resourceDb);

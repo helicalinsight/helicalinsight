@@ -1,4 +1,4 @@
-"""Assemble layered formData pieces into the final wire payload."""
+"""Assemble formData parts into the final wire payload."""
 
 from __future__ import annotations
 
@@ -7,8 +7,10 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from .functions_catalog import FunctionCatalog, REFERENCE_TO_SQLGLOT
-from .layers import (
+from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
+
+from .functions_catalog import FunctionCatalog
+from .sql_components import (
     attach_database_functions,
     build_columns,
     build_filters,
@@ -26,11 +28,8 @@ def _resolve_parse_dialect(
     dialect: str | None,
     catalog: FunctionCatalog,
 ) -> str:
-    """Map API reference (e.g. postgresql) → sqlglot dialect (postgres)."""
-    if dialect:
-        key = str(dialect).lower().strip()
-        return REFERENCE_TO_SQLGLOT.get(key, key)
-    return catalog.dialect
+    """Map HI / getFunctions reference through DialectMapper (derby → oracle)."""
+    return resolve_sqlglot_dialect(dialect or catalog.reference) or "postgres"
 
 
 def load_function_catalog(
@@ -115,28 +114,30 @@ def assemble_form_data(
     metadata: dict | None = None,
     location: str = "",
     metadata_file_name: str = "",
-    include_layers: bool = False,
+    include_parts: bool = False,
 ) -> dict[str, Any]:
     """
-    Build formData from ParsedQuery using independent layers, then merge.
+    Build formData from ParsedQuery using independent parts, then merge.
 
     Only includes keys that come from the SQL / metadata inputs — no skeleton
     defaults (requestId, refresh, analytics, etc.).
     """
-    meta = metadata or {}
+    meta = dict(metadata or {})
+    # Dialect for databaseFunction wire quoting ("table"."column" vs `table`.`column`).
+    if parsed.dialect and not meta.get("dialect"):
+        meta["dialect"] = parsed.dialect
 
     columns = build_columns(parsed, meta)
     filters = build_filters(parsed, meta)
     having = build_having(parsed, meta)
     functions = build_functions(parsed, columns)
-    db_fn_layer = attach_database_functions(parsed, columns, filters, having)
+    db_fn_parts = attach_database_functions(parsed, columns, filters, having)
 
     form_data: dict[str, Any] = {
         "sql": parsed.sql,
         "location": location or meta.get("location", ""),
         "metadataFileName": metadata_file_name or meta.get("metadataFileName", ""),
         "columns": columns,
-        "prependTableNameToAlias": False,
     }
 
     if functions:
@@ -150,8 +151,8 @@ def assemble_form_data(
     if parsed.offset is not None:
         form_data["offset"] = parsed.offset
 
-    #if db_fn_layer.get("appliedDbfs"):
-    #    form_data["appliedDbfs"] = db_fn_layer["appliedDbfs"]
+    #if db_fn_parts.get("appliedDbfs"):
+    #    form_data["appliedDbfs"] = db_fn_parts["appliedDbfs"]
 
     if filters:
         form_data["filters"] = filters
@@ -161,12 +162,12 @@ def assemble_form_data(
         form_data["having"] = having
         form_data["customHavingExpression"] = _build_expression(len(having), "AND")
 
-    if include_layers:
-        form_data["_layers"] = {
+    if include_parts:
+        form_data["_parts"] = {
             "select": columns,
             "groupby": functions.get("groupBy", []),
             "functions": functions,
-            "databaseFunction": db_fn_layer,
+            "databaseFunction": db_fn_parts,
             "filters": filters,
             "having": having,
         }
@@ -185,7 +186,7 @@ def sql_to_form_data(
     catalog: FunctionCatalog | None = None,
     dialect: str | None = None,
     metadata: dict | None = None,
-    include_layers: bool = False,
+    include_parts: bool = False,
 ) -> dict[str, Any]:
     """
     End-to-end: getFunctions → catalog (dialect from reference) → parse SQL → assemble formData.
@@ -225,7 +226,7 @@ def sql_to_form_data(
         metadata=column_index,
         location=resolved_location,
         metadata_file_name=metadata_file_name,
-        include_layers=include_layers,
+        include_parts=include_parts,
     )
 
 

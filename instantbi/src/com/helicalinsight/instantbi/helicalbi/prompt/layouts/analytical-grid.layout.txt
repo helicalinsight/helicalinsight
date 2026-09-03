@@ -1,0 +1,13 @@
+id: analytical-grid
+name: Analytical / Grid
+best_for: Users who investigate data.
+
+┌────────────────────────────────────────────┐
+│ Filters: Date | Region | Product | Channel │
+├──────────────────────┬─────────────────────┤
+│ Trend Analysis       │ Comparison          │
+│                      │                     │
+├──────────────────────┴─────────────────────┤
+│ Detailed Data Table                        │
+│                                            │
+└────────────────────────────────────────────┘

@@ -26,7 +26,7 @@
   "endpoints": {
     "settings": "ai/utility/settings",
     "listProviders": "ai/utility/llm",
-    "listModels": "ai/utility/llm/models",
+    "listModels": "ai/settings/models",
     "changeModel": "ai/utility/llm/change-model",
     "defaultProvider": "ai/utility/llm/default-provider",
     "upsertProvider": "ai/utility/llm/provider",

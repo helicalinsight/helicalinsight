@@ -122,6 +122,17 @@ final class Filter {
     public String getQuotedValues() {
         return addValue();
     }
+    private boolean isCustomColumn() {
+        return "true".equalsIgnoreCase(this.custom);
+    }
+
+    private String sqlOperand() {
+        if (isCustomColumn() || (this.column.contains("(") && this.column.contains(")"))) {
+            return this.column;
+        }
+        return this.context.quotes(this.column);
+    }
+
     /**
      * Returns a string representation of the filter condition.
      * If the filter condition contains the keyword "all", it replaces it with appropriate SQL syntax.
@@ -131,13 +142,7 @@ final class Filter {
     @NotNull
     @Override
     public String toString() {
-        String filter;
-        if (this.column.contains("(") && this.column.contains(")")) {
-            //This filter is part of having clause. Having clause related function already has quotes applied.
-            filter = this.column;
-        } else {
-            filter = this.context.quotes(this.column);
-        }
+        String filter = sqlOperand();
 
         if (this.addValue().contains(ALL_VALUES)) {
             return replace_all_(this.condition.toLowerCase().contains("not"));
@@ -148,7 +153,7 @@ final class Filter {
 
                 if (this.values.contains(NULL_VALUE)) {
                     this.values.remove(NULL_VALUE);
-                    filter = filter + " is null or " + this.context.quotes(this.column) + " in (" + addValue() + ")";
+                    filter = filter + " is null or " + sqlOperand() + " in (" + addValue() + ")";
                 } else {
                     filter = filter + " in (" + addValue() + ")";
                 }

@@ -146,6 +146,92 @@ def resolve_wire_column(
     return fallback_name or short or ""
 
 
+def used_column_fq_names(
+    cols: list[Any] | None,
+    meta: dict[str, Any] | None,
+    *,
+    fallback: Any = None,
+) -> list[str]:
+    """Resolve ColumnRef list → unique metadata FQ names for ``usedColumns``."""
+    refs = list(cols or [])
+    if not refs and fallback is not None:
+        refs = [fallback]
+    names: list[str] = []
+    seen: set[str] = set()
+    for col in refs:
+        table = getattr(col, "table", None)
+        name = getattr(col, "name", None)
+        short = getattr(col, "short", "") or ""
+        if not name:
+            continue
+        ref = resolve_wire_column(
+            table,
+            name,
+            meta,
+            fallback_name=short,
+        )
+        fq = ref["name"] if isinstance(ref, dict) else str(ref or "")
+        if fq and fq not in seen:
+            seen.add(fq)
+            names.append(fq)
+    return names
+
+
+def to_raw_database_function(expr: str) -> str:
+    """Wrap a catalog-miss SQL expression as Helical ``RAW(...)``."""
+    text = (expr or "").strip()
+    if not text:
+        return ""
+    stripped = text.strip()
+    if stripped[:4].upper() == "RAW(" and stripped.endswith(")"):
+        return stripped
+    return f"RAW({text})"
+
+
+def resolve_host_column_from_used(
+    used: list[str],
+    meta: dict[str, Any] | None,
+    *,
+    column: Any = None,
+) -> dict[str, str] | None:
+    """Pick one physical column from ``usedColumns`` as the RAW host ``{name, id}``."""
+    if not used:
+        return None
+    meta = meta or {}
+    if column is not None:
+        table = getattr(column, "table", None)
+        name = getattr(column, "name", None)
+        short = getattr(column, "short", "") or ""
+        if name:
+            ref = resolve_wire_column(table, name, meta, fallback_name=short)
+            as_dict = _as_column_ref_dict(ref, fallback=used[0])
+            if as_dict:
+                return as_dict
+    fq = str(used[0] or "").strip()
+    if not fq:
+        return None
+    by_column = meta.get("by_column") or {}
+    entry = by_column.get(fq)
+    if isinstance(entry, dict) and entry.get("name"):
+        return {"name": str(entry["name"]), "id": str(entry.get("id") or "")}
+    parts = [p for p in fq.replace('"', "").split(".") if p]
+    if len(parts) >= 2:
+        ref = resolve_wire_column(parts[-2], parts[-1], meta, fallback_name=fq)
+        as_dict = _as_column_ref_dict(ref, fallback=fq)
+        if as_dict:
+            return as_dict
+    return {"name": fq, "id": ""}
+
+
+def _as_column_ref_dict(ref: dict[str, str] | str, *, fallback: str) -> dict[str, str] | None:
+    if isinstance(ref, dict) and (ref.get("name") or ref.get("id")):
+        return {"name": str(ref.get("name") or fallback), "id": str(ref.get("id") or "")}
+    text = str(ref or fallback or "").strip()
+    if not text:
+        return None
+    return {"name": text, "id": ""}
+
+
 def _normalize_type(raw: Any) -> dict[str, str]:
     """Metadata type is ``{java.lang.String: text}`` → backend/dataType dict."""
     if isinstance(raw, dict):

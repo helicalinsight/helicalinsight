@@ -128,6 +128,7 @@ public final class SqlQueryContext {
     //that will have all the functions that are related to the database in use.
     private String referenceFile;
     private Boolean unWrapSelect;
+    private List<String> fullyQualifiedTableNames;
     /**
      * Constructs a new SqlQueryContext.
      *
@@ -137,12 +138,26 @@ public final class SqlQueryContext {
      * @param queryLimit        query limit
      * @param formData          form data provides filters, sql related details.
      */
+    private List<String> makeTableNames(){
+        Database database = this.metadata.getDatabase();
+        List<String> preparedAllTablesList = new ArrayList<>();
+        Tables tables = database.getTables();
+        if (tables != null && tables.getTableList() != null) {
+            tables.getTableList().forEach(eachTable -> preparedAllTablesList.add(prepareTableName(eachTable.getName())));
+        }
+        Views views = database.getViews();
+        if (views != null && views.getViewList() != null) {
+            views.getViewList().forEach(eachView -> preparedAllTablesList.add(prepareTableName(eachView.getName())));
+        }
+        return preparedAllTablesList;
+    }
     public SqlQueryContext(@NotNull IMetadataStore container, @NotNull Metadata metadata,
                            @NotNull List<String> requestedColumns, @NotNull String queryLimit, JsonObject formData) {
         this.metadata = metadata;
         Database database = this.metadata.getDatabase();
         this.databaseName = database.getName();
         this.formData = formData;
+        this.fullyQualifiedTableNames=makeTableNames();
 
         this.columnsMap = container.getFullyQualifiedColumnsMap();
 
@@ -449,15 +464,7 @@ public final class SqlQueryContext {
     private String extractTable(@NotNull String column) {
         // The table name in this string consists of catalog.schema.table
         // In case if the catalog or schema is null it will have only only dot
-        Database database = this.metadata.getDatabase();
-        List<Table> tableList = database.getTables().getTableList();
-        List<View> viewList = database.getViews().getViewList();
-        List<String> preparedAllTablesList = new ArrayList<>();
-        if (tableList != null)
-            tableList.forEach(eachTable -> preparedAllTablesList.add(prepareTableName(eachTable.getName())));
-        if (viewList != null)
-            viewList.forEach(eachView -> preparedAllTablesList.add(prepareTableName(eachView.getName())));
-        for (String eachValue : preparedAllTablesList) {
+         for (String eachValue : this.fullyQualifiedTableNames) {
             if (column.contains(eachValue + "."))
                 return eachValue;
         }
@@ -470,11 +477,10 @@ public final class SqlQueryContext {
      * @return The prepared table name.
      */
     private String prepareTableName(String name) {
-        Database database = this.metadata.getDatabase();
-        String databaseName = database.getName();
-        if (databaseName == null || databaseName.isEmpty())
+
+        if (this.databaseName == null || this.databaseName.isEmpty())
             return name;
-        return databaseName + "." + name;
+        return this.databaseName + "." + name;
     }
     /**
      * Adds tables and columns used in filters and database functions to the provided sets.

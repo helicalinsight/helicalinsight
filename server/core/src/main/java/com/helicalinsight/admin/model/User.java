@@ -1,5 +1,6 @@
 package com.helicalinsight.admin.model;
 
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -31,6 +32,7 @@ import java.util.List;
 @Entity
 @Table(name = "h_users")
 @Filter(name = "isDeletedFilter", condition = "is_deleted = :isDeleted")
+@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class User implements Serializable {
 
     /**
@@ -93,6 +95,7 @@ public class User implements Serializable {
      */
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "user", cascade = CascadeType.REMOVE)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Profile> profile;
     
     /**
@@ -133,6 +136,7 @@ public class User implements Serializable {
     @JoinTable(name = "user_role", joinColumns = {@JoinColumn(name = "user_id",
             referencedColumnName = "id")}, inverseJoinColumns = {@JoinColumn(name = "role_id",
             referencedColumnName = "id")})
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Role> roles;
 
     /**

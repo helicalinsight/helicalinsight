@@ -147,6 +147,9 @@ const hreportReducer = (state = intialState, action) => {
 		case actionTypes.ADD_NEW_REPORT: {
 			return produce(state, (draft) => {
 				let report = getIntialReportState({ active: true });
+				if (action?.payload?.reportId) {
+					report.id = action.payload.reportId
+				}
 				draft.reports = draft.reports.map((item) => {
 					item.active = false;
 					return item;
@@ -408,14 +411,18 @@ const hreportReducer = (state = intialState, action) => {
 						report.fields = report.fields.map((field) => {
 							if (field.id === id) {
 								if (field[group] && Array.isArray(field[group])) {
-									let findIndex = field[group].indexOf(key);
-									if (findIndex > -1) {
-										field[group].splice(findIndex, 1);
+									if (Array.isArray(key)) {
+										field[group] = key;
 									} else {
-										field[group] = [...field[group], key];
+										let findIndex = field[group].indexOf(key);
+										if (findIndex > -1) {
+											field[group].splice(findIndex, 1);
+										} else {
+											field[group] = [...field[group], key];
+										}
 									}
 								} else {
-									field[group] = [key];
+									field[group] = Array.isArray(key) ? key : [key];
 								}
 								if (group === 'aggregate') {
 									field.autogen_alias = generateAlias(
@@ -1327,12 +1334,19 @@ const hreportReducer = (state = intialState, action) => {
 		case actionTypes.SET_HREPORT_LOADING: {
 			let {
 				// id,
+				reportId,
 				loading
 			} = action.payload;
 			return produce(state, (draft) => {
 				draft.reports = draft.reports.map((report) => {
-					if (report.active) {
-						report.hreportLoading = loading;
+					if (reportId) {
+						if (report.id === reportId) {
+							report.hreportLoading = loading;
+						}
+					} else {
+						if (report.active) {
+							report.hreportLoading = loading;
+						}
 					}
 					return report;
 				});
@@ -1737,11 +1751,12 @@ const hreportReducer = (state = intialState, action) => {
 		case actionTypes.CHANGE_TABLE_RECORDS_PER_PAGE: {
 			let {
 				page,
-				refresh = false
+				refresh = false,
+				reportId
 			} = action.payload;
 			return produce(state, (draft) => {
 				draft.reports = draft.reports.map((report) => {
-					if (report.active) {
+					if (report.id === reportId || report.active) {
 						report.tableRecordsPerPage = page;
 					}
 					if (refresh) {
@@ -1888,7 +1903,6 @@ const hreportReducer = (state = intialState, action) => {
 				draft.reports = draft.reports.map((report) => {
 					if (report.active) {
 						report.chartColorPalette['Custom Colors'] = { ..._.omit(report.chartColorPalette['Custom Colors'], action.payload) };
-						console.log(report.chartColorPalette)
 					}
 					return report;
 				});
@@ -2059,6 +2073,56 @@ const hreportReducer = (state = intialState, action) => {
 				});
 			});
 		}
+
+		case actionTypes.UPDATE_SELECTED_TYPE: {
+			const { selectedType } = action.payload
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.map((report) => {
+					if (report.active) {
+						report.selectedType = selectedType
+						if (report.reportData) {
+							report.reportData.dataId = uuidv4();
+						}
+					}
+					return report;
+				});
+			});
+		}
+
+		case actionTypes.REMOVE_ALL_REPORTS_EXCEPT_ONE: {
+			const { reportId } = action.payload || {}
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.filter((report) => report.id === reportId);
+				draft.reports[0].active = true;
+				draft.activeReportId = reportId
+				draft.baseStateReports = draft.baseStateReports.filter((item) => {
+					return item.id === reportId
+				});
+			});
+		}
+
+		case actionTypes.LOAD_REPORT_FILTERS: {
+			const { reportId, filters } = action.payload
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.map((report) => {
+					if (report.id === reportId) {
+						report.filters = filters;
+					}
+					return report;
+				});
+			});
+		}
+
+		case actionTypes.LOAD_REPORT_FROM_LOCALSTORAGE: {
+			const { report } = action.payload
+			return produce(state, (draft) => {
+				draft.reports = [report];
+				draft.reports[0].active = true;
+				draft.activeReportId = report.id;
+				draft.baseStateReports = [report];
+			});
+		}
+
 
 		default:
 			return { ...state };

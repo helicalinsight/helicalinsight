@@ -107,6 +107,8 @@ class UtilityService:
             "username",
             "userId",
             "orgId",
+            "headers",
+            "requestParams",
         }
         return self.llm.upsert_provider(
             payload.get("provider") or "",
