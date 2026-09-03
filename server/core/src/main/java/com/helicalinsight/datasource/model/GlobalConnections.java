@@ -8,7 +8,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.helicalinsight.admin.model.User;
-import com.helicalinsight.serializer.UserDTODeserializer;
 import com.helicalinsight.serializer.UserDeserializer;
 
 import jakarta.persistence.*;
@@ -23,12 +22,13 @@ import java.util.Date;
 
 @Entity
 @Table(name="ds_global_connections")
-@Cacheable(true)
 @Filter(name = "isDeletedFilter", condition = "is_deleted = :isDeleted")
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class GlobalConnections implements Identifiable<Integer>,Serializable {
 
-    @Id
+	private static final long serialVersionUID = 1L;
+
+	@Id
     @GenericGenerator(
             name = "CustomDataSourceIdGenerator",
             strategy = "com.helicalinsight.scheduling.model.CustomDataSourceIdGenerator",

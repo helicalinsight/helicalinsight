@@ -2,6 +2,7 @@ package com.helicalinsight.adhoc.services;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.helicalinsight.adhoc.MultiConnectionMergeAdhocTable;
@@ -204,6 +205,12 @@ public class QueryGeneratorService implements IService {
 					throw new EfwServiceException("Special characters "+dialect.openQuote()+" or " + dialect.closeQuote()+" not  supported with the selected database.");
 				}
 				
+				JsonElement columnElement = item.get("column");
+				if (item.has("custom") && columnElement != null && columnElement.isJsonObject()) {
+					item.addProperty("column", columnElement.getAsJsonObject().get("column").getAsString());
+					continue;
+				}
+
 				try {
 					
 					JsonObject column = item.get("column").getAsJsonObject();
@@ -215,6 +222,9 @@ public class QueryGeneratorService implements IService {
 					colName = item.get("column").getAsString();
 				}
 				if (isDumped) {
+					if (item.has("custom")) {
+						continue;
+					}
 					if(StringUtils.isBlank(colId)) {
 						throw new EfwServiceException("Please provide column id.");
 					}
@@ -309,6 +319,9 @@ public class QueryGeneratorService implements IService {
 	public void replaceColumnWithOriginal(Map<String, String> duplicateOriginalMap, JsonArray filtersArray, String databaseName) {
         for (int index = 0; index < filtersArray.size(); index++) {
             JsonObject filterColumn = filtersArray.get(index).getAsJsonObject();
+            if (filterColumn.has("custom")) {
+                continue;
+            }
             String column = filterColumn.get("column").getAsString();
             String checkOriginal = duplicateOriginalMap.get(column);
             if (checkOriginal != null) {

@@ -3,11 +3,13 @@ watchdog
 waitress
 python-dotenv
 PyYAML
+ruamel.yaml>=0.18.0
 langchain>=1.0
 langchain-core>=1.0
 langchain-community
 langgraph
 sqlglot
+# chromadb is optional; SchemaIndexer falls back to an in-memory vector store.
 langgraph-checkpoint-postgres
 langgraph-checkpoint-sqlite
 psycopg[binary]

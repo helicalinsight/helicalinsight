@@ -111,10 +111,65 @@
   }
 }
 
+.instantbi-settings-editor__developer {
+  .ui-form-generator-section__title {
+    font-weight: 400;
+  }
+}
+
 .instantbi-settings-editor__param-key-readonly {
   background: #fafafa;
   color: rgba(0, 0, 0, 0.85);
   cursor: default;
+}
+
+.instantbi-settings-editor__param-edit {
+  color: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+
+  &:hover {
+    color: #1890ff;
+  }
+}
+
+.instantbi-settings-editor__provider-form {
+  .ui-form-generator-section {
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .ui-form-generator-section__body .ant-row {
+    row-gap: 8px;
+  }
+
+  .ui-form-item--checkbox {
+    margin-top: 8px;
+    margin-bottom: 16px !important;
+  }
+}
+
+.instantbi-settings-editor__secret-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.45);
+
+  &:hover,
+  &:focus {
+    color: rgba(0, 0, 0, 0.85);
+  }
+}
+
+.instantbi-settings-editor__secret-input--masked {
+  input.ant-input {
+    -webkit-text-security: disc;
+  }
+}
+
+.instantbi-settings-editor__secret-input--visible {
+  input.ant-input {
+    -webkit-text-security: none !important;
+  }
 }
 
 .instantbi-provider-toolbar {
@@ -123,6 +178,11 @@
   justify-content: flex-end;
   gap: 8px;
   min-height: 28px;
+}
+
+.instantbi-provider-search-trigger {
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 .instantbi-provider-toolbar-spacer {
@@ -147,6 +207,11 @@
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
+  }
+
+  .datasource-skeleton-container {
+    width: 100%;
+    flex: 1 1 100%;
   }
 }
 
@@ -255,4 +320,9 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.instantbi-provider-search-tooltip.ant-tooltip {
+  max-width: 260px;
+  pointer-events: none;
 }

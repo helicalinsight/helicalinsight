@@ -9,4 +9,13 @@
             <parameter name="interval-The name of the parameter that goes inside ${}" type="dateTime-text, numeric, boolean, date, time, dateTime" column="true-true if quotes need to be applied to the value" defaultValue="1444304201093-The default value that will be used in case if the parameter is empty"/>
         </parameters>
     </function> -->
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>

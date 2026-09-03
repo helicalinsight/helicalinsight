@@ -10,12 +10,12 @@ import { vizListNew } from "../../utils/constants";
 import { checkIsSubVizApplicable } from "../../utils/marks-utils";
 const { Panel } = Collapse;
 
-const VizListNew = ({ getApi, vizRef }) => {
+const VizListNew = ({ getApi, vizRef, reportId }) => {
   const dispatch = useDispatch();
   const [vizSearch, setVizSearch] = useState("");
   const [localSelectedType, setLocalSelectedType] = useState("")
   const activeReport = useSelector((state) => {
-    let activeReport = state.hreport.present.reports.find((report) => report.active);
+    let activeReport = state.hreport.present.reports.find((report) => report.id === reportId);
     return activeReport;
   });
   let subVizType = "";

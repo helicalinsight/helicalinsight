@@ -104,14 +104,14 @@ Main conversational BI endpoint. Supports request cancellation via `requestId`.
 | `input` | Yes | string | User question / prompt |
 | `chatid` | Yes | string | Chat session ID |
 | `chat_sequence_id` | Yes | string | Sequence ID for this message in the chat |
-| `subject` | No | JSON string | Agent context; must contain `agent` (see below) |
+| `subject` | No | JSON string | Agent context; must contain `model` with `dir` and `file` |
 | `requestId` | No | string | Used for cancellable requests |
 
 **`subject` example:**
 
 ```json
 {
-  "agent": {
+  "model": {
     "dir": "MyFolder",
     "file": "SalesAgent.agent"
   }
@@ -124,7 +124,7 @@ Main conversational BI endpoint. Supports request cancellation via `requestId`.
 POST /ai/interactive-chat
 Content-Type: application/x-www-form-urlencoded
 
-input=Show total sales by region&chatid=abc123&chat_sequence_id=1&subject={"agent":{"dir":"MyFolder","file":"SalesAgent.agent"}}
+input=Show total sales by region&chatid=abc123&chat_sequence_id=1&subject={"model":{"dir":"MyFolder","file":"SalesAgent.agent"}}
 ```
 
 ### Response
@@ -137,6 +137,85 @@ input=Show total sales by region&chatid=abc123&chat_sequence_id=1&subject={"agen
   }
 }
 ```
+
+---
+
+## 3b. Agent Dashboard
+
+**`GET | POST`** `/ai/agent-dashboard`
+
+Decomposes one question into sub-questions, runs InstantBI per chart, and returns a dashboard layout. Same InstantBI envelope as interactive chat, except **`dashboardid` replaces `chatid`** and **`dashboard_sequence_id` replaces `chat_sequence_id`**. Chart count is configured in InstantBI `application_config.yaml` (`dashboard.max_sub_questions`), not in this request. Supports request cancellation via `requestId`.
+
+### Request Parameters
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `input` | Yes | string | User question / prompt |
+| `dashboardid` | Yes | string | Dashboard session ID (forwarded as InstantBI `input.dashboardid`) |
+| `dashboard_sequence_id` | Yes | string | Sequence ID for this dashboard turn (forwarded as InstantBI `input.dashboard_sequence_id`) |
+| `subject` | Yes* | JSON string | Must contain `model` with `dir` and `file` (plain or Base64). Required by InstantBI `/agent-dashboard`. |
+| `requestId` | No | string | Used for cancellable requests |
+
+**`subject` example:**
+
+```json
+{
+  "model": {
+    "dir": "MyFolder",
+    "file": "SalesAgent.agent"
+  }
+}
+```
+
+### Example Request
+
+```http
+POST /ai/agent-dashboard
+Content-Type: application/x-www-form-urlencoded
+
+input=Build a sales overview dashboard&dashboardid=abc123&dashboard_sequence_id=1&subject={"model":{"dir":"MyFolder","file":"SalesAgent.agent"}}
+```
+
+### Response
+
+```json
+{
+  "status": 1,
+  "response": {
+    "original_question": "Build a sales overview dashboard",
+    "dashboardid": "abc123",
+    "final_answer": "...",
+    "asked_questions": ["Total sales KPI", "Sales by region"],
+    "attempt_count": 8,
+    "investigation_steps": [
+      {"step": 1, "question": "Total sales KPI", "kind": "chart", "analysis": "..."},
+      {"step": 2, "question": "Sales by region", "kind": "chart", "analysis": "..."}
+    ],
+    "sub_questions": [],
+    "dashboard": {},
+    "token_usage": {}
+  }
+}
+```
+
+`asked_questions`, `attempt_count`, and `investigation_steps` are filled programmatically
+(not by the LLM). They show the multi-step investigation picture — focused sub-questions
+and how many planner attempts ran — rather than implying a one-shot answer.
+
+### Agent modes (token control)
+
+Pass `mode` on the InstantBI `/agent-dashboard` body (`input.mode`) or Java
+`/ai/agent-dashboard?mode=...`. Default from config: `dashboard.default_mode`.
+
+| Mode | Charts | Tool loops | Overview size | LLM synthesizer |
+|------|--------|------------|---------------|-----------------|
+| `fast` | ≤2 | ≤10 | short | no (rule-based) |
+| `balanced` | ≤5 | ≤24 | medium | yes |
+| `research` | ≤8* | ≤40 | large | yes |
+
+\* Chart counts are also capped by `dashboard.max_sub_questions`.
+
+Profiles live in `helicalbi/sql_agent/modes.py`.
 
 ---
 
@@ -195,31 +274,29 @@ chat_sequence_id=2&formData={"input":"Explain the trend","location":"MyReports",
 
 ---
 
-## 5. Convert Chart
+## 5. Convert Dashboard
 
-**`GET | POST`** `/ai/convert-chart`
+**`GET | POST`** `/ai/convert-dashboard`
 
-Converts an existing InstantBI visualization template to another Ant Design Charts type **without** calling the LLM. Proxies to the Python `/convert-chart` service.
+Turns a chat viz/SQL array into dashboard **parts** (layout, sections, filters, theme, summary). Python does **not** return `.efwdd` or `.hr` save JSON. The InstantBI UI hydrates Dashboard Designer from those parts.
 
 ### Request Parameters
 
 | Parameter | Required | Type | Description |
 |-----------|----------|------|-------------|
-| `vf_template` | Yes* | string | Base64-encoded Draw* JS/JSX template (`vftemplate` alias accepted) |
-| `selected_chart` | Yes | string | Target visualization type, e.g. `bar`, `pie`, `line` |
-| `chat_id` | No | string | Chat / thread id (`chatid` alias accepted) |
-| `chat_sequence_id` | No | string | Chat turn sequence |
-| `requestId` | No | string | Used for cancellable requests |
-
-\*Provide `vf_template` or `vftemplate`.
+| `chatid` | No | string | Chat / thread id. Used to walk memory if `items` is empty |
+| `items` | No | JSON string | Array of `{ id, sql, viz, summary }`. May be Base64-encoded |
+| `subject` | No | JSON string | `{ "model": { "dir", "file" } }` (plain or Base64) |
+| `formData` | No | JSON string | Optional metadata `location` / `metadata_file_name` / `dialect` |
+| `input` | No | string | Unused for layout; forwarded as `inputString` |
 
 ### Example Request
 
 ```http
-POST /ai/convert-chart
+POST /ai/convert-dashboard
 Content-Type: application/x-www-form-urlencoded
 
-vf_template=<base64>&selected_chart=bar&chat_id=abc123&chat_sequence_id=1
+chatid=abc123&items=[{"id":"seq-3","sql":"SELECT ...","viz":{"chart_name":"bar","viz_model":{}}}]&subject={"model":{"dir":"MyFolder","file":"Sales.model"}}
 ```
 
 ### Response
@@ -228,66 +305,19 @@ vf_template=<base64>&selected_chart=bar&chat_id=abc123&chat_sequence_id=1
 {
   "status": 1,
   "response": {
-    "viz": {
-      "vf_template": "<base64>",
-      "chart_name": "bar",
-      "vf_title": "...",
-      "vf_reason": "...",
-      "similar_chart": [{"vf.column": "column"}, {"vf.pie": "pie"}]
-    }
+    "items": [{ "id": "seq-3", "sql": "...", "viz": {}, "sql_parts": {}, "viz_parts": {} }],
+    "theme": { "color": "#1677ff", "background": "#ffffff" },
+    "summary": { "title": "Overview", "text": "...", "x": 0, "y": 0, "w": 12, "h": 1 },
+    "sections": [{ "id": "overview", "title": "Overview" }],
+    "filters": [{ "column": "region", "sourceItemId": "seq-3", "listeners": ["seq-3"], "x": 0, "y": 1, "w": 3, "h": 1 }],
+    "layout": [{ "itemId": "seq-3", "sectionId": "overview", "x": 0, "y": 2, "w": 6, "h": 4 }]
   }
 }
 ```
 
 ---
 
-## 6. Load Past Chat
-
-**`GET | POST`** `/ai/load-chat`
-
-Reloads a previous chat turn from a saved instant report.
-
-### Request Parameters
-
-| Parameter | Required | Type | Description |
-|-----------|----------|------|-------------|
-| `chat_sequence_id` | Yes | string | Sequence ID of the chat turn to reload |
-| `formData` | Yes | JSON string | Must contain `input`, `location`, `fileName` |
-| `requestId` | No | string | Used for cancellable requests |
-
-**`formData` example:**
-
-```json
-{
-  "input": "Show sales by region",
-  "location": "MyReports",
-  "fileName": "SalesReport.hr"
-}
-```
-
-### Example Request
-
-```http
-POST /ai/load-chat
-Content-Type: application/x-www-form-urlencoded
-
-chat_sequence_id=1&formData={"input":"Show sales by region","location":"MyReports","fileName":"SalesReport.hr"}
-```
-
-### Response
-
-```json
-{
-  "status": 1,
-  "response": {
-    "...": "Parsed JSON from Instant BI /load-chat service"
-  }
-}
-```
-
----
-
-## 7. Chat Context
+## 6. Chat Context
 
 **`GET | POST`** `/ai/chat-context`
 
@@ -349,7 +379,7 @@ Used in `agent` and `subject.agent`:
 
 ### Instant Report `formData`
 
-Used by `/ai/load-chat` and `/ai/data-insight`:
+Used by `/ai/data-insight`:
 
 ```json
 {
@@ -370,9 +400,9 @@ Each endpoint forwards to the Instant BI Python service (`instantbiConfig.servic
 | `/ai/recommendation/domain` | `/suggestDomain` |
 | `/ai/recommendation/analyst` | `/topNQuestion` |
 | `/ai/interactive-chat` | `/interactive` |
+| `/ai/agent-dashboard` | `/agent-dashboard` |
 | `/ai/data-insight` | `/data-insight` |
-| `/ai/convert-chart` | `/convert-chart` |
 | `/ai/convert-hreport` | `/instant-to-hr` |
-| `/ai/load-chat` | `/load-chat` |
+| `/ai/convert-dashboard` | `/convert-dashboard` |
 | `/ai/chat-context` | `/chat` (+ `/metadataInsight` when context is metadata) |
 

@@ -1,35 +1,27 @@
-.ui-tick-toggle {
+.ui-tick-toggle.ant-checkbox-wrapper {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 2px 0 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  line-height: 1;
-  color: #bfbfbf;
-  transition: color 0.15s ease, transform 0.12s ease;
-  transform: translateY(1px);
+  margin-left: 0;
+  line-height: 22px;
+  color: rgba(0, 0, 0, 0.85);
 
-  &:hover:not(:disabled) {
-    color: #91d5ff;
+  .ant-checkbox {
+    top: 0;
   }
 
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
+  .ant-checkbox-inner {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
   }
 
-  &--on {
-    color: #69c0ff;
-
-    &:hover:not(:disabled) {
-      color: #40a9ff;
-    }
+  .ant-checkbox-checked::after {
+    display: none;
   }
 
-  &__icon {
-    font-size: 15px;
+  > span:not(.ant-checkbox) {
+    padding-left: 8px;
+    padding-right: 0;
+    white-space: normal;
   }
 }

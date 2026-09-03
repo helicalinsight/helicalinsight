@@ -55,6 +55,8 @@ const TASK_TYPE_FIELD = {
 
 const NEW_SCHEDULE_TEMPLATE = {
   id: "",
+  title: "",
+  description: "",
   layout: DEFAULT_LAYOUT_CONTENT_ID,
   enabled: true,
   paused: false,
@@ -90,6 +92,21 @@ const FALLBACK_LAYOUT = {
           readOnlyOnEdit: true,
           span: 24,
           description: FIELD_HELP.id,
+        },
+        {
+          name: "title",
+          label: "Name",
+          type: "text",
+          span: 24,
+          placeholder: "Friendly display name",
+        },
+        {
+          name: "description",
+          label: "Description",
+          type: "textarea",
+          span: 24,
+          minRows: 1,
+          maxRows: 3,
         },
         {
           name: "enabled",
@@ -293,6 +310,12 @@ const buildScheduleInitialValues = (record, isAdd, layout) => {
   if (initial.id === undefined || initial.id === "") {
     initial.id = source.id || source.jobId || "";
   }
+  if (initial.title === undefined) {
+    initial.title = source.title || "";
+  }
+  if (initial.description === undefined) {
+    initial.description = source.description || "";
+  }
   if (initial.enabled === undefined) {
     initial.enabled = source.enabled !== false;
   }
@@ -330,6 +353,8 @@ const buildScheduleInitialValues = (record, isAdd, layout) => {
 const valuesToSchedule = (values, selectedRecord, isAdd, layoutId) => {
   const schedule = {
     id: values.id,
+    title: values.title || selectedRecord?.title || "",
+    description: values.description || selectedRecord?.description || "",
     layout: toLayoutContentId(layoutId || selectedRecord?.layout || DEFAULT_LAYOUT_CONTENT_ID),
     enabled: !!values.enabled,
     paused: !!values.paused,
@@ -353,6 +378,8 @@ const valuesToSchedule = (values, selectedRecord, isAdd, layoutId) => {
   }
   const skipKeys = new Set([
     "id",
+    "title",
+    "description",
     "layout",
     "enabled",
     "paused",

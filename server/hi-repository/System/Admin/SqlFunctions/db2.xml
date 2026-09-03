@@ -1478,4 +1478,13 @@ The formula used to calculate the remainder is: "MOD(x,y) = x - FLOOR(x/y) * y" 
             <description>Returns "expression" if it is not null, otherwise returns zero.Example :ZN(null) result :0 </description>
     </function>
     <!-- Logical (end)-->
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>

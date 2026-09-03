@@ -26,6 +26,7 @@ export const uriConfig = {
   instantBIUtilityLlm: "ai/utility/llm",
   instantBIUtilitySettings: "ai/utility/settings",
   instantBIUtilityPrefix: "ai/utility",
+  instantBISettingsModels: "ai/settings/models",
 };
 
 function instantBI(dispatch) {

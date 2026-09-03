@@ -90,10 +90,10 @@ const HIInstantBIModule = (props) => {
     });
   }, [metadataShelf, previewShelf, chatShelf, offsetHeight]);
 
-  useEffect(() => {
-    if (chartListLoaded) return;
-    fetchInstantBIChartList({ dispatch });
-  }, [chartListLoaded, dispatch]);
+  // useEffect(() => {
+  //   if (chartListLoaded) return;
+  //   fetchInstantBIChartList({ dispatch });
+  // }, [chartListLoaded, dispatch]);
 
   return (
     <Layout className={`hi-instant-bi hr-sidebar${isOpenMode ? " hi-instant-bi--open-mode" : ""}`}>

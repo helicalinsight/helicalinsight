@@ -1,6 +1,8 @@
 [
   {
     "id": "llmUsageAuditPurge",
+    "title": "LLM Usage Audit Purge",
+    "description": "Removes Instant BI usage audit records older than the retention period. Optionally exports them first.",
     "layout": "Static/layout/llm-usage-audit-purge.ui.layout",
     "enabled": true,
     "paused": false,
@@ -19,6 +21,8 @@
   },
   {
     "id": "tempDirectoryClean",
+    "title": "Temp Directory Clean",
+    "description": "Deletes files from the temp directory that are older than the configured number of days.",
     "layout": "Static/layout/temp-directory-clean.ui.layout",
     "enabled": true,
     "paused": false,

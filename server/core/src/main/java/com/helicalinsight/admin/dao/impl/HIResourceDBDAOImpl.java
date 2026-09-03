@@ -1,10 +1,12 @@
 package com.helicalinsight.admin.dao.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,11 +31,11 @@ import com.helicalinsight.admin.enums.RecycleBinType;
 import com.helicalinsight.admin.model.*;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.service.IDumpDeleteHandler;
-import com.helicalinsight.admin.service.IScheduleService;
 import com.helicalinsight.admin.service.PhaseDetailsService;
 import com.helicalinsight.admin.service.ResourceTypeServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceTypeIDMap;
@@ -94,6 +96,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			    r.isDeleted
 			)
 			""";
+	
+	private static final int CHUNK = 500;
 
 	@Override
 	public Integer addHIResource(HIResource hiResource) {
@@ -183,7 +187,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		}
 		securitySql += " group by security.hiResource.resourceId";
 
-		Query securityQuery = (Query) currentSession.createQuery(securitySql);
+		org.hibernate.query.Query securityQuery =  currentSession.createQuery(securitySql);
 
 		if (orgId != null) {
 			securityQuery.setParameter("orgId", orgId);
@@ -196,6 +200,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			securityQuery.setParameter("roleIds", roleIdList);
 		}
 		securityQuery.setParameter("userId", userId);
+		securityQuery.setCacheable(true);
+		securityQuery.setReadOnly(true);
 		List<Object[]> securityList = securityQuery.getResultList();
 		Map<Integer, Integer> securityMap = new HashMap<>();
 		for (Object[] obj : securityList) {
@@ -268,8 +274,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		try {
 			Session currentSession = sessionFactory.openSession();
 			currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-			Query query = currentSession.createQuery("from HIResource");
-			// query.setCacheable(true);
+			SelectionQuery<HIResource> query = currentSession.createQuery("from HIResource", HIResource.class);
+			query.setCacheable(true);
 			hiResourceList = (List<HIResource>) query.getResultList();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -286,7 +292,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceSecurityDB> query = currentSession
 					.createQuery("from HIResourceSecurityDB security where security.hiResource.resourceId=:id");
 			query.setParameter("id", nativeResourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceSecurityDB = (List<HIResourceSecurityDB>) query.getResultList();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -531,7 +537,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			Session currentSession = getSession();
 			org.hibernate.query.Query<HIEFWD> query = currentSession.createQuery("from HIEFWD where id:=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceEFWD = (HIEFWD) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -547,7 +553,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceEFWDD> query = currentSession
 					.createQuery("from HIResourceEFWDD where id:=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceEFWDD = (HIResourceEFWDD) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -563,7 +569,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceEFWCE> query = currentSession
 					.createQuery("from HIResourceEFWCE where id:=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceEFWCE = (HIResourceEFWCE) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -579,7 +585,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceEFW> query = currentSession
 					.createQuery("from HIResourceEFW where id:=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceEFW = (HIResourceEFW) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -595,7 +601,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceResult> query = currentSession
 					.createQuery("from HIResourceResult where id=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceResult = (HIResourceResult) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -683,7 +689,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResourceHWF> query = currentSession
 					.createQuery("from HIResourceHWF where id:=:id ");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIResourceHWF) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -737,7 +743,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HWFExecution> query = currentSession
 					.createQuery("from HWFExecution where id:=:id ");
 			query.setParameter("id", id);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HWFExecution) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -790,7 +796,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			Session currentSession = getSession();
 			org.hibernate.query.Query<HIHwfInput> query = currentSession.createQuery("from HIHwfInput where id:=:id ");
 			query.setParameter("id", id);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIHwfInput) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -844,7 +850,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIHwfOutput> query = currentSession
 					.createQuery("from HIHwfOutput where id:=:id ");
 			query.setParameter("id", id);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIHwfOutput) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -924,7 +930,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HWFExecutionInput> query = currentSession
 					.createQuery("from HWFExecutionInput where id:=:id ");
 			query.setParameter("id", id);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HWFExecutionInput) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -952,7 +958,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HWFExecutionOutput> query = currentSession
 					.createQuery("from HWFExecutionOutput where id:=:id ");
 			query.setParameter("id", id);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HWFExecutionOutput) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -975,7 +981,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			/*
 			 * if(null!=createdBy){ query.setParameter("createdBy", createdBy); }
 			 */
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIResource) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -992,7 +998,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					.createQuery("from HIResource where hiResourceFolder.title=:name and isFolder=:isFolder");
 			query.setParameter("name", name);
 			query.setParameter("isFolder", Boolean.TRUE);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIResource) query.getSingleResult();
 			return obj;
 		} catch (Exception e) {
@@ -1003,17 +1009,22 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 	public boolean deleteDirectory(HIResource directory, List<Integer> resourceIdToDel) {
 		Session currentSession = getSession();
-		Query query = (Query) currentSession.createQuery("from HIResource where parentId=:id");
+		String queryString =  """
+				select %s 
+				from HIResource r
+				where r.parentId=:id
+				""".formatted(RESOURCE_PROJECTION);
+		SelectionQuery<HIResource> query = currentSession.createSelectionQuery(queryString,HIResource.class);
 		query.setParameter("id", directory.getResourceId());
+		query.setReadOnly(true);
+		query.setCacheable(true);
 
 		List<HIResource> list = (List<HIResource>) query.getResultList();
 		if (list != null && list.size() > 0) {
 			for (HIResource item : list) {
 				resourceIdToDel.add(item.getResourceId());
 				if (item.getFolder()) {
-
 					deleteDirectory(item, resourceIdToDel);
-
 				}
 
 			}
@@ -1037,6 +1048,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		}
 	}
 
+	/**
 	@Override
 	public boolean hardDelete(HIResource hiResource) {
 		deletePlainConnections(hiResource.getResourceId());
@@ -1070,10 +1082,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					hardDeleteFromHiHcrConnectionsByResourceId(delResource);
 				}
 
-				IScheduleService scheduleService = (IScheduleService) ApplicationContextAccessor
-						.getBean("schedulesServiceImpl");
-				List<Long> scheduleIds = scheduleService.findAllSchedulesByResourceId(resId);
-				scheduleService.deleteScheduleByIds(scheduleIds);
+				deleteSchedulesForResourceIds(List.of(resId));
 				
 				MutationQuery deleteMapping = currentSession.createMutationQuery("delete HIResourceMapping rm where rm.parentResource.resourceId=:id or rm.childResource.resourceId=:id");
 				deleteMapping.setParameter("id", resId);
@@ -1096,6 +1105,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		}
 
 	}
+	**/
 
 	private void hardDeleteFromHiHcrConnectionsByResourceId(HIResource delResource) {
 		try {
@@ -1114,7 +1124,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 	private boolean softDelete(HIResource resource) {
 		if (Boolean.TRUE.equals(resource.getFolder())) {
-			List<HIResource> resources = getResourceByParentId(resource.getResourceId(), null);
+			List<HIResource> resources = findResourceByParentId(resource.getResourceId(), null);
 			for (HIResource child : resources) {
 				softDelete(child);
 			}
@@ -1152,7 +1162,14 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	}
 
 	private void getAllPlainConnections(int resourceId, List<EfwdConnDTO> plainList) {
-		Query query = getSession().createQuery("FROM HIResource where parentId =:id");
+		
+		String queryString =  """
+				select %s 
+				from HIResource r
+				where r.parentId=:id
+				""".formatted(RESOURCE_PROJECTION);
+		
+		SelectionQuery<HIResource> query = getSession().createSelectionQuery(queryString,HIResource.class);
 		query.setParameter("id", resourceId);
 		List<HIResource> children = query.getResultList();
 		if (children != null && !children.isEmpty()) {
@@ -1169,7 +1186,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		org.hibernate.query.Query<HIMetadataCube> query = currentSession
 				.createQuery("FROM HIMetadataCube cube where  cube.hiResource.resourceId=:cubeRes ");
 		query.setParameter("cubeRes", delResource.getResourceId());
-		// query.setCacheable(true);
+		query.setCacheable(true);
 		List<HIMetadataCube> list = query.getResultList();
 		if (list != null && !list.isEmpty()) {
 			list.forEach(currentSession::delete);
@@ -1248,7 +1265,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIUrlMapping> query = currentSession
 					.createQuery("from HIUrlMapping mapping where mapping.friendlyURL like :url");
 			query.setParameter("url", url + "%");
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (List<HIUrlMapping>) query.getResultList();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1264,7 +1281,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIUrlMapping> query = currentSession
 					.createQuery("from HIUrlMapping mapping where mapping.resourceId.resourceId=:id");
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIUrlMapping) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1281,7 +1298,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					.createQuery("from HIResource where resourceId=:id and isFolder=:isFolder");
 			query.setParameter("id", id);
 			query.setParameter("isFolder", Boolean.TRUE);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIResource) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1297,7 +1314,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIUrlMapping> query = currentSession
 					.createQuery("from HIUrlMapping mapping where mapping.friendlyURL=:url");
 			query.setParameter("url", url);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIUrlMapping) query.getSingleResult();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1314,7 +1331,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					"select count(resourceURL) from HIResource  where resourceURL like :url and createdBy=:createdBy");
 			query.setParameter("url", url + "%");
 			query.setParameter("createdBy", createdBy);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			count = ((Integer) query.getResultList().size()).longValue();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1333,6 +1350,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			SelectionQuery<HIResource> query = currentSession
 					.createQuery("from HIResource resource where resource.resourceURL=:url", HIResource.class);
 			query.setParameter("url", url);
+			query.setCacheable(true);
 			obj = query.uniqueResult();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1371,7 +1389,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					"from HIResource resource where resource.isFolder=:isFolder and resource.hiResourceFolder.title=:folderName");
 			query.setParameter("isFolder", Boolean.TRUE);
 			query.setParameter("folderName", folderName);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = (HIResource) query.uniqueResult();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1385,9 +1403,9 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		try {
 			Session currentSession = getSession();
 			currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-			Query query = currentSession.createQuery("from HIResource resource where resource.resourceURL = :url");
+			SelectionQuery<HIResource> query = currentSession.createQuery("from HIResource resource where resource.resourceURL = :url", HIResource.class);
 			query.setParameter("url", url);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			query.setParameter("trueValue", true);
 			obj = (List<HIResource>) query.getResultList();
 		} catch (Exception e) {
@@ -1601,7 +1619,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		try {
 			Session currentSession = getSession();
 			org.hibernate.query.Query<HIResource> query = currentSession.createQuery("select 1 from HIResource");
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			boolean empty = query.setMaxResults(1).getResultList().isEmpty();
 			return empty;
 		} catch (Exception e) {
@@ -1639,12 +1657,12 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				org.hibernate.query.Query<HIResourceSecurityDB> query = currentSession
 						.createQuery("from HIResourceSecurityDB resourceSecurity where resourceSecurity.createdBy=:id");
 				query.setParameter("id", createdByStr);
-				// query.setCacheable(true);
+				query.setCacheable(true);
 				obj = (List<HIResourceSecurityDB>) query.getResultList();
 			} else {
 				org.hibernate.query.Query<HIResourceSecurityDB> query = currentSession.createQuery(
 						"from HIResourceSecurityDB resourceSecurity where resourceSecurity.createdBy IS NULL");
-				// query.setCacheable(true);
+				query.setCacheable(true);
 				obj = (List<HIResourceSecurityDB>) query.getResultList();
 			}
 		} catch (Exception e) {
@@ -1659,13 +1677,19 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		try {
 			Session currentSession = getSession();
 
-			if (includeFilter)
+			String queryString =  """
+					select %s 
+					from HIResource r
+					where r.createdBy=:id
+					""".formatted(RESOURCE_PROJECTION);
+			
+			if (includeFilter) {
 				currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
-			org.hibernate.query.Query<HIResource> query = currentSession
-					.createQuery("from HIResource resource where  resource.createdBy=:id");
-
+			}
+			
+			SelectionQuery<HIResource> query = currentSession.createSelectionQuery(queryString, HIResource.class);
 			query.setParameter("id", createdBy);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			obj = query.getResultList();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1688,7 +1712,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				org.hibernate.query.Query<HIResource> query = currentSession
 						.createQuery("from HIResource resource where resource.parentId=:id");
 				query.setParameter("id", hiResourceById.getResourceId());
-				// query.setCacheable(true);
+				query.setCacheable(true);
 				return (List<HIResource>) query.getResultList();
 			} else {
 				throw new Exception("Unable To access the given resource");
@@ -1708,12 +1732,47 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query<HIResource> query = currentSession
 					.createQuery("select count(resourceId) from HIResource  where createdBy=:id");
 			query.setParameter("id", createdBy);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			count = ((Integer) query.getResultList().size()).longValue();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
 		}
 		return count;
+	}
+	
+	
+	private List<HIResource> findResourceByParentId(Integer parentId, Object searchParam) {
+		List<HIResource> obj = null;
+		try {
+			Session currentSession = getSession();
+
+			String queryString = """
+					select %s
+					from HIResource r
+					where r.parentId IS NULL
+					""".formatted(RESOURCE_PROJECTION);
+
+			if (parentId != null) {
+				queryString = """
+						select %s
+						from HIResource r
+						where r.parentId=:id
+						""".formatted(RESOURCE_PROJECTION);
+				if (searchParam != null) {
+					queryString += " AND r.resourceTypeId in :searchParam";
+				}
+			}
+			SelectionQuery<HIResource> query = currentSession.createSelectionQuery(queryString, HIResource.class);
+			if (parentId != null)
+				query.setParameter("id", parentId.intValue());
+			if (searchParam != null)
+				query.setParameter("searchParam", (List<Long>) searchParam);
+			obj = (List<HIResource>) query.getResultList();
+			return obj;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+		}
+		return obj;
 	}
 
 	@Override
@@ -1770,7 +1829,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		}
 		securitySql += " group by security.hiResource.resourceId";
 
-		Query securityQuery = (Query) currentSession.createQuery(securitySql);
+		org.hibernate.query.Query  securityQuery = currentSession.createQuery(securitySql);
 
 		if (orgId != null) {
 			securityQuery.setParameter("orgId", orgId);
@@ -1783,6 +1842,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			securityQuery.setParameter("roleIds", roleIdList);
 		}
 		securityQuery.setParameter("userId", userId);
+		securityQuery.setCacheable(true);
+		securityQuery.setReadOnly(true);
 		List<Object[]> securityList = securityQuery.getResultList();
 		Map<Integer, Integer> securityMap = new HashMap<>();
 		for (Object[] obj : securityList) {
@@ -1895,7 +1956,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					"select count(resource.hiResourceFolder.title) from HIResource resource where resource.hiResourceFolder.title=folderName and createdBy=:createdBy");
 			query.setParameter("folderName", folderName);
 			query.setParameter("createdBy", userId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			count = ((Integer) query.getResultList().size()).longValue();
 		} catch (Exception e) {
 			logger.error(e.getMessage());
@@ -1910,7 +1971,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			Session currentSession = sessionFactory.openSession();
 			org.hibernate.query.Query<HIResourceSecurityDB> query = currentSession
 					.createQuery("from HIResourceSecurityDB");
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceSecurityList = (List<HIResourceSecurityDB>) query.getResultList();
 			currentSession.close();
 		} catch (Exception e) {
@@ -2204,7 +2265,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			SelectionQuery<HIResource> query = currentSession
 					.createSelectionQuery("from HIResource where resourceId=:id", HIResource.class);
 			query.setParameter("id", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResource = query.getSingleResultOrNull();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -2496,7 +2557,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			SelectionQuery<HIEFWD> query = currentSession
 					.createSelectionQuery("from HIEFWD WHERE parentResource.resourceId=:resourceId", HIEFWD.class);
 			query.setParameter("resourceId", resourceId);
-			// query.setCacheable(true);
+			query.setCacheable(true);
 			hiResourceEFWDList = query.getResultList();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -2549,6 +2610,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				query.setParameter("urlOrTitleLen", urlOrTitleLen);
 			if (sequenceUrl2 != null)
 				query.setParameter("sequenceUrl2", sequenceUrl2);
+			
+			query.setCacheable(true);
 			data = query.getResultList();
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -2565,6 +2628,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					.createQuery("FROM HIResource res WHERE res.title=:title AND res.parentId=:parentId");
 			query.setParameter("title", title);
 			query.setParameter("parentId", parentId);
+			query.setCacheable(true);
 			resource = (HIResource) query.uniqueResult();
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -2625,6 +2689,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			org.hibernate.query.Query query = currSession.createQuery(queryStr);
 			query.setParameter("conType", conType);
 			query.setParameter("conId", conId);
+			query.setCacheable(true);
 			data = query.getResultList();
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -2635,9 +2700,14 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	@Override
 	public void deleteHIResource(HIResource hiResource) {
 		try {
-			getSession().delete(hiResource);
+			if (hiResource != null) {
+				if (hiResource.isDeleted() != null && hiResource.isDeleted())
+					hardDelete(hiResource);
+				else
+					softDelete(hiResource);
+			}
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			logger.error("Error occurred while deleting the HIResource {} Root cause : ", hiResource, ex);
 		}
 	}
 
@@ -2660,7 +2730,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		query.setParameter("prefix", urlWithoutExtension + "_%");
 		query.setParameter("exactUrl", urlLower);
 		query.setParameter("resourceTypeId", resourceTypeId);
-
+		query.setCacheable(true);
 		Pattern suffixPattern = buildSuffixPattern(urlWithoutExtension, extensionLower);
 		int maxSuffix = 0;
 		for (String candidate : query.getResultList()) {
@@ -2721,6 +2791,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				.createSelectionQuery("select r.resourceId FROM HIResource r where lower(r.resourceURL) = :url");
 		query.setParameter("url", url);
 		query.setMaxResults(1);
+		query.setCacheable(true);
 		return query.uniqueResultOptional().map(id -> id instanceof Number && ((Number) id).intValue() != 0)
 				.orElse(false);
 
@@ -2756,6 +2827,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 			SelectionQuery<HIResource> selectionQuery = session.createSelectionQuery(query, HIResource.class);
 			selectionQuery.setParameter("paths", paths);
+			selectionQuery.setCacheable(true);
 			return selectionQuery.getResultList();
 		} catch (Exception e) {
 		}
@@ -2763,13 +2835,13 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	}
 
 	@Override
-	public List<Integer> getHIResourceIdsOfActiveUser() {
-		Integer userId = Integer.valueOf(AuthenticationUtils.getUserId());
+	public List<Integer> getHIResourceIdsOfUser(Integer userId) {
 		try {
 			Session session = getSession();
 			String query = "select r.resourceId from HIResource r where r.createdBy =:createdBy or r.createdBy is null";
 			SelectionQuery<Integer> selectionQuery = session.createSelectionQuery(query, Integer.class);
 			selectionQuery.setParameter("createdBy", userId);
+			selectionQuery.setCacheable(true);
 			return selectionQuery.list();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -2796,6 +2868,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					""".formatted(RESOURCE_PROJECTION);
 			SelectionQuery<HIResource> query = currentSession.createSelectionQuery(queryString, HIResource.class);
 			query.setParameter("resourceId", resourceId);
+			query.setCacheable(true);
 			hiResource = query.getSingleResultOrNull();
 		} catch (Exception e) {
 			logger.error("Exception", e);
@@ -2814,6 +2887,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				String resourceQuery = "SELECT resourceId , isFolder FROM HIResource  where parentId in (:parentIds)";
 				SelectionQuery<Object[]> initialResources = session.createSelectionQuery(resourceQuery,Object[].class);
 				initialResources.setParameterList("parentIds", pendingIds);
+				initialResources.setCacheable(true);
 				List<Object[]> results = initialResources.list();
 				pendingIds = new HashSet<>();
 				if (results != null && !results.isEmpty()) {
@@ -2854,6 +2928,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 			SelectionQuery<Object[]> query = getSession().createSelectionQuery(hql, Object[].class);
 			query.setParameterList("resourceIds", metadataResourceIds);
+			query.setCacheable(true);
+            query.setReadOnly(true);
 			for (Object[] row : query.getResultList()) {
 				HIResource report = (HIResource) row[0];
 				Integer metadataId = (Integer) row[1];
@@ -2862,6 +2938,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 			SelectionQuery<Object[]> queryModel = getSession().createSelectionQuery(hqlModel, Object[].class);
 			queryModel.setParameterList("resourceIds", metadataResourceIds);
+			queryModel.setCacheable(true);
 			for (Object[] row : queryModel.getResultList()) {
 				HIResource report = (HIResource) row[0];
 				Integer metadataId = (Integer) row[1];
@@ -2888,6 +2965,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					+ " where ir.hiResourceModel in (:resourceIds)";
 
 			SelectionQuery<Object[]> query = getSession().createSelectionQuery(hql, Object[].class);
+			query.setCacheable(true);
+            query.setReadOnly(true);
 			query.setParameterList("resourceIds", modelResourceIds);
 			for (Object[] row : query.getResultList()) {
 				HIResource instantReport = (HIResource) row[0];
@@ -2921,6 +3000,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 			SelectionQuery<HIResource> selectionQuery = session.createSelectionQuery(query, HIResource.class);
 			selectionQuery.setParameter("resourceIds", resourceIds);
+			selectionQuery.setCacheable(true);
+			selectionQuery.setReadOnly(true);
 			return selectionQuery.getResultList();
 		} catch (Exception e) {
 			logger.error("Exception occurred while fetching resources by ids ", e);
@@ -2954,5 +3035,508 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		catch (Exception e) {
 			logger.error("Error occurred while marking resource as deleted.");
 		}
+	}
+
+	@Override
+	public Integer updateOwner(Integer resourceId, Integer ownerId) {
+		
+		try {
+			Session session = getSession();
+			String query = "UPDATE HIResource set createdBy=:ownerId , lastUpdatedTime = :updatedTime where resourceId =:resourceId";
+			MutationQuery mutationQuery = session.createMutationQuery(query);
+			mutationQuery.setParameter("ownerId", ownerId);
+			mutationQuery.setParameter("resourceId", resourceId);
+			mutationQuery.setParameter("updatedTime", new Date());
+			int noOfUpdatedResources = mutationQuery.executeUpdate();
+			logger.debug("Updated resource(s) : {}" , noOfUpdatedResources);
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+		return resourceId;
+	}
+	
+
+	private static final String LIVE_DEPENDENT_PURGE_MESSAGE =
+			"The clear operation was not completed, because some of the files linked to it are not in deleted state, Please delete them manually.";
+
+	@Override
+	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
+		return hardDeleteResourcesByIds(rootResourceIds, false);
+	}
+
+	@Override
+	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
+		if (rootResourceIds == null || rootResourceIds.isEmpty()) {
+			return true;
+		}
+		try {
+			Set<Integer> treeIds = new LinkedHashSet<>(rootResourceIds);
+			treeIds.addAll(getChildrenResourceByParentIds(new ArrayList<>(rootResourceIds)));
+
+			if (!force) {
+				assertNoLiveEfwdUnderResources(treeIds);
+			}
+
+			deletePlainConnectionsForResourceIds(treeIds);
+
+			Set<Integer> ids = new LinkedHashSet<>(treeIds);
+			ids.addAll(findReportResourceIdsLinkedToMetadataResources(treeIds));
+
+			Session session = getSession();
+			List<Integer> ordered = new ArrayList<>(ids);
+
+			deleteSchedulesForResourceIds(ordered);
+			deleteEfwContentsForResourceIds(ordered);
+			deleteHcrConnectionsForResourceIds(ordered);
+			deleteMetadataForResourceIds(ordered);
+			deleteCubesForResourceIds(ordered);
+			deleteUrlMappingsForResourceIds(ordered);
+			deletePhaseStatusForResourceIds(ordered);
+			deleteAuditDetailsForResourceIds(ordered);
+
+			recycleBinService.deleteRecycleBinsByResourceIds(ids);
+
+			for (List<Integer> chunk : chunked(ordered, CHUNK)) {
+				session.createMutationQuery("delete HIResourceSecurityDB rs where rs.hiResource.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+
+				session.createMutationQuery("""
+						delete HIResourceMapping rm
+						where rm.parentResource.resourceId in (:ids)
+						   or rm.childResource.resourceId in (:ids)
+						""")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+
+				session.createMutationQuery(
+						"delete HIResource r where r.resourceId in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+
+				session.flush();
+				session.clear();
+			}
+
+			return true;
+		} catch (EfwServiceException e) {
+			throw e;
+		} catch (Exception e) {
+			logger.error("hardDeleteResourcesByIds failed", e);
+			Throwable root = rootCause(e);
+			throw new EfwServiceException(
+					"Failed to permanently delete recycle-bin resources: " + root.getMessage(), e);
+		}
+	}
+
+	private static Throwable rootCause(Throwable t) {
+		Throwable cur = t;
+		while (cur.getCause() != null && cur.getCause() != cur) {
+			cur = cur.getCause();
+		}
+		return cur;
+	}
+
+	private void assertNoLiveEfwdUnderResources(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		List<Integer> live = getSession().createNativeQuery("""
+				select e.id
+				from hi_efwd_connection e
+				join hi_resource_efwd r on r.id = e.efwd_id
+				where r.parent_resource_id in (:ids)
+				  and e.is_deleted = false
+				""", Integer.class)
+				.setParameterList("ids", resourceIds)
+				.setMaxResults(1)
+				.getResultList();
+		if (!live.isEmpty()) {
+			throw new EfwServiceException(LIVE_DEPENDENT_PURGE_MESSAGE);
+		}
+	}
+
+	private Set<Integer> findReportResourceIdsLinkedToMetadataResources(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return Set.of();
+		}
+		Session session = getSession();
+		Set<Integer> reportIds = new HashSet<>();
+		reportIds.addAll(session.createSelectionQuery("""
+				select r.resourceId from HIResource r
+				where r.hiResourceHReport.hiResourceMetadata in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", resourceIds)
+				.getResultList());
+		reportIds.addAll(session.createSelectionQuery("""
+				select r.resourceId from HIResource r
+				where r.aiModel.hiResourceMetadata in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", resourceIds)
+				.getResultList());
+		return reportIds;
+	}
+
+	private void deletePlainConnectionsForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		// Native: includes soft-deleted connections even if isDeletedFilter was re-enabled.
+		List<Integer> connIds = session.createNativeQuery("""
+				select e.id
+				from hi_efwd_connection e
+				join hi_resource_efwd r on r.id = e.efwd_id
+				where r.parent_resource_id in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", resourceIds)
+				.getResultList();
+
+		if (!connIds.isEmpty()) {
+			for (List<Integer> chunk : chunked(connIds, CHUNK)) {
+				session.createNativeMutationQuery("""
+						delete from generic_cache
+						where cache_key in (
+						  select cache_key from cache_datasource where connection_id in (:ids)
+						)
+						""")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+				session.createNativeMutationQuery(
+						"delete from cache_datasource where connection_id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+
+				session.createMutationQuery(
+						"delete HIHcrConnectionsEfwd e where e.hiEfwdConnection.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+				session.createMutationQuery(
+						"delete HIMetadataConnectionEFWD e where e.hiEfwdConnection.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+				session.createMutationQuery(
+						"delete EFWDConnSqlJDBC j where j.hiEfwdConnection.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+				session.createMutationQuery(
+						"delete EFWDConnGroovy g where g.hiEfwdConnection.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+				session.createMutationQuery(
+						"delete HIEfwdConnSecurity s where s.hiEfwdConnection.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+
+				// Bulk HQL delete does not cascade — clear datamap graph first.
+				List<Integer> dataMapIds = session.createSelectionQuery(
+						"select d.id from HIEfwdDataMap d where d.hiEfwdConnection.id in (:ids)",
+						Integer.class)
+						.setParameterList("ids", chunk)
+						.getResultList();
+				if (!dataMapIds.isEmpty()) {
+					session.createMutationQuery(
+							"delete HIEfwdDatamapParameters p where p.datamap.id in (:dmIds)")
+							.setParameterList("dmIds", dataMapIds)
+							.executeUpdate();
+					session.createMutationQuery(
+							"delete HIEfwdDataMap d where d.id in (:dmIds)")
+							.setParameterList("dmIds", dataMapIds)
+							.executeUpdate();
+				}
+			}
+
+			List<Long> efwdBinIds = session.createSelectionQuery("""
+					select link.recycleBin.id
+					from HIRecycleBinHIEfwdConnection link
+					where link.efwdConnection.id in (:ids)
+					""", Long.class)
+					.setParameterList("ids", connIds)
+					.getResultList();
+			for (Long binId : efwdBinIds) {
+				recycleBinService.delete(binId);
+			}
+
+			for (List<Integer> chunk : chunked(connIds, CHUNK)) {
+				session.createMutationQuery(
+						"delete HIEfwdConnection c where c.id in (:ids)")
+						.setParameterList("ids", chunk)
+						.executeUpdate();
+			}
+		}
+
+		// Always drop hi_resource_efwd rows bound to these parents (covers orphans with no connections)
+		for (List<Integer> chunk : chunked(new ArrayList<>(resourceIds), CHUNK)) {
+			session.createMutationQuery(
+					"delete HIEFWD e where e.parentResource.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteSchedulesForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		for (List<Integer> chunk : chunked(new ArrayList<>(resourceIds), CHUNK)) {
+			session.createNativeMutationQuery("""
+					delete from job_parameters
+					where schedule_id in (
+						select schedule_id from schedules where hi_resource_db_id in (:ids)
+					)
+					""")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createNativeMutationQuery(
+					"delete from schedules where hi_resource_db_id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteEfwContentsForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		Set<Integer> contentIds = new LinkedHashSet<>(resourceIds);
+		contentIds.addAll(session.createSelectionQuery("""
+				select distinct r.parentId from HIResource r
+				where r.resourceId in (:ids) and r.parentId is not null
+				""", Integer.class)
+				.setParameterList("ids", resourceIds)
+				.getResultList());
+		for (List<Integer> chunk : chunked(new ArrayList<>(contentIds), CHUNK)) {
+			session.createMutationQuery(
+					"delete ResourceEfwContents where resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteHcrConnectionsForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		List<Integer> hcrConnIds = session.createSelectionQuery(
+				"select c.id from HIHcrConnections c where c.hiResourceHcr.resourceId in (:ids)",
+				Integer.class)
+				.setParameterList("ids", resourceIds)
+				.getResultList();
+		if (hcrConnIds.isEmpty()) {
+			return;
+		}
+		// Mutation-only: avoid session.remove (loads full HIResource / query graph and
+		// deferred deletes race with bulk HIResource CTE delete → FK on hi_hcr_connections).
+		for (List<Integer> chunk : chunked(hcrConnIds, CHUNK)) {
+			session.createNativeMutationQuery("""
+					delete from hi_hcr_query_parameters
+					where hcr_query_id in (
+					  select hcr_query_id from hi_hcr_query where hcr_connection_id in (:ids)
+					)
+					""")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HiHcrQuery q where q.hiHcrConnections.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIHcrConnectionsEfwd e where e.hiHcrConnections.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIHcrConnectionsGlobal g where g.hiHcrConnections.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIHcrConnections c where c.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteMetadataForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		List<Object[]> metadataRows = session.createSelectionQuery("""
+				select m.id, m.hiResource.resourceId from HIResourceMetadata m
+				where m.hiResource.resourceId in (:ids)
+				""", Object[].class)
+				.setParameterList("ids", resourceIds)
+				.getResultList();
+		if (metadataRows.isEmpty()) {
+			return;
+		}
+		List<Integer> mdIds = new ArrayList<>(metadataRows.size());
+		List<Integer> mdResourceIds = new ArrayList<>(metadataRows.size());
+		for (Object[] row : metadataRows) {
+			mdIds.add((Integer) row[0]);
+			mdResourceIds.add((Integer) row[1]);
+		}
+
+		for (List<Integer> chunk : chunked(mdResourceIds, CHUNK)) {
+			session.createMutationQuery(
+					"delete HIAuditDetails a where a.hiResource.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			// ElementCollection cleanup for metadata_dumped_dbs is handled when phases are deleted
+			session.createMutationQuery(
+					"delete HIResourcePhaseStatus p where p.hiResource.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+
+		for (List<Integer> chunk : chunked(mdIds, CHUNK)) {
+			session.createMutationQuery(
+					"delete HIMetadataRelationships r where r.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataColumns c where c.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataTables t where t.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataView v where v.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete MetadataDatabases d where d.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery("""
+					delete HIMetadataConnectionGlobal g
+					where g.hiMetadataConnections.id in (
+					  select c.id from HIMetadataConnections c where c.hiResourceMetadata.id in (:ids)
+					)
+					""")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery("""
+					delete HIMetadataConnectionEFWD e
+					where e.hiMetadataConnections.id in (
+					  select c.id from HIMetadataConnections c where c.hiResourceMetadata.id in (:ids)
+					)
+					""")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataConnections c where c.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataSecurity s where s.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIMetadataCube cube where cube.hiResourceMetadata.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIResourceMetadata m where m.id in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteCubesForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		getSession().createMutationQuery(
+				"delete HIMetadataCube cube where cube.hiResource.resourceId in (:ids)")
+				.setParameterList("ids", resourceIds)
+				.executeUpdate();
+	}
+
+	/** Single-row hardDelete always cleared this; batch path must too (FK → hi_resource_db). */
+	private void deleteUrlMappingsForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		for (List<Integer> chunk : chunked(new ArrayList<>(resourceIds), CHUNK)) {
+			getSession().createMutationQuery(
+					"delete HIUrlMapping m where m.resourceId.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deletePhaseStatusForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = getSession();
+		for (List<Integer> chunk : chunked(new ArrayList<>(resourceIds), CHUNK)) {
+			session.createNativeMutationQuery("""
+					delete from metadata_dumped_dbs
+					where phase_details_id in (
+					  select id from hi_resource_phases_status where hi_resource_db_id in (:ids)
+					)
+					""")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+			session.createMutationQuery(
+					"delete HIResourcePhaseStatus p where p.hiResource.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+
+	private void deleteAuditDetailsForResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		for (List<Integer> chunk : chunked(new ArrayList<>(resourceIds), CHUNK)) {
+			getSession().createMutationQuery(
+					"delete HIAuditDetails a where a.hiResource.resourceId in (:ids)")
+					.setParameterList("ids", chunk)
+					.executeUpdate();
+		}
+	}
+	
+	@Override
+	public boolean hardDelete(HIResource hiResource) {
+		return hardDeleteResourcesByIds(Set.of(hiResource.getResourceId()));
+	}
+
+	private static List<List<Integer>> chunked(List<Integer> ids, int size) {
+		List<List<Integer>> chunks = new ArrayList<>();
+		for (int i = 0; i < ids.size(); i += size) {
+			chunks.add(ids.subList(i, Math.min(i + size, ids.size())));
+		}
+		return chunks;
+	}
+
+	@Override
+	public Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds) {
+		Map<Integer, Integer> parentByChild = new HashMap<>();
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return parentByChild;
+		}
+		List<Integer> ordered = new ArrayList<>(new LinkedHashSet<>(resourceIds));
+		Session session = getSession();
+		for (List<Integer> chunk : chunked(ordered, CHUNK)) {
+			List<Object[]> rows = session.createSelectionQuery("""
+					select r.resourceId, r.parentId
+					from HIResource r
+					where r.resourceId in (:ids)
+					""", Object[].class)
+					.setParameterList("ids", chunk)
+					.getResultList();
+			for (Object[] row : rows) {
+				parentByChild.put((Integer) row[0], (Integer) row[1]);
+			}
+		}
+		return parentByChild;
 	}
 }

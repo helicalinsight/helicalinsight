@@ -133,6 +133,8 @@ public interface UserDao {
 
 	List<User> getAllUsersOfOrganization(Integer orgId);
 	
+	List<Integer> findUserIdsByOrganizationId(Integer orgId);
+	
 	User isUserAlreadyExisted(String uname, Integer orgId);
 	
 	Long findUserCount();

@@ -37,7 +37,6 @@ const ViewEditorDrawer = () => {
     };
   },
     render: (value) => {
-      console.log(value)
       if (typeof value === 'object' && value !== null) {
         return (
           <Tooltip placement="top" title={JSON.stringify(value)}>
@@ -105,7 +104,7 @@ const ViewEditorDrawer = () => {
                 x: "100%",
               }}
               rowKey="id"
-              tableLayout="auto"
+              // tableLayout="auto"
               columns={columns}
               dataSource={data}
             />

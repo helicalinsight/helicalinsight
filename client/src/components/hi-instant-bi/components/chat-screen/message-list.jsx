@@ -2,9 +2,9 @@ import { ArrowDownOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Row, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { useSequentialChatLoad } from '../../utils/use-sequential-chat-load';
 import MessageLayout from './message-layout';
 import MetadataNotConnected from './metadata-not-connected';
-import { useSequentialChatLoad } from '../../utils/use-sequential-chat-load';
 
 const MessageList = (props = {}) => {
     const {
@@ -33,6 +33,7 @@ const MessageList = (props = {}) => {
         isOpenMode,
         isEditMode,
     });
+
 
     const [showScrollToBottom, setShowScrollToBottom] = useState(false);
     const chatEndRef = useRef(null);

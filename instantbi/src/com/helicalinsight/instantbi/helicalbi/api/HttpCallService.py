@@ -7,7 +7,12 @@ import urllib3
 from helicalbi.api.ApiCallCache import get as cache_get, set as cache_set
 from helicalbi.common import app_config
 from helicalbi.common.ErrorMessages import service_api_error_message
-from helicalbi.common.auth import get_api_cache_org_id, get_api_cache_orgname, get_api_cache_username
+from helicalbi.common.auth import (
+    get_api_cache_org_id,
+    get_api_cache_orgname,
+    get_api_cache_username,
+    downstream_request_headers,
+)
 from helicalbi.common.configuration import baseUrl
 
 logger = logging.getLogger(__name__)
@@ -67,9 +72,16 @@ def fetch_service_api(*, session_cookie: str, service_json: dict) -> dict:
     # disable this when you are moving to production.
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    session.cookies.set("JSESSIONID", session_cookie)
+    if session_cookie:
+        session.cookies.set("JSESSIONID", session_cookie)
     try:
-        api_response = session.post(api_url, data=service_json, verify=False)
+        forwarded_headers = downstream_request_headers()
+        api_response = session.post(
+            api_url,
+            data=service_json,
+            headers=forwarded_headers or None,
+            verify=False,
+        )
     except requests.RequestException:
         logger.exception(
             "Service API request failed service=%s url=%s",

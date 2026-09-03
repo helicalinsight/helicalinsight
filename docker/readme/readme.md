@@ -92,5 +92,6 @@ See [portchange.md](portchange.md).
 
 ## More help
 
+- Rebuild the `hiee` image: [build.md](build.md)
 - Product overview & contributor setup: [../../README.md](../../README.md)
 - [Helical Insight documentation](https://www.helicalinsight.com/)

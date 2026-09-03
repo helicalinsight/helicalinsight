@@ -3,8 +3,6 @@ package com.helicalinsight.adhoc.recycle.handler;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,11 +14,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import com.google.gson.JsonObject;
-import com.helicalinsight.adhoc.recycle.factory.RecycleBinHandlerFactory;
 import com.helicalinsight.admin.dto.RecycleBinDTO;
 import com.helicalinsight.admin.model.HIRecycleBin;
 import com.helicalinsight.admin.service.HIRecycleBinService;
@@ -80,63 +76,27 @@ public class HIRecycleBinHIResourceDeleteHandlerTest {
 	}
 
 	@Test
-	public void handleRecycleBinDtoDeletesLinkedResourcesAndDatasourceBins() {
+	public void handleRecycleBinDtoHardDeletesViaHelper() {
 		RecycleBinDTO bin = new RecycleBinDTO();
 		bin.setRecycleBinId(200L);
+		bin.setResourceId(31);
 
-		when(recycleBinService.isRecycleBinPresent(200L)).thenReturn(true);
-
-		Map<String, List<Object>> associated = new HashMap<>();
-		associated.put("resources", List.of(new RecycleBinResourceItem("child","report", true, 31)));
-		associated.put("dataSources", List.of(new RecycleBinDatasource("conn", "jdbc", true, 41, "/ds")));
-		when(recycleBinService.findAllResourceOfRecycleBinItem(200L)).thenReturn(associated);
-
-		when(serviceDb.getHiRecycleBinIdOfSoftDeletedItemByHiResourceId(31)).thenReturn(201L);
-
-		HIRecycleBin connectionBin = new HIRecycleBin();
-		connectionBin.setId(202L);
-		when(efwdConnectionService.getHiRecycleBinIdOfSoftDeletedItemByEfwdConnId(41)).thenReturn(connectionBin);
-
-		RecycleBinHandler connectionHandler = mock(RecycleBinHandler.class);
 		Map<Long, Boolean> deleteStatusMap = new HashMap<>();
-		deleteStatusMap.put(201L, false);
 
-		try (MockedStatic<RecycleBinHandlerFactory> factory = mockStatic(RecycleBinHandlerFactory.class)) {
-			factory.when(() -> RecycleBinHandlerFactory.getHandler("HI_EFWD_CONNECTION", "delete"))
-					.thenReturn(connectionHandler);
+		assertTrue(handler.handle(bin, deleteStatusMap));
 
-			assertTrue(handler.handle(bin, deleteStatusMap));
-
-			verify(recycleBinService).delete(201L);
-			assertEquals(Boolean.TRUE, deleteStatusMap.get(201L));
-			verify(connectionHandler).handle(connectionBin, deleteStatusMap);
-			verify(hiRecyclebinHelperService).deleteHIResourceAndRecyclebin(bin);
-		}
+		verify(hiRecyclebinHelperService).deleteHIResourceAndRecyclebin(bin);
+		assertEquals(Boolean.TRUE, deleteStatusMap.get(200L));
 	}
 
 	@Test
-	public void handleRecycleBinDtoSkipsMissingLinkedItems() {
+	public void handleRecycleBinDtoWithNullStatusMapStillDeletes() {
 		RecycleBinDTO bin = new RecycleBinDTO();
 		bin.setRecycleBinId(210L);
 
-		when(recycleBinService.isRecycleBinPresent(210L)).thenReturn(true);
+		assertTrue(handler.handle(bin, null));
 
-		Map<String, List<Object>> associated = new HashMap<>();
-		associated.put("resources", List.of(new RecycleBinResourceItem("child","report", true, 51)));
-		associated.put("dataSources", List.of(new RecycleBinDatasource("conn", "jdbc", true, 61, "/ds")));
-		when(recycleBinService.findAllResourceOfRecycleBinItem(210L)).thenReturn(associated);
-
-		when(serviceDb.getHiRecycleBinIdOfSoftDeletedItemByHiResourceId(51)).thenReturn(null);
-		when(efwdConnectionService.getHiRecycleBinIdOfSoftDeletedItemByEfwdConnId(61)).thenReturn(null);
-
-		try (MockedStatic<RecycleBinHandlerFactory> factory = mockStatic(RecycleBinHandlerFactory.class)) {
-			factory.when(() -> RecycleBinHandlerFactory.getHandler("HI_EFWD_CONNECTION", "delete"))
-					.thenReturn(mock(RecycleBinHandler.class));
-
-			assertTrue(handler.handle(bin, new HashMap<>()));
-
-			verify(hiRecyclebinHelperService).deleteHIResourceAndRecyclebin(bin);
-		}
+		verify(hiRecyclebinHelperService).deleteHIResourceAndRecyclebin(bin);
 	}
 
 	@Test

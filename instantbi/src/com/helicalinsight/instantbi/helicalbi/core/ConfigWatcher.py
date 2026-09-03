@@ -74,6 +74,10 @@ class ConfigWatcher:
 
     The internal Observer thread is a daemon and will be cleaned up automatically
     when the process exits.
+
+    Docker bind mounts often do not deliver inotify events, so a lightweight
+    mtime poll runs alongside the observer. Duplicate notifications are
+    coalesced by the debounce timer.
     """
 
     def __init__(
@@ -82,13 +86,24 @@ class ConfigWatcher:
         on_change,
         *,
         debounce_ms: int = 300,
+        poll_interval_s: float = 1.0,
     ) -> None:
         self._config_path = ConfigLoader.resolve_path(config_filename)
         self._on_change = on_change
         self._debounce_ms = max(0, int(debounce_ms))
+        self._poll_interval_s = max(0.0, float(poll_interval_s))
         self._observer: Observer | None = None
         self._debounce_timer: threading.Timer | None = None
+        self._poll_thread: threading.Thread | None = None
+        self._stop = threading.Event()
+        self._last_mtime = self._read_mtime()
         self._lock = threading.Lock()
+
+    def _read_mtime(self) -> float:
+        try:
+            return os.path.getmtime(self._config_path)
+        except OSError:
+            return -1.0
 
     def start(self) -> None:
         with self._lock:
@@ -101,21 +116,47 @@ class ConfigWatcher:
             observer.daemon = True
             observer.start()
             self._observer = observer
+            self._stop.clear()
+            if self._poll_interval_s > 0:
+                thread = threading.Thread(
+                    target=self._poll_loop,
+                    name=f"ConfigPoll-{os.path.basename(self._config_path)}",
+                    daemon=True,
+                )
+                thread.start()
+                self._poll_thread = thread
             logger.debug("ConfigWatcher started for %s", self._config_path)
 
     def stop(self) -> None:
+        poll_thread: threading.Thread | None
         with self._lock:
+            self._stop.set()
             if self._debounce_timer is not None:
                 self._debounce_timer.cancel()
                 self._debounce_timer = None
+            poll_thread = self._poll_thread
+            self._poll_thread = None
             if self._observer is None:
-                return
-            self._observer.stop()
-            self._observer.join()
-            self._observer = None
-            logger.debug("ConfigWatcher stopped for %s", self._config_path)
+                observer = None
+            else:
+                observer = self._observer
+                self._observer = None
+        if observer is not None:
+            observer.stop()
+            observer.join()
+        if poll_thread is not None:
+            poll_thread.join(timeout=max(2.0, self._poll_interval_s + 0.5))
+        logger.debug("ConfigWatcher stopped for %s", self._config_path)
+
+    def _poll_loop(self) -> None:
+        while not self._stop.wait(self._poll_interval_s):
+            mtime = self._read_mtime()
+            if mtime != self._last_mtime:
+                self._last_mtime = mtime
+                self._schedule_change()
 
     def _schedule_change(self) -> None:
+        self._last_mtime = self._read_mtime()
         if self._debounce_ms <= 0:
             self._fire()
             return

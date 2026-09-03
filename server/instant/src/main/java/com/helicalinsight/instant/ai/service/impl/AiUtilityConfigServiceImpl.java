@@ -40,7 +40,8 @@ public class AiUtilityConfigServiceImpl implements IInstantBIService {
     private static final Logger logger = LoggerFactory.getLogger(AiUtilityConfigServiceImpl.class);
 
     private static final Set<String> SKIP_PARAMS = new HashSet<>(Arrays.asList(
-            "body", "requestId", "htmlId", "sessionCookie", "username", "userId", "orgId"
+            "body", "requestId", "htmlId", "sessionCookie", "username", "userId", "orgId",
+            "headers", "requestParams"
     ));
 
     @Override
@@ -50,8 +51,9 @@ public class AiUtilityConfigServiceImpl implements IInstantBIService {
         String utilityPath = payload.getUtilityPath();
         boolean isAjax = ControllerUtils.isAjax(request);
         try {
-            if (StringUtils.isBlank(utilityPath) || !utilityPath.startsWith("/utility")) {
-                throw new IllegalArgumentException("Invalid InstantBI utility path: " + utilityPath);
+            if (StringUtils.isBlank(utilityPath)
+                    || !(utilityPath.startsWith("/utility") || utilityPath.startsWith("/settings"))) {
+                throw new IllegalArgumentException("Invalid InstantBI settings path: " + utilityPath);
             }
 
             JsonObject payloadJson = buildPayload(request);

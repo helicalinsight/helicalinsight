@@ -1,0 +1,13 @@
+id: operational-realtime
+name: Operational / Real-time
+best_for: Monitoring systems rather than historical analysis.
+
+┌─────────┬─────────┬─────────┬─────────┐
+│ Status  │ Alerts  │ Errors  │ Uptime  │
+├─────────┴─────────┴─────────┴─────────┤
+│              Live Monitor             │
+├──────────────────────┬────────────────┤
+│ Activity Feed        │ Current Issues │
+├──────────────────────┴────────────────┤
+│              Event Table              │
+└───────────────────────────────────────┘

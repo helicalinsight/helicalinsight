@@ -12,7 +12,7 @@ import requests
 import urllib3
 
 from helicalbi.common import app_config
-from helicalbi.common.auth import get_api_cache_user_id
+from helicalbi.common.auth import get_api_cache_user_id, downstream_request_headers
 from helicalbi.common.configuration import baseUrl as configured_base_url
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,7 @@ def _post_audit(
     error_message: Optional[str],
     chat_id: Optional[str],
     chat_seq_id: Optional[str],
+    headers: Optional[Mapping[str, str]] = None,
 ) -> None:
     audit_url = f"{base_url.rstrip('/')}/ai/llm-usage-audit"
     payload = _build_audit_payload(
@@ -142,10 +143,17 @@ def _post_audit(
         chat_seq_id=chat_seq_id,
     )
     session = requests.Session()
-    session.cookies.set("JSESSIONID", session_cookie)
+    if session_cookie:
+        session.cookies.set("JSESSIONID", session_cookie)
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     try:
-        response = session.post(audit_url, json=payload, verify=False, timeout=10)
+        response = session.post(
+            audit_url,
+            json=payload,
+            headers=headers or None,
+            verify=False,
+            timeout=10,
+        )
         persisted, reason = _audit_persisted(response)
         if not persisted:
             _log_unsaved_audit(
@@ -188,7 +196,12 @@ def audit_llm_usage_async(
     resolved_session_cookie = (session_cookie or "").strip()
     resolved_base_url = (configured_base_url or "").strip()
     resolved_user_id = user_id if user_id is not None else get_api_cache_user_id()
-    if not resolved_session_cookie or not resolved_base_url or not resolved_user_id:
+    forwarded_headers = downstream_request_headers()
+    if (
+        (not resolved_session_cookie and not forwarded_headers)
+        or not resolved_base_url
+        or not resolved_user_id
+    ):
         logger.debug(
             "Skipping LLM usage audit due to missing session context endpoint=%s "
             "has_session=%s has_base_url=%s has_user_id=%s",
@@ -216,4 +229,5 @@ def audit_llm_usage_async(
         error_message=error_message,
         chat_id=chat_id,
         chat_seq_id=chat_seq_id,
+        headers=forwarded_headers,
     )

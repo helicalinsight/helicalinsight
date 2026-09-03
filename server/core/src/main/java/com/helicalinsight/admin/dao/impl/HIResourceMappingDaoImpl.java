@@ -60,7 +60,8 @@ public class HIResourceMappingDaoImpl implements HIResourceMappingDao {
 			SelectionQuery<HIResourceMapping> selectionQuery = 
 					session.createSelectionQuery("FROM  HIResourceMapping mapping where mapping.parentResource.resourceId = :parentResourceId", HIResourceMapping.class);
 	        selectionQuery.setParameter("parentResourceId", parentResourceId);
-
+	        selectionQuery.setCacheable(true);
+	        selectionQuery.setReadOnly(true);
 			return selectionQuery.getResultList();
 		
 		}
@@ -134,6 +135,8 @@ public class HIResourceMappingDaoImpl implements HIResourceMappingDao {
 			SelectionQuery<HIResourceMapping> selectionQuery = session.createSelectionQuery("FROM HIResourceMapping mapping where mapping.parentResource.resourceId = :parentResourceId and mapping.childResource.resourceTypeId = :typeId",HIResourceMapping.class);
 			selectionQuery.setParameter("parentResourceId", parentId);
 			selectionQuery.setParameter("typeId", typeId);
+			selectionQuery.setCacheable(true);
+			selectionQuery.setReadOnly(true);
 			
 			return selectionQuery.getResultList();
 		}
@@ -193,38 +196,16 @@ public class HIResourceMappingDaoImpl implements HIResourceMappingDao {
 					+ " where mapping.childResource.resourceId in (:childResourceIds)";
 			SelectionQuery<Object[]> selectionQuery = session.createSelectionQuery(hql, Object[].class);
 			selectionQuery.setParameterList("childResourceIds", childResourceIds);
+			selectionQuery.setCacheable(true);
+			selectionQuery.setReadOnly(true);
 			for (Object[] row : selectionQuery.getResultList()) {
 				Integer childId = (Integer) row[0];
 				HIResource parentResource = (HIResource) row[1];
-				mappingsByChildId.computeIfAbsent(childId, id -> new ArrayList<>()).add(parentResource);
+				mappingsByChildId.computeIfAbsent(childId, _ -> new ArrayList<>()).add(parentResource);
 			}
 		} catch (HibernateException e) {
 			logger.error("Error fetching child mappings by resource ids");
 		}
 		return mappingsByChildId;
 	}
-	
-	/**
-	@Override
-	public Map<Integer, List<HIResource>> findChildMappingsByChildResourceIds(List<Integer> childResourceIds) {
-		Map<Integer, List<HIResource>> mappingsByChildId = new HashMap<>();
-		if (childResourceIds == null || childResourceIds.isEmpty()) {
-			return mappingsByChildId;
-		}
-		try {
-			Session session = this.sessionFactory.getCurrentSession();
-			SelectionQuery<HIResourceMapping> selectionQuery = session.createSelectionQuery(
-					"FROM HIResourceMapping mapping where mapping.childResource.resourceId in (:childResourceIds)",
-					HIResourceMapping.class);
-			selectionQuery.setParameterList("childResourceIds", childResourceIds);
-			for (HIResourceMapping mapping : selectionQuery.getResultList()) {
-				Integer childId = mapping.getChildResource().getResourceId();
-				mappingsByChildId.computeIfAbsent(childId, id -> new ArrayList<>()).add(mapping.getParentResource());
-			}
-		} catch (HibernateException e) {
-			logger.error("Error fetching child mappings by resource ids");
-		}
-		return mappingsByChildId;
-	}
-	**/
 }

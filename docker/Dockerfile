@@ -2,7 +2,7 @@ FROM eclipse-temurin:25-jdk-noble  AS builder
 
 RUN apt-get -qq update && apt-get install -y curl tar unzip
 
-ARG TOMCAT_VERSION=11.0.24
+ARG TOMCAT_VERSION=11.0.25
 
 #Put the updated war file for build purpose only
 COPY hi/hi-ee.war /tmp/hi-ee.war

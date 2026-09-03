@@ -1,14 +1,17 @@
 package com.helicalinsight.admin.dao.impl;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.helicalinsight.admin.model.*;
 import org.apache.commons.lang3.StringUtils;
@@ -105,8 +108,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	@Override
 	public boolean delete(Long id) {
 		try {
-			HIRecycleBin bin = findHIRecycleBinById(id);
-			delete(bin);
+			deleteLinksAndHeader(List.of(id));
 			return true;
 		} catch (Exception e) {
 			log.info("Error occurred while deleting RecycleBin entry. root cause : {}",e.getMessage());
@@ -116,43 +118,39 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	
 	@Override
 	public boolean delete(HIRecycleBin bin) {
-
+		if (bin == null || bin.getId() == null) {
+			return false;
+		}
 		try {
-			Long recycleBinId = bin.getId();
-
-			Session session = factory.getCurrentSession();
-
-			if (bin.getHiRecycleBinHIResourceDB() != null) {
-				session.createMutationQuery("delete from HIRecycleBinHIResourceDB r where r.recycleBin.id = :id")
-						.setParameter("id", recycleBinId).executeUpdate();
-			}
-
-			if (bin.getHiRecycleBinDsGlobalConnections() != null) {
-				session.createMutationQuery("delete from HIRecycleBinDSGlobalConnections r where r.recycleBin.id = :id")
-						.setParameter("id", recycleBinId).executeUpdate();
-			}
-
-			if (bin.getHiRecycleBinHIEfwdConnection() != null) {
-				session.createMutationQuery("delete from HIRecycleBinHIEfwdConnection r where r.recycleBin.id = :id")
-						.setParameter("id", recycleBinId).executeUpdate();
-			}
-
-			if (bin.getHiRecycleBinHUsers() != null) {
-				session.createMutationQuery("delete from HIRecycleBinHUsers r where r.recycleBin.id = :id")
-						.setParameter("id", recycleBinId).executeUpdate();
-			}
-			if (bin.getHiRecycleBinOrganization() != null) {
-				session.createMutationQuery("delete from HIRecycleBinOrganization r where r.recycleBin.id = :id")
-						.setParameter("id", recycleBinId).executeUpdate();
-			}
-			session.createMutationQuery("delete from HIRecycleBin r where r.id = :id").setParameter("id", recycleBinId)
-					.executeUpdate();
-
+			deleteLinksAndHeader(List.of(bin.getId()));
 			return true;
 		} catch (Exception e) {
 			log.info("Error occurred while deleting RecycleBin entry. root cause : {}", e.getMessage());
 			return false;
 		}
+	}
+
+	/**
+	 * Deletes link rows for all recycle-bin types then headers. Mutation-only —
+	 * does not load associations (avoids N+1 probes on clear/purge).
+	 */
+	private void deleteLinksAndHeader(List<Long> recycleBinIds) {
+		if (recycleBinIds == null || recycleBinIds.isEmpty()) {
+			return;
+		}
+		Session session = factory.getCurrentSession();
+		session.createMutationQuery("DELETE FROM HIRecycleBinHIResourceDB rb WHERE rb.recycleBin.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
+		session.createMutationQuery("DELETE FROM HIRecycleBinDSGlobalConnections rb WHERE rb.recycleBin.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
+		session.createMutationQuery("DELETE FROM HIRecycleBinHIEfwdConnection rb WHERE rb.recycleBin.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
+		session.createMutationQuery("DELETE FROM HIRecycleBinHUsers rb WHERE rb.recycleBin.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
+		session.createMutationQuery("DELETE FROM HIRecycleBinOrganization rb WHERE rb.recycleBin.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
+		session.createMutationQuery("DELETE FROM HIRecycleBin r WHERE r.id in (:ids)")
+				.setParameterList("ids", recycleBinIds).executeUpdate();
 	}
 
 	@Override
@@ -162,7 +160,11 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		RecycleBinType type;
 		try {
 			List<RecycleBinDTO> binItems=getAllRecycleBinItems();
-			getAllLinkedData(idMap);
+			Set<RecycleBinType> typesPresent = binItems.stream()
+					.map(RecycleBinDTO::getType)
+					.filter(t -> t != null)
+					.collect(Collectors.toCollection(HashSet::new));
+			getAllLinkedData(idMap, typesPresent);
 			if (!binItems.isEmpty()) {
 				for(RecycleBinDTO dto : binItems){
 					RecycleBinItem binItem=new RecycleBinItem();
@@ -187,70 +189,60 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	
 	
 
-	private void getAllLinkedData(Map<Long,RecycleBinDTO> idMap) {
-		int count=0;
+	private void getAllLinkedData(Map<Long, RecycleBinDTO> idMap, Set<RecycleBinType> typesPresent) {
+		if (typesPresent == null || typesPresent.isEmpty()) {
+			return;
+		}
 		Session currentSession = factory.getCurrentSession();
-		RecycleBinType[] values=RecycleBinType.values();
-		while (count< values.length) {
-			String hql = "";
-			switch (values[count]) {
-				case HI_RESOURCE_DB:
-					hql = """ 
-							SELECT 
-							resource.resourceId as resourceId, 
-							resource.title as title,
-							resource.resourceURL as resourceUrl, 
-							resource.createdBy as createdBy, 
-							resource.resourceTypeId as resourceTypeId,
-							rbin.id as recycleBinId 
-							FROM HIRecycleBinHIResourceDB rb 
-							JOIN rb.hiResource as resource 
-							JOIN rb.recycleBin as rbin
+		for (RecycleBinType type : typesPresent) {
+			String hql = switch (type) {
+				case HI_RESOURCE_DB -> """
+						SELECT
+						resource.resourceId as resourceId,
+						resource.title as title,
+						resource.resourceURL as resourceUrl,
+						resource.createdBy as createdBy,
+						resource.resourceTypeId as resourceTypeId,
+						rbin.id as recycleBinId
+						FROM HIRecycleBinHIResourceDB rb
+						JOIN rb.hiResource as resource
+						JOIN rb.recycleBin as rbin
 						""";
-					break;
-				case DS_GLOBAL_CONNECTIONS:
-					hql = "SELECT " +
-							"gc.globalId as resourceId, " +
-							"gc.name as name, " +
-							"gc.createdBy.id as createdBy, " +
-							"rbin.id as recycleBinId " +
-							"FROM HIRecycleBinDSGlobalConnections rb " +
-							"JOIN rb.globalConnection gc " +
-							"JOIN rb.recycleBin as rbin";
-					break;
-				case HI_EFWD_CONNECTION:
-					hql = "SELECT " +
-							"ec.id as resourceId, " +
-							"rbin.id as recycleBinId " +
-							"FROM HIRecycleBinHIEfwdConnection rb " +
-							"JOIN rb.efwdConnection ec " +
-							"JOIN rb.recycleBin as rbin";
-					break;
-				case H_USERS:
-					hql = "SELECT " +
-							"u.id as resourceId, " +
-							"u.username as name, " +
-							"rbin.id as recycleBinId " +
-							"FROM HIRecycleBinHUsers rb " +
-							"JOIN rb.user u " +
-							"JOIN rb.recycleBin as rbin";
-					break;
-				case ORGANIZATION:
-					hql = "SELECT " +
-							"o.id as resourceId, " +
-							"o.org_name as name, " +
-							"rbin.id as recycleBinId " +
-							"FROM HIRecycleBinOrganization rb " +
-							"JOIN rb.organization o " +
-							"JOIN rb.recycleBin as rbin";
-					break;
-
-				default:
-					throw new EfwServiceException("Invalid recyclebin type.");
-			}
+				case DS_GLOBAL_CONNECTIONS -> "SELECT " +
+						"gc.globalId as resourceId, " +
+						"gc.name as name, " +
+						"gc.createdBy.id as createdBy, " +
+						"rbin.id as recycleBinId " +
+						"FROM HIRecycleBinDSGlobalConnections rb " +
+						"JOIN rb.globalConnection gc " +
+						"JOIN rb.recycleBin as rbin";
+				case HI_EFWD_CONNECTION -> "SELECT " +
+						"ec.id as resourceId, " +
+						"rbin.id as recycleBinId " +
+						"FROM HIRecycleBinHIEfwdConnection rb " +
+						"JOIN rb.efwdConnection ec " +
+						"JOIN rb.recycleBin as rbin";
+				case H_USERS -> "SELECT " +
+						"u.id as resourceId, " +
+						"u.username as name, " +
+						"rbin.id as recycleBinId " +
+						"FROM HIRecycleBinHUsers rb " +
+						"JOIN rb.user u " +
+						"JOIN rb.recycleBin as rbin";
+				case ORGANIZATION -> "SELECT " +
+						"o.id as resourceId, " +
+						"o.org_name as name, " +
+						"rbin.id as recycleBinId " +
+						"FROM HIRecycleBinOrganization rb " +
+						"JOIN rb.organization o " +
+						"JOIN rb.recycleBin as rbin";
+				default -> throw new EfwServiceException("Invalid recyclebin type.");
+			};
 
 			org.hibernate.query.Query query = currentSession.createQuery(hql);
 			query.setResultTransformer(Transformers.aliasToBean(RecycleBinDTO.class));
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			List allLinkedData = query.list();
 			if (!allLinkedData.isEmpty()) {
 				for (Object e : allLinkedData) {
@@ -258,7 +250,6 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 					idMap.put(dto.getRecycleBinId(), dto);
 				}
 			}
-			count++;
 		}
 	}
 
@@ -272,6 +263,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		}
 		Query query = currentSession.createQuery(hql.toString());
 
+		query.setCacheable(true);
+		query.setReadOnly(true);
 		if(orgId != null ) {
 			query.setParameter("orgId", Integer.valueOf(orgId));
 			query.setParameterList("params", List.of(RecycleBinType.ORGANIZATION ,RecycleBinType.H_USERS));
@@ -286,6 +279,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		try {
 			SelectionQuery<HIRecycleBin> query = session.createSelectionQuery("FROM HIRecycleBin where hiRecycleBinHIResourceDB.hiResource.resourceId =:resourceId",HIRecycleBin.class);
 			query.setParameter("resourceId", resourceId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -316,6 +311,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			
 			Query query = session.createQuery(hql);
 			query.setParameterList("resourceIds", resourceIds);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			query.setResultTransformer(Transformers.aliasToBean(RecycleBinDTO.class));
 			for (Object row : query.list()) {
 				RecycleBinDTO dto = (RecycleBinDTO) row;
@@ -422,6 +419,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		String hql = "FROM HIRecycleBin  where id = :id";
 		SelectionQuery<HIRecycleBin> query  = factory.getCurrentSession().createSelectionQuery(hql,HIRecycleBin.class);
 		query.setParameter("id", id);
+		query.setCacheable(true);
+		query.setReadOnly(true);
 		HIRecycleBin bin =   query.uniqueResult();
 		if(bin == null) {
 			throw new ResourceNotFoundException("Resource not present in RecycleBin");
@@ -438,6 +437,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		Session session  = factory.getCurrentSession();
 		SelectionQuery<RecycleBinType> query  = session.createSelectionQuery(hql,RecycleBinType.class);
 		query.setParameter("id", id);
+		query.setCacheable(true);
+		query.setReadOnly(true);
 		RecycleBinType binType =   query.uniqueResult();
 		String binQuery = buildQuery(binType);
 		SelectionQuery<RecycleBinDTO> selectionQuery = session.createSelectionQuery(binQuery, RecycleBinDTO.class);
@@ -450,6 +451,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	public HIRecycleBin findHIRecycleBinByIdPlain(Long id) {
 		String hql = "FROM HIRecycleBin  where id = :id";
 		Query query  = factory.getCurrentSession().createQuery(hql);
+		query.setCacheable(true);
+		query.setReadOnly(true);
 		query.setParameter("id", id);
 		HIRecycleBin bin =  (HIRecycleBin) query.uniqueResult();
 
@@ -466,6 +469,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		}
 		Query query = currentSession.createQuery(hql.toString());
 
+		query.setCacheable(true);
+		query.setReadOnly(true);
 		if(orgId != null ) {
 			query.setParameter("orgId", Integer.valueOf(orgId));
 			query.setParameterList("params", List.of(RecycleBinType.ORGANIZATION ,RecycleBinType.H_USERS));
@@ -592,6 +597,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			Session session  = factory.getCurrentSession();
 			SelectionQuery<HIResource> query = session.createSelectionQuery("select md.hiResource FROM HIResourceMetadata  md inner join  md.hiResource where md.id in ( :mdIds )",HIResource.class);
 			query.setParameterList("mdIds", mdIds);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			resources =  query.list();
 		}
 		
@@ -986,6 +993,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			String hql = "FROM HIRecycleBin bin where bin.hiRecycleBinDsGlobalConnections.globalConnection.globalId =:globalId";
 			SelectionQuery<HIRecycleBin> query = session.createSelectionQuery(hql,HIRecycleBin.class);
 			query.setParameter("globalId", globalId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			bin =  query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -1004,6 +1013,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			String hql = "FROM HIRecycleBin bin where bin.hiRecycleBinHIEfwdConnection.efwdConnection.id =:efwdId";
 			SelectionQuery<HIRecycleBin> query = session.createSelectionQuery(hql,HIRecycleBin.class);
 			query.setParameter("efwdId", efwdId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			bin =  query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -1040,6 +1051,8 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			String hql = "FROM HIRecycleBin bin where bin.hiRecycleBinHUsers.user.id =:userId";
 			SelectionQuery<HIRecycleBin> query = session.createSelectionQuery(hql,HIRecycleBin.class);
 			query.setParameter("userId", userId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			bin =  query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -1052,9 +1065,19 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 
 	@Override
 	public void deleteHIRecycleByEfwdId(Integer connectionId) {
-		Optional<HIRecycleBin> bin =  findHIRecycleBinByEFWDId(connectionId);
-		if(bin.isPresent()) {
-			delete(bin.get());
+		if (connectionId == null) {
+			return;
+		}
+		Session session = factory.getCurrentSession();
+		List<Long> binIds = session.createSelectionQuery("""
+				select link.recycleBin.id
+				from HIRecycleBinHIEfwdConnection link
+				where link.efwdConnection.id = :connectionId
+				""", Long.class)
+				.setParameter("connectionId", connectionId)
+				.getResultList();
+		if (!binIds.isEmpty()) {
+			deleteLinksAndHeader(binIds);
 		}
 	}
 
@@ -1073,6 +1096,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			String hql = "SELECT COUNT(*) FROM HIRecycleBin where id =:id";
 			SelectionQuery<Long> query = session.createSelectionQuery(hql,Long.class);
 			query.setParameter("id",id);
+			query.setReadOnly(true);
 			Long count =  query.uniqueResult();
 			if(count > 0 ) {
 				return true;
@@ -1155,18 +1179,29 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			return;
 		}
 		try {
-			Session session = factory.getCurrentSession();
-			MutationQuery deleteLinks = session.createMutationQuery("DELETE FROM HIRecycleBinHIResourceDB rb WHERE rb.recycleBin.id in (:recycleBinIds)");
-			deleteLinks.setParameterList("recycleBinIds", recycleBinIds);
-			deleteLinks.executeUpdate();
-			
-			MutationQuery deleteBins = session.createMutationQuery("DELETE FROM HIRecycleBin r WHERE r.id in (:recycleBinIds)");
-			deleteBins.setParameterList("recycleBinIds", recycleBinIds);
-			deleteBins.executeUpdate();
-			
+			deleteLinksAndHeader(recycleBinIds);
 		} catch (Exception e) {
 			log.error("Error occurred while bulk deleting RecycleBin entries");
 		}
+	}
+
+	@Override
+	public void deleteRecycleBinsByUserIds(Collection<Integer> userIds) {
+		if (userIds == null || userIds.isEmpty()) {
+			return;
+		}
+		Session session = factory.getCurrentSession();
+		List<Long> binIds = session.createSelectionQuery("""
+				select link.recycleBin.id
+				from HIRecycleBinHUsers link
+				where link.user.id in (:userIds)
+				""", Long.class)
+				.setParameterList("userIds", userIds)
+				.getResultList();
+		if (binIds.isEmpty()) {
+			return;
+		}
+		deleteLinksAndHeader(binIds);
 	}
 	
 	@Override
@@ -1176,8 +1211,13 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	        return binItems;
 	    }
 
+	    Set<RecycleBinType> typesPresent = binItems.stream()
+	    		.map(RecycleBinDTO::getType)
+	    		.filter(t -> t != null)
+	    		.collect(Collectors.toCollection(HashSet::new));
+
 	    Map<Long, RecycleBinDTO> linkedByBinId = new HashMap<>();
-	    getAllLinkedData(linkedByBinId);
+	    getAllLinkedData(linkedByBinId, typesPresent);
 
 	    for (RecycleBinDTO dto : binItems) {
 	        RecycleBinDTO linked = linkedByBinId.get(dto.getRecycleBinId());
@@ -1192,5 +1232,553 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	        dto.setCreatedBy(linked.getCreatedBy());
 	    }
 	    return binItems;
+	}
+	
+	@Override
+	public void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds) {
+		if (resourceIds == null || resourceIds.isEmpty()) {
+			return;
+		}
+		Session session = factory.getCurrentSession();
+		List<Long> binIds = session.createSelectionQuery("""
+				select link.recycleBin.id
+				from HIRecycleBinHIResourceDB link
+				where link.hiResource.resourceId in (:resourceIds)
+				""", Long.class)
+				.setParameterList("resourceIds", resourceIds)
+				.getResultList();
+		if (binIds.isEmpty()) {
+			return;
+		}
+		// link rows first, then headers (same as deleteRecycleBinsByIds)
+		session.createMutationQuery(
+				"DELETE FROM HIRecycleBinHIResourceDB rb WHERE rb.recycleBin.id in (:binIds)")
+				.setParameterList("binIds", binIds)
+				.executeUpdate();
+		session.createMutationQuery(
+				"DELETE FROM HIRecycleBin r WHERE r.id in (:binIds)")
+				.setParameterList("binIds", binIds)
+				.executeUpdate();
+		session.flush(); // important before deleting HIResource
+	}
+	
+	@Override
+	public Set<Long> findResourceBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		if (binIds == null || binIds.isEmpty()) {
+			return Set.of();
+		}
+		Session session = factory.getCurrentSession();
+		List<Object[]> binRoots = session.createSelectionQuery("""
+				select link.recycleBin.id, link.hiResource.resourceId
+				from HIRecycleBinHIResourceDB link
+				where link.recycleBin.id in (:binIds)
+				""", Object[].class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		if (binRoots.isEmpty()) {
+			return Set.of();
+		}
+
+		Map<Integer, Set<Long>> binsByRootId = new HashMap<>();
+		for (Object[] row : binRoots) {
+			Long binId = (Long) row[0];
+			Integer rootId = (Integer) row[1];
+			if (binId == null || rootId == null) {
+				continue;
+			}
+			binsByRootId.computeIfAbsent(rootId, _ -> new HashSet<>()).add(binId);
+		}
+		if (binsByRootId.isEmpty()) {
+			return Set.of();
+		}
+
+		List<Integer> roots = new ArrayList<>(binsByRootId.keySet());
+		Set<Integer> treeIds = new LinkedHashSet<>(roots);
+		treeIds.addAll(hiResourceDao.getChildrenResourceByParentIds(roots));
+		Map<Integer, Integer> parentByChild = hiResourceDao.findParentIdsByResourceIds(treeIds);
+
+		Set<Long> blocked = new HashSet<>();
+
+		// 1) Any live resource in the subtree (deep children, not only direct)
+		List<Integer> liveInTree = session.createSelectionQuery("""
+				select r.resourceId from HIResource r
+				where r.resourceId in (:ids) and r.isDeleted = false
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList();
+		for (Integer liveId : liveInTree) {
+			addBinsWalkingToRoot(liveId, parentByChild, binsByRootId, blocked);
+		}
+
+		// 2) Live mapping partners for any node in the subtree (incl. outside-tree partners)
+		List<Object[]> mappingRows = session.createSelectionQuery("""
+				select rm.parentResource.resourceId, rm.childResource.resourceId,
+				       rm.parentResource.isDeleted, rm.childResource.isDeleted
+				from HIResourceMapping rm
+				where rm.parentResource.resourceId in (:ids)
+				   or rm.childResource.resourceId in (:ids)
+				""", Object[].class)
+				.setParameterList("ids", treeIds)
+				.getResultList();
+		for (Object[] row : mappingRows) {
+			Integer parentId = (Integer) row[0];
+			Integer childId = (Integer) row[1];
+			boolean parentLive = !Boolean.TRUE.equals(row[2]);
+			boolean childLive = !Boolean.TRUE.equals(row[3]);
+			if (!parentLive && !childLive) {
+				continue;
+			}
+			if (treeIds.contains(parentId)) {
+				addBinsWalkingToRoot(parentId, parentByChild, binsByRootId, blocked);
+			}
+			if (treeIds.contains(childId)) {
+				addBinsWalkingToRoot(childId, parentByChild, binsByRootId, blocked);
+			}
+		}
+
+		List<Integer> liveReportAnchors = new ArrayList<>();
+		liveReportAnchors.addAll(session.createSelectionQuery("""
+				select distinct report.hiResourceHReport.hiResourceMetadata
+				from HIResource report
+				where report.isDeleted = false
+				  and report.hiResourceHReport.hiResourceMetadata in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList());
+		liveReportAnchors.addAll(session.createSelectionQuery("""
+				select distinct report.aiModel.hiResourceMetadata
+				from HIResource report
+				where report.isDeleted = false
+				  and report.aiModel.hiResourceMetadata in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList());
+		liveReportAnchors.addAll(session.createSelectionQuery("""
+				select distinct report.hiResourceInstantReport.hiResourceModel
+				from HIResource report
+				where report.isDeleted = false
+				  and report.hiResourceInstantReport.hiResourceModel in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList());
+		for (Integer metaId : liveReportAnchors) {
+			if (metaId != null) {
+				addBinsWalkingToRoot(metaId, parentByChild, binsByRootId, blocked);
+			}
+		}
+
+		// 4) Live EFWD bound to any folder in the subtree
+		List<Integer> liveEfwdParents = session.createSelectionQuery("""
+				select distinct conn.hiResourceEFWD.parentResource.resourceId
+				from HIEfwdConnection conn
+				where conn.deleted = false
+				  and conn.hiResourceEFWD.parentResource.resourceId in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList();
+		for (Integer parentId : liveEfwdParents) {
+			addBinsWalkingToRoot(parentId, parentByChild, binsByRootId, blocked);
+		}
+
+		return blocked;
+	}
+
+	private static void addBinsWalkingToRoot(Integer startId, Map<Integer, Integer> parentByChild,
+			Map<Integer, Set<Long>> binsByRootId, Set<Long> blocked) {
+		Integer cursor = startId;
+		Set<Integer> seen = new HashSet<>();
+		while (cursor != null && seen.add(cursor)) {
+			Set<Long> bins = binsByRootId.get(cursor);
+			if (bins != null) {
+				blocked.addAll(bins);
+				return;
+			}
+			cursor = parentByChild.get(cursor);
+		}
+	}
+
+	/**
+	 * Blocks user bins when a live EFWD sits under any folder in trees rooted at resources
+	 * owned by that user (including soft-deleted folders) — matches legacy Deletable
+	 * dataSources checks via prepareHIResources.
+	 */
+	private Set<Long> findUserBinsBlockedByLiveEfwdUnderOwnedTrees(Collection<Long> binIds) {
+		Session session = factory.getCurrentSession();
+		List<Object[]> binUsers = session.createSelectionQuery("""
+				select link.recycleBin.id, link.user.id
+				from HIRecycleBinHUsers link
+				where link.recycleBin.id in (:binIds)
+				""", Object[].class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		if (binUsers.isEmpty()) {
+			return Set.of();
+		}
+
+		Map<Integer, Set<Long>> binsByUserId = new HashMap<>();
+		for (Object[] row : binUsers) {
+			Long binId = (Long) row[0];
+			Integer userId = (Integer) row[1];
+			if (binId == null || userId == null) {
+				continue;
+			}
+			binsByUserId.computeIfAbsent(userId, _ -> new HashSet<>()).add(binId);
+		}
+		if (binsByUserId.isEmpty()) {
+			return Set.of();
+		}
+
+		List<Integer> userIds = new ArrayList<>(binsByUserId.keySet());
+		List<Object[]> ownedRows = session.createSelectionQuery("""
+				select r.resourceId, r.createdBy from HIResource r
+				where r.createdBy in (:userIds)
+				""", Object[].class)
+				.setParameterList("userIds", userIds)
+				.getResultList();
+		if (ownedRows.isEmpty()) {
+			return Set.of();
+		}
+
+		Map<Integer, Integer> ownedResourceToUser = new HashMap<>();
+		List<Integer> ownedIds = new ArrayList<>(ownedRows.size());
+		for (Object[] row : ownedRows) {
+			Integer resourceId = (Integer) row[0];
+			Integer userId = (Integer) row[1];
+			ownedIds.add(resourceId);
+			ownedResourceToUser.put(resourceId, userId);
+		}
+
+		Set<Integer> treeIds = new LinkedHashSet<>(ownedIds);
+		treeIds.addAll(hiResourceDao.getChildrenResourceByParentIds(ownedIds));
+		Map<Integer, Integer> parentByChild = hiResourceDao.findParentIdsByResourceIds(treeIds);
+
+		List<Integer> liveEfwdParents = session.createSelectionQuery("""
+				select distinct conn.hiResourceEFWD.parentResource.resourceId
+				from HIEfwdConnection conn
+				where conn.deleted = false
+				  and conn.hiResourceEFWD.parentResource.resourceId in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList();
+		if (liveEfwdParents.isEmpty()) {
+			return Set.of();
+		}
+
+		Set<Long> blocked = new HashSet<>();
+		for (Integer liveParentId : liveEfwdParents) {
+			Integer cursor = liveParentId;
+			Set<Integer> seen = new HashSet<>();
+			while (cursor != null && seen.add(cursor)) {
+				Integer userId = ownedResourceToUser.get(cursor);
+				if (userId != null) {
+					Set<Long> bins = binsByUserId.get(userId);
+					if (bins != null) {
+						blocked.addAll(bins);
+					}
+					break;
+				}
+				cursor = parentByChild.get(cursor);
+			}
+		}
+		return blocked;
+	}
+
+	/**
+	 * Blocks org bins when a live EFWD sits under trees rooted at resources owned by any
+	 * user of that organization.
+	 */
+	private Set<Long> findOrgBinsBlockedByLiveEfwdUnderOwnedTrees(Collection<Long> binIds) {
+		Session session = factory.getCurrentSession();
+		List<Object[]> binOrgs = session.createSelectionQuery("""
+				select link.recycleBin.id, link.organization.id
+				from HIRecycleBinOrganization link
+				where link.recycleBin.id in (:binIds)
+				""", Object[].class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		if (binOrgs.isEmpty()) {
+			return Set.of();
+		}
+
+		Map<Integer, Set<Long>> binsByOrgId = new HashMap<>();
+		for (Object[] row : binOrgs) {
+			Long binId = (Long) row[0];
+			Integer orgId = (Integer) row[1];
+			if (binId == null || orgId == null) {
+				continue;
+			}
+			binsByOrgId.computeIfAbsent(orgId, _ -> new HashSet<>()).add(binId);
+		}
+		if (binsByOrgId.isEmpty()) {
+			return Set.of();
+		}
+
+		List<Integer> orgIds = new ArrayList<>(binsByOrgId.keySet());
+		List<Object[]> ownedRows = session.createSelectionQuery("""
+				select r.resourceId, u.organization.id
+				from HIResource r, User u
+				where u.organization.id in (:orgIds)
+				  and r.createdBy = u.id
+				""", Object[].class)
+				.setParameterList("orgIds", orgIds)
+				.getResultList();
+		if (ownedRows.isEmpty()) {
+			return Set.of();
+		}
+
+		Map<Integer, Integer> ownedResourceToOrg = new HashMap<>();
+		List<Integer> ownedIds = new ArrayList<>(ownedRows.size());
+		for (Object[] row : ownedRows) {
+			Integer resourceId = (Integer) row[0];
+			Integer orgId = (Integer) row[1];
+			ownedIds.add(resourceId);
+			ownedResourceToOrg.put(resourceId, orgId);
+		}
+
+		Set<Integer> treeIds = new LinkedHashSet<>(ownedIds);
+		treeIds.addAll(hiResourceDao.getChildrenResourceByParentIds(ownedIds));
+		Map<Integer, Integer> parentByChild = hiResourceDao.findParentIdsByResourceIds(treeIds);
+
+		List<Integer> liveEfwdParents = session.createSelectionQuery("""
+				select distinct conn.hiResourceEFWD.parentResource.resourceId
+				from HIEfwdConnection conn
+				where conn.deleted = false
+				  and conn.hiResourceEFWD.parentResource.resourceId in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList();
+		if (liveEfwdParents.isEmpty()) {
+			return Set.of();
+		}
+
+		Set<Long> blocked = new HashSet<>();
+		for (Integer liveParentId : liveEfwdParents) {
+			Integer cursor = liveParentId;
+			Set<Integer> seen = new HashSet<>();
+			while (cursor != null && seen.add(cursor)) {
+				Integer orgId = ownedResourceToOrg.get(cursor);
+				if (orgId != null) {
+					Set<Long> bins = binsByOrgId.get(orgId);
+					if (bins != null) {
+						blocked.addAll(bins);
+					}
+					break;
+				}
+				cursor = parentByChild.get(cursor);
+			}
+		}
+		return blocked;
+	}
+
+	@Override
+	public Set<Long> findGlobalBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		if (binIds == null || binIds.isEmpty()) {
+			return Set.of();
+		}
+		List<Long> rows = factory.getCurrentSession().createSelectionQuery("""
+				select distinct link.recycleBin.id
+				from HIRecycleBinDSGlobalConnections link
+				where link.recycleBin.id in (:binIds)
+				  and (
+				    exists (
+				      select 1
+				      from HIMetadataConnectionGlobal mcg
+				      join mcg.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource res
+				      where mcg.globalConnections.globalId = link.globalConnection.globalId
+				        and res.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIMetadataConnectionGlobal mcg
+				      join mcg.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource metaRes
+				      , HIResource report
+				      where mcg.globalConnections.globalId = link.globalConnection.globalId
+				        and report.hiResourceHReport.hiResourceMetadata = metaRes.resourceId
+				        and report.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIMetadataConnectionGlobal mcg
+				      join mcg.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource metaRes
+				      , HIResource report
+				      where mcg.globalConnections.globalId = link.globalConnection.globalId
+				        and report.aiModel.hiResourceMetadata = metaRes.resourceId
+				        and report.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIHcrConnectionsGlobal hcrGlobal
+				      join hcrGlobal.hiHcrConnections hcrCon
+				      join hcrCon.hiResourceHcr hcrRes
+				      where hcrGlobal.globalConnections.globalId = link.globalConnection.globalId
+				        and hcrCon.connectionType = 'global.jdbc'
+				        and hcrRes.isDeleted = false
+				    )
+				  )
+				""", Long.class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		return new HashSet<>(rows);
+	}
+
+	@Override
+	public Set<Long> findEfwdBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		if (binIds == null || binIds.isEmpty()) {
+			return Set.of();
+		}
+		List<Long> rows = factory.getCurrentSession().createSelectionQuery("""
+				select distinct link.recycleBin.id
+				from HIRecycleBinHIEfwdConnection link
+				where link.recycleBin.id in (:binIds)
+				  and (
+				    exists (
+				      select 1
+				      from HIMetadataConnectionEFWD mce
+				      join mce.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource res
+				      where mce.hiEfwdConnection.id = link.efwdConnection.id
+				        and res.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIMetadataConnectionEFWD mce
+				      join mce.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource metaRes
+				      , HIResource report
+				      where mce.hiEfwdConnection.id = link.efwdConnection.id
+				        and report.hiResourceHReport.hiResourceMetadata = metaRes.resourceId
+				        and report.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIMetadataConnectionEFWD mce
+				      join mce.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource metaRes
+				      , HIResource report
+				      where mce.hiEfwdConnection.id = link.efwdConnection.id
+				        and report.aiModel.hiResourceMetadata = metaRes.resourceId
+				        and report.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from HIHcrConnectionsEfwd hcrEfw
+				      join hcrEfw.hiHcrConnections hcrCon
+				      join hcrCon.hiResourceHcr hcrRes
+				      where hcrEfw.hiEfwdConnection.id = link.efwdConnection.id
+				        and hcrRes.isDeleted = false
+				    )
+				  )
+				""", Long.class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		return new HashSet<>(rows);
+	}
+
+	@Override
+	public Set<Long> findUserBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		if (binIds == null || binIds.isEmpty()) {
+			return Set.of();
+		}
+		List<Long> rows = factory.getCurrentSession().createSelectionQuery("""
+				select distinct link.recycleBin.id
+				from HIRecycleBinHUsers link
+				where link.recycleBin.id in (:binIds)
+				  and (
+				    exists (
+				      select 1 from HIResource res
+				      where res.createdBy = link.user.id
+				        and res.isDeleted = false
+				    )
+				    or exists (
+				      select 1 from GlobalConnections gc
+				      where gc.createdBy.id = link.user.id
+				        and gc.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from GlobalConnections gc
+				      , HIMetadataConnectionGlobal mcg
+				      join mcg.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource res
+				      where gc.createdBy.id = link.user.id
+				        and mcg.globalConnections.globalId = gc.globalId
+				        and res.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from GlobalConnections gc
+				      , HIHcrConnectionsGlobal hcrGlobal
+				      join hcrGlobal.hiHcrConnections hcrCon
+				      join hcrCon.hiResourceHcr hcrRes
+				      where gc.createdBy.id = link.user.id
+				        and hcrGlobal.globalConnections.globalId = gc.globalId
+				        and hcrCon.connectionType = 'global.jdbc'
+				        and hcrRes.isDeleted = false
+				    )
+				  )
+				""", Long.class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		Set<Long> blocked = new HashSet<>(rows);
+		blocked.addAll(findUserBinsBlockedByLiveEfwdUnderOwnedTrees(binIds));
+		return blocked;
+	}
+
+	@Override
+	public Set<Long> findOrgBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		if (binIds == null || binIds.isEmpty()) {
+			return Set.of();
+		}
+		List<Long> rows = factory.getCurrentSession().createSelectionQuery("""
+				select distinct link.recycleBin.id
+				from HIRecycleBinOrganization link
+				where link.recycleBin.id in (:binIds)
+				  and (
+				    exists (
+				      select 1 from User u
+				      where u.organization.id = link.organization.id
+				        and u.deleted = false
+				    )
+				    or exists (
+				      select 1 from User u, HIResource res
+				      where u.organization.id = link.organization.id
+				        and res.createdBy = u.id
+				        and res.isDeleted = false
+				    )
+				    or exists (
+				      select 1 from User u, GlobalConnections gc
+				      where u.organization.id = link.organization.id
+				        and gc.createdBy.id = u.id
+				        and gc.isDeleted = false
+				    )
+				    or exists (
+				      select 1
+				      from User u, GlobalConnections gc
+				      , HIMetadataConnectionGlobal mcg
+				      join mcg.hiMetadataConnections mdc
+				      join mdc.hiResourceMetadata md
+				      join md.hiResource res
+				      where u.organization.id = link.organization.id
+				        and gc.createdBy.id = u.id
+				        and mcg.globalConnections.globalId = gc.globalId
+				        and res.isDeleted = false
+				    )
+				  )
+				""", Long.class)
+				.setParameterList("binIds", binIds)
+				.getResultList();
+		Set<Long> blocked = new HashSet<>(rows);
+		blocked.addAll(findOrgBinsBlockedByLiveEfwdUnderOwnedTrees(binIds));
+		return blocked;
 	}
 }

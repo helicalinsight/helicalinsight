@@ -16,6 +16,18 @@
 
     <build>
         <finalName>${name}-${parent.version}</finalName>
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+			</testResource>
+			<testResource>
+				<directory>${project.basedir}/../presentation/src/main/resources</directory>
+				<includes>
+					<include>project.properties</include>
+					<include>message.properties</include>
+				</includes>
+			</testResource>
+		</testResources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -24,6 +36,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
             </plugin>
             <plugin>
 				<groupId>org.codehaus.mojo</groupId>

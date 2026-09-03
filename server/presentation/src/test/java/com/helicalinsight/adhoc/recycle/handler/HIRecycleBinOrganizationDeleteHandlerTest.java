@@ -1,6 +1,7 @@
 package com.helicalinsight.adhoc.recycle.handler;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -16,8 +17,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import com.helicalinsight.admin.dto.RecycleBinDTO;
-import com.helicalinsight.admin.model.HIRecycleBin;
-import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.service.OrganizationService;
 import com.helicalinsight.admin.service.RoleService;
@@ -51,40 +50,30 @@ public class HIRecycleBinOrganizationDeleteHandlerTest {
 		bin.setRecycleBinId(60L);
 		bin.setResourceId(401);
 
-		User user = new User();
-		user.setId(501);
-
-		HIRecycleBin userBin = new HIRecycleBin();
-		userBin.setId(61L);
-
-		when(userService.getAllUsersOfOrganization(401)).thenReturn(List.of(user));
-		when(recycleBinService.findHIRecycleBinByUserId(501)).thenReturn(userBin);
+		when(userService.findUserIdsByOrganizationId(401)).thenReturn(List.of(501));
 
 		assertTrue(handler.handle(bin));
 
 		verify(recycleBinService).delete(60L);
-		verify(recycleBinService).delete(61L);
-		verify(userService).deleteUser(501);
+		verify(userService, org.mockito.Mockito.times(2)).deleteUser(501);
+		verify(recycleBinService).deleteRecycleBinsByUserIds(List.of(501));
 		verify(roleService).deleteOrganization(401);
 		verify(organizationService).delete(401);
 	}
 
 	@Test
-	public void handleRecycleBinDtoContinuesWhenUserBinNotFound() {
+	public void handleRecycleBinDtoContinuesWhenUserListEmpty() {
 		RecycleBinDTO bin = new RecycleBinDTO();
 		bin.setRecycleBinId(62L);
 		bin.setResourceId(402);
 
-		User user = new User();
-		user.setId(502);
-
-		when(userService.getAllUsersOfOrganization(402)).thenReturn(List.of(user));
-		when(recycleBinService.findHIRecycleBinByUserId(502)).thenThrow(new RuntimeException("not found"));
+		when(userService.findUserIdsByOrganizationId(402)).thenReturn(Collections.emptyList());
 
 		assertTrue(handler.handle(bin));
 
 		verify(recycleBinService).delete(62L);
-		verify(userService).deleteUser(502);
+		verify(recycleBinService, never()).deleteRecycleBinsByUserIds(org.mockito.ArgumentMatchers.any());
+		verify(userService, never()).deleteUser(org.mockito.ArgumentMatchers.anyInt());
 		verify(roleService).deleteOrganization(402);
 		verify(organizationService).delete(402);
 	}
@@ -95,7 +84,7 @@ public class HIRecycleBinOrganizationDeleteHandlerTest {
 		bin.setRecycleBinId(63L);
 		bin.setResourceId(403);
 
-		when(userService.getAllUsersOfOrganization(403)).thenReturn(Collections.emptyList());
+		when(userService.findUserIdsByOrganizationId(403)).thenReturn(Collections.emptyList());
 
 		assertTrue(handler.handle(bin));
 
@@ -110,7 +99,7 @@ public class HIRecycleBinOrganizationDeleteHandlerTest {
 		bin.setRecycleBinId(64L);
 		bin.setResourceId(404);
 
-		when(userService.getAllUsersOfOrganization(404)).thenReturn(Collections.emptyList());
+		when(userService.findUserIdsByOrganizationId(404)).thenReturn(Collections.emptyList());
 
 		Map<Long, Boolean> map = new HashMap<>();
 

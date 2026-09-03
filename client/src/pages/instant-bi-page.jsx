@@ -97,6 +97,19 @@ const HIInstantBI = (props) => {
   useEffect(() => {
     if (isEditMode && editModeInfo?.extension === "instant") {
       let reportId = createReportId();
+      let tempReports = reports;
+      dispatch((_, getState) => {
+        tempReports = getState().instantBI.reports
+      })
+      if (tempReports.length && tempReports.find((report) => report.active)?.metadata?.formData) {
+        if (tempReports.length > 3) {
+          return Notify.warning({
+            message: "You have reached the maximum number of tabs.",
+            type: "Frontend",
+          });
+        }
+        addReport(reportId);
+      }
       setReportId(reportId);
       fetchInstantBIReportAPI({
         dispatch,
@@ -149,6 +162,7 @@ const HIInstantBI = (props) => {
     window.addEventListener("beforeunload", handleUnload);
     return () => {
       window.removeEventListener("beforeunload", handleUnload);
+      localStorage.removeItem("hreport_active_report");
     };
   }, []);
 
@@ -387,8 +401,12 @@ const HIInstantBI = (props) => {
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
 
-  const addReport = () => {
-    dispatch(addNewIBReport())
+  const addReport = (reportId) => {
+    if (reportId) {
+      dispatch(addNewIBReport({ reportId }))
+      return;
+    }
+    dispatch(addNewIBReport());
   };
 
   const deleteReport = (id) => {

@@ -4,22 +4,26 @@ import { uriConfig } from "../../../base/requests/instantbi.requests";
 import { fileBrowserActions } from "../../../redux/actions";
 import {
   addIBRecommendations,
+  loadIBOpenChatResponse,
   loadingIBRecommendations,
   loadInstantBIMetadata,
-  loadIBOpenChatResponse,
   loadInstantBIReportData,
   resetIBChatId,
   savedConfigInstantBIFile,
-  setInstantBIPageLoading,
   setIBChartList,
+  setInstantBIPageLoading,
   updateBIBotStatus,
+  updateHreportInitialInteraction,
   updateIBVizPreference,
-  updateInstantBIReportFile,
-  updateRecommendationsVisibility,
+  updateMetadataForHreport,
+  updateRecommendationsVisibility
 } from "../../../redux/actions/instant-bi.actions";
+import createHReportBridge from "../../bridges/hreport/hreport-bridge";
 import notify from "../../hi-notifications/notify";
+import { openMetadata } from "../../hi-reports/utils/base";
 import { IB_CHART_RENDER_ERROR } from "../components/ib-custom-chart";
-import { getInsantBISaveData, getSaveData } from "./base";
+import { getInsantBISaveData } from "./base";
+import { getMetadataForHreport, loadInstantBiHreports } from "./common-utils";
 
 const recommendationsRequestsByReportId = new Map();
 
@@ -62,6 +66,23 @@ export const generateReportBasedOnQueryStringAPI = ({
   });
 };
 
+const loadMetadataForHreport = async (res, dispatch, callback) => {
+  const { data = {} } = res || {}
+  const { metadata = {} } = data || {}
+  const { location, metadataFileName } = metadata || {}
+  const formData = { location, metadataFileName };
+  const response = await openMetadata(formData, dispatch, () => { }, true);
+  if (response && !response.error) {
+    if (typeof callback === "function") {
+      return callback(response)
+    }
+    dispatch(updateMetadataForHreport(response));
+  }
+  if (typeof callback === "function") {
+    callback()
+  }
+}
+
 export const openMetadataAPI = ({ formData, dispatch, displayNotification = true, recommendations = true, activeReportId, chatId }) => {
   const Notify = notify(dispatch);
   dispatch(loadInstantBIMetadata({ loading: true, reportId: activeReportId }));
@@ -69,7 +90,7 @@ export const openMetadataAPI = ({ formData, dispatch, displayNotification = true
     dir: formData.location,
     file: formData.metadataFileName
   };
-  
+
   requests.instantBI(dispatch).getMetadata({
     formData: transformedFormData,
     uri: uriConfig.adhocMetadataGet,
@@ -83,38 +104,14 @@ export const openMetadataAPI = ({ formData, dispatch, displayNotification = true
         metadataName,
         metadataDir,
       };
-      // Commented out getFunctions (type: adhoc, serviceType: metadata) and getContents (type: content, serviceType: static) calls
-      // requests.instantBI(dispatch).getFunctions({
-      //   formData: metadata,
-      //   uri: uriConfig.adhocMetadataGetFunctions,
-      //   callback: (functions) => {
-      //     requests.instantBI(dispatch).getDateFunctions({
-      //       formData: { contentId: "Static/standardDate" },
-      //       uri: uriConfig.contentStaticGetContents,
-      //       callback: (dateFunctions) => {
-              dispatch(
-                loadInstantBIMetadata({ formData, ...res, uid: uuidv4(), reportId: activeReportId, },
-                  // funcs: functions,
-                  // dateFunctions: dateFunctions || {},
-                )
-              );
-              displayNotification && Notify.success({ type: "Frontend", message: "Semantic model connected successfully." });
-              recommendations && fetchRecommendationsAPI({ metadata, formData, dispatch, activeReportId, chatId });
-      //     },
-      //     errback: (e) => {
-      //       // Notify.error({ type: "Backend", message: e.message });
-      //       dispatch(loadInstantBIMetadata({ loading: false, reportId: activeReportId }));
-      //     },
-      //   });
-      // },
-      // errback: (e) => {
-      //   // Notify.error({ type: "Backend", message: e.message });
-      //   dispatch(loadInstantBIMetadata({ loading: false, reportId: activeReportId }));
-      // },
-      // });
+      dispatch(
+        loadInstantBIMetadata({ formData, ...res, uid: uuidv4(), reportId: activeReportId, })
+      );
+      displayNotification && Notify.success({ type: "Frontend", message: "Semantic model connected successfully." });
+      recommendations && fetchRecommendationsAPI({ metadata, formData, dispatch, activeReportId, chatId });
+      loadMetadataForHreport(res, dispatch)
     },
     errback: (e) => {
-      // Notify.error({ type: "Backend", message: e.message });
       dispatch(loadInstantBIMetadata({ loading: false, reportId: activeReportId }));
     },
   });
@@ -160,7 +157,7 @@ export const saveInstantBIReportAPI = ({
   // searchValue,
 }) => {
   // const Notify = notify(dispatch);
-  const saveData = getInsantBISaveData({ activeReport, saveFileInfo, dispatch })
+  const saveData = getInsantBISaveData({ activeReport, saveFileInfo, dispatch, mode })
   dispatch(
     savedConfigInstantBIFile({
       isSaving: true,
@@ -227,22 +224,21 @@ export const fetchInstantBIReportAPI = ({
     formData,
     uri: url,
     callback: (res) => {
-
       const { data = {} } = res || {}
       if (typeof setFileInfo === "function") {
         setFileInfo({ fileTitle: data?.reportName ?? '' });
       }
-      const chatId = data?.state?.activeChatID || uuidv4();
-      if (['edit'].includes(mode)) {
-        const { metadata = {} } = data || {}
-        let fullPath = `${metadata?.location}/${metadata?.metadataFileName}`
-        let formData = {
-          location: metadata?.location,
-          metadataFileName: metadata?.metadataFileName,
-          path: fullPath,
-        };
-        // openMetadataAPI({ formData: { ...formData, path: fullPath }, dispatch, displayNotification: false, recommendations, activeReportId: reportId, chatId });
-      }
+      // const chatId = data?.state?.activeChatID || uuidv4();
+      // if (['edit'].includes(mode)) {
+      //   const { metadata = {} } = data || {}
+      //   let fullPath = `${metadata?.location}/${metadata?.metadataFileName}`
+      //   let formData = {
+      //     location: metadata?.location,
+      //     metadataFileName: metadata?.metadataFileName,
+      //     path: fullPath,
+      //   };
+      //   // openMetadataAPI({ formData: { ...formData, path: fullPath }, dispatch, displayNotification: false, recommendations, activeReportId: reportId, chatId });
+      // }
       let payload = {
         data,
         location: formData.dir,
@@ -251,7 +247,16 @@ export const fetchInstantBIReportAPI = ({
         mode,
         reportId
       }
-      dispatch(loadInstantBIReportData(payload))
+      loadMetadataForHreport(
+        res,
+        dispatch,
+        (reportMetadata) => {
+          dispatch(loadInstantBIReportData({ ...payload, reportMetadata }));
+          loadInstantBiHreports({
+            dispatch,
+            reportState: data.state,
+          })
+        })
     },
     errback: (err) => {
       // dispatch(setAccessDeniedInfo({ subTitle: err.message }));
@@ -261,13 +266,14 @@ export const fetchInstantBIReportAPI = ({
 };
 
 export const parseInstantBIChatResponse = (res) => {
-  const { chat_response = {} } = res || {};
+  const { chat_response = {}, } = res || {};
   const {
     viz = {},
     sql: sqlData = {},
     summary: summaryData = {},
     data = [],
     metadata = [],
+    error = "",
   } = chat_response || {};
   const vf = viz.vf_template ? atob(viz.vf_template) : "";
   const vf_title = viz.vf_title || "";
@@ -289,10 +295,25 @@ export const parseInstantBIChatResponse = (res) => {
     botMessage,
     createPreview: Boolean(vf),
     fullChatResponse: chatResponseWithoutData,
+    error
   };
 };
 
-export const instantBiChatAPI = ({ formData, dispatch, onAIMessage = () => { }, activeReportId, chatId, chatSequenceId, abortedRef }) => {
+
+const handleUpdateHreportEvent = (reportId, { event, hreportId, data }, dispatch) => {
+  dispatch(updateHreportInitialInteraction({ reportId, hreportId, data, event }))
+}
+
+
+export const instantBiChatAPI = ({
+  formData,
+  dispatch,
+  onAIMessage = () => { },
+  activeReportId,
+  chatId,
+  chatSequenceId,
+  abortedRef
+}) => {
   dispatch(updateBIBotStatus({ status: true, reportId: activeReportId }))
   return instantBIInteractiveChatRequest({
     dispatch,
@@ -301,13 +322,52 @@ export const instantBiChatAPI = ({ formData, dispatch, onAIMessage = () => { }, 
     subject: formData.subject,
     chatId,
     chatSequenceId,
-    successCB: (res) => {
-      dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
-      onAIMessage({
-        ...parseInstantBIChatResponse(res),
-        userInput: formData.input,
-        chatSequenceId,
-      })
+    successCB: async (res) => {
+      const { error, ...parsedResponse } = parseInstantBIChatResponse(res);
+      if (!error) {
+        const hreportProps = {
+          reportId: uuidv4(),
+        };
+        hreportProps.reportMetadata = getMetadataForHreport(dispatch);
+        parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
+        const bridge = createHReportBridge({
+          dispatch,
+          reportModel: parsedResponse?.fullChatResponse?.report_model || {},
+          onComplete: () => {
+            dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+            onAIMessage({
+              ...parsedResponse,
+              userInput: formData.input,
+              chatSequenceId,
+            })
+          },
+          onError: () => {
+            dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+            onAIMessage({
+              vf: "",
+              sql: "",
+              error: true,
+              botMessage: error ?? IB_CHART_RENDER_ERROR,
+              abortedRequest: false,
+            })
+          },
+          eventUpdater: (e) => {
+            handleUpdateHreportEvent(activeReportId, e, dispatch);
+          },
+          ...hreportProps
+        });
+        await bridge.init();
+      } else {
+        dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+        onAIMessage({
+          vf: "",
+          sql: "",
+          error: true,
+          botMessage: error,
+          abortedRequest: false,
+        })
+      }
+
     },
     errorCB: (e) => {
       dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
@@ -360,8 +420,8 @@ const instantBIInteractiveChatRequest = ({
   chatSequenceId,
   requestId,
   nestedFormData,
-  successCB = () => {},
-  errorCB = () => {},
+  successCB = () => { },
+  errorCB = () => { },
 }) =>
   requests.instantBI(dispatch).instantBIChatRequest({
     formData: buildInstantBIInteractiveChatFormData({
@@ -406,8 +466,8 @@ const instantBIChatFormRequest = ({
   location,
   fileName,
   requestId,
-  successCB = () => {},
-  errorCB = () => {},
+  successCB = () => { },
+  errorCB = () => { },
 }) =>
   requests.instantBI(dispatch).instantBILoadChatRequest({
     formData: buildInstantBIChatRequestFormData({
@@ -449,8 +509,8 @@ export const instantDataInsightAPI = ({
   subject,
   agent,
   requestId,
-  successCB = () => {},
-  errorCB = () => {},
+  successCB = () => { },
+  errorCB = () => { },
 }) => {
   if (useLoadChatPayload) {
     return instantBIChatFormRequest({
@@ -490,7 +550,7 @@ export const loadInstantBIOpenChat = ({
   showSuccessNotification = true,
   time,
   Notify,
-  onComplete = () => {},
+  onComplete = () => { },
   abortedRef,
 }) => {
   if (!chatSequenceId || !userInput || !location || !fileName) {
@@ -552,7 +612,7 @@ export const loadInstantBIDataInsight = ({
   existingChatResponse = {},
   Notify,
   abortedRef,
-  onComplete = () => {},
+  onComplete = () => { },
 }) => {
   if (useLoadChatPayload) {
     if (!chatSequenceId || !userInput || !location || !fileName) {
@@ -647,8 +707,8 @@ export const instantConvertChartAPI = ({
   selectedChart,
   chatId,
   chatSequenceId,
-  successCB = () => {},
-  errorCB = () => {},
+  successCB = () => { },
+  errorCB = () => { },
 }) =>
   requests.instantBI(dispatch).instantBIConvertChartRequest({
     uri: uriConfig.instantConvertChart,
@@ -670,7 +730,7 @@ export const convertInstantBIChart = ({
   vfTemplate,
   selectedChart,
   Notify,
-  onComplete = () => {},
+  onComplete = () => { },
 }) => {
   if (!chatSequenceId || !chatId || !vfTemplate || !selectedChart) {
     Notify?.error?.({
@@ -768,8 +828,8 @@ export const parseInstantBIListChartsResponse = (response) => {
 
 export const fetchInstantBIChartList = ({
   dispatch,
-  successCB = () => {},
-  errorCB = () => {},
+  successCB = () => { },
+  errorCB = () => { },
 }) =>
   requests.instantBI(dispatch).instantBIListChartsRequest({
     uri: uriConfig.instantListCharts,
@@ -787,7 +847,7 @@ export const fetchInstantBIChartList = ({
 
 
 export const agentGenerateAPI = ({ dir, file, dispatch, successCB, errorCB }) => {
-  const formData = ({dir: dir, file: file})
+  const formData = ({ dir: dir, file: file })
   return requests.instantBI(dispatch).postInstantBIRequest({
     uri: uriConfig.agentGenerate,
     formData,
@@ -796,7 +856,7 @@ export const agentGenerateAPI = ({ dir, file, dispatch, successCB, errorCB }) =>
   });
 };
 
-export const agentSaveAPI = ({ dir, file, agentDir, modelName, description, uuid,content, dispatch, successCB, errorCB }) => {
+export const agentSaveAPI = ({ dir, file, agentDir, modelName, description, uuid, content, dispatch, successCB, errorCB }) => {
   const parsedState =
     typeof content === "string" ? JSON.parse(content) : content;
   const formData = {
@@ -809,9 +869,9 @@ export const agentSaveAPI = ({ dir, file, agentDir, modelName, description, uuid
   if (uuid) {
     formData.uuid = uuid;
   }
-  
-  const encodedFormData =formData;
-  
+
+  const encodedFormData = formData;
+
   return requests.instantBI(dispatch).postInstantBIRequest({
     uri: uriConfig.agentSave,
     formData: encodedFormData,
@@ -825,7 +885,7 @@ export const agentEditServiceAPI = ({ dir, file, dispatch, successCB, errorCB })
     dir: dir,
     file: file
   };
-  
+
   return requests.instantBI(dispatch).postInstantBIRequest({
     uri: uriConfig.agentEdit,
     formData: formData,

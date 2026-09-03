@@ -1,0 +1,12 @@
+id: comparison
+name: Comparison layout
+best_for: Comparing regions, products, years, departments, etc.
+
+┌──────────────────────┬──────────────────────┐
+│       2025           │        2026          │
+│                      │                      │
+│      Chart           │       Chart          │
+├──────────────────────┼──────────────────────┤
+│      Region A        │       Region B       │
+│      Chart           │       Chart          │
+└──────────────────────┴──────────────────────┘

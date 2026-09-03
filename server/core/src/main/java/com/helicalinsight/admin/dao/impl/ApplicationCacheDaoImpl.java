@@ -12,6 +12,7 @@ import jakarta.persistence.Query;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
+import org.hibernate.query.SelectionQuery;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
@@ -110,8 +111,8 @@ public class ApplicationCacheDaoImpl implements ApplicationCacheDao {
     public Boolean findByKeyAndPage(String key, Integer position) {
 		Boolean st = false;
 		try {
-			org.hibernate.query.Query<ApplicationCache> query = session.getCurrentSession()
-					.createQuery("select 1 from ApplicationCache t where t.key = :key and t.page = :position");
+			Session currentSession = session.getCurrentSession();
+			SelectionQuery<Integer> query = currentSession.createSelectionQuery("select 1 from ApplicationCache t where t.key = :key and t.page = :position", Integer.class);
 			query.setParameter("key", key);
 			query.setParameter("position", position);
 			query.setCacheable(true);
@@ -151,8 +152,8 @@ public class ApplicationCacheDaoImpl implements ApplicationCacheDao {
     public List<ApplicationCache> findCacheByKey(String key) {
         try {
             Session currentSession = session.getCurrentSession();
-            org.hibernate.query.Query<ApplicationCache> query = currentSession.createQuery("from ApplicationCache where key = :key" );
-            //query.setCacheable(true);
+            SelectionQuery<ApplicationCache> query = currentSession.createSelectionQuery("from ApplicationCache where key = :key", ApplicationCache.class);
+            query.setCacheable(true);
             query.setParameter("key",key);
             List<ApplicationCache> allCaches = query.getResultList();
             return allCaches;

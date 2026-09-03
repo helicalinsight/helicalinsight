@@ -1,0 +1,13 @@
+id: executive-kpi-first
+name: Executive / KPI-first
+best_for: Management dashboards.
+
+┌──────────┬──────────┬──────────┬──────────┐
+│ Revenue  │ Profit   │ Orders   │ Customers│
+├──────────┴──────────┴──────────┴──────────┤
+│              Revenue Trend                │
+│                  Line Chart               │
+├──────────────────────┬────────────────────┤
+│ Sales by Region      │ Sales by Product   │
+│       Map            │    Bar Chart       │
+└──────────────────────┴────────────────────┘

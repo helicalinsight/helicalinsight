@@ -127,6 +127,7 @@ public interface UserService extends UserDetailsService {
      void initializeData();
 
 	List<User> getAllUsersOfOrganization(Integer orgId);
+	List<Integer> findUserIdsByOrganizationId(Integer orgId);
 	User isUserAlreadyExisted(String uname,Integer orgId);
 	User getUser(int userId);
 	

@@ -190,6 +190,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
             org.hibernate.query.Query<GlobalConnections> query =  currentSession.createQuery("from GlobalConnections ");
             query.setCacheable(true);
+            query.setReadOnly(true);
             globalConnectionsList = query.list();
         } catch (Exception e) {
             logger.error("Exception", e);
@@ -320,7 +321,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             }
             query.setParameter("createdBy", createdBy);
             query.setResultTransformer(new JsonResultSetTransformer());
-           // query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             // query.setResultTransformer(Transformers.aliasToBean(GlobalConnectionDTO.class));
             return query.list();
         } catch (Exception e) {
@@ -365,7 +367,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
                 query.setParameter("roleId", roleId);
             }
             query.setResultTransformer(new JsonResultSetTransformer());
-            //query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             return query.getResultList();
         } catch (Exception e) {
             logger.error("Exception", e);
@@ -405,7 +408,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
                 query.setParameter("roleId", roleId);
             }
             query.setResultTransformer(new JsonResultSetTransformer());
-           // query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             List<Map<String, Object>> list = query.getResultList();
             return list.size() > 0 ? list.get(0) : Collections.emptyMap();
         } catch (Exception e) {
@@ -428,7 +432,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             query.setParameter("globalId", globalId);
 
             query.setResultTransformer(new JsonResultSetTransformer());
-            //query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             List list = query.getResultList();
 
             return list.size() > 0 ? (Map<String, Object>) list.get(0) : Collections.emptyMap();
@@ -452,7 +457,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             query.setParameter("visible", Boolean.TRUE);
             query.setParameter("globalId", globalId);
             query.setResultTransformer(new JsonResultSetTransformer());
-           // query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             List list = query.getResultList();
             if (!list.isEmpty()) {
                 return (Map<String, Object>) list.get(0);
@@ -643,7 +649,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
 
             CriteriaBuilder cb = getSession().getCriteriaBuilder();
             CriteriaQuery<DSTypeTomcat> cr=cb.createQuery(DSTypeTomcat.class);
-            tomcatList =getSession().createQuery(cr).getResultList();
+            tomcatList =getSession().createQuery(cr).setCacheable(true).getResultList();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -656,7 +662,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         try {
             CriteriaBuilder cb = getSession().getCriteriaBuilder();
             CriteriaQuery<DSTypeHikari> cr=cb.createQuery(DSTypeHikari.class);
-            hikariList =getSession().createQuery(cr).getResultList();
+            hikariList =getSession().createQuery(cr).setCacheable(true).getResultList();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -671,7 +677,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
 
             CriteriaBuilder cb = getSession().getCriteriaBuilder();
             CriteriaQuery<DSTypeJndi> cr=cb.createQuery(DSTypeJndi.class);
-            jndiList = getSession().createQuery(cr).getResultList();
+            jndiList = getSession().createQuery(cr).setCacheable(true).getResultList();
 
         } catch (Exception e) {
             logger.error("Exception", e);
@@ -686,7 +692,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         try {
             CriteriaBuilder cb = getSession().getCriteriaBuilder();
             CriteriaQuery<DSTypeNoSQL> cr=cb.createQuery(DSTypeNoSQL.class);
-            noSqlList =getSession().createQuery(cr).getResultList();
+            noSqlList =getSession().createQuery(cr).setCacheable(true).getResultList();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -704,7 +710,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             CriteriaQuery<DSTypeTomcat> cr=cb.createQuery(DSTypeTomcat.class);
             Root<DSTypeTomcat> resource = cr.from(DSTypeTomcat.class);
             cr.where(cb.equal(resource.get("globalConnections").get("globalId"), id));
-            dsTypeTomcat =getSession().createQuery(cr).uniqueResult();
+            dsTypeTomcat =getSession().createQuery(cr).setCacheable(true).uniqueResult();
         } catch (Exception e) {
             if(e instanceof NoResultException)
                 return null;
@@ -721,7 +727,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             CriteriaQuery<DSTypeJndi> cr=cb.createQuery(DSTypeJndi.class);
             Root<DSTypeJndi> resource = cr.from(DSTypeJndi.class);
             cr.where(cb.equal(resource.get("globalConnections").get("globalId"), id));
-            dsTypeJndi =getSession().createQuery(cr).uniqueResult();
+            dsTypeJndi =getSession().createQuery(cr).setCacheable(true).uniqueResult();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -736,7 +742,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             CriteriaQuery<DSTypeNoSQL> cr=cb.createQuery(DSTypeNoSQL.class);
             Root<DSTypeNoSQL> resource = cr.from(DSTypeNoSQL.class);
             cr.where(cb.equal(resource.get("globalConnections").get("globalId"), id));
-            dsTypeNoSQL =getSession().createQuery(cr).uniqueResult();
+            dsTypeNoSQL =getSession().createQuery(cr).setCacheable(true).uniqueResult();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -751,7 +757,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             CriteriaQuery<DSTypeHikari> cr=cb.createQuery(DSTypeHikari.class);
             Root<DSTypeHikari> resource = cr.from(DSTypeHikari.class);
             cr.where(cb.equal(resource.get("globalConnections").get("globalId"), id));
-            dsTypeHikari =getSession().createQuery(cr).uniqueResult();
+            dsTypeHikari =getSession().createQuery(cr).setCacheable(true).uniqueResult();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -767,7 +773,7 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             CriteriaQuery<DSTypePlainJDBC> cr=cb.createQuery(DSTypePlainJDBC.class);
             Root<DSTypePlainJDBC> resource = cr.from(DSTypePlainJDBC.class);
             cr.where(cb.equal(resource.get("globalConnections").get("globalId"), id));
-            globalPlainJDBC =getSession().createQuery(cr).uniqueResult();
+            globalPlainJDBC =getSession().createQuery(cr).setCacheable(true).uniqueResult();
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -782,6 +788,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             query.setParameter("name", name);
             query.setParameter("globalId", id);
             query.setParameter("type", type);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             return (GlobalConnections) query.uniqueResult();
         }
         catch (Exception e) {
@@ -841,6 +849,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             Session session = getSession();
             Query query = session.createQuery("FROM GlobalConnections where createdBy.id = :userId");
             query.setParameter("userId", userId);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             return query.getResultList();
         }
         catch (Exception e) {
@@ -894,7 +904,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
                 query.setParameterList("globalIds", globalIds);
                 query.setParameter("visible", Boolean.TRUE);
                 query.setResultTransformer(new JsonResultSetTransformer());
-                //query.setCacheable(true);
+                query.setCacheable(true);
+                query.setReadOnly(true);
                 List list = query.list();
                 if (!list.isEmpty()) {
                     dsTypes.addAll(list);
@@ -912,6 +923,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         org.hibernate.query.Query query=session.createQuery("select dataSourceProvider from "+tableName+" WHERE globalConnections.globalId=:globalId AND visible=:visible");
         query.setParameter("globalId", globalId);
         query.setParameter("visible", Boolean.TRUE);
+        query.setCacheable(true);
+        query.setReadOnly(true);
         return (String) query.uniqueResult();
     }
 
@@ -923,7 +936,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             currentSession.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
             org.hibernate.query.Query query = currentSession.createQuery("from GlobalConnections WHERE globalId in (:connIds)");
             query.setParameterList("connIds", connIds);
-            //query.setCacheable(true);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             globalConnectionsList = query.list();
         } catch (Exception e) {
             logger.error("Exception", e);
@@ -986,7 +1000,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
                 query.setParameter("name", "");
             }
             query.setParameter("name", lookup.getName());
-
+            query.setCacheable(true);
+            query.setReadOnly(true);
             List<GlobalConnections> globalConnections =  query.getResultList();
             if(globalConnections != null && !globalConnections.isEmpty()) {
                 return globalConnections.get(0);
@@ -1007,6 +1022,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
             String hql = "DELETE GlobalConnectionSecurity security where security.globalConnections.globalId=:globalId";
             Query query = getSession().createQuery(hql);
             query.setParameter("globalId", globalId);
+            query.setCacheable(true);
+            query.setReadOnly(true);
             return query.executeUpdate();
         }
         catch (Exception e) {
@@ -1076,7 +1093,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         try {
             Query query = session.createQuery("FROM DSExtraOption where  globalConnection.globalId =:globalId");
             query.setParameter("globalId", globalId);
-
+            query.setCacheable(true);
+            query.setReadOnly(true);
             @SuppressWarnings("unchecked")
             List<DSExtraOption> extraOptionList =   query.list();
             if ( extraOptionList != null && !extraOptionList.isEmpty()) {
@@ -1099,7 +1117,8 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
 	    try {
 	        Query query = session.createQuery("FROM DSExtraOption where globalConnection.globalId = :globalId");
 	        query.setParameter("globalId", globalID);
-	        
+	        query.setCacheable(true);
+            query.setReadOnly(true);
 	        @SuppressWarnings("unchecked")
 	        List<DSExtraOption> extraOptionList = query.list();
 	        if (extraOptionList != null && !extraOptionList.isEmpty()) {

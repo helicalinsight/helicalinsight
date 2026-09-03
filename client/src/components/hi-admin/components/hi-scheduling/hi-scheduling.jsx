@@ -40,8 +40,10 @@ import {
 import { useSystemScheduleEditors } from "./SystemScheduleEditors";
 import {
   fetchSystemScheduledList,
+  friendlyScheduleName,
   isSystemScheduleRecord,
   runSystemScheduleAction,
+  scheduleDescription,
 } from "./system-schedule.utils";
 
 let tableVirtualProps = {};
@@ -409,11 +411,37 @@ const HIScheduling = ({ apiRef, handleAbort }) => {
         : {}),
     },
     {
-      title: "Job Id",
+      title: showSystemSchedules ? "Name" : "Job Id",
       dataIndex: "jobId",
       className: "table-ellipsis",
-      width: 160,
-      sorter: (a, z) => String(a.jobId).localeCompare(String(z.jobId)),
+      width: showSystemSchedules ? 240 : 160,
+      sorter: (a, z) => {
+        if (showSystemSchedules || isSystemScheduleRecord(a) || isSystemScheduleRecord(z)) {
+          return friendlyScheduleName(a).localeCompare(friendlyScheduleName(z));
+        }
+        return String(a.jobId).localeCompare(String(z.jobId));
+      },
+      render: (jobId, record) => {
+        if (!showSystemSchedules && !isSystemScheduleRecord(record)) {
+          return jobId;
+        }
+        const name = friendlyScheduleName(record);
+        const description = scheduleDescription(record);
+        return (
+          <span className="scheduling-job-name" title={jobId}>
+            <span className="scheduling-job-name__text">{name}</span>
+            {description ? (
+              <Tooltip title={description} placement="topLeft">
+                <InfoCircleOutlined
+                  className="scheduling-job-name__info"
+                  aria-label={description}
+                  onClick={(event) => event.stopPropagation()}
+                />
+              </Tooltip>
+            ) : null}
+          </span>
+        );
+      },
     },
     ...(!showSystemSchedules
       ? [

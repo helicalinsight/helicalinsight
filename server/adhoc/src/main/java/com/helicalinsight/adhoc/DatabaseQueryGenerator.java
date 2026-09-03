@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.helicalinsight.adhoc.genericsql.CustomUsedColumnsDeriver;
 import com.helicalinsight.adhoc.genericsql.IQueryGenerator;
 import com.helicalinsight.adhoc.metadata.jaxb.Metadata;
 import com.helicalinsight.datasource.GsonUtility;
@@ -111,6 +112,8 @@ public class DatabaseQueryGenerator implements IComponent {
                 }
             }
         }
+
+        CustomUsedColumnsDeriver.enrich(formDataJson, metadataFileJson);
 
         String query = queryGenerator.prepareQuery(metadataFileJson, formDataJson.toString());
 

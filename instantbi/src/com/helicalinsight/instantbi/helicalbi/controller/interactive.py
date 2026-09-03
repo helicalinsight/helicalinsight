@@ -259,16 +259,29 @@ def register(flask_app) -> None:
                 result["sql"] = as_sql_markdown(formatted_sql)
 
             # Prefer sql_to_formdata Adhoc formData already on viz_form_data.
-            # Do not overwrite it with fetchData {query: base64 SQL, columns: []} —
-            # InstantBI treats ``query`` as raw SQL and skips column-based generation.
+            # Viz skip (SQL error) still needs columns from the generated SQL;
+            # empty viz is expected because executeQuery did not return rows.
+            # Do not overwrite Adhoc formData with fetchData {query, columns: []}.
             if not isinstance(result.get("viz_form_data"), dict):
                 try:
-                    form_data = _sql_to_data_model(
+                    from helicalbi.viz.viz_model_fill import _try_sql_to_form_data
+
+                    form_data = _try_sql_to_form_data(
                         formatted_sql or raw_sql,
-                        location=md_location,
-                        metadata_dir=md_location,
-                        metadata_file_name=med_file_name,
+                        session_cookie=session_cookie,
+                        md_location=md_location,
+                        md_file_name=med_file_name,
+                        dialect=result.get("dialect") or metadata_fun_ref.get("reference"),
+                        metadata=actual_md,
+                        catalog=metadata_fun_ref,
                     )
+                    if form_data is None:
+                        form_data = _sql_to_data_model(
+                            formatted_sql or raw_sql,
+                            location=md_location,
+                            metadata_dir=md_location,
+                            metadata_file_name=med_file_name,
+                        )
                     if form_data is not None:
                         result["viz_form_data"] = form_data
                 except Exception:
@@ -280,8 +293,9 @@ def register(flask_app) -> None:
                     )
 
             set_total_time_consumed(result, time.perf_counter() - request_started)
-            chat_response_dict = ChatResponse.from_model_state(result).to_dict()
-            to_send["chat_response"] = chat_response_dict
+            chat_response = ChatResponse.from_model_state(result)
+            chat_response_dict = chat_response.to_dict()
+            to_send["chat_response"] = chat_response.to_interactive_client_dict()
             if chat_response_dict.get("error"):
                 to_send["error"] = chat_response_dict["error"]
 
@@ -315,7 +329,8 @@ def register(flask_app) -> None:
             to_send["error"] = error_message
             to_send["aborted"] = True
             if isinstance(result, dict):
-                to_send["chat_response"] = ChatResponse.from_model_state(result).to_dict()
+                chat_response = ChatResponse.from_model_state(result)
+                to_send["chat_response"] = chat_response.to_interactive_client_dict()
             else:
                 to_send["chat_response"] = {}
         except Exception as e:
@@ -328,7 +343,8 @@ def register(flask_app) -> None:
             if is_debug():
                 to_send["stack"] = traceback.format_exc()
             if isinstance(result, dict):
-                to_send["chat_response"] = ChatResponse.from_model_state(result).to_dict()
+                chat_response = ChatResponse.from_model_state(result)
+                to_send["chat_response"] = chat_response.to_interactive_client_dict()
             else:
                 to_send["chat_response"] = {}
         finally:

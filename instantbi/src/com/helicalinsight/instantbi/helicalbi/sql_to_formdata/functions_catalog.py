@@ -11,36 +11,18 @@ Response shape (see functionMapping.js):
 from __future__ import annotations
 
 import copy
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from sqlglot import exp
+from sqlglot import exp, parse_one
+
+from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
 
 
 class UnmappedDatabaseFunction(Exception):
     """A SQL function in the expression is not in the getFunctions catalog."""
 
-
-# API reference string → sqlglot read dialect
-REFERENCE_TO_SQLGLOT = {
-    "postgresql": "postgres",
-    "postgres": "postgres",
-    "mysql": "mysql",
-    "mariadb": "mysql",
-    "oracle": "oracle",
-    "sqlserver": "tsql",
-    "mssql": "tsql",
-    "tsql": "tsql",
-    "hive": "hive",
-    "spark": "spark",
-    "redshift": "redshift",
-    "snowflake": "snowflake",
-    "bigquery": "bigquery",
-    "presto": "presto",
-    "trino": "trino",
-    "sqlite": "sqlite",
-    "duckdb": "duckdb",
-}
 
 # sqlglot rewritten names → catalog SQL ``value`` tokens (postgresql.xml)
 SQLGLOT_TO_CATALOG_SQL = {
@@ -111,9 +93,8 @@ class FunctionCatalog:
 
     @property
     def dialect(self) -> str:
-        """sqlglot dialect derived from response.reference."""
-        ref = (self.reference or "").lower().strip()
-        return REFERENCE_TO_SQLGLOT.get(ref, ref or "postgres")
+        """sqlglot dialect from getFunctions ``reference`` via DialectMapper."""
+        return resolve_sqlglot_dialect(self.reference) or "postgres"
 
     def is_aggregate(self, sql_fn_name: str) -> bool:
         return bool(self.aggregate_key(sql_fn_name))
@@ -225,6 +206,8 @@ class FunctionCatalog:
             built = self._build_extract_function(expr, **kwargs)
             if built is not None:
                 return built
+            # Fall through to fuzzy signature match (all categories).
+            return self._build_from_signature_match(expr, **kwargs)
 
         # CAST is often a type wrapper, not a catalog function. Peel it unless CAST
         # itself is in getFunctions, so CAST(extract(month from col)) still maps.
@@ -245,12 +228,13 @@ class FunctionCatalog:
 
         fn_name = _sql_fn_name(expr)
         entry = self.lookup_database_fn(fn_name)
-        if not entry:
-            return None
+        if entry:
+            param_defs = [p for p in (entry.get("parameters") or []) if isinstance(p, dict)]
+            args = _func_args_for_catalog(expr, param_defs)
+            return self._fill_catalog_entry(entry, args, **kwargs)
 
-        param_defs = [p for p in (entry.get("parameters") or []) if isinstance(p, dict)]
-        args = _func_args_for_catalog(expr, param_defs)
-        return self._fill_catalog_entry(entry, args, **kwargs)
+        # Name miss → fuzzy-match SQL against catalog signatures (all categories).
+        return self._build_from_signature_match(expr, **kwargs)
 
     def _build_extract_function(
         self,
@@ -304,6 +288,83 @@ class FunctionCatalog:
                 return entry
         return None
 
+    def match_signature(
+        self,
+        sql: str,
+    ) -> tuple[dict[str, Any], dict[str, str]] | None:
+        """
+        Fuzzy-match a SQL expression against getFunctions signatures (all categories).
+
+        Prefers more-specific signatures (more literal tokens), e.g.
+        ``extract(month from ${datetime})`` over ``extract(${unit} from ${date})``.
+        Description is only a weak tie-breaker; signature drives the match.
+        No LLM involved.
+        """
+        normalized = _normalize_signature_text(sql)
+        if not normalized:
+            return None
+
+        best: tuple[dict[str, Any], dict[str, str], float] | None = None
+        for entry in self.database_fn_by_key.values():
+            signature = str(entry.get("signature") or "").strip()
+            if not signature:
+                continue
+            compiled = _compile_signature_pattern(signature)
+            if compiled is None:
+                continue
+            pattern, specificity = compiled
+            match = pattern.fullmatch(normalized)
+            if not match:
+                continue
+            captures = {k: (v or "").strip() for k, v in match.groupdict().items()}
+            score = float(specificity)
+            # Weak description boost when distinctive SQL tokens appear in description.
+            desc = str(entry.get("description") or "").lower()
+            if desc:
+                skip = {"from", "as", "and", "or", "the", "for", "with", "into"}
+                for token in re.findall(r"[a-z_]{3,}", normalized):
+                    if token in skip:
+                        continue
+                    if token in desc:
+                        score += 0.1
+                        break
+            if best is None or score > best[2]:
+                best = (entry, captures, score)
+
+        if best is None:
+            return None
+        return best[0], best[1]
+
+    def _build_from_signature_match(
+        self,
+        expr: exp.Expression,
+        *,
+        dialect: str,
+        database_name: str,
+        table_alias: str,
+        table_aliases: dict[str, str] | None,
+    ) -> dict[str, Any] | None:
+        sql_text = expr.sql(dialect=dialect)
+        hit = self.match_signature(sql_text)
+        if hit is None:
+            return None
+        entry, captures = hit
+        kwargs = {
+            "dialect": dialect,
+            "database_name": database_name,
+            "table_alias": table_alias,
+            "table_aliases": table_aliases,
+        }
+        param_defs = [p for p in (entry.get("parameters") or []) if isinstance(p, dict)]
+        args: list[exp.Expression] = []
+        for param in param_defs:
+            name = str(param.get("name") or "")
+            text = captures.get(name, "").strip()
+            if not text:
+                return None
+            args.append(_parse_capture_arg(text, dialect=dialect))
+        return self._fill_catalog_entry(entry, args, **kwargs)
+
     def _fill_catalog_entry(
         self,
         entry: dict[str, Any],
@@ -317,6 +378,14 @@ class FunctionCatalog:
         out = copy.deepcopy(entry)
         signature = str(entry.get("signature") or "")
         param_defs = [p for p in (entry.get("parameters") or []) if isinstance(p, dict)]
+
+        # Extra SQL args must not be silently dropped (e.g. 3-arg CONCAT vs
+        # catalog concat(${string1}, ${string2})). Fail → custom fallback.
+        if len(args) > len(param_defs):
+            label = str(entry.get("value") or entry.get("key") or "function")
+            raise UnmappedDatabaseFunction(
+                f"{label}: got {len(args)} args, catalog defines {len(param_defs)}"
+            )
 
         peeled_args: list[exp.Expression] = []
         for i, arg in enumerate(args):
@@ -483,6 +552,224 @@ def to_wire_database_function(catalog_dbf: dict[str, Any] | None) -> dict[str, A
     }
 
 
+def to_wire_database_function_expression(
+    catalog_dbf: dict[str, Any] | None,
+    *,
+    metadata: dict[str, Any] | None = None,
+    dialect: str | None = None,
+) -> str | None:
+    """
+    Convert catalog-shaped (or wire-onion) databaseFunction → Helical SQL string.
+
+    Examples::
+        MONTH("travel_details"."travel_date")
+        LENGTH(CONCAT("travel_details"."destination", ' x'))
+        to_char(DATETRUNC('MONTH', "travel_details"."travel_date"), YYYY Mon)
+
+    Rules:
+    - No space between function name and ``(``.
+    - Column refs → dialect-quoted ``"table"."column"``.
+    - If signature already wraps a param in quotes (e.g. ``'${formatMask}'``),
+      pass the bare value (``YYYY Mon``) without adding quotes.
+    - Other literals stay as stored (e.g. ``'MONTH'``).
+    """
+    if not catalog_dbf or not isinstance(catalog_dbf, dict):
+        return None
+
+    name = _dbf_display_name(catalog_dbf)
+    if not name:
+        return None
+
+    resolved_dialect = dialect or str((metadata or {}).get("dialect") or "postgres")
+    signature = str(catalog_dbf.get("signature") or "")
+    params = catalog_dbf.get("parameters")
+    args: list[str] = []
+
+    if isinstance(params, list):
+        for param in params:
+            if not isinstance(param, dict):
+                continue
+            rendered = _render_dbf_param_expression(
+                param,
+                metadata=metadata,
+                dialect=resolved_dialect,
+                signature=signature,
+            )
+            if rendered is None:
+                continue
+            args.append(rendered)
+    elif isinstance(params, dict):
+        for pname, value in params.items():
+            rendered = _render_dbf_value_expression(
+                value,
+                is_column=False,
+                metadata=metadata,
+                dialect=resolved_dialect,
+                signature_already_quotes=_signature_quotes_param(signature, str(pname)),
+            )
+            if rendered is None:
+                continue
+            args.append(rendered)
+    elif params is None and isinstance(catalog_dbf.get("value"), str):
+        raw = str(catalog_dbf.get("value") or "").strip()
+        if "(" in raw:
+            return raw
+        return f"{name}()"
+
+    if not args:
+        return f"{name}()"
+    return f"{name}({', '.join(args)})"
+
+
+def _dbf_display_name(dbf: dict[str, Any]) -> str:
+    value = str(dbf.get("value") or "").strip()
+    if value and "(" not in value:
+        return value
+    key = str(dbf.get("key") or dbf.get("functionName") or "").strip()
+    if key:
+        return key.rsplit(".", 1)[-1].upper()
+    return value
+
+
+def _signature_quotes_param(signature: str, param_name: str) -> bool:
+    """True when signature already wraps ``${param}`` in quotes."""
+    if not signature or not param_name:
+        return False
+    needle = "${" + param_name + "}"
+    patterns = (
+        rf"'\s*{re.escape(needle)}\s*'",
+        rf'"\s*{re.escape(needle)}\s*"',
+    )
+    return any(re.search(p, signature, flags=re.IGNORECASE) for p in patterns)
+
+
+def _render_dbf_param_expression(
+    param: dict[str, Any],
+    *,
+    metadata: dict[str, Any] | None = None,
+    dialect: str = "postgres",
+    signature: str = "",
+) -> str | None:
+    name = str(param.get("name") or "")
+    return _render_dbf_value_expression(
+        param.get("value"),
+        is_column=bool(param.get("column")),
+        metadata=metadata,
+        dialect=dialect,
+        signature_already_quotes=_signature_quotes_param(signature, name),
+    )
+
+
+def _render_dbf_value_expression(
+    value: Any,
+    *,
+    is_column: bool,
+    metadata: dict[str, Any] | None = None,
+    dialect: str = "postgres",
+    signature_already_quotes: bool = False,
+) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, dict) and (
+        value.get("key")
+        or value.get("value")
+        or value.get("functionName")
+        or isinstance(value.get("parameters"), (list, dict))
+    ):
+        return to_wire_database_function_expression(
+            value, metadata=metadata, dialect=dialect
+        )
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    if is_column or (not _is_quoted_literal(text) and _looks_like_column_ref(text)):
+        return _column_table_column_for_expression(text, metadata, dialect)
+
+    if signature_already_quotes:
+        if _is_quoted_literal(text):
+            return text[1:-1]
+        return text
+
+    if _is_quoted_literal(text):
+        return text
+
+    if re.match(r"^[A-Za-z_][\w]*\s*\(", text):
+        return re.sub(r"^([A-Za-z_][\w]*)\s*\(", r"\1(", text)
+
+    if _looks_like_number(text) or text.upper() in {"NULL", "TRUE", "FALSE"}:
+        return text
+
+    return _quote_string_literal(text)
+
+
+def _is_quoted_literal(text: str) -> bool:
+    return (text.startswith("'") and text.endswith("'")) or (
+        text.startswith('"') and text.endswith('"')
+    )
+
+
+def _column_table_column_for_expression(
+    text: str,
+    metadata: dict[str, Any] | None,
+    dialect: str,
+) -> str:
+    """Resolve FQ / short path → dialect-quoted table.column (not alias)."""
+    cleaned = text.strip().strip('"').strip("'")
+    by_column = (metadata or {}).get("by_column") or {}
+    table = ""
+    column = ""
+    for key in (cleaned, cleaned.split(".")[-1] if "." in cleaned else ""):
+        if not key:
+            continue
+        hit = by_column.get(key)
+        if isinstance(hit, dict):
+            table = str(hit.get("table") or "").strip()
+            column = str(hit.get("column") or hit.get("alias") or "").strip()
+            if column:
+                break
+    if not column:
+        parts = [p for p in cleaned.replace('"', "").split(".") if p]
+        if len(parts) >= 2:
+            table, column = parts[-2], parts[-1]
+        elif parts:
+            column = parts[-1]
+    if table and column:
+        return f"{_quote_ident(table, dialect)}.{_quote_ident(column, dialect)}"
+    if column:
+        return _quote_ident(column, dialect)
+    return cleaned
+
+
+def _quote_ident(name: str, dialect: str) -> str:
+    """Dialect-aware identifier quoting for table/column segments."""
+    ident = str(name or "").strip().strip('"').strip("`").strip("[]")
+    if not ident:
+        return ident
+    d = (dialect or "postgres").lower()
+    if d in {"mysql", "mariadb", "hive", "spark", "bigquery"}:
+        return "`" + ident.replace("`", "``") + "`"
+    if d in {"tsql", "mssql", "sqlserver"}:
+        return "[" + ident.replace("]", "]]") + "]"
+    return '"' + ident.replace('"', '""') + '"'
+
+
+def _looks_like_column_ref(text: str) -> bool:
+    """Guess FQ column paths (contain ``.``) when ``column`` flag is absent."""
+    if not text or any(ch in text for ch in "()'"):
+        return False
+    return "." in text
+
+
+def _looks_like_number(text: str) -> bool:
+    return bool(re.fullmatch(r"[-+]?\d+(\.\d+)?", text))
+
+
+def _quote_string_literal(text: str) -> str:
+    return "'" + text.replace("'", "''") + "'"
+
+
 def _sql_fn_name(node: exp.Func) -> str:
     """Resolve SQL function name, including Anonymous (unknown) calls."""
     if isinstance(node, exp.Anonymous):
@@ -635,6 +922,72 @@ def _fq_column_ref(
     name = col.name
     parts = [p for p in (database_name, table, name) if p]
     return ".".join(parts) if parts else name
+
+
+def _normalize_signature_text(text: str) -> str:
+    """Lowercase + collapse whitespace for signature comparison."""
+    return re.sub(r"\s+", " ", str(text or "").strip().lower())
+
+
+def _compile_signature_pattern(signature: str) -> tuple[re.Pattern[str], int] | None:
+    """
+    Turn ``extract(month from ${datetime})`` into a regex with named groups.
+
+    Specificity = count of literal word tokens (prefer MONTH over generic EXTRACT).
+    """
+    sig = _normalize_signature_text(signature)
+    if not sig:
+        return None
+
+    parts: list[str] = []
+    specificity = 0
+    pos = 0
+    for match in re.finditer(r"\$\{([^}]+)\}", sig):
+        literal = sig[pos : match.start()]
+        if literal:
+            specificity += len(re.findall(r"[a-z0-9_]+", literal))
+            parts.append(_escape_signature_literal(literal))
+        name = re.sub(r"[^a-zA-Z0-9_]", "_", match.group(1))
+        if not name:
+            return None
+        # Non-greedy capture; commas/parens balanced enough for flat signatures.
+        parts.append(f"(?P<{name}>.+?)")
+        pos = match.end()
+    trailing = sig[pos:]
+    if trailing:
+        specificity += len(re.findall(r"[a-z0-9_]+", trailing))
+        parts.append(_escape_signature_literal(trailing))
+    if not parts:
+        return None
+    try:
+        return re.compile("^" + "".join(parts) + "$", re.IGNORECASE), specificity
+    except re.error:
+        return None
+
+
+def _escape_signature_literal(literal: str) -> str:
+    """Escape literal signature text but keep whitespace flexible."""
+    escaped = re.escape(literal)
+    return escaped.replace(r"\ ", r"\s+")
+
+
+def _parse_capture_arg(text: str, *, dialect: str) -> exp.Expression:
+    """Parse a signature-capture fragment back into a sqlglot expression."""
+    try:
+        parsed = parse_one(text, read=dialect)
+        if isinstance(parsed, exp.Expression):
+            return parsed
+    except Exception:
+        pass
+    # Bare identifier / dotted column
+    cleaned = text.strip().strip("'\"")
+    if re.fullmatch(r"[A-Za-z_][\w.]*(?:\"[^\"]+\")?", cleaned):
+        parts = [p for p in cleaned.replace('"', "").split(".") if p]
+        if len(parts) >= 2:
+            return exp.column(parts[-1], table=".".join(parts[:-1]))
+        if parts:
+            return exp.column(parts[0])
+    return exp.Literal.string(cleaned)
 
 
 def _restore_postgres_format(fmt: str) -> str:

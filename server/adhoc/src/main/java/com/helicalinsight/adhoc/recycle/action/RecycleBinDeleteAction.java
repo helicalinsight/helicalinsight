@@ -2,23 +2,24 @@ package com.helicalinsight.adhoc.recycle.action;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.helicalinsight.adhoc.recycle.factory.RecycleBinHandlerFactory;
-import com.helicalinsight.adhoc.recycle.handler.RecycleBinHandler;
+import com.helicalinsight.adhoc.recycle.PurgeEligibility;
+import com.helicalinsight.adhoc.recycle.RecycleBinPurgeEligibility;
+import com.helicalinsight.adhoc.recycle.RecycleBinPurgePlanner;
 import com.helicalinsight.admin.dto.RecycleBinDTO;
-import com.helicalinsight.admin.model.HIRecycleBin;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.utils.JacksonUtility;
+import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 
 /**
@@ -38,50 +39,64 @@ public class RecycleBinDeleteAction extends RecycleBinAction {
 	private HIRecycleBinService recycleBinService;
 	
 	@Autowired
-	private Deletable deletable;
+	private RecycleBinPurgeEligibility purgeEligibility;
 	
-	/**
-	* Performs the action of deleting the specified items from the recycle bin. It processes
-	* each item ID provided in the JSON array from the form data and uses the {@code Deletable}
-	* class to check if the item can be deleted. If the 'force' option is not present and an item
-	* cannot be deleted, it is marked as incomplete.
-	*
-	* @return String JSON string representing the status of the delete operation including
-	*               messages and IDs of completed and incomplete items.
-	* @throws EfwServiceException if no resource IDs are provided for deletion.
-	*/
+	@Autowired
+	private RecycleBinPurgePlanner purgePlanner;
+	
 	@Override
 	public String performAction() {
 		ObjectNode response = JacksonUtility.emptyNode();
 		JsonObject formData = getFormData();
-		Map<String,List<Long>> recycleBinIds = new HashMap<>();
-		recycleBinIds.put(COMPLETED, new ArrayList<>());
-		recycleBinIds.put(INCOMPLETE, new ArrayList<>());
+		
+		Map<String, Set<Long>> recycleBinIds = new HashMap<>();
 		
 		JsonArray jsonArray =  formData.getAsJsonArray("recycleBinIds");
+		
 		if(jsonArray.isEmpty()) {
 			throw new EfwServiceException("Please provide resource(s) to delete.");
 		}
 		
-		boolean hasAnyIncomplete = false;
-		int size = jsonArray.size();
+		List<RecycleBinDTO> selected = new ArrayList<>();
+		
 		for(Object eachResource : jsonArray) {
 			Long recycleBinId = Long.valueOf(""+eachResource);
-			if(!deletable.check(recycleBinId,recycleBinIds) && !formData.has("force")) {
-				recycleBinIds.get(INCOMPLETE).add(recycleBinId);
-				hasAnyIncomplete = true;
+			
+			if (!recycleBinService.isRecycleBinPresent(recycleBinId)) {
 				continue;
 			}
-			if (recycleBinService.isRecycleBinPresent(recycleBinId)) {
-				RecycleBinDTO bin = recycleBinService.getHIRecycleBinById(recycleBinId);
-				RecycleBinHandler handler = RecycleBinHandlerFactory.getHandler(bin.getType().name(),"delete");
-				handler.handle(bin, Map.of());
-				recycleBinIds.get(COMPLETED).add(recycleBinId);
+			selected.add(recycleBinService.getHIRecycleBinById(recycleBinId));
+		}
+		
+		if(selected.isEmpty()) {
+			throw new EfwServiceException("Please provide resource(s) to delete.");
+		}
+		
+		boolean force = GsonUtility.optBooleanValue(formData, "force", false);
+		
+		
+		PurgeEligibility eligibility = purgeEligibility.evaluate(selected, force);
+		
+		recycleBinIds.put(COMPLETED, new LinkedHashSet<>());
+		recycleBinIds.put(INCOMPLETE, new LinkedHashSet<>(eligibility.getBlocked()));
+		
+		Map<Long,Boolean> deletedStatusMap = new HashMap<>();
+		
+		selected.forEach(bin -> deletedStatusMap.put(bin.getRecycleBinId(), false));
+		
+		int size = jsonArray.size();
+		Set<Long> purged = purgePlanner.purge(selected, eligibility, deletedStatusMap, force);
+		recycleBinIds.get(COMPLETED).addAll(purged);
+
+		for (RecycleBinDTO item : selected) {
+			Long id = item.getRecycleBinId();
+			if (eligibility.isEligible(id) && !purged.contains(id)) {
+				recycleBinIds.get(INCOMPLETE).add(id);
 			}
 		}
 		
 		response.putPOJO("recycleBin", recycleBinIds);
-		
+		boolean hasAnyIncomplete = !recycleBinIds.get(INCOMPLETE).isEmpty();
 		String message = "";
 		
 		if (hasAnyIncomplete) {

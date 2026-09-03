@@ -39,6 +39,8 @@ public class AiDataInsightServiceImplTest {
         User user = mock(User.class);
         when(principal.getUsername()).thenReturn("tester");
         when(principal.getLoggedInUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
         when(user.getRoles()).thenReturn(java.util.Collections.emptyList());
         when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
 
@@ -71,7 +73,7 @@ public class AiDataInsightServiceImplTest {
     }
 
     @Test
-    public void executeWithInstantToHrEndpointSendsInsightResponse() throws Exception {
+    public void executeWithInstantToHrEndpointSendsConvertResponse() throws Exception {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
@@ -80,12 +82,14 @@ public class AiDataInsightServiceImplTest {
         User user = mock(User.class);
         when(principal.getUsername()).thenReturn("tester");
         when(principal.getLoggedInUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
         when(user.getRoles()).thenReturn(java.util.Collections.emptyList());
         when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
 
         IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
         when(httpService.executeCancellableCall(eq(request), any(), eq("/instant-to-hr")))
-                .thenReturn("{\"insight\":\"converted\",\"token_usage\":{\"total\":3}}");
+                .thenReturn("{\"sql_parts\":{\"columns\":[{\"column\":\"region\"}]},\"viz_parts\":{\"mark\":\"Chart\"}}");
 
         JsonObject settings = new JsonObject();
         settings.addProperty("BaseUrl", "http://localhost/hi.html");
@@ -107,7 +111,7 @@ public class AiDataInsightServiceImplTest {
             controllerUtils.verify(() -> ControllerUtils.handleSuccess(
                     eq(response),
                     eq(true),
-                    eq("{\"status\":1,\"response\":{\"insight\":\"converted\",\"token_usage\":{\"total\":3}}}")));
+                    eq("{\"status\":1,\"response\":{\"sql_parts\":{\"columns\":[{\"column\":\"region\"}]},\"viz_parts\":{\"mark\":\"Chart\"}}}")));
         }
     }
 
@@ -121,6 +125,8 @@ public class AiDataInsightServiceImplTest {
         User user = mock(User.class);
         when(principal.getUsername()).thenReturn("tester");
         when(principal.getLoggedInUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
         when(user.getRoles()).thenReturn(java.util.Collections.emptyList());
         when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
 

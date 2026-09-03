@@ -49,7 +49,7 @@
           "showSearch": true,
           "allowClear": true,
           "placeholder": "openai",
-          "description": "Provider id in llm_config.yaml. New ids are allowed; package defaults to langchain-<provider> unless mapped in providerPackages. Unknown logos use the default icon until an SVG is added.",
+          "description": "Provider identifier. New ids are allowed. Unknown logos use the default icon until an SVG is added.",
           "options": [
             { "label": "OpenAI", "value": "openai" },
             { "label": "Anthropic", "value": "anthropic" },
@@ -70,12 +70,12 @@
           "type": "select",
           "span": 12,
           "required": true,
-          "editable": true,
           "showSearch": true,
           "allowClear": true,
+          "optionFilterProp": "label",
           "options": [],
-          "placeholder": "Select or type a model id",
-          "description": "Catalog models for the package; you can also type a custom model id"
+          "placeholder": "Search and select a model",
+          "description": "Search by model name. Only catalog models for the selected provider are listed."
         },
         {
           "name": "usage_path",
@@ -89,7 +89,7 @@
           "label": "Set as default provider",
           "type": "boolean",
           "control": "tick",
-          "span": 12
+          "span": 24
         }
       ]
     }

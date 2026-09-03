@@ -1,0 +1,13 @@
+Use this table to pick exactly one templateId before placing widgets.
+If the mix is imperfect, choose the closest fit. Do not invent charts to fill empty slots.
+
+templateId                 | Pick when
+---------------------------|--------------------------------------------------------------
+executive-kpi-first        | Management / exec view. Several KPIs plus a trend and 1-2 breakdowns.
+analytical-grid            | Analysts investigating. Shared filters, side-by-side charts, a detail table.
+storytelling-narrative     | Guide the reader: overview → what happened → why/where → details.
+dashboard-sidebar          | Many filters or navigation; keep slicers in a left rail.
+mosaic-freeform            | Mixed sizes; one dominant viz plus smaller tiles (designer-like).
+comparison                 | Side-by-side periods, regions, products, departments, or similar pairs.
+drilldown-hierarchical     | Company → region → product → transaction style drill path.
+operational-realtime       | Monitoring: status KPIs, live chart, alerts/feed, event table.

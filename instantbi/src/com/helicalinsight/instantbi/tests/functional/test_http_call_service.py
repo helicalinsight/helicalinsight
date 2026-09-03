@@ -55,6 +55,39 @@ class TestFetchServiceApi:
 
         session.cookies.set.assert_called_once_with("JSESSIONID", session_cookie)
 
+    def test_sends_forwarded_jwt_headers(self, session_cookie):
+        session = self._session_with_status(200, {"status": 1, "response": {}})
+        set_api_cache_identity(
+            "alice",
+            "acme",
+            headers={"Authorization": "Bearer jwt-token", "type": "jwt", "Host": "hi.example"},
+            request_params={"authToken": "Bearer jwt-token"},
+        )
+        with patch(
+            "helicalbi.api.HttpCallService.requests.Session", return_value=session
+        ):
+            fetch_service_api(session_cookie=session_cookie, service_json={"service": "x"})
+
+        posted_headers = session.post.call_args.kwargs["headers"]
+        assert posted_headers["Authorization"] == "Bearer jwt-token"
+        assert posted_headers["type"] == "jwt"
+        assert posted_headers["authToken"] == "Bearer jwt-token"
+        assert "Host" not in posted_headers
+
+    def test_jwt_without_session_cookie_still_posts_authorization(self):
+        session = self._session_with_status(200, {"status": 1, "response": {}})
+        set_api_cache_identity(
+            "alice",
+            headers={"Authorization": "Bearer jwt-token", "type": "jwt"},
+        )
+        with patch(
+            "helicalbi.api.HttpCallService.requests.Session", return_value=session
+        ):
+            fetch_service_api(session_cookie="", service_json={"service": "x"})
+
+        session.cookies.set.assert_not_called()
+        assert session.post.call_args.kwargs["headers"]["Authorization"] == "Bearer jwt-token"
+
     def test_posts_to_services_endpoint(self, session_cookie):
         session = self._session_with_status(200, {"status": 1, "response": {}})
         with patch(

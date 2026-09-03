@@ -80,10 +80,6 @@ const HrJsonEditor = ({ reportId, getApi }) => {
   };
 
   const handleApplyJson = () => {
-    if (!activeReport?.metadata) {
-      notifyFrontend(dispatch, "warning", "Metadata not found");
-      return;
-    }
     try {
       const parsedReportState = parseReportJsonText(jsonText);
       const mergedReport = mergeReportJsonIntoReport(
@@ -162,7 +158,7 @@ const HrJsonEditor = ({ reportId, getApi }) => {
 
   return (
     <Drawer
-      title="JSON Editor"
+      title="Report Spec"
       placement="right"
       width="45%"
       visible

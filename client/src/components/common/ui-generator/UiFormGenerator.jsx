@@ -132,14 +132,16 @@ export const UiFormGenerator = ({
                       .filter((field) => isFieldVisible(field, values))
                       .map((field) => {
                         const tickInline = isTickField(field);
+                        const labelNode = labelWithInfo(
+                          toSentenceCaseLabel(field.label || field.name),
+                          field.description || field.help
+                        );
                         return (
                           <Col key={field.name} span={resolveFieldSpan(field, columns)}>
                             <Form.Item
                               name={field.name}
-                              label={labelWithInfo(
-                                toSentenceCaseLabel(field.label || field.name),
-                                field.description || field.help
-                              )}
+                              label={tickInline ? undefined : labelNode}
+                              colon={!tickInline}
                               valuePropName={
                                 field.type === "boolean" || field.type === "switch"
                                   ? "checked"
@@ -147,11 +149,14 @@ export const UiFormGenerator = ({
                               }
                               rules={getFieldRules(field)}
                               className={
-                                tickInline ? "ui-form-item--tick-inline" : undefined
+                                tickInline ? "ui-form-item--checkbox" : undefined
                               }
                               style={dense ? { marginBottom: 12 } : undefined}
                             >
-                              {renderFieldControl(field, { isAdd })}
+                              {renderFieldControl(field, {
+                                isAdd,
+                                label: tickInline ? labelNode : undefined,
+                              })}
                             </Form.Item>
                           </Col>
                         );

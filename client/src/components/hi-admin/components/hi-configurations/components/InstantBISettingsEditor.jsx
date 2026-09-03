@@ -9,12 +9,13 @@ import {
   Input,
   Row,
   Space,
-  Spin,
+  Skeleton,
   Tabs,
   Tooltip,
 } from "antd";
 import {
   CheckCircleFilled,
+  EditOutlined,
   MinusCircleOutlined,
   PlusCircleFilled,
   PlusOutlined,
@@ -22,6 +23,8 @@ import {
   CloseOutlined,
   SyncOutlined,
   SaveOutlined,
+  EyeOutlined,
+  EyeInvisibleOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { cloneDeep } from "lodash";
@@ -33,6 +36,7 @@ import requests from "../../../../../base/requests";
 import { uriConfig } from "../../../../../base/requests/instantbi.requests";
 import { uriConfig as uriConfigAdmin } from "../../../../../base/requests/admin.request";
 import notify from "../../../../hi-notifications/notify";
+import DatasourceSkeleton from "../../../../common/custom-icons/CustomSkeletons/DatasourceSkeleton";
 import ProviderLogo, {
   displayProviderName,
   labelsFromProviderLayout,
@@ -87,6 +91,11 @@ const layoutPayloadForWrite = (layout) => {
     (section.fields || []).forEach((field) => {
       if (field.name === "model") {
         field.options = [];
+        field.loading = false;
+        field.editable = false;
+        field.allowCustom = false;
+        field.showSearch = true;
+        field.optionFilterProp = "label";
       }
     });
   });
@@ -174,15 +183,21 @@ const ParameterKeyInput = ({ value, onChange, ...rest }) => {
   const [draft, setDraft] = useState(
     hasStoredKey ? snakeToTitleLabel(value) : ""
   );
-  const [locked, setLocked] = useState(hasStoredKey);
+  const [editing, setEditing] = useState(!hasStoredKey);
 
   useEffect(() => {
-    const nextLocked = Boolean(String(value || "").trim());
-    setLocked(nextLocked);
-    setDraft(nextLocked ? snakeToTitleLabel(value) : "");
+    const nextHasKey = Boolean(String(value || "").trim());
+    setDraft(nextHasKey ? snakeToTitleLabel(value) : "");
+    setEditing(!nextHasKey);
   }, [value]);
 
-  if (locked) {
+  const commitDraft = () => {
+    const snake = displayToSnakeKey(draft);
+    onChange?.(snake);
+    if (snake) setEditing(false);
+  };
+
+  if (!editing) {
     return (
       <Input
         {...rest}
@@ -190,6 +205,15 @@ const ParameterKeyInput = ({ value, onChange, ...rest }) => {
         className="instantbi-settings-editor__param-key-readonly"
         value={snakeToTitleLabel(value)}
         title={value}
+        suffix={
+          <Tooltip title="Edit parameter">
+            <EditOutlined
+              className="instantbi-settings-editor__param-edit"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => setEditing(true)}
+            />
+          </Tooltip>
+        }
       />
     );
   }
@@ -197,17 +221,56 @@ const ParameterKeyInput = ({ value, onChange, ...rest }) => {
   return (
     <Input
       {...rest}
+      autoFocus={hasStoredKey}
       value={draft}
       placeholder="Key (e.g. Max Tokens)"
       onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => {
-        const snake = displayToSnakeKey(draft);
-        onChange?.(snake);
-        if (snake) setLocked(true);
-      }}
+      onBlur={commitDraft}
+      onPressEnter={commitDraft}
     />
   );
 };
+
+const SecretInput = ({
+  value,
+  onChange,
+  placeholder,
+  id,
+  visible = false,
+  onVisibleChange,
+}) => (
+  <Input
+    id={id}
+    value={value ?? ""}
+    onChange={onChange}
+    placeholder={placeholder}
+    autoComplete="new-password"
+    type={visible ? "text" : "password"}
+    className={
+      visible
+        ? "instantbi-settings-editor__secret-input--visible"
+        : "instantbi-settings-editor__secret-input--masked"
+    }
+    suffix={
+      <span
+        role="button"
+        tabIndex={0}
+        className="instantbi-settings-editor__secret-toggle"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => onVisibleChange?.(!visible)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onVisibleChange?.(!visible);
+          }
+        }}
+        aria-label={visible ? "Hide API key" : "Show API key"}
+      >
+        {visible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+      </span>
+    }
+  />
+);
 
 const CANONICAL_PROVIDER_RANK = {
   "google-genai": 0,
@@ -218,7 +281,7 @@ const CANONICAL_PROVIDER_RANK = {
   mistral: 1,
 };
 
-/** One card per LangChain package (hides gemini + google-genai duplicates). */
+/** One card per provider package (hides gemini + google-genai duplicates). */
 const dedupeProvidersByPackage = (rows = []) => {
   const byPackage = new Map();
   rows.forEach((row) => {
@@ -247,13 +310,13 @@ const dedupeProvidersByPackage = (rows = []) => {
   return Array.from(byPackage.values());
 };
 
-const setFieldOptions = (layout, fieldName, options) => {
+const patchLayoutField = (layout, fieldName, patch = {}) => {
   const next = cloneDeep(layout || { sections: [] });
   const walk = (sections = []) => {
     sections.forEach((section) => {
       (section.fields || []).forEach((field) => {
         if (field.name === fieldName) {
-          field.options = options;
+          Object.assign(field, patch);
         }
       });
       if (Array.isArray(section.sections) && section.sections.length) {
@@ -264,6 +327,9 @@ const setFieldOptions = (layout, fieldName, options) => {
   walk(next.sections || []);
   return next;
 };
+
+const setFieldOptions = (layout, fieldName, options) =>
+  patchLayoutField(layout, fieldName, { options });
 
 const getFieldOptions = (layout, fieldName) => {
   let options = [];
@@ -336,7 +402,6 @@ const InstantBISettingsEditor = () => {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [modelsLoading, setModelsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [manifest, setManifest] = useState(null);
   const [layouts, setLayouts] = useState({});
@@ -346,6 +411,7 @@ const InstantBISettingsEditor = () => {
   const [providerDrawerOpen, setProviderDrawerOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState(null);
   const [providerAdvancedOpen, setProviderAdvancedOpen] = useState(false);
+  const [apiKeyVisible, setApiKeyVisible] = useState(false);
   const [providerSearchOpen, setProviderSearchOpen] = useState(false);
   const [providerFilter, setProviderFilter] = useState("");
   const providerOptionCatalogRef = useRef([]);
@@ -353,7 +419,7 @@ const InstantBISettingsEditor = () => {
   const endpoints = useMemo(
     () => ({
       settings: uriConfig.instantBIUtilitySettings,
-      models: `${uriConfig.instantBIUtilityPrefix}/llm/models`,
+      models: uriConfig.instantBISettingsModels,
       defaultProvider: `${uriConfig.instantBIUtilityPrefix}/llm/default-provider`,
       upsertProvider: `${uriConfig.instantBIUtilityPrefix}/llm/provider`,
       appConfig: `${uriConfig.instantBIUtilityPrefix}/app-config`,
@@ -378,6 +444,15 @@ const InstantBISettingsEditor = () => {
   const applyBootstrap = useCallback(
     async (boot, layoutMap) => {
       const providerRows = boot.providers || boot.llm?.providers || [];
+      if (layoutMap.provider) {
+        layoutMap.provider = patchLayoutField(layoutMap.provider, "model", {
+          editable: false,
+          allowCustom: false,
+          showSearch: true,
+          optionFilterProp: "label",
+          loading: false,
+        });
+      }
       setProviders(providerRows);
       setLayouts((prev) => ({ ...prev, ...layoutMap }));
       setProviderLabels(labelsFromProviderLayout(layoutMap.provider));
@@ -471,11 +546,18 @@ const InstantBISettingsEditor = () => {
       if (!pkg) {
         setLayouts((prev) => ({
           ...prev,
-          provider: setFieldOptions(prev.provider, "model", []),
+          provider: patchLayoutField(
+            setFieldOptions(prev.provider, "model", []),
+            "model",
+            { loading: false }
+          ),
         }));
         return { catalog_known: false, models: [] };
       }
-      setModelsLoading(true);
+      setLayouts((prev) => ({
+        ...prev,
+        provider: patchLayoutField(prev.provider, "model", { loading: true }),
+      }));
       try {
         const modelsRes = await utilityRequest(dispatch, endpoints.models, {
           package: pkg,
@@ -493,7 +575,11 @@ const InstantBISettingsEditor = () => {
         }
         setLayouts((prev) => ({
           ...prev,
-          provider: setFieldOptions(prev.provider, "model", options),
+          provider: patchLayoutField(
+            setFieldOptions(prev.provider, "model", options),
+            "model",
+            { loading: false }
+          ),
         }));
         // Unknown packages return an empty catalog — not an error.
         return {
@@ -501,17 +587,19 @@ const InstantBISettingsEditor = () => {
           models,
         };
       } catch (err) {
-        // Soft-fail: allow typing a custom model id for new providers.
+        // Soft-fail: allow selecting the current model id if the catalog is unavailable.
         const fallback = currentModel
           ? [{ label: currentModel, value: currentModel }]
           : [];
         setLayouts((prev) => ({
           ...prev,
-          provider: setFieldOptions(prev.provider, "model", fallback),
+          provider: patchLayoutField(
+            setFieldOptions(prev.provider, "model", fallback),
+            "model",
+            { loading: false }
+          ),
         }));
         return { catalog_known: false, models: [] };
-      } finally {
-        setModelsLoading(false);
       }
     },
     [dispatch, endpoints.models]
@@ -549,6 +637,7 @@ const InstantBISettingsEditor = () => {
     setProviderDrawerOpen(false);
     setEditingProvider(null);
     setProviderAdvancedOpen(false);
+    setApiKeyVisible(false);
     providerForm.resetFields();
   };
 
@@ -569,6 +658,7 @@ const InstantBISettingsEditor = () => {
   const openAddProvider = () => {
     setEditingProvider(null);
     setProviderAdvancedOpen(false);
+    setApiKeyVisible(false);
     providerForm.resetFields();
     providerForm.setFieldsValue({
       usage_path: "usage_metadata",
@@ -578,7 +668,10 @@ const InstantBISettingsEditor = () => {
     setLayouts((prev) => ({
       ...prev,
       provider: applyProviderSelectOptions(
-        setFieldOptions(prev.provider, "model", [])
+        patchLayoutField(prev.provider, "model", {
+          options: [],
+          loading: false,
+        })
       ),
     }));
     setProviderDrawerOpen(true);
@@ -588,7 +681,8 @@ const InstantBISettingsEditor = () => {
     setEditingProvider(row?.provider || null);
     const params = row.parameters || {};
     const paramEntries = ensureApiKeyEntries(parametersToEntries(params));
-    setProviderAdvancedOpen(false);
+    setProviderAdvancedOpen(true);
+    setApiKeyVisible(false);
     providerForm.setFieldsValue({
       provider: row.provider,
       model: row.model,
@@ -717,11 +811,8 @@ const InstantBISettingsEditor = () => {
       const name = displayProviderName(row.provider).toLowerCase();
       const provider = String(row.provider || "").toLowerCase();
       const model = String(row.model || "").toLowerCase();
-      return (
-        name.includes(query) ||
-        provider.includes(query) ||
-        model.includes(query)
-      );
+      if (model && model.includes(query)) return true;
+      return name.includes(query) || provider.includes(query);
     });
   }, [providers, providerFilter]);
 
@@ -782,38 +873,43 @@ const InstantBISettingsEditor = () => {
 
   return (
     <div className="instantbi-settings-editor">
-      <Spin spinning={loading}>
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          tabBarExtraContent={
-            <Tooltip title="Refresh">
-              <Button
-                size="small"
-                icon={<SyncOutlined spin={loading} />}
-                onClick={() => setReloadKey((key) => key + 1)}
-              />
-            </Tooltip>
-          }
-        >
-          <Tabs.TabPane tab="LLM Providers" key="llm">
-            <div className="instantbi-settings-editor__panel">
-              <div className="instantbi-provider-toolbar">
-                {providerSearchOpen ? (
-                  <Input
-                    allowClear
-                    autoFocus
-                    size="small"
-                    placeholder="Search providers"
-                    value={providerFilter}
-                    onChange={(event) => setProviderFilter(event.target.value)}
-                    className="instantbi-provider-search"
-                    prefix={<SearchOutlined />}
-                  />
-                ) : (
-                  <span className="instantbi-provider-toolbar-spacer" />
-                )}
-                <Tooltip title={providerSearchOpen ? "Hide search" : "Search providers"}>
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        tabBarExtraContent={
+          <Tooltip title="Refresh">
+            <Button
+              size="small"
+              icon={<SyncOutlined spin={loading} />}
+              onClick={() => setReloadKey((key) => key + 1)}
+            />
+          </Tooltip>
+        }
+      >
+        <Tabs.TabPane tab="LLM Providers" key="llm">
+          <div className="instantbi-settings-editor__panel">
+            <div className="instantbi-provider-toolbar">
+              {providerSearchOpen ? (
+                <Input
+                  allowClear
+                  autoFocus
+                  size="small"
+                  placeholder="Search by provider or model"
+                  value={providerFilter}
+                  onChange={(event) => setProviderFilter(event.target.value)}
+                  className="instantbi-provider-search"
+                  prefix={<SearchOutlined />}
+                />
+              ) : (
+                <span className="instantbi-provider-toolbar-spacer" />
+              )}
+              <Tooltip
+                title={providerSearchOpen ? "Hide search" : "Search providers or models"}
+                placement="bottomRight"
+                mouseEnterDelay={0.3}
+                overlayClassName="instantbi-provider-search-tooltip"
+              >
+                <span className="instantbi-provider-search-trigger">
                   <Button
                     size="small"
                     icon={providerSearchOpen ? <CloseOutlined /> : <SearchOutlined />}
@@ -825,15 +921,19 @@ const InstantBISettingsEditor = () => {
                         return !open;
                       });
                     }}
-                    aria-label="Search providers"
+                    aria-label="Search providers or models"
                   />
-                </Tooltip>
-              </div>
-              <Card bordered={false} className="instantbi-provider-card">
-                {providers.length ? (
-                  filteredProviders.length || !providerFilter ? (
-                    <>
-                      {filteredProviders.map((row) => renderProviderCard(row))}
+                </span>
+              </Tooltip>
+            </div>
+            <Card bordered={false} className="instantbi-provider-card">
+              {loading ? (
+                <DatasourceSkeleton />
+              ) : providers.length ? (
+                filteredProviders.length ? (
+                  <>
+                    {filteredProviders.map((row) => renderProviderCard(row))}
+                    {!providerFilter ? (
                       <Card.Grid
                         className="instantbi-provider-gridstyle instantbi-provider-gridstyle--add"
                         onClick={openAddProvider}
@@ -842,59 +942,65 @@ const InstantBISettingsEditor = () => {
                         <PlusCircleFilled className="instantbi-provider-add-icon" />
                         <span className="instantbi-provider-title">Add Provider</span>
                       </Card.Grid>
-                    </>
-                  ) : (
-                    <Empty
-                      image={Empty.PRESENTED_IMAGE_SIMPLE}
-                      description="No matching providers"
-                      style={{ width: "100%", padding: "24px 0" }}
-                    />
-                  )
+                    ) : null}
+                  </>
                 ) : (
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="No providers configured"
+                    description="No matching providers or models"
                     style={{ width: "100%", padding: "24px 0" }}
-                  >
-                    <Button type="primary" icon={<PlusOutlined />} onClick={openAddProvider}>
-                      Add provider
-                    </Button>
-                  </Empty>
-                )}
-              </Card>
-            </div>
-          </Tabs.TabPane>
-          <Tabs.TabPane tab="Developer Settings" key="developer">
-            <div className="instantbi-settings-editor__panel">
-              <UiFormGenerator
-                form={loggingForm}
-                layout={layouts.logging}
-                dense
-                columns={2}
-                flattenNestedSections
-              />
-              <div className="instantbi-settings-editor__section-divider" />
-              <UiFormGenerator
-                form={applicationForm}
-                layout={layouts.application}
-                dense
-                columns={2}
-                flattenNestedSections
-              />
-              <Space className="instantbi-settings-editor__actions">
-                <Button
-                  type="primary"
-                  icon={<SaveOutlined />}
-                  loading={saving}
-                  onClick={saveDeveloperSettings}
+                  />
+                )
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="No providers configured"
+                  style={{ width: "100%", padding: "24px 0" }}
                 >
-                  Save settings
-                </Button>
-              </Space>
-            </div>
-          </Tabs.TabPane>
-        </Tabs>
-      </Spin>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={openAddProvider}>
+                    Add provider
+                  </Button>
+                </Empty>
+              )}
+            </Card>
+          </div>
+        </Tabs.TabPane>
+        <Tabs.TabPane tab="Developer Settings" key="developer">
+          <div className="instantbi-settings-editor__panel instantbi-settings-editor__developer">
+            {loading ? (
+              <Skeleton active paragraph={{ rows: 10 }} />
+            ) : (
+              <>
+                <UiFormGenerator
+                  form={loggingForm}
+                  layout={layouts.logging}
+                  dense
+                  columns={2}
+                  flattenNestedSections
+                />
+                <div className="instantbi-settings-editor__section-divider" />
+                <UiFormGenerator
+                  form={applicationForm}
+                  layout={layouts.application}
+                  dense
+                  columns={2}
+                  flattenNestedSections
+                />
+                <Space className="instantbi-settings-editor__actions">
+                  <Button
+                    type="primary"
+                    icon={<SaveOutlined />}
+                    loading={saving}
+                    onClick={saveDeveloperSettings}
+                  >
+                    Save settings
+                  </Button>
+                </Space>
+              </>
+            )}
+          </div>
+        </Tabs.TabPane>
+      </Tabs>
 
       <Drawer
         title={editingProvider ? `Edit Provider (${editingProvider})` : "Add Provider"}
@@ -946,16 +1052,14 @@ const InstantBISettingsEditor = () => {
               Advanced
             </Button>
           </div>
-          <Spin spinning={modelsLoading}>
-            <UiFormGenerator
-              form={providerForm}
-              layout={layouts.provider}
-              dense
-              embedded
-              hideSectionTitles
-              includeFields={PROVIDER_BASIC_FIELDS}
-            />
-          </Spin>
+          <UiFormGenerator
+            form={providerForm}
+            layout={layouts.provider}
+            dense
+            embedded
+            hideSectionTitles
+            includeFields={PROVIDER_BASIC_FIELDS}
+          />
           <Form.List name="extra_parameters">
             {(fields, { add, remove }) => {
               const entries =
@@ -981,12 +1085,17 @@ const InstantBISettingsEditor = () => {
                         <Input />
                       </Form.Item>
                       <Form.Item
+                        key={apiKeyField.key}
                         label="API Key"
                         name={[apiKeyField.name, "value"]}
                         fieldKey={[apiKeyField.fieldKey, "value"]}
                         style={{ marginBottom: 12 }}
                       >
-                        <Input.Password placeholder="API Key" />
+                        <SecretInput
+                          placeholder="API Key"
+                          visible={apiKeyVisible}
+                          onVisibleChange={setApiKeyVisible}
+                        />
                       </Form.Item>
                     </>
                   ) : null}

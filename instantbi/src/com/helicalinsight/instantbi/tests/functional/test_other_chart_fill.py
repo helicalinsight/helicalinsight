@@ -16,12 +16,13 @@ def _reload_charts():
     return charts_mod.get_charts()
 
 
-def test_bar_chart_template_still_uses_settings():
-    _reload_charts()
-    bar = get_chart_definition("bar")
-    assert bar is not None
-    assert "Return ChartSettings JSON only" in bar.template
-    assert "CHART SETTINGS TEMPLATE" in bar.template
+def test_only_other_chart_template_is_loaded():
+    charts = _reload_charts()
+    assert set(charts.keys()) == {"other"}
+    other = get_chart_definition("other")
+    assert other is not None
+    assert "DrawOther" in other.template or "STARTER TEMPLATE" in other.template
+    assert get_chart_definition("bar") is None
 
 
 def test_is_other_chart_detection():
@@ -42,8 +43,8 @@ def test_other_chart_filler_response_model():
     assert "DrawOther" in m.code
 
 
-def test_get_chart_config_omits_removed_other_chart():
+def test_get_chart_config_includes_other_only():
     _reload_charts()
     cfg = get_chart_config()
-    assert "other" not in cfg
-    assert "bar" in cfg
+    assert set(cfg.keys()) == {"other"}
+    assert "bar" not in cfg

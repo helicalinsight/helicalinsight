@@ -374,7 +374,7 @@ export const selectBuilder = (field, database, query) => {
 		query.orderBy({ [label]: orderBy[0] })
 	}
 
-	if (databaseFunction && Object.keys(databaseFunction).length) {
+	if (databaseFunction && typeof databaseFunction === "object" && Object.keys(databaseFunction).length) {
 		let { key, parameters } = databaseFunction
 		// key = databaseFunction.value
 		key = key.split(".").join("_")
@@ -1030,7 +1030,7 @@ export const setActiveReport = ({ list, index, updatedData, deleteId }) => {
 		}
 	})
 }
-const fetchMetadata = async (formData, dispatch, getApi) => {
+export const fetchMetadata = async (formData, dispatch, getApi) => {
 	return new Promise((resolve, reject) => {
 		let apiIntsance = requests.hreport(dispatch).getMetadata(formData, "", res => {
 			resolve(res)
@@ -1041,7 +1041,7 @@ const fetchMetadata = async (formData, dispatch, getApi) => {
 		typeof getApi === "function" && getApi(apiIntsance)
 	})
 }
-const fetchFunctions = async (formData, dispatch, getApi) => {
+export const fetchFunctions = async (formData, dispatch, getApi) => {
 	let { classifier, uniqueId, metadataName, metadataDir, metadataFileName } = formData;
 	let metadata = {
 		location: metadataDir,
@@ -1050,7 +1050,6 @@ const fetchFunctions = async (formData, dispatch, getApi) => {
 		metadataName,
 		metadataDir,
 	};
-	// console.log()
 	return new Promise((resolve, reject) => {
 		let apiIntsance = requests.hreport(dispatch).getFunctions(metadata, "", res => {
 			resolve(res)
@@ -1062,7 +1061,7 @@ const fetchFunctions = async (formData, dispatch, getApi) => {
 	})
 }
 
-const fetchDateFuncs = async (formData, dispatch, getApi) => {
+export const fetchDateFuncs = async (formData, dispatch, getApi) => {
 	return new Promise((resolve, reject) => {
 		let apiIntsance = requests.hreport(dispatch).getDateFunctions(formData, "", res => {
 			resolve(res)
@@ -1075,34 +1074,40 @@ const fetchDateFuncs = async (formData, dispatch, getApi) => {
 }
 
 
-export const openMetadata = async (formData, dispatch, getApi) => {
+export const openMetadata = async (formData, dispatch, getApi, responseOnly = false) => {
 	// dispatch(setMetadataLoading({ loading: true }))
-	dispatch(setHreportSidebarLoading({ loading: true }))
+	if (!responseOnly) dispatch(setHreportSidebarLoading({ loading: true }))
 	const metadataResponse = await fetchMetadata(formData, dispatch, getApi);
 	// dispatch(setMetadataLoading({ loading: true }))
 
 	// if (!metadataResponse) return dispatch(setMetadataLoading({ loading: false }))
-	if (!metadataResponse) return dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
+	if (!metadataResponse) {
+		if (!responseOnly) dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
+		return { error: true }
+	}
 
 	metadataResponse.formData = formData;
 	const functionsResponse = await fetchFunctions(metadataResponse, dispatch, getApi)
 	const dateFunctionsResponse = await fetchDateFuncs({ contentId: "Static/standardDate" }, dispatch, getApi)
 	if (metadataResponse && functionsResponse && dateFunctionsResponse) {
+		const response = {
+			metadata: manipulateMDForMultiConn({ metadata: metadataResponse }),
+			funcs: functionsResponse,
+			dateFunctions: dateFunctionsResponse || {},
+		}
+		if (responseOnly) return response;
 		dispatch(
-			loadMetadata({
-				metadata: manipulateMDForMultiConn({ metadata: metadataResponse }),
-				funcs: functionsResponse,
-				dateFunctions: dateFunctionsResponse || {},
-			})
+			loadMetadata(response)
 		);
 		// dispatch(setMetadataLoading({ loading: false }))
 		dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
-
+		return response;
 	} else {
 		// dispatch(setMetadataLoading({ loading: false }));
-		dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
+		if (!responseOnly) dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
 
 	}
+	return { error: true }
 };
 
 function getColumn(ele) {

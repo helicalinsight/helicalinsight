@@ -333,7 +333,8 @@ const getInitialIBChatState = () => {
     recommendations: [],
     recommendationsVisible: false,
     loadingRecommendation: false,
-    inputValue: ''
+    inputValue: '',
+    hreportInteractions: {}
   }
 }
 

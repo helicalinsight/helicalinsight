@@ -18,7 +18,11 @@ export const labelWithInfo = (label, description) => {
   }
   return [
     label,
-    <Tooltip key="info" title={tooltipTitle(description)}>
+    <Tooltip
+      key="info"
+      title={tooltipTitle(description)}
+      overlayStyle={{ maxWidth: 360 }}
+    >
       <QuestionCircleOutlined
         className="ui-label-info"
         aria-label="More information"

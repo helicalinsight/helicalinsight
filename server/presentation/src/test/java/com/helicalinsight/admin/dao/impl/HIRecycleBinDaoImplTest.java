@@ -6,9 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -19,8 +22,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -35,7 +38,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import com.helicalinsight.admin.dto.RecycleBinDTO;
+import com.helicalinsight.admin.dao.HIResourceDBDAO;
 import com.helicalinsight.admin.model.HIRecycleBin;
 import com.helicalinsight.admin.model.HIRecycleBinHUsers;
 import com.helicalinsight.efw.exceptions.ResourceNotFoundException;
@@ -64,6 +67,9 @@ public class HIRecycleBinDaoImplTest {
 	@Mock
 	private Query query;
 
+	@Mock
+	private HIResourceDBDAO hiResourceDao;
+
 	@Before
 	public void setUp() {
 		MockitoAnnotations.openMocks(this);
@@ -88,25 +94,22 @@ public class HIRecycleBinDaoImplTest {
 	}
 
 	@Test
-	public void deleteByIdDelegatesToEntityDelete() {
-		HIRecycleBinDaoImpl daoSpy = spy(dao);
-		HIRecycleBin bin = new HIRecycleBin();
-		bin.setId(1L);
-		doReturn(bin).when(daoSpy).findHIRecycleBinById(1L);
-		doReturn(true).when(daoSpy).delete(bin);
+	public void deleteByIdRemovesLinksAndHeader() {
+		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
+		when(mutationQuery.executeUpdate()).thenReturn(1);
 
-		assertTrue(daoSpy.delete(1L));
+		assertTrue(dao.delete(1L));
 
-		verify(daoSpy).findHIRecycleBinById(1L);
-		verify(daoSpy).delete(bin);
+		verify(session, times(6)).createMutationQuery(anyString());
+		verify(mutationQuery, times(6)).executeUpdate();
 	}
 
 	@Test
-	public void deleteByIdReturnsFalseWhenLookupFails() {
-		HIRecycleBinDaoImpl daoSpy = spy(dao);
-		doThrow(new RuntimeException("lookup failed")).when(daoSpy).findHIRecycleBinById(2L);
+	public void deleteByIdReturnsFalseWhenMutationFails() {
+		when(session.createMutationQuery(anyString())).thenThrow(new RuntimeException("delete failed"));
 
-		assertFalse(daoSpy.delete(2L));
+		assertFalse(dao.delete(2L));
 	}
 
 	@Test
@@ -116,13 +119,14 @@ public class HIRecycleBinDaoImplTest {
 		bin.setHiRecycleBinHUsers(new HIRecycleBinHUsers());
 
 		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
-		when(mutationQuery.setParameter(anyString(), any())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
 		when(mutationQuery.executeUpdate()).thenReturn(1);
 
 		assertTrue(dao.delete(bin));
 
-		verify(session, times(2)).createMutationQuery(anyString());
-		verify(mutationQuery, times(2)).executeUpdate();
+		// 5 link tables + recycle-bin header
+		verify(session, times(6)).createMutationQuery(anyString());
+		verify(mutationQuery, times(6)).executeUpdate();
 	}
 
 	@Test
@@ -233,15 +237,32 @@ public class HIRecycleBinDaoImplTest {
 
 	@Test
 	public void deleteHIRecycleByEfwdIdDeletesWhenBinExists() {
-		HIRecycleBinDaoImpl daoSpy = spy(dao);
-		HIRecycleBin bin = new HIRecycleBin();
-		bin.setId(50L);
-		doReturn(Optional.of(bin)).when(daoSpy).findHIRecycleBinByEFWDId(42);
-		doReturn(true).when(daoSpy).delete(bin);
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Long> binIdQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		when(session.createSelectionQuery(anyString(), eq(Long.class))).thenReturn(binIdQuery);
+		when(binIdQuery.setParameter(anyString(), any())).thenReturn(binIdQuery);
+		when(binIdQuery.getResultList()).thenReturn(List.of(50L));
+		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
+		when(mutationQuery.executeUpdate()).thenReturn(1);
 
-		daoSpy.deleteHIRecycleByEfwdId(42);
+		dao.deleteHIRecycleByEfwdId(42);
 
-		verify(daoSpy).delete(bin);
+		verify(session, times(6)).createMutationQuery(anyString());
+		verify(mutationQuery, times(6)).executeUpdate();
+	}
+
+	@Test
+	public void deleteHIRecycleByEfwdIdSkipsWhenNoBinLinked() {
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Long> binIdQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		when(session.createSelectionQuery(anyString(), eq(Long.class))).thenReturn(binIdQuery);
+		when(binIdQuery.setParameter(anyString(), any())).thenReturn(binIdQuery);
+		when(binIdQuery.getResultList()).thenReturn(Collections.emptyList());
+
+		dao.deleteHIRecycleByEfwdId(42);
+
+		verify(session, never()).createMutationQuery(anyString());
 	}
 
 	@Test
@@ -265,13 +286,136 @@ public class HIRecycleBinDaoImplTest {
 	@Test
 	public void deleteRecycleBinsByIdsExecutesBulkDeleteQueries() {
 		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
-		when(mutationQuery.setParameter(anyString(), any())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
 		when(mutationQuery.executeUpdate()).thenReturn(2);
 
 		dao.deleteRecycleBinsByIds(List.of(60L, 61L));
 
+		verify(session, times(6)).createMutationQuery(anyString());
+		verify(mutationQuery, times(6)).executeUpdate();
+	}
+
+	@Test
+	public void deleteRecycleBinsByResourceIdsSkipsWhenNullOrEmpty() {
+		dao.deleteRecycleBinsByResourceIds(null);
+		dao.deleteRecycleBinsByResourceIds(Collections.emptyList());
+
+		verify(session, never()).createSelectionQuery(anyString(), eq(Long.class));
+		verify(session, never()).createMutationQuery(anyString());
+	}
+
+	@Test
+	public void deleteRecycleBinsByResourceIdsSkipsMutationsWhenNoBinsFound() {
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Long> binIdQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		when(session.createSelectionQuery(anyString(), eq(Long.class))).thenReturn(binIdQuery);
+		when(binIdQuery.setParameterList(anyString(), anyCollection())).thenReturn(binIdQuery);
+		when(binIdQuery.getResultList()).thenReturn(Collections.emptyList());
+
+		dao.deleteRecycleBinsByResourceIds(List.of(10, 11));
+
+		verify(session, never()).createMutationQuery(anyString());
+	}
+
+	@Test
+	public void deleteRecycleBinsByResourceIdsDeletesLinksThenHeaders() {
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Long> binIdQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		when(session.createSelectionQuery(anyString(), eq(Long.class))).thenReturn(binIdQuery);
+		when(binIdQuery.setParameterList(anyString(), anyCollection())).thenReturn(binIdQuery);
+		when(binIdQuery.getResultList()).thenReturn(List.of(70L, 71L));
+		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
+		when(mutationQuery.executeUpdate()).thenReturn(2);
+
+		dao.deleteRecycleBinsByResourceIds(List.of(10, 11));
+
 		verify(session, times(2)).createMutationQuery(anyString());
 		verify(mutationQuery, times(2)).executeUpdate();
+		verify(session).flush();
+	}
+
+	@Test
+	public void deleteRecycleBinsByUserIdsSkipsWhenNullOrEmpty() {
+		dao.deleteRecycleBinsByUserIds(null);
+		dao.deleteRecycleBinsByUserIds(Collections.emptyList());
+
+		verify(session, never()).createSelectionQuery(anyString(), eq(Long.class));
+		verify(session, never()).createMutationQuery(anyString());
+	}
+
+	@Test
+	public void deleteRecycleBinsByUserIdsDeletesViaLinksAndHeader() {
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Long> binIdQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		when(session.createSelectionQuery(anyString(), eq(Long.class))).thenReturn(binIdQuery);
+		when(binIdQuery.setParameterList(anyString(), anyCollection())).thenReturn(binIdQuery);
+		when(binIdQuery.getResultList()).thenReturn(List.of(80L));
+		when(session.createMutationQuery(anyString())).thenReturn(mutationQuery);
+		when(mutationQuery.setParameterList(anyString(), anyCollection())).thenReturn(mutationQuery);
+		when(mutationQuery.executeUpdate()).thenReturn(1);
+
+		dao.deleteRecycleBinsByUserIds(List.of(5));
+
+		verify(session, times(6)).createMutationQuery(anyString());
+		verify(mutationQuery, times(6)).executeUpdate();
+	}
+
+	@Test
+	public void findResourceBinsBlockedByLiveDependentsReturnsEmptyForNullOrEmpty() {
+		assertTrue(dao.findResourceBinsBlockedByLiveDependents(null).isEmpty());
+		assertTrue(dao.findResourceBinsBlockedByLiveDependents(Collections.emptySet()).isEmpty());
+		verify(session, never()).createSelectionQuery(anyString(), eq(Object[].class));
+	}
+
+	@Test
+	public void findResourceBinsBlockedByLiveDependentsBlocksWhenLiveInstantReportReferencesModel() {
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Object[]> objectArrayQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+		@SuppressWarnings("unchecked")
+		SelectionQuery<Integer> integerQuery = org.mockito.Mockito.mock(SelectionQuery.class);
+
+		when(session.createSelectionQuery(nullable(String.class), eq(Object[].class))).thenReturn(objectArrayQuery);
+		when(session.createSelectionQuery(nullable(String.class), eq(Integer.class))).thenReturn(integerQuery);
+
+		when(objectArrayQuery.setParameterList(anyString(), anyCollection())).thenReturn(objectArrayQuery);
+		when(integerQuery.setParameterList(anyString(), anyCollection())).thenReturn(integerQuery);
+
+		when(objectArrayQuery.getResultList()).thenReturn(Collections.singletonList(new Object[] { 1L, 100 }),
+				Collections.emptyList());
+		when(integerQuery.getResultList()).thenReturn(Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList(), List.of(100), Collections.emptyList());
+
+		when(hiResourceDao.getChildrenResourceByParentIds(anyList())).thenReturn(Collections.emptyList());
+		when(hiResourceDao.findParentIdsByResourceIds(anyCollection())).thenReturn(Collections.emptyMap());
+
+		Set<Long> blocked = dao.findResourceBinsBlockedByLiveDependents(Set.of(1L));
+
+		assertEquals(Set.of(1L), blocked);
+	}
+
+	@Test
+	public void findGlobalBinsBlockedByLiveDependentsReturnsEmptyForNullOrEmpty() {
+		assertTrue(dao.findGlobalBinsBlockedByLiveDependents(null).isEmpty());
+		assertTrue(dao.findGlobalBinsBlockedByLiveDependents(Set.of()).isEmpty());
+	}
+
+	@Test
+	public void findEfwdBinsBlockedByLiveDependentsReturnsEmptyForNullOrEmpty() {
+		assertTrue(dao.findEfwdBinsBlockedByLiveDependents(null).isEmpty());
+		assertTrue(dao.findEfwdBinsBlockedByLiveDependents(Set.of()).isEmpty());
+	}
+
+	@Test
+	public void findUserBinsBlockedByLiveDependentsReturnsEmptyForNullOrEmpty() {
+		assertTrue(dao.findUserBinsBlockedByLiveDependents(null).isEmpty());
+		assertTrue(dao.findUserBinsBlockedByLiveDependents(Set.of()).isEmpty());
+	}
+
+	@Test
+	public void findOrgBinsBlockedByLiveDependentsReturnsEmptyForNullOrEmpty() {
+		assertTrue(dao.findOrgBinsBlockedByLiveDependents(null).isEmpty());
+		assertTrue(dao.findOrgBinsBlockedByLiveDependents(Set.of()).isEmpty());
 	}
 
 	@Test

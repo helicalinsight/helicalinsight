@@ -78,6 +78,7 @@ public class ResourceTypeDaoDBImpl implements ResourceTypeDaoDB {
             org.hibernate.query.Query query = session.getCurrentSession().createQuery("From ResourceType where name= :name and extension = :extension");
             query.setParameter("name", type);
             query.setParameter("extension", extension);
+            query.setCacheable(true);
             resourceType = (ResourceType) query.uniqueResult();
         } catch (Exception e) {
             logger.error("Exception", e);
@@ -99,7 +100,7 @@ public class ResourceTypeDaoDBImpl implements ResourceTypeDaoDB {
         List<ResourceType> listOfResourceTypes = new ArrayList<>();
 
         try {
-            listOfResourceTypes = ( List<ResourceType>) session.getCurrentSession().createQuery("From ResourceType").list();
+            listOfResourceTypes = ( List<ResourceType>) session.getCurrentSession().createQuery("From ResourceType").setCacheable(true).list();
 
         } catch (Exception e) {
             logger.error("Exception", e);

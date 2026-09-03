@@ -36,6 +36,57 @@ class TestLoadConfig:
         loaded = ConfigLoader.load_raw_config("roundtrip.yaml")
         assert loaded == payload
 
+    def test_save_config_preserves_existing_comments(self, tmp_path, monkeypatch):
+        target = tmp_path / "commented.yaml"
+        target.write_text(
+            (
+                "# Header: provider file — keep this comment\n"
+                "# Switch providers by changing only default_provider.\n"
+                "default_provider: groq\n"
+                "\n"
+                "providers:\n"
+                "  groq:\n"
+                "    package: langchain-groq\n"
+                "    model: llama-3.3-70b-versatile  # current chat model\n"
+                "    parameters:\n"
+                "      temperature: 0.2  # sampling temperature\n"
+                "      # Override via GROQ_API_KEY in .env if needed\n"
+                "      api_key: ${GROQ_API_KEY}\n"
+                "    usage_path: usage_metadata\n"
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(
+            ConfigLoader,
+            "resolve_path",
+            staticmethod(lambda path="llm_config.yaml": str(target)),
+        )
+        ConfigLoader.save_config(
+            "commented.yaml",
+            {
+                "default_provider": "groq",
+                "providers": {
+                    "groq": {
+                        "package": "langchain-groq",
+                        "model": "llama-3.3-70b-versatile",
+                        "parameters": {
+                            "temperature": 0.5,
+                            "api_key": "${GROQ_API_KEY}",
+                        },
+                        "usage_path": "usage_metadata",
+                    }
+                },
+            },
+        )
+        written = target.read_text(encoding="utf-8")
+        assert "# Header: provider file — keep this comment" in written
+        assert "# Switch providers by changing only default_provider." in written
+        assert "# current chat model" in written
+        assert "# sampling temperature" in written
+        assert "# Override via GROQ_API_KEY in .env if needed" in written
+        assert "temperature: 0.5" in written
+        assert "${GROQ_API_KEY}" in written
+
     def test_loads_memory_config(self):
         config = ConfigLoader.load_config("memory_provider.yaml")
         assert "memory" in config

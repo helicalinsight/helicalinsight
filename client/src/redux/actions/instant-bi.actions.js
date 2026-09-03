@@ -175,3 +175,25 @@ export const setIBChartList = (data) => {
     payload: data
   }
 }
+
+export const updateMetadataForHreport = (data) => {
+  return {
+    type: actionTypes.LOAD_METADATA_FOR_HREPORT,
+    payload: data
+  }
+}
+
+
+export const updateLoadingStatusForHreport = (data) => {
+  return {
+    type: actionTypes.UPDATE_LOADING_STATUS_FOR_HREPORT,
+    payload: data
+  }
+}
+
+export const updateHreportInitialInteraction = (data) => {
+  return {
+    type: actionTypes.UPDATE_HREPORT_INITIAL_INTERACTION,
+    payload: data
+  }
+} 

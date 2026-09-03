@@ -25,6 +25,7 @@ subsequent attribute accesses return the updated values.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 
 from helicalbi.core.ConfigLoader import ConfigLoader
@@ -35,9 +36,23 @@ logger = logging.getLogger(__name__)
 _CONFIG_FILE = "application_config.yaml"
 _lock = threading.RLock()
 _raw: dict = {}
+_loaded_mtime: float = -1.0
+
+
+def _config_path() -> str:
+    return ConfigLoader.resolve_path(_CONFIG_FILE)
+
+
+def _config_mtime() -> float:
+    try:
+        return os.path.getmtime(_config_path())
+    except OSError:
+        return -1.0
 
 
 def _load() -> dict:
+    global _loaded_mtime
+    _loaded_mtime = _config_mtime()
     return ConfigLoader.load_config(_CONFIG_FILE)
 
 
@@ -120,10 +135,17 @@ def _kpi() -> dict:
     return _raw.get("kpi", {})
 
 
+def _reload_if_stale() -> None:
+    """Pick up disk writes that inotify missed (Docker bind mounts)."""
+    if _config_mtime() != _loaded_mtime:
+        _reload()
+
+
 # Module-level __getattr__ intercepts attribute access on the module itself
 # (Python 3.7+).  This means ``app_config.show_llm_activity`` always
 # returns the live value even after a hot-reload.
 def __getattr__(name: str):  # noqa: N807
+    _reload_if_stale()
     _computed = {
         # app
         "app_env":               lambda: str(_app().get("env", "dev")).strip().lower(),
@@ -144,6 +166,13 @@ def __getattr__(name: str):  # noqa: N807
         "api_cache_max_entries": lambda: max(1, int(_api_cache().get("max_entries", 100))),
         # sql
         "default_sql_limit":     lambda: int(_raw.get("sql", {}).get("default_limit", 100)),
+        # dashboard
+        "dashboard_max_sub_questions": lambda: max(
+            1, int(_raw.get("dashboard", {}).get("max_sub_questions", 5))
+        ),
+        "dashboard_default_mode": lambda: str(
+            _raw.get("dashboard", {}).get("default_mode", "balanced") or "balanced"
+        ).strip().lower(),
         # kpi
         "kpi_suggestion_query":  lambda: str(
             _kpi().get("suggestion_query", "Suggest few Measurable and timebound KPIS")

@@ -1,39 +1,28 @@
-import { Row, Space, Typography, Modal, Popover } from 'antd'
+import {
+  InfoCircleOutlined,
+  ReloadOutlined
+} from "@ant-design/icons"
+import { Modal, Popover, Row, Space, Typography } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import LoadingBar from '../../../common/components/hi-loading-bar'
 import HIIcon from '../../../common/icons/hi-icons'
-import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
-import IBSpace from '../ib-space/ib-space'
-import "./chat-screen.scss"
-import ChatBotMessageFlow from './chatbot-message-flow'
-import AISparklesIcon from './ai-sparkles-icon'
-import {
-  EyeOutlined,
-  TableOutlined,
-  DatabaseOutlined,
-  ConsoleSqlOutlined,
-  CopyOutlined,
-  FullscreenOutlined,
-  FullscreenExitOutlined,
-  ReloadOutlined,
-  InfoCircleOutlined,
-} from "@ant-design/icons";
-import InstantBITooltip from '../../instant-bi-tooltip-title';
 import notify from '../../../hi-notifications/notify'
-import { ChartView, cleanSQL, getInstantBIAgentSubject, tabItems } from '../../utils/common-utils'
-import CommonMarkdownTable from '../../utils/common-markdown-table'
-import InstantBIResponseMetadata from '../instant-bi-response-metadata'
-import IbChartPreferences from '../ib-chart-preferences'
-import { loadInstantBIDataInsight, convertInstantBIChart, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
-import { updateIBVizPreference } from '../../../../redux/actions/instant-bi.actions'
+import InstantBITooltip from '../../instant-bi-tooltip-title'
+import { cleanSQL, getInstantBIAgentSubject } from '../../utils/common-utils'
+import { convertInstantBIChart, loadInstantBIDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import IBSpace from '../ib-space/ib-space'
+import InstantChartView from "./chart-view"
+import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
+import "./chat-screen.scss"
+import ChatTabs from "./chat-tabs"
 
 const { Text } = Typography
 
 const LOADED_CHAT_SOURCES = ["play-button", "auto-load", "scroll-load"];
 
-const DataInsightTokenUsage = ({ tokens = {} }) => {
+export const DataInsightTokenUsage = ({ tokens = {} }) => {
   const [open, setOpen] = useState(false);
   const entries = Object.entries(tokens);
 
@@ -81,531 +70,391 @@ const DataInsightTokenUsage = ({ tokens = {} }) => {
 };
 
 const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
-    const {
-      vf = "",
-      data = [],
-      id = "",
-      metadata = [],
-      sql = "",
-      isFullWidth,
-      isOpenMode,
-      isEditMode,
-      fullChatResponse = {},
-      handleScroll = () => { },
-      activeReport = {},
+  const {
+    vf = "",
+    data = [],
+    id = "",
+    metadata = [],
+    sql = "",
+    isFullWidth,
+    isOpenMode,
+    isEditMode,
+    fullChatResponse = {},
+    handleScroll = () => { },
+    activeReport = {},
+    dispatch,
+    userInput = "",
+    chatSequenceId,
+    scrollableRootRef,
+    onRequestChatLoad,
+    onRetryLoad = () => { },
+    loadingChatSequenceId,
+    onAbortChatLoad = () => { },
+    skippedSequenceIds = [],
+    abortedSequenceIds = [],
+    dataInsight: messageDataInsight = "",
+    dataInsightTokenUsage = {},
+    hreportLoading
+  } = rest || {}
+  const [activeTab, setActiveTab] = useState("preview"); // preview | data | sql
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [hasPreviewError, setHasPreviewError] = useState(false);
+  const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
+  const [isConvertingChart, setIsConvertingChart] = useState(false);
+  const [vfEditorLaunch, setVfEditorLaunch] = useState(null); // { code } | null
+  const messageRef = useRef(null);
+  const dataInsightApiRef = useRef(null);
+  const dataInsightAbortedRef = useRef(false);
+  const Notify = notify(dispatch);
+  const {
+    reportInfo = {},
+    metadata: reportMetadata = {},
+    id: reportId,
+    activeChatID,
+    loadedChatResponses = {},
+    loadedChatResponseSources = {},
+  } = activeReport || {};
+  const agentSubject = getInstantBIAgentSubject(activeReport) || {};
+  const agentFile = agentSubject.file;
+  const agentDir = agentSubject.dir;
+  const dynamicFileName = reportInfo?.uuid || (reportInfo?.reportName && `${reportInfo.reportName}.instant`);
+  const loadedChatResponse = loadedChatResponses?.[chatSequenceId] || null;
+  const loadedChatResponseSource = loadedChatResponseSources?.[chatSequenceId];
+  const isLoadedChatResponse = LOADED_CHAT_SOURCES.includes(loadedChatResponseSource);
+  const effectiveLoadedChatResponse = isLoadedChatResponse ? loadedChatResponse : null;
+  const {
+    viz: loadedViz = {},
+    sql: loadedSqlDetails = {},
+    summary: loadedSummary = {},
+    data: loadedData = [],
+    metadata: loadedMetadata = [],
+  } = effectiveLoadedChatResponse || {};
+  const resolvedVf = loadedViz?.vf_template ? atob(loadedViz.vf_template) : vf;
+  const resolvedSql = loadedSqlDetails?.raw_sql || sql?.raw_sql || sql || "";
+  const resolvedText = loadedSummary?.insight || chatItem?.text || "";
+  const resolvedData = effectiveLoadedChatResponse
+    ? (Array.isArray(loadedData) ? loadedData : [])
+    : data;
+  const resolvedMetadata = effectiveLoadedChatResponse
+    ? (Array.isArray(loadedMetadata) ? loadedMetadata : [])
+    : metadata;
+  const resolvedFullChatResponse = effectiveLoadedChatResponse || fullChatResponse;
+  const sqlDetails = resolvedFullChatResponse?.sql || {}
+  const vizDetails = resolvedFullChatResponse?.viz || {}
+  const chartSettings = vizDetails?.settings || {}
+  const similarChart = vizDetails?.similar_chart || []
+  const tokenUsage = resolvedFullChatResponse?.token_usage || {}
+  const dataInsightContent =
+    resolvedFullChatResponse?.data_insight?.insight || messageDataInsight || "";
+  const dataInsightTokens =
+    resolvedFullChatResponse?.data_insight?.token_usage || dataInsightTokenUsage || {};
+  const hasDataInsightTokens = Object.keys(dataInsightTokens).length > 0;
+  const hasInlineChatResponse =
+    fullChatResponse && Object.keys(fullChatResponse).length > 0;
+  const isFailedSequence = skippedSequenceIds.includes(chatSequenceId);
+  const isAbortedSequence = abortedSequenceIds.includes(chatSequenceId);
+  const isPendingScrollLoad = !chatItem.isUser && (isOpenMode || isEditMode) && chatItem?.needsLoadChat === true && !effectiveLoadedChatResponse && !hasInlineChatResponse && !isFailedSequence && !isAbortedSequence;
+  const hasMessage = Boolean(resolvedText?.trim());
+  const isLoadingChat = loadingChatSequenceId === chatSequenceId;
+  const hasPreviewContent =
+    Boolean(resolvedVf?.trim()) ||
+    (Array.isArray(resolvedData) && resolvedData.length > 0);
+  const canEditPreferences = !isOpenMode && !chatItem?.error && !isFailedSequence && !isPendingScrollLoad && !isLoadingChat;
+  const showMaximizeButton = activeTab === "preview" && !chatItem?.error && !isFailedSequence && !hasPreviewError && !isLoadingChat;
+  const showDataInsightButton = activeTab === "preview" && !chatItem?.error && !hasPreviewError && !isFailedSequence && !isAbortedSequence && !isPendingScrollLoad && !isLoadingChat && !isLoadingDataInsight;
+
+  useEffect(() => {
+    setHasPreviewError(false);
+  }, [resolvedVf, id]);
+
+  useEffect(() => {
+    if (hasPreviewError) {
+      setIsMaximized(false);
+    }
+  }, [hasPreviewError]);
+
+  // useEffect(() => {
+  //   if (!isPendingScrollLoad || !onRequestChatLoad) return;
+
+  //   const scrollRoot = scrollableRootRef?.current;
+  //   const messageNode = messageRef.current;
+  //   if (!messageNode) return;
+  //   if (!isOpenMode && !scrollRoot) return;
+
+  //   const observer = new IntersectionObserver(
+  //     (entries) => {
+  //       if (entries.some((entry) => entry.isIntersecting)) {
+  //         onRequestChatLoad(chatSequenceId);
+  //       }
+  //     },
+  //     { root: isOpenMode ? null : scrollRoot, threshold: 0.2 }
+  //   );
+
+  //   observer.observe(messageNode);
+  //   return () => observer.disconnect();
+  // }, [
+  //   isPendingScrollLoad,
+  //   isOpenMode,
+  //   chatSequenceId,
+  //   onRequestChatLoad,
+  //   scrollableRootRef,
+  // ]);
+
+  useEffect(() => {
+    return () => {
+      if (dataInsightApiRef.current) {
+        dataInsightAbortedRef.current = true;
+        dataInsightApiRef.current.abort();
+        dataInsightApiRef.current = null;
+      }
+    };
+  }, []);
+
+  const onChange = (e) => {
+    setActiveTab(e.target.value);
+    handleScroll()
+  };
+
+  const handleAbortDataInsight = () => {
+    dataInsightAbortedRef.current = true;
+    dataInsightApiRef.current?.abort();
+    dataInsightApiRef.current = null;
+    setIsLoadingDataInsight(false);
+  };
+
+  const handleSelectSimilarChart = (chartType) => {
+    if (
+      !chartType ||
+      !dispatch ||
+      !reportId ||
+      !chatSequenceId ||
+      !activeChatID ||
+      isConvertingChart
+    ) {
+      return;
+    }
+    const currentName = vizDetails?.chart_name || "";
+    if (
+      String(currentName).toLowerCase().replace(/\s+/g, "_") ===
+      String(chartType).toLowerCase().replace(/\s+/g, "_")
+    ) {
+      return;
+    }
+
+    const vfTemplate =
+      vizDetails?.vf_template ||
+      loadedViz?.vf_template ||
+      (resolvedVf ? btoa(resolvedVf) : "");
+
+    if (!vfTemplate) {
+      Notify.error({
+        type: "Frontend",
+        message: "Required convert chart data is missing.",
+      });
+      return;
+    }
+
+    setIsConvertingChart(true);
+    convertInstantBIChart({
       dispatch,
-      userInput = "",
+      reportId,
       chatSequenceId,
-      scrollableRootRef,
-      onRequestChatLoad,
-      onRetryLoad = () => {},
-      loadingChatSequenceId,
-      onAbortChatLoad = () => { },
-      skippedSequenceIds = [],
-      abortedSequenceIds = [],
-      dataInsight: messageDataInsight = "",
-      dataInsightTokenUsage = {},
-    } = rest || {}
-    const [activeTab, setActiveTab] = useState("preview"); // preview | data | sql
-    const [isMaximized, setIsMaximized] = useState(false);
-    const [hasPreviewError, setHasPreviewError] = useState(false);
-    const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
-    const [isConvertingChart, setIsConvertingChart] = useState(false);
-    const [vfEditorLaunch, setVfEditorLaunch] = useState(null); // { code } | null
-    const messageRef = useRef(null);
-    const dataInsightApiRef = useRef(null);
-    const dataInsightAbortedRef = useRef(false);
-    const Notify = notify(dispatch);
-    const {
-      reportInfo = {},
-      metadata: reportMetadata = {},
-      id: reportId,
-      activeChatID,
-      loadedChatResponses = {},
-      loadedChatResponseSources = {},
-    } = activeReport || {};
-    const agentSubject = getInstantBIAgentSubject(activeReport) || {};
-    const agentFile = agentSubject.file;
-    const agentDir = agentSubject.dir;
-    const dynamicFileName = reportInfo?.uuid || (reportInfo?.reportName && `${reportInfo.reportName}.instant`);
-    const loadedChatResponse = loadedChatResponses?.[chatSequenceId] || null;
-    const loadedChatResponseSource = loadedChatResponseSources?.[chatSequenceId];
-    const isLoadedChatResponse = LOADED_CHAT_SOURCES.includes(loadedChatResponseSource);
-    const effectiveLoadedChatResponse = isLoadedChatResponse ? loadedChatResponse : null;
-    const {
-      viz: loadedViz = {},
-      sql: loadedSqlDetails = {},
-      summary: loadedSummary = {},
-      data: loadedData = [],
-      metadata: loadedMetadata = [],
-    } = effectiveLoadedChatResponse || {};
-    const resolvedVf = loadedViz?.vf_template ? atob(loadedViz.vf_template) : vf;
-    const resolvedSql = loadedSqlDetails?.raw_sql || sql;
-    const resolvedText = loadedSummary?.insight || chatItem?.text || "";
-    const resolvedData = effectiveLoadedChatResponse
-      ? (Array.isArray(loadedData) ? loadedData : [])
-      : data;
-    const resolvedMetadata = effectiveLoadedChatResponse
-      ? (Array.isArray(loadedMetadata) ? loadedMetadata : [])
-      : metadata;
-    const resolvedFullChatResponse = effectiveLoadedChatResponse || fullChatResponse;
-    const sqlDetails = resolvedFullChatResponse?.sql || {}
-    const vizDetails = resolvedFullChatResponse?.viz || {}
-    const chartSettings = vizDetails?.settings || {}
-    const similarChart = vizDetails?.similar_chart || []
-    const tokenUsage = resolvedFullChatResponse?.token_usage || {}
-    const dataInsightContent =
-      resolvedFullChatResponse?.data_insight?.insight || messageDataInsight || "";
-    const dataInsightTokens =
-      resolvedFullChatResponse?.data_insight?.token_usage || dataInsightTokenUsage || {};
-    const hasDataInsightTokens = Object.keys(dataInsightTokens).length > 0;
-    const hasInlineChatResponse =
-      fullChatResponse && Object.keys(fullChatResponse).length > 0;
-    const isFailedSequence = skippedSequenceIds.includes(chatSequenceId);
-    const isAbortedSequence = abortedSequenceIds.includes(chatSequenceId);
-    const isPendingScrollLoad =
-      !chatItem.isUser &&
-      (isOpenMode || isEditMode) &&
-      chatItem?.needsLoadChat === true &&
-      !effectiveLoadedChatResponse &&
-      !hasInlineChatResponse &&
-      !isFailedSequence &&
-      !isAbortedSequence;
-    const hasMessage = Boolean(resolvedText?.trim());
-    const isLoadingChat = loadingChatSequenceId === chatSequenceId;
-    const hasPreviewContent =
-      Boolean(resolvedVf?.trim()) ||
-      (Array.isArray(resolvedData) && resolvedData.length > 0);
-    const hasValidVf = Boolean(resolvedVf?.trim());
-    const canEditPreferences =
-      !isOpenMode &&
-      hasValidVf &&
-      !chatItem?.error &&
-      !isFailedSequence &&
-      !isPendingScrollLoad &&
-      !isLoadingChat;
-    const showMaximizeButton =
-      activeTab === "preview" &&
-      hasValidVf &&
-      !chatItem?.error &&
-      !isFailedSequence &&
-      !hasPreviewError &&
-      !isLoadingChat;
-    const showDataInsightButton =
-      activeTab === "preview" &&
-      hasValidVf &&
-      !chatItem?.error &&
-      !hasPreviewError &&
-      !isFailedSequence &&
-      !isAbortedSequence &&
-      !isPendingScrollLoad &&
-      !isLoadingChat &&
-      !isLoadingDataInsight;
+      chatId: activeChatID,
+      vfTemplate,
+      selectedChart: chartType,
+      Notify,
+      onComplete: ({ openVfEditor, vfCode } = {}) => {
+        setIsConvertingChart(false);
+        if (openVfEditor) setVfEditorLaunch({ code: vfCode || "" });
+      },
+    });
+  };
 
-    useEffect(() => {
-      setHasPreviewError(false);
-    }, [resolvedVf, id]);
-
-    useEffect(() => {
-      if (hasPreviewError) {
-        setIsMaximized(false);
-      }
-    }, [hasPreviewError]);
-
-    useEffect(() => {
-      if (!isPendingScrollLoad || !onRequestChatLoad) return;
-
-      const scrollRoot = scrollableRootRef?.current;
-      const messageNode = messageRef.current;
-      if (!messageNode) return;
-      if (!isOpenMode && !scrollRoot) return;
-
-      const observer = new IntersectionObserver(
-        (entries) => {
-          if (entries.some((entry) => entry.isIntersecting)) {
-            onRequestChatLoad(chatSequenceId);
-          }
-        },
-        { root: isOpenMode ? null : scrollRoot, threshold: 0.2 }
-      );
-
-      observer.observe(messageNode);
-      return () => observer.disconnect();
-    }, [
-      isPendingScrollLoad,
-      isOpenMode,
+  const handleDataInsight = () => {
+    if (isLoadingDataInsight) return;
+    dataInsightAbortedRef.current = false;
+    setIsLoadingDataInsight(true);
+    dataInsightApiRef.current = loadInstantBIDataInsight({
+      dispatch,
+      reportId,
       chatSequenceId,
-      onRequestChatLoad,
-      scrollableRootRef,
-    ]);
+      userInput,
+      location: reportInfo?.location,
+      fileName: dynamicFileName,
+      chatId: activeChatID,
+      agent: agentSubject,
+      useLoadChatPayload: shouldUseLoadChatPayloadForInsight({
+        isOpenMode,
+        isEditMode,
+        needsLoadChat: chatItem?.needsLoadChat,
+        persistedInFile: chatItem?.persistedInFile,
+      }),
+      existingChatResponse: effectiveLoadedChatResponse || {
+        ...fullChatResponse,
+        data,
+        metadata,
+      } || {},
+      Notify,
+      abortedRef: dataInsightAbortedRef,
+      onComplete: () => {
+        setIsLoadingDataInsight(false);
+        dataInsightApiRef.current = null;
+      },
+    });
+  };
 
-    useEffect(() => {
-      return () => {
-        if (dataInsightApiRef.current) {
-          dataInsightAbortedRef.current = true;
-          dataInsightApiRef.current.abort();
-          dataInsightApiRef.current = null;
-        }
-      };
-    }, []);
+  const handleCopySQL = async () => {
+    try {
+      await navigator.clipboard.writeText(cleanSQL(resolvedSql));
+      Notify.success({ type: "Frontend", message: "SQL copied !" });
+    } catch (err) { }
+  };
 
-    const onChange = (e) => {
-        setActiveTab(e.target.value);
-        handleScroll()
-    };
-  
-    const handleAbortDataInsight = () => {
-      dataInsightAbortedRef.current = true;
-      dataInsightApiRef.current?.abort();
-      dataInsightApiRef.current = null;
-      setIsLoadingDataInsight(false);
-    };
+  const isLoadErrorState = isAbortedSequence || isFailedSequence;
 
-    const handleSelectSimilarChart = (chartType) => {
-      if (
-        !chartType ||
-        !dispatch ||
-        !reportId ||
-        !chatSequenceId ||
-        !activeChatID ||
-        isConvertingChart
-      ) {
-        return;
-      }
-      const currentName = vizDetails?.chart_name || "";
-      if (
-        String(currentName).toLowerCase().replace(/\s+/g, "_") ===
-        String(chartType).toLowerCase().replace(/\s+/g, "_")
-      ) {
-        return;
-      }
+  const renderLoadError = (message) => (
+    <Space align="center" className="message-container__load-error" size={4}>
+      <Text type="secondary">{message}</Text>
+      <InstantBITooltip title="Retry">
+        <ReloadOutlined
+          className="copy-chat-response-icon"
+          data-testid="retry-chat-load"
+          onClick={() => onRetryLoad(chatSequenceId)}
+        />
+      </InstantBITooltip>
+    </Space>
+  );
 
-      const vfTemplate =
-        vizDetails?.vf_template ||
-        loadedViz?.vf_template ||
-        (resolvedVf ? btoa(resolvedVf) : "");
+  const messageBubbleClassName = [
+    "message-container__chat-message",
+    chatItem.isUser
+      ? "message-container__chat-message-user"
+      : "message-container__chat-message-bot",
+    isFullWidth ? "message-container__chat-message--constrained" : "",
+    chatItem?.error ? "message-container__chat-message--error" : "",
+    isLoadErrorState ? "message-container__chat-message--load-error" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-      if (!vfTemplate) {
-        Notify.error({
-          type: "Frontend",
-          message: "Required convert chart data is missing.",
-        });
-        return;
-      }
+  const tabsProps = {
+    hasMessage,
+    showMaximizeButton,
+    isMaximized,
+    setIsMaximized,
+    showDataInsightButton,
+    isOpenMode,
+    similarChart,
+    vizDetails,
+    canEditPreferences,
+    isConvertingChart,
+    vfEditorLaunch,
+    resolvedVf,
+    handleSelectSimilarChart,
+    reportId,
+    chatSequenceId,
+    resolvedData,
+    id,
+    chartSettings,
+    setHasPreviewError,
+    resolvedFullChatResponse,
+    fullChatResponse: { ...fullChatResponse, hreportLoading },
+    isLoadingDataInsight,
+    dataInsightContent,
+    hasDataInsightTokens,
+    dataInsightTokens,
+    resolvedSql,
+    handleAbortDataInsight,
+    handleCopySQL,
+    sqlDetails,
+    vizDetails,
+    tokenUsage,
+    dispatch,
+    handleDataInsight,
+    activeReport
+  }
 
-      setIsConvertingChart(true);
-      convertInstantBIChart({
-        dispatch,
-        reportId,
-        chatSequenceId,
-        chatId: activeChatID,
-        vfTemplate,
-        selectedChart: chartType,
-        Notify,
-        onComplete: ({ openVfEditor, vfCode } = {}) => {
-          setIsConvertingChart(false);
-          if (openVfEditor) setVfEditorLaunch({ code: vfCode || "" });
-        },
-      });
-    };
-
-    const handleDataInsight = () => {
-      if (isLoadingDataInsight) return;
-      dataInsightAbortedRef.current = false;
-      setIsLoadingDataInsight(true);
-      dataInsightApiRef.current = loadInstantBIDataInsight({
-        dispatch,
-        reportId,
-        chatSequenceId,
-        userInput,
-        location: reportInfo?.location,
-        fileName: dynamicFileName,
-        chatId: activeChatID,
-        agent: agentSubject,
-        useLoadChatPayload: shouldUseLoadChatPayloadForInsight({
-          isOpenMode,
-          isEditMode,
-          needsLoadChat: chatItem?.needsLoadChat,
-          persistedInFile: chatItem?.persistedInFile,
-        }),
-        existingChatResponse: effectiveLoadedChatResponse || {
-          ...fullChatResponse,
-          data,
-          metadata,
-        } || {},
-        Notify,
-        abortedRef: dataInsightAbortedRef,
-        onComplete: () => {
-          setIsLoadingDataInsight(false);
-          dataInsightApiRef.current = null;
-        },
-      });
-    };
-
-   const handleCopySQL = async () => {
-     try {
-    await navigator.clipboard.writeText(cleanSQL(resolvedSql));
-       Notify.success({ type: "Frontend", message: "SQL copied !" });
-     } catch (err) {}
-   };
-
-    const isLoadErrorState = isAbortedSequence || isFailedSequence;
-
-    const renderLoadError = (message) => (
-      <Space align="center" className="message-container__load-error" size={4}>
-        <Text type="secondary">{message}</Text>
-        <InstantBITooltip title="Retry">
-          <ReloadOutlined
-            className="copy-chat-response-icon"
-            data-testid="retry-chat-load"
-            onClick={() => onRetryLoad(chatSequenceId)}
-          />
-        </InstantBITooltip>
-      </Space>
-    );
-
-    const messageBubbleClassName = [
-      "message-container__chat-message",
-      chatItem.isUser
-        ? "message-container__chat-message-user"
-        : "message-container__chat-message-bot",
-      isFullWidth ? "message-container__chat-message--constrained" : "",
-      chatItem?.error ? "message-container__chat-message--error" : "",
-      isLoadErrorState ? "message-container__chat-message--load-error" : "",
-    ]
-      .filter(Boolean)
-      .join(" ");
-
-    return (
-      <div className="message-container" key={index} ref={messageRef}>
-        <IBSpace space="8" className="message-container__row">
-          {!chatItem.isUser && (
-            <div data-testid="bot-message" className="message-container__avatar">
-              <HIIcon className="ib-chat-icon" name="hi-instant-bi-svg" />
-            </div>
-          )}
-          <IBSpace
-            stack="vertical"
-            alignItem={chatItem.isUser ? "end" : "start"}
-            className="message-container__body"
-            data-testid="message-id"
+  return (
+    <div className="message-container" key={index} ref={messageRef}>
+      <IBSpace space="8" className="message-container__row">
+        {!chatItem.isUser && (
+          <div data-testid="bot-message" className="message-container__avatar">
+            <HIIcon className="ib-chat-icon" name="hi-instant-bi-svg" />
+          </div>
+        )}
+        <IBSpace
+          stack="vertical"
+          alignItem={chatItem.isUser ? "end" : "start"}
+          className="message-container__body"
+          data-testid="message-id"
+        >
+          <Space
+            className={messageBubbleClassName}
           >
-            <Space
-              className={messageBubbleClassName}
-            >
-              {chatItem.isUser ? (
-                <Text>{chatItem.text}</Text>
-              ) : isAbortedSequence ? (
-                renderLoadError("Response aborted")
-              ) : isFailedSequence ? (
-                renderLoadError("Unable to load response")
-              ) : isPendingScrollLoad ? (
-                isLoadingChat ? (
-                  <div className="ib-load-chat-loading-bar" data-testid="ib-load-chat-loading-bar">
-                    <LoadingBar handleClick={onAbortChatLoad} />
-                    <ChatScreenRecommendationSkeleton />
-                  </div>
-                ) : (
-                <Text type="secondary">Just a moment…</Text>
-                )
+            {chatItem.isUser ? (
+              <Text>{chatItem.text}</Text>
+            ) : isAbortedSequence ? (
+              renderLoadError("Response aborted")
+            ) : isFailedSequence ? (
+              renderLoadError("Unable to load response")
+            ) : isPendingScrollLoad ? (
+              isLoadingChat ? (
+                <div className="ib-load-chat-loading-bar" data-testid="ib-load-chat-loading-bar">
+                  <LoadingBar handleClick={onAbortChatLoad} />
+                  <ChatScreenRecommendationSkeleton />
+                </div>
               ) : (
-                <div className="message-container__bot-content">
+                <Text type="secondary">Just a moment…</Text>
+              )
+            ) : (
+              <div className="message-container__bot-content" >
+                <div className="message-container__bot-markdown-renderer">
                   <Markdown remarkPlugins={[remarkGfm]}>
                     {resolvedText}
                   </Markdown>
-                  <div
-                    className={`chart-container${
-                      hasMessage ? " chart-container--with-tabs" : ""
-                    }${
-                      hasPreviewError && activeTab === "preview"
-                        ? " chart-container--preview-error"
-                        : ""
-                    }`}
-                  >
-                    <Row justify={"end"}>
-                     {hasMessage && (
-                      <div className="icon-tabs-container">
-                        {showMaximizeButton && (
-                          <InstantBITooltip
-                            title={isMaximized ? "Minimize" : "Maximize"}
-                          >
-                            <button
-                              type="button"
-                              className="icon-tab-btn"
-                              onClick={() => setIsMaximized(!isMaximized)}
-                            >
-                              {isMaximized ? (
-                                <FullscreenExitOutlined />
-                              ) : (
-                                <FullscreenOutlined />
-                              )}
-                            </button>
-                          </InstantBITooltip>
-                        )}
-                        {tabItems.map((item) => (
-                          <InstantBITooltip key={item.key} title={item.title}>
-                            <button
-                              type="button"
-                              className={`icon-tab-btn ${
-                                activeTab === item.key ? "active" : ""
-                              }`}
-                              onClick={() => {
-                                setActiveTab(item.key);
-                              }}
-                            >
-                              {item.icon}
-                            </button>
-                          </InstantBITooltip>
-                        ))}
-                      </div>
-                     )}
-                    </Row>
-                    {activeTab === "preview" ? (
-                      <>
-                        <div className="chart-preview-section">
-                          {showDataInsightButton && (
-                            <InstantBITooltip title="Explain this chart">
-                              <button
-                                type="button"
-                                className="chart-preview-section__data-insight-fab"
-                                data-testid="data-insight-play-btn"
-                                onClick={handleDataInsight}
-                              >
-                                <AISparklesIcon />
-                              </button>
-                            </InstantBITooltip>
-                          )}
-                          {!isOpenMode && similarChart.length > 0 && (
-                            <div className="chart-preview-section__prefs">
-                              <IbChartPreferences
-                                chartName={vizDetails?.chart_name}
-                                similarChart={similarChart}
-                                editable={canEditPreferences}
-                                converting={isConvertingChart}
-                                vfCode={vfEditorLaunch?.code ?? resolvedVf}
-                                openVfEditor={Boolean(vfEditorLaunch)}
-                                onVfEditorOpened={() => setVfEditorLaunch(null)}
-                                onSelectSimilarChart={handleSelectSimilarChart}
-                                onApplyVf={(code) => {
-                                  if (!dispatch || !reportId || !chatSequenceId) return;
-                                  dispatch(
-                                    updateIBVizPreference({
-                                      reportId,
-                                      chatSequenceId,
-                                      vf: code,
-                                      vf_template: btoa(code),
-                                    })
-                                  );
-                                }}
-                              />
-                            </div>
-                          )}
-                          <ChartView
-                            compact
-                            data={resolvedData}
-                            vf={resolvedVf}
-                            id={id}
-                            chartName={vizDetails?.chart_name}
-                            chartSettings={chartSettings}
-                            plotConfig={vizDetails?.plot_config}
-                            className="chart-wrapper--message"
-                            onPreviewError={setHasPreviewError}
-                            backendError={resolvedFullChatResponse?.error}
-                          />
-                          {isConvertingChart && (
-                            <div
-                              className="chart-preview-section__converting"
-                              data-testid="ib-convert-chart-loading"
-                            >
-                              <LoadingBar />
-                              <Text type="secondary">Converting chart…</Text>
-                            </div>
-                          )}
-                        </div>
-                        {(isLoadingDataInsight || dataInsightContent) && (
-                          <div
-                            className="message-container__data-insight"
-                            data-testid="data-insight-section"
-                          >
-                            {isLoadingDataInsight ? (
-                              <div
-                                className="ib-data-insight-loading-bar"
-                                data-testid="ib-data-insight-loading-bar"
-                              >
-                                <LoadingBar handleClick={handleAbortDataInsight} />
-                                <Text type="secondary">Preparing your explanation…</Text>
-                              </div>
-                            ) : (
-                              <div className="message-container__data-insight-body">
-                                <Markdown remarkPlugins={[remarkGfm]}>
-                                  {dataInsightContent}
-                                </Markdown>
-                                {hasDataInsightTokens && (
-                                  <DataInsightTokenUsage tokens={dataInsightTokens} />
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    ) : activeTab === "sql" ? (
-                      <div className="sql-view-container">
-                        {resolvedSql && (
-                          <div className="sql-copy-btn">
-                            <InstantBITooltip title="Copy SQL">
-                              <CopyOutlined onClick={handleCopySQL} />
-                            </InstantBITooltip>
-                          </div>
-                        )}
-                        <Markdown remarkPlugins={[remarkGfm]}>
-                          {resolvedSql}
-                        </Markdown>
-                      </div>
-                    ) : (
-                      <div className="json-data-viewer">
-                        {activeTab === "metadata" ? (
-                          <InstantBIResponseMetadata
-                            sqlDetails={sqlDetails}
-                            vizDetails={vizDetails}
-                            tokenUsage={tokenUsage}
-                          />
-                        ) : (
-                          <CommonMarkdownTable data={resolvedData || []} />
-                        )}
-                      </div>
-                    )}
-
-                    <Modal
-                      title="Preview"
-                      open={isMaximized && showMaximizeButton}
-                      onCancel={() => setIsMaximized(false)}
-                      width="95%"
-                      style={{ top: 20 }}
-                      footer={null}
-                      wrapClassName="ib-chart-preview-modal"
-                      destroyOnClose
-                    >
-                      <ChartView
-                        data={resolvedData}
-                        vf={resolvedVf}
-                        id={id}
-                        chartName={vizDetails?.chart_name}
-                        chartSettings={chartSettings}
-                        plotConfig={vizDetails?.plot_config}
-                        className="chart-wrapper--modal"
-                      />
-                    </Modal>
-                  </div>
                 </div>
-              )}
-            </Space>
-            <Space className="message-container__date-header">
-              {chatItem.time}
-            </Space>
-          </IBSpace>
+                <div
+                  className={`chart-container${hasMessage ? " chart-container--with-tabs" : ""
+                    }${hasPreviewError && activeTab === "preview"
+                      ? " chart-container--preview-error"
+                      : ""
+                    }`}
+                >
+                  <Row justify={"end"} className="instant-chart-tabs-row">
+                    <ChatTabs {...tabsProps} />
+                  </Row>
+                  <Modal
+                    title="Preview"
+                    open={isMaximized && showMaximizeButton}
+                    onCancel={() => setIsMaximized(false)}
+                    width="95%"
+                    style={{ top: 20 }}
+                    footer={null}
+                    wrapClassName="ib-chart-preview-modal"
+                    destroyOnClose
+                  >
+                    <InstantChartView
+                      data={resolvedData}
+                      vf={resolvedVf}
+                      id={id}
+                      chartName={vizDetails?.chart_name}
+                      chartSettings={chartSettings}
+                      plotConfig={vizDetails?.plot_config}
+                      className="chart-wrapper--modal"
+                      fullChatResponse={fullChatResponse}
+                    />
+                  </Modal>
+                </div>
+              </div>
+            )}
+          </Space>
+          <Space className="message-container__date-header">
+            {chatItem.time}
+          </Space>
         </IBSpace>
-      </div>
-    );
+      </IBSpace>
+    </div>
+  );
 }
 
 // Don't re-render completed mesgs
@@ -620,8 +469,8 @@ export default React.memo(MessageLayout, (prev, next) => {
     prev.skippedSequenceIds?.includes(seq) === next.skippedSequenceIds?.includes(seq) &&
     prev.abortedSequenceIds?.includes(seq) === next.abortedSequenceIds?.includes(seq) &&
     prev.activeReport?.loadedChatResponses?.[seq] ===
-      next.activeReport?.loadedChatResponses?.[seq] &&
+    next.activeReport?.loadedChatResponses?.[seq] &&
     prev.activeReport?.loadedChatResponseSources?.[seq] ===
-      next.activeReport?.loadedChatResponseSources?.[seq]
+    next.activeReport?.loadedChatResponseSources?.[seq]
   );
 });

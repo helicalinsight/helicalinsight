@@ -1,7 +1,9 @@
 package com.helicalinsight.admin.service;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.helicalinsight.admin.dto.RecycleBinDTO;
 import com.helicalinsight.admin.model.HIRecycleBin;
@@ -34,4 +36,18 @@ public interface HIRecycleBinService {
 	void deleteRecycleBinByGlobalId(Integer globalId);
 	<T> Map<String, List<T>> getGlobalConnectionResources(Integer connectionId,Integer userId);
 	<T> Map<String, List<T>> getEfwdConnectionResources(Integer efwdResource, Integer userId);
+	void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
+
+	void deleteRecycleBinsByUserIds(Collection<Integer> userIds);
+
+	Set<Long> findResourceBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findGlobalBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findEfwdBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findUserBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findOrgBinsBlockedByLiveDependents(Collection<Long> binIds);
+
 }

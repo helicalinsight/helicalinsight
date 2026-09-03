@@ -283,6 +283,13 @@ class TestTokenUsage:
         assert total.output_cost == pytest.approx(0.008)
         assert total.total_cost == pytest.approx(0.013)
 
+    def test_add_aggregates_timing(self):
+        total = TokenUsage(llm_seconds=1.2, total_seconds=3.0) + TokenUsage(
+            llm_seconds=0.8, total_seconds=5.0
+        )
+        assert total.llm_seconds == pytest.approx(2.0)
+        assert total.total_seconds == pytest.approx(5.0)
+
     def test_merge_token_usage_in_state(self):
         state = {}
         merge_token_usage(state, TokenUsage(input_tokens=10, output_tokens=5, model_name="gpt-4o-mini"))
@@ -338,8 +345,12 @@ class TestChatResponse:
         assert response.token_usage.total_tokens == 120
         assert response.token_usage.total_cost == pytest.approx(0.00042)
         assert response.token_usage.model_name == "gpt-4o-mini"
-        assert response.time_consumed.llm_seconds == pytest.approx(2.5)
-        assert response.time_consumed.total_seconds == pytest.approx(8.75)
+        assert response.token_usage.llm_seconds == pytest.approx(2.5)
+        assert response.token_usage.total_seconds == pytest.approx(8.75)
+        payload = response.to_dict()
+        assert "time_consumed" not in payload
+        assert payload["token_usage"]["llm_seconds"] == pytest.approx(2.5)
+        assert payload["token_usage"]["total_seconds"] == pytest.approx(8.75)
 
     def test_includes_required_cube_info_from_sql_model(self):
         response = ChatResponse.from_model_state(
@@ -348,6 +359,9 @@ class TestChatResponse:
                     "required_cube_info": {
                         "picked_dimensions": ["booking platform"],
                         "picked_metrics": ["cost of travel"],
+                        "picked_by_table": {
+                            "travel_details": {"dimensions": [{"column_name": "platform"}]}
+                        },
                     }
                 }
             }
@@ -356,6 +370,7 @@ class TestChatResponse:
             "picked_dimensions": ["booking platform"],
             "picked_metrics": ["cost of travel"],
         }
+        assert "picked_by_table" not in response.sql.required_cube_info
 
     def test_includes_data_model_from_viz_form_data(self):
         form_data = {
@@ -365,10 +380,11 @@ class TestChatResponse:
             "columns": [],
         }
         response = ChatResponse.from_model_state({"viz_form_data": form_data})
-        assert response.data_model == form_data
-        assert response.to_dict()["data_model"] == form_data
-        assert response.data_model["columns"] == []
-        assert response.data_model["query"] == "c2VsZWN0IDE="
+        assert response.report_model.data_model == form_data
+        assert response.to_dict()["report_model"]["data_model"] == form_data
+        assert response.report_model.data_model["columns"] == []
+        assert response.report_model.data_model["query"] == "c2VsZWN0IDE="
+        assert "data_model" not in response.to_dict()
 
     def test_strips_query_from_adhoc_data_model_when_columns_present(self):
         form_data = {
@@ -380,14 +396,31 @@ class TestChatResponse:
             "filters": [],
         }
         response = ChatResponse.from_model_state({"viz_form_data": form_data})
-        assert "query" not in response.data_model
-        assert response.data_model["columns"] == [{"alias": "Travel Cost"}]
-        assert response.data_model["sql"] == "select 1"
+        assert "query" not in response.report_model.data_model
+        assert response.report_model.data_model["columns"] == [{"alias": "Travel Cost"}]
+        assert response.report_model.data_model["sql"] == "select 1"
 
     def test_data_model_is_none_without_viz_form_data(self):
         response = ChatResponse.from_model_state({})
-        assert response.data_model is None
-        assert response.to_dict()["data_model"] is None
+        assert response.report_model.data_model is None
+        assert response.to_dict()["report_model"]["data_model"] is None
+        assert response.report_model.viz_model is None
+
+    def test_viz_model_lives_under_report_model(self):
+        response = ChatResponse.from_model_state(
+            {
+                "viz_hint": "bar",
+                "viz_model": {
+                    "chart": {"viz": "Bar", "mark": "Chart"},
+                    "data": {"rows": ["region"], "columns": ["amount"], "filters": []},
+                    "properties": {"title": "Sales"},
+                },
+            }
+        )
+        payload = response.to_dict()
+        assert payload["report_model"]["viz_model"]["chart"]["viz"] == "Bar"
+        assert "viz_model" not in payload["viz"]
+        assert "data_model" not in payload
 
     def test_summary_insight_drops_traceback(self):
         response = ChatResponse.from_model_state(
@@ -656,6 +689,15 @@ class TestOptionalPromptReason:
         assert "Never use SELECT * or COUNT(*)" in final_sql_prompt
         assert "COUNT(DISTINCT column)" in final_sql_prompt or "COUNT(DISTINCT" in final_sql_prompt
 
+    def test_final_sql_prompt_avoids_regex_uses_db_functions(self):
+        from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+
+        assert "col LIKE" not in final_sql_prompt
+        assert "LIKE '" not in final_sql_prompt
+        assert "Avoid regex" in final_sql_prompt
+        assert "~*" in final_sql_prompt
+        assert "provided database functions list" in final_sql_prompt
+
     def test_chat_response_omits_reason_fields_when_flag_enabled(self, monkeypatch):
         from helicalbi.common import app_config
 
@@ -687,6 +729,26 @@ class TestOptionalPromptReason:
         assert payload["viz"]["vf_reason"] == "bar chart fits aggregates"
         assert payload["sql"]["reason"] == "needs grouping"
         assert payload["summary"]["reason"] == "summary rationale"
+
+    def test_chat_response_interactive_client_dict_includes_viz_omits_data_metadata(self):
+        response = ChatResponse.from_model_state(
+            {
+                "viz_hint": "bar",
+                "vf_title": "Sales",
+                "sql_result": {"data": [{"a": 1}], "metadata": [{"rows": 1}]},
+            }
+        )
+        full = response.to_dict()
+        client = response.to_interactive_client_dict()
+        assert full["viz"]["chart_name"] == "bar"
+        assert full["data"] == [{"a": 1}]
+        assert full["metadata"] == [{"rows": 1}]
+        assert client["viz"] == full["viz"]
+        assert client["viz"]["vf_title"] == "Sales"
+        assert "data" not in client
+        assert "metadata" not in client
+        assert client["sql"] == full["sql"]
+        assert client["report_model"] == full["report_model"]
 
 
 class TestLoggedInUser:

@@ -12,6 +12,7 @@ import org.quartz.JobBuilder;
 import org.quartz.JobDataMap;
 import org.quartz.JobDetail;
 import org.quartz.JobKey;
+import org.quartz.ListenerManager;
 import org.quartz.Scheduler;
 import org.quartz.SchedulerException;
 import org.quartz.Trigger;
@@ -56,14 +57,17 @@ public class SystemScheduleLoader {
     public void loadAll() {
         try {
             List<Map<String, Object>> schedules = loadSchedules();
+            logger.info("Loading {} system schedule(s)", schedules.size());
             Scheduler scheduler = SchedulerUtility.getInstance();
             removeExistingSystemJobs(scheduler);
             for (Map<String, Object> schedule : schedules) {
                 registerSchedule(scheduler, schedule);
             }
+            registerJobListener(scheduler);
             if (!scheduler.isStarted()) {
                 scheduler.start();
             }
+            logger.info("System schedules loaded");
         } catch (Exception ex) {
             logger.error("Failed to load system schedules", ex);
         }
@@ -98,6 +102,15 @@ public class SystemScheduleLoader {
         for (JobKey jobKey : scheduler.getJobKeys(GroupMatcher.jobGroupEquals(SYSTEM_JOB_GROUP))) {
             scheduler.deleteJob(jobKey);
         }
+    }
+
+    private static void registerJobListener(Scheduler scheduler) throws SchedulerException {
+        ListenerManager listenerManager = scheduler.getListenerManager();
+        if (listenerManager.getJobListener(SystemScheduleJobListener.NAME) != null) {
+            listenerManager.removeJobListener(SystemScheduleJobListener.NAME);
+        }
+        listenerManager.addJobListener(new SystemScheduleJobListener(),
+                GroupMatcher.jobGroupEquals(SYSTEM_JOB_GROUP));
     }
 
     private void registerSchedule(Scheduler scheduler, Map<String, Object> schedule) {

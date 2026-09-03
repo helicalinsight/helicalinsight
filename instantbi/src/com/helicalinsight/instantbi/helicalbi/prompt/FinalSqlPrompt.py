@@ -1,5 +1,3 @@
-from langchain_core.prompts import PromptTemplate
-
 from helicalbi.common import app_config
 
 _FINAL_SQL_REASON_LINE = (
@@ -27,6 +25,8 @@ You are an expert {dialect} SQL engineer.
 
 Your job is to generate a valid SQL query using the provided columns.
 Use proper {dialect} syntax.
+Avoid regex operators or regex patterns such as ~, ~*, !~, !~*, RLIKE, SIMILAR TO, or character-class patterns like '^[aeiou]'.
+If a text/pattern function is needed, use only a matching function from the provided database functions list — never an ad-hoc regex expression in WHERE/HAVING.
 Donot add any new table and columns. Use the provided one only. 
 Return ONLY the SQL query.
 
@@ -89,6 +89,7 @@ Business metrics for required columns
 
 Generate the SQL request now based on the above details.  
 Never use SELECT * or COUNT(*). Always list explicit column names from the provided columns.
+Avoid regex operators/patterns (~, ~*, '^[aeiou]'). If a text/pattern function is needed, use only a matching function from the provided database functions list.
 For counts / "how many" questions, always write COUNT("table"."column") or COUNT(DISTINCT "table"."column") using a real schema column (prefer unique identifier / primary key). Never COUNT(*).
 Always use an alias for every selected column/expression in the SELECT clause.
 Prefer provided dimension/measure/hierarchy display names (alias labels) when available.
@@ -121,12 +122,14 @@ User Question:
 
  """
 
-final_sql_prompt = final_sql_prompt.replace(
-    "{_final_sql_important_block}",
-    _final_sql_important_block(),
-)
 
-final_sql_prompt_formatted = PromptTemplate.from_template(
-    final_sql_prompt,
-    partial_variables={"default_sql_limit": app_config.default_sql_limit},
-)
+def render_final_sql_prompt() -> str:
+    """Return the final-SQL prompt with live application-config substitutions.
+
+    ``hide_prompt_reason`` and ``default_sql_limit`` are read from
+    ``app_config`` at call time so Admin settings apply without a restart.
+    """
+    return final_sql_prompt.replace(
+        "{_final_sql_important_block}",
+        _final_sql_important_block(),
+    )

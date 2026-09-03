@@ -677,3 +677,31 @@ export const updateTableFilters = (data) => {
 		payload: data
 	};
 };
+
+export const updateSelectedType = (data) => {
+	return {
+		type: actionTypes.UPDATE_SELECTED_TYPE,
+		payload: data
+	};
+};
+
+export const removeAllReportsExceptOne = (data) => {
+	return {
+		type: actionTypes.REMOVE_ALL_REPORTS_EXCEPT_ONE,
+		payload: data
+	};
+};
+
+export const loadReportFilters = (data) => {
+	return {
+		type: actionTypes.LOAD_REPORT_FILTERS,
+		payload: data
+	}
+}
+
+export const loadReportFromLocalStorage = (data) => {
+	return {
+		type: actionTypes.LOAD_REPORT_FROM_LOCALSTORAGE,
+		payload: data
+	};
+};

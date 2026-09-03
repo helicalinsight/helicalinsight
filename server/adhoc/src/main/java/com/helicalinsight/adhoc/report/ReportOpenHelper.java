@@ -203,15 +203,21 @@ public class ReportOpenHelper {
         HIResourceInstantReport hiResourceHReport = hiResource.getHiResourceInstantReport();
         adhocReport.setReportName(hiResourceHReport.getReportName());
         Integer hiResourceMetadata = hiResourceHReport.getHiResourceModel();
+        JsonObject metadataFileJson=new JsonObject();
         if (hiResourceMetadata != null) {
-            HIResource hiResourceById = serviceDB.getHIResourceById(hiResourceMetadata);
-            String resourcePath = hiResourceById.getResourcePath();
-            String resourceURL = hiResourceById.getResourceURL();
+            HIResource modelResource = serviceDB.getHIResourceById(hiResourceMetadata);
+            HIResourceAIModel aiModel = modelResource.getAiModel();
+            Integer underLyingMetadata = aiModel.getHiResourceMetadata();
 
-            int lastSeparator = resourceURL.lastIndexOf("/");
-            String location = resourceURL.substring(0, lastSeparator);
-            metadataReference.setLocation(location);
-            metadataReference.setMetadataFileName(resourcePath + "." + JsonUtils.getMetadataExtension());
+            HIResource underLyingMetadataIns = serviceDB.getHIResourceById(underLyingMetadata);
+            String metadataResourcePath = underLyingMetadataIns.getResourcePath();
+            String metadataResourceURL = underLyingMetadataIns.getResourceURL();
+
+            int mdLastSeparator = metadataResourceURL.lastIndexOf("/");
+            String mdLocation = metadataResourceURL.substring(0, mdLastSeparator);
+
+            metadataReference.setLocation(mdLocation);
+            metadataReference.setMetadataFileName(metadataResourcePath + "." + JsonUtils.getMetadataExtension());
         }
         JsonObject asJsonObject = JsonParser.parseString(hiResourceHReport.getState()).getAsJsonObject();
         adhocReport.setState(asJsonObject);
@@ -303,34 +309,6 @@ public class ReportOpenHelper {
             md.addProperty("metadataFileName", metadataReference.getMetadataFileName());
             data.add("metadata", md);
 
-        }
-        metadataReference = null;
-        if (metadataReference != null) {
-            if (Boolean.FALSE.equals(metadataReference.getCube())) {
-                String location = metadataReference.getLocation();
-                GsonUtility.accumulate(metadata, "location", location);
-                String metadataFileName = metadataReference.getMetadataFileName();
-                GsonUtility.accumulate(metadata, "metadataFileName", metadataFileName);
-                GsonUtility.accumulate(data, "metadata", metadata);
-            } else {
-                String location = metadataReference.getLocation();
-                GsonUtility.accumulate(metadata, "location", location);
-                String metadataFileName = metadataReference.getMetadataFileName();
-                GsonUtility.accumulate(metadata, "fileName", metadataFileName);
-
-                GsonUtility.accumulate(data, "cube", metadata);
-                HIResourceServiceDB serviceDB = ApplicationContextAccessor.getBean(HIResourceServiceDB.class);
-
-                HIResource cubeResource = serviceDB.getResourceByUrl(location + "/" + metadataFileName);
-                HICubeDAOService hiCubeDAOService = ApplicationContextAccessor.getBean(HICubeDAOService.class);
-                String cubeAsJsonStr = hiCubeDAOService.getCubeAsJsonObj(cubeResource.getResourceId()).toString();
-                JsonObject cubeAsJsonObj = JsonParser.parseString(cubeAsJsonStr).getAsJsonObject();
-                JsonObject mds = cubeAsJsonObj.getAsJsonObject("metadata");
-                data.add("cubes", cubeAsJsonObj.getAsJsonArray("cubes"));
-                GsonUtility.accumulate(data, "metadata", mds);
-            }
-        } else {
-            //response.addProperty("message", "Metadata resource not found.");
         }
 
         GsonUtility.accumulate(data, "state", adhocReport.getState());

@@ -20,13 +20,13 @@ import { initialReferenceLineList, intialMarks, markTypes, postExecutionVars, po
 export const getTableTree = (metadata, metadataSearchText) => {
   return produce(metadata, (draft) => {
     let { tables } = draft;
-    
+
     // Add null/undefined check for tables
     if (!tables || typeof tables !== 'object') {
       draft.tables = [];
       return;
     }
-    
+
     let dotExist = metadataSearchText && metadataSearchText.split(".").length > 1 ? true : false;
     RegExp.quote = function (str) {
       let regxText = str.replace(/([.])/g, "\\$1");
@@ -362,7 +362,7 @@ export const addFieldToReport = (payload, report, dispatch) => {
 export const addFilterToReport = (payload, report, dispatch) => {
   let {
     table, column, type, defaultFunction, columnName, from, aggregate, groupBy, databaseFunction, drillDownFilterValues,
-    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType
+    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType, uid
   } = payload;
   let {
     metadata,
@@ -440,7 +440,7 @@ export const addFilterToReport = (payload, report, dispatch) => {
     minInput: "",
     valuesList: [],
     drillDownId: drillDownId ? drillDownId : "",
-    uid: uuidv4(),
+    uid: uid || uuidv4(),
     configId: uuidv4(),
     dataId: uuidv4(),
     columnID

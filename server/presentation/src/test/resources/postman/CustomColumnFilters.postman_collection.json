@@ -1,0 +1,492 @@
+{
+	"info": {
+		"_postman_id": "c4f1a8e0-9b2d-4e1a-8c7f-custom-col-filters",
+		"name": "Custom column filters (WHERE / HAVING)",
+		"description": "Import this collection. Set `baseUrl` (default http://localhost:8085/hi-ee).\n\n1. Run **0. Login** first (hiadmin/hiadmin). Token is saved automatically.\n2. Run **generateQuery** requests to inspect SQL in `response.query`.\n3. Run **fetchData** if `HReportTest/Metadata_HReportTest.metadata` exists on the server.\n\nCustom filter/having shape:\n```\n\"custom\": true,\n\"column\": { \"column\": \"\\\"booking_platform\\\"\", \"alias\": \"bk_pf\" }\n```\nHAVING also sends `\"function\": \"db.generic.aggregate.sum\"`.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8085/hi-ee" },
+		{ "key": "username", "value": "hiadmin" },
+		{ "key": "password", "value": "hiadmin" },
+		{ "key": "token", "value": "" },
+		{ "key": "location", "value": "HReportTest" },
+		{ "key": "metadataFileName", "value": "Metadata_HReportTest.metadata" }
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [ { "key": "token", "value": "{{token}}", "type": "string" } ]
+	},
+	"item": [
+		{
+			"name": "0. Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+							"const json = pm.response.json();",
+							"const token = json.token || pm.response.headers.get('token');",
+							"pm.test('token present', function () { pm.expect(token).to.be.ok; });",
+							"if (token) {",
+							"  pm.collectionVariables.set('token', String(token).replace(/^Bearer\\s+/i, ''));",
+							"}"
+						]
+					}
+				}
+			],
+			"request": {
+				"auth": { "type": "noauth" },
+				"method": "POST",
+				"header": [ { "key": "Content-Type", "value": "application/json" } ],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+				},
+				"url": "{{baseUrl}}/rest/authToken",
+				"description": "If decrypt fails, log in via the UI and paste the Bearer token into collection variable `token`."
+			}
+		},
+		{
+			"name": "generateQuery",
+			"item": [
+				{
+					"name": "1. Combined — custom WHERE + concat + custom HAVING sum",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"pm.test('query present', function () { pm.expect(query).to.be.a('string').and.not.empty; });",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"const having = query.split(/\\bhaving\\b/i)[1] || '';",
+									"pm.test('WHERE inlines booking_platform, not alias bk_pf', function () {",
+									"  pm.expect(where).to.match(/booking_platform/i);",
+									"  pm.expect(where).to.not.match(/\"bk_pf\"/);",
+									"  pm.expect(where).to.match(/Makemytrip/i);",
+									"});",
+									"pm.test('WHERE uses concat database function', function () {",
+									"  pm.expect(where).to.match(/concat|\\|\\|/i);",
+									"  pm.expect(where).to.match(/AgraMumbai/i);",
+									"});",
+									"pm.test('HAVING wraps formula with sum, not alias s_id', function () {",
+									"  pm.expect(having).to.match(/sum\\s*\\(/i);",
+									"  pm.expect(having).to.match(/source_id/i);",
+									"  pm.expect(having).to.not.match(/sum\\s*\\(\\s*\"s_id\"/i);",
+									"  pm.expect(having).to.match(/501501|10/);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-filter-combined" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":{\"name\":\"HIUSER.travel_details.mode_of_payment\",\"id\":\"1073\"},\"alias\":\"payment mode\",\"floatingType\":\"discrete\"},{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\",\"custom\":true,\"floatingType\":\"discrete\"},{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\",\"custom\":true,\"aggregate\":true,\"aggregateList\":[\"db.generic.aggregate.sum\"],\"floatingType\":\"discrete\"}],\"functions\":{\"aggregate\":[{\"column\":\"\\\"source_id\\\"\",\"function\":\"db.generic.aggregate.sum\",\"alias\":\"s_id\",\"custom\":true}],\"groupBy\":[{\"column\":\"payment mode\",\"custom\":true},{\"column\":\"bk_pf\",\"custom\":true}]},\"filters\":[{\"values\":[\"'Credit')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"payment mode\",\"label\":\"payment mode\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.mode_of_payment\",\"id\":\"1073\"},\"id\":0,\"condition\":\"CUSTOM\"},{\"values\":[\"'Makemytrip')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"bk_pf\",\"label\":\"bk_pf\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\"},\"id\":1,\"condition\":\"CUSTOM\"},{\"values\":[\"'AgraMumbai')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"sr-dest\",\"databaseFunction\":{\"functionName\":\"sql.text.concat\",\"dataType\":\"text\",\"parameters\":{\"string1\":\"travel_details.source\",\"string2\":\"travel_details.destination\"}},\"label\":\"sr-dest\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.source\",\"id\":\"1069\"},\"id\":2,\"condition\":\"CUSTOM\"}],\"having\":[{\"values\":[\"501501)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"sum_travel_id\",\"label\":\"sum_travel_id\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.travel_id\",\"id\":\"1064\"},\"function\":\"db.generic.aggregate.sum\",\"id\":1,\"condition\":\"CUSTOM\"},{\"values\":[\"10)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"s_id\",\"label\":\"s_id\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\"},\"function\":\"db.generic.aggregate.sum\",\"id\":2,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} AND ${1} AND ${2} \",\"customHavingExpression\":\" ${0} AND ${1} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "2. Custom WHERE only (bk_pf)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"pm.test('WHERE uses formula not alias', function () {",
+									"  pm.expect(where).to.match(/booking_platform/i);",
+									"  pm.expect(where).to.not.match(/\"bk_pf\"/);",
+									"  pm.expect(where).to.match(/Makemytrip/i);",
+									"});",
+									"pm.test('no HAVING', function () { pm.expect(query).to.not.match(/\\bhaving\\b/i); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-where-bkpf" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\",\"custom\":true,\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"bk_pf\",\"custom\":true}]},\"filters\":[{\"values\":[\"'Makemytrip')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"bk_pf\",\"label\":\"bk_pf\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\"},\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "3. Custom WHERE not in SELECT",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"pm.test('filter-only custom still inlines formula', function () {",
+									"  pm.expect(where).to.match(/booking_platform/i);",
+									"  pm.expect(where).to.not.match(/\"bk_pf\"/);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-where-not-in-select" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":{\"name\":\"HIUSER.travel_details.mode_of_payment\",\"id\":\"1073\"},\"alias\":\"payment mode\",\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"payment mode\",\"custom\":true}]},\"filters\":[{\"values\":[\"'Makemytrip')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"bk_pf\",\"label\":\"bk_pf\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\"},\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "4. Database function — sql.text.concat",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"pm.test('concat applied on source/destination', function () {",
+									"  pm.expect(where).to.match(/concat|\\|\\|/i);",
+									"  pm.expect(where).to.match(/source/i);",
+									"  pm.expect(where).to.match(/destination/i);",
+									"  pm.expect(where).to.match(/AgraMumbai/i);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "dbfn-concat" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":{\"name\":\"HIUSER.travel_details.source\",\"id\":\"1069\"},\"alias\":\"sr-dest\",\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"sr-dest\",\"custom\":true}]},\"filters\":[{\"values\":[\"'AgraMumbai')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"sr-dest\",\"databaseFunction\":{\"functionName\":\"sql.text.concat\",\"dataType\":\"text\",\"parameters\":{\"string1\":\"travel_details.source\",\"string2\":\"travel_details.destination\"}},\"label\":\"sr-dest\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.source\",\"id\":\"1069\"},\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "5. Database function — sql.dateTime.year",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"pm.test('year() on meeting_date', function () {",
+									"  pm.expect(where).to.match(/year|extract/i);",
+									"  pm.expect(where).to.match(/meeting_date/i);",
+									"  pm.expect(where).to.match(/2015/);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "dbfn-year" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"HIUSER.meeting_details.meeting_date\",\"alias\":\"meeting_date\",\"floatingType\":\"discrete\"},{\"column\":\"HIUSER.travel_details.booking_platform\",\"alias\":\"booking_platform\",\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"meeting_date\",\"custom\":true},{\"column\":\"booking_platform\",\"custom\":true}]},\"filters\":[{\"values\":[2015],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\">\",\"alias\":\"meeting_date\",\"databaseFunction\":{\"functionName\":\"sql.dateTime.year\",\"dataType\":\"numeric\",\"parameters\":{\"datetime\":\"meeting_details.meeting_date\"}},\"label\":\"meeting_date\",\"column\":\"HIUSER.meeting_details.meeting_date\",\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "6. Custom HAVING — s_id + sum",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const having = query.split(/\\bhaving\\b/i)[1] || '';",
+									"pm.test('HAVING is sum(source_id) not sum(s_id)', function () {",
+									"  pm.expect(having).to.match(/sum\\s*\\(/i);",
+									"  pm.expect(having).to.match(/source_id/i);",
+									"  pm.expect(having).to.not.match(/sum\\s*\\(\\s*\"s_id\"/i);",
+									"  pm.expect(having).to.not.match(/sum\\s*\\(\\s*sum\\s*\\(/i);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-having-sum" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\",\"custom\":true,\"aggregate\":true,\"aggregateList\":[\"db.generic.aggregate.sum\"],\"floatingType\":\"discrete\"}],\"functions\":{\"aggregate\":[{\"column\":\"\\\"source_id\\\"\",\"function\":\"db.generic.aggregate.sum\",\"alias\":\"s_id\",\"custom\":true}]},\"having\":[{\"values\":[\"10)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"s_id\",\"label\":\"s_id\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\"},\"function\":\"db.generic.aggregate.sum\",\"id\":0,\"condition\":\"CUSTOM\"}],\"customHavingExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "7. Custom + database function (year on custom date)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const where = (query.split(/\\bwhere\\b/i)[1] || '').split(/\\bgroup\\b/i)[0];",
+									"pm.test('database function SQL used, not custom alias', function () {",
+									"  pm.expect(where).to.match(/year|extract/i);",
+									"  pm.expect(where).to.not.match(/\"mtg_yr\"/);",
+									"  pm.expect(where).to.match(/2015/);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-plus-dbfn" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"\\\"meeting_date\\\"\",\"alias\":\"mtg_yr\",\"custom\":true,\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"mtg_yr\",\"custom\":true}]},\"filters\":[{\"values\":[\"2015)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"mtg_yr\",\"label\":\"mtg_yr\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"meeting_date\\\"\",\"alias\":\"mtg_yr\"},\"databaseFunction\":{\"functionName\":\"sql.dateTime.year\",\"dataType\":\"numeric\",\"parameters\":{\"datetime\":\"meeting_details.meeting_date\"}},\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "8. Custom HAVING — database function then sum",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const query = (json.response && json.response.query) || '';",
+									"const having = query.split(/\\bhaving\\b/i)[1] || '';",
+									"pm.test('sum wraps database function, not alias', function () {",
+									"  pm.expect(having).to.match(/sum\\s*\\(/i);",
+									"  pm.expect(having).to.not.match(/sum\\s*\\(\\s*\"s_id\"/i);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "generateQuery" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-having-dbfn-sum" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\",\"custom\":true,\"aggregate\":true,\"aggregateList\":[\"db.generic.aggregate.sum\"],\"floatingType\":\"discrete\"}],\"functions\":{\"aggregate\":[{\"column\":\"\\\"source_id\\\"\",\"function\":\"db.generic.aggregate.sum\",\"alias\":\"s_id\",\"custom\":true}]},\"having\":[{\"values\":[\"10)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"s_id\",\"label\":\"s_id\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\"},\"function\":\"db.generic.aggregate.sum\",\"databaseFunction\":{\"functionName\":\"sql.numeric.abs\",\"dataType\":\"numeric\",\"parameters\":{\"number\":\"source_id\"}},\"id\":0,\"condition\":\"CUSTOM\"}],\"customHavingExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				}
+			]
+		},
+		{
+			"name": "fetchData",
+			"item": [
+				{
+					"name": "9. fetchData — combined custom WHERE + concat + HAVING",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"pm.test('data array present', function () {",
+									"  pm.expect(json.response).to.have.property('data');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "fetchData" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-filter-fetch" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":{\"name\":\"HIUSER.travel_details.mode_of_payment\",\"id\":\"1073\"},\"alias\":\"payment mode\",\"floatingType\":\"discrete\"},{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\",\"custom\":true,\"floatingType\":\"discrete\"},{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\",\"custom\":true,\"aggregate\":true,\"aggregateList\":[\"db.generic.aggregate.sum\"],\"floatingType\":\"discrete\"}],\"functions\":{\"aggregate\":[{\"column\":\"\\\"source_id\\\"\",\"function\":\"db.generic.aggregate.sum\",\"alias\":\"s_id\",\"custom\":true}],\"groupBy\":[{\"column\":\"payment mode\",\"custom\":true},{\"column\":\"bk_pf\",\"custom\":true}]},\"filters\":[{\"values\":[\"'Credit')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"payment mode\",\"label\":\"payment mode\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.mode_of_payment\",\"id\":\"1073\"},\"id\":0,\"condition\":\"CUSTOM\"},{\"values\":[\"'Makemytrip')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"bk_pf\",\"label\":\"bk_pf\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\"},\"id\":1,\"condition\":\"CUSTOM\"},{\"values\":[\"'AgraMumbai')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"sr-dest\",\"databaseFunction\":{\"functionName\":\"sql.text.concat\",\"dataType\":\"text\",\"parameters\":{\"string1\":\"travel_details.source\",\"string2\":\"travel_details.destination\"}},\"label\":\"sr-dest\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.source\",\"id\":\"1069\"},\"id\":2,\"condition\":\"CUSTOM\"}],\"having\":[{\"values\":[\"501501)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"sum_travel_id\",\"label\":\"sum_travel_id\",\"isCustomValue\":true,\"column\":{\"name\":\"HIUSER.travel_details.travel_id\",\"id\":\"1064\"},\"function\":\"db.generic.aggregate.sum\",\"id\":1,\"condition\":\"CUSTOM\"},{\"values\":[\"10)\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.Integer\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"s_id\",\"label\":\"s_id\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"source_id\\\"\",\"alias\":\"s_id\"},\"function\":\"db.generic.aggregate.sum\",\"id\":2,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} AND ${1} AND ${2} \",\"customHavingExpression\":\" ${0} AND ${1} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				},
+				{
+					"name": "10. fetchData — custom WHERE only",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"const json = pm.response.json();",
+									"pm.test('status 1', function () { pm.expect(json.status).to.eql(1); });",
+									"const rows = json.response && json.response.data;",
+									"if (Array.isArray(rows) && rows.length) {",
+									"  pm.test('bk_pf filtered to Makemytrip', function () {",
+									"    const val = rows[0].bk_pf || rows[0]['bk_pf'];",
+									"    pm.expect(String(val)).to.match(/Makemytrip/i);",
+									"  });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [ { "key": "Content-Type", "value": "application/x-www-form-urlencoded" } ],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "type", "value": "adhoc" },
+								{ "key": "serviceType", "value": "report" },
+								{ "key": "service", "value": "fetchData" },
+								{ "key": "username", "value": "{{username}}" },
+								{ "key": "password", "value": "{{password}}" },
+								{ "key": "requestId", "value": "custom-where-fetch" },
+								{
+									"key": "formData",
+									"value": "{\"location\":\"{{location}}\",\"metadataFileName\":\"{{metadataFileName}}\",\"columns\":[{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\",\"custom\":true,\"floatingType\":\"discrete\"}],\"functions\":{\"groupBy\":[{\"column\":\"bk_pf\",\"custom\":true}]},\"filters\":[{\"values\":[\"'Makemytrip')\"],\"mode\":\"auto\",\"operator\":\"AND\",\"dataType\":\"java.lang.String\",\"customCondition\":\" IN (\",\"encloseInQuotes\":false,\"alias\":\"bk_pf\",\"label\":\"bk_pf\",\"isCustomValue\":true,\"custom\":true,\"column\":{\"column\":\"\\\"booking_platform\\\"\",\"alias\":\"bk_pf\"},\"id\":0,\"condition\":\"CUSTOM\"}],\"customFilterExpression\":\" ${0} \",\"limitBy\":10,\"prependTableNameToAlias\":false}"
+								}
+							]
+						},
+						"url": "{{baseUrl}}/services"
+					}
+				}
+			]
+		}
+	]
+}

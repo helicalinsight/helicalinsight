@@ -4,6 +4,7 @@ import com.helicalinsight.admin.dao.HIResourceDBDAO;
 import com.helicalinsight.admin.model.*;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.ResourceTypeServiceDB;
+import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
@@ -12,12 +13,14 @@ import com.helicalinsight.efw.utility.ResourcePermissionLevelsHolder;
 import com.helicalinsight.efw.utility.ResourceTypeIDMap;
 import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import jakarta.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -58,6 +61,12 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
     @Transactional
     public Integer editHIResource(HIResource hiResource) {
         return hiResourceDBDAO.editHIResource(hiResource);
+    }
+    
+    @Transactional
+    @Override
+    public Integer updateOwner(Integer resourceId, Integer ownerId) {
+    	return hiResourceDBDAO.updateOwner(resourceId, ownerId);
     }
 
     @Override
@@ -622,26 +631,28 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
     @Transactional
 	@Override
 	public HIResourceOfActiveUser getResourceOfActiveUser() {
-		Map<Integer,Integer> securityMap = getSecurityMap();
-		Set<Integer> resourceIds = new HashSet<Integer>(securityMap.keySet());
-		resourceIds.addAll( hiResourceDBDAO.getHIResourceIdsOfActiveUser());
-		resourceIds.addAll(hiResourceDBDAO.getChildrenResourceByParentIds(new ArrayList<>(resourceIds)));
-		List<HIResource> allResources = hiResourceDBDAO.getHIResourcesByIds(new ArrayList<>(resourceIds), true);
-		return new HIResourceOfActiveUser(securityMap, allResources);
+    	Integer userId = Integer.valueOf(AuthenticationUtils.getUserId());
+		String orgId = AuthenticationUtils.getOrganizationId();
+		Integer orgIdInt = null;
+		if (StringUtils.isNotBlank(orgId)) {
+			orgIdInt = Integer.parseInt(orgId);
+		}
+		List<String> userRolesIds = AuthenticationUtils.getUserRolesIds();
+		return getAllResourcesOfAnyUsr(userId, userRolesIds, orgIdInt);
 	}
 
     @Transactional
     @Override
     public HIResourceOfActiveUser getAllResourcesOfAnyUsr(Integer userId, List<String> roleId, Integer orgId) {
-        // This method returns the security map for the given user, role, and org
-        List<HIResource> allResourceList = hiResourceDBDAO.getAllResourceList(true);
         Map<Integer, Integer> securityMap = hiResourceDBDAO.getSecurityMapOfAnyUser(userId, roleId, orgId);
-        HIResourceOfActiveUser securityUtil = new HIResourceOfActiveUser(securityMap, allResourceList,userId);
+		Set<Integer> resourceIds = new HashSet<Integer>(securityMap.keySet());
+		resourceIds.addAll( hiResourceDBDAO.getHIResourceIdsOfUser(userId));
+		resourceIds.addAll(hiResourceDBDAO.getChildrenResourceByParentIds(new ArrayList<>(resourceIds)));
+		List<HIResource> allResources = hiResourceDBDAO.getHIResourcesByIds(new ArrayList<>(resourceIds), true);
+        HIResourceOfActiveUser securityUtil = new HIResourceOfActiveUser(securityMap, allResources,userId);
         return securityUtil;
-
     }
     
-
 
 
     @Override
@@ -965,6 +976,24 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 	@Override
 	public void restoreResourcesByIds(List<Integer> resourceIds) {
 			hiResourceDBDAO.restoreResourcesByIds(resourceIds);
+	}
+	
+	@Transactional
+	@Override
+	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
+		return hardDeleteResourcesByIds(rootResourceIds, false);
+	}
+
+	@Transactional
+	@Override
+	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
+		return hiResourceDBDAO.hardDeleteResourcesByIds(rootResourceIds, force);
+	}
+
+	@Transactional
+	@Override
+	public Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds) {
+		return hiResourceDBDAO.findParentIdsByResourceIds(resourceIds);
 	}
     
 }

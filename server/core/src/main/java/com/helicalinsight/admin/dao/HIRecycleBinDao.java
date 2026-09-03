@@ -1,8 +1,10 @@
 package com.helicalinsight.admin.dao;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.helicalinsight.admin.dto.RecycleBinDTO;
 import com.helicalinsight.admin.model.HIRecycleBin;
@@ -23,6 +25,8 @@ public interface HIRecycleBinDao {
 
 	boolean deleteHIRecycleBinByResourceId(Integer resourceId);
 	void deleteRecycleBinsByIds(List<Long> recycleBinIds);
+
+	void deleteRecycleBinsByUserIds(Collection<Integer> userIds);
 
 	HIRecycleBin findHIRecycleBinById(Long id);
 	RecycleBinDTO getHIRecycleBinById(Long id);
@@ -51,6 +55,17 @@ public interface HIRecycleBinDao {
 	void deleteRecycleBinByGlobalId(Integer globalId);
 
 	boolean isRecycleBinPresent(Long id);
+	
+	void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
 
+	Set<Long> findResourceBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findGlobalBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findEfwdBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findUserBinsBlockedByLiveDependents(Collection<Long> binIds);
+
+	Set<Long> findOrgBinsBlockedByLiveDependents(Collection<Long> binIds);
 
 }

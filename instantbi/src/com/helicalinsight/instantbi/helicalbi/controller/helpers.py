@@ -10,14 +10,6 @@ from helicalbi.common import app_config
 
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.RequestCancellation import request_cancellation
-from helicalbi.model.TokenUsage import TokenUsage
-from helicalbi.model.TimeConsumed import TimeConsumed
-from helicalbi.model.output.ChatResponse import (
-    ChatResponse,
-    SqlSection,
-    SummarySection,
-    VizSection,
-)
 from helicalbi.sql.SqlSanitizer import extract_sql, strip_sql_markdown
 
 logger = logging.getLogger(__name__)
@@ -174,10 +166,10 @@ def build_chat_memory_payload(
     topics: Any = None,
     state: Optional[dict] = None,
 ) -> dict[str, Any]:
-    """Build the ChatGraphMemory node payload for interactive / load-chat.
+    """Build the ChatGraphMemory node payload for interactive chat.
 
-    Persists query metadata, title, and applied Excel format strings so
-    ``/convert-chart`` can recover table field bindings and formatting.
+    Persists query metadata, title, and applied Excel format strings for
+    follow-up turns.
     """
     viz = (chat_response or {}).get("viz") or {}
     format_strings = _normalize_format_strings(
@@ -208,57 +200,6 @@ def build_chat_memory_payload(
         "vf_title": str(viz.get("vf_title") or ""),
         "format_strings": format_strings,
     }
-
-
-def build_chat_response_from_item(
-    item: dict,
-    *,
-    data: list,
-    metadata: list,
-    formatted_sql: str,
-    error: str = "",
-) -> dict:
-    """Assemble a chat response payload from a pre-generated item plus query results.
-
-    Preserves the saved preferred chart (``chart_name``) so open
-    mode re-renders the same InstantBI visualization the user saved.
-    """
-    logger.debug(
-        "Building chat response from item rows=%s metadata_cols=%s has_sql=%s",
-        len(data),
-        len(metadata),
-        bool(formatted_sql),
-    )
-    sql_section = SqlSection(**(item.get("sql") or {}))
-    if formatted_sql:
-        sql_section.raw_sql = formatted_sql
-
-    token_raw = item.get("token_usage") or {}
-    token_usage = TokenUsage(
-        **{key: value for key, value in token_raw.items() if value is not None}
-    )
-    time_raw = item.get("time_consumed") or {}
-    time_consumed = TimeConsumed(
-        **{key: value for key, value in time_raw.items() if value is not None}
-    )
-
-    return ChatResponse(
-        viz=_hydrate_saved_viz(item.get("viz") or {}, data_types=metadata),
-        sql=sql_section,
-        summary=SummarySection(**(item.get("summary") or {})),
-        data=data,
-        metadata=metadata,
-        token_usage=token_usage,
-        time_consumed=time_consumed,
-        error=error,
-    ).to_dict()
-
-
-def _hydrate_saved_viz(viz: dict, *, data_types: Any = None) -> VizSection:
-    """Restore preferred chart / similar_chart for InstantBI open mode."""
-    from helicalbi.viz._charts import hydrate_saved_viz
-
-    return VizSection(**hydrate_saved_viz(viz, data_types=data_types))
 
 
 def as_list(value: Any) -> List[Any]:
@@ -292,7 +233,6 @@ def turn_state_defaults() -> dict[str, Any]:
         "vf_title": "",
         "viz_hint": "",
         "viz_reason": "",
-        "similar_chart": [],
         "insight": "",
         "flow": [],
         "token_usage": {},

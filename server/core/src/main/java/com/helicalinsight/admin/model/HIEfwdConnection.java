@@ -5,9 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import jakarta.persistence.*;
-
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.Cache;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.Filter;
@@ -15,6 +14,19 @@ import org.hibernate.annotations.Filter;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "hi_efwd_connection", indexes = {
@@ -24,13 +36,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 })
 @BatchSize(size = 20)
 @DynamicUpdate
-@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
+@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 @Filter(name = "isDeletedFilter", condition = "is_deleted = :isDeleted")
 public class HIEfwdConnection implements Serializable {
     
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 	
 
@@ -55,27 +64,33 @@ public class HIEfwdConnection implements Serializable {
     @OneToMany(mappedBy = "hiEfwdConnection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@BatchSize(size = 20)
 	@JsonBackReference(value = "efwdConnSqlJDBC")
+    @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     private List<EFWDConnSqlJDBC> efwdConnSqlJDBC = new ArrayList<>();
 
     @OneToMany(mappedBy = "hiEfwdConnection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@BatchSize(size = 20)
 	@JsonBackReference(value = "efwdConnGroovy")
+    @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     private List<EFWDConnGroovy> efwdConnGroovy = new ArrayList<>();
 
     @OneToMany(mappedBy = "hiEfwdConnection", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@BatchSize(size = 20)
 	@JsonBackReference(value = "dataMapList")
+    @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     private List<HIEfwdDataMap> dataMapList = new ArrayList<>();
     
     @OneToMany(mappedBy = "hiEfwdConnection", cascade = CascadeType.REMOVE, orphanRemoval = true, fetch = FetchType.LAZY)
 	@BatchSize(size = 20)
+    @Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
     private List<HIEfwdConnSecurity> securityList = new ArrayList<>();
       
 	@OneToMany(mappedBy = "hiEfwdConnection", fetch = FetchType.LAZY)
+	@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private List<HIMetadataConnectionEFWD> metadataConnections = new ArrayList<>();
     
 	@OneToMany(mappedBy = "hiEfwdConnection", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
 	@BatchSize(size = 20)
+	@Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private List<HIHcrConnectionsEfwd> hiHcrConnectionsEfwds = new ArrayList<>();
     
     public List<EFWDConnGroovy> getEfwdConnGroovy() {

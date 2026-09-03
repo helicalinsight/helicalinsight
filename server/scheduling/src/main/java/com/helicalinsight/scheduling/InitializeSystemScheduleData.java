@@ -17,7 +17,9 @@ public class InitializeSystemScheduleData implements ApplicationValuesInitialize
     @Override
     public void initializeData(ApplicationContext applicationContext) {
         try {
+            logger.info("Initializing system schedules from systemschedule.json");
             new SystemScheduleLoader().loadAll();
+            logger.info("System schedule initialization finished");
         } catch (Exception ex) {
             logger.error("Failed to initialize system schedules", ex);
         }

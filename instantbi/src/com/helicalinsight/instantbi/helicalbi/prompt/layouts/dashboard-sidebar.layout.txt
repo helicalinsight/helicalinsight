@@ -1,0 +1,14 @@
+id: dashboard-sidebar
+name: Dashboard + Sidebar
+best_for: Many filters or navigation controls.
+
+┌──────────┬─────────────────────────────────┐
+│ Filters  │ KPI  │ KPI  │ KPI  │ KPI        │
+│          ├─────────────────────────────────┤
+│ Date     │                                 │
+│ Region   │           Main Chart            │
+│ Product  │                                 │
+│ Channel  ├────────────────┬────────────────┤
+│          │ Chart          │ Chart          │
+│          │                │                │
+└──────────┴────────────────┴────────────────┘

@@ -17,9 +17,9 @@ const TOOLS = [
   },
   {
     key: TOOL_AGENT_JSON,
-    label: "JSON",
+    label: "Model Spec",
     tooltip:
-      "View and edit the raw JSON for this semantic model. Changes here update the model configuration.",
+      "View and edit the raw Sepc for this semantic model. Changes here update the model configuration.",
     icon: <FileTextOutlined />,
     tutorialKey: "hi-agent-tool-json",
   },

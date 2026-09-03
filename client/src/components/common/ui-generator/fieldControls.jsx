@@ -1,9 +1,8 @@
-import { AutoComplete, Input, InputNumber, Radio, Select, Switch } from "antd";
-import { CheckCircleFilled, CheckCircleOutlined } from "@ant-design/icons";
+import { AutoComplete, Checkbox, Input, InputNumber, Radio, Select, Switch } from "antd";
 import { isFieldReadOnly } from "./layoutUtils";
 
 /**
- * Light-blue tick toggle (not a checkbox / switch).
+ * Square checkbox for boolean layout fields.
  * Works with Form.Item valuePropName="checked".
  */
 export const TickToggle = ({
@@ -11,29 +10,22 @@ export const TickToggle = ({
   onChange,
   disabled = false,
   className = "",
+  children,
 }) => (
-  <button
-    type="button"
-    className={`ui-tick-toggle ${checked ? "ui-tick-toggle--on" : ""} ${className}`}
-    aria-pressed={!!checked}
+  <Checkbox
+    className={`ui-tick-toggle ${className}`.trim()}
+    checked={!!checked}
     disabled={disabled}
-    onClick={() => {
-      if (disabled) return;
-      onChange?.(!checked);
-    }}
+    onChange={onChange}
   >
-    {checked ? (
-      <CheckCircleFilled className="ui-tick-toggle__icon" />
-    ) : (
-      <CheckCircleOutlined className="ui-tick-toggle__icon" />
-    )}
-  </button>
+    {children}
+  </Checkbox>
 );
 
 /**
  * Renders an Ant Design control for a layout field definition.
  */
-export const renderFieldControl = (field, { isAdd = false } = {}) => {
+export const renderFieldControl = (field, { isAdd = false, label } = {}) => {
   const readOnly = isFieldReadOnly(field, { isAdd });
   const commonProps = {
     disabled: readOnly || field.disabled,
@@ -46,7 +38,9 @@ export const renderFieldControl = (field, { isAdd = false } = {}) => {
       if (field.control === "switch" || field.appearance === "switch") {
         return <Switch disabled={commonProps.disabled} />;
       }
-      return <TickToggle disabled={commonProps.disabled} />;
+      return (
+        <TickToggle disabled={commonProps.disabled}>{label}</TickToggle>
+      );
     case "number":
       return (
         <InputNumber
@@ -80,8 +74,9 @@ export const renderFieldControl = (field, { isAdd = false } = {}) => {
             {...commonProps}
             style={{ width: "100%" }}
             options={field.options || []}
+            loading={!!field.loading}
             filterOption={(input, option) =>
-              String(option?.value ?? option?.label ?? "")
+              String(option?.label ?? option?.value ?? "")
                 .toLowerCase()
                 .includes(String(input || "").toLowerCase())
             }
@@ -97,6 +92,12 @@ export const renderFieldControl = (field, { isAdd = false } = {}) => {
           mode={field.mode}
           showSearch={field.showSearch}
           optionFilterProp={field.optionFilterProp || "label"}
+          loading={!!field.loading}
+          filterOption={(input, option) =>
+            String(option?.label ?? option?.children ?? option?.value ?? "")
+              .toLowerCase()
+              .includes(String(input || "").toLowerCase())
+          }
         />
       );
     case "radio":

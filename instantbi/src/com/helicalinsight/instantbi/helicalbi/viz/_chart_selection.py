@@ -6,7 +6,6 @@ by data shape and builds a compact prompt guide — never the full table.
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass
 from typing import Any, Iterable, Optional
 
@@ -26,7 +25,7 @@ class ChartOption:
 
 
 def get_chart_options() -> tuple[ChartOption, ...]:
-    """Return all registered chart options from ``charts/*.json``."""
+    """Return static chart options from ``_chart_catalog`` (plus ``other`` from JSON)."""
     from helicalbi.viz._charts import get_chart_options as _load
 
     return _load()
@@ -359,130 +358,6 @@ def format_chart_selection_guide(
         len(guide),
     )
     return guide
-
-
-# Shown in chart selection but never offered as a similar-chart swap target.
-_SIMILAR_CHART_EXCLUDE = frozenset({"other", "grid_table"})
-
-
-def resolve_similar_charts(selected: str, data_types: Any = None) -> list[str]:
-    """Return other chart types from the same LLM selection candidate list.
-
-    Uses ``possible_chart_options`` (same filter as the viz prompt guide).
-    Excludes the selected type, ``other``, and ``grid_table``.
-    """
-    name = (
-        (selected or "")
-        .strip()
-        .lower()
-        .replace(" ", "_")
-        .replace("-", "_")
-    )
-    if not name:
-        return []
-
-    if data_types is not None:
-        dims, measures, ordered = infer_chart_shape(data_types)
-        options = possible_chart_options(dims, measures, ordered)
-    else:
-        options = list(get_chart_options())
-
-    if not options:
-        options = [
-            opt for opt in get_chart_options()
-            if opt.visualization_type == "table"
-        ]
-
-    similar = sorted(
-        opt.visualization_type
-        for opt in options
-        if opt.visualization_type != name
-        and opt.visualization_type not in _SIMILAR_CHART_EXCLUDE
-    )
-    logger.info(
-        "chart_similar route=possible_options selected=%s similar=%s",
-        name,
-        similar,
-    )
-    return similar
-
-
-def format_similar_chart_wire(
-    similar: Any,
-    *,
-    chart_name: Optional[str] = None,
-) -> list[dict[str, str]]:
-    """Normalize similar charts to the interactive-response wire format.
-
-    Returns a list like::
-
-        [
-          {"vf.heatmap": "heatmap"},
-          {"vf.circle_packing": "circle packing"},
-          {"vf.dual_line": "dual line"},
-          ...
-        ]
-
-    ``chart_name`` may contain whitespace (e.g. ``"dual line"``,
-    ``"circle packing"``). The wire key always uses underscores
-    (``vf.dual_line``); the value is the spaced display name.
-
-    When ``chart_name`` is provided, the current chart is included first.
-    Accepts legacy string lists or already-shaped object lists.
-    """
-    if similar is None or similar == "":
-        similar_items: list[Any] = []
-    else:
-        similar_items = similar if isinstance(similar, list) else [similar]
-
-    current = str(chart_name or "").strip()
-    out: list[dict[str, str]] = []
-    seen_types: set[str] = set()
-
-    def _wire_parts(name: str) -> tuple[str, str]:
-        """Return ``(chart_type_key, display_value)``; spaces → underscores in key."""
-        text = str(name or "").strip().lower()
-        # Collapse any whitespace/hyphen runs so "dual line" / "dual  line" / "dual-line"
-        # all become dual_line → display "dual line".
-        chart_type = re.sub(r"[\s\-]+", "_", text).strip("_")
-        display = chart_type.replace("_", " ")
-        return chart_type, display
-
-    def _append_vf(name: str, *, front: bool = False) -> None:
-        chart_type, display = _wire_parts(name)
-        if not chart_type or chart_type in seen_types:
-            return
-        seen_types.add(chart_type)
-        entry = {f"vf.{chart_type}": display}
-        if front:
-            out.insert(0, entry)
-        else:
-            out.append(entry)
-
-    if current:
-        _append_vf(current)
-
-    for item in similar_items:
-        raw = ""
-        if isinstance(item, dict):
-            # Ignore legacy {"chart_name": "..."} entries; current comes from arg.
-            if list(item.keys()) == ["chart_name"]:
-                if not current:
-                    _append_vf(item.get("chart_name") or "", front=True)
-                continue
-            for key, value in item.items():
-                if isinstance(key, str) and key.startswith("vf.") and key != "vf.chart_name":
-                    raw = key[3:] or value
-                    break
-            if not raw:
-                raw = item.get("vf.chart_name") or item.get("chart_name") or ""
-                if not raw and len(item) == 1:
-                    only_key, only_val = next(iter(item.items()))
-                    raw = only_val if only_val else only_key
-        else:
-            raw = item
-        _append_vf(raw)
-    return out
 
 
 def _format_constraint(minimum: int, maximum: Optional[int], *, ordered: bool = False) -> str:

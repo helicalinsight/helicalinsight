@@ -1,0 +1,14 @@
+id: drilldown-hierarchical
+name: Drill-down / Hierarchical
+best_for: Progressive path Company → Region → Department → Product → Transaction.
+
+┌─────────────────────────────────────────────┐
+│ Company Overview                            │
+├─────────────────────────────────────────────┤
+│ Revenue by Region                           │
+│                                             │
+├───────────────────────┬─────────────────────┤
+│ Region Details        │ Product Details     │
+├───────────────────────┴─────────────────────┤
+│ Transaction Details                         │
+└─────────────────────────────────────────────┘

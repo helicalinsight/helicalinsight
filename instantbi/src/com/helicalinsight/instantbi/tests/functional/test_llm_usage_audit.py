@@ -136,6 +136,7 @@ class TestAuditLlmUsageAsync:
             assert kwargs["endpoint"] == "/data-insight"
             assert kwargs["token_usage"] == usage
             assert kwargs["base_url"] == "http://hiee:8080/hi-ee"
+            assert "headers" in kwargs
 
     def test_post_audit_posts_json_payload(self):
         session = MagicMock()

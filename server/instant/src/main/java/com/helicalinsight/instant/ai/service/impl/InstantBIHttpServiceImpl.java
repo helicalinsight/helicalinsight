@@ -103,9 +103,11 @@ public class InstantBIHttpServiceImpl implements IInstantBIHttpService {
 
         HttpClient client = HttpClient.newHttpClient();
         String url = InstantBIUtils.getInstantBIServiceUrl();
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(url + endpoint))
-                .header("Content-Type", "application/json")
+                .header("Content-Type", "application/json");
+        InstantBIUtils.applyForwardedHeaders(requestBuilder, body);
+        HttpRequest httpRequest = requestBuilder
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                 .build();
 

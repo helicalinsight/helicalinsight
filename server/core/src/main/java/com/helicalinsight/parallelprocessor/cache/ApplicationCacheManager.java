@@ -1,29 +1,35 @@
 package com.helicalinsight.parallelprocessor.cache;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.model.DataSourceMapping;
 import com.helicalinsight.admin.service.DatabaseCacheService;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
-import com.helicalinsight.efw.utility.JsonUtils;
-import com.helicalinsight.parallelprocessor.cache.impl.ApplicationDatabaseCache;
-import net.sf.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import net.sf.json.JSONObject;
 
 /**
  * @author Somen
  *         Created by helical021 on 1/21/2019.
  */
 @Component
+//Remove this once the HibernateCach is deprecated
+@Scope("prototype")
 public class ApplicationCacheManager {
-    @Autowired
-    @Qualifier(value = "applicationDatabaseCache")
+    
+	@Qualifier("applicationDatabaseCache")
+	@Autowired
     private ICache implementedCache;
+    
+    
 
     /**
      * readFromCache
@@ -33,7 +39,7 @@ public class ApplicationCacheManager {
      * @param key
      * @return
      */
-    public List<JSONObject> readFromCache(String key) {
+     public List<JSONObject> readFromCache(String key) {
 
         Object cache = implementedCache.getCache(key);
         return (List<JSONObject>) cache;
@@ -88,7 +94,11 @@ public class ApplicationCacheManager {
 
         implementedCache.putAllCache(sendJSONObjList);
     }
-
+    
+    
+    public void setImplementedCache(ICache implementedCache) {
+    	this.implementedCache = implementedCache;
+    }
 
     public ICache getImplementedCache() {
         return implementedCache;

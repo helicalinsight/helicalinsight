@@ -17,7 +17,7 @@ _CONFIG_FILE = "application_config.yaml"
 
 # Sections the utility API is allowed to update.
 _ALLOWED_SECTIONS = frozenset(
-    {"app", "logging", "feature_flags", "api_cache", "sql", "kpi"}
+    {"app", "logging", "feature_flags", "api_cache", "sql", "kpi", "dashboard"}
 )
 
 

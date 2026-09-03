@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from copy import deepcopy
 from typing import Any, Optional
 
@@ -13,6 +14,21 @@ from helicalbi.service.utility.provider._helpers import mask_secrets
 logger = logging.getLogger(__name__)
 
 _CONFIG_FILE = "llm_config.yaml"
+
+
+def _preserve_env_placeholders(existing_params: dict, incoming: dict) -> dict:
+    """Keep ``${ENV}`` placeholders when the editor posts the resolved secret."""
+    merged = deepcopy(incoming or {})
+    for key, old in (existing_params or {}).items():
+        if not (isinstance(old, str) and old.startswith("${") and old.endswith("}")):
+            continue
+        new = merged.get(key)
+        if new in (None, "", old):
+            merged[key] = old
+            continue
+        if new == os.getenv(old[2:-1]):
+            merged[key] = old
+    return merged
 
 
 class LlmConfigProvider:
@@ -31,21 +47,64 @@ class LlmConfigProvider:
             snapshot = deepcopy(self._llm_manager.config)
         return mask_secrets(snapshot) if mask else snapshot
 
+    def _raw_providers(self) -> dict:
+        try:
+            raw = self._load_raw() or {}
+        except Exception:
+            return {}
+        providers = raw.get("providers") or {}
+        return providers if isinstance(providers, dict) else {}
+
+    def _provider_row(
+        self,
+        name: str,
+        cfg: dict,
+        default: Any,
+        stored: Optional[dict] = None,
+    ) -> dict[str, Any]:
+        live = cfg or {}
+        raw_cfg = stored if isinstance(stored, dict) else {}
+        raw_params = (
+            raw_cfg.get("parameters")
+            if isinstance(raw_cfg.get("parameters"), dict)
+            else {}
+        )
+        live_params = (
+            live.get("parameters") if isinstance(live.get("parameters"), dict) else {}
+        )
+        parameters = deepcopy(live_params or {})
+        for key, raw_value in raw_params.items():
+            current = parameters.get(key)
+            if current in (None, "") and raw_value not in (None, ""):
+                parameters[key] = deepcopy(raw_value)
+            elif key not in parameters:
+                parameters[key] = deepcopy(raw_value)
+        for key, value in list(parameters.items()):
+            if value is None:
+                parameters[key] = ""
+        return {
+            "provider": name,
+            "package": raw_cfg.get("package") or live.get("package"),
+            "model": raw_cfg.get("model") or live.get("model"),
+            "is_default": name == default,
+            "usage_path": raw_cfg.get("usage_path") or live.get("usage_path"),
+            "parameters": deepcopy(parameters),
+        }
+
     def list_providers(self) -> list[dict[str, Any]]:
-        config = self.get_config(mask=True)
+        config = self.get_config(mask=False)
         default = config.get("default_provider")
         providers = config.get("providers") or {}
+        stored_providers = self._raw_providers()
         rows: list[dict[str, Any]] = []
         for name, cfg in providers.items():
             rows.append(
-                {
-                    "provider": name,
-                    "package": (cfg or {}).get("package"),
-                    "model": (cfg or {}).get("model"),
-                    "is_default": name == default,
-                    "usage_path": (cfg or {}).get("usage_path"),
-                    "parameters": (cfg or {}).get("parameters") or {},
-                }
+                self._provider_row(
+                    name,
+                    cfg or {},
+                    default,
+                    stored_providers.get(name),
+                )
             )
         return rows
 
@@ -53,20 +112,19 @@ class LlmConfigProvider:
         provider = (provider or "").strip()
         if not provider:
             raise UtilityError("provider is required")
-        config = self.get_config(mask=True)
+        config = self.get_config(mask=False)
         providers = config.get("providers") or {}
         if provider not in providers:
             raise UtilityError(f"Provider '{provider}' not found in llm_config.yaml")
-        cfg = providers[provider] or {}
-        return {
-            "provider": provider,
-            "package": cfg.get("package"),
-            "model": cfg.get("model"),
-            "is_default": provider == config.get("default_provider"),
-            "usage_path": cfg.get("usage_path"),
-            "parameters": cfg.get("parameters") or {},
-            "init_provider": cfg.get("init_provider"),
-        }
+        row = self._provider_row(
+            provider,
+            providers[provider] or {},
+            config.get("default_provider"),
+            self._raw_providers().get(provider),
+        )
+        live = providers[provider] or {}
+        row["init_provider"] = live.get("init_provider")
+        return row
 
     # ------------------------------------------------------------------
     # Write helpers
@@ -78,6 +136,12 @@ class LlmConfigProvider:
     def _persist_and_reload(self, raw: dict) -> dict:
         ConfigLoader.save_config(self._config_file, raw)
         self._llm_manager.reload_from_disk()
+        # Instantiate now so the next chat uses the new provider without a restart.
+        # Failures are logged; get_llm() already returns None when credentials are missing.
+        try:
+            self._llm_manager.get_llm()
+        except Exception:
+            logger.exception("Failed to instantiate LLM after config reload")
         try:
             import helicalbi.common.configuration as configuration
 
@@ -169,11 +233,13 @@ class LlmConfigProvider:
         if init_provider is not None:
             existing["init_provider"] = init_provider
         if parameters is not None:
+            existing_params = deepcopy(existing.get("parameters") or {})
+            incoming = _preserve_env_placeholders(existing_params, parameters)
             if replace_parameters:
-                existing["parameters"] = deepcopy(parameters)
+                existing["parameters"] = incoming
             else:
-                merged_params = deepcopy(existing.get("parameters") or {})
-                merged_params.update(parameters)
+                merged_params = existing_params
+                merged_params.update(incoming)
                 existing["parameters"] = merged_params
         if extra:
             for key, value in extra.items():

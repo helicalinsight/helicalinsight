@@ -88,7 +88,7 @@ let editingOptions = [
   {
     id: "8",
     elementKey: "hr-json",
-    display: "JSON",
+    display: "Report Spec",
     icon: <FileTextOutlined />,
     scText: "J",
     scLocation: "HR"
@@ -101,7 +101,7 @@ export const handleChangePane = (dispatch, id, e) => {
 
 const EditingArea = (props) => {
   const dispatch = useDispatch();
-  let { reportId, dashboardFilter, openFileBrowser, isFilterComponent = false } = props;
+  let { reportId, dashboardFilter, openFileBrowser, isFilterComponent = false, menuOptionsToRemove = [] } = props;
   const tutorialData = useSelector((state) => state.app.tutorialData);
   let { activeTool, filters, mode, reportData, activeDrillthroughId = '', showAllVisualizations } = useSelector((state) => {
     let activeReport = state.hreport.present.reports.find(
@@ -136,7 +136,7 @@ const EditingArea = (props) => {
             className="hr-editing-area-items"
             mode="horizontal"
           >
-            {editingOptions.map((item) => {
+            {editingOptions.filter((item) => !menuOptionsToRemove.includes(item.id)).map((item) => {
               let filterCount = null;
               if (item.id === "2" && filters.length) {
                 filterCount = (
@@ -181,7 +181,7 @@ const EditingArea = (props) => {
         )}
         <ErrorFallback {...props}>
           <div className={isDrillThroughReport ? "hr-editing-area-content hi-editing-area-disabled" : "hr-editing-area-content"}>
-            {activeTool === "1" && (showAllVisualizations ? <VizListNew getApi={props.getApi} vizRef={props.vizRef} /> : <VizList getApi={props.getApi} vizRef={props.vizRef} />)}
+            {activeTool === "1" && (showAllVisualizations ? <VizListNew getApi={props.getApi} vizRef={props.vizRef} reportId={reportId} /> : <VizList getApi={props.getApi} vizRef={props.vizRef} />)}
             {activeTool === "2" && (
               <Filters
                 reportId={reportId}

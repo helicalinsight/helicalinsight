@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import org.hibernate.annotations.CacheConcurrencyStrategy;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
@@ -32,6 +33,7 @@ import java.util.List;
 @Entity
 @Table(name = "organization", uniqueConstraints = {@UniqueConstraint(columnNames = {"org_name"})})
 @Filter(name = "isDeletedFilter", condition = "is_deleted = :isDeleted")
+@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class Organization implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -68,10 +70,12 @@ public class Organization implements Serializable {
     
     @OneToMany(mappedBy = "organization", cascade = CascadeType.REMOVE)
     @LazyCollection(LazyCollectionOption.TRUE)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Role> roles;
     
     @OneToMany(mappedBy = "organization", cascade = CascadeType.REMOVE)
     @LazyCollection(LazyCollectionOption.TRUE)
+    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<User> users;
     
     @OneToMany(mappedBy = "orgId", cascade = CascadeType.REMOVE)

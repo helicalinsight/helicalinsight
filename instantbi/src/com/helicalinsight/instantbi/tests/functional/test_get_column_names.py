@@ -104,6 +104,53 @@ def test_tables_from_query_plan_filters_unknown_tables():
     assert tables_from_query_plan(query_plan, ["travel_details"]) == ["travel_details"]
 
 
+def test_remaps_travel_date_prefixed_with_wrong_table():
+    """Year is travel_details.travel_date; LLM often hangs it on meeting_details."""
+    cube_metadata = [
+        {
+            "database_table": "meeting_details",
+            "columns": [
+                {
+                    "column_name": "meet_cancellation_status",
+                    "alias_name": "Cancellation Status",
+                    "dimension_name": "Cancellation Status",
+                }
+            ],
+        },
+        {
+            "database_table": "travel_details",
+            "columns": [
+                {
+                    "column_name": "travel_date",
+                    "alias_name": "Year",
+                    "dimension_name": "Year",
+                    "formula": "EXTRACT(YEAR FROM travel_details.travel_date)",
+                }
+            ],
+        },
+    ]
+    query_plan = {
+        "columnName": [
+            "meeting_details.meet_cancellation_status",
+            "meeting_details.travel_date",
+        ],
+        "pickedDimensions": ["Cancellation Status", "Year"],
+        "reason": "canceled meetings in 2026",
+    }
+
+    result = _qualify_query_plan_columns(
+        query_plan, cube_metadata, ["meeting_details"]
+    )
+
+    assert result["columnName"] == [
+        "meeting_details.meet_cancellation_status",
+        "travel_details.travel_date",
+    ]
+    assert tables_from_query_plan(
+        result, ["meeting_details", "travel_details"]
+    ) == ["meeting_details", "travel_details"]
+
+
 def test_qualifies_select_clause_columns():
     cube_metadata = [
         {

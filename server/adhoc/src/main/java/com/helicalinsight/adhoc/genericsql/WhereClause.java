@@ -78,14 +78,20 @@ class WhereClause {
 				if (ignore) {
 					ignoreFilters.add(filterJsonItem);
 				}
-				String column = filterJsonItem.get("column").getAsString();
+				JsonElement columnElement = filterJsonItem.get("column");
+				String column;
+				if (filterJsonItem.has("custom") && columnElement != null && columnElement.isJsonObject()) {
+					column = columnElement.getAsJsonObject().get("column").getAsString();
+				} else {
+					column = columnElement.getAsString();
+				}
 				column = AdhocUtils.sanitizeStringIfStartsWithDot(column);
 
 				String custom = null;
 				if (filterJsonItem.has("custom")) {
 					custom = filterJsonItem.get("custom").getAsString();
 				} else {
-					if (this.derivedTableColumns.contains(column)) {
+					if (this.derivedTableColumns != null && this.derivedTableColumns.contains(column)) {
 						column = AdhocUtils.stripDatabaseName(column);
 					}
 				}
@@ -97,7 +103,7 @@ class WhereClause {
 				// Only having clause can have aggregate functions
 				if (having && filterJsonItem.has("function")) {
 					String function = filterJsonItem.get("function").getAsString();
-					column = applyFunction(column, function);
+					column = applyFunction(column, function, "true".equalsIgnoreCase(custom));
 				}
 
 				// Default data type
@@ -166,7 +172,8 @@ class WhereClause {
      * @return modified column with the applied function.
      */
 	@NotNull
-	private String applyFunction(@NotNull String column, @NotNull String function) {
+	private String applyFunction(@NotNull String column, @NotNull String function, boolean custom) {
+		String operand = custom ? column : this.context.quotes(column);
 		String temp = "";
 		if (function.contains("_")) {
 			List<String> functions = Arrays.asList(function.split("_"));
@@ -174,14 +181,14 @@ class WhereClause {
 			for (int index = last; index >= 0; index--) {
 				String name = functions.get(index);
 				if (index == last) {
-					temp = name + "(" + this.context.quotes(column) + ")";
+					temp = name + "(" + operand + ")";
 					continue;
 				}
 				temp = name + "(" + temp + ")";
 			}
 			column = temp;
 		} else {
-			column = function + "(" + this.context.quotes(column) + ")";
+			column = function + "(" + operand + ")";
 		}
 		return column;
 	}
@@ -242,9 +249,14 @@ class WhereClause {
 			for (int counter = 0; counter <= 3; counter++) {
 				if (counter == 0) {
 					regEx = prefix + index + suffix + "\\.column";
+					String operand = "true".equalsIgnoreCase(filter.getCustom())
+							? filter.getColumn()
+							: this.context.quotes(filter.getColumn());
+					if (operand == null) {
+						operand = "";
+					}
 					this.customExpression = this.customExpression.replaceAll(regEx,
-							this.context.quotes(Matcher.quoteReplacement(filter.getColumn())));
-					// this.context.quotes(filter.getColumn()));
+							Matcher.quoteReplacement(operand));
 				}
 				if (counter == 1) {
 					regEx = prefix + index + suffix + "\\.condition";

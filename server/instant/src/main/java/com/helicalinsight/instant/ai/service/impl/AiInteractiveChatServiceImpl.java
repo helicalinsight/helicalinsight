@@ -1,10 +1,6 @@
 package com.helicalinsight.instant.ai.service.impl;
 
 import com.google.gson.JsonObject;
-import com.helicalinsight.admin.model.Principal;
-import com.helicalinsight.admin.model.User;
-import com.helicalinsight.admin.utils.AuthenticationUtils;
-import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
@@ -14,7 +10,6 @@ import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -36,29 +31,9 @@ public class AiInteractiveChatServiceImpl implements IInstantBIService {
         String chatSeqId = payload.getChatSeqId();
         String subject = payload.getSubject();
         try {
-            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
-                JsonObject js = new JsonObject();
-                JsonObject userInput = new JsonObject();
-
-                if (StringUtils.isNotBlank(subject)) {
-                    String decodedSubject = InstantBIUtils.getEncodedElseNormal(subject);
-                    JsonObject subjectJson = GsonUtility.parseString(decodedSubject, JsonObject.class);
-                    JsonObject modelJson = subjectJson.get("model").getAsJsonObject();
-                    userInput.add("model", modelJson);
-                    userInput.addProperty("reportId", InstantBIUtils.extractJsessionId(request));
-                }
-                Principal userDetails = AuthenticationUtils.getUserDetails();
-                User loggedInUser = userDetails.getLoggedInUser();
-                InstantBIUtils.addRoleProfile(loggedInUser, js);
-
-                InstantBIUtils.addSessionContext(request, userInput);
-                userInput.addProperty("inputString", input);
-                userInput.addProperty("chatid", chatid);
-                userInput.addProperty("chat_seq_id", chatSeqId);
-
-                js.add("input", userInput);
-                return js;
-            }, "/interactive");
+            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () ->
+                    InstantBIUtils.buildInteractiveChatRequest(request, input, chatid, chatSeqId, subject),
+                    "/interactive");
             JsonObject responseObject = InstantBIUtils.prepareResponse(input, botResponse, null);
 
             JsonObject mainObject = new JsonObject();

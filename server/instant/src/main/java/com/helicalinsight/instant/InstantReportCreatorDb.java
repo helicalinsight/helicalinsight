@@ -1,9 +1,6 @@
 package com.helicalinsight.instant;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import com.helicalinsight.adhoc.metadata.utils.ResourceInfoUtility;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceInstantReport;
@@ -56,11 +53,12 @@ public class InstantReportCreatorDb implements IComponent {
         JsonObject formDataJson = JsonParser.parseString(jsonFormData).getAsJsonObject();
         String location = formDataJson.get("location").getAsString();
         JsonObject result = new JsonObject();
-        if (formDataJson.get("state").isJsonNull()) {
+        JsonElement stateJson = formDataJson.get("state");
+        if (stateJson.isJsonNull()) {
             throw new IncompleteFormDataException("The report state parameter is null.");
         }
-        String state = formDataJson.get("state").toString();
-        String modelLocation = getModelLocation(formDataJson);
+        String state = stateJson.toString();
+        String modelLocation = getModelLocation(stateJson.getAsJsonObject());
         HIResource modelResource = serviceDB.getResourceByUrl(modelLocation);
         if (modelResource == null) {
             throw new EfwServiceException("The model does not exists for this report");
@@ -180,15 +178,16 @@ public class InstantReportCreatorDb implements IComponent {
     @NotNull
     private String getModelLocation(JsonObject formDataJson) {
         JsonObject modelResource = null;
-        if (formDataJson.has("metadata")) {
-            modelResource = formDataJson.getAsJsonObject("metadata");
-            if (!modelResource.has("location") || !modelResource.has("metadataFileName")) {
-                throw new IncompleteFormDataException("The metadata has no location or metadataFileName");
+        if (formDataJson.has("subject")) {
+            modelResource = formDataJson.getAsJsonObject("subject").get("model").getAsJsonObject();
+
+            if (!modelResource.has("dir") || !modelResource.has("file")) {
+                throw new IncompleteFormDataException("The subject of state has no dir or file");
             }
         }
 
-        String metadataLocation = modelResource.get("location").getAsString() + "/" + modelResource.get("metadataFileName").getAsString();
-        return metadataLocation;
+        String modelLocation = modelResource.get("dir").getAsString() + "/" + modelResource.get("file").getAsString();
+        return modelLocation;
     }
 
     /**

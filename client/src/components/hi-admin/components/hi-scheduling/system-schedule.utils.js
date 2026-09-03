@@ -6,6 +6,12 @@ export const SYSTEM_SCHEDULE_URI = uriConfig.monitorSystemSystemSchedule;
 
 export const SYSTEM_SCHEDULE_TYPE = "system";
 
+export const friendlyScheduleName = (record) =>
+  String(record?.title || record?.jobId || record?.id || "").trim();
+
+export const scheduleDescription = (record) =>
+  String(record?.description || "").trim();
+
 export const DEFAULT_LAYOUT_CONTENT_ID = "Static/layout/system-schedule.default.ui.layout";
 
 export const isSystemScheduleRecord = (record) =>

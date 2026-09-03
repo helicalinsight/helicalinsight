@@ -9,11 +9,9 @@ from helicalbi.viz._chart_selection import (  # noqa: F401
     CHART_SELECTION_RULES,
     ChartOption,
     format_chart_selection_guide,
-    format_similar_chart_wire,
     get_chart_options,
     infer_chart_shape,
     possible_chart_options,
-    resolve_similar_charts,
 )
 from helicalbi.viz._charts import (  # noqa: F401
     get_chart_code,
@@ -27,7 +25,6 @@ from helicalbi.viz._charts import (  # noqa: F401
 from helicalbi.viz.chart_conversion import (  # noqa: F401
     ChartConversionError,
     apply_chart_settings,
-    convert_chart,
     fields_to_settings,
     settings_to_fields,
 )

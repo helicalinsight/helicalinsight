@@ -47,9 +47,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Override sqlglot dialect (default: from getFunctions response.reference)",
     )
     parser.add_argument(
-        "--layers",
+        "--parts",
         action="store_true",
-        help="Include _layers debug breakdown in output",
+        help="Include _parts debug breakdown in output",
     )
     args = parser.parse_args(argv)
 
@@ -75,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
         functions_file=args.functions_file,
         dialect=args.dialect or None,
         metadata=column_meta,
-        include_layers=args.layers,
+        include_parts=args.parts,
     )
 
     text = json.dumps(form_data, indent=2)

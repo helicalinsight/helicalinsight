@@ -1,11 +1,8 @@
-"""Convert an existing Ant Charts ``vf_template`` to another chart type (no LLM).
+"""Fill Ant Charts skeletons from ChartSettings (settings injection / VF fill).
 
-The wire format matches InstantBI: ``vf_template`` is base64-encoded UTF-8 JS/JSX.
-Conversion extracts a semantic field bag from the source function, validates the
-target chart's JSON ``conversion`` contract, fills that skeleton, and re-encodes.
-
-Preserved across conversion (embedded in the filled ``vf_template``, not as new
-response keys): Excel-style ``measureFormats`` and chart ``color`` palette/solid.
+``vf_template`` helpers encode/decode base64 UTF-8 JS/JSX for InstantBI wire format.
+Chart-type switching is handled by the frontend — this module does not convert
+between chart types.
 """
 
 from __future__ import annotations
@@ -17,7 +14,6 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Optional
 
-from helicalbi.core.vizflow.util.ChartCodeTransform import transform_chart_code
 from helicalbi.viz._chart_selection import (
     _DIMENSION_TOKENS,
     _MEASURE_TOKENS,
@@ -26,8 +22,6 @@ from helicalbi.viz._chart_selection import (
     _is_meta_entry,
     _normalize_type_token,
     _type_from_column_desc,
-    format_similar_chart_wire,
-    resolve_similar_charts,
 )
 from helicalbi.viz._charts import (
     ChartConversion,
@@ -106,23 +100,6 @@ _COMPONENT_TO_CHART: dict[str, str] = {
     "CirclePacking": "circle_packing",
     "Card": "kpi",
     "Statistic": "kpi",
-}
-
-# Minimum bag sizes required before filling a target family.
-_FAMILY_REQUIREMENTS: dict[str, dict[str, int]] = {
-    "cartesian": {"dimensions": 1, "measures": 1},
-    "bar": {"dimensions": 1, "measures": 1},
-    "pie": {"dimensions": 1, "measures": 1},
-    "tiny": {"dimensions": 1, "measures": 1},
-    "dual_axes": {"dimensions": 1, "measures": 2},
-    "heatmap": {"dimensions": 2, "measures": 1},
-    "bubble": {"measures": 2},
-    "hierarchy": {"dimensions": 1, "measures": 1},
-    "percent": {"measures": 1},
-    "kpi": {"measures": 1},
-    "table": {},
-    # Catch-all: per-field required flags enforce specifics (wordcloud, …).
-    "other": {},
 }
 
 _STRING_FIELD = re.compile(
@@ -212,15 +189,7 @@ _PLACEHOLDER_FORMAT_KEYS = frozenset(
 )
 
 class ChartConversionError(ValueError):
-    """Raised when chart conversion cannot proceed.
-
-    When a target skeleton can still be produced (e.g. family requirements fail),
-    ``viz`` carries the requested chart template so the client can edit and retry.
-    """
-
-    def __init__(self, message: str, *, viz: Optional[dict[str, Any]] = None):
-        super().__init__(message)
-        self.viz = viz
+    """Raised when chart settings cannot be applied to a skeleton."""
 
 
 def decode_vf_template(encoded: str) -> str:
@@ -236,27 +205,6 @@ def decode_vf_template(encoded: str) -> str:
 def encode_vf_template(code: str) -> str:
     """Encode a JS/JSX function string as base64 for the InstantBI wire format."""
     return base64.b64encode((code or "").encode("utf-8")).decode("utf-8")
-
-
-def _data_types_for_similar(
-    data_types: Any,
-    fields: ExtractedFields,
-) -> Any:
-    """Prefer executeQuery metadata; otherwise synthesize types from extracted fields.
-
-    Lets ``resolve_similar_charts`` keep shape-based recommendations (bar/column/…)
-    even when chat memory has no metadata.
-    """
-    if data_types is not None:
-        return data_types
-    synthetic: list[dict[str, str]] = []
-    for name in fields.dimensions or []:
-        if str(name).strip():
-            synthetic.append({"name": str(name).strip(), "type": "text"})
-    for name in fields.measures or []:
-        if str(name).strip():
-            synthetic.append({"name": str(name).strip(), "type": "numeric"})
-    return synthetic or None
 
 
 def color_expr_from_settings(color: Any) -> Optional[str]:
@@ -471,161 +419,6 @@ def apply_chart_settings(
 
     return fill_skeleton(target.code, fields, conversion=target.conversion)
 
-
-def convert_chart(
-    vf_template: str,
-    selected_chart: str,
-    *,
-    data_types: Any = None,
-    vf_title: str = "",
-    format_strings: Optional[dict[str, str]] = None,
-) -> dict[str, Any]:
-    """Convert ``vf_template`` to ``selected_chart`` without calling an LLM.
-
-    Returns a viz-section style dict::
-
-        {
-            "vf_template": "<base64>",
-            "chart_name": "bar",
-            "vf_title": "...",
-            "similar_chart": [...],
-        }
-    """
-    target_def = get_chart_definition(selected_chart)
-    if not target_def:
-        raise ChartConversionError(f"Unknown chart type: {selected_chart!r}")
-
-    if not target_def.conversion:
-        raise ChartConversionError(
-            f"Chart type {target_def.name!r} has no conversion contract; "
-            "add a conversion block to its chart JSON."
-        )
-    if not target_def.code:
-        raise ChartConversionError(f"No code skeleton for chart type: {target_def.name}")
-
-    source_js = decode_vf_template(vf_template)
-    if not source_js.strip():
-        raise ChartConversionError("Decoded vf_template is empty.")
-
-    fields = extract_fields(
-        source_js,
-        data_types=data_types,
-        format_strings=format_strings,
-    )
-    # KPI needs a numeric measure; tables often leave measures empty ("all columns").
-    # Bind the first numeric result column (or format-map key) when missing.
-    if target_def.conversion.family == "kpi":
-        fields = ensure_kpi_measure_from_numeric(fields, data_types=data_types)
-    title = (vf_title or fields.title or "").strip()
-    chart_label = target_def.name.replace("_", " ")
-    similar_types = resolve_similar_charts(
-        target_def.name,
-        data_types=_data_types_for_similar(data_types, fields),
-    )
-    similar_wire = format_similar_chart_wire(
-        similar_types,
-        chart_name=chart_label,
-    )
-
-    def _viz_payload(filled_code: str, *, reason: str) -> dict[str, Any]:
-        return {
-            "vf_template": encode_vf_template(filled_code),
-            "chart_name": chart_label,
-            "vf_title": title,
-            "vf_reason": reason,
-            "similar_chart": similar_wire,
-        }
-
-    try:
-        validate_conversion_requirements(target_def.conversion, fields)
-    except ChartConversionError as exc:
-        # Still return the requested skeleton (best-effort fill) so the UI can
-        # let the user edit bindings and regenerate.
-        filled = apply_chart_settings(
-            fields_to_settings(fields),
-            chart_def=target_def,
-            format_strings=format_strings,
-        )
-        filled = transform_chart_code(filled)
-        logger.info(
-            "Conversion requirements failed target=%s dims=%s measures=%s error=%s; "
-            "returning requested template for edit",
-            target_def.name,
-            fields.dimensions,
-            fields.measures,
-            exc,
-        )
-        raise ChartConversionError(
-            str(exc),
-            viz=_viz_payload(
-                filled,
-                reason=(
-                    f"Could not fully convert to {chart_label}; "
-                    "template returned for editing."
-                ),
-            ),
-        ) from exc
-
-    filled = apply_chart_settings(
-        fields_to_settings(fields),
-        chart_def=target_def,
-        format_strings=format_strings,
-    )
-    filled = transform_chart_code(filled)
-
-    logger.info(
-        "Converted chart source=%s family=%s target=%s dims=%s measures=%s series=%s "
-        "formats=%s color=%s similar=%s",
-        fields.source_chart,
-        fields.source_family,
-        target_def.name,
-        fields.dimensions,
-        fields.measures,
-        fields.series,
-        fields.measure_formats,
-        bool(fields.color),
-        similar_types,
-    )
-
-    return _viz_payload(
-        filled,
-        reason=f"Converted visualization to {chart_label}.",
-    )
-
-
-def validate_conversion_requirements(
-    conversion: ChartConversion,
-    fields: ExtractedFields,
-) -> None:
-    """Raise if the semantic bag cannot satisfy the target family."""
-    required = _FAMILY_REQUIREMENTS.get(conversion.family)
-    if required is None:
-        raise ChartConversionError(
-            f"Unsupported conversion family: {conversion.family!r}"
-        )
-
-    dim_need = required.get("dimensions", 0)
-    meas_need = required.get("measures", 0)
-    if len(fields.dimensions) < dim_need:
-        raise ChartConversionError(
-            f"Chart family {conversion.family!r} needs at least {dim_need} "
-            f"dimension(s); found {len(fields.dimensions)}."
-        )
-    if len(fields.measures) < meas_need:
-        raise ChartConversionError(
-            f"Chart family {conversion.family!r} needs at least {meas_need} "
-            f"measure(s); found {len(fields.measures)}."
-        )
-
-    for placeholder, spec in conversion.fields.items():
-        if spec.optional:
-            continue
-        value = _role_value(fields, spec.role, spec.index)
-        if not value:
-            raise ChartConversionError(
-                f"Missing required field for placeholder {placeholder!r} "
-                f"(role={spec.role!r}, index={spec.index})."
-            )
 
 
 _SETTING_ASSIGN = re.compile(r"const\s+setting\s*=\s*\{")
@@ -844,8 +637,7 @@ def fill_skeleton(
     a valid JS identifier (e.g. names with spaces). Occurrences already inside
     string literals keep the raw field name.
 
-    Preserves source ``measureFormats`` and chart ``color`` when present, without
-    changing the convert-chart response shape.
+    Preserves source ``measureFormats`` and chart ``color`` when present.
     """
     replacements = _build_replacements(fields, conversion)
     # Longest-first to avoid partial placeholder collisions.

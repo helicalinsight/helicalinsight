@@ -12,7 +12,6 @@ from helicalbi.model.output.viz.VizResponse import get_ant_visualization_respons
 from helicalbi.prompt.AntdVizPrompt import antd_viz_prompt
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.viz.ChatDefinition import format_chart_selection_guide
-from helicalbi.viz._chart_selection import resolve_similar_charts
 
 logger = logging.getLogger(__name__)
 
@@ -103,13 +102,10 @@ class AntdVisualization:
             state["vf_title"] = response.visualization_title
             state["viz_hint"] = viz_type
             state["viz_reason"] = getattr(response, "reason", "") or ""
-            state["similar_chart"] = resolve_similar_charts(viz_type, data_types=data_md)
             logger.info(
-                "AntdVisualization chart_selection chose type=%s title=%s "
-                "similar_chart=%s",
+                "AntdVisualization chart_selection chose type=%s title=%s",
                 viz_type,
                 response.visualization_title,
-                state["similar_chart"],
             )
 
             add_viz_response(state["thread_id"], response)

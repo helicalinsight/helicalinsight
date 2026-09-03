@@ -2,13 +2,12 @@ package com.helicalinsight.instant.ai;
 
 import com.helicalinsight.efw.controllerutils.StatusValidator;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
+import com.helicalinsight.instant.ai.payload.AgentDashboardPayload;
 import com.helicalinsight.instant.ai.payload.ChatContextPayload;
-import com.helicalinsight.instant.ai.payload.ConvertChartPayload;
+import com.helicalinsight.instant.ai.payload.ConvertDashboardPayload;
 import com.helicalinsight.instant.ai.payload.DataInsightPayload;
 import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
-import com.helicalinsight.instant.ai.payload.ListChartsPayload;
 import com.helicalinsight.instant.ai.payload.LlmUsageAuditPayload;
-import com.helicalinsight.instant.ai.payload.LoadChatPayload;
 import com.helicalinsight.instant.ai.payload.RecommendAnalystPayload;
 import com.helicalinsight.instant.ai.payload.RecommendDomainPayload;
 import com.helicalinsight.instant.ai.payload.UtilityConfigPayload;
@@ -65,6 +64,21 @@ public class InstantBIController {
                 .execute(new InteractiveChatPayload(input, chatid, chatSeqId, subject), request, response);
     }
 
+    @RequestMapping("/agent-dashboard")
+    public void aiAgentDashboard(
+            @RequestParam("input") String input,
+            @RequestParam("dashboardid") String dashboardid,
+            @RequestParam("dashboard_sequence_id") String dashboardSeqId,
+            @RequestParam(value = "subject", required = false) String subject,
+            @RequestParam(value = "mode", required = false) String mode,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getAgentDashboardService()
+                .execute(new AgentDashboardPayload(input, dashboardid, dashboardSeqId, subject, mode),
+                        request, response);
+    }
+
     @RequestMapping("/data-insight")
     public void provideDataInsight(
             @RequestParam("chat_sequence_id") String chatSeqId,
@@ -95,23 +109,19 @@ public class InstantBIController {
                         request, response);
     }
 
-    @RequestMapping("/convert-chart")
-    public void convertChart(
-            @RequestParam(value = "vf_template", required = false) String vfTemplate,
-            @RequestParam("selected_chart") String selectedChart,
-            @RequestParam(value = "chat_id", required = false) String chatId,
-            @RequestParam(value = "chat_sequence_id", required = false) String chatSequenceId,
+    @RequestMapping("/convert-dashboard")
+    public void convertDashboard(
+            @RequestParam(value = "chatid", required = false) String chatid,
+            @RequestParam(value = "items", required = false) String items,
+            @RequestParam(value = "subject", required = false) String subjectString,
+            @RequestParam(value = "formData", required = false) String formData,
+            @RequestParam(value = "input", required = false) String inputParam,
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         validateStatus();
-        InstantBIServiceFactory.getConvertChartService()
-                .execute(new ConvertChartPayload(vfTemplate, selectedChart, chatId, chatSequenceId), request, response);
-    }
-
-    @RequestMapping("/list-charts")
-    public void listCharts(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        validateStatus();
-        InstantBIServiceFactory.getListChartsService().execute(new ListChartsPayload(), request, response);
+        InstantBIServiceFactory.getConvertDashboardService()
+                .execute(new ConvertDashboardPayload(chatid, items, subjectString, formData, inputParam),
+                        request, response);
     }
 
     // ------------------------------------------------------------------
@@ -128,9 +138,9 @@ public class InstantBIController {
         proxyUtility("/utility/llm", request, response);
     }
 
-    @RequestMapping("/utility/llm/models")
-    public void utilityLlmModels(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        proxyUtility("/utility/llm/models", request, response);
+    @RequestMapping("/settings/models")
+    public void settingsModels(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        proxyUtility("/settings/models", request, response);
     }
 
     @RequestMapping("/utility/llm/change-model")
@@ -166,17 +176,6 @@ public class InstantBIController {
     @RequestMapping("/utility/question-config")
     public void utilityQuestionConfig(HttpServletRequest request, HttpServletResponse response) throws IOException {
         proxyUtility("/utility/question-config", request, response);
-    }
-
-    @RequestMapping("/load-chat")
-    public void loadPastChat(
-            @RequestParam("chat_sequence_id") String chatSeqId,
-            @RequestParam(value = "formData", required = true) String formData,
-            HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
-        validateStatus();
-        InstantBIServiceFactory.getLoadChatService()
-                .execute(new LoadChatPayload(chatSeqId, formData), request, response);
     }
 
     public String doGetSessionId(HttpServletRequest request) {

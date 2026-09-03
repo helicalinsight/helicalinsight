@@ -86,7 +86,9 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
                 js.add("input", userInput);
                 return js;
             }, downstreamEndpoint);
-            JsonObject responseObject = InstantBIUtils.prepareDataInsightResponse(botResponse);
+            JsonObject responseObject = "/instant-to-hr".equals(downstreamEndpoint)
+                    ? InstantBIUtils.prepareConvertHreportResponse(botResponse)
+                    : InstantBIUtils.prepareDataInsightResponse(botResponse);
 
             JsonObject mainObject = new JsonObject();
             mainObject.addProperty("status", 1);

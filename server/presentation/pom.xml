@@ -118,6 +118,8 @@
 				<dbDriverQtz>org.apache.derby.iapi.jdbc.AutoloadedDriver</dbDriverQtz>
 				<delegateClass>org.quartz.impl.jdbcjobstore.StdJDBCDelegate</delegateClass>
 			</properties>
+			<dependencies>
+			</dependencies>
 		</profile>
 	</profiles>
 
@@ -137,6 +139,14 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<excludedGroups>${hiee.excludedTestGroups}</excludedGroups>
+				</configuration>
 			</plugin>
 
 			<!--Presentation layer requires war plugin-->
