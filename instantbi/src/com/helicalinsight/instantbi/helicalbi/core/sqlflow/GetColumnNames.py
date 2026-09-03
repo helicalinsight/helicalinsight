@@ -50,6 +50,7 @@ def _build_column_to_tables(cube_metadata) -> Dict[str, List[str]]:
                 _register_name(mapping, col_name, table_name)
                 _register_name(mapping, item.get("alias_name"), table_name)
                 _register_name(mapping, item.get("measure_name"), table_name)
+                _register_name(mapping, item.get("dimension_name"), table_name)
     return mapping
 
 
@@ -75,7 +76,11 @@ def _physical_column_name(cube: dict, name: str) -> Optional[str]:
                 continue
             if str(col_name) == target:
                 return str(col_name)
-            alias = item.get("alias_name") or item.get("measure_name")
+            alias = (
+                item.get("alias_name")
+                or item.get("measure_name")
+                or item.get("dimension_name")
+            )
             if alias and str(alias) == target:
                 return str(col_name)
     return None
@@ -130,6 +135,18 @@ def _qualify_column_refs(
             resolved = _physical_column_name(cube, col_name)
             if resolved:
                 physical = resolved
+            else:
+                # LLM often prefixes a real column with the wrong table
+                # (Year lives on travel_details, not meeting_details).
+                owner = _select_table_for_column(
+                    col_name, column_to_tables, required_tables
+                )
+                if owner:
+                    table_name = owner
+                    physical = (
+                        _physical_column_name(cubes.get(owner) or {}, col_name)
+                        or col_name
+                    )
         elif not table_name:
             # Bare alias/column: resolve against any matching table.
             for candidate_table in column_to_tables.get(col_name) or []:
@@ -227,9 +244,10 @@ class GetColumnNames:
             cube_metadata,
             table_names,
         )
-        # Narrow required tables to those actually referenced by the query plan.
-        # This avoids join-API calls across the full metadata-fallback catalog.
-        plan_tables = tables_from_query_plan(query_plan, table_names)
+        # Narrow to tables the query plan actually uses. Allow cube tables the
+        # column qualifier remapped onto (FindTables may have missed a join).
+        known_tables = list(_cube_by_table(cube_metadata).keys()) or list(table_names or [])
+        plan_tables = tables_from_query_plan(query_plan, known_tables)
         if plan_tables:
             logger.debug(
                 "Refining required_tables from query plan: before=%s after=%s",

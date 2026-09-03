@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from helicalbi.common.app_config import default_sql_limit
+from helicalbi.common import app_config
 from helicalbi.core.sqlflow.FinalSqlGen import _limit_from_query_plan
 
 
@@ -36,5 +36,5 @@ def test_limit_from_query_plan_rejects_invalid_values():
 
 def test_resolved_limit_falls_back_to_default():
     plan_limit = _limit_from_query_plan({"columnName": ["t.a"]})
-    sql_limit = plan_limit if plan_limit is not None else default_sql_limit
-    assert sql_limit == default_sql_limit
+    sql_limit = plan_limit if plan_limit is not None else app_config.default_sql_limit
+    assert sql_limit == app_config.default_sql_limit

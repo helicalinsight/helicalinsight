@@ -316,6 +316,40 @@ def cube_metadata_from_metadata_api(metadata_response: dict) -> List[dict]:
     return semantic_tables
 
 
+def _norm_meta_name(name: Optional[str]) -> str:
+    return str(name or "").strip().strip('"').strip("`").strip("[]").lower()
+
+
+def metadata_has_table(metadata_response: Optional[dict], table_name: str) -> bool:
+    """True when the metadata API lists this physical table."""
+    tables = (metadata_response or {}).get("tables") or {}
+    if not isinstance(tables, dict):
+        return False
+    needle = _norm_meta_name(table_name)
+    return any(_norm_meta_name(name) == needle for name in tables)
+
+
+def metadata_has_column(
+    metadata_response: Optional[dict],
+    table_name: str,
+    column_name: str,
+) -> bool:
+    """True when the metadata API lists this physical column on the table."""
+    tables = (metadata_response or {}).get("tables") or {}
+    if not isinstance(tables, dict):
+        return False
+    needle_table = _norm_meta_name(table_name)
+    needle_col = _norm_meta_name(column_name)
+    for name, table in tables.items():
+        if _norm_meta_name(name) != needle_table or not isinstance(table, dict):
+            continue
+        columns = table.get("columns") or {}
+        if not isinstance(columns, dict):
+            return False
+        return any(_norm_meta_name(col) == needle_col for col in columns)
+    return False
+
+
 def prevalidate_cube_metadata(cube_metadata, metadata_api_response) -> List[dict]:
     """Use model cube_metadata when it has schema; otherwise fall back to metadata API."""
     cube_metadata = cube_metadata or []

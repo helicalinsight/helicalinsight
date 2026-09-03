@@ -2,6 +2,9 @@
 
 Shelves and chart type stay frozen from VizModelFiller. This step fills
 color / background and may refine title / axis labels.
+
+Catalog Ant Charts render from ``viz_model`` only; ``vf_string`` is reserved
+for the DrawOther / custom VF path handled by Fallback.
 """
 from __future__ import annotations
 
@@ -14,20 +17,17 @@ from langchain_core.prompts import PromptTemplate
 from helicalbi.common.ChatManager import add_viz_response
 from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
-from helicalbi.core.vizflow.util.ChartCodeTransform import transform_chart_code
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.viz.VizModel import VizModel, VizPropertiesPolish
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.prompt.VizFillPrompt import viz_properties_polish_prompt_string
-from helicalbi.viz._charts import get_chart_definition
-from helicalbi.viz.chart_conversion import apply_chart_settings
 from helicalbi.viz.viz_model_fill import merge_properties_polish, viz_model_to_chart_settings
 
 logger = logging.getLogger(__name__)
 
 
 class VizPropertiesPolishNode:
-    """One focused LLM call for thematic properties; then inject VF template."""
+    """One focused LLM call for thematic VizModel properties (color, labels, etc.)."""
 
     def process_flow(self, state: ModelState):
         logger.info("VizPropertiesPolish flow started")
@@ -109,17 +109,9 @@ class VizPropertiesPolishNode:
             if viz_model.properties.title:
                 state["vf_title"] = viz_model.properties.title
 
-            chart_type = str(state.get("viz_hint") or "table")
-            settings = viz_model_to_chart_settings(viz_model)
-            chart_def = get_chart_definition(chart_type) or get_chart_definition("table")
-            result_format_strings = viz_context.get("format_strings") or {}
-            filled = apply_chart_settings(
-                settings,
-                chart_def=chart_def,
-                format_strings=result_format_strings,
+            state["chart_settings"] = viz_model_to_chart_settings(
+                viz_model, data_types=data_md
             )
-            state["vf_string"] = transform_chart_code(filled)
-            state["chart_settings"] = settings
             state["viz_reason"] = (
                 "Deterministic shelves/chart + LLM domain property polish"
             )
@@ -135,7 +127,7 @@ class VizPropertiesPolishNode:
             logger.exception(
                 "VizPropertiesPolish failed; applying deterministic VizModel as-is"
             )
-            # Fall back to deterministic VF injection so the chat still gets a chart.
+            # Keep shelves/chart from VizModelFiller; only property polish was skipped.
             # Keep the existing SQL insight in state["output"]; do not leak tracebacks.
             try:
                 viz_model = (
@@ -143,19 +135,12 @@ class VizPropertiesPolishNode:
                     if isinstance(raw_model, VizModel)
                     else VizModel.model_validate(raw_model)
                 )
-                chart_type = str(state.get("viz_hint") or "table")
-                settings = viz_model_to_chart_settings(viz_model)
-                chart_def = (
-                    get_chart_definition(chart_type) or get_chart_definition("table")
+                state["viz_model"] = viz_model.model_dump()
+                data_json = state.get("sql_result") or {}
+                data_md = data_json.get("metadata") if isinstance(data_json, dict) else {}
+                state["chart_settings"] = viz_model_to_chart_settings(
+                    viz_model, data_types=data_md
                 )
-                viz_context = state.get("viz_column_context") or {}
-                filled = apply_chart_settings(
-                    settings,
-                    chart_def=chart_def,
-                    format_strings=viz_context.get("format_strings") or {},
-                )
-                state["vf_string"] = transform_chart_code(filled)
-                state["chart_settings"] = settings
             except Exception:
                 logger.exception("VizPropertiesPolish deterministic fallback also failed")
 

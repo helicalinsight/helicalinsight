@@ -1642,4 +1642,13 @@ ${substring},${th_appeareance}))) end)]]></signature>
 	
 
 	
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>

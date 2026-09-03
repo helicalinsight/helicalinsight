@@ -208,18 +208,91 @@ class TestInteractive:
         chat = body["chat_response"]
         # SQL formatted with the markdown code fence.
         assert chat["sql"]["raw_sql"].startswith("```sql")
-        # Data carried from sql_result -> chat_response data.
-        assert chat["data"] == [{"a": 1}, {"a": 2}]
+        # Interactive wire response includes viz; omits data and metadata.
+        assert "viz" in chat
+        assert "chart_name" in chat["viz"]
+        assert "vf_title" in chat["viz"]
+        assert "vf_template" in chat["viz"]
+        assert "data" not in chat
+        assert "metadata" not in chat
         # Graphs were invoked.
         assert main_mock.invoke.called
         assert viz_mock.invoke.called
-        data_model = chat["data_model"]
-        assert data_model["columns"] == []
+        data_model = chat["report_model"]["data_model"]
         assert data_model["location"] == "/meta"
         assert data_model["metadataFileName"] == "metadata.json"
-        decoded_query = base64.b64decode(data_model["query"]).decode("utf-8")
-        assert "from" in decoded_query.lower()
-        assert "select" in decoded_query.lower()
+        assert data_model["columns"]
+        assert data_model["columns"][0]["alias"] == "a"
+        assert "query" not in data_model
+        assert "data_model" not in chat
+        assert "viz_model" not in chat.get("viz", {})
+
+    def test_sql_error_populates_data_model_columns_without_viz(
+        self, app_module, flask_client, session_auth, patch_graphs
+    ):
+        _, viz_mock = patch_graphs
+        sql = (
+            'SELECT COUNT("meeting_details"."meet_cancellation_status") '
+            'AS "Cancelled Meetings" FROM "meeting_details" '
+            "WHERE EXTRACT(YEAR FROM \"meeting_details\".\"travel_date\") = 2026"
+        )
+        viz_mock.invoke.return_value = {
+            "sql": sql,
+            "sql_error": (
+                "Error: PSQLException: ERROR: column meeting_details.travel_date "
+                "does not exist"
+            ),
+            "skip": True,
+            "output": "Sorry, that figure isn't available.",
+            "dialect": "postgresql",
+            "messages": [],
+        }
+
+        helper_mock = MagicMock()
+        helper_mock.get_model_semantic_layer.return_value = {
+            "cube_metadata": [{"database_table": "meeting_details"}]
+        }
+        helper_mock.get_metadata_layerfile.return_value = "Metadata_1.metadata"
+        helper_mock.get_metadata_layerlocation.return_value = "Postgres_travel_data"
+
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(
+                app_module,
+                helper_mock,
+                metadata={
+                    "joins": [],
+                    "databaseName": "testdb",
+                    "name": "sampletraveldata.public",
+                    "tables": {
+                        "meeting_details": {
+                            "columns": {
+                                "meet_cancellation_status": {
+                                    "id": "1",
+                                    "alias": "meet_cancellation_status",
+                                }
+                            }
+                        }
+                    },
+                },
+                db_ref={
+                    "reference": "postgresql",
+                    "functions": {"db.generic.aggregate.count": "count"},
+                },
+            ):
+                stack.enter_context(ctx)
+            resp = flask_client.post(
+                "/interactive", json=self._build_payload(session_auth)
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        chat = body["chat_response"]
+        assert "travel_date" in chat["error"]
+        assert chat["viz"]["chart_name"] == ""
+        assert chat["report_model"]["viz_model"] is None
+        columns = chat["report_model"]["data_model"]["columns"]
+        assert any(col.get("alias") == "Cancelled Meetings" for col in columns)
+        assert "query" not in chat["report_model"]["data_model"]
 
     def test_exception_path_returns_error_payload(
         self, app_module, flask_client, session_auth, patch_graphs
@@ -326,8 +399,9 @@ class TestInteractive:
         assert body["chat_response"]["sql"]["raw_sql"] == ""
         assert body["chat_response"]["sql"]["required_domain"] == []
         assert body["chat_response"]["sql"]["required_topic"] == []
-        assert body["chat_response"]["data"] == []
-        assert body["chat_response"]["metadata"] == []
+        assert "data" not in body["chat_response"]
+        assert "metadata" not in body["chat_response"]
+        assert "viz" in body["chat_response"]
 
         log_text = caplog.text
         assert "Invoking main graph" in log_text
@@ -642,9 +716,7 @@ class TestDataInsight:
             return_value=self._successful_query(rows),
         ), patch.object(
             app_module, "invoke_llm", return_value=(llm_response, usage)
-        ) as mock_invoke, patch(
-            "helicalbi.controller.data_insight.default_sql_limit", 10
-        ):
+        ) as mock_invoke:
             resp = flask_client.post(
                 "/data-insight",
                 json={
@@ -704,7 +776,13 @@ class TestInstantToHr:
         form_data = {
             "location": "/meta",
             "metadataFileName": "metadata.json",
-            "columns": [{"alias": "region"}],
+            "columns": [
+                {
+                    "column": {"name": "t.region", "id": "1"},
+                    "alias": "region",
+                    "floatingType": "discrete",
+                }
+            ],
             "functions": [],
         }
         with patch(
@@ -725,13 +803,72 @@ class TestInstantToHr:
 
         assert resp.status_code == 200
         body = json.loads(resp.data)
-        assert body == form_data
+        assert "sql_parts" in body
+        assert "viz_parts" in body
+        assert body["sql_parts"]["columns"] == [
+            {
+                "table": "t",
+                "column": "region",
+                "databaseFunction": "",
+                "shelf": "row",
+                "alias": "region",
+            }
+        ]
+        assert "limitBy" not in body
         mock_convert.assert_called_once()
         assert mock_convert.call_args.args[0] == 'SELECT "region" FROM "t"'
         assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
         assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
         assert mock_convert.call_args.kwargs["location"] == "/meta"
         assert mock_convert.call_args.kwargs["session_cookie"] == session_auth["sessionCookie"]
+
+    def test_returns_sql_parts_location_from_model(self, app_module, flask_client, session_auth):
+        helper_mock = MagicMock()
+        helper_mock.get_metadata_layerfile.return_value = "pg.metadata"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+        helper_mock.get_metadata.return_value = {
+            "classifier": "db.generic",
+            "tables": {
+                "t": {
+                    "alias": "t",
+                    "columns": {
+                        "region": {"id": "1", "alias": "region"},
+                    },
+                }
+            },
+        }
+        form_data = {
+            "location": "/meta",
+            "metadataFileName": "pg.metadata",
+            "columns": [
+                {
+                    "column": {"name": "t.region", "id": "1"},
+                    "alias": "region",
+                    "floatingType": "discrete",
+                }
+            ],
+        }
+        with patch.object(app_module, "ModelLayerHelper", return_value=helper_mock), patch(
+            "helicalbi.controller.instant_to_hr.sql_to_form_data", return_value=form_data
+        ) as mock_convert:
+            resp = flask_client.post(
+                "/instant-to-hr",
+                json={
+                    "input": {
+                        "sql": "SELECT region FROM t",
+                        "model": {"file": "travel.agent", "dir": "/models"},
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "metadata" not in body
+        assert body["sql_parts"]["location"] == "/meta"
+        assert body["sql_parts"]["metadataFileName"] == "pg.metadata"
+        assert mock_convert.call_args.kwargs["metadata"]["tables"]["t"]["alias"] == "t"
 
     def test_accepts_md_location_aliases(self, flask_client, session_auth):
         with patch(
@@ -905,7 +1042,7 @@ class TestUtilityConfig:
 
     def test_list_models_for_package(self, flask_client):
         resp = flask_client.get(
-            "/utility/llm/models",
+            "/settings/models",
             query_string={"package": "langchain-openai"},
         )
         assert resp.status_code == 200
@@ -915,7 +1052,7 @@ class TestUtilityConfig:
         assert "gpt-4.1-mini" in body["models"]
 
     def test_list_models_requires_package_or_provider(self, flask_client):
-        resp = flask_client.get("/utility/llm/models")
+        resp = flask_client.get("/settings/models")
         assert resp.status_code == 200
         body = json.loads(resp.data)
         assert body["status"] == 0
@@ -928,3 +1065,314 @@ class TestUtilityConfig:
         assert body["status"] == 1
         assert "logging" in body["config"]
         assert "kpi" in body["config"]
+
+
+# ---------------------------------------------------------------------------
+# /convert-dashboard
+# ---------------------------------------------------------------------------
+class TestConvertDashboard:
+    def test_returns_layout_parts_not_efwdd(self, flask_client, session_auth):
+        graph_result = {
+            "items": [
+                {
+                    "component_id": "ab12CD34",
+                    "report_model": {
+                        "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
+                        "data_model": None,
+                    },
+                    "dashboard_model": {
+                        "kind": "viz",
+                        "title": "Cost",
+                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
+                    },
+                }
+            ],
+            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
+        }
+        graph_mock = MagicMock()
+        graph_mock.invoke.return_value = graph_result
+        with patch(
+            "helicalbi.controller.convert_dashboard.dashboard_layout_graph", graph_mock
+        ):
+            resp = flask_client.post(
+                "/convert-dashboard",
+                json={
+                    "input": {
+                        "chatid": "c1",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                        "items": [
+                            {
+                                "id": "seq-3",
+                                "sql": "SELECT region FROM t",
+                                "viz": {"chart_name": "bar", "vf_template": "function(){}"},
+                            }
+                        ],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "items" in body
+        assert "metadata" not in body
+        assert "gridItemsData" not in body
+        assert "sql_parts" not in (body["items"][0] or {})
+        assert body["items"][0]["dashboard_model"]["layout"]["w"] == 6
+        assert "viz" not in body["items"][0]
+        invoked = graph_mock.invoke.call_args[0][0]["items"][0]
+        assert "sql_parts" not in invoked
+        assert "vf_template" not in (invoked.get("viz") or {})
+        graph_mock.invoke.assert_called_once()
+
+    def test_missing_items_returns_error(self, flask_client, session_auth):
+        resp = flask_client.post(
+            "/convert-dashboard",
+            json={
+                "input": {
+                    "chatid": "missing",
+                    "sessionCookie": session_auth["sessionCookie"],
+                    "username": session_auth["username"],
+                    "items": [],
+                }
+            },
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "No visualizations" in body["error"]
+
+
+# ---------------------------------------------------------------------------
+# /agent-dashboard
+# ---------------------------------------------------------------------------
+class TestAgentDashboard:
+    def _payload(self, session_auth, query="Why is travel cost high?"):
+        return {
+            "input": {
+                **session_auth,
+                "inputString": query,
+                "model": {"file": "model.json", "dir": "/models"},
+                "dashboardid": "dash-agent-1",
+                "dashboard_sequence_id": "1",
+            }
+        }
+
+    def test_returns_plan_without_executing(self, flask_client, session_auth):
+        plan_result = {
+            "phase": "plan",
+            "original_question": "Why is travel cost high?",
+            "dashboardid": "dash-agent-1",
+            "dashboard_sequence_id": "1",
+            "persona": {"name": "tactical_manager", "tier": "tactical"},
+            "plan": {
+                "charts": [
+                    {
+                        "title": "Total travel cost",
+                        "question": "What is total travel cost?",
+                        "viz_hint": "kpi",
+                        "purpose": "Headline KPI",
+                    }
+                ]
+            },
+            "message": "Plan ready.",
+            "asked_questions": ["What is total travel cost?"],
+            "attempt_count": 0,
+            "investigation_steps": [
+                {"step": 1, "question": "What is total travel cost?", "kind": "planned_chart", "analysis": "Headline KPI"}
+            ],
+            "sub_questions": [],
+            "dashboard": {},
+            "token_usage": {},
+            "mode": {"name": "balanced"},
+        }
+        payload = self._payload(session_auth)
+        payload["userRole"] = [{"roleName": "CFO"}]
+        payload["userProfile"] = [{"name": "dept", "value": "finance"}]
+        captured = {}
+
+        def _create_plan(*_args, **kwargs):
+            captured.update(kwargs)
+            return plan_result
+
+        with patch(
+            "helicalbi.sql_agent.investigation.create_and_store_plan",
+            side_effect=_create_plan,
+        ) as create_plan, patch(
+            "helicalbi.sql_agent.dashboard_graph.run_dashboard_agent"
+        ) as run_agent, patch("helicalbi.controller.agent_dashboard.audit_llm_usage_async"):
+            resp = flask_client.post("/agent-dashboard", json=payload)
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["phase"] == "plan"
+        assert body["dashboardid"] == "dash-agent-1"
+        assert body["plan"]["charts"][0]["viz_hint"] == "kpi"
+        assert body["dashboard"] == {}
+        assert captured["user_role"][0]["roleName"] == "CFO"
+        assert captured["user_profile"][0]["value"] == "finance"
+        create_plan.assert_called_once()
+        run_agent.assert_not_called()
+
+    def test_execute_plan_runs_stored_investigation(self, flask_client, session_auth):
+        stored = {
+            "kind": "dashboard_investigation_plan",
+            "original_question": "Why is travel cost high?",
+            "agent_mode": "balanced",
+            "persona": {"name": "tactical_manager"},
+            "user_role": [{"roleName": "CFO"}],
+            "user_profile": [],
+            "plan": {"charts": [{"question": "What is total travel cost?", "viz_hint": "kpi"}]},
+        }
+        agent_result = {
+            "original_question": "Why is travel cost high?",
+            "final_answer": "West region drives travel cost.",
+            "collected_data": [
+                {
+                    "sub_question": "What is total travel cost?",
+                    "analysis": "Total is 10",
+                    "chat_seq_id": "1-1",
+                    "chat_response": {
+                        "report_model": {
+                            "data_model": {"columns": [{"alias": "cost"}]},
+                            "viz_model": {"chart": {"viz": "KPI"}},
+                        }
+                    },
+                    "report_model": {
+                        "data_model": {"columns": [{"alias": "cost"}]},
+                        "viz_model": {"chart": {"viz": "KPI"}},
+                    },
+                }
+            ],
+            "dashboard": {
+                "dashboardid": "dash-agent-1",
+                "items": [{"component_id": "ab12CD34"}],
+                "layout": [{"itemId": "ab12CD34", "x": 0, "y": 0, "w": 6, "h": 4}],
+                "theme": {"color": "#1677ff"},
+                "templateId": "analytical-grid",
+            },
+            "token_usage": {"total_tokens": 9},
+            "asked_questions": ["What is total travel cost?"],
+            "attempt_count": 4,
+            "investigation_plan": stored["plan"],
+            "persona": stored["persona"],
+            "mode": {"name": "balanced"},
+        }
+        payload = self._payload(session_auth, query="execute plan")
+        captured = {}
+
+        def _run_agent(question, **kwargs):
+            captured["question"] = question
+            captured.update(kwargs)
+            return agent_result
+
+        with patch(
+            "helicalbi.sql_agent.investigation.stored_plan_or_raise",
+            return_value=stored,
+        ), patch(
+            "helicalbi.sql_agent.dashboard_graph.run_dashboard_agent",
+            side_effect=_run_agent,
+        ), patch("helicalbi.sql_agent.plan_memory.save_plan"), patch(
+            "helicalbi.controller.agent_dashboard.audit_llm_usage_async"
+        ):
+            resp = flask_client.post("/agent-dashboard", json=payload)
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["phase"] == "execute"
+        assert body["original_question"] == "Why is travel cost high?"
+        assert captured["question"] == "Why is travel cost high?"
+        assert captured["investigation_plan"]["charts"][0]["viz_hint"] == "kpi"
+        assert body["final_answer"] == "West region drives travel cost."
+        assert body["asked_questions"] == ["What is total travel cost?"]
+        assert body["attempt_count"] == 4
+        assert body["investigation_steps"][0]["question"] == "What is total travel cost?"
+        assert body["sub_questions"][0]["report_model"]["viz_model"]["chart"]["viz"] == "KPI"
+        assert body["dashboard"]["templateId"] == "analytical-grid"
+
+    def test_execute_plan_without_stored_plan_returns_error(self, flask_client, session_auth):
+        from helicalbi.common.ChatGraphMemory import chat_graph_memory
+
+        chat_graph_memory.clear()
+        payload = self._payload(session_auth, query="execute plan")
+        with patch("helicalbi.controller.agent_dashboard.audit_llm_usage_async"):
+            resp = flask_client.post("/agent-dashboard", json=payload)
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "No stored plan" in body["error"]
+
+    def test_missing_question_returns_error(self, flask_client, session_auth):
+        with patch("helicalbi.controller.agent_dashboard.audit_llm_usage_async"):
+            resp = flask_client.post(
+                "/agent-dashboard",
+                json={
+                    "input": {
+                        **session_auth,
+                        "inputString": "",
+                        "model": {"file": "model.json", "dir": "/models"},
+                        "dashboardid": "dash-agent-1",
+                    }
+                },
+            )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "inputString" in body["error"]
+
+    def test_missing_dashboardid_returns_error(self, flask_client, session_auth):
+        with patch("helicalbi.controller.agent_dashboard.audit_llm_usage_async"):
+            resp = flask_client.post(
+                "/agent-dashboard",
+                json={
+                    "input": {
+                        **session_auth,
+                        "inputString": "Why is travel cost high?",
+                        "model": {"file": "model.json", "dir": "/models"},
+                    }
+                },
+            )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "dashboardid" in body["error"]
+
+    def test_reads_sequence_id_and_ignores_payload_max_sub_questions(
+        self, flask_client, session_auth, monkeypatch
+    ):
+        from helicalbi.common import app_config
+
+        monkeypatch.setattr(app_config, "dashboard_max_sub_questions", 7)
+        monkeypatch.setattr(app_config, "dashboard_default_mode", "balanced")
+        captured = {}
+
+        def _create_plan(*_args, **kwargs):
+            captured.update(kwargs)
+            return {
+                "phase": "plan",
+                "original_question": "Why is travel cost high?",
+                "dashboardid": kwargs.get("thread_id"),
+                "dashboard_sequence_id": str(kwargs.get("chat_seq_id") or "1"),
+                "plan": {"charts": []},
+                "persona": {"name": "tactical_manager"},
+                "mode": {"name": "fast", "max_charts": 2, "max_tool_loops": 10, "use_llm_synthesizer": False},
+                "token_usage": {},
+            }
+
+        payload = self._payload(session_auth)
+        payload["input"]["max_sub_questions"] = 99
+        payload["input"]["mode"] = "fast"
+        with patch(
+            "helicalbi.sql_agent.investigation.create_and_store_plan",
+            side_effect=_create_plan,
+        ), patch("helicalbi.controller.agent_dashboard.audit_llm_usage_async"):
+            resp = flask_client.post("/agent-dashboard", json=payload)
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert captured["chat_seq_id"] == "1"
+        assert captured["max_sub_questions"] == 7
+        assert captured["agent_mode"] == "fast"
+        assert captured["thread_id"] == "dash-agent-1"
+        assert body["mode"]["name"] == "fast"
+        assert body["phase"] == "plan"
+
+
+

@@ -69,6 +69,30 @@
   .scheduling-email-recipients {
     max-width: 200px;
   }
+
+  .scheduling-job-name {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    gap: 6px;
+  }
+
+  .scheduling-job-name__text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .scheduling-job-name__info {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+
+    &:hover {
+      color: rgba(0, 0, 0, 0.75);
+    }
+  }
 }
 
 .more-info-drawer {

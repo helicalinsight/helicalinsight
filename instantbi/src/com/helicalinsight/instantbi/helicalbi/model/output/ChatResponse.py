@@ -5,19 +5,26 @@ the nested ``SQLModel`` state (stored under ``state["sqlModel"]``) into a single
 client-friendly payload with the shape::
 
     chat_response: {
-        viz:     { vf_template, chart_name, vf_title, vf_reason,
-                   similar_chart, viz_model },
+        viz:     { vf_template, chart_name, vf_title, vf_reason },
         sql:     { raw_sql, dialect, required_domain, required_topic,
                    required_table, required_column, required_join, required_cube_info,
                    reason },
         summary: { insight, reason },
         data:    [],
         metadata:    [],
-        data_model: { location, metadataFileName, columns, filters, ... },
+        report_model: {
+            data_model: { location, metadataFileName, columns, filters, ... },
+            viz_model:  { data, chart, properties, ... },
+        },
         token_usage: { input_tokens, output_tokens, total_tokens,
-                        input_cost?, output_cost?, total_cost?, model_name? },
-        time_consumed: { llm_seconds, total_seconds? }
+                        input_cost?, output_cost?, total_cost?, model_name?,
+                        llm_seconds, total_seconds? }
     }
+
+``data`` and ``metadata`` are omitted from the ``/interactive`` wire response
+(see :meth:`ChatResponse.to_interactive_client_dict`) but remain in the full
+:meth:`ChatResponse.to_dict` payload used for chat memory. ``viz`` is included
+on the wire (``vf_template``, ``chart_name``, ``vf_title``, etc.).
 """
 import base64
 import json
@@ -28,9 +35,8 @@ from pydantic import BaseModel, Field
 
 from helicalbi.common import app_config
 from helicalbi.common.LlmInvokeHelper import read_time_consumed, read_token_usage
-from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
-from helicalbi.viz._chart_selection import format_similar_chart_wire
+from helicalbi.viz._charts import resolve_chart_name
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +46,19 @@ class VizSection(BaseModel):
     chart_name: str = Field(default="", description="Selected chart / visualization type, e.g. bar, pie, line.")
     vf_title: str = Field(default="", description="Human friendly visualization title.")
     vf_reason: str = Field(default="", description="Reason for choosing this visualization.")
-    similar_chart: list[dict[str, str]] = Field(
+    similar_chart: list[str] = Field(
         default_factory=list,
+        description="Other chart types compatible with the current result shape.",
+    )
+
+
+class ReportModelSection(BaseModel):
+    data_model: Optional[dict[str, Any]] = Field(
+        default=None,
         description=(
-            "Current chart plus alternate types that also fit this data "
-            '(wire format: [{"vf.heatmap": "heatmap"}, {"vf.column": "column"}, '
-            '{"vf.dual_line": "dual line"}, ...]).'
+            "Adhoc formData from sql_to_formdata (location, metadataFileName, "
+            "columns, filters). Raw fetchData ``query`` is omitted when columns "
+            "are present so InstantBI generates SQL from the model."
         ),
     )
     viz_model: Optional[dict[str, Any]] = Field(
@@ -68,7 +81,7 @@ class SqlSection(BaseModel):
     required_join: Any = Field(default="", description="Joins required by the SQL query.")
     required_cube_info: dict[str, Any] = Field(
         default_factory=dict,
-        description="Picked cube dimensions and measures from the query planner.",
+        description="Picked cube dimension and measure names from the query planner.",
     )
     reason: str = Field(default="", description="LLM reasoning behind the generated SQL.")
 
@@ -88,16 +101,17 @@ class ChatResponse(BaseModel):
     summary: SummarySection = Field(default_factory=SummarySection)
     data: list[Any] = Field(default_factory=list, description="Raw rows returned by the SQL execution.")
     metadata: list[Any] = Field(default_factory=list, description="Metadata returned by the SQL execution.")
-    data_model: Optional[dict[str, Any]] = Field(
-        default=None,
+    report_model: ReportModelSection = Field(
+        default_factory=ReportModelSection,
+        description="Report payload holding data_model and viz_model for InstantBI.",
+    )
+    token_usage: TokenUsage = Field(
+        default_factory=TokenUsage,
         description=(
-            "Adhoc formData from sql_to_formdata (location, metadataFileName, "
-            "columns, filters). Raw fetchData ``query`` is omitted when columns "
-            "are present so InstantBI generates SQL from the model."
+            "Accumulated LLM token usage, cost, and timing for the request "
+            "(includes llm_seconds / total_seconds)."
         ),
     )
-    token_usage: TokenUsage = Field(default_factory=TokenUsage, description="Accumulated LLM token usage for the request.")
-    time_consumed: TimeConsumed = Field(default_factory=TimeConsumed, description="Elapsed time for LLM calls and the full request.")
     error: str = Field(default="", description="SQL execution or flow error message from the query API.")
 
     @classmethod
@@ -128,24 +142,21 @@ class ChatResponse(BaseModel):
         )
 
         vf_string = state.get("vf_string")
-        vf_template_encoded = (
-            base64.b64encode(vf_string.encode("utf-8")).decode("utf-8")
-            if isinstance(vf_string, str) and vf_string
-            else ""
-        )
-
         chart_name = _as_str(state.get("viz_hint")).replace("_", " ")
-        similar_chart = format_similar_chart_wire(
-            state.get("similar_chart"),
-            chart_name=chart_name,
-        )
+        # Catalog Ant Charts use viz_model only; vf_template is for DrawOther / custom VF.
+        vf_template_encoded = ""
+        if _is_other_chart_type(chart_name) and isinstance(vf_string, str) and vf_string.strip():
+            vf_template_encoded = base64.b64encode(vf_string.encode("utf-8")).decode("utf-8")
 
         viz = VizSection(
             vf_template=vf_template_encoded,
             chart_name=chart_name,
             vf_title=_as_str(state.get("vf_title")),
             vf_reason=_as_str(state.get("viz_reason")),
-            similar_chart=similar_chart,
+            similar_chart=_as_similar_charts(state),
+        )
+        report_model = ReportModelSection(
+            data_model=_wire_data_model(state.get("viz_form_data")),
             viz_model=_as_viz_model(state.get("viz_model")),
         )
 
@@ -196,6 +207,12 @@ class ChatResponse(BaseModel):
             required_cube_info = sql_model.get("required_cube_info")
         if not isinstance(required_cube_info, dict):
             required_cube_info = {}
+        # Internal SQL-prompt payload; keep only flat names for the client.
+        required_cube_info = {
+            key: value
+            for key, value in required_cube_info.items()
+            if key != "picked_by_table"
+        }
 
         sql = SqlSection(
             raw_sql=_as_str(state.get("sql")),
@@ -217,7 +234,6 @@ class ChatResponse(BaseModel):
     
         data=state.get("data") or sql_result_dict.get("data") or []
         metadata=state.get("metadata") or sql_result_dict.get("metadata") or []
-        data_model = _wire_data_model(state.get("viz_form_data"))
 
         return cls(
             viz=viz,
@@ -225,21 +241,42 @@ class ChatResponse(BaseModel):
             summary=summary,
             data=data,
             metadata=metadata,
-            data_model=data_model,
-            token_usage=read_token_usage(state),
-            time_consumed=read_time_consumed(state),
+            report_model=report_model,
+            token_usage=_token_usage_with_timing(state),
             error=_resolved_sql_error(state.get("sql_error") or state.get("error")),
         )
 
     def to_dict(self) -> dict:
         """Serialise to a plain ``dict`` (pydantic v1/v2 compatible)."""
-        if hasattr(self, "model_dump"):
-            payload = self.model_dump()
-        else:
-            payload = self.dict()
-        if app_config.hide_prompt_reason:
-            _strip_reason_fields(payload)
+        return _serialize_payload(self)
+
+    def to_interactive_client_dict(self) -> dict:
+        """Serialise for ``/interactive`` wire response without data/metadata."""
+        payload = _serialize_payload(self)
+        for key in ("data", "metadata"):
+            payload.pop(key, None)
         return payload
+
+
+def _serialize_payload(model: ChatResponse) -> dict:
+    if hasattr(model, "model_dump"):
+        payload = model.model_dump()
+    else:
+        payload = model.dict()
+    if app_config.hide_prompt_reason:
+        _strip_reason_fields(payload)
+    return payload
+
+
+def _token_usage_with_timing(state: dict) -> TokenUsage:
+    """Combine state token_usage with legacy time_consumed into one TokenUsage."""
+    usage = read_token_usage(state)
+    consumed = read_time_consumed(state)
+    if consumed.llm_seconds:
+        usage.llm_seconds = consumed.llm_seconds
+    if consumed.total_seconds is not None:
+        usage.total_seconds = consumed.total_seconds
+    return usage
 
 
 def _strip_reason_fields(payload: dict) -> None:
@@ -281,6 +318,41 @@ def _as_str(value: Any) -> str:
     if isinstance(value, str):
         return value
     return str(value)
+
+
+def _as_similar_charts(state: dict) -> list[str]:
+    raw = state.get("similar_chart")
+    if not isinstance(raw, list):
+        context = state.get("viz_column_context")
+        if isinstance(context, dict):
+            raw = context.get("similar_chart")
+    if not isinstance(raw, list):
+        return []
+    names: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        text = item.strip()
+        if not text:
+            continue
+        key = text.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        names.append(text)
+    return names
+
+
+def _is_other_chart_type(chart_name: str) -> bool:
+    """True only for the catch-all ``other`` chart (not unknown / empty)."""
+    hint = _as_str(chart_name).strip()
+    if not hint:
+        return False
+    resolved = resolve_chart_name(hint)
+    if resolved:
+        return resolved == "other"
+    return hint.lower().replace(" ", "_") == "other"
 
 
 def _as_insight(value: Any) -> str:

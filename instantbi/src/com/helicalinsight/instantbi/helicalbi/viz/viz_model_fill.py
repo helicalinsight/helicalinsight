@@ -10,6 +10,8 @@ import re
 from typing import Any, Optional
 
 from helicalbi.common.CubeInfoModel import (
+    _cube_fields_by_name,
+    _match_map_value,
     build_viz_column_context,
     extract_result_field_names,
 )
@@ -25,9 +27,10 @@ from helicalbi.viz._chart_selection import (
     _MEASURE_TOKENS,
     infer_chart_shape,
     possible_chart_options,
-    resolve_similar_charts,
 )
-from helicalbi.viz._charts import get_chart_definition, resolve_chart_name
+from helicalbi.viz._charts import resolve_chart_name
+from helicalbi.viz._shelf_layout import arrange_shelves
+from helicalbi.viz.report_object import _match_format_string
 
 logger = logging.getLogger(__name__)
 
@@ -40,18 +43,29 @@ _CHART_PREFERENCE = (
     "column",
     "line",
     "area",
+    "kpi",
+    "progress",
     "radar",
     "heatmap",
     "relation",
     "pie",
     "donut",
-    "kpi",
     "gauge",
-    "progress",
     "waterfall",
     "calendar",
     "wordcloud",
     "point",
+)
+_VIZ_UPDATE_ACTIONS = frozenset({"updt_viz", "updt_both", "viz_update"})
+_VIZ_UPDATE_INTENTS = frozenset({
+    "VIZ_UPDATE",
+    "VISUALIZATION_UPDATE",
+    "UPDT_VIZ",
+    "UPDATE_VIZ",
+})
+_CONVERT_RE = re.compile(
+    r"\b(convert(?:\s+to)?|change\s+to|switch\s+to|show\s+as|make\s+it\s+a)\b",
+    re.IGNORECASE,
 )
 _FALLBACK_CHARTS = frozenset({"table", "grid_table"})
 _ORDERED_PREFERENCE = (
@@ -63,41 +77,27 @@ _ORDERED_PREFERENCE = (
 # ``mark`` on VizChart is the parent name; ``viz`` is one of the children
 # (or "" when the mark has no children).
 MARK_VIZ_CATALOG: list[dict[str, Any]] = [
-    {"name": "Card", "values": ["Area", "Bar", "Line", "Table"]},
-    {"name": "Maps", "values": ["Heatmap", "Line", "Point"]},
     {
         "name": "Chart",
         "values": [
+            "Bar",
+            "Line",
+            "Word cloud",
             "Arc",
             "Area",
-            "Bar",
-            "Calendar",
             "Doughnut",
-            "Line",
             "Point",
-            "Progress",
-            "Radar",
-            "Relation",
-            "Text",
             "Waterfall",
+            "Radar",
+            "Progress",
+            "Relation",
+            "Calendar",
         ],
     },
-    {
-        "name": "Grid Chart",
-        "values": [
-            "Arc",
-            "Area",
-            "Bar",
-            "Doughnut",
-            "Heatmap",
-            "Line",
-            "Point",
-            "Text",
-            "Tick",
-        ],
-    },
-    {"name": "Table", "values": []},
-    {"name": "Grid Table", "values": []},
+    {"name": "Maps", "values": ["Line", "Point", "Heatmap"]},
+    {"name": "Table", "values": ["Table"]},
+    {"name": "Grid Table", "values": ["Grid table"]},
+    {"name": "Card", "values": ["KPI", "Trend"]},
     {"name": "VF", "values": []},
 ]
 
@@ -118,12 +118,12 @@ _CHART_TYPE_TO_MARK_VIZ: dict[str, tuple[str, str]] = {
     "radar": ("Chart", "Radar"),
     "relation": ("Chart", "Relation"),
     "waterfall": ("Chart", "Waterfall"),
-    "wordcloud": ("Chart", "Text"),
-    "text": ("Chart", "Text"),
+    "wordcloud": ("Chart", "Word cloud"),
+    "text": ("Chart", "Word cloud"),
     "heatmap": ("Maps", "Heatmap"),
-    "kpi": ("Card", "Bar"),
-    "table": ("Table", ""),
-    "grid_table": ("Grid Table", ""),
+    "kpi": ("Card", "KPI"),
+    "table": ("Table", "Table"),
+    "grid_table": ("Grid Table", "Grid table"),
 }
 
 _META_ONLY_KEYS = frozenset({"rows", "row_count", "rowcount", "count", "total_rows"})
@@ -240,44 +240,79 @@ def _iter_named_roles(data_types: Any):
             yield from _yield_desc(value, fallback=str(key))
 
 
+_QUERY_CHART_ALIASES = (
+    ("donut", "donut"),
+    ("doughnut", "donut"),
+    ("pie", "pie"),
+    ("arc", "pie"),
+    ("gauge", "gauge"),
+    ("wordcloud", "wordcloud"),
+    ("word cloud", "wordcloud"),
+    ("line", "line"),
+    ("area", "area"),
+    ("heatmap", "heatmap"),
+    ("kpi", "kpi"),
+    ("card", "kpi"),
+    ("table", "table"),
+    ("bar", "bar"),
+    ("column", "column"),
+    ("radar", "radar"),
+    ("point", "point"),
+    ("progress", "progress"),
+    ("waterfall", "waterfall"),
+    ("calendar", "calendar"),
+    ("relation", "relation"),
+)
+
+
+def _chart_named_in_query(user_query: str) -> Optional[str]:
+    query = (user_query or "").lower()
+    if not query:
+        return None
+    for alias, name in _QUERY_CHART_ALIASES:
+        if re.search(rf"\b{alias}\b", query):
+            resolved = resolve_chart_name(name)
+            if resolved:
+                return resolved
+    return None
+
+
+def is_viz_update_intent(action: str = "", intent: str = "") -> bool:
+    """True when UpdateIntentRephrase / classifier marked a visualization update."""
+    if str(action or "").strip().lower() in _VIZ_UPDATE_ACTIONS:
+        return True
+    token = (
+        str(intent or "")
+        .strip()
+        .upper()
+        .replace(" ", "_")
+        .replace("-", "_")
+    )
+    return token in _VIZ_UPDATE_INTENTS
+
+
 def _pick_chart_type(
     data_types: Any,
     *,
     viz_hint: str = "",
     user_query: str = "",
+    viz_update: bool = False,
 ) -> str:
-    """Choose a catalog visualization_type without calling the LLM."""
-    hint = resolve_chart_name(viz_hint) if viz_hint else None
-    if hint:
-        return hint
+    """Choose a catalog visualization_type without calling the LLM.
 
-    query = (user_query or "").lower()
-    for alias, name in (
-        ("donut", "donut"),
-        ("doughnut", "donut"),
-        ("pie", "pie"),
-        ("arc", "pie"),
-        ("gauge", "gauge"),
-        ("wordcloud", "wordcloud"),
-        ("word cloud", "wordcloud"),
-        ("line", "line"),
-        ("area", "area"),
-        ("heatmap", "heatmap"),
-        ("kpi", "kpi"),
-        ("table", "table"),
-        ("bar", "bar"),
-        ("column", "column"),
-        ("radar", "radar"),
-        ("point", "point"),
-        ("progress", "progress"),
-        ("waterfall", "waterfall"),
-        ("calendar", "calendar"),
-        ("relation", "relation"),
-    ):
-        if re.search(rf"\b{alias}\b", query):
-            resolved = resolve_chart_name(name)
-            if resolved:
-                return resolved
+    On ``VIZ_UPDATE``, a chart named in the user request beats leftover
+    ``viz_hint``. On a new / SQL query, leftover hint is ignored so the
+    pick follows the actual result shape (unless the user named a chart).
+    """
+    requested = _chart_named_in_query(user_query)
+    if viz_update:
+        if requested:
+            return requested
+        hint = resolve_chart_name(viz_hint) if viz_hint else None
+        if hint:
+            return hint
+    elif requested:
+        return requested
 
     dims, measures, ordered = infer_chart_shape(data_types)
     options = possible_chart_options(dims, measures, ordered)
@@ -293,6 +328,41 @@ def _pick_chart_type(
         if opt.visualization_type not in _FALLBACK_CHARTS:
             return opt.visualization_type
     return "table"
+
+
+def similar_charts_for_data(
+    data_types: Any,
+    *,
+    current: str = "",
+    limit: int = 8,
+) -> list[str]:
+    """Chart types compatible with the result shape, excluding the current pick."""
+    dims, measures, ordered = infer_chart_shape(data_types)
+    options = possible_chart_options(dims, measures, ordered)
+    current_key = (resolve_chart_name(current) or current or "").strip().lower()
+    skip = _FALLBACK_CHARTS | {current_key, "other", ""}
+    by_name = {opt.visualization_type: opt for opt in options}
+    ordered_names: list[str] = []
+    preference = _ORDERED_PREFERENCE + _CHART_PREFERENCE if ordered else _CHART_PREFERENCE
+    for name in preference:
+        if name in by_name and name not in skip and name not in ordered_names:
+            ordered_names.append(name)
+    for opt in options:
+        name = opt.visualization_type
+        if name not in skip and name not in ordered_names:
+            ordered_names.append(name)
+    return ordered_names[:limit]
+
+
+def _roles_from_metadata(data_types: Any) -> tuple[list[str], list[str]]:
+    dimensions: list[str] = []
+    measures: list[str] = []
+    for name, role in _iter_named_roles(data_types):
+        if role == "measure":
+            measures.append(name)
+        else:
+            dimensions.append(name)
+    return _unique(dimensions), _unique(measures)
 
 
 def _chart_viz_and_mark(chart_type: str) -> VizChart:
@@ -398,6 +468,58 @@ def _shelves_from_form_data(
     return _unique(rows), _unique(columns), filters
 
 
+def _data_model_column_names(form_data: Optional[dict[str, Any]]) -> list[str]:
+    """Return display/alias names for every column in sql_to_formdata wire data."""
+    if not isinstance(form_data, dict):
+        return []
+    names: list[str] = []
+    for col in form_data.get("columns") or []:
+        if not isinstance(col, dict):
+            continue
+        name = _display_name(col)
+        if name:
+            names.append(name)
+    return _unique(names)
+
+
+def _build_properties_formatting(
+    column_names: list[str],
+    *,
+    format_strings: Optional[dict[str, str]] = None,
+    cube_metadata: Optional[list] = None,
+) -> dict[str, str]:
+    """Map data_model / result columns → Excel formatString from the semantic model."""
+    if not column_names:
+        return {}
+
+    cube_index = _cube_fields_by_name(cube_metadata)
+    formatting: dict[str, str] = {}
+    for name in column_names:
+        fmt = _match_format_string(name, format_strings or {})
+        if not fmt:
+            fmt = _match_map_value(format_strings, name)
+        if not fmt:
+            cube_item = cube_index.get(name.lower()) or {}
+            fmt = cube_item.get("format_string") or cube_item.get("formatString")
+        formatting[name] = str(fmt).strip() if fmt else ""
+    return formatting
+
+
+def _as_function_catalog(catalog: Any) -> Any:
+    if catalog is None:
+        return None
+    from helicalbi.sql_to_formdata import FunctionCatalog
+
+    if isinstance(catalog, FunctionCatalog):
+        return catalog
+    if isinstance(catalog, dict) and catalog:
+        try:
+            return FunctionCatalog.from_api_payload(catalog)
+        except Exception:
+            logger.debug("Unable to build FunctionCatalog from payload", exc_info=True)
+    return None
+
+
 def _try_sql_to_form_data(
     sql: str,
     *,
@@ -405,9 +527,17 @@ def _try_sql_to_form_data(
     md_location: str = "",
     md_file_name: str = "",
     dialect: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    catalog: Any = None,
 ) -> Optional[dict[str, Any]]:
-    """Run sql_to_formdata when metadata refs are available; else None."""
-    text = (sql or "").strip()
+    """Run sql_to_formdata when metadata refs are available; else None.
+
+    Does not need executeQuery results, so it can still populate
+    ``data_model.columns`` after a SQL error.
+    """
+    from helicalbi.sql.SqlSanitizer import strip_sql_markdown
+
+    text = strip_sql_markdown(sql or "").strip()
     location = (md_location or "").strip()
     file_name = (md_file_name or "").strip()
     if not text or not location or not file_name:
@@ -429,7 +559,12 @@ def _try_sql_to_form_data(
             metadata_file_name=file_name,
             session_cookie=session_cookie or "",
             dialect=dialect,
+            metadata=metadata,
+            catalog=_as_function_catalog(catalog),
         )
+        if not (form_data.get("columns") or []):
+            logger.info("viz_model_fill: sql_to_formdata returned no columns")
+            return None
         logger.info(
             "viz_model_fill: sql_to_formdata ok columns=%s filters=%s",
             len(form_data.get("columns") or []),
@@ -743,7 +878,11 @@ def _extract_filters_from_sql(
             text = re.sub(r"\s*```$", "", text)
 
         try:
-            tree = sqlglot.parse_one(text, read=read_dialect)
+            from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
+
+            tree = sqlglot.parse_one(
+                text, read=resolve_sqlglot_dialect(read_dialect) or None
+            )
         except Exception:
             tree = sqlglot.parse_one(text)
         if tree is None:
@@ -870,11 +1009,20 @@ def _resolve_shelves(
     return rows, columns, sql_filters, form_data
 
 
-def _default_title(rows: list[str], columns: list[str], vf_title: str = "") -> str:
+def _default_title(
+    rows: list[str],
+    columns: list[str],
+    vf_title: str = "",
+    *,
+    dimensions: Optional[list[str]] = None,
+    measures: Optional[list[str]] = None,
+) -> str:
     if (vf_title or "").strip():
         return vf_title.strip()
-    meas = columns[0] if columns else ""
-    dim = rows[0] if rows else ""
+    dim_names = list(dimensions or [])
+    meas_names = list(measures or [])
+    meas = (meas_names[0] if meas_names else "") or (columns[0] if columns else "")
+    dim = (dim_names[0] if dim_names else "") or (rows[0] if rows else "")
     if meas and dim:
         return f"{meas} by {dim}"
     return meas or dim or "Visualization"
@@ -897,14 +1045,21 @@ def build_viz_model(
     md_location: str = "",
     md_file_name: str = "",
     dialect: str | None = None,
+    viz_update: bool = False,
 ) -> tuple[VizModel, str, dict[str, Any]]:
     """Build a VizModel and related viz context.
 
     Rows / columns / filters prefer ``sql_to_formdata`` (same path as instant-to-hr).
+    Preferred shelf swap (dim on columns, measure on rows) runs only when
+    ``viz_update`` is True and the user asked to convert / named a chart.
     Returns ``(viz_model, chart_type, viz_column_context)``.
     """
+    requested = _chart_named_in_query(user_query)
     chart_type = _pick_chart_type(
-        data_types, viz_hint=viz_hint, user_query=user_query
+        data_types,
+        viz_hint=viz_hint,
+        user_query=user_query,
+        viz_update=viz_update,
     )
     rows, columns, filters, form_data = _resolve_shelves(
         data_types=data_types,
@@ -916,13 +1071,42 @@ def build_viz_model(
         dialect=dialect,
     )
 
-    chart_def = get_chart_definition(chart_type)
-    if chart_def and chart_def.option:
-        opt = chart_def.option
-        if opt.dims_max and len(rows) > opt.dims_max:
-            rows = rows[: opt.dims_max]
-        if opt.measures_max and len(columns) > opt.measures_max:
-            columns = columns[: opt.measures_max]
+    dimensions, measures = _roles_from_metadata(data_types)
+    if not dimensions and not measures:
+        dimensions, measures = list(rows), list(columns)
+    else:
+        # Keep shelf names that metadata did not classify.
+        known = {n.lower() for n in dimensions + measures}
+        for name in list(rows) + list(columns):
+            if name.lower() in known:
+                continue
+            if name in columns:
+                measures.append(name)
+            else:
+                dimensions.append(name)
+        dimensions, measures = _unique(dimensions), _unique(measures)
+
+    convert_requested = bool(
+        viz_update and (requested or _CONVERT_RE.search(user_query or ""))
+    )
+    rows, columns, swapped = arrange_shelves(
+        chart_type,
+        rows,
+        columns,
+        dimensions=dimensions,
+        measures=measures,
+        force_preferred=convert_requested,
+    )
+    if swapped:
+        logger.info(
+            "viz_model_fill swapped shelves chart=%s viz_update=%s "
+            "force_preferred=%s rows=%s columns=%s",
+            chart_type,
+            viz_update,
+            convert_requested,
+            rows,
+            columns,
+        )
 
     viz_context = build_viz_column_context(
         data_types,
@@ -935,13 +1119,42 @@ def build_viz_model(
     if form_data is not None:
         viz_context = dict(viz_context)
         viz_context["form_data"] = form_data
+    viz_context = dict(viz_context)
+    viz_context["similar_chart"] = similar_charts_for_data(
+        data_types, current=chart_type
+    )
 
-    # Temporary: keep properties.formatting empty until format injection is stable.
-    formatting: dict[str, str] = {}
+    model_columns = _data_model_column_names(form_data)
+    if not model_columns:
+        model_columns = list(viz_context.get("field_names") or [])
+    if not model_columns:
+        model_columns = _unique(list(rows) + list(columns))
+    formatting = _build_properties_formatting(
+        model_columns,
+        format_strings={
+            **(format_strings or {}),
+            **(viz_context.get("format_strings") or {}),
+        },
+        cube_metadata=cube_metadata,
+    )
 
-    title = _default_title(rows, columns, vf_title=vf_title)
-    label_x = rows[0] if rows else None
-    label_y = columns[0] if columns else (rows[1] if len(rows) > 1 else None)
+    title = _default_title(
+        rows,
+        columns,
+        vf_title=vf_title,
+        dimensions=dimensions,
+        measures=measures,
+    )
+    dim_keys = {n.lower() for n in dimensions}
+    meas_keys = {n.lower() for n in measures}
+    label_x = next(
+        (name for name in list(columns) + list(rows) if name.lower() in dim_keys),
+        columns[0] if columns else None,
+    )
+    label_y = next(
+        (name for name in list(rows) + list(columns) if name.lower() in meas_keys),
+        rows[0] if rows else (columns[1] if len(columns) > 1 else None),
+    )
 
     model = VizModel(
         data=VizData(
@@ -972,18 +1185,47 @@ def build_viz_model(
     return model, chart_type, viz_context
 
 
-def viz_model_to_chart_settings(model: VizModel) -> ChartSettings:
-    """Bridge VizModel shelves/properties → ChartSettings for VF injection."""
+def viz_model_to_chart_settings(
+    model: VizModel,
+    *,
+    data_types: Any = None,
+) -> ChartSettings:
+    """Bridge VizModel shelves/properties → ChartSettings for VF injection.
+
+    Dimensions/measures are classified from result metadata when provided so
+    swapped HI shelves (measures on rows) still map to semantic ChartSettings.
+    """
     props = model.properties
+    rows = list(model.data.rows or [])
+    columns = list(model.data.columns or [])
+    if data_types is not None:
+        dimensions, measures = _roles_from_metadata(data_types)
+        dim_keys = {n.lower() for n in dimensions}
+        meas_keys = {n.lower() for n in measures}
+        dim_names = [
+            name for name in rows + columns if name.lower() in dim_keys
+        ]
+        meas_names = [
+            name for name in rows + columns if name.lower() in meas_keys
+        ]
+        if not dim_names and not meas_names:
+            dim_names, meas_names = rows, columns
+    else:
+        dim_names, meas_names = rows, columns
+    measure_formats = {
+        name: fmt
+        for name in meas_names
+        for fmt in [_match_format_string(name, props.formatting or {})]
+        if fmt
+    }
     return ChartSettings(
-        dimensions=DimensionSetting(names=list(model.data.rows or [])),
-        measures=list(model.data.columns or []),
+        dimensions=DimensionSetting(names=_unique(dim_names)),
+        measures=_unique(meas_names),
         labelsX=props.labelX,
         labelsY=props.labelY,
         title=props.title,
         color=props.color or None,
-        # Temporary: keep measure_formats empty until format injection is stable.
-        measure_formats={},
+        measure_formats=measure_formats,
     )
 
 
@@ -1028,7 +1270,3 @@ def merge_properties_polish(model: VizModel, polish) -> VizModel:
 
     model.properties = VizProperties.model_validate(current)
     return model
-
-
-def resolve_similar_for_model(chart_type: str, data_types: Any) -> list:
-    return resolve_similar_charts(chart_type, data_types=data_types)

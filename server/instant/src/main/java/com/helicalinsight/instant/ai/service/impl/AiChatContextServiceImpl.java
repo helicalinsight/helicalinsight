@@ -37,6 +37,7 @@ public class AiChatContextServiceImpl implements IInstantBIService {
 
         JsonObject js = new JsonObject();
         js.addProperty("input", payload.getInput());
+        InstantBIUtils.addSessionContext(request, js);
 
         IInstantBIHttpService httpService = InstantBIServiceFactory.getHttpService();
         String chatOutput = httpService.callHttp("/chat", js);

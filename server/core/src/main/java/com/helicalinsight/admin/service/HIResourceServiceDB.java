@@ -6,6 +6,8 @@ import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
 
 import jakarta.transaction.Transactional;
+
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -14,6 +16,7 @@ public interface HIResourceServiceDB {
     Integer addHIResource(HIResource hiResource);
 
     Integer editHIResource(HIResource hiResource);
+    Integer updateOwner(Integer resourceId, Integer ownerId);
 
     void deleteHIResource(Integer resourceId,List<Integer> resourceIds,Boolean isFolder);
     
@@ -266,5 +269,9 @@ public interface HIResourceServiceDB {
     Map<Integer, List<HIResource>> findAllReportsByMetadataResourceIds(List<Integer> metadataResourceIds);
     Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds);
     void restoreResourcesByIds(List<Integer> resourceIds);
+    boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
 
+    boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
+
+    Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds);
 }

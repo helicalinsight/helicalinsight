@@ -45,7 +45,6 @@ class ModelState(MessagesState):
     context: str
     preferences: str
     viz_reason:str
-    similar_chart:list
     agg_cols:str
     non_agg_cols:str
     action:str

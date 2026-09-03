@@ -52,7 +52,7 @@ public final class SystemScheduleMailHelper {
                 SendPoolMail poolMail = ApplicationContextAccessor.getBean(SendPoolMail.class);
                 poolMail.sendMessage(recipients, null, subject, body);
             } catch (Exception poolEx) {
-                logger.debug("SendPoolMail unavailable, falling back to SendMail", poolEx);
+                logger.warn("SendPoolMail unavailable, falling back to SendMail", poolEx);
                 SendMail mailClient = new SendMail();
                 mailClient.sendMessage(
                         mailProps.get("hostName"),

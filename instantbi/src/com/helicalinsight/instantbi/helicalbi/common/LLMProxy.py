@@ -52,6 +52,9 @@ class LLMProxy(Runnable):
     def _llm(self) -> Any:
         llm = self._manager.get_llm()
         if llm is None:
+            detail = getattr(self._manager, "_last_error", None)
+            if detail:
+                raise RuntimeError(f"{_NOT_CONFIGURED_MSG} {detail}")
             raise RuntimeError(_NOT_CONFIGURED_MSG)
         return llm
 

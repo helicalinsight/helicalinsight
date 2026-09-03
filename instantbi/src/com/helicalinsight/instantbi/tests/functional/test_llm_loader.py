@@ -54,6 +54,25 @@ class TestCreateLlm:
         with patch.object(llm_loader, "ensure_package"):
             assert llm_loader.create_llm("ollama", cfg) is None
 
+    def test_ollama_ignores_blank_api_key(self):
+        cfg = {
+            "package": "langchain-ollama",
+            "model": "llama3",
+            "parameters": {
+                "base_url": "http://localhost:11434",
+                "api_key": "",
+                "temperature": 0.1,
+            },
+        }
+        mock_llm = MagicMock()
+        with patch.object(llm_loader, "ensure_package"):
+            with patch.object(llm_loader, "init_chat_model", return_value=mock_llm) as init:
+                result = llm_loader.create_llm("ollama", cfg)
+        assert result is mock_llm
+        assert "api_key" not in init.call_args.kwargs
+        assert init.call_args.kwargs["model"] == "ollama:llama3"
+        assert init.call_args.kwargs["base_url"] == "http://localhost:11434"
+
     def test_calls_init_chat_model_with_provider_prefix(self):
         cfg = {
             "package": "langchain-openai",

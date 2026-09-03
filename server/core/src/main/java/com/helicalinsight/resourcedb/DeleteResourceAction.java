@@ -37,9 +37,8 @@ public class DeleteResourceAction extends AbstractResourceAction {
 
     private boolean checkAndDeleteEntryInDb(String location) {
     	
-        HIResource resourceByUrl = hiResourceServiceDB.getResourceByUrl(location);
-        resourceByUrl.setVisible(false);
-        hiResourceServiceDB.deleteHIResourceById(resourceByUrl.getResourceId());
+        HIResource resourceByUrl = hiResourceServiceDB.findResourceByUrl(location);
+        hiResourceServiceDB.deleteHIResource(resourceByUrl);
         setMessage("Delete operation is successful");
         return true;
     }

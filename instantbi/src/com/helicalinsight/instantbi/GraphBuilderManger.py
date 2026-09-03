@@ -3,6 +3,7 @@ from helicalbi.core.flows.SqlGenerator import build_sql_generator_graph
 from helicalbi.core.insightflow.DataInsightGraph import build_data_insight_graph
 from helicalbi.core.sqlflow.CubeInfoSqlFlowGraph import build_cube_info_sql_graph
 from helicalbi.core.sqlflow.SqlFlowGraph import build_sql_graph
+from helicalbi.core.dashboardflow.DashboardLayoutGraph import build_dashboard_layout_graph
 from helicalbi.core.vizflow.VizFlowGraph import build_legacy_viz_graph, build_viz_graph
 
 sql_graph = build_sql_graph()
@@ -14,3 +15,4 @@ cube_info_sql_generator_graph = build_cube_info_sql_generator_graph(cube_info_sq
 viz_graph = build_viz_graph()
 legacy_viz_graph = build_legacy_viz_graph()
 data_insight_graph = build_data_insight_graph()
+dashboard_layout_graph = build_dashboard_layout_graph()

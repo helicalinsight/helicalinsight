@@ -251,7 +251,7 @@ export function AgentWorkspace({
                     [TOOL_BUSINESS_VIEW]:
                       "Connect a metadata file to enable Business View",
                     [TOOL_AGENT_JSON]:
-                      "Connect a metadata file before opening JSON",
+                      "Connect a metadata file before opening Spec",
                   }}
                 />
               )}

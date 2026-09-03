@@ -21,6 +21,7 @@ import {
   HIRecycleBin,
   HIConfigurations
 } from "..";
+import InstantBISettingsEditor from "../components/hi-configurations/components/InstantBISettingsEditor";
 import TokenUsageDashboard from "../components/hi-management/Components/TokenUsage/TokenUsageDashboard";
 import "./hi-adminTabs.scss";
 
@@ -75,6 +76,7 @@ const HIAdminTabs = () => {
     isSuperAdmin &&
     (!experimentalModules.includes(CONFIGURATIONS_EXPERIMENTAL_ID) ||
       showExperimentalFeatures);
+  const showInstantBITab = isSuperAdmin;
   const orgCheck = organization ? `${usermanagementName}/roles` : `${usermanagementName}/organizations`;
   const apiRef = useRef(null);
 
@@ -87,6 +89,12 @@ const HIAdminTabs = () => {
     tabPath: "/configurations",
     tutorialElementKey: "hi-configurations",
     experimental: experimentalModules.includes(CONFIGURATIONS_EXPERIMENTAL_ID),
+  };
+
+  const instantBITab = {
+    tab: "Instant BI",
+    tabPath: "/instantbi",
+    tutorialElementKey: "hi-instant-bi-admin",
   };
 
   const tabsData = [
@@ -115,6 +123,7 @@ const HIAdminTabs = () => {
       tabPath: "/audit",
       tutorialElementKey: "hi-audit",
     },
+    ...(showInstantBITab ? [instantBITab] : []),
     ...(showConfigurationsTab ? [configurationsTab] : []),
   ];
 
@@ -127,7 +136,7 @@ const HIAdminTabs = () => {
       setAdminTabsData([recycleBinRouteData, ...tabsData]);
     }
     dispatch(setIsAdminTabsDataSet(true));
-  }, [user, showConfigurationsTab, showExperimentalFeatures]);
+  }, [user, showConfigurationsTab, showInstantBITab, showExperimentalFeatures]);
 
   useEffect(() => {
     if (saml.enabled) {
@@ -159,7 +168,7 @@ const HIAdminTabs = () => {
     <Row className="hi-admin-container hi-admin-tabs">
       <Col span={24} className="hi-admin-tabs-container">
         {adminTabsData.length > 0 && (
-          <Menu selectedKeys={[selectedKey]} onClick={(ele) => setSelectedKey(ele.key === "User Management")} mode="horizontal" inlineCollapsed={false} style={{ width: !organization ? '78%' : '58%' }} className="hi-tabs-menu">{/* 6013 */}
+          <Menu selectedKeys={[selectedKey]} onClick={(ele) => setSelectedKey(ele.key === "User Management")} mode="horizontal" inlineCollapsed={false} style={{ width: !organization ? '88%' : '58%' }} className="hi-tabs-menu">{/* 6013 */}
             {adminTabsData.map((eachData) => {
               return (
                 <Menu.Item
@@ -173,7 +182,7 @@ const HIAdminTabs = () => {
                     "menu-last-item":
                       eachData.tab === "Adfs" ||
                       (eachData.tab === "Configurations" && !saml?.enabled) ||
-                      (eachData.tab === "Audit" &&
+                      (eachData.tab === "Instant BI" &&
                         !showConfigurationsTab &&
                         !saml?.enabled),
                   })}
@@ -237,6 +246,15 @@ const HIAdminTabs = () => {
           <Route path={`${path}/audit`}>
             <TokenUsageDashboard apiRef={apiRef} handleAbort={handleAbort} />
           </Route>
+          {showInstantBITab && (
+            <Route path={`${path}/instantbi`}>
+              <div className="hi-configurations">
+                <div className="hi-config-instantbi-panel">
+                  <InstantBISettingsEditor />
+                </div>
+              </div>
+            </Route>
+          )}
           {showConfigurationsTab && (
             <Route path={`${path}/configurations`}>
               <HIConfigurations apiRef={apiRef} handleAbort={handleAbort} />

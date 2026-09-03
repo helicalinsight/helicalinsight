@@ -146,3 +146,5 @@ docker/config/instantbi
 server/hi-repository/System/InstantBI
 instantbi/**/.idea/workspace.xml
 /instantbi/**/.idea
+server/**/.flattened-pom.xml
+*.lock

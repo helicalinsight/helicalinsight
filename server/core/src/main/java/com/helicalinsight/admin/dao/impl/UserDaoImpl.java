@@ -4,7 +4,6 @@ import com.helicalinsight.admin.dao.UserDao;
 import com.helicalinsight.admin.enums.RecycleBinType;
 import com.helicalinsight.admin.model.HIRecycleBin;
 import com.helicalinsight.admin.model.HIRecycleBinHUsers;
-import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
@@ -23,6 +22,8 @@ import jakarta.persistence.criteria.Root;
 
 import org.hibernate.query.MutationQuery;
 import org.hibernate.query.Query;
+import org.hibernate.query.SelectionQuery;
+
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 
 
@@ -130,6 +131,8 @@ public class UserDaoImpl implements UserDao {
         	session.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
         	org.hibernate.query.Query query=session.createQuery("FROM User where username=:username AND org_id is null");
         	query.setParameter("username", username);
+        	query.setReadOnly(true);
+        	query.setCacheable(true);
         	user =  (User) query.uniqueResult();
 
         } catch (Exception e) {
@@ -157,6 +160,8 @@ public class UserDaoImpl implements UserDao {
     	org.hibernate.query.Query query=session.createQuery("FROM User where username=:username AND org_id=:org_id");
     	query.setParameter("username", username);
     	query.setParameter("org_id", org_id);
+    	query.setReadOnly(true);
+    	query.setCacheable(true);
         return (User) query.uniqueResult();
 
     }
@@ -176,6 +181,8 @@ public class UserDaoImpl implements UserDao {
     	session.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
     	Query query=session.createQuery("FROM User where username=:username");
     	query.setParameter("username", username);
+    	query.setReadOnly(true);
+    	query.setCacheable(true);
     	return  (User) query.uniqueResult();
     }
 
@@ -233,38 +240,105 @@ public class UserDaoImpl implements UserDao {
     public void deleteUser(int userId) {
         try {
             Session currentSession = getSession();
-            User user = findUser(userId);
-            
-            if(Boolean.FALSE.equals(user.isDeleted())) {
-            	softDelete(user);
+            // getUser: no isDeleted filter — soft-deleted users must load for hard purge
+            User user = getUser(userId);
+            if (user == null) {
+                return;
             }
-            else {
-            Query deleteAudit = currentSession.createQuery("DELETE HIAuditDetails where triggeredBy = :id");
-            deleteAudit.setParameter("id", user);
-            deleteAudit.executeUpdate();
-            
-            Query deleteHIResourcePhase  = currentSession.createQuery("DELETE HIResourcePhaseStatus where user =:id");
-            deleteHIResourcePhase.setParameter("id", user);
-            deleteHIResourcePhase.executeUpdate();
-            
-            List<GlobalConnections> connections =  dbDao.findConnectionsByCreatedBy(userId);
-            
-            for(GlobalConnections connection : connections) {
-            	dbDao.hardDelete(connection);
-            }
-            
-            List<HIResource> hiResources = serviceDb.getHIResourceByCreatedBy(user.getId());
-            for(HIResource eachResource : hiResources) {
-            	serviceDb.hardDelete(eachResource);
-            }
-            
-            currentSession.remove(user);
 
+            if (!Boolean.TRUE.equals(user.isDeleted())) {
+            	softDelete(user);
+            	return;
             }
-        }catch (Exception e) {
+
+            hardDeleteUser(currentSession, userId);
+        } catch (Exception e) {
             logger.error("Exception", e);
         }
     }
+
+	/**
+	 * Hard-deletes a soft-deleted user without {@code session.remove} cascade.
+	 * Securities / roles / profiles are deleted by id; owned resources go through
+	 * batch {@link HIResourceServiceDB#hardDeleteResourcesByIds}.
+	 */
+	private void hardDeleteUser(Session session, int userId) {
+		session.disableFilter(IS_DELETED_FILTER);
+
+		session.createNativeMutationQuery("""
+				delete from metadata_dumped_dbs
+				where phase_details_id in (
+					select id from hi_resource_phases_status where updated_by = :id
+				)
+				""")
+				.setParameter("id", userId)
+				.executeUpdate();
+
+		session.createMutationQuery("delete HIResourcePhaseStatus p where p.user.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+
+		session.createMutationQuery("delete HIAuditDetails a where a.triggeredBy.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+
+		List<Integer> resourceIds = session
+				.createSelectionQuery("select r.resourceId from HIResource r where r.createdBy = :uid", Integer.class)
+				.setParameter("uid", userId)
+				.getResultList();
+		if (!resourceIds.isEmpty()) {
+			serviceDb.hardDeleteResourcesByIds(resourceIds);
+		}
+
+		// Schedules FK created_by → user (may remain on other users' resources)
+		session.createNativeMutationQuery("""
+				delete from job_parameters
+				where schedule_id in (
+					select schedule_id from schedules where created_by = :id
+				)
+				""")
+				.setParameter("id", userId)
+				.executeUpdate();
+		session.createNativeMutationQuery("delete from schedules where created_by = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+
+		List<Integer> globalIds = session
+				.createSelectionQuery(
+						"select g.globalId from GlobalConnections g where g.createdBy.id = :uid", Integer.class)
+				.setParameter("uid", userId)
+				.getResultList();
+		for (Integer globalId : globalIds) {
+			GlobalConnections connection = dbDao.findGlobalConnectionById(globalId);
+			if (connection != null) {
+				dbDao.hardDelete(connection);
+			}
+		}
+
+		session.createMutationQuery("delete GlobalConnectionSecurity s where s.userId.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+		session.createMutationQuery("delete HIEfwdConnSecurity s where s.userId.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+		session.createMutationQuery("delete HIResourceSecurityDB s where s.userId.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+		session.createMutationQuery("delete Profile p where p.user_id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+		session.createNativeMutationQuery("delete from user_role where user_id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+
+		User managed = session.get(User.class, userId);
+		if (managed != null) {
+			session.evict(managed);
+		}
+		session.createMutationQuery("delete User u where u.id = :id")
+				.setParameter("id", userId)
+				.executeUpdate();
+	}
 
     /**
      * this is override method get the current session from session factory
@@ -401,12 +475,15 @@ public class UserDaoImpl implements UserDao {
                         " like :role_name ORDER BY " +
                         "user.username ASC");
                 findQuery.setParameter("role_name", searchPhrase);
-
+                findQuery.setCacheable(true);
+                findQuery.setReadOnly(true);
                 countQuery = (Query) currentSession.createQuery("select distinct count(user)   from User" +
                         "                user  join user.roles r where " +
                         "r.role_name" +
                         " like :role_name");
                 countQuery.setParameter("role_name", searchPhrase);
+                countQuery.setCacheable(true);
+                countQuery.setReadOnly(true);
             }
             if (findQuery != null) {
                 Long totalCount = (Long) countQuery.getSingleResult();
@@ -414,6 +491,8 @@ public class UserDaoImpl implements UserDao {
                 limitOffsetModel.setTotalCount(Integer.valueOf("" + totalCount));
                 findQuery.setFirstResult(offset);
                 findQuery.setMaxResults(limit);
+                findQuery.setReadOnly(true);
+                findQuery.setCacheable(true);
                 List list = findQuery.getResultList();
                 return list;
             }
@@ -438,21 +517,16 @@ public class UserDaoImpl implements UserDao {
         	if(applyFilter) {
         		session.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
         	}
-            Query query = session.createQuery("from User " + "user ORDER BY " +
-                    "user.username ASC");
-            if (query.getResultList().isEmpty()) {
-                limitOffsetModel.setTotalCount(0);
-
-            } else {
-                limitOffsetModel.setTotalCount(query.getResultList().size());
-            }
+        	
+            SelectionQuery<User> query = session.createSelectionQuery("from User user ORDER BY user.username ASC", User.class);
+            
             query.setFirstResult(offset);
             query.setMaxResults(limit);
-
-
+            query.setCacheable(true);
+            query.setReadOnly(true);
+            
             userList = query.getResultList();
             userList = userList.stream().filter(user -> user.getOrganization() == null ||  !user.getOrganization().isDeleted()).collect(Collectors.toList());
-
         } catch (Exception e) {
             logger.error("Exception", e);
         }
@@ -466,6 +540,8 @@ public class UserDaoImpl implements UserDao {
     	session.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
     	Query query=session.createQuery("FROM User where org_id=:org_id ORDER BY username LIMIT :limit OFFSET :offset");
 		query.setParameter("org_id", org_id);
+		query.setCacheable(true);
+        query.setReadOnly(true);
 		List<User> users = query.getResultList();
         return users;
     }
@@ -548,16 +624,19 @@ public class UserDaoImpl implements UserDao {
             query.setParameter("role_name", searchPhrase);
             query.setParameter("org_id", orgId);
         }
-
-        if (query.getResultList().isEmpty()) {
-            limitOffsetModel.setTotalCount(0);
-            return null;
-        } else {
-            limitOffsetModel.setTotalCount(query.getResultList().size());
-        }
+        
+        query.setCacheable(true);
+        query.setReadOnly(true);
         query.setFirstResult(offset);
         query.setMaxResults(limit);
         userList = query.getResultList();
+        
+        if (userList.isEmpty()) {
+            limitOffsetModel.setTotalCount(0);
+            return null;
+        } else {
+            limitOffsetModel.setTotalCount(userList.size());
+        }
         return userList;
     }
     
@@ -579,12 +658,30 @@ public class UserDaoImpl implements UserDao {
 			Session session = getSession();
 			Query query = session.createQuery("from User user where user.org_id =:orgId  ORDER BY user.username ASC");
 			query.setParameter("orgId", orgId);
+			query.setReadOnly(true);
+			query.setCacheable(true);
 			return query.getResultList();
 		} catch (Exception e) {
 			logger.error("Error occurred while fetching the Organization users");
 			return List.of();
 		}
 		
+	}
+
+	@Override
+	public List<Integer> findUserIdsByOrganizationId(Integer orgId) {
+		if (orgId == null) {
+			return List.of();
+		}
+		try {
+			return getSession()
+					.createSelectionQuery("select u.id from User u where u.org_id = :orgId", Integer.class)
+					.setParameter("orgId", orgId)
+					.getResultList();
+		} catch (Exception e) {
+			logger.error("Error occurred while fetching organization user ids");
+			return List.of();
+		}
 	}
 	
 	@Override
@@ -601,6 +698,8 @@ public class UserDaoImpl implements UserDao {
 				query.setParameter("orgId", orgId);	
 			}
 			query.setParameter("uname", uname);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			existedUser=(User)query.uniqueResult();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -638,6 +737,8 @@ public class UserDaoImpl implements UserDao {
 		try {
 			Session session = getSession();
 			Query<Long> query = session.createQuery("select count(e.username) from User e",Long.class);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return query.getSingleResult();
 		}
 		catch (Exception e) {

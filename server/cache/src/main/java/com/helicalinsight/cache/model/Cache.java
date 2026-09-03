@@ -4,10 +4,13 @@ import java.io.Serializable;
 import java.util.Date;
 import java.util.List;
 
+import org.hibernate.annotations.CacheConcurrencyStrategy;
+
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "cache")
+@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 public class Cache implements Serializable {
 
     private static final int maximumQueryLengthCharacters = 10000;

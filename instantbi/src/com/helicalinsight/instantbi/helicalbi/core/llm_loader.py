@@ -55,7 +55,7 @@ def _build_params(provider_cfg: dict) -> dict[str, Any]:
 
 def _credentials_ok(provider: str, params: dict[str, Any]) -> bool:
     """Return False (and log) when required credentials are missing."""
-    if "api_key" in params:
+    if "api_key" in params and provider != "ollama":
         api_key = params.get("api_key") or ""
         if not str(api_key).strip():
             logger.warning(
@@ -64,6 +64,10 @@ def _credentials_ok(provider: str, params: dict[str, Any]) -> bool:
             )
             return False
     if provider == "ollama":
+        # Admin UI always posts an api_key field; blank values must not block Ollama.
+        api_key = params.get("api_key")
+        if api_key is None or not str(api_key).strip():
+            params.pop("api_key", None)
         base_url = params.get("base_url") or ""
         if not str(base_url).strip():
             logger.warning(

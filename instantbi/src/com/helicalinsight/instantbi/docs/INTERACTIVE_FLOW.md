@@ -555,7 +555,6 @@ Used by intent rephrase, column detection, and SQL generation prompts.
 | Endpoint | Relationship |
 |----------|--------------|
 | `POST /abort` | Cancels in-flight `/interactive` by `requestId` |
-| `POST /loadChat` | Loads persisted chat graph memory |
 | `POST /suggestDomain` | Returns suggested domain from model file |
 | `POST /topNQuestion` | KPI suggestions using business metrics context |
 | `POST /getSemanticData` | Builds blank semantic layer from metadata (model authoring) |

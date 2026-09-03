@@ -41,6 +41,7 @@ public class HIRecycleBin implements Serializable {
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "deleted_by")
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private User deletedBy;
 	
 	@Column(name = "deleted_on")
@@ -53,6 +54,7 @@ public class HIRecycleBin implements Serializable {
 	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "org_id")
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private Organization orgId;
 	
 	/**
@@ -61,21 +63,27 @@ public class HIRecycleBin implements Serializable {
 	 */
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by")
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private User createdBy;
 	
 	@OneToOne(mappedBy = "recycleBin",cascade = { PERSIST, MERGE, REFRESH, DETACH},fetch = FetchType.LAZY)
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private HIRecycleBinHIResourceDB hiRecycleBinHIResourceDB;
 	
 	@OneToOne(mappedBy = "recycleBin",cascade = { PERSIST, MERGE, REFRESH, DETACH},fetch = FetchType.LAZY)
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private HIRecycleBinDSGlobalConnections hiRecycleBinDsGlobalConnections;
 	
 	@OneToOne(mappedBy = "recycleBin",cascade = { PERSIST, MERGE, REFRESH, DETACH},fetch = FetchType.LAZY)
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private HIRecycleBinHUsers hiRecycleBinHUsers;
 	
 	@OneToOne(mappedBy = "recycleBin",cascade = { PERSIST, MERGE, REFRESH, DETACH},fetch = FetchType.LAZY)
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private HIRecycleBinOrganization hiRecycleBinOrganization;
 	
 	@OneToOne(mappedBy = "recycleBin",cascade = { PERSIST, MERGE, REFRESH, DETACH},fetch = FetchType.LAZY)
+	@org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.NONSTRICT_READ_WRITE)
 	private HIRecycleBinHIEfwdConnection hiRecycleBinHIEfwdConnection;
 	
 }

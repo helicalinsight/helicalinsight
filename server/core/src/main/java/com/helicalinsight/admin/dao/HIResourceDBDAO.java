@@ -2,6 +2,7 @@ package com.helicalinsight.admin.dao;
 
 import com.helicalinsight.admin.model.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -267,7 +268,7 @@ public interface HIResourceDBDAO {
 
 	List<HIResource> findAllResources(String url);
 	
-    List<Integer> getHIResourceIdsOfActiveUser();
+    List<Integer> getHIResourceIdsOfUser(Integer userId);
     HIResource findResourceByUrl(String url);
     List<Integer> getChildrenResourceByParentIds(List<Integer> parentIds);
 	Map<Integer, List<HIResource>> findAllReportsByMetadataResourceIds(List<Integer> metadataResourceIds);
@@ -275,5 +276,11 @@ public interface HIResourceDBDAO {
 	List<HIResource> getHIResourcesByIds(List<Integer> resourceIds, Boolean applyFilter);
 	
 	void restoreResourcesByIds(List<Integer> resourceIds);
+	Integer updateOwner(Integer resourceId, Integer ownerId);
+	boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
+
+	boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
+
+	Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds);
     
 }

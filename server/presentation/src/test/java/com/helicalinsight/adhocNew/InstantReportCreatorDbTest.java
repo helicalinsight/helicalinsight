@@ -24,6 +24,7 @@ import com.helicalinsight.admin.service.ResourceTypeServiceDB;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.exceptions.IncompleteFormDataException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.model.FileInfo;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 import com.helicalinsight.resourcesecurity.jaxb.Security;
@@ -58,9 +59,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", incompleteInstantState());
 		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
 					.thenReturn(serviceDB);
@@ -79,11 +78,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
 					.thenReturn(serviceDB);
@@ -103,15 +98,13 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		formDataJson.addProperty("uuid", "metadata1");
 		when(serviceDB.getResourceByUrl(anyString())).thenReturn(metadataResource).thenReturn(null);
 
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
+			jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
 					.thenReturn(serviceDB);
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(ResourceTypeServiceDB.class))
@@ -135,11 +128,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		formDataJson.addProperty("uuid", "metadata1");
 
 		when(serviceDB.getResourceByUrl(anyString())).thenReturn(metadataResource);
@@ -147,7 +136,9 @@ public class InstantReportCreatorDbTest {
 		when(metadataResource.getResourceURL()).thenReturn("com/helical/");
 		when(bean.prepareFileInfo(anyString(), anyString())).thenReturn(fileInfo);
 
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
+			jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
 					.thenReturn(serviceDB);
 			mockedStatic.when(() -> ApplicationContextAccessor.getBean(ResourceTypeServiceDB.class))
@@ -176,11 +167,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 
 		when(serviceDB.getResourceByUrl(anyString())).thenReturn(metadataResource);
 		when(metadataResource.getHiResourceInstantReport()).thenReturn(adhocReport);
@@ -188,8 +175,10 @@ public class InstantReportCreatorDbTest {
 		when(bean.prepareFileInfo(anyString(), anyString())).thenReturn(fileInfo);
 		when(security.getCreatedBy()).thenReturn("1");
 
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
 			try (MockedStatic<SecurityUtils> mockedStatic2 = mockStatic(SecurityUtils.class)) {
+				jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 				mockedStatic2.when(() -> SecurityUtils.securityObject()).thenReturn(security);
 
 				mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
@@ -220,11 +209,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		formDataJson.addProperty("reportName", "re");
 
 		when(serviceDB.getResourceByUrl(anyString())).thenReturn(metadataResource);
@@ -233,8 +218,10 @@ public class InstantReportCreatorDbTest {
 		when(bean.prepareFileInfo(anyString(), anyString())).thenReturn(fileInfo);
 		when(security.getCreatedBy()).thenReturn("1");
 
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
 			try (MockedStatic<SecurityUtils> mockedStatic2 = mockStatic(SecurityUtils.class)) {
+				jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 				mockedStatic2.when(() -> SecurityUtils.securityObject()).thenReturn(security);
 
 				mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
@@ -266,11 +253,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		String temp = "ThisStringHasMoreThanSixtyCharactersInItThisStringHasMoreThanSixtyCharactersInItThisStringHasMoreThanSixtyCharactersInIt";
 		formDataJson.addProperty("reportName", temp);
 
@@ -280,8 +263,10 @@ public class InstantReportCreatorDbTest {
 		when(bean.prepareFileInfo(anyString(), anyString())).thenReturn(fileInfo);
 		when(security.getCreatedBy()).thenReturn("1");
 
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
 			try (MockedStatic<SecurityUtils> mockedStatic2 = mockStatic(SecurityUtils.class)) {
+				jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 				mockedStatic2.when(() -> SecurityUtils.securityObject()).thenReturn(security);
 
 				mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
@@ -314,11 +299,7 @@ public class InstantReportCreatorDbTest {
 
 		JsonObject formDataJson = new JsonObject();
 		formDataJson.addProperty("location", "hyderbad");
-		formDataJson.addProperty("state", "state");
-		JsonObject metadata = new JsonObject();
-		metadata.addProperty("location", "location");
-		metadata.addProperty("metadataFileName", "metadata1");
-		formDataJson.add("metadata", metadata);
+		formDataJson.add("state", completeInstantState());
 		formDataJson.addProperty("reportName", "HReport");
 
 		when(serviceDB.getResourceByUrl(anyString())).thenReturn(metadataResource);
@@ -328,8 +309,10 @@ public class InstantReportCreatorDbTest {
 		when(security.getCreatedBy()).thenReturn("1");
 		when(resourceTypeServiceDB.getResourceTypeByTypeAndExtension(anyString(), anyString())).thenReturn(resourceType);
 		
-		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class)) {
+		try (MockedStatic<ApplicationContextAccessor> mockedStatic = mockStatic(ApplicationContextAccessor.class);
+				MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
 			try (MockedStatic<SecurityUtils> mockedStatic2 = mockStatic(SecurityUtils.class)) {
+				jsonUtils.when(JsonUtils::getInstantReportExtension).thenReturn("instant");
 				mockedStatic2.when(() -> SecurityUtils.securityObject()).thenReturn(security);
 
 				mockedStatic.when(() -> ApplicationContextAccessor.getBean(HIResourceServiceDB.class))
@@ -350,6 +333,26 @@ public class InstantReportCreatorDbTest {
 		InstantReportCreatorDb creatorDb = new InstantReportCreatorDb();
 		boolean threadSafeToCache = creatorDb.isThreadSafeToCache();
 		assertTrue(threadSafeToCache);
+	}
+
+	private JsonObject completeInstantState() {
+		JsonObject model = new JsonObject();
+		model.addProperty("dir", "location");
+		model.addProperty("file", "metadata1");
+		JsonObject subject = new JsonObject();
+		subject.add("model", model);
+		JsonObject state = new JsonObject();
+		state.add("subject", subject);
+		return state;
+	}
+
+	private JsonObject incompleteInstantState() {
+		JsonObject model = new JsonObject();
+		JsonObject subject = new JsonObject();
+		subject.add("model", model);
+		JsonObject state = new JsonObject();
+		state.add("subject", subject);
+		return state;
 	}
 
 }

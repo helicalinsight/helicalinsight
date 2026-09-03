@@ -8,12 +8,11 @@ public final class InstantBIServiceFactory {
     public static final String RECOMMEND_DOMAIN_SERVICE = "aiRecommendDomainService";
     public static final String RECOMMEND_ANALYST_SERVICE = "aiRecommendAnalystService";
     public static final String INTERACTIVE_CHAT_SERVICE = "aiInteractiveChatService";
+    public static final String AGENT_DASHBOARD_SERVICE = "aiAgentDashboardService";
     public static final String DATA_INSIGHT_SERVICE = "aiDataInsightService";
-    public static final String LOAD_CHAT_SERVICE = "aiLoadChatService";
     public static final String CHAT_CONTEXT_SERVICE = "aiChatContextService";
     public static final String LLM_USAGE_AUDIT_SERVICE = "aiLlmUsageAuditService";
-    public static final String CONVERT_CHART_SERVICE = "aiConvertChartService";
-    public static final String LIST_CHARTS_SERVICE = "aiListChartsService";
+    public static final String CONVERT_DASHBOARD_SERVICE = "aiConvertDashboardService";
     public static final String UTILITY_CONFIG_SERVICE = "aiUtilityConfigService";
 
     private InstantBIServiceFactory() {
@@ -35,12 +34,12 @@ public final class InstantBIServiceFactory {
         return getService(INTERACTIVE_CHAT_SERVICE);
     }
 
-    public static IInstantBIService getDataInsightService() {
-        return getService(DATA_INSIGHT_SERVICE);
+    public static IInstantBIService getAgentDashboardService() {
+        return getService(AGENT_DASHBOARD_SERVICE);
     }
 
-    public static IInstantBIService getLoadChatService() {
-        return getService(LOAD_CHAT_SERVICE);
+    public static IInstantBIService getDataInsightService() {
+        return getService(DATA_INSIGHT_SERVICE);
     }
 
     public static IInstantBIService getChatContextService() {
@@ -51,12 +50,8 @@ public final class InstantBIServiceFactory {
         return getService(LLM_USAGE_AUDIT_SERVICE);
     }
 
-    public static IInstantBIService getConvertChartService() {
-        return getService(CONVERT_CHART_SERVICE);
-    }
-
-    public static IInstantBIService getListChartsService() {
-        return getService(LIST_CHARTS_SERVICE);
+    public static IInstantBIService getConvertDashboardService() {
+        return getService(CONVERT_DASHBOARD_SERVICE);
     }
 
     public static IInstantBIService getUtilityConfigService() {

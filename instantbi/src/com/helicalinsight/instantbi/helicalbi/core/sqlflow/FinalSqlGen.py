@@ -6,7 +6,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from helicalbi.common.ChatManager import get_last_sql, add_sql
-from helicalbi.common.app_config import default_sql_limit
+from helicalbi.common import app_config
 from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.core.sqlflow.util.FallbackSqlHelpers import (
@@ -15,7 +15,7 @@ from helicalbi.core.sqlflow.util.FallbackSqlHelpers import (
 )
 from helicalbi.model.SQLModel import SQLModel
 from helicalbi.model.output.SqlGen import get_sql_gen_model
-from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+from helicalbi.prompt.FinalSqlPrompt import render_final_sql_prompt
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 from helicalbi.sql.SelectAliasRewriter import rewrite_select_aliases
 
@@ -97,7 +97,7 @@ class FinalSqlGen:
         logger.debug("Previous SQL for thread %s: %s", thread_id, prev_sql)
 
         plan_limit = _limit_from_query_plan(query_plan_json)
-        sql_limit = plan_limit if plan_limit is not None else default_sql_limit
+        sql_limit = plan_limit if plan_limit is not None else app_config.default_sql_limit
         if plan_limit is not None:
             logger.debug("Using query-plan limit %s for final SQL", sql_limit)
         else:
@@ -105,7 +105,7 @@ class FinalSqlGen:
 
         parser = PydanticOutputParser(pydantic_object=get_sql_gen_model())
         prompt = PromptTemplate(
-            template=final_sql_prompt + format_instruction_string,
+            template=render_final_sql_prompt() + format_instruction_string,
             input_variables=[
                 "dialect",
                 "last_chats",

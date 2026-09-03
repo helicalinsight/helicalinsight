@@ -1281,6 +1281,15 @@ dayofyear, dy, y = Day, ww, wk = Week, dw, w = Weekday, hh = hour, mi, n = Minut
    </function>
 
  	
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>
 
 

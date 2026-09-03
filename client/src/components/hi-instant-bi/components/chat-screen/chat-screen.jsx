@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuidv4 } from "uuid";
-import { updateIBActivePreview, updateIBChatMessageList, updateIBPreviewData, updateBIBotStatus } from '../../../../redux/actions/instant-bi.actions';
+import { updateBIBotStatus, updateIBActivePreview, updateIBChatMessageList, updateIBPreviewData } from '../../../../redux/actions/instant-bi.actions';
+import { isOpenSource } from '../../../../utils/utilities';
+import Watermark from '../../../hi-reports/hi-viz-area/watermark/watermark';
 import { getInstantBIAgentSubject, prepareIBChatNewMessage } from '../../utils/common-utils';
 import { abortRecommendationsRequest, instantBiChatAPI } from '../../utils/instant-bi-requests';
 import "./chat-screen.scss";
 import MessageInputBoxNew from './message-input-box-new';
 import MessageList from './message-list';
-import Watermark from '../../../hi-reports/hi-viz-area/watermark/watermark';
-import { isOpenSource } from '../../../../utils/utilities';
 
 const InstantBIChatScreen = (props = {}) => {
     const {

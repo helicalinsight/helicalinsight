@@ -1392,4 +1392,13 @@ EXTEND (call_dtime, YEAR TO SECOND)</description>
         <description>Returns the name of the type of the provided expression</description>
     </function>
    
+    <function group="generic" returns="text">
+     <key>sql.text.raw</key>
+      <value>RAW</value>
+      <signature><![CDATA[(${column})]]></signature>
+      <parameters>
+         <parameter column="true" name="column" />
+      </parameters>
+      <description>Use this function to execute any native sql with custom column</description>
+   </function>
 </functions>

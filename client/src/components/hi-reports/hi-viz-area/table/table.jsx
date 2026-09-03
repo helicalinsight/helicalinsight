@@ -141,7 +141,7 @@ const TableContainer = (props) => {
       tableLimitBy = options.limitBy - offset;
     }
     // dispatch(resetTableProperty({ property: 'recordsPerPage', value: selectedPageSize }))
-    dispatch(changeTableRecordsPerPage({ page: selectedPageSize }))
+    dispatch(changeTableRecordsPerPage({ page: selectedPageSize, reportId }));
     props.fetchMoreData({ tableLimitBy, offset, pageSize: nextPageSize, fetchAllRecords });
   };
   const cellClick = (e, { record }) => {

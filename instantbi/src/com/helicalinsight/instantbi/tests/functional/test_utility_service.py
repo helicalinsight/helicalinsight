@@ -135,3 +135,67 @@ class TestLlmConfigProvider:
         persisted = yaml.safe_load(config_path.read_text(encoding="utf-8"))
         assert "custom" in persisted["providers"]
         assert persisted["default_provider"] == "custom"
+
+    def test_list_providers_does_not_redact_api_key(self, tmp_path, monkeypatch):
+        config_path = tmp_path / "llm_config.yaml"
+        raw = {
+            "default_provider": "openai",
+            "providers": {
+                "openai": {
+                    "package": "langchain-openai",
+                    "model": "gpt-4.1-mini",
+                    "parameters": {"api_key": "sk-secret", "temperature": 0.1},
+                    "usage_path": "usage_metadata",
+                }
+            },
+        }
+        config_path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+        monkeypatch.setattr(
+            ConfigLoader,
+            "resolve_path",
+            staticmethod(lambda path="llm_config.yaml": str(config_path)),
+        )
+        manager = MagicMock()
+        manager._lock = __import__("threading").RLock()
+        manager.config = deepcopy(raw)
+        provider = LlmConfigProvider(manager)
+        rows = provider.list_providers()
+        openai = next(row for row in rows if row["provider"] == "openai")
+        assert openai["parameters"]["api_key"] == "sk-secret"
+        assert openai["parameters"]["temperature"] == 0.1
+
+    def test_upsert_keeps_env_placeholder_when_resolved_secret_posted(
+        self, tmp_path, monkeypatch
+    ):
+        config_path = tmp_path / "llm_config.yaml"
+        raw = {
+            "default_provider": "openai",
+            "providers": {
+                "openai": {
+                    "package": "langchain-openai",
+                    "model": "gpt-4.1-mini",
+                    "parameters": {"api_key": "${OPENAI_API_KEY}"},
+                }
+            },
+        }
+        config_path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+        monkeypatch.setattr(
+            ConfigLoader,
+            "resolve_path",
+            staticmethod(lambda path="llm_config.yaml": str(config_path)),
+        )
+        monkeypatch.setenv("OPENAI_API_KEY", "sk-resolved")
+        manager = MagicMock()
+        manager._lock = __import__("threading").RLock()
+        manager.config = deepcopy(raw)
+        manager.reload_from_disk = MagicMock()
+        provider = LlmConfigProvider(manager)
+        provider.upsert_provider(
+            "openai",
+            package="langchain-openai",
+            model="gpt-4.1-mini",
+            parameters={"api_key": "sk-resolved"},
+            replace_parameters=True,
+        )
+        persisted = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+        assert persisted["providers"]["openai"]["parameters"]["api_key"] == "${OPENAI_API_KEY}"

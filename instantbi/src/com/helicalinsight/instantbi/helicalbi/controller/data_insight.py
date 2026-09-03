@@ -22,7 +22,8 @@ from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.ChatManager import add_insight, get_last_insight
 from helicalbi.common.RequestCancellation import request_cancellation
-from helicalbi.common.app_config import is_debug, default_sql_limit
+from helicalbi.common.app_config import is_debug
+from helicalbi.common import app_config
 from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
@@ -92,13 +93,14 @@ def _generate_data_insight_from_rows(
 ) -> Tuple[str, Dict[str, Any]]:
     #prev_responses = get_last_insight(thread_id) if thread_id else []
     row_count = len(sample_data)
-    if row_count > default_sql_limit:
+    sql_limit = app_config.default_sql_limit
+    if row_count > sql_limit:
         logger.debug(
             "Truncating data-insight sample rows from %s to %s",
             row_count,
-            default_sql_limit,
+            sql_limit,
         )
-        sample_data = sample_data[:default_sql_limit]
+        sample_data = sample_data[:sql_limit]
 
     logger.info(
         "Generating data insight for user=%s thread=%s rows=%s",

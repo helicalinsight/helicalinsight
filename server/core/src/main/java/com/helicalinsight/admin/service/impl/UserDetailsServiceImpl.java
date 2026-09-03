@@ -289,6 +289,13 @@ public class UserDetailsServiceImpl implements UserService {
 	public List<User> getAllUsersOfOrganization(Integer orgId) {
 		return userDao.getAllUsersOfOrganization(orgId);
 	}
+    
+    @Transactional(readOnly = true)
+	@Override
+	public List<Integer> findUserIdsByOrganizationId(Integer orgId) {
+		return userDao.findUserIdsByOrganizationId(orgId);
+	}
+
 
     @Transactional
 	@Override

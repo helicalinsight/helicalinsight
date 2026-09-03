@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class TokenUsage(BaseModel):
-    """Token counts and optional cost reported by an LLM provider for a single completion."""
+    """Token counts, optional cost, and timing for an LLM completion / request."""
 
     input_tokens: int = Field(default=0, ge=0, description="Tokens in the prompt / input.")
     output_tokens: int = Field(default=0, ge=0, description="Tokens in the model response.")
@@ -23,6 +23,16 @@ class TokenUsage(BaseModel):
     model_name: Optional[str] = Field(
         default=None, description="LLM model identifier reported by the provider for this completion."
     )
+    llm_seconds: float = Field(
+        default=0.0,
+        ge=0,
+        description="Accumulated wall time spent in LLM invoke calls.",
+    )
+    total_seconds: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="End-to-end request time including orchestration and SQL execution.",
+    )
 
     @staticmethod
     def _merge_model_name(left: Optional[str], right: Optional[str]) -> Optional[str]:
@@ -37,6 +47,14 @@ class TokenUsage(BaseModel):
         if left is None and right is None:
             return None
         return (left or 0.0) + (right or 0.0)
+
+    @staticmethod
+    def _merge_total_seconds(left: Optional[float], right: Optional[float]) -> Optional[float]:
+        if left is None:
+            return right
+        if right is None:
+            return left
+        return max(left, right)
 
     @model_validator(mode="after")
     def _derive_totals(self) -> "TokenUsage":
@@ -55,4 +73,6 @@ class TokenUsage(BaseModel):
             output_cost=self._add_optional_cost(self.output_cost, other.output_cost),
             total_cost=self._add_optional_cost(self.total_cost, other.total_cost),
             model_name=self._merge_model_name(self.model_name, other.model_name),
+            llm_seconds=self.llm_seconds + other.llm_seconds,
+            total_seconds=self._merge_total_seconds(self.total_seconds, other.total_seconds),
         )

@@ -1,13 +1,13 @@
 {
   "id": "instantbi-application",
   "title": "Application",
-  "description": "InstantBI application_config.yaml application settings",
+  "description": "InstantBI KPI suggestions, feature flags, SQL limit, and API cache",
   "sections": [
     {
       "key": "kpi",
       "title": "kpi",
       "level": 0,
-      "description": "application_config.yaml → kpi",
+      "description": "Default prompt Instant BI uses when suggesting KPIs. If the selected model defines its own suggestion query, that takes priority.",
       "sections": [
         {
           "key": "kpi_fields",
@@ -21,7 +21,8 @@
               "span": 24,
               "minRows": 1,
               "maxRows": 10,
-              "autoSize": true
+              "autoSize": true,
+              "description": "Prompt used when Instant BI suggests KPIs. A model-specific suggestion query overrides this when present."
             }
           ]
         }
@@ -31,7 +32,7 @@
       "key": "feature_flags",
       "title": "feature_flags",
       "level": 0,
-      "description": "application_config.yaml → feature_flags",
+      "description": "Turns Instant BI capabilities on or off, including result cache, streamed replies, conversation memory, LLM usage audit, and hiding prompt reasons.",
       "sections": [
         {
           "key": "feature_flags_fields",
@@ -81,7 +82,7 @@
       "key": "sql_cache",
       "title": "sql / api_cache",
       "level": 0,
-      "description": "application_config.yaml → sql and api_cache",
+      "description": "Default row limit for generated SQL queries, and in-memory cache size for HI service API responses.",
       "sections": [
         {
           "key": "sql_fields",

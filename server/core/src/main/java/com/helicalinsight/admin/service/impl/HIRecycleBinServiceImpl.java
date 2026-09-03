@@ -1,9 +1,10 @@
 package com.helicalinsight.admin.service.impl;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import com.helicalinsight.admin.dao.HIResourceMappingDao;
 import com.helicalinsight.admin.dto.RecycleBinDTO;
 import com.helicalinsight.admin.model.*;
 import com.helicalinsight.admin.service.HIRecycleBinService;
+import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.ResourceTypeServiceDB;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.core.request.RecycleBinItem;
@@ -34,6 +36,9 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 	@Autowired
 	private ResourceDTOMapper mapper;
 	
+	@Autowired
+	private HIResourceServiceDB serviceDb;
+	
 	@Transactional
 	@Override
 	public boolean save(HIRecycleBin recycleBin) {
@@ -43,8 +48,8 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 	@Transactional
 	@Override
 	public boolean delete(Long id) {
-		HIRecycleBin hiRecycleBinById = hiRecycleBinDao.findHIRecycleBinByIdPlain(id);
-		return delete(hiRecycleBinById);
+		// Mutation-only: do not load associations (user/org/global clear path).
+		return hiRecycleBinDao.delete(id);
 	}
 	
 	@Transactional
@@ -60,10 +65,12 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 				HIRecycleBinHIResourceDB hiRecycleBinHIResourceDB = bin.getHiRecycleBinHIResourceDB();
 
 				if(hiRecycleBinHIResourceDB!=null) {
-					HIResource hiResource = hiRecycleBinHIResourceDB.getHiResource();
-					String extension = hiResource.getResourceType().getExtension().replace(".", "");
-					if(extension.equals("efwdd")|| extension.equals("hcr"))
-						resourceDao.deleteChildrenByParentId(Integer.valueOf("" + hiResource.getResourceId()));
+					HIResource hiResource = serviceDb.findResourceById(hiRecycleBinHIResourceDB.getHiResourceId(), false);
+					if ( hiResource != null ) {
+						String extension = hiResource.getResourceType().getExtension().replace(".", "");
+						if(extension.equals("efwdd")|| extension.equals("hcr"))
+							resourceDao.deleteChildrenByParentId(Integer.valueOf("" + hiResource.getResourceId()));
+					}
 				}
 			}
 
@@ -203,5 +210,47 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 	@Override
 	public List<RecycleBinDTO> getAll() {
 		return hiRecycleBinDao.getAllRecycleBinDTOs();
+	}
+	
+	@Transactional
+	@Override
+	public void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds) {
+		 hiRecycleBinDao.deleteRecycleBinsByResourceIds(resourceIds);
+	}
+
+	@Transactional
+	@Override
+	public void deleteRecycleBinsByUserIds(Collection<Integer> userIds) {
+		hiRecycleBinDao.deleteRecycleBinsByUserIds(userIds);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Set<Long> findResourceBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		return hiRecycleBinDao.findResourceBinsBlockedByLiveDependents(binIds);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Set<Long> findGlobalBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		return hiRecycleBinDao.findGlobalBinsBlockedByLiveDependents(binIds);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Set<Long> findEfwdBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		return hiRecycleBinDao.findEfwdBinsBlockedByLiveDependents(binIds);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Set<Long> findUserBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		return hiRecycleBinDao.findUserBinsBlockedByLiveDependents(binIds);
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Set<Long> findOrgBinsBlockedByLiveDependents(Collection<Long> binIds) {
+		return hiRecycleBinDao.findOrgBinsBlockedByLiveDependents(binIds);
 	}
 }

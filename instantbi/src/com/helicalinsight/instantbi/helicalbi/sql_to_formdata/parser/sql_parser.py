@@ -7,19 +7,19 @@ from typing import Any
 import sqlglot
 from sqlglot import exp
 
-from ..functions_catalog import FunctionCatalog, REFERENCE_TO_SQLGLOT
+from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
+
+from ..functions_catalog import FunctionCatalog
 from ..mappings.conditions import sql_op_to_ui_condition
 from ..models import ColumnRef, FilterItem, OrderItem, ParsedQuery, SelectItem
 
 
 def _sqlglot_dialect(dialect: str | None, catalog: FunctionCatalog | None = None) -> str:
-    """Map API reference (postgresql) → sqlglot dialect (postgres)."""
-    if dialect:
-        key = str(dialect).lower().strip()
-        return REFERENCE_TO_SQLGLOT.get(key, key)
-    if catalog is not None:
-        return catalog.dialect
-    return "postgres"
+    """Map HI / getFunctions reference through DialectMapper (derby → oracle)."""
+    raw = dialect
+    if not raw and catalog is not None:
+        raw = catalog.reference
+    return resolve_sqlglot_dialect(raw) or "postgres"
 
 
 def parse_sql(
@@ -193,6 +193,7 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
 
         col_ref = None
         db_fn = None
+        db_fn_sql = ""
         fn_def = ""
         custom = False
         custom_expr = None
@@ -208,7 +209,9 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
             if inner_col:
                 col_ref = _column_ref(inner_col, parsed)
             if db_fn:
+                db_fn_sql = inner.sql(dialect=parsed.dialect)
                 fn_def = cat.functions_definition(db_fn)
+                used_cols = _collect_column_refs(inner, parsed)
             else:
                 # Unknown nested fn → custom column (selectRaw); aggregate wraps it.
                 custom = True
@@ -229,6 +232,7 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
             aggregate=agg,
             aggregates=aggregates,
             database_function=db_fn,
+            database_function_sql=db_fn_sql,
             functions_definition=fn_def,
             is_custom=custom,
             custom_expression=custom_expr,
@@ -250,7 +254,9 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
                 alias=alias,
                 column=col_ref,
                 database_function=db_fn,
+                database_function_sql=raw,
                 functions_definition=cat.functions_definition(db_fn),
+                used_columns=_collect_column_refs(expr, parsed),
                 raw_sql=raw,
             )
 
@@ -472,7 +478,9 @@ def _parse_predicate(
         if isinstance(right, (exp.Column, exp.Func, exp.AggFunc)) and isinstance(left, exp.Literal):
             left, right = right, left
 
-        aggregate, col_ref, db_fn, alias = _side_column_meta(left, parsed)
+        aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols = _side_column_meta(
+            left, parsed
+        )
         op_name = type(node).__name__.upper()
         ui = sql_op_to_ui_condition(op_name)
         values = [_literal_value(right)]
@@ -483,7 +491,9 @@ def _parse_predicate(
             operator=join_op,
             aggregate=aggregate if (for_having or aggregate) else None,
             database_function=db_fn,
+            database_function_sql=db_fn_sql,
             alias=alias,
+            used_columns=used_cols,
             raw_sql=raw,
         )
 
@@ -506,7 +516,9 @@ def _parse_between(
     negated: bool,
     raw: str,
 ) -> FilterItem:
-    aggregate, col_ref, db_fn, alias = _side_column_meta(node.this, parsed)
+    aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols = _side_column_meta(
+        node.this, parsed
+    )
     low = _literal_value(node.args.get("low"))
     high = _literal_value(node.args.get("high"))
     ui = "IS_NOT_BETWEEN" if negated or node.args.get("not") else "IS_BETWEEN"
@@ -517,7 +529,9 @@ def _parse_between(
         operator=join_op,
         aggregate=aggregate if for_having or aggregate else None,
         database_function=db_fn,
+        database_function_sql=db_fn_sql,
         alias=alias,
+        used_columns=used_cols,
         raw_sql=raw,
     )
 
@@ -531,7 +545,9 @@ def _parse_in(
     negated: bool,
     raw: str,
 ) -> FilterItem:
-    aggregate, col_ref, db_fn, alias = _side_column_meta(node.this, parsed)
+    aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols = _side_column_meta(
+        node.this, parsed
+    )
     values = [_literal_value(v) for v in node.expressions]
     ui = "IS_NOT_ONE_OF" if negated or node.args.get("not") else "IS_ONE_OF"
     return FilterItem(
@@ -541,7 +557,9 @@ def _parse_in(
         operator=join_op,
         aggregate=aggregate if (for_having or aggregate) else None,
         database_function=db_fn,
+        database_function_sql=db_fn_sql,
         alias=alias,
+        used_columns=used_cols,
         raw_sql=raw,
     )
 
@@ -555,7 +573,9 @@ def _parse_is(
     negated: bool,
     raw: str,
 ) -> FilterItem:
-    aggregate, col_ref, db_fn, alias = _side_column_meta(node.this, parsed)
+    aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols = _side_column_meta(
+        node.this, parsed
+    )
     nullish = isinstance(node.expression, exp.Null)
     is_negated = negated or bool(node.args.get("not"))
     if nullish:
@@ -569,7 +589,9 @@ def _parse_is(
         operator=join_op,
         aggregate=aggregate if (for_having or aggregate) else None,
         database_function=db_fn,
+        database_function_sql=db_fn_sql,
         alias=alias,
+        used_columns=used_cols,
         raw_sql=raw,
     )
 
@@ -582,7 +604,9 @@ def _parse_like(
     join_op: str,
     raw: str,
 ) -> FilterItem:
-    aggregate, col_ref, db_fn, alias = _side_column_meta(node.this, parsed)
+    aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols = _side_column_meta(
+        node.this, parsed
+    )
     pattern = str(_literal_value(node.expression) or "")
     ui = _like_to_condition(pattern)
     clean = pattern.strip("%")
@@ -593,7 +617,9 @@ def _parse_like(
         operator=join_op,
         aggregate=aggregate if (for_having or aggregate) else None,
         database_function=db_fn,
+        database_function_sql=db_fn_sql,
         alias=alias,
+        used_columns=used_cols,
         raw_sql=raw,
     )
 
@@ -619,12 +645,14 @@ def _like_to_condition(pattern: str) -> str:
 def _side_column_meta(
     side: exp.Expression,
     parsed: ParsedQuery,
-) -> tuple[str | None, ColumnRef | None, dict | None, str | None]:
-    """Return (aggregate_key, column_ref, database_function, alias_hint)."""
+) -> tuple[str | None, ColumnRef | None, dict | None, str | None, str, list[ColumnRef]]:
+    """Return (aggregate_key, column_ref, database_function, alias_hint, db_fn_sql, used_columns)."""
     aggregate = None
     db_fn = None
+    db_fn_sql = ""
     alias = None
     col_ref = None
+    used_cols: list[ColumnRef] = []
     cat = _catalog(parsed)
 
     expr = side
@@ -653,22 +681,29 @@ def _side_column_meta(
             if inner_col:
                 col_ref = _column_ref(inner_col, parsed)
             db_fn = _build_db_fn(inner, parsed)
+            # Always keep SQL so filters/having can fall back to custom on catalog miss.
+            db_fn_sql = inner.sql(dialect=parsed.dialect)
+            used_cols = _collect_column_refs(inner, parsed)
         elif isinstance(inner, exp.Column):
             col_ref = _column_ref(inner, parsed)
+            used_cols = [col_ref]
         if col_ref and aggregate:
             fn = (expr.sql_name() or "agg").lower()
             alias = f"{fn}_{col_ref.name}"
-        return aggregate, col_ref, db_fn, alias
+        return aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols
 
     if isinstance(expr, exp.Func):
         inner_col = _find_column(expr)
         if inner_col:
             col_ref = _column_ref(inner_col, parsed)
         db_fn = _build_db_fn(expr, parsed)
-        return None, col_ref, db_fn, alias
+        # Always keep SQL so filters/having can fall back to custom on catalog miss.
+        db_fn_sql = expr.sql(dialect=parsed.dialect)
+        used_cols = _collect_column_refs(expr, parsed)
+        return None, col_ref, db_fn, alias, db_fn_sql, used_cols
 
     if isinstance(expr, exp.Column):
         col_ref = _column_ref(expr, parsed)
-        return None, col_ref, None, col_ref.name
+        return None, col_ref, None, col_ref.name, "", [col_ref]
 
-    return None, None, None, None
+    return None, None, None, None, "", []

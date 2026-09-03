@@ -250,20 +250,20 @@
         <intercept-url pattern="/ai/recommendation*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/interactive-chat/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/interactive-chat*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/load-chat/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/load-chat*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/agent-dashboard/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/agent-dashboard*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/data-insight/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/data-insight*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/llm-usage-audit/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/llm-usage-audit*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/list-charts/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/list-charts*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/convert-chart/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
-        <intercept-url pattern="/ai/convert-chart*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-hreport/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-hreport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/convert-dashboard/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/convert-dashboard*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/utility/**" access="hasAnyRole('ROLE_ADMIN')"/>
         <intercept-url pattern="/ai/utility*" access="hasAnyRole('ROLE_ADMIN')"/>
+        <intercept-url pattern="/ai/settings/**" access="hasAnyRole('ROLE_ADMIN')"/>
+        <intercept-url pattern="/ai/settings*" access="hasAnyRole('ROLE_ADMIN')"/>
 
         <intercept-url pattern="/services*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 

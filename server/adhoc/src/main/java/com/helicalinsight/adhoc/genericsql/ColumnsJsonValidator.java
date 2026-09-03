@@ -27,7 +27,6 @@ final class ColumnsJsonValidator {
      */
     public void validateJson(@NotNull JsonArray columns, @NotNull IMetadataStore container) {
         List<String> aliasNames = new ArrayList<>();
-        List<String> userRequestedColumns = new ArrayList<>();
         for (JsonElement object : columns) {
             JsonObject json = object.getAsJsonObject();
             if (json.has("alias")) {
@@ -40,17 +39,8 @@ final class ColumnsJsonValidator {
                 }
             }
 
-            if (!json.has("custom")) {
-                userRequestedColumns.add(json.get("column").getAsString());
-            }
-
-            if (json.has("usedColumns")) {
-                JsonArray usedColumns = json.getAsJsonArray("usedColumns");
-                for (JsonElement column : usedColumns) {
-                    userRequestedColumns.add(column.getAsString());
-                }
-            }
         }
+        List<String>userRequestedColumns = AdhocUtils.getUserInput(columns);
         validateColumns(userRequestedColumns, container, aliasNames);
     }
     /**

@@ -130,6 +130,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			Session currentSession = getSession();
 			SelectionQuery<HIEfwdConnection> query = currentSession.createSelectionQuery("FROM HIEfwdConnection WHERE deleted=:st",HIEfwdConnection.class);
 			query.setParameter("st", st);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return query.list();
 		} catch (HibernateException ex) {
 			ex.printStackTrace();
@@ -145,6 +147,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			SelectionQuery<HIEfwdConnection> query = currentSession.createSelectionQuery("FROM HIEfwdConnection WHERE deleted=:st AND id in (:connIds)",HIEfwdConnection.class);
 			query.setParameter("st", st);
 			query.setParameterList("connIds", connIds);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return query.list();
 		} catch (HibernateException ex) {
 			ex.printStackTrace();
@@ -184,6 +188,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<Integer> query = getSession().createSelectionQuery("select id From HIEfwdConnection where type = :subType",Integer.class);
 			query.setParameter("subType", subType);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			connectionIds = query.list();
 		} catch (HibernateException ex) {
 			ex.printStackTrace();
@@ -197,6 +203,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<EFWDConnSqlJDBC> query = getSession().createSelectionQuery("FROM EFWDConnSqlJDBC conn where conn.hiEfwdConnection.id = :connectionId",EFWDConnSqlJDBC.class);
 			query.setParameter("connectionId", efwdConnectionId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return  query.uniqueResult();
 		}
 		catch (HibernateException ex) {
@@ -211,6 +219,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			SelectionQuery<HIEfwdConnection> query = getSession().createSelectionQuery("FROM HIEfwdConnection conn JOIN FETCH conn.efwdConnGroovy where conn.id = :connectionId and conn.type = :type",HIEfwdConnection.class);
 			query.setParameter("type", type);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			HIEfwdConnection object =  query.uniqueResult();
 			return object != null?object.getEfwdConnGroovy().get(0):null;
 
@@ -438,6 +448,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<HIEfwdConnSecurity> query = getSession().createSelectionQuery("FROM HIEfwdConnSecurity as s where s.hiEfwdConnection.id = :connectionId",HIEfwdConnSecurity.class);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
 			List<?> list = query.list();
 			if (!list.isEmpty()) {
 				security = (HIEfwdConnSecurity) list.get(0);
@@ -483,6 +494,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<EFWDConnGroovy> query = getSession().createSelectionQuery("FROM EFWDConnGroovy conn where conn.hiEfwdConnection.id = :connectionId",EFWDConnGroovy.class);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
 			return  query.uniqueResult();
 
 		} catch (HibernateException ex) {
@@ -508,6 +520,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<HIEfwdConnSecurity> query = getSession().createSelectionQuery("FROM HIEfwdConnSecurity security where security.hiEfwdConnection.id = :connectionId",HIEfwdConnSecurity.class);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
 			return  query.list();
 		}
 		catch (HibernateException ex) {
@@ -536,6 +549,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			String hql = "FROM EFWDConnGroovy where  hiEfwdConnection.hiResourceEFWD.parentResource.resourceId = :parentId";
 			SelectionQuery<EFWDConnGroovy> query = getSession().createSelectionQuery(hql,EFWDConnGroovy.class);
 			query.setParameter("parentId", parentId);
+			query.setCacheable(true);
 			return query.list();
 		}
 		catch (HibernateException e) {
@@ -692,7 +706,10 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					WHERE c.efwdConnId IN (:ids)
 					""";
 
-			return session.createQuery(sqlQuery, PlainConnDTO.class).setParameterList("ids", connectionIds).list();
+			Query<PlainConnDTO> query =  session.createQuery(sqlQuery, PlainConnDTO.class);
+			query.setParameterList("ids", connectionIds);
+			query.setCacheable(true);
+			return query.getResultList();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -736,6 +753,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 
 			Query<PlainConnDTO> query =  session.createQuery(groovyQuery, PlainConnDTO.class);
 			query.setReadOnly(true);
+			query.setCacheable(true);
 			List<PlainConnDTO> list =  query.setParameterList("ids", connectionIds).list();
 		    return list;
 		} catch (Exception e) {
@@ -873,6 +891,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					SELECT  DISTINCT  efwd.parentResource.resourceId FROM HIEFWD efwd
 					""";
 			SelectionQuery<Integer> resourceListQuery = session.createSelectionQuery(query, Integer.class);
+			resourceListQuery.setReadOnly(true);
+			resourceListQuery.setCacheable(true);
 			return resourceListQuery.getResultList();
 		} catch (Exception e) {
 			log.error("Error occurred while fetching the efwd resources. due to {}", e);
@@ -890,6 +910,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 				String resourceQuery = "SELECT new com.helicalinsight.admin.model.HIResource(resourceId, parentId, isDeleted)  FROM HIResource resource where resourceId in (:resourceIds)";
 				SelectionQuery<HIResource> initialResources = session.createSelectionQuery(resourceQuery,HIResource.class);
 				initialResources.setParameterList("resourceIds", pendingIds);
+				initialResources.setReadOnly(true);
+				initialResources.setCacheable(true);
 				List<HIResource> list = initialResources.getResultList();
 			    
 				pendingIds = new HashSet<>();
@@ -938,6 +960,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			SelectionQuery<HIEfwdConnection> query = getSession().createQuery("FROM HIEfwdConnection where connectionId = :connectionId and type = :type",HIEfwdConnection.class);
 			query.setParameter("connectionId", connectionId);
 			query.setParameter("type", type);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -951,6 +975,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<HIEfwdConnection> query = getSession().createQuery("FROM HIEfwdConnection where hiResourceEFWD.parentResource.resourceId = :resourceId",HIEfwdConnection.class);
 			query.setParameter("resourceId", resourceId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			List<HIEfwdConnection> connections = query.list();
 			Map<Integer, List<PlainConnDTO>> connectionMap = prepareConnectionMap(connections, "all");
 			List<EfwdConnDTO> cns =  prepareEfwdConnectionOpt(connections,connectionMap, isRequiredForRecycleBinFetch,isRequiredToCheckTopLevelRootDeletion);
@@ -983,6 +1009,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			if(applyFilter) session.enableFilter(IS_DELETED_FILTER).setParameter("isDeleted", false);
 			SelectionQuery<HIEfwdConnection> query = session.createQuery("FROM HIEfwdConnection where id =:connectionId",HIEfwdConnection.class);
 			query.setParameter("connectionId", Integer.valueOf(connectionId));
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			connection =  query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -1001,6 +1029,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			String hql = "SELECT deleted FROM HIEfwdConnection where id = :id";
 			SelectionQuery<Boolean> query = session.createQuery(hql,Boolean.class);
 			query.setParameter("id", Integer.valueOf(id));
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return  query.uniqueResult();
 		}
 		catch (Exception e) {
@@ -1018,6 +1048,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			SelectionQuery<HIRecycleBin> query=session.createSelectionQuery("select efwdRb.recycleBin from HIRecycleBinHIEfwdConnection efwdRb WHERE efwdRb.efwdConnection.id=:connId",HIRecycleBin.class);
 			query.setParameter("connId", connId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			hiRecycleBin= query.uniqueResult();
 		}
 		catch(Exception ex) {
@@ -1080,7 +1112,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			query.setParameter("name", lookup.getName());
 			query.setParameter("type", type);
 			query.setParameter("resourceUrl", lookup.getDirectory());
-			
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			@SuppressWarnings("unchecked")
 			List<HIEfwdConnection> connections =  query.list();
 			
@@ -1110,6 +1143,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		try {
 			Query query = getSession().createQuery("FROM HIEfwdConnection where hiResourceEFWD.parentResource.resourceId in :resourceId");
 			query.setParameterList("resourceId", resourceIds);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			List<HIEfwdConnection> connections = (List<HIEfwdConnection> )query.list();
 			Map<Integer, List<PlainConnDTO>> connectionMap = prepareConnectionMap(connections, "all");
 			return prepareEfwdConnectionOpt(connections,connectionMap, isRequiredForRecycleBinFetch,isRequiredToCheckTopLevelRootDeletion);
@@ -1172,6 +1207,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			Session currentSession=getSession();
 			Query query=currentSession.createQuery("FROM HIHcrConnections hcrCon WHERE hcrCon.hiResourceHcr.resourceId=:hcrResId");
 			query.setParameter("hcrResId", hcrResId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			hcrConnections=query.list();
 		} catch (HibernateException ex) {
 			ex.printStackTrace();
@@ -1186,6 +1223,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 			Session currentSession=getSession();
 			Query query=currentSession.createQuery("FROM HIHcrConnections hcrCon WHERE hcrCon.id=:hcrResId");
 			query.setParameter("hcrResId", hcrResId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			connd=  (HIHcrConnections)query.uniqueResult();
 			return connd;
 		} catch (HibernateException ex) {
@@ -1230,6 +1269,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					""";
 			SelectionQuery<PlainConnDTO> query = session.createSelectionQuery(sqlQuery,PlainConnDTO.class);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			PlainConnDTO plainConnection =  query.uniqueResult();
 			return plainConnection;
 		} catch (Exception e) {
@@ -1274,6 +1315,8 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 					""";
 			SelectionQuery<PlainConnDTO> query = session.createSelectionQuery(groovyQuery,PlainConnDTO.class);
 			query.setParameter("connectionId", connectionId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
 			return  query.uniqueResult();
 		} catch (Exception e) {
 			log.error("Error occurred while fetching groovy connection  : {} due to : ", connectionId, e);

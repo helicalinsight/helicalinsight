@@ -1,9 +1,9 @@
 import produce from "immer";
+import { isEmpty } from "lodash";
+import { v4 as uuidv4 } from "uuid";
 import { createTabTitle } from "../../utils/utilities";
 import actionTypes from "../actions/actionTypes";
 import initialStates, { getIBInitialReportState } from "./initialStates";
-import { v4 as uuidv4 } from "uuid";
-import { isEmpty } from "lodash";
 
 
 const instantBIReducer = (
@@ -151,6 +151,9 @@ const instantBIReducer = (
     case actionTypes.ADD_NEW_IB_REPORT: {
       return produce(state, (draft) => {
         let report = getIBInitialReportState({ active: true });
+        if (action?.payload?.reportId) {
+          report.id = action.payload.reportId;
+        }
         draft.reports = draft.reports.map((item) => {
           item.active = false;
           return item;
@@ -382,7 +385,8 @@ const instantBIReducer = (
         uuid,
         loading,
         mode,
-        reportId
+        reportId,
+        reportMetadata
       } = action.payload;
       const { metadata = {}, reportName, state: stateData = {} } = data || {}
       const { inputs = [], chat_responses = [], ...restState } = stateData || {}
@@ -403,19 +407,18 @@ const instantBIReducer = (
             isUser: true,
             user: true,
             text: input.input,
-            // time: getTimeStamp(),
             isTyping: false,
             createdDate: new Date().toISOString()
           });
         }
         if (response) {
+          const { chat_sequence_id, ...rest } = response || {}
           const messageId = uuidv4();
           messageList.push({
             id: messageId,
             isUser: false,
             user: false,
-            text: '',
-            // time: getTimeStamp(),
+            text: rest?.summary?.insight || "",
             isTyping: false,
             createdDate: new Date().toISOString(),
             data: [],
@@ -425,12 +428,15 @@ const instantBIReducer = (
             sql: '',
             userInput: input?.input,
             chatSequenceId: sequenceId,
-            needsLoadChat: true,
-            persistedInFile: true,
+            needsLoadChat: false,
+            persistedInFile: false,
+            fullChatResponse: { ...rest },
+            hreportLoading: true,
+            ...rest
           });
         }
       });
-      
+
       let reportInfo = {
         location,
         uuid,
@@ -452,13 +458,23 @@ const instantBIReducer = (
         ],
         activeChatID: chatId,
         previews: [],
-        activePreviewID: null
+        activePreviewID: null,
+        metadataForHreport: reportMetadata
       }
       return produce(state, (draft) => {
         draft.loading = loading;
         draft.mode = mode;
         draft.activeReportId = reportId;
-        draft.reports = [finalStateData]
+        if (draft.reports.some(report => report.id === reportId)) {
+          draft.reports = draft.reports.map((report) => {
+            if (report.id === reportId) {
+              return finalStateData;
+            }
+            return report;
+          })
+        } else {
+          draft.reports = [finalStateData]
+        }
       })
     }
 
@@ -555,6 +571,72 @@ const instantBIReducer = (
         chartListLoaded: true,
       };
     }
+
+    case actionTypes.LOAD_METADATA_FOR_HREPORT: {
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.active) {
+            let { funcs, metadata, dateFunctions } = action.payload || {};
+            if (!metadata || !metadata.tables) {
+              return { ...report, metadataForHreport: null };
+            }
+            report.metadataForHreport = {
+              funcs,
+              metadata,
+              dateFunctions
+            };
+          }
+          return report;
+        })
+      });
+    }
+
+    case actionTypes.UPDATE_LOADING_STATUS_FOR_HREPORT: {
+      const { sequenceId, loading } = action.payload || {}
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.active) {
+            report.chats = report.chats.map((chat) => {
+              if (chat.chatID !== report.activeChatID) return chat;
+              chat.messageList = chat.messageList.map((message) => {
+                if (!message.isUser && message.chatSequenceId === sequenceId) {
+                  message.hreportLoading = loading;
+                }
+                return message;
+              });
+              return chat;
+            });
+          }
+          return report;
+        })
+      });
+    }
+
+    case actionTypes.UPDATE_HREPORT_INITIAL_INTERACTION: {
+      const { reportId, event, hreportId, data } = action.payload || {}
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.id === reportId) {
+            if (event === "change_viz") {
+              if (report.hreportInteractions?.[hreportId]) {
+                report.hreportInteractions[hreportId] = { ...report.hreportInteractions[hreportId], ...data }
+              } else {
+                report.hreportInteractions[hreportId] = { ...data }
+              }
+            }
+            if (event === "add_filter") {
+              if (report.hreportInteractions?.[hreportId]) {
+                report.hreportInteractions[hreportId] = { ...report.hreportInteractions[hreportId], filters: [...(report.hreportInteractions[hreportId])?.filters || [], data] }
+              } else {
+                report.hreportInteractions[hreportId] = { filters: [data] }
+              }
+            }
+          }
+          return report;
+        })
+      });
+    }
+
 
     default:
       return { ...state };

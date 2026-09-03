@@ -1,0 +1,17 @@
+id: storytelling-narrative
+name: Storytelling / Narrative
+best_for: Guiding the user from overview → explanation → details.
+
+┌────────────────────────────────────────────┐
+│             Business Overview              │
+├──────────┬──────────┬──────────┬───────────┤
+│ KPI 1    │ KPI 2    │ KPI 3    │ KPI 4     │
+├────────────────────────────────────────────┤
+│ What happened?                             │
+│        Main Trend / Time Series            │
+├──────────────────────┬─────────────────────┤
+│ Why did it happen?   │ Where did it happen?│
+│ Breakdown            │ Regional Analysis   │
+├──────────────────────┴─────────────────────┤
+│ Detailed explanation / table               │
+└────────────────────────────────────────────┘
