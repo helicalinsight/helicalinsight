@@ -67,12 +67,52 @@ public class MongoConnectionFactory extends DatabaseConnectionFactory {
 				driverClassName = connectionDetails.get("driverName").getAsString();
 			}
 
-			if ("mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName)) {
-				DriverConnection driverConnection = new DriverConnection();
-				driverConnection.setConnection(null);
-				driverConnection.setDriverClass("mongodb.jdbc.MongoDriver");
-				return driverConnection;
+						if ("mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName)
+					|| "com.mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName)) {
 
+				String jdbcUrl = null;
+				String userName = null;
+				String password = null;
+
+				if (connectionDetails.has("jdbcUrl")) {
+					jdbcUrl = connectionDetails.get("jdbcUrl").getAsString();
+				} else if (connectionDetails.has("url")) {
+					jdbcUrl = connectionDetails.get("url").getAsString();
+				}
+				if (connectionDetails.has("userName")) {
+					userName = connectionDetails.get("userName").getAsString();
+				} else if (connectionDetails.has("username")) {
+					userName = connectionDetails.get("username").getAsString();
+				}
+				if (connectionDetails.has("password")) {
+					password = connectionDetails.get("password").getAsString();
+				}
+
+				DriverConnection driverConnection = new DriverConnection();
+				driverConnection.setDriverClass("com.mongodb.jdbc.MongoDriver");
+
+				try {
+					Class.forName("com.mongodb.jdbc.MongoDriver");
+
+					java.sql.Connection mongoConnection;
+					if (userName != null && !userName.isEmpty()) {
+						java.util.Properties props = new java.util.Properties();
+						props.setProperty("user", userName);
+						props.setProperty("password", password != null ? password : "");
+						mongoConnection = java.sql.DriverManager.getConnection(jdbcUrl, props);
+					} else {
+						mongoConnection = java.sql.DriverManager.getConnection(jdbcUrl);
+					}
+
+					driverConnection.setConnection(mongoConnection);
+				} catch (ClassNotFoundException e) {
+					throw new ConnectionException(
+							"MongoDB JDBC driver class not found: com.mongodb.jdbc.MongoDriver - " + e.getMessage());
+				} catch (java.sql.SQLException e) {
+					throw new ConnectionException("Failed to connect to MongoDB: " + e.getMessage());
+				}
+
+				return driverConnection;
 			}
 			if (driverClassName != null && driverClassName.startsWith(JsonUtils.getHiMiddleWareName())) {
 				formJson.addProperty("id", "-1");

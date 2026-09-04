@@ -39,4 +39,12 @@
             </plugin>
         </plugins>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-jdbc</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+        
+    </dependencies>
 </project>
