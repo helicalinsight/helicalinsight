@@ -91,10 +91,7 @@ export const getDatasourceGetContentsResponse = (formData) => {
             database: "database",
           },
         },
-        {
-          available: "true",
-          driver: "com.helical.mongodb.MongoJdbcDriver",
-        },
+        
         {
           url: "jdbc:hive2://{{hostName}}:{{port}}/{{database}}",
           driver: "org.apache.hive.jdbc.HiveDriver",
@@ -423,17 +420,24 @@ export const getDatasourceGetContentsResponse = (formData) => {
           categoryType: "supported",
           categoryName: "Supported",
         },
-        {
-          driver: "com.helical.mongodb.MongoJdbcDriver",
-          databaseDialect: "himongo",
-          name: "Helical Mongodb",
+                {
+          driver: "com.mongodb.jdbc.MongoDriver",
+          databaseDialect: "mongodb",
+          name: "MongoDB JDBC",
           categoryName: "RDBMS",
           categoryType: "rdbms",
           type: "global.jdbc",
           dataSourceProvider: "tomcat",
           classifier: "global",
           imgUrl: "../images/data_sources/defaut_datasource.png",
+          url: "jdbc:mongodb://{{hostName}}:{{port}}/{{database}}",
+          parameters: {
+            port: "27017",
+            hostName: "localhost",
+            database: "database",
+          },
         },
+      
         {
           driver: "org.sqlite.JDBC",
           databaseDialect: "sqlite",

@@ -46,13 +46,21 @@
 				<artifactId>aspectj-maven-plugin</artifactId>
 					<configuration>
 					<skip>${aspectj.skip}</skip>
-				       <includes>
+				    <includes>
 				        	<include>com/helicalinsight/admin/service/impl/UserDetailsServiceImpl.java</include>
 				        	<include>com/helicalinsight/admin/customauth/CustomUserDetailService.java</include>
 				        	<include>com/helicalinsight/efw/serviceframework/ServiceUtils.java</include>
-				       </includes>
+				    </includes>
 				    </configuration>
             </plugin>
         </plugins>
     </build>
+    <dependencies>
+    <!-- MongoDB JDBC Driver -->
+    <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-jdbc</artifactId>
+    </dependency>
+</dependencies>
+
 </project>

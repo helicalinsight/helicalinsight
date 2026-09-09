@@ -1422,6 +1422,11 @@
 					</exclusion>
 				</exclusions>
 			</dependency>
+	<dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-jdbc</artifactId>
+            <version>2.2.3</version>
+    </dependency>
 					
 			<!--
 			https://mvnrepository.com/artifact/com.thoughtworks.xstream/xstream -->
