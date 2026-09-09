@@ -19,7 +19,6 @@ from helicalbi.model.output.viz.ChartSettings import ChartSettings, DimensionSet
 from helicalbi.model.output.viz.VizModel import (
     VizChart,
     VizData,
-    VizFilter,
     VizModel,
     VizProperties,
 )
@@ -419,8 +418,8 @@ def _shelves_from_form_data(
     form_data: dict[str, Any],
     *,
     result_fields: Optional[list[str]] = None,
-) -> tuple[list[str], list[str], list[VizFilter]]:
-    """Map sql_to_formdata wire columns/filters → VizModel shelves."""
+) -> tuple[list[str], list[str]]:
+    """Map sql_to_formdata wire columns → VizModel shelves."""
     rows: list[str] = []
     columns: list[str] = []
 
@@ -440,32 +439,9 @@ def _shelves_from_form_data(
         else:
             rows.append(name)
 
-    filters: list[VizFilter] = []
-    for bucket in ("filters", "having"):
-        for item in form_data.get(bucket) or []:
-            if not isinstance(item, dict):
-                continue
-            name = _filter_name_from_form_item(item)
-            if not name:
-                continue
-            values = item.get("values")
-            if isinstance(values, list):
-                if len(values) == 1:
-                    value: Any = values[0]
-                else:
-                    value = values
-            else:
-                value = values if values is not None else ""
-            condition = str(
-                item.get("condition")
-                or item.get("customCondition")
-                or ""
-            ).strip()
-            filters.append(VizFilter(name=name, value=value, condition=condition))
-
     rows = _align_to_result_fields(rows, result_fields or [])
     columns = _align_to_result_fields(columns, result_fields or [])
-    return _unique(rows), _unique(columns), filters
+    return _unique(rows), _unique(columns)
 
 
 def _data_model_column_names(form_data: Optional[dict[str, Any]]) -> list[str]:
@@ -617,363 +593,6 @@ def _shelves_from_metadata(
     return _unique(field_names[:-1]), _unique(field_names[-1:])
 
 
-_CONDITION_ALIASES = {
-    "EQ": "EQ",
-    "NEQ": "NEQ",
-    "NEQ_": "NEQ",
-    "GT": "GT",
-    "GTE": "GTE",
-    "LT": "LT",
-    "LTE": "LTE",
-    "LIKE": "LIKE",
-    "ILIKE": "ILIKE",
-    "IN": "IN",
-    "BETWEEN": "BETWEEN",
-    "IS": "IS",
-}
-
-
-def _sql_literal_value(node: Any) -> Any:
-    """Normalize a sqlglot literal / expression into a JSON-friendly value."""
-    try:
-        from sqlglot import exp
-
-        if node is None:
-            return ""
-        if isinstance(node, exp.Null):
-            return None
-        if isinstance(node, exp.Boolean):
-            return bool(node.this)
-        if isinstance(node, exp.Literal):
-            text = node.this
-            if node.is_string:
-                return text
-            try:
-                if "." in str(text):
-                    return float(text)
-                return int(text)
-            except (TypeError, ValueError):
-                return text
-        if isinstance(node, (list, tuple)):
-            return [_sql_literal_value(item) for item in node]
-        if hasattr(node, "sql"):
-            return str(node.sql()).strip("'\"")
-    except Exception:
-        pass
-    return str(node or "").strip("'\"")
-
-
-def _select_alias_index(tree: Any, dialect: str | None) -> dict[str, str]:
-    """Map physical / expression SQL → SELECT alias for filter naming."""
-    from sqlglot import exp
-
-    index: dict[str, str] = {}
-    if tree is None:
-        return index
-    for projection in tree.expressions or []:
-        alias = ""
-        expr = projection
-        if isinstance(projection, exp.Alias):
-            alias = str(projection.alias or "").strip()
-            expr = projection.this
-        elif isinstance(projection, exp.Column) and projection.alias:
-            alias = str(projection.alias).strip()
-        if not alias:
-            continue
-        # Expression key (ANSI form)
-        try:
-            expr_sql = expr.sql(dialect=dialect) if dialect else expr.sql()
-        except Exception:
-            expr_sql = str(expr)
-        if expr_sql:
-            index[expr_sql.lower()] = alias
-            index[re.sub(r"\s+", " ", expr_sql).strip().lower()] = alias
-        # Column leaf keys
-        if isinstance(expr, exp.Column):
-            col = str(expr.name or "").strip()
-            table = str(expr.table or "").strip()
-            if col:
-                index[col.lower()] = alias
-            if table and col:
-                index[f"{table}.{col}".lower()] = alias
-        # Nested column inside EXTRACT / TO_CHAR / etc.
-        col_node = expr.find(exp.Column) if hasattr(expr, "find") else None
-        if isinstance(col_node, exp.Column):
-            col = str(col_node.name or "").strip()
-            table = str(col_node.table or "").strip()
-            if col and col.lower() not in index:
-                index[col.lower()] = alias
-            if table and col:
-                index.setdefault(f"{table}.{col}".lower(), alias)
-    return index
-
-
-def _filter_lhs_name(
-    left: Any,
-    *,
-    dialect: str | None,
-    alias_index: dict[str, str],
-) -> str:
-    """Name for a WHERE/HAVING left-hand side.
-
-    - ANSI / function expressions → full SQL text
-    - Plain columns → SELECT alias when available, else column name
-    """
-    from sqlglot import exp
-
-    if left is None:
-        return ""
-    if isinstance(left, exp.Paren):
-        return _filter_lhs_name(left.this, dialect=dialect, alias_index=alias_index)
-
-    try:
-        left_sql = left.sql(dialect=dialect) if dialect else left.sql()
-    except Exception:
-        left_sql = str(left)
-    left_sql = re.sub(r"\s+", " ", str(left_sql or "")).strip()
-
-    # Plain column → prefer SELECT alias
-    if isinstance(left, (exp.Column, exp.Identifier)):
-        col = str(getattr(left, "name", None) or left_sql).strip()
-        table = str(getattr(left, "table", None) or "").strip()
-        for key in (
-            f"{table}.{col}".lower() if table and col else "",
-            col.lower(),
-            left_sql.lower(),
-        ):
-            if key and key in alias_index:
-                return alias_index[key]
-        return col or left_sql
-
-    # Function / ANSI expression → keep full SQL; only swap when SELECT
-    # aliases the *same* expression (e.g. EXTRACT(...) AS "MONTH").
-    for key in (left_sql.lower(), re.sub(r"\s+", " ", left_sql).strip().lower()):
-        if key in alias_index:
-            # Prefer alias only when it is clearly the projection alias for
-            # this exact expression; still allow callers that want alias.
-            # User rule: "if ansi then full otherwise alias" → keep full.
-            return left_sql
-    return left_sql
-
-
-def _predicate_to_viz_filter(
-    node: Any,
-    *,
-    dialect: str | None,
-    alias_index: dict[str, str],
-) -> Optional[VizFilter]:
-    """Convert a single sqlglot predicate into a VizFilter."""
-    from sqlglot import exp
-
-    if node is None:
-        return None
-    if isinstance(node, exp.Paren):
-        return _predicate_to_viz_filter(
-            node.this, dialect=dialect, alias_index=alias_index
-        )
-    if isinstance(node, exp.Not):
-        inner = _predicate_to_viz_filter(
-            node.this, dialect=dialect, alias_index=alias_index
-        )
-        if inner is None:
-            return None
-        cond = inner.condition or "EQ"
-        if not cond.upper().startswith("NOT_"):
-            inner.condition = f"NOT_{cond}"
-        return inner
-
-    if isinstance(node, exp.Between):
-        name = _filter_lhs_name(node.this, dialect=dialect, alias_index=alias_index)
-        low = _sql_literal_value(node.args.get("low"))
-        high = _sql_literal_value(node.args.get("high"))
-        return VizFilter(name=name, value=[low, high], condition="BETWEEN")
-
-    if isinstance(node, exp.In):
-        name = _filter_lhs_name(node.this, dialect=dialect, alias_index=alias_index)
-        values = [_sql_literal_value(v) for v in (node.expressions or [])]
-        negated = bool(node.args.get("not"))
-        return VizFilter(
-            name=name,
-            value=values if len(values) != 1 else values[0],
-            condition="NOT_IN" if negated else "IN",
-        )
-
-    if isinstance(node, exp.Is):
-        name = _filter_lhs_name(node.this, dialect=dialect, alias_index=alias_index)
-        nullish = isinstance(node.expression, exp.Null)
-        negated = bool(node.args.get("not"))
-        if nullish:
-            return VizFilter(
-                name=name,
-                value=None,
-                condition="IS_NOT_NULL" if negated else "IS_NULL",
-            )
-        return VizFilter(
-            name=name,
-            value=_sql_literal_value(node.expression),
-            condition="IS",
-        )
-
-    if isinstance(node, (exp.Like, exp.ILike)):
-        name = _filter_lhs_name(node.this, dialect=dialect, alias_index=alias_index)
-        return VizFilter(
-            name=name,
-            value=_sql_literal_value(node.expression),
-            condition="ILIKE" if isinstance(node, exp.ILike) else "LIKE",
-        )
-
-    if isinstance(node, exp.Binary) and not isinstance(node, (exp.And, exp.Or)):
-        left, right = node.left, node.right
-        # Literal on the left → flip so name comes from the expression side.
-        if isinstance(left, exp.Literal) and not isinstance(right, exp.Literal):
-            left, right = right, left
-        name = _filter_lhs_name(left, dialect=dialect, alias_index=alias_index)
-        if not name:
-            return None
-        op = type(node).__name__.upper()
-        condition = _CONDITION_ALIASES.get(op, op)
-        return VizFilter(
-            name=name,
-            value=_sql_literal_value(right),
-            condition=condition,
-        )
-    return None
-
-
-def _flatten_sql_predicates(node: Any) -> list[Any]:
-    """Flatten AND/OR trees into leaf predicates (WHERE / HAVING)."""
-    from sqlglot import exp
-
-    if node is None:
-        return []
-    if isinstance(node, exp.Paren):
-        return _flatten_sql_predicates(node.this)
-    if isinstance(node, (exp.And, exp.Or)):
-        return _flatten_sql_predicates(node.left) + _flatten_sql_predicates(node.right)
-    return [node]
-
-
-def _extract_filters_from_sql(
-    sql: str,
-    *,
-    dialect: str | None = None,
-) -> list[VizFilter]:
-    """Extract VizFilters from WHERE and HAVING.
-
-    Naming rules:
-    - ANSI / function LHS (EXTRACT, TO_CHAR, SUM, …) → full expression SQL
-    - Plain column LHS → SELECT alias when present, else column name
-    """
-    text = (sql or "").strip()
-    if not text:
-        return []
-    try:
-        import sqlglot
-        from sqlglot import exp
-
-        read_dialect = dialect or None
-        # Strip markdown fences if present.
-        if text.startswith("```"):
-            text = re.sub(r"^```(?:sql)?\s*", "", text, flags=re.I)
-            text = re.sub(r"\s*```$", "", text)
-
-        try:
-            from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
-
-            tree = sqlglot.parse_one(
-                text, read=resolve_sqlglot_dialect(read_dialect) or None
-            )
-        except Exception:
-            tree = sqlglot.parse_one(text)
-        if tree is None:
-            return []
-
-        alias_index = _select_alias_index(tree, read_dialect)
-        filters: list[VizFilter] = []
-        seen: set[tuple[str, str, str]] = set()
-
-        for clause in (tree.find(exp.Where), tree.find(exp.Having)):
-            if clause is None:
-                continue
-            root = clause.this if hasattr(clause, "this") else clause
-            for predicate in _flatten_sql_predicates(root):
-                item = _predicate_to_viz_filter(
-                    predicate, dialect=read_dialect, alias_index=alias_index
-                )
-                if item is None or not item.name:
-                    continue
-                key = (
-                    item.name.lower(),
-                    str(item.condition or "").upper(),
-                    str(item.value),
-                )
-                if key in seen:
-                    continue
-                seen.add(key)
-                filters.append(item)
-        return filters
-    except Exception:
-        logger.debug("viz_model_fill: SQL filter extract skipped", exc_info=True)
-        return []
-
-
-def _filter_name_from_form_item(item: dict[str, Any]) -> str:
-    """Pick VizFilter.name from a sql_to_formdata filter/having wire item.
-
-    Prefer full ANSI expression when the wire column/customCondition looks
-    like SQL; otherwise use alias/label.
-    """
-    alias = str(item.get("alias") or item.get("label") or "").strip()
-    column = _wire_column_path(item.get("column"))
-    custom = str(item.get("customCondition") or item.get("custom_sql") or "").strip()
-
-    # Explicit expression-looking column (custom SELECT / formula filters).
-    if column and _looks_like_ansi_expression(column):
-        return column
-    if custom and _looks_like_ansi_expression(custom) and item.get("condition") == "CUSTOM":
-        # customCondition is often just an operator ("<>", "IN ("); skip those.
-        if any(ch.isalpha() for ch in custom):
-            return custom
-    # SQL extractor is authoritative when available; form-data fallback uses alias.
-    if alias:
-        return alias
-    if column:
-        if "." in column and not _looks_like_ansi_expression(column):
-            return column.rsplit(".", 1)[-1]
-        return column
-    return ""
-
-
-def _looks_like_ansi_expression(text: str) -> bool:
-    value = (text or "").strip()
-    if not value:
-        return False
-    upper = value.upper()
-    if any(
-        token in upper
-        for token in (
-            "EXTRACT(",
-            "TO_CHAR(",
-            "TO_DATE(",
-            "CAST(",
-            "COALESCE(",
-            "NULLIF(",
-            "CASE ",
-            "SUM(",
-            "AVG(",
-            "COUNT(",
-            "MIN(",
-            "MAX(",
-            "DATE_TRUNC(",
-            "DATE_PART(",
-        )
-    ):
-        return True
-    if "(" in value and ")" in value and not value.startswith("("):
-        return True
-    return False
-
-
 def _resolve_shelves(
     *,
     data_types: Any,
@@ -983,8 +602,8 @@ def _resolve_shelves(
     md_location: str = "",
     md_file_name: str = "",
     dialect: str | None = None,
-) -> tuple[list[str], list[str], list[VizFilter], Optional[dict[str, Any]]]:
-    """Prefer sql_to_formdata for shelves; filters come from WHERE/HAVING SQL."""
+) -> tuple[list[str], list[str], Optional[dict[str, Any]]]:
+    """Prefer sql_to_formdata for rows/columns shelves."""
     result_fields = extract_result_field_names(data_types)
     form_data = _try_sql_to_form_data(
         sql,
@@ -993,20 +612,16 @@ def _resolve_shelves(
         md_file_name=md_file_name,
         dialect=dialect,
     )
-    # Always prefer SQL-derived filters so ANSI expressions (EXTRACT/…) keep
-    # their full LHS text and plain columns resolve to SELECT aliases.
-    sql_filters = _extract_filters_from_sql(sql, dialect=dialect)
 
     if form_data:
-        rows, columns, form_filters = _shelves_from_form_data(
+        rows, columns = _shelves_from_form_data(
             form_data, result_fields=result_fields
         )
-        filters = sql_filters or form_filters
         if rows or columns:
-            return rows, columns, filters, form_data
+            return rows, columns, form_data
 
     rows, columns = _shelves_from_metadata(data_types, sample_row=sample_row)
-    return rows, columns, sql_filters, form_data
+    return rows, columns, form_data
 
 
 def _default_title(
@@ -1049,7 +664,7 @@ def build_viz_model(
 ) -> tuple[VizModel, str, dict[str, Any]]:
     """Build a VizModel and related viz context.
 
-    Rows / columns / filters prefer ``sql_to_formdata`` (same path as instant-to-hr).
+    Rows / columns prefer ``sql_to_formdata`` (same path as instant-to-hr).
     Preferred shelf swap (dim on columns, measure on rows) runs only when
     ``viz_update`` is True and the user asked to convert / named a chart.
     Returns ``(viz_model, chart_type, viz_column_context)``.
@@ -1061,7 +676,7 @@ def build_viz_model(
         user_query=user_query,
         viz_update=viz_update,
     )
-    rows, columns, filters, form_data = _resolve_shelves(
+    rows, columns, form_data = _resolve_shelves(
         data_types=data_types,
         sql=sql,
         sample_row=sample_row,
@@ -1160,7 +775,6 @@ def build_viz_model(
         data=VizData(
             rows=rows,
             columns=columns,
-            filters=filters,
         ),
         chart=_chart_viz_and_mark(chart_type),
         properties=VizProperties(
@@ -1172,14 +786,12 @@ def build_viz_model(
         ),
     )
     logger.info(
-        "viz_model_fill built chart=%s viz=%s mark=%s rows=%s columns=%s "
-        "filters=%s source=%s",
+        "viz_model_fill built chart=%s viz=%s mark=%s rows=%s columns=%s source=%s",
         chart_type,
         model.chart.viz,
         model.chart.mark,
         rows,
         columns,
-        len(model.data.filters),
         "sql_to_formdata" if form_data is not None else "metadata",
     )
     return model, chart_type, viz_context

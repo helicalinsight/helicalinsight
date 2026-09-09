@@ -26,6 +26,7 @@ import java.util.Map;
 import com.helicalinsight.datasource.ChunkIterator;
 import com.helicalinsight.datasource.ChunkReader;
 import com.helicalinsight.datasource.RowCacheSetChunkReader;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 
 
 public class StreamedResultset  implements ResultSet {
@@ -50,19 +51,23 @@ public class StreamedResultset  implements ResultSet {
 		ChunkReader<ResultSet> chunkReader = new RowCacheSetChunkReader();
 		ResultSet resultSet = null;
 		this.iterator = new ChunkIterator<ResultSet>(new File(this.chunkDirectory), chunkReader);
-		if (iterator.hasNext()) {
-			resultSet= iterator.next();
-			try {
+		try {
+			if (iterator.hasNext()) {
+				resultSet = iterator.next();
+				if (resultSet == null) {
+					throw new EfwServiceException(
+							"Streaming cache returned a null result set from " + this.chunkDirectory);
+				}
 				this.metaData = resultSet.getMetaData();
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
+		} catch (SQLException e) {
+			throw new EfwServiceException(e.getMessage(), e);
 		}
 		return resultSet;
 	}
 	
 	@Override
-	public boolean next() {
+	public boolean next() throws SQLException {
 	    try {
 	        while (true) {
 	            if (currentRs == null) {
@@ -79,8 +84,10 @@ public class StreamedResultset  implements ResultSet {
 	            }
 	            closeCurrent();
 	        }
-	    } catch (Exception e) {
-	    	return false;
+	    } catch (SQLException e) {
+	    	throw e;
+	    } catch (RuntimeException e) {
+	    	throw new SQLException(e.getMessage(), e);
 	    }
 	}
 
@@ -101,9 +108,12 @@ public class StreamedResultset  implements ResultSet {
 	@Override
 	public ResultSetMetaData getMetaData() throws SQLException {
 		if (currentRs != null) {
-	        return currentRs.getMetaData();
+			ResultSetMetaData currentMeta = currentRs.getMetaData();
+			if (currentMeta != null) {
+				return currentMeta;
+			}
 	    }
-	    return metaData;
+		return metaData;
 	}
 	
 	

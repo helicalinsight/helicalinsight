@@ -11,15 +11,16 @@ import "./json-editor.scss";
 // Shared Monaco JSON panel (Find / Copy / Save) 
 export function JsonEditorPanel({
   value = "",
-  onChange,
-  onSave,
-  onCopy,
+  onChange = () => { },
+  onSave = () => { },
+  onCopy = () => { },
   hasUnsavedChanges = false,
   saveTitle = "Save JSON",
   className = "json-editor-panel",
   toolbarClassName = "json-editor-panel-toolbar",
   editorClassName = "monaco-json-editor",
   iconClassName = "json-editor-panel-icon",
+  active = true,
 }) {
   const editorRef = useRef(null);
   const toolbarActions = [
@@ -46,7 +47,7 @@ export function JsonEditorPanel({
   return (
     <div className={className}>
       <div className={toolbarClassName}>
-        {toolbarActions.map(({ title, icon: Icon, ...actionProps }) => (
+        {active && toolbarActions.map(({ title, icon: Icon, ...actionProps }) => (
           <ToolbarIconButton key={title} title={title} {...actionProps}>
             <Icon className={iconClassName} />
           </ToolbarIconButton>
@@ -55,7 +56,7 @@ export function JsonEditorPanel({
       <MonacoJsonEditor
         value={value}
         onChange={onChange}
-        isActive
+        isActive={active}
         editorRef={editorRef}
         className={editorClassName}
       />

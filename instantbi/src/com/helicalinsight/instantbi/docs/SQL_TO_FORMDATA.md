@@ -137,7 +137,8 @@ Plain dimension / measure columns stay:
 ### Parsing
 
 `functions` from getFunctions → `aggregate_by_sql` / `aggregate_by_key`.  
-`SUM` / `AVG` / `COUNT` / `COUNT(DISTINCT …)` map to keys like `db.generic.aggregate.sum`.
+`SUM` / `AVG` / `COUNT` map to keys like `db.generic.aggregate.sum`.  
+`COUNT(DISTINCT col)` stacks as `[count, distinct]`; `DISTINCT(COUNT(col))` stacks as `[distinct, count]`.
 
 ### On columns
 

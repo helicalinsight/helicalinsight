@@ -14,6 +14,7 @@ import com.helicalinsight.cache.manager.CacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManagerForResultSet;
 import com.helicalinsight.cache.model.Cache;
+import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.datasource.*;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.components.DataSourceSecurityUtility;
@@ -269,10 +270,7 @@ public class HCRHelper {
 			response.addProperty("printUUID", printUUID);
 			response.add("jrxmlData", hcrData);
 			response.addProperty("response", result);
-			if (null != originalJasperPrint.getProperty("lastModifiedCache")) {
-				response.addProperty("lastModified",
-						Long.valueOf(originalJasperPrint.getProperty("lastModifiedCache")));
-			}
+			addLastModifiedToResponse(formData, originalJasperPrint, response);
 		} catch (Exception ex) {
 			logger.error("Exception occurred while Generating HCReport {}", ex);
 			throw new HCRException(ex.getMessage(), ex);
@@ -337,14 +335,31 @@ public class HCRHelper {
 			response.add("reportPageInfo", reportPagesJson);
 			response.add("jrxmlData", hcrData);
 			response.addProperty("response", result);
-			if (cacheJasperPrint != null && null != cacheJasperPrint.getProperty("lastModifiedCache")) {
-				response.addProperty("lastModified", Long.valueOf(cacheJasperPrint.getProperty("lastModifiedCache")));
-			}
+			addLastModifiedToResponse(formData, cacheJasperPrint, response);
 		} catch (Exception ex) {
 			logger.error("Exception occurred while Generating HCReport {}", ex);
 			throw new HCRException(ex.getMessage(), ex);
 		}
 		return response;
+	}
+
+	/**
+	 * Prefer formData.lastModified (data-cache timestamp from prepareExecuteJasperReport),
+	 * else JasperPrint lastModifiedCache (print/design cache). Stamps the print so later
+	 * design-cache hits still return lastModified for both stream and REST.
+	 */
+	private void addLastModifiedToResponse(JsonObject formData, JasperPrint jasperPrint, JsonObject response) {
+		if (formData != null && formData.has("lastModified")) {
+			long lastModified = formData.get("lastModified").getAsLong();
+			response.addProperty("lastModified", lastModified);
+			if (jasperPrint != null) {
+				jasperPrint.setProperty("lastModifiedCache", String.valueOf(lastModified));
+			}
+			return;
+		}
+		if (jasperPrint != null && jasperPrint.getProperty("lastModifiedCache") != null) {
+			response.addProperty("lastModified", Long.valueOf(jasperPrint.getProperty("lastModifiedCache")));
+		}
 	}
 
 	private JasperPrint getJasperPrint(JsonObject formData, String uuid, Boolean generateXML, Object genericQueryResult,
@@ -744,6 +759,10 @@ public class HCRHelper {
 		String designCacheKey = cacheHelper.designCacheKeyFor(cache);
 		if (designCacheKey != null) {
 			formData.addProperty("designCacheKey", designCacheKey);
+		}
+		Cache cacheModel = ApplicationContextAccessor.getBean(CacheService.class).findUniqueCache(cache);
+		if (cacheModel != null && cacheModel.getCacheFileTimeStamp() != null) {
+			formData.addProperty("lastModified", cacheModel.getCacheFileTimeStamp().getTime());
 		}
 		if (cacheRequired && cacheManager instanceof HCRQueryProcessCacheManagerForResultSet hcrObj) {
 			return hcrObj.getResult();

@@ -205,7 +205,10 @@ public class CacheHelper {
             	catch (Exception e) {
             		logger.error("Exception occurred rolling back the cache.",e);
             		rollBack(cacheId);
-            		return false;
+            		if (e instanceof EfwServiceException) {
+            			throw (EfwServiceException) e;
+            		}
+            		throw new EfwServiceException(e);
             	}
             }
             

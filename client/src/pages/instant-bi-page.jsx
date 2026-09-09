@@ -96,21 +96,31 @@ const HIInstantBI = (props) => {
 
   useEffect(() => {
     if (isEditMode && editModeInfo?.extension === "instant") {
-      let reportId = createReportId();
       let tempReports = reports;
       dispatch((_, getState) => {
         tempReports = getState().instantBI.reports
       })
-      if (tempReports.length && tempReports.find((report) => report.active)?.metadata?.formData) {
+      const activeReportEntry = tempReports.find((report) => report.active);
+      const isActiveConnected = !!activeReportEntry?.metadata?.formData;
+      let targetReportId;
+      if (tempReports.length && isActiveConnected) {
         if (tempReports.length > 3) {
           return Notify.warning({
             message: "You have reached the maximum number of tabs.",
             type: "Frontend",
           });
         }
-        addReport(reportId);
+        targetReportId = createReportId();
+        addReport(targetReportId);
+      } else if (activeReportEntry?.id) {
+        // Reuse the pristine create-mode tab (no semantic model connected yet)
+        // instead of creating a new id that would orphan/wipe tabs on load.
+        targetReportId = activeReportEntry.id;
+      } else {
+        targetReportId = createReportId();
+        addReport(targetReportId);
       }
-      setReportId(reportId);
+      setReportId(targetReportId);
       fetchInstantBIReportAPI({
         dispatch,
         // file: { mode: "", parameters: {} },
@@ -120,7 +130,7 @@ const HIInstantBI = (props) => {
         },
         mode: "edit",
         // setFileInfo: props.setFileInfo,
-        reportId
+        reportId: targetReportId
       });
       dispatch(appActions.setEditModeInfo(null));
     }

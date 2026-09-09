@@ -370,28 +370,100 @@ public class HIRecycleBinDaoImplTest {
 
 	@Test
 	public void findResourceBinsBlockedByLiveDependentsBlocksWhenLiveInstantReportReferencesModel() {
-		@SuppressWarnings("unchecked")
-		SelectionQuery<Object[]> objectArrayQuery = org.mockito.Mockito.mock(SelectionQuery.class);
-		@SuppressWarnings("unchecked")
-		SelectionQuery<Integer> integerQuery = org.mockito.Mockito.mock(SelectionQuery.class);
-
-		when(session.createSelectionQuery(nullable(String.class), eq(Object[].class))).thenReturn(objectArrayQuery);
-		when(session.createSelectionQuery(nullable(String.class), eq(Integer.class))).thenReturn(integerQuery);
-
-		when(objectArrayQuery.setParameterList(anyString(), anyCollection())).thenReturn(objectArrayQuery);
-		when(integerQuery.setParameterList(anyString(), anyCollection())).thenReturn(integerQuery);
-
-		when(objectArrayQuery.getResultList()).thenReturn(Collections.singletonList(new Object[] { 1L, 100 }),
+		stubBlockedByLiveDependentsQueries(
+				Collections.singletonList(new Object[] { 1L, 100 }),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				List.of(100),
+				Collections.emptyList(),
 				Collections.emptyList());
-		when(integerQuery.getResultList()).thenReturn(Collections.emptyList(), Collections.emptyList(),
-				Collections.emptyList(), List.of(100), Collections.emptyList());
 
 		when(hiResourceDao.getChildrenResourceByParentIds(anyList())).thenReturn(Collections.emptyList());
 		when(hiResourceDao.findParentIdsByResourceIds(anyCollection())).thenReturn(Collections.emptyMap());
 
-		Set<Long> blocked = dao.findResourceBinsBlockedByLiveDependents(Set.of(1L));
+		assertEquals(Set.of(1L), dao.findResourceBinsBlockedByLiveDependents(Set.of(1L)));
+	}
 
-		assertEquals(Set.of(1L), blocked);
+	@Test
+	public void findResourceBinsBlockedByLiveDependentsBlocksMetadataWhenSoftHReportHasLiveEfwdd() {
+		stubBlockedByLiveDependentsQueries(
+				Collections.singletonList(new Object[] { 1L, 100 }),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				List.of(100),
+				Collections.emptyList());
+
+		when(hiResourceDao.getChildrenResourceByParentIds(anyList())).thenReturn(Collections.emptyList());
+		when(hiResourceDao.findParentIdsByResourceIds(anyCollection())).thenReturn(Collections.emptyMap());
+
+		assertEquals(Set.of(1L), dao.findResourceBinsBlockedByLiveDependents(Set.of(1L)));
+	}
+
+	@Test
+	public void findResourceBinsBlockedByLiveDependentsBlocksMetadataWhenSoftModelHasLiveInstant() {
+		stubBlockedByLiveDependentsQueries(
+				Collections.singletonList(new Object[] { 1L, 100 }),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				Collections.emptyList(),
+				List.of(100));
+
+		when(hiResourceDao.getChildrenResourceByParentIds(anyList())).thenReturn(Collections.emptyList());
+		when(hiResourceDao.findParentIdsByResourceIds(anyCollection())).thenReturn(Collections.emptyMap());
+
+		assertEquals(Set.of(1L), dao.findResourceBinsBlockedByLiveDependents(Set.of(1L)));
+	}
+
+	@SuppressWarnings("unchecked")
+	private void stubBlockedByLiveDependentsQueries(List<Object[]> binRoots, List<Integer> liveInTree,
+			List<Integer> liveHReportMeta, List<Integer> liveInstantModel, List<Integer> nestedHReportMapping,
+			List<Integer> nestedModelInstant) {
+		when(session.createSelectionQuery(nullable(String.class), eq(Object[].class))).thenAnswer(invocation -> {
+			String hql = invocation.getArgument(0);
+			SelectionQuery<Object[]> query = org.mockito.Mockito.mock(SelectionQuery.class);
+			when(query.setParameterList(anyString(), anyCollection())).thenReturn(query);
+			List<Object[]> result = (hql != null && hql.contains("HIRecycleBinHIResourceDB")) ? binRoots
+					: Collections.emptyList();
+			when(query.getResultList()).thenReturn(result);
+			return query;
+		});
+		when(session.createSelectionQuery(nullable(String.class), eq(Integer.class))).thenAnswer(invocation -> {
+			String hql = invocation.getArgument(0);
+			SelectionQuery<Integer> query = org.mockito.Mockito.mock(SelectionQuery.class);
+			when(query.setParameterList(anyString(), anyCollection())).thenReturn(query);
+			when(query.getResultList()).thenReturn(resolveIntegerResult(hql, liveInTree, liveHReportMeta,
+					liveInstantModel, nestedHReportMapping, nestedModelInstant));
+			return query;
+		});
+	}
+
+	private static List<Integer> resolveIntegerResult(String hql, List<Integer> liveInTree,
+			List<Integer> liveHReportMeta, List<Integer> liveInstantModel, List<Integer> nestedHReportMapping,
+			List<Integer> nestedModelInstant) {
+		if (hql == null) {
+			return Collections.emptyList();
+		}
+		if (hql.contains("r.isDeleted = false") && hql.contains("r.resourceId in")) {
+			return liveInTree;
+		}
+		if (hql.contains("HIResourceMapping") && hql.contains("hiResourceHReport")) {
+			return nestedHReportMapping;
+		}
+		if (hql.contains("instant") && hql.contains("model.aiModel")) {
+			return nestedModelInstant;
+		}
+		if (hql.contains("hiResourceHReport.hiResourceMetadata")) {
+			return liveHReportMeta;
+		}
+		if (hql.contains("aiModel.hiResourceMetadata")) {
+			return Collections.emptyList();
+		}
+		if (hql.contains("hiResourceInstantReport.hiResourceModel")) {
+			return liveInstantModel;
+		}
+		return Collections.emptyList();
 	}
 
 	@Test

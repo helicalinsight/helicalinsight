@@ -261,3 +261,50 @@ class TestGetRequiredColumnDescription:
         assert "$#,##0.00" not in text
         assert '"format_string"' not in text
         assert "sort: ASC" in text
+
+    def test_omits_unpicked_dimensions_and_measures(self):
+        from helicalbi.sql.GetContextForSQL import collect_picked_column_items
+
+        cube_metadata = [
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {
+                        "column_name": "destination",
+                        "alias_name": "Destination",
+                    },
+                    {
+                        "column_name": "booking_platform",
+                        "alias_name": "Booking Platform",
+                    },
+                ],
+                "measures": [
+                    {
+                        "column_name": "travel_cost",
+                        "alias_name": "Travel Cost",
+                        "measure_name": "Travel Cost",
+                    }
+                ],
+            }
+        ]
+        query_plan = {
+            "columnName": [
+                "travel_details.destination",
+                "travel_details.booking_platform",
+                "travel_details.travel_cost",
+            ],
+            "pickedDimensions": ["Destination"],
+            "pickedMetrics": ["Travel Cost"],
+        }
+        picked = collect_picked_column_items(cube_metadata, query_plan)
+        travel = picked["travel_details"]
+        assert [item.get("alias_name") for item in travel.get("dimensions") or []] == [
+            "Destination"
+        ]
+        assert [
+            item.get("alias_name") for item in travel.get("measures") or []
+        ] == ["Travel Cost"]
+        text = get_required_column_description(cube_metadata, query_plan)
+        assert "Destination" in text
+        assert "Travel Cost" in text
+        assert "Booking Platform" not in text

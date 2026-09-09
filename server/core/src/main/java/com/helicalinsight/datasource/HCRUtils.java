@@ -14,11 +14,9 @@ import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.services.FontService;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.PropertiesFileReader;
-import com.helicalinsight.efw.utility.SplitterUtils;
-import com.lowagie.text.FontFactory;
-
 import net.sf.jasperreports.components.table.DesignCell;
 import net.sf.jasperreports.crosstabs.design.JRDesignCellContents;
 import net.sf.jasperreports.engine.*;
@@ -78,9 +76,6 @@ public class HCRUtils {
     public static final String PROPERTY_PADDING = "padding";
     public static final String PROPERTY_COMPONENT_ELEMENT_PROPS = "componentElementProperties";
     public static final String HCR_SCRIPTS_PATH = "Admin/Static/HCRScripts";
-
-    private static final String PROP_FONT_DIR = "fontDirectories";
-    private static String fontDirHash = "";
 
     private static final Map<String, Byte> chartTypeMap = new HashMap<>();
 
@@ -687,23 +682,11 @@ public class HCRUtils {
 
 
     public static void loadFontDirectories() {
-        PropertiesFileReader propertiesFileReader = new PropertiesFileReader();
-        Map<String, String> propertiesMap = propertiesFileReader.read("Admin", "hcrConfigProperties.properties");
-        String fontDirs = propertiesMap.getOrDefault(PROP_FONT_DIR, "");
-        String hash = SplitterUtils.prepareServiceId(fontDirs);
-        if (fontDirHash.equals(hash)) {
-            return;
-        }
-        String[] dirs = fontDirs.split(",");
-        for (String dir : dirs) {
-            logger.debug("Loading font dir : {}", dir);
-            FontFactory.registerDirectory(dir, true);
-        }
-        fontDirHash = hash;
+        FontService.registerFontDirectories();
     }
 
     public static Boolean fontExists(String fontName) {
-        return FontFactory.isRegistered(fontName.toLowerCase());
+        return FontService.fontExists(fontName);
     }
 
 

@@ -716,10 +716,18 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		collectFolderIds(hiResource, descendants, folders);
 		
 		List<Integer> metadataIds = collectMetadataResourceIds(hiResource, descendants);
-		List<Integer> modelIds = collectModelResourceIds(hiResource, descendants);
 		Map<Integer, List<HIResource>> reportsByMetadataId = metadataIds.isEmpty()
 				? Collections.emptyMap()
 				: serviceDb.findAllReportsByMetadataResourceIds(metadataIds);
+		List<Integer> modelIds = collectModelResourceIds(hiResource, descendants);
+		// Models linked to metadata via FK are not folder descendants — include them so Instant reports load
+		for (List<HIResource> linked : reportsByMetadataId.values()) {
+			for (HIResource linkedResource : linked) {
+				if (isAiModelResource(linkedResource)) {
+					modelIds.add(linkedResource.getResourceId());
+				}
+			}
+		}
 		Map<Integer, List<HIResource>> instantReportsByModelId = modelIds.isEmpty()
 				? Collections.emptyMap()
 				: serviceDb.findAllInstantReportsByModelResourceIds(modelIds);
@@ -811,6 +819,10 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		hiResource.setParentId(null);
 		List<HIResource> reports = null;
 		Map<Integer,Integer> reportParentIdMap = new HashMap<>();
+		Map<Integer, Boolean> modelFolderRestore = new HashMap<>();
+		Map<Integer, ResourceType> modelTypeRestore = new HashMap<>();
+		ResourceType folderType = resourceTypeService.getResourceTypeByTypeAndExtension("folder",
+				"." + JsonUtils.getFolderFileExtension());
 		if(isMetadataResource(hiResource)) {
 			reports = new ArrayList<HIResource>(reportsByMetadataId.getOrDefault(hiResource.getResourceId(), Collections.emptyList()));
 			reports.forEach(report -> {
@@ -819,9 +831,12 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			});		
 		
 		hiResources.addAll(reports);
+		// Nest Instant reports under Models linked to this metadata (parity with HReport → EFWDD mapping)
+		attachInstantReportsForModelDescendants(reports, hiResources, instantReportsByModelId, reportParentIdMap,
+				modelFolderRestore, modelTypeRestore, folderType);
 		hiResource.setFolder(true);
 		
-		hiResource.setResourceType(resourceTypeService.getResourceTypeByTypeAndExtension("folder", "." + JsonUtils.getFolderFileExtension()));
+		hiResource.setResourceType(folderType);
 		
 		}
 		else if (isAiModelResource(hiResource)) {
@@ -833,13 +848,13 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 
 			hiResources.addAll(reports);
 			hiResource.setFolder(true);
-			hiResource.setResourceType(resourceTypeService.getResourceTypeByTypeAndExtension("folder",
-					"." + JsonUtils.getFolderFileExtension()));
+			hiResource.setResourceType(folderType);
 		}
 		else if (Boolean.TRUE.equals(isFolder)) {
 			attachReportsForMetadataDescendants(descendantResources, hiResources, reportsByMetadataId, reportParentIdMap);
-			attachInstantReportsForModelDescendants(descendantResources, hiResources, instantReportsByModelId,
-					reportParentIdMap);
+			// Include FK-linked models just attached under metadata descendants
+			attachInstantReportsForModelDescendants(new ArrayList<>(hiResources), hiResources, instantReportsByModelId,
+					reportParentIdMap, modelFolderRestore, modelTypeRestore, folderType);
 		}
 		
 		for(HIResource it : hiResources) {
@@ -860,6 +875,7 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 		restoreReportParentIds(reports, reportParentIdMap);
 		restoreReportParentIdsFromMap(reportsByMetadataId, reportParentIdMap);
 		restoreReportParentIdsFromMap(instantReportsByModelId, reportParentIdMap);
+		restoreModelFolderAndType(hiResources, modelFolderRestore, modelTypeRestore);
 
 		Set<Integer> visitedResourceIds = new HashSet<>();
 		for (HIResourceDTO dto : resources) {
@@ -966,7 +982,9 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	}
 
 	private void attachInstantReportsForModelDescendants(List<HIResource> descendants, List<HIResource> hiResources,
-			Map<Integer, List<HIResource>> instantReportsByModelId, Map<Integer, Integer> reportsParentIdMap) {
+			Map<Integer, List<HIResource>> instantReportsByModelId, Map<Integer, Integer> reportsParentIdMap,
+			Map<Integer, Boolean> modelFolderRestore, Map<Integer, ResourceType> modelTypeRestore,
+			ResourceType folderType) {
 		for (HIResource resource : descendants) {
 			if (!isAiModelResource(resource)) {
 				continue;
@@ -975,10 +993,35 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 			if (instantReports == null || instantReports.isEmpty()) {
 				continue;
 			}
+			// HIResourceOfActiveUser only nests under type "folder" (see prepareJSONStructure).
+			// Models are files — temporarily treat as folders so Instant children appear, same as Model-as-root.
+			modelFolderRestore.putIfAbsent(resource.getResourceId(), resource.getFolder());
+			modelTypeRestore.putIfAbsent(resource.getResourceId(), resource.getResourceType());
+			resource.setFolder(true);
+			if (folderType != null) {
+				resource.setResourceType(folderType);
+			}
 			for (HIResource instantReport : instantReports) {
 				reportsParentIdMap.put(instantReport.getResourceId(), instantReport.getParentId());
 				instantReport.setParentId(resource.getResourceId());
 				hiResources.add(instantReport);
+			}
+		}
+	}
+
+	private void restoreModelFolderAndType(List<HIResource> hiResources, Map<Integer, Boolean> modelFolderRestore,
+			Map<Integer, ResourceType> modelTypeRestore) {
+		if (hiResources == null || modelFolderRestore == null || modelFolderRestore.isEmpty()) {
+			return;
+		}
+		for (HIResource resource : hiResources) {
+			Boolean originalFolder = modelFolderRestore.get(resource.getResourceId());
+			if (originalFolder != null) {
+				resource.setFolder(originalFolder);
+			}
+			ResourceType originalType = modelTypeRestore.get(resource.getResourceId());
+			if (originalType != null) {
+				resource.setResourceType(originalType);
 			}
 		}
 	}
@@ -1358,6 +1401,26 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 				from HIResource report
 				where report.isDeleted = false
 				  and report.hiResourceInstantReport.hiResourceModel in (:ids)
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList());
+		// Nested: soft HReport under metadata still has a live mapping parent (e.g. EFWDD)
+		liveReportAnchors.addAll(session.createSelectionQuery("""
+				select distinct report.hiResourceHReport.hiResourceMetadata
+				from HIResourceMapping rm, HIResource report
+				where report.hiResourceHReport.hiResourceMetadata in (:ids)
+				  and rm.childResource.resourceId = report.resourceId
+				  and rm.parentResource.isDeleted = false
+				""", Integer.class)
+				.setParameterList("ids", treeIds)
+				.getResultList());
+		// Nested: soft Model under metadata still has a live Instant report
+		liveReportAnchors.addAll(session.createSelectionQuery("""
+				select distinct model.aiModel.hiResourceMetadata
+				from HIResource instant, HIResource model
+				where instant.isDeleted = false
+				  and instant.hiResourceInstantReport.hiResourceModel = model.resourceId
+				  and model.aiModel.hiResourceMetadata in (:ids)
 				""", Integer.class)
 				.setParameterList("ids", treeIds)
 				.getResultList());

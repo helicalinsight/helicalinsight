@@ -903,6 +903,96 @@ def filter_topic_mappings_for_selection(
     ]
 
 
+def filter_topic_mappings_for_picked(
+    topic_mappings: Optional[list],
+    picked_names: Optional[List[str]],
+) -> List[dict]:
+    """Keep topics whose picked dimensions/measures are used in the query.
+
+    Unused semantic-model dimensions and measures are dropped so the Semantic
+    section matches the fields used in generated SQL. Topics that have no
+    remaining components after that filter are omitted entirely.
+    """
+    allowed = {
+        str(name).strip().lower()
+        for name in (picked_names or [])
+        if name and str(name).strip()
+    }
+    if not allowed:
+        return [entry for entry in (topic_mappings or []) if isinstance(entry, dict)]
+
+    filtered: List[dict] = []
+    for entry in topic_mappings or []:
+        if not isinstance(entry, dict):
+            continue
+        narrowed = dict(entry)
+        rich = entry.get("components")
+        if isinstance(rich, list) and rich:
+            narrowed["components"] = [
+                component
+                for component in rich
+                if isinstance(component, dict)
+                and str(component.get("name") or "").strip().lower() in allowed
+            ]
+        legacy = entry.get("component")
+        if isinstance(legacy, list) and legacy:
+            narrowed["component"] = [
+                token
+                for token in legacy
+                if str(_strip_component_alias(token) or "").strip().lower() in allowed
+            ]
+        if not _topic_mapping_has_components(narrowed):
+            continue
+        filtered.append(narrowed)
+    return filtered
+
+
+def _names_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_names: Optional[list],
+    key: str,
+) -> List[str]:
+    """Preserve selection order for mapping field values that are still present."""
+    used: List[str] = []
+    seen: Set[str] = set()
+    for entry in topic_mappings or []:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get(key) or "").strip()
+        lowered = name.lower()
+        if not name or lowered in seen:
+            continue
+        seen.add(lowered)
+        used.append(name)
+    selected = [
+        str(item).strip()
+        for item in (selected_names or [])
+        if item and str(item).strip()
+    ]
+    if not used:
+        return selected
+    if not selected:
+        return used
+    used_lookup = {name.lower() for name in used}
+    return [name for name in selected if name.lower() in used_lookup]
+
+
+def topics_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_topics: Optional[list] = None,
+) -> List[str]:
+    """Topic names that still have picked components, preserving selection order."""
+    return _names_from_picked_mappings(topic_mappings, selected_topics, "topic_name")
+
+
+def domains_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_domains: Optional[list] = None,
+) -> List[str]:
+    """Domain names whose remaining topics still have picked components."""
+    return _names_from_picked_mappings(topic_mappings, selected_domains, "domain_name")
+
+
 def filter_domain_context_for_sql(
     model_data: Optional[dict] = None,
     *,
@@ -923,6 +1013,10 @@ def filter_domain_context_for_sql(
         if item and str(item).strip()
     ]
     mappings = filter_topic_mappings_for_selection(topic_mappings, selected_topics)
+    mappings = [entry for entry in mappings if _topic_mapping_has_components(entry)]
+    # Semantic lists only topics/domains that still have used dims/metrics.
+    selected_topics = topics_from_picked_mappings(mappings, selected_topics)
+    selected_domains = domains_from_picked_mappings(mappings, selected_domains)
 
     if model_data and isinstance(model_data, dict) and model_data.get("domain"):
         narrowed = dict(model_data)
@@ -931,7 +1025,11 @@ def filter_domain_context_for_sql(
             if not isinstance(entry, dict):
                 continue
             domain_name = str(entry.get("domain_name") or "").strip()
-            if selected_domains and domain_name and domain_name not in selected_domains:
+            if (
+                selected_domains
+                and domain_name
+                and domain_name.lower() not in {name.lower() for name in selected_domains}
+            ):
                 continue
             topic_entries = []
             for topic in entry.get("topics") or []:
@@ -1434,6 +1532,25 @@ def _strip_component_alias(token: Any) -> str:
     return text
 
 
+def _topic_mapping_has_components(entry: dict) -> bool:
+    """True when a topic mapping still lists at least one dim/measure component."""
+    if not isinstance(entry, dict):
+        return False
+    rich = entry.get("components")
+    if isinstance(rich, list):
+        for component in rich:
+            if not isinstance(component, dict):
+                continue
+            if str(component.get("name") or component.get("id") or "").strip():
+                return True
+    legacy = entry.get("component")
+    if isinstance(legacy, list):
+        for token in legacy:
+            if str(_strip_component_alias(token) or "").strip():
+                return True
+    return False
+
+
 def _cube_item_kind(item: dict, name_key: str) -> str:
     """Classify a cube item for topic component mapping."""
     if name_key == "measureName":
@@ -1701,7 +1818,7 @@ def format_topic_mappings_for_prompt(topic_mappings: Optional[list]) -> str:
         if not isinstance(entry, dict):
             continue
         topic_name = entry.get("topic_name")
-        if not topic_name:
+        if not topic_name or not _topic_mapping_has_components(entry):
             continue
         header_parts = [f"Topic: {topic_name}"]
         if entry.get("domain_name"):

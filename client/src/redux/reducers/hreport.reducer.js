@@ -215,7 +215,7 @@ const hreportReducer = (state = intialState, action) => {
 			return produce(state, (draft) => {
 				draft.reports = draft.reports.map((report) => {
 					if (report.active) {
-						let { funcs, metadata, dateFunctions, loading, isCube, cube } = action.payload || {};
+						let { funcs, metadata, dateFunctions, loading, isCube, cube } = cloneDeep(action.payload) || {};
 						if (loading) {
 							return { ...report, metadata: { loading } };
 						}

@@ -1,6 +1,6 @@
-import java.awt.GraphicsEnvironment;
+import com.helicalinsight.efw.services.FontService;
 import groovy.json.*;
-String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+String[] fonts = FontService.getAvailableFontFamilyNames();
 def jsonObj='''
 {
 	"HCR": {

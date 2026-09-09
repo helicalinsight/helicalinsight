@@ -25,7 +25,6 @@ def _base_state():
             "data": {
                 "rows": ["city"],
                 "columns": ["sales"],
-                "filters": [],
             },
             "chart": {"viz": "Bar", "mark": "Chart"},
             "properties": {"title": "Sales by City"},

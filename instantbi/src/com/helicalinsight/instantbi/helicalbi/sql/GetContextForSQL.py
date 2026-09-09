@@ -324,16 +324,62 @@ def _format_column_detail(meta: dict) -> str:
     return "; ".join(parts)
 
 
+def _picked_semantic_names(plan: dict) -> list:
+    """Flatten planner pickedDimensions / pickedMetrics / pickedMeasures."""
+    names: list = []
+    for key in (
+        "pickedDimensions",
+        "picked_dimensions",
+        "pickedMetrics",
+        "picked_metrics",
+        "pickedMeasures",
+        "picked_measures",
+    ):
+        value = plan.get(key) or []
+        if isinstance(value, list):
+            names.extend(value)
+        elif value:
+            names.append(value)
+    return names
+
+
+def _item_matches_picked(meta: dict, allowed: set[str]) -> bool:
+    """True when a cube item's semantic or physical name is in the picked set."""
+    if not allowed:
+        return True
+    for key in (
+        "alias_name",
+        "measure_name",
+        "dimension_name",
+        "level_name",
+        "column_name",
+    ):
+        text = unquote_identifier(str(meta.get(key) or "")).strip().lower()
+        if text and text in allowed:
+            return True
+    return False
+
+
 def collect_picked_column_items(cube_metadata, query_plan) -> dict:
     """Collect full cube metadata items for picked columns, grouped by table.
 
     Includes dimensions, measures, hierarchy levels, and blank-column computed
     measures. ``formatString`` is stripped — it belongs to the viz flow only.
+
+    When the planner supplies picked dimension / metric / measure names, cube
+    items that are not in those lists are omitted (join/filter-only columns
+    and unused semantic-model fields stay out of the Semantic section).
     """
     plan = _normalize_query_plan(query_plan)
     column_refs = plan.get("columnName") or []
     picked_dimensions = plan.get("pickedDimensions") or plan.get("picked_dimensions") or []
-    picked_metrics = plan.get("pickedMetrics") or plan.get("picked_metrics") or []
+    picked_metrics = list(plan.get("pickedMetrics") or plan.get("picked_metrics") or [])
+    picked_metrics.extend(plan.get("pickedMeasures") or plan.get("picked_measures") or [])
+    allowed_names = {
+        unquote_identifier(str(name)).strip().lower()
+        for name in _picked_semantic_names(plan)
+        if name
+    }
 
     by_table: dict[str, dict] = {}
 
@@ -351,6 +397,8 @@ def collect_picked_column_items(cube_metadata, query_plan) -> dict:
         if not table_name or not meta:
             return
         cleaned = _strip_format_string(dict(meta))
+        if not _item_matches_picked(cleaned, allowed_names):
+            return
         cleaned["kind"] = _item_kind(cleaned)
         cleaned["table"] = table_name
         entry = by_table.setdefault(

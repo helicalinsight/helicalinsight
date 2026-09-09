@@ -2861,21 +2861,6 @@ const addNodeToBand = ({ formData, node, band, bandLimits }) => {
     // if((node.y+node.height) > reqObj.bandHeight) {
     //     reqObj.bandHeight = node.y+node.height;
     // }
-    if (node.category === "text") {
-      reqObj.textField.push(getPreviewTextField(node));
-    } else if (node.category === "line") {
-      reqObj.lines.push(getPreviewLine(node));
-    } else if (node.category === "image") {
-      reqObj.image.push(getPreviewImage(node));
-    } else if (node.category === "pageBreak") {
-      reqObj.break.push(getPreviewBreak(node));
-    } else if (node.category === "chart") {
-      reqObj?.chart?.push(getPreviewChart(node));
-    } else if (node.category === "advancedTable") {
-      reqObj?.table?.push(getPreviewAdvancedTable(node));
-    } else if (node.category === "crosstabv2") {
-      reqObj?.crosstab?.push(getPreviewCrosstabV2(node));
-    }
 
     switch (node.category) {
       case "text":
@@ -3760,7 +3745,7 @@ export const handleSaveHcr = ({
 
     if (obj.dataSourcePane === hcrDSQuery) {
       obj.menu = obj.menu.map((query) => {
-          query.temp_uuid = tempUUIDsMap?.[query.id] ? tempUUIDsMap?.[query.id] || query?.temp_uuid : query?.temp_uuid;
+        query.temp_uuid = tempUUIDsMap?.[query.id] ? tempUUIDsMap?.[query.id] || query?.temp_uuid : query?.temp_uuid;
         return query
       })
     }
