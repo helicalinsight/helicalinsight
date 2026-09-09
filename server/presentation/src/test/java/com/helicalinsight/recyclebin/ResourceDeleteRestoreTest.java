@@ -100,6 +100,7 @@ public class ResourceDeleteRestoreTest {
 
 	@Test
 	public void rec_a1_create_a_folder() throws Exception {
+		testUtilitiy.clearRecycleBin();
 		testUtilitiy.createFolder("RecycleBinTest");
 	}
 
@@ -208,18 +209,7 @@ public class ResourceDeleteRestoreTest {
 
 	@Test
 	public void rec_a8_clear_recycle_bin() throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders.post("/services");
-		String formData = "{\"action\":\"clear\"}";
-		Map<String, String> map = new HashMap<>();
-		map.put("type", "adhoc");
-		map.put("serviceType", "recycleBin");
-		map.put("service", "recycle");
-		map.put("formData", formData);
-
-		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
-		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
-				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1)).andExpect(MockMvcResultMatchers
-						.jsonPath("$.response.message").value("Resource(s) deleted successfully."));
+		testUtilitiy.clearRecycleBin();
 		JSONArray array = listRecycleBin();
 		Assert.assertTrue(array.isEmpty());
 	}
