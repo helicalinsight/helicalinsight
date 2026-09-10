@@ -11,7 +11,6 @@ import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 
 import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -22,16 +21,11 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
@@ -42,13 +36,13 @@ import java.util.regex.Pattern;
  * JDBC adapter for MongoDB used by the Helical Insight datasource layer.
  *
  * <p>The project already exposes MongoDB as a JDBC datasource through the
- * {@code com.helical.mongodb.MongoJdbcDriver} configuration.  The official
+ * {@code com.helical.mongodb.MongoJdbcDriver} configuration. The official
  * MongoDB Java driver is not itself a JDBC driver, so this class bridges the
  * existing JDBC datasource infrastructure to the MongoDB Java driver.</p>
  *
- * <p>The adapter intentionally keeps the JDBC surface small.  It supports
+ * <p>The adapter intentionally keeps the JDBC surface small. It supports
  * connection validation and the SELECT form used by metadata/reporting
- * flows, while unsupported JDBC operations are reported through the standard
+ * flows, while unsupported JDBC operations are reported through standard
  * JDBC exceptions.</p>
  */
 public final class MongoJdbcDriver implements Driver {
@@ -60,9 +54,6 @@ public final class MongoJdbcDriver implements Driver {
 
     private static final Pattern SELECT_PATTERN = Pattern.compile(
             "(?is)^\\s*select\\s+(.+?)\\s+from\\s+([A-Za-z0-9_.$-]+)(?:\\s+limit\\s+(\\d+))?\\s*;?\\s*$");
-
-    private static final Pattern FROM_PATTERN = Pattern.compile(
-            "(?is)\\bfrom\\s+([A-Za-z0-9_.$-]+)");
 
     static {
         try {
@@ -161,11 +152,8 @@ public final class MongoJdbcDriver implements Driver {
                     isBlank(database) ? "admin" : database,
                     password == null ? new char[0] : password.toCharArray());
 
-            return new MongoClient(uri.getHosts().isEmpty()
-                    ? new ServerAddress("localhost", 27017)
-                    : uri.getHosts().get(0),
-                    credential,
-                    uri.getOptions());
+            String host = uri.getHosts().isEmpty() ? "localhost" : uri.getHosts().get(0);
+            return new MongoClient(new ServerAddress(host), credential, uri.getOptions());
         } catch (RuntimeException e) {
             throw new SQLException("Unable to create MongoDB client: " + e.getMessage(), e);
         }
@@ -182,12 +170,8 @@ public final class MongoJdbcDriver implements Driver {
                 }
                 return null;
             }
-            if ("isClosed".equals(name)) {
-                return closed.get();
-            }
-            if ("isValid".equals(name)) {
-                return !closed.get();
-            }
+            if ("isClosed".equals(name)) return closed.get();
+            if ("isValid".equals(name)) return !closed.get();
             if ("createStatement".equals(name)) {
                 ensureOpen(closed);
                 return statementProxy((Connection) proxy, database, null);
@@ -201,53 +185,31 @@ public final class MongoJdbcDriver implements Driver {
                 ensureOpen(closed);
                 return metadataProxy(database, url);
             }
-            if ("getCatalog".equals(name)) {
-                return database.getName();
-            }
-            if ("getSchema".equals(name)) {
-                return database.getName();
-            }
+            if ("getCatalog".equals(name) || "getSchema".equals(name)) return database.getName();
             if ("setSchema".equals(name) || "setCatalog".equals(name)
                     || "setAutoCommit".equals(name) || "commit".equals(name)
                     || "rollback".equals(name) || "clearWarnings".equals(name)) {
                 ensureOpen(closed);
                 return null;
             }
-            if ("getAutoCommit".equals(name)) {
-                return true;
-            }
-            if ("getWarnings".equals(name)) {
-                return null;
-            }
-            if ("isReadOnly".equals(name)) {
-                return false;
-            }
-            if ("setReadOnly".equals(name)) {
-                return null;
-            }
-            if ("getTransactionIsolation".equals(name)) {
-                return Connection.TRANSACTION_NONE;
-            }
-            if ("setTransactionIsolation".equals(name)) {
-                return null;
-            }
+            if ("getAutoCommit".equals(name)) return true;
+            if ("getWarnings".equals(name)) return null;
+            if ("isReadOnly".equals(name)) return false;
+            if ("setReadOnly".equals(name)) return null;
+            if ("getTransactionIsolation".equals(name)) return Connection.TRANSACTION_NONE;
+            if ("setTransactionIsolation".equals(name)) return null;
             if ("unwrap".equals(name)) {
                 Class<?> type = (Class<?>) args[0];
                 if (type.isInstance(proxy)) return proxy;
                 throw new SQLException("Not a wrapper for " + type.getName());
             }
-            if ("isWrapperFor".equals(name)) {
-                return ((Class<?>) args[0]).isInstance(proxy);
-            }
-            if ("toString".equals(name)) {
-                return "MongoJdbcConnection{" + url + "}";
-            }
+            if ("isWrapperFor".equals(name)) return ((Class<?>) args[0]).isInstance(proxy);
+            if ("toString".equals(name)) return "MongoJdbcConnection{" + url + "}";
             return defaultValue(method.getReturnType());
         };
 
         return (Connection) Proxy.newProxyInstance(
-                MongoJdbcDriver.class.getClassLoader(),
-                new Class[]{Connection.class}, handler);
+                MongoJdbcDriver.class.getClassLoader(), new Class[]{Connection.class}, handler);
     }
 
     private static Statement statementProxy(Connection connection, MongoDatabase database, String preparedSql) {
@@ -303,8 +265,7 @@ public final class MongoJdbcDriver implements Driver {
         };
 
         return (Statement) Proxy.newProxyInstance(
-                MongoJdbcDriver.class.getClassLoader(),
-                new Class[]{Statement.class}, handler);
+                MongoJdbcDriver.class.getClassLoader(), new Class[]{Statement.class}, handler);
     }
 
     private static ResultSet executeSelect(MongoDatabase database, String sql) throws SQLException {
@@ -359,10 +320,7 @@ public final class MongoJdbcDriver implements Driver {
                 index[0] = documents.size();
                 return false;
             }
-            if ("close".equals(name)) {
-                closed.set(true);
-                return null;
-            }
+            if ("close".equals(name)) { closed.set(true); return null; }
             if ("isClosed".equals(name)) return closed.get();
             if ("wasNull".equals(name)) return wasNull[0];
             if ("getMetaData".equals(name)) return resultSetMetaDataProxy(columns);
@@ -393,8 +351,7 @@ public final class MongoJdbcDriver implements Driver {
         };
 
         return (ResultSet) Proxy.newProxyInstance(
-                MongoJdbcDriver.class.getClassLoader(),
-                new Class[]{ResultSet.class}, handler);
+                MongoJdbcDriver.class.getClassLoader(), new Class[]{ResultSet.class}, handler);
     }
 
     private static DatabaseMetaData metadataProxy(MongoDatabase database, String url) {
@@ -420,8 +377,7 @@ public final class MongoJdbcDriver implements Driver {
             return defaultValue(method.getReturnType());
         };
         return (DatabaseMetaData) Proxy.newProxyInstance(
-                MongoJdbcDriver.class.getClassLoader(),
-                new Class[]{DatabaseMetaData.class}, handler);
+                MongoJdbcDriver.class.getClassLoader(), new Class[]{DatabaseMetaData.class}, handler);
     }
 
     private static ResultSet emptyResultSet() {
@@ -446,8 +402,7 @@ public final class MongoJdbcDriver implements Driver {
             return defaultValue(method.getReturnType());
         };
         return (ResultSetMetaData) Proxy.newProxyInstance(
-                MongoJdbcDriver.class.getClassLoader(),
-                new Class[]{ResultSetMetaData.class}, handler);
+                MongoJdbcDriver.class.getClassLoader(), new Class[]{ResultSetMetaData.class}, handler);
     }
 
     private static List<String> columns(List<Document> documents) {
