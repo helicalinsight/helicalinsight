@@ -63,7 +63,7 @@ public class JDBCDriver implements IDriver {
     }
 
     /**
-     * getQuery(JsonObject dataMapTagContent, JsonObject requestParameterJson) 
+     * getQuery(JsonObject dataMapTagContent, JsonObject requestParameterJson)
      * Return the json of the result of the database query
      *
      * @param requestParameterJson The Http Request parameter
@@ -94,18 +94,18 @@ public class JDBCDriver implements IDriver {
 	@Override
 	public JsonObject getJSONData(JsonObject requestParameterJson, JsonObject connectionDetails,
 			JsonObject dataMapTagContent, ApplicationProperties applicationProperties) {
-		String url,user,password,driver;
+		String url,user,password,driver,database;
     	if(connectionDetails.has("connDetails")) {
     		JsonObject connDetails=connectionDetails.getAsJsonObject("connDetails");
             url = connDetails.get("url").getAsString();
             user = connDetails.get("user").getAsString();
             password = connDetails.get("pass").getAsString();
-            driver = connDetails.get("driver").getAsString();	    		
+            driver = connDetails.get("driver").getAsString();            database = connDetails.has("database") ? connDetails.get("database").getAsString() : "";
     	}else {
             url = connectionDetails.get("Url").getAsString();
             user = connectionDetails.get("User").getAsString();
             password = connectionDetails.get("Pass").getAsString();
-            driver = connectionDetails.get("Driver").getAsString();	
+            driver = connectionDetails.get("Driver").getAsString();            database = connectionDetails.has("database") ? connectionDetails.get("database").getAsString() : "";
     	}
 
         String query = this.getQuery(dataMapTagContent, requestParameterJson);
@@ -114,7 +114,7 @@ public class JDBCDriver implements IDriver {
             logger.debug("EFWD query being run is " + query);
         }
 
-        Connection connection = getConnection(url, user, password, driver);
+        Connection connection = getConnection(url, user, password, driver, database);
         //All query executions should be through IJdbcDao for the purpose of query cancellation if timeout occurs
         IJdbcDao bean = ApplicationContextAccessor.getBean(IJdbcDao.class);
 
@@ -129,18 +129,18 @@ public class JDBCDriver implements IDriver {
 
     public ResultSet getResultSetData(JsonObject requestParameterJson, JsonObject connectionDetails,
                                        JsonObject dataMapTagContent, ApplicationProperties applicationProperties) {
-        String url,user,password,driver;
+        String url,user,password,driver,database;
         if(connectionDetails.has("connDetails")) {
             JsonObject connDetails=connectionDetails.getAsJsonObject("connDetails");
             url = connDetails.get("url").getAsString();
             user = connDetails.get("user").getAsString();
             password = connDetails.get("pass").getAsString();
-            driver = connDetails.get("driver").getAsString();
+            driver = connDetails.get("driver").getAsString();            database = connDetails.has("database") ? connDetails.get("database").getAsString() : "";
         }else {
             url = connectionDetails.get("Url").getAsString();
             user = connectionDetails.get("User").getAsString();
             password = connectionDetails.get("Pass").getAsString();
-            driver = connectionDetails.get("Driver").getAsString();
+            driver = connectionDetails.get("Driver").getAsString();            database = connectionDetails.has("database") ? connectionDetails.get("database").getAsString() : "";
         }
 
         String query = this.getQuery(dataMapTagContent, requestParameterJson);
@@ -149,7 +149,7 @@ public class JDBCDriver implements IDriver {
             logger.debug("EFWD query being run is " + query);
         }
 
-        Connection connection = getConnection(url, user, password, driver);
+        Connection connection = getConnection(url, user, password, driver, database);
         //All query executions should be through IJdbcDao for the purpose of query cancellation if timeout occurs
         IJdbcDao bean = ApplicationContextAccessor.getBean(IJdbcDao.class);
 
@@ -160,23 +160,23 @@ public class JDBCDriver implements IDriver {
         }
         return bean.getResultSet(connection, query);
     }
-	
-    
-    
+
+
+
 	public void streamResultSetData(JsonObject requestParameterJson, JsonObject connectionDetails,
 			JsonObject dataMapTagContent, ApplicationProperties applicationProperties, CallBack<ResultSet> callBack) {
-		String url, user, password, driver;
+		String url, user, password, driver, database;
 		if (connectionDetails.has("connDetails")) {
 			JsonObject connDetails = connectionDetails.getAsJsonObject("connDetails");
 			url = connDetails.get("url").getAsString();
 			user = connDetails.get("user").getAsString();
 			password = connDetails.get("pass").getAsString();
-			driver = connDetails.get("driver").getAsString();
+			driver = connDetails.get("driver").getAsString();            database = connDetails.has("database") ? connDetails.get("database").getAsString() : "";
 		} else {
 			url = connectionDetails.get("Url").getAsString();
 			user = connectionDetails.get("User").getAsString();
 			password = connectionDetails.get("Pass").getAsString();
-			driver = connectionDetails.get("Driver").getAsString();
+			driver = connectionDetails.get("Driver").getAsString();            database = connectionDetails.has("database") ? connectionDetails.get("database").getAsString() : "";
 		}
 
 		String query = this.getQuery(dataMapTagContent, requestParameterJson);
@@ -185,7 +185,7 @@ public class JDBCDriver implements IDriver {
 			logger.debug("EFWD query being run is " + query);
 		}
 
-		Connection connection = getConnection(url, user, password, driver);
+		Connection connection = getConnection(url, user, password, driver, database);
 		//All query executions should be through IJdbcDao for the purpose of query cancellation if timeout occurs
 		IJdbcDao bean = ApplicationContextAccessor.getBean(IJdbcDao.class);
 
@@ -197,3 +197,4 @@ public class JDBCDriver implements IDriver {
 		bean.streamResult(connection, query, callBack);
 	}
 }
+
