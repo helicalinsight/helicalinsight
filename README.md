@@ -69,8 +69,14 @@ Helical Insight connects to virtually any modern data source through native conn
 | Presto | Google Sheets | SQL Server | YugabyteDB | Informix |
 | Trino | JSON | SQL Server (Legacy) | Snowflake | Custom JDBC Driver |
 | Snowflake | Parquet | IBM DB2 |  |  |
-| Teradata | TSV | SAP HANA |  |  |
+| Teradata | TSV | SAP HANA | MongoDB |  |
 |  | Google Cloud Storage | SQLite |  |  |
+
+### MongoDB connection
+
+MongoDB is available from the global datasource screen under **No SQL & Big Data**. Create a connection with a MongoDB URI such as `mongodb://localhost:27017/analytics` or a `mongodb+srv://` URI, then provide the database, collection, username, and password as applicable. Use the **Test connection** action before saving.
+
+The server uses the existing NoSQL datasource tables and MongoDB Java driver, so adding MongoDB does not migrate or remove existing datasource records. Credentials are stored using Helical Insight's existing encrypted datasource persistence. The MongoDB server must be reachable from the Helical Insight server or container, and the configured user must have permission to read the selected database and collection.
 
 ![Introduction](docs/supported_datasources.png)
 
