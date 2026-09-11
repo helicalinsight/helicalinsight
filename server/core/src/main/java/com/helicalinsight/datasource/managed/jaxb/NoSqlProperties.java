@@ -23,11 +23,15 @@ public class NoSqlProperties extends  TomcatPoolProperties{
     private Integer hiveReferenceId;
 
     //Todo create a subType map or property file read from xml
-    //Todo Create a Test connection for subtype
 
-    //Use the following for Testing
+    //Use the following sample payload to create/test a MongoDB connection. The subType is resolved from the
+    //"driverName" field (see NoSqlDataSourceProperties#getSubType) and must match the Spring bean name of the
+    //NoSQLLoader implementation used to handle it - see com.helicalinsight.adhoc.services.nosql.MongoNoSQLLoader,
+    //registered as bean "com.helicalinsight.nosql.mongo" (matching the built-in "Mongodb" tile's driver id).
     /*
-    * {"classifier":"global","name":"Test","driverName":"org.mariadb.jdbc.Driver","userName":"test","password":"test","jdbcUrl":"jdbc:mariadb://localhost:3306/mongoDatabase?ssl=True","dataSourceProvider":"nosql",subType:"mongo"}
+    * {"classifier":"global","name":"Test","userName":"test","password":"test",
+    *  "jdbcUrl":"mongodb://localhost:27017/mongoDatabase","database":"mongoDatabase",
+    *  "driverName":"com.helicalinsight.nosql.mongo","dataSourceProvider":"noSql"}
     *
     * */
     //Mongo Text CSV JSON etc
