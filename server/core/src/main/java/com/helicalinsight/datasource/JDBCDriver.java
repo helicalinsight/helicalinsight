@@ -44,6 +44,24 @@ public class JDBCDriver implements IDriver {
         return plainJdbcConnectionProvider.newConnection(json.toString());
     }
 
+    public static Connection getConnection(String url, String user, String password, String driver, String database) {
+        PlainJdbcConnectionProvider plainJdbcConnectionProvider = ApplicationContextAccessor.getBean
+                (PlainJdbcConnectionProvider.class);
+
+        JsonObject json = new JsonObject();
+        json.addProperty("jdbcUrl", url);
+        json.addProperty("userName", user);
+        json.addProperty("password", password);
+        json.addProperty("driverName", driver);
+        if (database != null && !database.isEmpty()) {
+            JsonObject extraOptions = new JsonObject();
+            extraOptions.addProperty("database", database);
+            json.add("extraOptions", extraOptions);
+        }
+
+        return plainJdbcConnectionProvider.newConnection(json.toString());
+    }
+
     /**
      * getQuery(JsonObject dataMapTagContent, JsonObject requestParameterJson) 
      * Return the json of the result of the database query

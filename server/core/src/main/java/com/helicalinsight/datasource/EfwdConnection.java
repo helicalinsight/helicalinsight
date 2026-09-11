@@ -20,6 +20,7 @@ public class EfwdConnection {
     private String user;
     private String password;
     private String driver;
+    private String database;
 
     public EfwdConnection() {
     }
@@ -32,7 +33,7 @@ public class EfwdConnection {
     }
 
     public Connection getConnection() {
-        return JDBCDriver.getConnection(this.url, this.user, this.password, this.driver);
+        return JDBCDriver.getConnection(this.url, this.user, this.password, this.driver, this.database);
     }
 
     public String getUrl() {
@@ -67,6 +68,15 @@ public class EfwdConnection {
         this.driver = driver;
     }
 
+    public String getDatabase() {
+        return database;
+    }
+
+    public void setDatabase(String database) {
+        this.database = database;
+    }
+
+
     @Override
     public boolean equals(@Nullable Object object) {
         if (this == object) return true;
@@ -91,7 +101,6 @@ public class EfwdConnection {
         return result;
     }
 
-    @NotNull
     @Override
     public String toString() {
         return "EfwdConnection{" +
