@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { Provider } from 'react-redux';
 import { Router, useHistory } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import ChatTabs from '../../../components/hi-instant-bi/components/chat-screen/chat-tabs';
@@ -62,9 +63,40 @@ jest.mock('../../../redux/actions/hreport.actions', () => ({
     changeReport: jest.fn((payload) => ({ type: 'CHANGE_REPORT', payload })),
 }));
 
-jest.mock('../../../app/constants', () => ({
-    routesUrl: { helicalReportUrl: '/helical-report' },
-}));
+jest.mock('antd', () => {
+    const actual = jest.requireActual('antd');
+    const React = require('react');
+    return {
+        ...actual,
+        Drawer: ({ children }) =>
+            React.createElement('div', { 'data-testid': 'mock-drawer' }, children),
+        Popover: ({ content, children }) =>
+            React.createElement(
+                'div',
+                null,
+                children,
+                React.createElement('div', { 'data-testid': 'mock-popover-content' }, content)
+            ),
+    };
+});
+
+jest.mock('../../../app/constants', () => {
+    const actual = jest.requireActual('../../../app/constants');
+    return {
+        ...actual,
+        routesUrl: { ...actual.routesUrl, helicalReportUrl: '/helical-report' },
+    };
+});
+
+function createMockStore() {
+    return {
+        getState: () => ({
+            hreport: { present: { reports: [] } },
+        }),
+        dispatch: jest.fn(),
+        subscribe: () => () => {},
+    };
+}
 
 function baseProps(overrides = {}) {
     return {
@@ -104,13 +136,16 @@ function renderChatTabs(props, initialPath = '/') {
         historyRef.current = useHistory();
         return null;
     };
+    const store = createMockStore();
     const utils = render(
-        <Router history={createMemoryHistory({ initialEntries: [initialPath] })}>
-            <HistoryProbe />
-            <ChatTabs {...props} />
-        </Router>
+        <Provider store={store}>
+            <Router history={createMemoryHistory({ initialEntries: [initialPath] })}>
+                <HistoryProbe />
+                <ChatTabs {...props} />
+            </Router>
+        </Provider>
     );
-    return { ...utils, history: historyRef.current };
+    return { ...utils, history: historyRef.current, store };
 }
 
 function openTab(container, key) {
@@ -118,11 +153,13 @@ function openTab(container, key) {
 }
 
 describe('ChatTabs - tabs shell', () => {
-    test('renders preview, data, semantic and sql tab headers', () => {
+    test('renders preview, semantic and sql tab headers', () => {
         const { container } = renderChatTabs(baseProps());
-        ['preview', 'data', 'semantic', 'sql'].forEach((key) => {
+        ['preview', 'semantic', 'sql'].forEach((key) => {
             expect(container.querySelector(`[data-node-key="${key}"]`)).toBeTruthy();
         });
+        // Data tab was removed in [9405]
+        expect(container.querySelector('[data-node-key="data"]')).toBeNull();
     });
 
     test('shows the maximize tab only when message exists and button enabled', () => {
@@ -130,9 +167,11 @@ describe('ChatTabs - tabs shell', () => {
         expect(container.querySelector('[data-node-key="maximize"]')).toBeNull();
 
         rerender(
-            <Router history={createMemoryHistory()}>
-                <ChatTabs {...baseProps({ showMaximizeButton: true })} />
-            </Router>
+            <Provider store={createMockStore()}>
+                <Router history={createMemoryHistory()}>
+                    <ChatTabs {...baseProps({ showMaximizeButton: true })} />
+                </Router>
+            </Provider>
         );
         expect(container.querySelector('[data-node-key="maximize"]')).toBeTruthy();
     });
@@ -158,11 +197,11 @@ describe('ChatTabs - tabs shell', () => {
     test('activates the clicked tab', () => {
         const { container } = renderChatTabs(baseProps());
 
-        fireEvent.click(container.querySelector('[data-node-key="data"]'));
+        fireEvent.click(container.querySelector('[data-node-key="semantic"]'));
 
         expect(
             container
-                .querySelector('[data-node-key="data"] .ant-tabs-tab-btn')
+                .querySelector('[data-node-key="semantic"] .ant-tabs-tab-btn')
                 .getAttribute('aria-selected')
         ).toBe('true');
         expect(
@@ -173,8 +212,8 @@ describe('ChatTabs - tabs shell', () => {
     });
 });
 
-describe('ChatTabs - Data tab', () => {
-    test('renders markdown table source for resolved rows', () => {
+describe('ChatTabs - Data tab (removed in [9405])', () => {
+    test('does not render a data tab for resolved rows', () => {
         const props = baseProps({
             resolvedData: [
                 { region: 'EMEA', revenue: 100 },
@@ -182,19 +221,14 @@ describe('ChatTabs - Data tab', () => {
             ],
         });
         const { container } = renderChatTabs(props);
-        openTab(container, 'data');
 
-        const markdown = screen.getByTestId('markdown');
-        expect(markdown.textContent).toContain('| region | revenue |');
-        expect(markdown.textContent).toContain('| EMEA | 100 |');
-        expect(markdown.textContent).toContain('| APAC | 200 |');
+        expect(container.querySelector('[data-node-key="data"]')).toBeNull();
     });
 
-    test('shows the empty state when no data is resolved', () => {
+    test('does not render a data tab when no data is resolved', () => {
         const { container } = renderChatTabs(baseProps({ resolvedData: [] }));
-        openTab(container, 'data');
 
-        expect(screen.getByText('No data available')).toBeTruthy();
+        expect(container.querySelector('[data-node-key="data"]')).toBeNull();
     });
 });
 
@@ -277,9 +311,11 @@ describe('ChatTabs - Preview tab', () => {
         expect(handleDataInsight).toHaveBeenCalledTimes(1);
 
         rerender(
-            <Router history={createMemoryHistory()}>
-                <ChatTabs {...baseProps({ showDataInsightButton: false })} />
-            </Router>
+            <Provider store={createMockStore()}>
+                <Router history={createMemoryHistory()}>
+                    <ChatTabs {...baseProps({ showDataInsightButton: false })} />
+                </Router>
+            </Provider>
         );
         expect(screen.queryByTestId('data-insight-play-btn')).toBeNull();
         expect(container).toBeTruthy();
@@ -303,38 +339,47 @@ describe('ChatTabs - Preview tab', () => {
         expect(InstantChartView.lastProps.isOpenMode).toBe(true);
     });
 
-    test('navigates to the report editor preserving context', () => {
-        const { container, history } = renderChatTabs(baseProps());
-        const pushSpy = jest.spyOn(history, 'push');
+    test('opens the report editor in a new window preserving context', () => {
+        const prevBaseURL = window.baseURL;
+        const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+        window.baseURL = 'http://localhost';
+        localStorage.removeItem('hreport_active_report');
+        const { container } = renderChatTabs(baseProps());
 
         fireEvent.click(
             container.querySelector('.chart-preview-section__go-to-hreport-button')
         );
 
-        expect(pushSpy).toHaveBeenCalledWith({
-            pathname: '/helical-report',
-            state: {
-                reportId: 'hr-1',
-                fromInstantBI: true,
-            },
-        });
+        expect(openSpy).toHaveBeenCalledWith('http://localhost#/helical-report');
+        const stored = JSON.parse(localStorage.getItem('hreport_active_report'));
+        expect(stored.fromInstantBI).toBe(true);
+        openSpy.mockRestore();
+        localStorage.removeItem('hreport_active_report');
+        window.baseURL = prevBaseURL;
     });
 
-    test('stays put when the response has no linked report id', () => {
-        const { container, history } = renderChatTabs(
+    test('does not offer navigation when the response has no linked report id', () => {
+        const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+        const { container } = renderChatTabs(
             baseProps({ fullChatResponse: {} })
         );
-        const pushSpy = jest.spyOn(history, 'push');
 
-        fireEvent.click(
+        // Go-to-hreport button is only rendered when hreportId exists [9404]
+        expect(
             container.querySelector('.chart-preview-section__go-to-hreport-button')
-        );
-
-        expect(pushSpy).not.toHaveBeenCalled();
+        ).toBeNull();
+        expect(openSpy).not.toHaveBeenCalled();
+        openSpy.mockRestore();
     });
 
     test('opens the filters drawer after activating the current report', async () => {
-        const props = baseProps();
+        const props = baseProps({
+            activeReport: {
+                hreportInteractions: {
+                    'hr-1': { filters: [{ id: 'f1' }], selectedType: 'Chart' },
+                },
+            },
+        });
         const { container } = renderChatTabs(props);
 
         fireEvent.click(

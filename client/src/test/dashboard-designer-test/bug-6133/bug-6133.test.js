@@ -40,9 +40,9 @@ describe("Dashboard Designer Test", () => {
     fireEvent.keyUp(document, { key: "Alt", code: "AltLeft" });
     let arrayOfAccessKeys = document.getElementsByClassName("hi-shortcut-text");
     let arrayOfAccessKeyCodes = [];
-    for(let i=0;i<arrayOfAccessKeys.length;i++){
+    for (let i = 0; i < arrayOfAccessKeys.length; i++) {
       arrayOfAccessKeyCodes.push(arrayOfAccessKeys.item(i).innerHTML);
-  }
-    expect(arrayOfAccessKeyCodes).toEqual(["S","R","P","L", "Z", "Y", "I","F"]);
+    }
+    expect(arrayOfAccessKeyCodes).toEqual(["S", "R", "P", "L", "Z", "Y", "I", "J", "F"]);
   });
 });

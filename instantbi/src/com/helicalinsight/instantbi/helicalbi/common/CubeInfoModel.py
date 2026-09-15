@@ -621,34 +621,50 @@ _NO_SORT_STRINGS = frozenset(
 )
 
 
+def _sort_order_raw_from_source(source: dict) -> tuple[bool, Any]:
+    """Resolve sort from one dict.
+
+    Returns ``(resolved, value)`` where ``resolved`` is True when an explicit
+    decision was made (including Natural/none → value None). Prefer ``sort``
+    over numeric ``sortOrder`` so Natural is not overridden by sortOrder=0.
+    """
+    if not isinstance(source, dict):
+        return False, None
+    if "sort" in source:
+        value = source.get("sort")
+        if value in (None, ""):
+            pass  # fall through to sortOrder
+        elif isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
+            return True, None
+        else:
+            return True, value
+    for key in ("sortOrder", "sort_order"):
+        if key not in source:
+            continue
+        value = source.get(key)
+        if value in (None, ""):
+            continue
+        if isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
+            return True, None
+        return True, value
+    return False, None
+
+
 def _sort_order_raw_from_cube_item(item: dict) -> Any:
     """Return the raw sortOrder / sort_order / sort value when present.
 
     Cube payloads may use numeric ``sortOrder`` (0=ASC, 1=DESC or priority)
     or an explicit ``sort`` direction string such as ``Ascending`` / ``Descending``.
     Values of ``none`` / ``Natural`` / empty are treated as absent so they are
-    omitted from the final-SQL sort list.
+    omitted from the final-SQL sort list. Explicit ``sort: Natural`` wins over
+    a numeric ``sortOrder`` on the same item.
     """
-    for key in ("sortOrder", "sort_order", "sort"):
-        if key not in item:
-            continue
-        value = item.get(key)
-        if value in (None, ""):
-            continue
-        if isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
-            continue
+    resolved, value = _sort_order_raw_from_source(item if isinstance(item, dict) else {})
+    if resolved:
         return value
-    metric_obj = item.get("metric") if isinstance(item.get("metric"), dict) else {}
-    for key in ("sortOrder", "sort_order", "sort"):
-        if key not in metric_obj:
-            continue
-        value = metric_obj.get(key)
-        if value in (None, ""):
-            continue
-        if isinstance(value, str) and value.strip().lower() in _NO_SORT_STRINGS:
-            continue
-        return value
-    return None
+    metric_obj = item.get("metric") if isinstance(item, dict) and isinstance(item.get("metric"), dict) else {}
+    _resolved_metric, metric_value = _sort_order_raw_from_source(metric_obj)
+    return metric_value if _resolved_metric else None
 
 
 def sort_direction_from_value(value: Any) -> Optional[str]:
@@ -832,10 +848,21 @@ def sort_orders_from_cube_info(cube_info: list) -> List[dict]:
     return entries
 
 
+_NO_ORDER_BY_PROMPT = (
+    "No Ascending/Descending dimension sorts are configured "
+    "(all Natural/none/empty). "
+    "Do NOT add an ORDER BY clause unless the user question explicitly asks "
+    "for a sort or ranking (e.g. top, highest, lowest, ascending, descending). "
+    "Do not ORDER BY every selected column."
+)
+
+
 def format_sort_orders_for_prompt(sort_orders: List[dict]) -> str:
     """Render sort-order hints for the final SQL prompt.
 
-    Only ascending/descending entries are included; none/empty sorts are omitted.
+    Only ascending/descending entries are included; none/empty/Natural sorts
+    are omitted. When nothing remains, return an explicit no-ORDER-BY rule so
+    the final-SQL model does not invent ORDER BY on all columns.
     """
     usable = [
         entry
@@ -845,10 +872,13 @@ def format_sort_orders_for_prompt(sort_orders: List[dict]) -> str:
         and entry.get("direction") in ("ASC", "DESC")
     ]
     if not usable:
-        return ""
+        return _NO_ORDER_BY_PROMPT
     lines = [
         "Use these column sort directions in ORDER BY "
-        "(Ascending=ASC, Descending=DESC; skip none/empty; follow listed priority):"
+        "(Ascending=ASC, Descending=DESC; skip none/empty/Natural; "
+        "follow listed priority). "
+        "Do not add extra ORDER BY columns beyond this list unless the user "
+        "question explicitly requests a different sort:"
     ]
     for entry in usable:
         lines.append(
@@ -903,6 +933,96 @@ def filter_topic_mappings_for_selection(
     ]
 
 
+def filter_topic_mappings_for_picked(
+    topic_mappings: Optional[list],
+    picked_names: Optional[List[str]],
+) -> List[dict]:
+    """Keep topics whose picked dimensions/measures are used in the query.
+
+    Unused semantic-model dimensions and measures are dropped so the Semantic
+    section matches the fields used in generated SQL. Topics that have no
+    remaining components after that filter are omitted entirely.
+    """
+    allowed = {
+        str(name).strip().lower()
+        for name in (picked_names or [])
+        if name and str(name).strip()
+    }
+    if not allowed:
+        return [entry for entry in (topic_mappings or []) if isinstance(entry, dict)]
+
+    filtered: List[dict] = []
+    for entry in topic_mappings or []:
+        if not isinstance(entry, dict):
+            continue
+        narrowed = dict(entry)
+        rich = entry.get("components")
+        if isinstance(rich, list) and rich:
+            narrowed["components"] = [
+                component
+                for component in rich
+                if isinstance(component, dict)
+                and str(component.get("name") or "").strip().lower() in allowed
+            ]
+        legacy = entry.get("component")
+        if isinstance(legacy, list) and legacy:
+            narrowed["component"] = [
+                token
+                for token in legacy
+                if str(_strip_component_alias(token) or "").strip().lower() in allowed
+            ]
+        if not _topic_mapping_has_components(narrowed):
+            continue
+        filtered.append(narrowed)
+    return filtered
+
+
+def _names_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_names: Optional[list],
+    key: str,
+) -> List[str]:
+    """Preserve selection order for mapping field values that are still present."""
+    used: List[str] = []
+    seen: Set[str] = set()
+    for entry in topic_mappings or []:
+        if not isinstance(entry, dict):
+            continue
+        name = str(entry.get(key) or "").strip()
+        lowered = name.lower()
+        if not name or lowered in seen:
+            continue
+        seen.add(lowered)
+        used.append(name)
+    selected = [
+        str(item).strip()
+        for item in (selected_names or [])
+        if item and str(item).strip()
+    ]
+    if not used:
+        return selected
+    if not selected:
+        return used
+    used_lookup = {name.lower() for name in used}
+    return [name for name in selected if name.lower() in used_lookup]
+
+
+def topics_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_topics: Optional[list] = None,
+) -> List[str]:
+    """Topic names that still have picked components, preserving selection order."""
+    return _names_from_picked_mappings(topic_mappings, selected_topics, "topic_name")
+
+
+def domains_from_picked_mappings(
+    topic_mappings: Optional[list],
+    selected_domains: Optional[list] = None,
+) -> List[str]:
+    """Domain names whose remaining topics still have picked components."""
+    return _names_from_picked_mappings(topic_mappings, selected_domains, "domain_name")
+
+
 def filter_domain_context_for_sql(
     model_data: Optional[dict] = None,
     *,
@@ -923,6 +1043,10 @@ def filter_domain_context_for_sql(
         if item and str(item).strip()
     ]
     mappings = filter_topic_mappings_for_selection(topic_mappings, selected_topics)
+    mappings = [entry for entry in mappings if _topic_mapping_has_components(entry)]
+    # Semantic lists only topics/domains that still have used dims/metrics.
+    selected_topics = topics_from_picked_mappings(mappings, selected_topics)
+    selected_domains = domains_from_picked_mappings(mappings, selected_domains)
 
     if model_data and isinstance(model_data, dict) and model_data.get("domain"):
         narrowed = dict(model_data)
@@ -931,7 +1055,11 @@ def filter_domain_context_for_sql(
             if not isinstance(entry, dict):
                 continue
             domain_name = str(entry.get("domain_name") or "").strip()
-            if selected_domains and domain_name and domain_name not in selected_domains:
+            if (
+                selected_domains
+                and domain_name
+                and domain_name.lower() not in {name.lower() for name in selected_domains}
+            ):
                 continue
             topic_entries = []
             for topic in entry.get("topics") or []:
@@ -1434,6 +1562,25 @@ def _strip_component_alias(token: Any) -> str:
     return text
 
 
+def _topic_mapping_has_components(entry: dict) -> bool:
+    """True when a topic mapping still lists at least one dim/measure component."""
+    if not isinstance(entry, dict):
+        return False
+    rich = entry.get("components")
+    if isinstance(rich, list):
+        for component in rich:
+            if not isinstance(component, dict):
+                continue
+            if str(component.get("name") or component.get("id") or "").strip():
+                return True
+    legacy = entry.get("component")
+    if isinstance(legacy, list):
+        for token in legacy:
+            if str(_strip_component_alias(token) or "").strip():
+                return True
+    return False
+
+
 def _cube_item_kind(item: dict, name_key: str) -> str:
     """Classify a cube item for topic component mapping."""
     if name_key == "measureName":
@@ -1701,7 +1848,7 @@ def format_topic_mappings_for_prompt(topic_mappings: Optional[list]) -> str:
         if not isinstance(entry, dict):
             continue
         topic_name = entry.get("topic_name")
-        if not topic_name:
+        if not topic_name or not _topic_mapping_has_components(entry):
             continue
         header_parts = [f"Topic: {topic_name}"]
         if entry.get("domain_name"):

@@ -831,6 +831,7 @@ class TestFormatStringAndSortOrder:
         assert "booking_platform: ASC" in prompt
         assert "travel_cost" not in prompt
         assert "travel_type" not in prompt
+        assert "Do not add extra ORDER BY columns" in prompt
 
         domain_ctx = filter_domain_context_for_sql(
             domain=["Sales Order"],
@@ -856,6 +857,118 @@ class TestFormatStringAndSortOrder:
         assert "travel_cost" in domain_ctx
         assert "Client Meeting" not in domain_ctx or "Topic: Client Meeting" not in domain_ctx
         assert "Topic: Client Meeting" not in domain_ctx
+
+    def test_all_natural_sort_tells_final_sql_not_to_order_by_all_columns(self):
+        """Natural dimensions must not become ORDER BY on every selected column."""
+        from helicalbi.common.CubeInfoModel import (
+            _sort_order_raw_from_cube_item,
+            format_sort_orders_for_prompt,
+            sort_orders_from_cube_info,
+        )
+
+        cube_info = [
+            {
+                "dimensions": [
+                    {"dimensionName": "Client Name", "sort": "Natural"},
+                    {"dimensionName": "Year", "sort": "Natural", "sortOrder": 0},
+                    {"dimensionName": "Impact", "sort": "Natural"},
+                ],
+                "measures": [
+                    {"measureName": "Cost Incurred", "sort": "Descending"},
+                ],
+            }
+        ]
+        orders = sort_orders_from_cube_info(cube_info)
+        assert orders == []
+        # Explicit Natural must win over numeric sortOrder on the same item.
+        assert (
+            _sort_order_raw_from_cube_item(
+                {"dimensionName": "Year", "sort": "Natural", "sortOrder": 0}
+            )
+            is None
+        )
+        prompt = format_sort_orders_for_prompt(orders)
+        assert "Do NOT add an ORDER BY clause" in prompt
+        assert "Do not ORDER BY every selected column" in prompt
+
+    def test_topic_mappings_keep_only_picked_components(self):
+        from helicalbi.common.CubeInfoModel import filter_topic_mappings_for_picked
+
+        mappings = [
+            {
+                "topic_name": "Travel",
+                "components": [
+                    {"name": "Destination", "kind": "dimension"},
+                    {"name": "Booking Platform", "kind": "dimension"},
+                    {"name": "Travel Cost", "kind": "measure"},
+                ],
+                "component": ["Destination", "Booking Platform", "Travel Cost"],
+            }
+        ]
+        filtered = filter_topic_mappings_for_picked(
+            mappings, ["Destination", "Travel Cost"]
+        )
+        assert [c["name"] for c in filtered[0]["components"]] == [
+            "Destination",
+            "Travel Cost",
+        ]
+        assert filtered[0]["component"] == ["Destination", "Travel Cost"]
+
+    def test_topic_mappings_drop_topics_without_picked_components(self):
+        from helicalbi.common.CubeInfoModel import (
+            domains_from_picked_mappings,
+            filter_domain_context_for_sql,
+            filter_topic_mappings_for_picked,
+            topics_from_picked_mappings,
+        )
+
+        mappings = [
+            {
+                "topic_name": "Travel",
+                "domain_name": "Sales Travel",
+                "components": [
+                    {"name": "Destination", "kind": "dimension"},
+                    {"name": "Travel Cost", "kind": "measure"},
+                ],
+                "component": ["Destination", "Travel Cost"],
+            },
+            {
+                "topic_name": "Meeting",
+                "domain_name": "Client Meetings",
+                "components": [
+                    {"name": "Meeting Type", "kind": "dimension"},
+                    {"name": "Meeting Count", "kind": "measure"},
+                ],
+                "component": ["Meeting Type", "Meeting Count"],
+            },
+        ]
+        filtered = filter_topic_mappings_for_picked(
+            mappings, ["Destination", "Travel Cost"]
+        )
+        assert [entry["topic_name"] for entry in filtered] == ["Travel"]
+        assert topics_from_picked_mappings(
+            filtered, ["Travel", "Meeting"]
+        ) == ["Travel"]
+        assert domains_from_picked_mappings(
+            filtered, ["Sales Travel", "Client Meetings"]
+        ) == ["Sales Travel"]
+
+        domain_ctx = filter_domain_context_for_sql(
+            domain=["Sales Travel", "Client Meetings"],
+            topics=["Travel", "Meeting"],
+            topic_mappings=filtered,
+        )
+        assert "Topic: Travel" in domain_ctx
+        assert "Destination" in domain_ctx
+        assert "Travel Cost" in domain_ctx
+        assert "Topic: Meeting" not in domain_ctx
+        assert "Meeting Type" not in domain_ctx
+        # Selected-but-unused topics must not remain in the Semantic topic list.
+        assert "topics: Travel, Meeting" not in domain_ctx
+        assert "topics: Travel" in domain_ctx
+        assert "Domain: Sales Travel, Client Meetings" not in domain_ctx
+        assert "Domain: Sales Travel" in domain_ctx
+        assert "Client Meetings" not in domain_ctx
 
     def test_ai_instructions_map_and_prompt(self):
         cube_info = [

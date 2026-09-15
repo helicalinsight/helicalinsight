@@ -417,8 +417,13 @@ public class ResourceAuthenticatorDB implements IResourceAuthenticatorDB, CheckC
           JsonElement dir = jsonFormData.get(directory);
           dir = dir== null ? jsonFormData.get("newLocation"):dir;
           LookupParameters lookupParameters = urlContext.getLookupParameters();
-          boolean dataSourceLookup = lookupParameters==null?"true".equals(subContext.getIsDataSource()):isDataSourceLookup(lookupParameters);
-
+          String type = GsonUtility.optStringValue(jsonFormData,"type","");
+          boolean dataSourceLookup = "dataSource".equals(type);
+          
+          if(!dataSourceLookup) {
+        	  dataSourceLookup = lookupParameters==null?"true".equals(subContext.getIsDataSource()):isDataSourceLookup(lookupParameters);
+          }
+          
           if (dataSourceLookup) {
               return evaluatePermission(subContext, jsonFormData);
           }
@@ -451,7 +456,7 @@ public class ResourceAuthenticatorDB implements IResourceAuthenticatorDB, CheckC
                    && permissionLevelFromResource.equals(publicResourceAccessLevel);
            final String isPub=dirFile;
    if(isPublic){
-       HIResource hiResource =  hiResourceServiceDB.getResourceByUrl(isPub,true);
+       HIResource hiResource =  hiResourceServiceDB.findResourceByUrl(isPub);
        isPublic=hiResource.getCreatedBy()==null;
    }
            if (isCore && isShare && isPublic) {

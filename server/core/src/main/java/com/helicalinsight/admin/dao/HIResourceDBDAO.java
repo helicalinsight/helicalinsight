@@ -5,6 +5,7 @@ import com.helicalinsight.admin.model.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface HIResourceDBDAO {
 
@@ -277,10 +278,11 @@ public interface HIResourceDBDAO {
 	
 	void restoreResourcesByIds(List<Integer> resourceIds);
 	Integer updateOwner(Integer resourceId, Integer ownerId);
-	boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
+	Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
 
-	boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
+	Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
 
 	Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds);
+	List<Integer> getHIResourceIdsByCreatedBy(Integer createdBy);
     
 }

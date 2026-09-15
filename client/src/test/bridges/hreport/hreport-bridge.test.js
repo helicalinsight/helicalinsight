@@ -334,14 +334,14 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
     test('dispatches updateAggregations when aggregate is defined', async () => {
         const reportModel = makeReportModel({
             columns: ['revenue'],
-            detailedColumns: [makeDetailed('revenue', 'col-revenue')],
-            aggregate: [{ alias: 'revenue', function: 'SUM' }],
+            detailedColumns: [makeDetailed('revenue', 'col-revenue', { aggregate: true, aggregateList: ['SUM'] })],
         });
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
 
         expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: ['SUM'], group: 'aggregate' });
+        expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: [], group: 'groupBy' });
     });
 
     test('falls back to a bare field entry when a column cannot be matched in tables', async () => {

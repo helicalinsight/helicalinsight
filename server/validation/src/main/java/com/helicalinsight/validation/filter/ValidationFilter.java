@@ -167,8 +167,8 @@ public class ValidationFilter implements Filter {
 				logger.error("Error occurred for " + requestedUrl);
 			else
 				logger.error("Error occurred ", exception);
-			if (exception instanceof EfwServiceException) {
-				throw new EfwServiceException(exception.getMessage());
+			if (exception instanceof EfwServiceException rethrowEx) {
+				throw rethrowEx;
 			}
 		}
 		chain.doFilter(request, response);

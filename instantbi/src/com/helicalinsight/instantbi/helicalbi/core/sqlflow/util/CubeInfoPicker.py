@@ -64,6 +64,8 @@ def _known_dimension_and_measure_names(
                 continue
             # alias_name is dimensionName from model JSON dimensions section
             _remember(dimensions, column.get("alias_name"))
+            _remember(dimensions, column.get("dimension_name"))
+            _remember(dimensions, column.get("level_name"))
         for measure in cube.get("measures") or []:
             if not isinstance(measure, dict):
                 continue
@@ -186,6 +188,93 @@ def _names_from_business_metrics(required_business_metrics: list) -> Tuple[List[
     return list(dict.fromkeys(dimensions)), list(dict.fromkeys(metrics))
 
 
+def _explicit_metric_names(plan: dict) -> List[str]:
+    """Planner measure names: pickedMetrics and pickedMeasures."""
+    return _as_name_list(
+        plan.get("pickedMetrics") or plan.get("picked_metrics")
+    ) + _as_name_list(
+        plan.get("pickedMeasures") or plan.get("picked_measures")
+    )
+
+
+def _column_refs_for_derivation(plan: dict) -> List[Any]:
+    """Prefer SELECT-clause refs so filter/join-only columns stay out of Semantic."""
+    select_refs = plan.get("selectColumnName") or plan.get("select_column_name") or []
+    if select_refs:
+        return select_refs
+    return plan.get("columnName") or []
+
+
+def _used_physical_names(column_refs: List[Any]) -> Set[str]:
+    used: Set[str] = set()
+    for ref in column_refs or []:
+        _, col_name = split_table_column_ref(ref)
+        text = unquote_identifier(str(col_name or "")).strip().lower()
+        if text:
+            used.add(text)
+    return used
+
+
+def _physical_columns_for_semantic_name(cube_metadata, name: str) -> Set[str]:
+    """Physical column names (and the semantic name) that a dim/measure maps to."""
+    target = unquote_identifier(str(name or "")).strip().lower()
+    if not target:
+        return set()
+    physicals: Set[str] = {target}
+    for cube in iter_cube_entries(cube_metadata or []):
+        for bucket in ("columns", "measures"):
+            for item in cube.get(bucket) or []:
+                if not isinstance(item, dict):
+                    continue
+                labels = (
+                    item.get("alias_name"),
+                    item.get("measure_name"),
+                    item.get("dimension_name"),
+                    item.get("level_name"),
+                    item.get("column_name"),
+                )
+                if not any(
+                    unquote_identifier(str(label or "")).strip().lower() == target
+                    for label in labels
+                    if label
+                ):
+                    continue
+                column_name = unquote_identifier(str(item.get("column_name") or "")).strip()
+                if column_name:
+                    physicals.add(column_name.lower())
+    return physicals
+
+
+def _align_picks_to_used_columns(
+    explicit: List[str],
+    derived: List[str],
+    used_physical: Set[str],
+    cube_metadata,
+    known: Set[str],
+    canonical: dict,
+) -> List[str]:
+    """Match cube picks to columns the query actually uses.
+
+    Planner names whose physical column is not in the used set are dropped.
+    Used columns the planner omitted are still included.
+    When the planner names a valid subset of used columns, extra unused
+    query-plan fields stay out.
+    """
+    explicit_known = _filter_to_known(explicit, known, canonical)
+    derived_known = _filter_to_known(derived, known, canonical)
+    if not used_physical:
+        return explicit_known or derived_known
+
+    kept: List[str] = []
+    for name in explicit_known:
+        physicals = _physical_columns_for_semantic_name(cube_metadata, name)
+        if physicals & used_physical:
+            kept.append(name)
+    if kept:
+        return kept
+    return derived_known
+
+
 def build_required_cube_info(
     cube_metadata,
     query_plan: Any,
@@ -196,6 +285,11 @@ def build_required_cube_info(
     Returns semantic names plus the full metadata array items (dimensions,
     hierarchies, measures, blank-column computed measures) arranged by table.
     ``formatString`` is stripped from those items — formatting is viz-only.
+
+    Picks follow the columns used in SELECT (or ``columnName`` when SELECT is
+    absent). Planner names that are not in those columns are dropped; used
+    columns the planner omitted are still included. Extra unused query-plan
+    fields stay out when the planner named a valid subset.
     """
     from helicalbi.sql.GetContextForSQL import collect_picked_column_items
 
@@ -207,28 +301,51 @@ def build_required_cube_info(
     explicit_dimensions = _as_name_list(
         plan.get("pickedDimensions") or plan.get("picked_dimensions")
     )
-    explicit_metrics = _as_name_list(
-        plan.get("pickedMetrics") or plan.get("picked_metrics")
-    )
+    explicit_metrics = _explicit_metric_names(plan)
+    used_refs = _column_refs_for_derivation(plan)
+    used_physical = _used_physical_names(used_refs)
     derived_dimensions, derived_metrics = _derive_picks_from_column_refs(
         cube_metadata,
-        plan.get("columnName") or [],
+        used_refs,
     )
     metric_dimensions, metric_names = _names_from_business_metrics(
         required_business_metrics or []
     )
+    if used_physical:
+        metric_dimensions = [
+            name
+            for name in metric_dimensions
+            if _physical_columns_for_semantic_name(cube_metadata, name) & used_physical
+        ]
+        metric_names = [
+            name
+            for name in metric_names
+            if _physical_columns_for_semantic_name(cube_metadata, name) & used_physical
+        ]
+    derived_dimensions = derived_dimensions + metric_dimensions
+    derived_metrics = derived_metrics + metric_names
 
-    picked_dimensions = _filter_to_known(
-        explicit_dimensions + derived_dimensions + metric_dimensions,
+    picked_dimensions = _align_picks_to_used_columns(
+        explicit_dimensions,
+        derived_dimensions,
+        used_physical,
+        cube_metadata,
         known_dimensions,
         canonical,
     )
-    picked_metrics = _filter_to_known(
-        explicit_metrics + derived_metrics + metric_names,
+    picked_metrics = _align_picks_to_used_columns(
+        explicit_metrics,
+        derived_metrics,
+        used_physical,
+        cube_metadata,
         known_measures,
         canonical,
     )
-    picked_by_table = collect_picked_column_items(cube_metadata, plan)
+    plan_for_items = dict(plan)
+    plan_for_items["pickedDimensions"] = picked_dimensions
+    plan_for_items["pickedMetrics"] = picked_metrics
+    plan_for_items["pickedMeasures"] = []
+    picked_by_table = collect_picked_column_items(cube_metadata, plan_for_items)
     return {
         "picked_dimensions": picked_dimensions,
         "picked_metrics": picked_metrics,

@@ -1,6 +1,6 @@
 import { cloneDeep } from "lodash";
 import { hcrContextMenuTypes, hcrTableBandOrder, hcrTableBandsTypes } from "../../../components/hi-canned-reports/hcr-constants";
-import { getHCRTableContextMenu, getHCRTableOutlineDSContextMenu, getStylesOutline, getTableOutlinedata } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
+import { getHCRTableContextMenu, getOutlineDSContextMenu, getStylesOutline, getTableOutlinedata } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
 import { getAdvancedTableConfig, getTableStyles, hcrCanvasPaneHelperMethods, makeCellId } from "../../../components/hi-canned-reports/hcrCanvas/hcrCanvasPaneHelperMethods";
 import { addEscapedQuotes, checkIfBandIsDeleted, getEmptyGroupCell, getHCRParaTypeFormat, getInitialParameter, getNewStyle, getTableStylesFromReportState, isHCRDateVariable, updateCanvasTabViewComponent, updateTableStyles } from "../../../components/hi-canned-reports/hcrHelperMethods";
 import { tableOutlinedData } from "../constants";
@@ -841,9 +841,9 @@ describe("test getHCRTableContextMenu fn", () => {
 });
 
 
-describe('test getHCRTableOutlineDSContextMenu fn', () => {
+describe('test getOutlineDSContextMenu fn', () => {
     test('should return an empty array for "parameters" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'parameters' });
+        const result = getOutlineDSContextMenu({ menuType: 'parameters' });
         expect(result).toEqual([{
             key: "create_parameter",
             label: "Create Parameter",
@@ -851,7 +851,7 @@ describe('test getHCRTableOutlineDSContextMenu fn', () => {
     });
 
     test('should return an empty array for "parameters-item" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'parameters-item' });
+        const result = getOutlineDSContextMenu({ menuType: 'parameters-item' });
         expect(result).toEqual([
             {
                 key: "delete_parameter_item",
@@ -861,38 +861,38 @@ describe('test getHCRTableOutlineDSContextMenu fn', () => {
     });
 
     test('should return an array with "create_field" for "fields" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'fields' });
+        const result = getOutlineDSContextMenu({ menuType: 'fields' });
         expect(result).toEqual([{ key: 'create_field', label: 'Create Field' }]);
     });
 
     test('should return an array with "delete_fields_item" for "fields-item" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'fields-item' });
+        const result = getOutlineDSContextMenu({ menuType: 'fields-item' });
         expect(result).toEqual([{ key: 'delete_fields_item', label: 'Delete' }]);
     });
 
     test('should return an empty array for "variables" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'variables' });
+        const result = getOutlineDSContextMenu({ menuType: 'variables' });
         expect(result).toEqual([]);
     });
 
     test('should return an empty array for "variables-item" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'variables-item' });
+        const result = getOutlineDSContextMenu({ menuType: 'variables-item' });
         expect(result).toEqual([]);
     });
 
 
     test('should return an empty array for "calculations-item" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'calculations-item' });
+        const result = getOutlineDSContextMenu({ menuType: 'calculations-item' });
         expect(result).toHaveLength(1);
     });
 
     test('should return an empty array for "groups" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'groups' });
+        const result = getOutlineDSContextMenu({ menuType: 'groups' });
         expect(result).toHaveLength(1);
     });
 
     test('should return an empty array for "groups-item" menuType', () => {
-        const result = getHCRTableOutlineDSContextMenu({ menuType: 'groups-item' });
+        const result = getOutlineDSContextMenu({ menuType: 'groups-item' });
         expect(result).toHaveLength(1);
     });
 });
@@ -2160,9 +2160,9 @@ describe("test getStylesOutline", () => {
             });
         });
 
-        it('attaches the tableData reference to every item', () => {
+        it('attaches the componentData reference to every item', () => {
             result.forEach((item) => {
-                expect(item.tableData).toBe(mockTableData);
+                expect(item.componentData).toBe(mockTableData);
             });
         });
     });
@@ -2184,7 +2184,7 @@ describe("test getStylesOutline", () => {
                     dsContextMenu: true,
                     menuType: 'table-style-item',
                     styleId: 'style-1',
-                    tableData: mockTableData,
+                    componentData: mockTableData,
                 },
             ]);
         });
@@ -2195,32 +2195,32 @@ describe("test getStylesOutline", () => {
     });
 
 
-    describe('getStylesOutline — tableData handling', () => {
-        it('passes the same tableData reference to all items (not a copy)', () => {
+    describe('getStylesOutline — componentData handling', () => {
+        it('passes the same componentData reference to all items (not a copy)', () => {
             const result = getStylesOutline(mockTableStyles, mockTableData);
             result.forEach((item) => {
-                expect(item.tableData).toBe(mockTableData); // referential equality
+                expect(item.componentData).toBe(mockTableData); // referential equality
             });
         });
 
-        it('works when tableData is null', () => {
+        it('works when componentData is null', () => {
             const result = getStylesOutline(mockTableStyles, null);
             result.forEach((item) => {
-                expect(item.tableData).toBeNull();
+                expect(item.componentData).toBeNull();
             });
         });
 
-        it('works when tableData is undefined', () => {
+        it('works when componentData is undefined', () => {
             const result = getStylesOutline(mockTableStyles, undefined);
             result.forEach((item) => {
-                expect(item.tableData).toBeUndefined();
+                expect(item.componentData).toBeUndefined();
             });
         });
 
-        it('works when tableData is an empty object', () => {
+        it('works when componentData is an empty object', () => {
             const result = getStylesOutline(mockTableStyles, {});
             result.forEach((item) => {
-                expect(item.tableData).toEqual({});
+                expect(item.componentData).toEqual({});
             });
         });
     });

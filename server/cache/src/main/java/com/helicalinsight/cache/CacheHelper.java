@@ -9,6 +9,7 @@ import com.helicalinsight.cache.model.Cache;
 import com.helicalinsight.cache.model.CacheReport;
 import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.concurrent.StreamedResultset;
+import com.helicalinsight.datasource.StreamingCacheMarkers;
 import com.helicalinsight.efw.HIManagedThread;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.utility.CloningUtils;
@@ -94,11 +95,24 @@ public class CacheHelper {
                 noOfRecords = cacheModel.getNoOfRecords();
                 Long currentTime = System.currentTimeMillis();
                 String physicalCacheFile = cacheDirectory + File.separator + cacheModel.getCacheFilePath();
-                long expiryTime = cacheModel.getCacheExpiryTime().getTime();
-                if (!refresh && (currentTime < expiryTime)) {
+                Date expiryDate = cacheModel.getCacheExpiryTime();
+                boolean expired = expiryDate == null || currentTime >= expiryDate.getTime();
+                if (!isPhysicalCacheUsable(physicalCacheFile)) {
+                    logger.warn("Cache DB entry found but physical cache is missing or incomplete: {}. Rebuilding.",
+                            physicalCacheFile);
+                    CacheUtils.deleteOldCache(cacheModel, physicalCacheFile, cacheService);
+                    return process(request, response, directory, cacheDirectory, requestCache, reportName, cacheManager);
+                }
+                if (!refresh && !expired) {
                     logger.info("Cache file time is less so it can be served ");
                     Date lastModified = cacheModel.getCacheFileTimeStamp();
-                    return serveCacheFile(response, physicalCacheFile, request, lastModified, cacheManager);
+                    Boolean served = serveCacheFile(response, physicalCacheFile, request, lastModified, cacheManager);
+                    if (Boolean.TRUE.equals(served)) {
+                        return true;
+                    }
+                    logger.warn("Failed to serve cache at {}. Rebuilding.", physicalCacheFile);
+                    CacheUtils.deleteOldCache(cacheModel, physicalCacheFile, cacheService);
+                    return process(request, response, directory, cacheDirectory, requestCache, reportName, cacheManager);
                 } else {
                 	logger.debug("Cache expired for Query : {}, reinstating the cache.", query);
                 	CacheUtils.deleteOldCache(cacheModel, physicalCacheFile, cacheService);
@@ -112,6 +126,30 @@ public class CacheHelper {
         return false;
     }
 
+    /**
+     * Non-streaming cache is a file; streaming cache is a directory with a complete marker.
+     * DB rows without usable disk data must not be treated as hits (avoids NPE on serve).
+     */
+    private boolean isPhysicalCacheUsable(String physicalCacheFile) {
+        if (physicalCacheFile == null || physicalCacheFile.isBlank()) {
+            return false;
+        }
+        File cachePath = new File(physicalCacheFile);
+        if (!cachePath.exists()) {
+            return false;
+        }
+        if (cachePath.isFile()) {
+            return true;
+        }
+        if (cachePath.isDirectory()) {
+            if (StreamingCacheMarkers.errorFile(cachePath).exists()) {
+                return false;
+            }
+            return StreamingCacheMarkers.completeFile(cachePath).exists();
+        }
+        return false;
+    }
+
     private Boolean serveCacheFile(ServletResponse response, String physicalCacheFile, ServletRequest request,
                                    Date lastUpdatedDate, CacheManager cacheManager) {
         try {
@@ -120,38 +158,56 @@ public class CacheHelper {
                 formData.addProperty("noOfRecords", noOfRecords);
                 cacheManager.setRequestData(formData.toString());
                 JasperPrint cacheJasperPrint = (JasperPrint) cacheManager.readFileContent(physicalCacheFile);
-                cacheJasperPrint.setProperty("lastModifiedCache", ""+lastUpdatedDate.getTime());
-                boolean b = cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, cacheJasperPrint);
+                if (cacheJasperPrint == null) {
+                    return false;
+                }
+                if (lastUpdatedDate != null) {
+                    cacheJasperPrint.setProperty("lastModifiedCache", "" + lastUpdatedDate.getTime());
+                }
+                cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, cacheJasperPrint);
             } else if ("com.helicalinsight.cache.manager.HCRQueryProcessCacheManagerForResultSet".equals(cacheManager.getClass().getName())) {
             	cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, new StreamedResultset(physicalCacheFile));
                 
             } else if ("com.helicalinsight.export.components.DownloadCacheManager".equals(cacheManager.getClass().getName())) {
                 Object o = cacheManager.readFileContent(physicalCacheFile);
+                if (o == null) {
+                    return false;
+                }
                 if (o instanceof ResultSet) {
-                	if(request!=null) {
+                	if(request!=null && lastUpdatedDate != null) {
                         request.setAttribute("lastModifiedCache", lastUpdatedDate.getTime());
                     }
                 	cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, new StreamedResultset(physicalCacheFile));
                 } else {
                     JsonObject fileContent = (JsonObject) o;
-                    fileContent.addProperty("lastModified", lastUpdatedDate.getTime());
+                    if (lastUpdatedDate != null) {
+                        fileContent.addProperty("lastModified", lastUpdatedDate.getTime());
+                    }
                     cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, fileContent);
                 }
             }
             else if ("com.helicalinsight.cache.manager.HCRQueryProcessCacheManager".equals(cacheManager.getClass().getName())) {
             	  Object o = cacheManager.readFileContent(physicalCacheFile);
+            	  if (o == null) {
+            	      return false;
+            	  }
             	  JsonObject fileContent = (JsonObject) o;
-                  fileContent.addProperty("lastModified", lastUpdatedDate.getTime());
+                  if (lastUpdatedDate != null) {
+                      fileContent.addProperty("lastModified", lastUpdatedDate.getTime());
+                  }
                   cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, fileContent);
             }
             else {
-                if(request!=null) {
+                if(request!=null && lastUpdatedDate != null) {
                     request.setAttribute("lastModifiedCache", lastUpdatedDate.getTime());
                 }
                 cacheManager.serveCachedContent((HttpServletRequest) request, (HttpServletResponse) response, new StreamedResultset(physicalCacheFile));
             }
         } catch (IOException exception) {
             logger.error("IO Exception occurred during io read", exception);
+            return false;
+        } catch (RuntimeException exception) {
+            logger.error("Failed while serving cache file {}", physicalCacheFile, exception);
             return false;
         }
         return true;
@@ -205,7 +261,10 @@ public class CacheHelper {
             	catch (Exception e) {
             		logger.error("Exception occurred rolling back the cache.",e);
             		rollBack(cacheId);
-            		return false;
+            		if (e instanceof EfwServiceException) {
+            			throw (EfwServiceException) e;
+            		}
+            		throw new EfwServiceException(e);
             	}
             }
             

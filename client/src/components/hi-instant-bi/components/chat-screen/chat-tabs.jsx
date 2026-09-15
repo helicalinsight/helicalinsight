@@ -4,11 +4,12 @@ import {
     DatabaseOutlined,
     ExportOutlined,
     EyeOutlined,
+    FileTextOutlined,
     FilterOutlined,
     FullscreenOutlined,
     InfoCircleOutlined
 } from "@ant-design/icons"
-import { Button, Drawer, Popover, Tabs, Typography } from 'antd'
+import { Button, Divider, Drawer, Popover, Tabs, Typography } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { useSelector } from "react-redux"
@@ -24,6 +25,8 @@ import { getHReportSelectedChartType } from "../../utils/common-utils"
 import InstantBIResponseMetadata from '../instant-bi-response-metadata'
 import AISparklesIcon from './ai-sparkles-icon'
 import InstantChartView from "./chart-view"
+import { JsonEditorPanel } from "../../../common/json-editor"
+import { cloneDeep } from "lodash"
 
 const { Text } = Typography
 
@@ -180,7 +183,7 @@ const PreviewTab = (props = {}) => {
     const editingAreaRef = useRef(null);
     const filtersAreaRef = useRef(null);
     const [renderCount, setRenderCount] = useState(0);
-    const { hreportId,  } = fullChatResponse || {};
+    const { hreportId, } = fullChatResponse || {};
     const { filters = [], selectedType } = activeReport?.hreportInteractions?.[hreportId] || {};
     const hasFilters = filters?.length > 0;
     const reports = useSelector((state) => state.hreport.present.reports);
@@ -189,8 +192,10 @@ const PreviewTab = (props = {}) => {
         if (hreportId) {
             const currentReport = getReportById(dispatch, hreportId);
             if (currentReport) {
+                const clonedReport = cloneDeep(currentReport);
+                clonedReport.reportInfo = { ...clonedReport.reportInfo, reportName: "Untitled 1" };
                 try {
-                    localStorage.setItem('hreport_active_report', JSON.stringify({ activeHreport: currentReport, fromInstantBI: true }));
+                    localStorage.setItem('hreport_active_report', JSON.stringify({ activeHreport: clonedReport, fromInstantBI: true }));
                     const newUrl = window.baseURL + `#/helical-report`;
                     window.open(newUrl);
                 } catch (error) {
@@ -322,20 +327,56 @@ const SemanticTab = (props = {}) => {
 const SQLTab = (props = {}) => {
     const {
         resolvedSql,
-        handleCopySQL
+        handleCopySQL,
+        fullChatResponse = {},
     } = props || {}
+    const [activeTab, setActiveTab] = useState("sql");
+
+    function displaySQL() {
+        return (
+            <div className="sql-view-container">
+
+                {resolvedSql && (
+                    <div className="sql-copy-btn">
+                        <InstantBITooltip title="Copy SQL">
+                            <CopyOutlined onClick={handleCopySQL} />
+                        </InstantBITooltip>
+                    </div>
+                )}
+                <Markdown remarkPlugins={[remarkGfm]}>
+                    {resolvedSql}
+                </Markdown>
+            </div>
+        )
+    }
+
     return (
-        <div className="sql-view-container">
-            {resolvedSql && (
-                <div className="sql-copy-btn">
-                    <InstantBITooltip title="Copy SQL">
-                        <CopyOutlined onClick={handleCopySQL} />
-                    </InstantBITooltip>
+        <div>
+            <InstantBITooltip title="SQL">
+                <Button
+                    size="small"
+                    type="text"
+                    className="chart-preview-section__sql-button"
+                    icon={<ConsoleSqlOutlined />}
+                    onClick={() => setActiveTab("sql")}
+                />
+            </InstantBITooltip>
+            <InstantBITooltip title="Report Model">
+                <Button
+                    size="small"
+                    type="text"
+                    className="chart-preview-section__spec-button"
+                    icon={<FileTextOutlined />}
+                    onClick={() => setActiveTab("spec")}
+                />
+            </InstantBITooltip>
+            {activeTab === "sql" && displaySQL()}
+            {activeTab === "spec" && (
+                <div style={{ height: 500 }}>
+
+                    <JsonEditorPanel value={JSON.stringify({ report_model: fullChatResponse?.report_model || {} }, null, 2)} active={false} />
                 </div>
             )}
-            <Markdown remarkPlugins={[remarkGfm]}>
-                {resolvedSql}
-            </Markdown>
         </div>
     )
 }

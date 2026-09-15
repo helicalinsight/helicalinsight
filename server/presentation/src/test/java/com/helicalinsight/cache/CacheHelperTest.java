@@ -4,21 +4,32 @@ import com.google.gson.JsonObject;
 import com.helicalinsight.cache.manager.CacheManager;
 import com.helicalinsight.cache.model.Cache;
 import com.helicalinsight.cache.service.CacheService;
+import com.helicalinsight.datasource.StreamingCacheMarkers;
 import com.helicalinsight.efw.utility.SplitterUtils;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.MockitoAnnotations;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
 import java.util.Base64;
 import java.util.Date;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class CacheHelperTest {
@@ -44,9 +55,52 @@ public class CacheHelperTest {
     @Mock
     private HttpServletResponse httpServletResponse;
 
+    private File tempRoot;
+
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         MockitoAnnotations.openMocks(this);
+        tempRoot = Files.createTempDirectory("cache-helper-test-").toFile();
+    }
+
+    @After
+    public void tearDown() {
+        if (tempRoot != null) {
+            deleteRecursively(tempRoot);
+        }
+    }
+
+    private static void deleteRecursively(File file) {
+        if (file == null || !file.exists()) {
+            return;
+        }
+        File[] children = file.listFiles();
+        if (children != null) {
+            for (File child : children) {
+                deleteRecursively(child);
+            }
+        }
+        file.delete();
+    }
+
+    private boolean invokeIsPhysicalCacheUsable(String path) throws Exception {
+        Method method = CacheHelper.class.getDeclaredMethod("isPhysicalCacheUsable", String.class);
+        method.setAccessible(true);
+        return (Boolean) method.invoke(cacheHelper, path);
+    }
+
+    private String encodedQuery(String sql) {
+        return Base64.getEncoder().encodeToString(sql.getBytes());
+    }
+
+    private Cache cacheModelWithPath(String relativePath) {
+        Cache cacheModel = new Cache();
+        cacheModel.setCacheId(11L);
+        cacheModel.setCacheFilePath(relativePath);
+        cacheModel.setCacheExpiryTime(new Date(System.currentTimeMillis() + 60_000));
+        cacheModel.setCacheFileTimeStamp(new Date());
+        cacheModel.setNoOfRecords(0);
+        return cacheModel;
     }
 
     @Test
@@ -282,5 +336,246 @@ public class CacheHelperTest {
         );
 
         assertTrue(result);
+    }
+
+    // ==============================
+    // isPhysicalCacheUsable (file + streaming)
+    // ==============================
+
+    @Test
+    public void testIsPhysicalCacheUsable_nullOrBlank() throws Exception {
+        assertFalse(invokeIsPhysicalCacheUsable(null));
+        assertFalse(invokeIsPhysicalCacheUsable(""));
+        assertFalse(invokeIsPhysicalCacheUsable("   "));
+    }
+
+    @Test
+    public void testIsPhysicalCacheUsable_missingPath() throws Exception {
+        File missing = new File(tempRoot, "missing.cache");
+        assertFalse(invokeIsPhysicalCacheUsable(missing.getAbsolutePath()));
+    }
+
+    @Test
+    public void testIsPhysicalCacheUsable_existingNonStreamingFile() throws Exception {
+        File cacheFile = new File(tempRoot, "data.cache");
+        assertTrue(cacheFile.createNewFile());
+
+        assertTrue(invokeIsPhysicalCacheUsable(cacheFile.getAbsolutePath()));
+    }
+
+    @Test
+    public void testIsPhysicalCacheUsable_streamingDirWithCompleteMarker() throws Exception {
+        File streamDir = new File(tempRoot, "stream-complete");
+        assertTrue(streamDir.mkdirs());
+        assertTrue(StreamingCacheMarkers.completeFile(streamDir).createNewFile());
+
+        assertTrue(invokeIsPhysicalCacheUsable(streamDir.getAbsolutePath()));
+    }
+
+    @Test
+    public void testIsPhysicalCacheUsable_streamingDirWithoutCompleteMarker() throws Exception {
+        File streamDir = new File(tempRoot, "stream-incomplete");
+        assertTrue(streamDir.mkdirs());
+
+        assertFalse(invokeIsPhysicalCacheUsable(streamDir.getAbsolutePath()));
+    }
+
+    @Test
+    public void testIsPhysicalCacheUsable_streamingDirWithErrorMarker() throws Exception {
+        File streamDir = new File(tempRoot, "stream-error");
+        assertTrue(streamDir.mkdirs());
+        assertTrue(StreamingCacheMarkers.completeFile(streamDir).createNewFile());
+        assertTrue(StreamingCacheMarkers.errorFile(streamDir).createNewFile());
+
+        assertFalse(invokeIsPhysicalCacheUsable(streamDir.getAbsolutePath()));
+    }
+
+    // ==============================
+    // processCache rebuild when DB has entry but disk cache is unusable
+    // ==============================
+
+    @Test
+    public void testProcessCache_dbEntryButMissingFile_rebuilds() {
+        Cache requestCache = mock(Cache.class);
+        when(requestCache.getQuery()).thenReturn(encodedQuery("select 1"));
+
+        Cache cacheModel = cacheModelWithPath("gone.cache");
+        when(cacheService.findUniqueCache(requestCache)).thenReturn(cacheModel);
+        when(cacheService.addCache(requestCache)).thenReturn(99L);
+        when(cacheManager.getDirectory()).thenReturn("TEMP_DIRECTORY");
+        when(cacheManager.getDataFromDatabase(anyString())).thenReturn(null);
+
+        try (MockedStatic<CacheUtils> mocked = mockStatic(CacheUtils.class)) {
+            mocked.when(CacheUtils::isCacheEnabled).thenReturn(true);
+            mocked.when(CacheUtils::getCacheDirectory).thenReturn(tempRoot.getAbsolutePath());
+            mocked.when(CacheUtils::isStreamingCache).thenReturn(false);
+            mocked.when(CacheUtils::isThreadingEnabled).thenReturn(false);
+            mocked.when(() -> CacheUtils.deleteOldCache(any(Cache.class), anyString(), any(CacheService.class)))
+                    .thenAnswer(invocation -> null);
+
+            Boolean result = cacheHelper.processCache(
+                    mock(HttpServletRequest.class),
+                    mock(HttpServletResponse.class),
+                    "report",
+                    false,
+                    requestCache,
+                    cacheManager);
+
+            assertFalse(result);
+            mocked.verify(() -> CacheUtils.deleteOldCache(eq(cacheModel), anyString(), eq(cacheService)));
+            verify(cacheService).addCache(requestCache);
+            verify(cacheManager).getDataFromDatabase(anyString());
+        }
+    }
+
+    @Test
+    public void testProcessCache_dbEntryButIncompleteStreamingDir_rebuilds() throws Exception {
+        File streamDir = new File(tempRoot, "stream-miss");
+        assertTrue(streamDir.mkdirs());
+
+        Cache requestCache = mock(Cache.class);
+        when(requestCache.getQuery()).thenReturn(encodedQuery("select 1"));
+
+        Cache cacheModel = cacheModelWithPath("stream-miss");
+        when(cacheService.findUniqueCache(requestCache)).thenReturn(cacheModel);
+        when(cacheService.addCache(requestCache)).thenReturn(100L);
+        when(cacheManager.getDirectory()).thenReturn("TEMP_DIRECTORY");
+        when(cacheManager.getDataFromDatabase(anyString())).thenReturn(null);
+
+        try (MockedStatic<CacheUtils> mocked = mockStatic(CacheUtils.class)) {
+            mocked.when(CacheUtils::isCacheEnabled).thenReturn(true);
+            mocked.when(CacheUtils::getCacheDirectory).thenReturn(tempRoot.getAbsolutePath());
+            mocked.when(CacheUtils::isStreamingCache).thenReturn(false);
+            mocked.when(CacheUtils::isThreadingEnabled).thenReturn(false);
+            mocked.when(() -> CacheUtils.deleteOldCache(any(Cache.class), anyString(), any(CacheService.class)))
+                    .thenAnswer(invocation -> null);
+
+            Boolean result = cacheHelper.processCache(
+                    mock(HttpServletRequest.class),
+                    mock(HttpServletResponse.class),
+                    "report",
+                    false,
+                    requestCache,
+                    cacheManager);
+
+            assertFalse(result);
+            mocked.verify(() -> CacheUtils.deleteOldCache(eq(cacheModel), anyString(), eq(cacheService)));
+            verify(cacheService).addCache(requestCache);
+        }
+    }
+
+    @Test
+    public void testProcessCache_dbEntryWithStreamingErrorMarker_rebuilds() throws Exception {
+        File streamDir = new File(tempRoot, "stream-bad");
+        assertTrue(streamDir.mkdirs());
+        assertTrue(StreamingCacheMarkers.completeFile(streamDir).createNewFile());
+        assertTrue(StreamingCacheMarkers.errorFile(streamDir).createNewFile());
+
+        Cache requestCache = mock(Cache.class);
+        when(requestCache.getQuery()).thenReturn(encodedQuery("select 1"));
+
+        Cache cacheModel = cacheModelWithPath("stream-bad");
+        when(cacheService.findUniqueCache(requestCache)).thenReturn(cacheModel);
+        when(cacheService.addCache(requestCache)).thenReturn(101L);
+        when(cacheManager.getDirectory()).thenReturn("TEMP_DIRECTORY");
+        when(cacheManager.getDataFromDatabase(anyString())).thenReturn(null);
+
+        try (MockedStatic<CacheUtils> mocked = mockStatic(CacheUtils.class)) {
+            mocked.when(CacheUtils::isCacheEnabled).thenReturn(true);
+            mocked.when(CacheUtils::getCacheDirectory).thenReturn(tempRoot.getAbsolutePath());
+            mocked.when(CacheUtils::isStreamingCache).thenReturn(false);
+            mocked.when(CacheUtils::isThreadingEnabled).thenReturn(false);
+            mocked.when(() -> CacheUtils.deleteOldCache(any(Cache.class), anyString(), any(CacheService.class)))
+                    .thenAnswer(invocation -> null);
+
+            Boolean result = cacheHelper.processCache(
+                    mock(HttpServletRequest.class),
+                    mock(HttpServletResponse.class),
+                    "report",
+                    false,
+                    requestCache,
+                    cacheManager);
+
+            assertFalse(result);
+            mocked.verify(() -> CacheUtils.deleteOldCache(eq(cacheModel), anyString(), eq(cacheService)));
+            verify(cacheService).addCache(requestCache);
+        }
+    }
+
+    @Test
+    public void testProcessCache_usableNonStreamingFile_servesWithoutRebuild() throws Exception {
+        File cacheFile = new File(tempRoot, "hit.cache");
+        assertTrue(cacheFile.createNewFile());
+
+        Cache requestCache = mock(Cache.class);
+        when(requestCache.getQuery()).thenReturn(encodedQuery("select 1"));
+
+        Cache cacheModel = cacheModelWithPath("hit.cache");
+        when(cacheService.findUniqueCache(requestCache)).thenReturn(cacheModel);
+        when(cacheManager.serveCachedContent(any(HttpServletRequest.class), any(HttpServletResponse.class), any()))
+                .thenReturn(true);
+
+        try (MockedStatic<CacheUtils> mocked = mockStatic(CacheUtils.class);
+             MockedConstruction<com.helicalinsight.concurrent.StreamedResultset> streamed =
+                     mockConstruction(com.helicalinsight.concurrent.StreamedResultset.class)) {
+            mocked.when(CacheUtils::isCacheEnabled).thenReturn(true);
+            mocked.when(CacheUtils::getCacheDirectory).thenReturn(tempRoot.getAbsolutePath());
+
+            Boolean result = cacheHelper.processCache(
+                    mock(HttpServletRequest.class),
+                    mock(HttpServletResponse.class),
+                    "report",
+                    false,
+                    requestCache,
+                    cacheManager);
+
+            assertTrue(result);
+            assertEquals(1, streamed.constructed().size());
+            mocked.verify(() -> CacheUtils.deleteOldCache(any(Cache.class), anyString(), any(CacheService.class)), never());
+            verify(cacheService, never()).addCache(any());
+            verify(cacheManager).serveCachedContent(
+                    any(HttpServletRequest.class),
+                    any(HttpServletResponse.class),
+                    any());
+        }
+    }
+
+    @Test
+    public void testProcessCache_usableStreamingDir_servesWithoutRebuild() throws Exception {
+        File streamDir = new File(tempRoot, "stream-hit");
+        assertTrue(streamDir.mkdirs());
+        assertTrue(StreamingCacheMarkers.completeFile(streamDir).createNewFile());
+
+        Cache requestCache = mock(Cache.class);
+        when(requestCache.getQuery()).thenReturn(encodedQuery("select 1"));
+
+        Cache cacheModel = cacheModelWithPath("stream-hit");
+        when(cacheService.findUniqueCache(requestCache)).thenReturn(cacheModel);
+        when(cacheManager.serveCachedContent(any(HttpServletRequest.class), any(HttpServletResponse.class), any()))
+                .thenReturn(true);
+
+        try (MockedStatic<CacheUtils> mocked = mockStatic(CacheUtils.class);
+             MockedConstruction<com.helicalinsight.concurrent.StreamedResultset> streamed =
+                     mockConstruction(com.helicalinsight.concurrent.StreamedResultset.class)) {
+            mocked.when(CacheUtils::isCacheEnabled).thenReturn(true);
+            mocked.when(CacheUtils::getCacheDirectory).thenReturn(tempRoot.getAbsolutePath());
+
+            Boolean result = cacheHelper.processCache(
+                    mock(HttpServletRequest.class),
+                    mock(HttpServletResponse.class),
+                    "report",
+                    false,
+                    requestCache,
+                    cacheManager);
+
+            assertTrue(result);
+            assertEquals(1, streamed.constructed().size());
+            mocked.verify(() -> CacheUtils.deleteOldCache(any(Cache.class), anyString(), any(CacheService.class)), never());
+            verify(cacheService, never()).addCache(any());
+            verify(cacheManager).serveCachedContent(
+                    any(HttpServletRequest.class),
+                    any(HttpServletResponse.class),
+                    any());
+        }
     }
 }

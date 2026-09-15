@@ -9,6 +9,7 @@ import com.helicalinsight.datasource.MetadataUtils;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.EfwException;
 import com.helicalinsight.efw.exceptions.HCRException;
+import com.helicalinsight.efw.services.FontService;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 import com.helicalinsight.efw.utility.FileUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
@@ -206,6 +207,9 @@ public class HCRExportHelper {
     public boolean exportIntoFiles(String format, int page, JsonObject jrxmlData) {
         format = format.toUpperCase();
         logger.info("Export-Format :" + format);
+
+        // Ensure managed Admin/fonts are registered with FontFactory aliases before Jasper export
+        FontService.registerFontDirectories();
         
         chromePropertiesLoaded = chromePropertiesLoaded ||  HCRUtils.loadHcrPropertiesByPrefix("net.sf.jasperreports.chrome");
         

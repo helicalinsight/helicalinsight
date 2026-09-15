@@ -452,6 +452,11 @@ public class ApplicationUtilities {
         case "webp" -> "image/webp";
         case "ico"  -> "image/x-icon";
         case "tiff", "tif" -> "image/tiff";
+        case "ttf"  -> "font/ttf";
+        case "otf"  -> "font/otf";
+        case "ttc"  -> "font/collection";
+        case "woff" -> "font/woff";
+        case "woff2" -> "font/woff2";
         default      -> "application/octet-stream";
     };
    }

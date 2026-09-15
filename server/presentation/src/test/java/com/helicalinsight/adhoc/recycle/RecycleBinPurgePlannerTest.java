@@ -110,7 +110,7 @@ public class RecycleBinPurgePlannerTest {
 		parentMap.put(2, 1);
 		when(resourceServiceDb.findParentIdsByResourceIds(argThat(c -> c != null && c.contains(1) && c.contains(2))))
 				.thenReturn(parentMap);
-		when(resourceServiceDb.hardDeleteResourcesByIds(any(), anyBoolean())).thenReturn(true);
+		when(resourceServiceDb.hardDeleteResourcesByIds(any(), anyBoolean())).thenReturn(Set.of());
 		when(recycleBinService.isRecycleBinPresent(1L)).thenReturn(true);
 		when(recycleBinService.isRecycleBinPresent(2L)).thenReturn(true);
 
@@ -120,6 +120,25 @@ public class RecycleBinPurgePlannerTest {
 		verify(resourceServiceDb, times(1)).hardDeleteResourcesByIds(eq(List.of(1)), anyBoolean());
 		verify(transactionManager, times(2)).commit(any(TransactionStatus.class));
 		assertEquals(Set.of(1L, 2L), completed);
+	}
+
+	@Test
+	public void purge_includesCascadedBinIdsReturnedFromHardDelete() {
+		RecycleBinDTO parent = bin(10L, 1);
+		PurgeEligibility eligibility = new PurgeEligibility(Set.of(10L), Set.of());
+		Map<Long, Boolean> status = new HashMap<>();
+		status.put(10L, false);
+
+		when(recycleBinService.isRecycleBinPresent(10L)).thenReturn(true);
+		when(resourceServiceDb.hardDeleteResourcesByIds(eq(List.of(1)), anyBoolean()))
+				.thenReturn(Set.of(10L, 20L, 30L));
+
+		Set<Long> completed = planner.purge(List.of(parent), eligibility, status);
+
+		assertEquals(Set.of(10L, 20L, 30L), completed);
+		assertEquals(Boolean.TRUE, status.get(10L));
+		assertEquals(Boolean.TRUE, status.get(20L));
+		assertEquals(Boolean.TRUE, status.get(30L));
 	}
 
 	@Test
@@ -136,7 +155,7 @@ public class RecycleBinPurgePlannerTest {
 		parentMap.put(2, null);
 		when(resourceServiceDb.findParentIdsByResourceIds(any())).thenReturn(parentMap);
 		when(recycleBinService.isRecycleBinPresent(any())).thenReturn(true);
-		when(resourceServiceDb.hardDeleteResourcesByIds(eq(List.of(1)), anyBoolean())).thenReturn(true);
+		when(resourceServiceDb.hardDeleteResourcesByIds(eq(List.of(1)), anyBoolean())).thenReturn(Set.of(1L));
 		when(resourceServiceDb.hardDeleteResourcesByIds(eq(List.of(2)), anyBoolean()))
 				.thenThrow(new EfwServiceException("exception"));
 

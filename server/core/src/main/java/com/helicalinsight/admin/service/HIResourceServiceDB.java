@@ -10,6 +10,7 @@ import jakarta.transaction.Transactional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public interface HIResourceServiceDB {
 
@@ -193,7 +194,7 @@ public interface HIResourceServiceDB {
     Long countResourceByCreatedBy(Integer createdBy);
 
     List<HIResource> getHIResourceByCreatedBy(Integer createdBy);
-    
+    List<Integer> getHIResourceIdsByCreatedBy(Integer createdBy);
     List<HIResource> getHIResourceByCreatedBy(Integer createdBy, boolean includeFilter);
     
     List<HIResource> getHIResourceByPath(String path);
@@ -269,9 +270,9 @@ public interface HIResourceServiceDB {
     Map<Integer, List<HIResource>> findAllReportsByMetadataResourceIds(List<Integer> metadataResourceIds);
     Map<Integer, List<HIResource>> findAllInstantReportsByModelResourceIds(List<Integer> modelResourceIds);
     void restoreResourcesByIds(List<Integer> resourceIds);
-    boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
+    Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds);
 
-    boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
+    Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force);
 
     Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds);
 }

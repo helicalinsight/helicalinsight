@@ -772,18 +772,14 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		
 		for(HIEfwdConnection conn:efwd) {
 			
-			HIResource resource  =  conn.getHiResourceEFWD().getParentResource();
+				HIResource resource  =  conn.getHiResourceEFWD().getParentResource();
 			
 				final EfwdConnDTO dto = new EfwdConnDTO();
 				HIEfwdDTO resourceDto = new HIEfwdDTO();
 				resourceDto.setResourceId(resource.getResourceId());
 				resourceDto.setResourceUrl(resource.getResourceURL());
-				Integer createdBy = resource.getCreatedBy();
-				if ( createdBy != null) {
-					User user =  userDao.findUser(createdBy);
-					resourceDto.setCreatedBy(mapper.map(user));
-				}
-				
+				User createdBy = conn.getHiResourceEFWD().getCreatedBy();
+				resourceDto.setCreatedBy(mapper.map(createdBy));
 				resourceDto.setIsDeleted(resource.isDeleted());
 				dto.setResource(resourceDto);				
 				dto.setId(conn.getId());	

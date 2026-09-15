@@ -980,13 +980,13 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 	
 	@Transactional
 	@Override
-	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
+	public Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
 		return hardDeleteResourcesByIds(rootResourceIds, false);
 	}
 
 	@Transactional
 	@Override
-	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
+	public Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
 		return hiResourceDBDAO.hardDeleteResourcesByIds(rootResourceIds, force);
 	}
 
@@ -994,6 +994,11 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
 	@Override
 	public Map<Integer, Integer> findParentIdsByResourceIds(Collection<Integer> resourceIds) {
 		return hiResourceDBDAO.findParentIdsByResourceIds(resourceIds);
+	}
+	@Transactional
+	@Override
+	public List<Integer> getHIResourceIdsByCreatedBy(Integer createdBy) {
+		return hiResourceDBDAO.getHIResourceIdsByCreatedBy(createdBy);
 	}
     
 }

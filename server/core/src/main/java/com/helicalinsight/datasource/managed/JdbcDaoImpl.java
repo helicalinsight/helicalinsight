@@ -138,7 +138,12 @@ public class JdbcDaoImpl implements IJdbcDao {
         	DatabaseMetaData metadata =  connection.getMetaData();
         	String dbName = metadata.getDatabaseProductName();
         	
-        	statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        	try {
+        		statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+        	}
+        	catch (SQLException exception) {
+        		statement = connection.createStatement();
+			}
 
         	connection.setAutoCommit(config.autoCommit());
         	
@@ -271,6 +276,9 @@ public class JdbcDaoImpl implements IJdbcDao {
 
     private void cancelStatement(Statement statement, Exception ex) {
         logger.error("Cancelling the current query statement. Timeout occurred.", ex);
+        
+        if ( statement == null) return;
+        
         try {
             if (!statement.isClosed() && statement.getConnection() != null) {
                 statement.cancel();

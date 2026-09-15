@@ -170,6 +170,13 @@
             <content name="png" pattern="*.png"/>
             <content name="svg" pattern="*.svg"/>
         </type>
+        <type class="com.helicalinsight.efw.externalresources.FontReader" name="content.font">
+            <content name="ttf" pattern="*.ttf" responseContent="font/ttf"/>
+            <content name="otf" pattern="*.otf" responseContent="font/otf"/>
+            <content name="ttc" pattern="*.ttc" responseContent="font/collection"/>
+            <content name="woff" pattern="*.woff" responseContent="font/woff"/>
+            <content name="woff2" pattern="*.woff2" responseContent="font/woff2"/>
+        </type>
     </contents>
 
     <resourcereader class="com.helicalinsight.efw.resourcereader.XMLResourceReader" type="xml"/>
@@ -438,6 +445,7 @@
         <handler bean="csvUploadHandler" type="csv2"/>
         <handler bean="imageUploadHandler" type="image"/>
         <handler bean="driverConfigUploadHandler" type="flatfile"/>
+        <handler bean="fontUploadHandler" type="font"/>
     </upload>
 
     <datasourceDeleteHandlers>

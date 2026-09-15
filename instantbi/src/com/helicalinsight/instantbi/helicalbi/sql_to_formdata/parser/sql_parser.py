@@ -48,7 +48,11 @@ def parse_sql(
     # Prefer metadata catalog.schema when provided (wire FQ names).
     if database_name:
         parsed.database_name = database_name
-    parsed.selects = [_parse_select_expr(e, parsed) for e in tree.expressions]
+    outer_distinct = _select_distinct_stacks_on_aggregates(tree, catalog)
+    parsed.selects = [
+        _parse_select_expr(e, parsed, outer_distinct=outer_distinct)
+        for e in tree.expressions
+    ]
 
     group = tree.args.get("group")
     if group:
@@ -147,7 +151,121 @@ def _column_ref(node: exp.Expression, parsed: ParsedQuery) -> ColumnRef:
     return ColumnRef(table=table or None, name=col.sql(dialect=parsed.dialect), catalog=parsed.database_name or None)
 
 
-def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
+def _unwrap_paren(node: exp.Expression | None) -> exp.Expression | None:
+    while isinstance(node, exp.Paren):
+        node = node.this
+    return node
+
+
+def _unwrap_alias(node: exp.Expression | None) -> exp.Expression | None:
+    if isinstance(node, exp.Alias):
+        node = node.this
+    return _unwrap_paren(node)
+
+
+def _distinct_arg(node: exp.Distinct) -> exp.Expression | None:
+    if node.expressions:
+        return node.expressions[0]
+    if node.this is not None:
+        return node.this
+    return None
+
+
+def _is_aggregate_expr(node: exp.Expression | None, cat: FunctionCatalog) -> bool:
+    node = _unwrap_paren(node)
+    if node is None:
+        return False
+    if isinstance(node, exp.Distinct):
+        return bool(cat.aggregate_key("DISTINCT"))
+    if isinstance(node, exp.AggFunc):
+        return True
+    return isinstance(node, exp.Func) and cat.is_aggregate(node.sql_name())
+
+
+def _select_distinct_stacks_on_aggregates(tree: exp.Select, cat: FunctionCatalog) -> bool:
+    """True when SELECT DISTINCT wraps only aggregates, e.g. DISTINCT(COUNT(col))."""
+    if not tree.args.get("distinct"):
+        return False
+    exprs = tree.expressions or []
+    if not exprs:
+        return False
+    return all(_is_aggregate_expr(_unwrap_alias(e), cat) for e in exprs)
+
+
+def _agg_fn_name(expr: exp.Expression) -> str:
+    if isinstance(expr, exp.Distinct):
+        return "DISTINCT"
+    if isinstance(expr, exp.Func):
+        return str(expr.sql_name() or "agg").upper()
+    return "AGG"
+
+
+def _peel_distinct_arg(inner: exp.Expression | None) -> tuple[bool, exp.Expression | None]:
+    """Unwrap DISTINCT col / DISTINCT (expr) to the inner argument."""
+    inner = _unwrap_paren(inner)
+    if not isinstance(inner, exp.Distinct):
+        return False, inner
+    return True, _unwrap_paren(_distinct_arg(inner))
+
+
+def _aggregate_level_keys(
+    expr: exp.Expression,
+    cat: FunctionCatalog,
+) -> tuple[list[str], exp.Expression | None]:
+    """Keys for one aggregate layer, plus the argument after DISTINCT is peeled."""
+    if isinstance(expr, exp.Distinct):
+        distinct_key = cat.aggregate_key("DISTINCT")
+        keys = [distinct_key] if distinct_key else []
+        return keys, _unwrap_paren(_distinct_arg(expr))
+
+    fn_name = _agg_fn_name(expr)
+    agg = cat.aggregate_key(fn_name)
+    has_distinct = bool(expr.args.get("distinct"))
+    inner = expr.this if hasattr(expr, "this") else None
+    peeled, inner = _peel_distinct_arg(inner)
+    has_distinct = has_distinct or peeled
+
+    keys: list[str] = []
+    if agg:
+        keys.append(agg)
+    if has_distinct:
+        distinct_key = cat.aggregate_key("DISTINCT")
+        if distinct_key and distinct_key not in keys:
+            keys.append(distinct_key)
+    return keys, inner
+
+
+def _stack_aggregates(
+    expr: exp.Expression,
+    cat: FunctionCatalog,
+) -> tuple[list[str], exp.Expression | None]:
+    """
+    Peel nested aggregates outer → inner.
+
+    SUM(COUNT(col)) → [sum, count], remaining col
+    COUNT(DISTINCT col) → [count, distinct]
+    DISTINCT(COUNT(col)) → [distinct, count]
+    SUM(COUNT(DISTINCT col)) → [sum, count, distinct]
+    AVG(SUM(COUNT(col))) → [avg, sum, count]
+    Unmapped inner aggregate is left as remaining (custom fallback).
+    """
+    aggregates: list[str] = []
+    current: exp.Expression | None = _unwrap_paren(expr)
+    while _is_aggregate_expr(current, cat):
+        keys, inner = _aggregate_level_keys(current, cat)
+        if not keys:
+            break
+        aggregates.extend(keys)
+        current = _unwrap_paren(inner)
+    return aggregates, current
+
+
+def _parse_select_expr(
+    node: exp.Expression,
+    parsed: ParsedQuery,
+    *,
+    outer_distinct: bool = False,
+) -> SelectItem:
     alias = ""
     expr = node
     if isinstance(node, exp.Alias):
@@ -155,41 +273,18 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
         expr = node.this
     elif isinstance(node, exp.Column):
         alias = node.name
+    expr = _unwrap_paren(expr)
 
-    # Aggregate: SUM(col), SUM(DISTINCT col), COUNT(...), etc.
+    # Aggregate: SUM(col), SUM(COUNT(col)), DISTINCT(COUNT(col)), COUNT(...), etc.
     cat = _catalog(parsed)
-    if isinstance(expr, exp.AggFunc) or (
-        isinstance(expr, exp.Func) and cat.is_aggregate(expr.sql_name())
-    ):
-        fn_name = expr.sql_name().upper()
-        agg = cat.aggregate_key(fn_name)
-        aggregates: list[str] = [agg] if agg else []
-        inner = expr.this if hasattr(expr, "this") else None
-        has_distinct = bool(expr.args.get("distinct"))
-
-        # SUM(DISTINCT (...)) — sqlglot wraps as Distinct node
-        if isinstance(inner, exp.Distinct):
-            has_distinct = True
-            if inner.expressions:
-                inner = inner.expressions[0]
-            elif inner.this is not None:
-                inner = inner.this
-
-        if has_distinct:
-            # COUNT(DISTINCT x) prefers COUNT_DISTINCT when mapped; else append distinct
-            if isinstance(expr, exp.Count):
-                count_distinct = cat.aggregate_key("COUNT_DISTINCT")
-                if count_distinct and count_distinct != agg:
-                    aggregates = [count_distinct]
-                    agg = count_distinct
-                else:
-                    distinct_key = cat.aggregate_key("DISTINCT")
-                    if distinct_key and distinct_key not in aggregates:
-                        aggregates.append(distinct_key)
-            else:
-                distinct_key = cat.aggregate_key("DISTINCT")
-                if distinct_key and distinct_key not in aggregates:
-                    aggregates.append(distinct_key)
+    if _is_aggregate_expr(expr, cat):
+        fn_name = _agg_fn_name(expr)
+        aggregates, inner = _stack_aggregates(expr, cat)
+        if outer_distinct:
+            distinct_key = cat.aggregate_key("DISTINCT")
+            if distinct_key and (not aggregates or aggregates[0] != distinct_key):
+                aggregates = [distinct_key, *aggregates]
+        agg = aggregates[0] if aggregates else None
 
         col_ref = None
         db_fn = None
@@ -199,6 +294,7 @@ def _parse_select_expr(node: exp.Expression, parsed: ParsedQuery) -> SelectItem:
         custom_expr = None
         used_cols: list[ColumnRef] = []
         raw = expr.sql(dialect=parsed.dialect)
+        inner = _unwrap_paren(inner)
 
         if isinstance(inner, exp.Column):
             col_ref = _column_ref(inner, parsed)
@@ -655,26 +751,12 @@ def _side_column_meta(
     used_cols: list[ColumnRef] = []
     cat = _catalog(parsed)
 
-    expr = side
-    if isinstance(expr, exp.Paren):
-        expr = expr.this
+    expr = _unwrap_paren(side)
 
-    if isinstance(expr, exp.AggFunc) or (
-        isinstance(expr, exp.Func) and cat.is_aggregate(expr.sql_name())
-    ):
-        aggregate = cat.aggregate_key(expr.sql_name())
-        inner = expr.this
-        if isinstance(inner, exp.Distinct):
-            distinct_key = cat.aggregate_key("DISTINCT")
-            if isinstance(expr, exp.Count):
-                aggregate = cat.aggregate_key("COUNT_DISTINCT") or distinct_key or aggregate
-            # peel distinct for column extraction
-            if inner.expressions:
-                inner = inner.expressions[0]
-            elif inner.this is not None:
-                inner = inner.this
-        elif isinstance(expr, exp.Count) and expr.args.get("distinct"):
-            aggregate = cat.aggregate_key("COUNT_DISTINCT") or cat.aggregate_key("DISTINCT")
+    if _is_aggregate_expr(expr, cat):
+        stacked, inner = _stack_aggregates(expr, cat)
+        aggregate = "_".join(stacked) if stacked else None
+        inner = _unwrap_paren(inner)
 
         if isinstance(inner, exp.Func) and not isinstance(inner, exp.AggFunc):
             inner_col = _find_column(inner)
@@ -688,7 +770,7 @@ def _side_column_meta(
             col_ref = _column_ref(inner, parsed)
             used_cols = [col_ref]
         if col_ref and aggregate:
-            fn = (expr.sql_name() or "agg").lower()
+            fn = _agg_fn_name(expr).lower()
             alias = f"{fn}_{col_ref.name}"
         return aggregate, col_ref, db_fn, alias, db_fn_sql, used_cols
 

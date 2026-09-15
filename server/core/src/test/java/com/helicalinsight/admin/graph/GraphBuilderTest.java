@@ -120,8 +120,12 @@ public class GraphBuilderTest {
 				|| leafFirst.equals(List.of(6,5,4,3,2,1))
 				|| leafFirst.equals(List.of(4,5,6,3,2,1))
 				|| leafFirst.equals(List.of(4,5,6,2,3,1))
+				|| leafFirst.equals(List.of(4,6,5,3,2,1))
 				|| leafFirst.equals(List.of(5,4,6,3,2,1))
-				);
+				|| leafFirst.equals(List.of(5,4,6,2,3,1))
+				|| leafFirst.equals(List.of(6,4,5,2,3,1))
+				|| leafFirst.equals(List.of(6,5,4,2,3,1))
+			);
 	}
 
 	@Test
