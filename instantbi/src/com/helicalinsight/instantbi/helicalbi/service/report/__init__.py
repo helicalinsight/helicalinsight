@@ -1,0 +1,1 @@
+"""Instant report memory helpers."""

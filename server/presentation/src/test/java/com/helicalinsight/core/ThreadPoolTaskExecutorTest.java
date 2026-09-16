@@ -19,6 +19,9 @@ import org.junit.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.helicalinsight.core.request.RequestContext;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
@@ -47,6 +50,7 @@ public class ThreadPoolTaskExecutorTest {
     public void tearDown() {
         RequestContext.clear();
         SecurityContextHolder.clearContext();
+        RequestContextHolder.resetRequestAttributes();
         RequestRegistryFilter.cancelledRequests.clear();
         executor.shutdown();
     }
@@ -63,12 +67,19 @@ public class ThreadPoolTaskExecutorTest {
     }
 
     @Test
-    public void testSubmitRunnableWithRequestId() throws Exception {
-        String requestId = "REQ-123";
-        Runnable task = mock(Runnable.class);
-        Future<?> future = executor.submit(task, requestId);
+    public void submitCopiesRequestContextHolderToWorker() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute("marker", "from-parent");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        Future<?> future = executor.submit(() -> {
+            ServletRequestAttributes attributes =
+                    (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            assertNotNull(attributes);
+            assertEquals("from-parent", attributes.getRequest().getAttribute("marker"));
+        }, "REQ-RCH");
+
         future.get();
-        verify(task).run();
     }
 
     @Test

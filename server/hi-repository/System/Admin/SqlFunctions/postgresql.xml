@@ -810,7 +810,7 @@
     <function group="dateTime" returns="numeric">
         <key>sql.dateTime.year</key>
         <value>YEAR</value>
-        <signature><![CDATA[date_part('year',${datetime})]]></signature>
+        <signature><![CDATA[EXTRACT (YEAR FROM ${datetime})]]></signature>
         <parameters>
             <parameter column="true" name="datetime" defaultValue="timestamp '2007-02-03 09:00:00'"/>
         </parameters>

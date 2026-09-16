@@ -1,6 +1,5 @@
 package com.helicalinsight.core.datasource;
 
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,8 +31,10 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
+import com.google.gson.JsonObject;
 import com.helicalinsight.adhoc.FileSystemOperationsController;
 import com.helicalinsight.admin.controller.AdminController;
+import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controller.DataSourceController;
 import com.helicalinsight.efw.controller.EfwServicesController;
 import com.helicalinsight.resourcesecurity.filter.ResourceAuthenticationAndAuthorizationFilter;
@@ -105,7 +106,9 @@ public class ManagedGroovyShareTest {
 		testUtility.createFolder("GroovyManagedShareTest");
 		testUtility.createFolder("EfwdDataSource",Arrays.asList("GroovyManagedShareTest"));
 		String formData = "{\"classifier\":\"efwd\",\"condition\":\"import groovy.sql.Sql;\\n      import net.sf.json.JSONObject;\\n      import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n      public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        if (userName.equals(\\\"hiadmin\\\")) {\\n          responseJson.put(\\\"globalId\\\", 1);\\n        }\\n      \\n        if (userName.equals(\\\"hiuser\\\")) {\\n          responseJson.put(\\\"globalId\\\", 3);\\n        }\\n      \\n        if (userName.equals(\\\"test\\\")) {\\n          responseJson.put(\\\"globalId\\\", 4);\\n        }\\n      \\n        responseJson.put(\\\"type\\\", \\\"global.jdbc\\\");\\n      \\n        //throw new RuntimeException(\\\"This is a test exception\\\" +responseJson);\\n        return responseJson;\\n      }\",\"dataSourceType\":\"Groovy Managed Jdbc DataSource\",\"name\":\"GroovyManagedDatasource\",\"type\":\"sql.jdbc.groovy.managed\",\"directory\":\"GroovyManagedShareTest/EfwdDataSource\"}";
-		testUtility.createPlainDatasource(formData);
+		String response = testUtility.createPlainDatasource(formData);
+		JsonObject node = GsonUtility.parseString(response, JsonObject.class);
+		firstJdbcId = GsonUtility.getByPath(node, "response.dataSourceId").getAsString();
 	}
 
 	@Test
@@ -135,6 +138,8 @@ public class ManagedGroovyShareTest {
 	        map.put("classifier", "efwd");
 	        map.put("categoryName", "advanced");
 	        map.put("categoryType", "advanced");
+	        map.put("username", "hiuser");
+	        map.put("password", "hiuser");
 	        RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
 	        MvcResult result = this.dsMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 	        JSONObject responseNode = JSONObject.fromObject(result.getResponse().getContentAsString());
@@ -144,7 +149,7 @@ public class ManagedGroovyShareTest {
 	        for(Object object : array) {
 	        	JSONObject connection = (JSONObject) object;
 	        	Assert.assertTrue(connection.containsKey("baseType"));
-	        	if(connection.getJSONObject("data").getString("id").equals("1")) {
+	        	if(connection.getJSONObject("data").getString("id").equals(firstJdbcId)) {
 	        		Assert.assertEquals("5", connection.getString("permissionLevel"));
 	        		break;
 	        	}

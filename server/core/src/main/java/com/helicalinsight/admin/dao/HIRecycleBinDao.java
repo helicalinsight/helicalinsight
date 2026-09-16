@@ -56,7 +56,7 @@ public interface HIRecycleBinDao {
 
 	boolean isRecycleBinPresent(Long id);
 	
-	void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
+	List<Long> deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
 
 	Set<Long> findResourceBinsBlockedByLiveDependents(Collection<Long> binIds);
 

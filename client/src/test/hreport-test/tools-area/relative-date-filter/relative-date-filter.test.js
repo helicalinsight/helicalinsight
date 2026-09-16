@@ -2,10 +2,32 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import "regenerator-runtime/runtime";
-import RelativeList from "../../../../components/hi-reports/hi-editing-area/components/filters/relative-list";
 import {
     dataWithDatepartAsDate, dataWithDatepartAsHour, dataWithDatepartAsIndividual, dataWithDatepartAsMinute, dataWithDatepartAsMonth, dataWithDatepartAsQuarter, dataWithDatepartAsSecond, dataWithDatepartAsTime, dataWithDatepartAsYear
 } from './relative-date-filter-mock-data';
+
+jest.setTimeout(30000);
+
+// Mock muze wasm fetch (js/muze/*.module.wasm via whatwg-fetch/XHR) which
+// otherwise rejects with "TypeError: Network request failed" mid-suite and
+// gets attributed to whichever test is running (e.g. quarter case).
+// Must be installed BEFORE requiring RelativeList (which transitively imports
+// @chartshq/muze via filter-utils -> base -> utilities -> grid-chart-utils),
+// so use dynamic require after mock. Returning a never-settling promise keeps
+// muze chunk loading pending without rejecting.
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes(".wasm") || urlStr.includes("muze")) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error("fetch not available"));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const RelativeList = require("../../../../components/hi-reports/hi-editing-area/components/filters/relative-list").default;
 const crypto = require("crypto");
 const flushPromises = () => new Promise(setImmediate);
 const App = ({ ...props }) => {

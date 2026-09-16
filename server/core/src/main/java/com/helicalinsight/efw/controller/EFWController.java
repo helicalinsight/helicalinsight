@@ -52,6 +52,7 @@ import com.helicalinsight.efw.resourceloader.DirectoryLoaderProxy;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
 import com.helicalinsight.efw.serviceframework.IComponent;
+import com.helicalinsight.efw.services.FontService;
 import com.helicalinsight.efw.utility.ApplicationUtilities;
 import com.helicalinsight.efw.utility.JRXMLUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
@@ -544,6 +545,16 @@ public class EFWController {
      * @param response HttpServletResponse object
      * @throws IOException 
      */
+    /**
+     * Font catalog: managed Admin/fonts (scanned when that dir changes) plus live OS
+     * families. Response includes {@code isManaged} and fileName/path for downloads.
+     */
+    @RequestMapping(value = "/getFonts", method = RequestMethod.GET, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    public String getFonts() {
+        return FontService.getFontsJson();
+    }
+
     @RequestMapping(value = "/getExternalResource", method = RequestMethod.GET)
     public void getExternalResource(@RequestParam("path") String path, HttpServletResponse response) throws IOException {
         String absolutePath;

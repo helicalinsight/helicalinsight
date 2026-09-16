@@ -38,8 +38,8 @@ export default function HcrParameterDrawer({ setIsDrawerOpen, isDrawerOpen, para
             parametersMenu = [...parametersMenu, ...(subDataParametersList)]
         }
         parametersMenu.forEach(para => {
-            if (parameterObj[para.id]) {
-                list.push({ id: para.id, type: para.type, name: para.name, value: parameterObj[para.id] });
+            if (para.id && para.id in parameterObj) {
+                list.push({ id: para.id, type: para.type, name: para.name, value: parameterObj[para.id] || "" });
             }
         })
         dispatch(hcrActions.handleEditingDsPaneItem({ dataSourcePane: selectedDS?.dataSourcePane, value: list.filter((p) => !subDataParametersList.find((param) => param.id === p.id)), key: 'parameterList', itemId: reqQuery.id }));

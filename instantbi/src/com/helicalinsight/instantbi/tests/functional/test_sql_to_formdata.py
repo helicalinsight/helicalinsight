@@ -52,6 +52,11 @@ def _catalog() -> FunctionCatalog:
                 "reference": "postgresql",
                 "functions": {
                     "db.generic.aggregate.sum": "sum",
+                    "db.generic.aggregate.count": "count",
+                    "db.generic.aggregate.avg": "avg",
+                    "db.generic.aggregate.min": "min",
+                    "db.generic.aggregate.max": "max",
+                    "db.generic.aggregate.distinct": "distinct",
                     "db.generic.groupBy.group": "group",
                     "db.generic.orderBy.order": "order",
                 },
@@ -133,6 +138,11 @@ def _metadata() -> dict:
                             "id": "2868",
                             "alias": "booking_platform",
                         },
+                        "travel_id": {
+                            "id": "1064",
+                            "alias": "travel_id",
+                            "type": {"java.lang.Integer": "numeric"},
+                        },
                         "travel_type": {"id": "2860", "alias": "travel_type"},
                         "travel_cost": {
                             "id": "2866",
@@ -144,6 +154,16 @@ def _metadata() -> dict:
                             "id": "2870",
                             "alias": "destination",
                             "type": {"java.lang.String": "text"},
+                        },
+                        "source": {
+                            "id": "2871",
+                            "alias": "source",
+                            "type": {"java.lang.String": "text"},
+                        },
+                        "travelled_by": {
+                            "id": "2872",
+                            "alias": "travelled_by",
+                            "type": {"java.lang.Integer": "numeric"},
                         },
                     }
                 },
@@ -287,6 +307,7 @@ class TestILikeFilter:
             }
         ]
         assert form_data["customFilterExpression"] == " ${0} "
+        assert form_data["filterExpression"] == ["Employee Name"]
         assert _column_by_alias(form_data, "Employee Name")["order"] == "asc"
         assert "orderBy" not in form_data.get("functions", {})
         assert "hidden" not in _column_by_alias(form_data, "Employee Name")
@@ -911,3 +932,379 @@ class TestDerbyDialect:
             "name": "sampletraveldata.public.travel_details.travel_cost",
             "id": "2866",
         }
+
+
+class TestStackedAggregates:
+    """Nested aggregates become ordered aggregateList (outer → inner)."""
+
+    def test_sum_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select sum(count(travel_details.destination)) as "Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Destination Count")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.count",
+        ]
+        assert col["column"] == {
+            "name": "sampletraveldata.public.travel_details.destination",
+            "id": "2870",
+        }
+        assert form_data["functions"]["aggregate"] == [
+            {
+                "column": col["column"],
+                "function": (
+                    "db.generic.aggregate.sum_db.generic.aggregate.count"
+                ),
+                "alias": "Destination Count",
+            }
+        ]
+
+    def test_count_distinct_is_stacked(self):
+        form_data = _form_data(
+            """
+            select count(distinct travel_details.destination) as "Distinct Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Distinct Destination Count")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.count",
+            "db.generic.aggregate.distinct",
+        ]
+        assert col["column"] == {
+            "name": "sampletraveldata.public.travel_details.destination",
+            "id": "2870",
+        }
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.count_db.generic.aggregate.distinct"
+        )
+
+    def test_sum_count_distinct_is_stacked(self):
+        form_data = _form_data(
+            """
+            select sum(count(distinct travel_details.destination)) as "Distinct Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Distinct Destination Count")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.count",
+            "db.generic.aggregate.distinct",
+        ]
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.sum_db.generic.aggregate.count_"
+            "db.generic.aggregate.distinct"
+        )
+
+    def test_avg_sum_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select avg(sum(count(travel_details.destination))) as "Nested Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Nested Count")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.avg",
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.count",
+        ]
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.avg_db.generic.aggregate.sum_"
+            "db.generic.aggregate.count"
+        )
+
+    def test_sum_distinct_appends_distinct(self):
+        form_data = _form_data(
+            """
+            select sum(distinct travel_details.travel_cost) as "Distinct Travel Cost"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Distinct Travel Cost")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.distinct",
+        ]
+
+    def test_distinct_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select distinct(count(travel_details.destination)) as "Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Destination Count")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.distinct",
+            "db.generic.aggregate.count",
+        ]
+        assert col["column"] == {
+            "name": "sampletraveldata.public.travel_details.destination",
+            "id": "2870",
+        }
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.distinct_db.generic.aggregate.count"
+        )
+
+    def test_select_distinct_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select distinct count(travel_details.destination) as "Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Destination Count")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.distinct",
+            "db.generic.aggregate.count",
+        ]
+
+    def test_sum_distinct_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select sum(distinct count(travel_details.destination)) as "Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Destination Count")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.distinct",
+            "db.generic.aggregate.count",
+        ]
+
+    def test_select_distinct_on_dimension_is_not_stacked(self):
+        form_data = _form_data(
+            """
+            select distinct travel_details.destination as "Destination"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Destination")
+        assert "aggregate" not in col
+        assert "aggregateList" not in col
+
+    def test_min_and_max_are_single_aggregates(self):
+        form_data = _form_data(
+            """
+            select
+                min(travel_details.travel_cost) as "Min Travel Cost",
+                max(travel_details.travel_cost) as "Max Travel Cost"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        min_col = _column_by_alias(form_data, "Min Travel Cost")
+        max_col = _column_by_alias(form_data, "Max Travel Cost")
+        assert min_col["aggregateList"] == ["db.generic.aggregate.min"]
+        assert max_col["aggregateList"] == ["db.generic.aggregate.max"]
+
+    def test_min_distinct_is_stacked(self):
+        form_data = _form_data(
+            """
+            select min(distinct travel_details.travel_cost) as "Min Distinct Cost"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Min Distinct Cost")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.min",
+            "db.generic.aggregate.distinct",
+        ]
+
+    def test_max_count_is_stacked(self):
+        form_data = _form_data(
+            """
+            select max(count(travel_details.destination)) as "Max Destination Count"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Max Destination Count")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.max",
+            "db.generic.aggregate.count",
+        ]
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.max_db.generic.aggregate.count"
+        )
+
+    def test_min_max_is_stacked(self):
+        form_data = _form_data(
+            """
+            select min(max(travel_details.travel_cost)) as "Min Of Max Cost"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "Min Of Max Cost")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.min",
+            "db.generic.aggregate.max",
+        ]
+
+    def test_all_catalog_aggregates_are_stacked(self):
+        form_data = _form_data(
+            """
+            select avg(sum(min(max(count(distinct travel_details.destination)))))
+                as "All Aggregates"
+            from sampletraveldata.public.travel_details
+            """
+        )
+        col = _column_by_alias(form_data, "All Aggregates")
+        assert col["aggregateList"] == [
+            "db.generic.aggregate.avg",
+            "db.generic.aggregate.sum",
+            "db.generic.aggregate.min",
+            "db.generic.aggregate.max",
+            "db.generic.aggregate.count",
+            "db.generic.aggregate.distinct",
+        ]
+        assert form_data["functions"]["aggregate"][0]["function"] == (
+            "db.generic.aggregate.avg_db.generic.aggregate.sum_"
+            "db.generic.aggregate.min_db.generic.aggregate.max_"
+            "db.generic.aggregate.count_db.generic.aggregate.distinct"
+        )
+
+
+class TestHavingFoldedIntoFilters:
+    """HAVING is built separately, then folded into filters on the wire payload."""
+
+    _SQL = """
+        SELECT
+          travel_details.travel_type AS "Travel Type",
+          COUNT(travel_details.travel_id) AS "Travel Count"
+        FROM travel_details
+        WHERE travel_details.travel_type = 'International'
+        GROUP BY travel_details.travel_type
+        HAVING COUNT(travel_details.travel_id) BETWEEN 20 AND 50
+        LIMIT 100
+    """
+
+    def test_having_is_appended_to_filters_and_dropped(self):
+        form_data = _form_data(self._SQL)
+        assert "having" not in form_data
+        assert "customHavingExpression" not in form_data
+        assert form_data["customFilterExpression"] == " ${0} "
+        assert form_data["filterExpression"] == ["Travel Type", "count_travel_id"]
+
+        where_item = form_data["filters"][0]
+        assert where_item["id"] == 0
+        assert where_item["alias"] == "Travel Type"
+        assert where_item["condition"] == "EQUALS"
+        assert where_item["values"] == ["International"]
+
+        having_item = form_data["filters"][1]
+        assert having_item["id"] == 0
+        assert having_item["condition"] == "IS_BETWEEN"
+        assert having_item["customCondition"] == "BETWEEN"
+        assert having_item["values"] == [20, 50]
+        assert having_item["function"] == "db.generic.aggregate.count"
+        assert having_item["column"] == {
+            "name": "sampletraveldata.public.travel_details.travel_id",
+            "id": "1064",
+        }
+
+    def test_include_parts_keeps_having_before_fold(self):
+        form_data = sql_to_form_data(
+            self._SQL,
+            location="0007",
+            metadata_file_name="pg_sample_travel_data_agent.metadata",
+            catalog=_catalog(),
+            metadata=_metadata(),
+            dialect="postgres",
+            include_parts=True,
+        )
+        assert "having" not in form_data
+        assert len(form_data["_parts"]["having"]) == 1
+        assert form_data["_parts"]["having"][0]["values"] == [20, 50]
+        assert len(form_data["filters"]) == 2
+
+
+class TestFilterExpression:
+    """filterExpression uses filter aliases; operators only when there are 2+ items."""
+
+    def test_where_or_two_aliases(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.travel_type AS "Travel Type"
+            FROM travel_details
+            WHERE travel_details.destination = 'Paris'
+               OR travel_details.source = 'London'
+            """
+        )
+        assert form_data["filterExpression"] == ["destination OR source"]
+        assert form_data["customFilterExpression"] == " ${0} OR ${1} "
+        assert [item["operator"] for item in form_data["filters"]] == ["OR", "OR"]
+
+    def test_where_and_having_or(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.destination AS "destination",
+              SUM(travel_details.travel_cost) AS "Travel Cost",
+              SUM(travel_details.travelled_by) AS "Travelled By"
+            FROM travel_details
+            WHERE travel_details.destination = 'Paris'
+               OR travel_details.source = 'London'
+            GROUP BY travel_details.destination
+            HAVING SUM(travel_details.travel_cost) > 100
+                OR SUM(travel_details.travelled_by) > 10
+            """
+        )
+        assert form_data["filterExpression"] == [
+            "destination OR source",
+            "sum_travel_cost OR sum_travelled_by",
+        ]
+        assert form_data["customFilterExpression"] == " ${0} OR ${1} "
+
+    def test_having_only_uses_empty_where_slot(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.destination AS "destination",
+              SUM(travel_details.travel_cost) AS "Travel Cost",
+              SUM(travel_details.travelled_by) AS "Travelled By"
+            FROM travel_details
+            GROUP BY travel_details.destination
+            HAVING SUM(travel_details.travel_cost) > 100
+                OR SUM(travel_details.travelled_by) > 10
+            """
+        )
+        assert form_data["filterExpression"] == [
+            "",
+            "sum_travel_cost OR sum_travelled_by",
+        ]
+        assert "customFilterExpression" not in form_data
+
+    def test_single_where_omits_operator(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.destination AS "destination"
+            FROM travel_details
+            WHERE travel_details.destination = 'Paris'
+            """
+        )
+        assert form_data["filterExpression"] == ["destination"]
+        assert form_data["customFilterExpression"] == " ${0} "
+
+    def test_single_having_omits_operator(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.destination AS "destination",
+              SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            GROUP BY travel_details.destination
+            HAVING SUM(travel_details.travel_cost) > 100
+            """
+        )
+        assert form_data["filterExpression"] == ["", "sum_travel_cost"]
+
+

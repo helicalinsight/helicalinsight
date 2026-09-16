@@ -7,8 +7,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.NoSuchElementException;
 
-import javax.sql.rowset.CachedRowSet;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -112,8 +110,7 @@ public class ChunkIteratorTest {
 
 	@SuppressWarnings("unchecked")
 	@Test(expected = NoSuchElementException.class)
-	
-	public void testNext_WhenCompleteFileExists_ReturnsEmptyRowSet() throws Exception {
+	public void testNext_WhenCompleteFileExists_AndNoChunks() throws Exception {
 
 		File dir = folder.newFolder();
 
@@ -125,11 +122,45 @@ public class ChunkIteratorTest {
 
 		ChunkIterator<Object> iterator = new ChunkIterator<Object>(dir, reader);
 
-		Object result = iterator.next();
+		iterator.next();
+	}
 
-		assertNotNull(result);
+	@SuppressWarnings("unchecked")
+	@Test(expected = com.helicalinsight.efw.exceptions.EfwServiceException.class)
+	public void testHasNext_WhenErrorFileExists() throws Exception {
 
-		assertTrue(result instanceof CachedRowSet);
+		File dir = folder.newFolder();
+
+		File error = new File(dir, ".cache_error");
+
+		try (FileWriter fw = new FileWriter(error)) {
+			fw.write("Error: SQLException: column must appear in GROUP BY clause");
+		}
+
+		ChunkReader<String> reader = mock(ChunkReader.class);
+
+		ChunkIterator<String> iterator = new ChunkIterator<String>(dir, reader);
+
+		iterator.hasNext();
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test(expected = com.helicalinsight.efw.exceptions.EfwServiceException.class)
+	public void testNext_WhenErrorFileAppearsWhileWaiting() throws Exception {
+
+		File dir = folder.newFolder();
+
+		File error = new File(dir, ".cache_error");
+
+		try (FileWriter fw = new FileWriter(error)) {
+			fw.write("Couldn't query the database");
+		}
+
+		ChunkReader<String> reader = mock(ChunkReader.class);
+
+		ChunkIterator<String> iterator = new ChunkIterator<String>(dir, reader);
+
+		iterator.next();
 	}
 
 	@SuppressWarnings("unchecked")

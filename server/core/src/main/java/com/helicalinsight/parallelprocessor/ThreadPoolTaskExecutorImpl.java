@@ -7,6 +7,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import com.helicalinsight.core.request.RequestContext;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
@@ -145,10 +147,12 @@ public class ThreadPoolTaskExecutorImpl extends ThreadPoolTaskExecutor implement
 
     public Runnable getNewWrappedThread(final Runnable r, final Authentication a) {
     	String requestId = RequestContext.get();
+        RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
         return new Runnable() {
             public void run() {
                 try {
                 	RequestContext.set(requestId);
+                    bindRequestAttributes(requestAttributes);
                     SecurityContext ctx = SecurityContextHolder.createEmptyContext();
                     ctx.setAuthentication(a);
                     SecurityContextHolder.setContext(ctx);
@@ -156,6 +160,7 @@ public class ThreadPoolTaskExecutorImpl extends ThreadPoolTaskExecutor implement
                     r.run();
                 } finally {
                     SecurityContextHolder.clearContext();
+                    RequestContextHolder.resetRequestAttributes();
                     RequestContext.clear();
                 }
             }
@@ -167,21 +172,31 @@ public class ThreadPoolTaskExecutorImpl extends ThreadPoolTaskExecutor implement
 
 		String requestId = RequestContext.get();
 
+		RequestAttributes requestAttributes = RequestContextHolder.getRequestAttributes();
+
 		return new Callable<T>() {
 			@Override
 			public T call() throws Exception {
 				try {
 					RequestContext.set(requestId);
+					bindRequestAttributes(requestAttributes);
 					SecurityContext ctx = SecurityContextHolder.createEmptyContext();
 					ctx.setAuthentication(a);
 					SecurityContextHolder.setContext(ctx);
 					return c.call();
 				} finally {
 					SecurityContextHolder.clearContext();
+					RequestContextHolder.resetRequestAttributes();
 					RequestContext.clear();
 				}
 			}
 		};
+	}
+
+	private static void bindRequestAttributes(RequestAttributes requestAttributes) {
+		if (requestAttributes != null) {
+			RequestContextHolder.setRequestAttributes(requestAttributes);
+		}
 	}
 
 	@Override

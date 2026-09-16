@@ -34,7 +34,7 @@ def test_one_dimension_two_measures_picks_bar():
     assert picked == "bar"
 
 
-def test_two_dimensions_two_measures_picks_relation():
+def test_two_dimensions_two_measures_picks_grid_table():
     picked = _pick_chart_type(
         _md(
             ("region", "text"),
@@ -43,7 +43,7 @@ def test_two_dimensions_two_measures_picks_relation():
             ("cost", "numeric"),
         )
     )
-    assert picked == "relation"
+    assert picked == "grid_table"
 
 
 def test_single_measure_picks_kpi_not_pie():

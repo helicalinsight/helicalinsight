@@ -1,6 +1,7 @@
 package com.helicalinsight.adhoc.jreport;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -8,9 +9,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -18,6 +21,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -36,12 +40,14 @@ import com.helicalinsight.cache.model.Cache;
 import com.helicalinsight.cache.manager.CacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManagerForResultSet;
+import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.datasource.ConnectionProviderFactory;
 import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DriverConnection;
 import com.helicalinsight.datasource.EnhancedQueryExecutor;
 import com.helicalinsight.datasource.HCRJsonDataSource;
 import com.helicalinsight.efw.exceptions.HCRException;
+import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.TempDirectoryCleaner;
 
@@ -795,6 +801,116 @@ public class HCRHelperTest {
 	}
 
 	@Test
+	public void ut_b8a_test_provideResponseUsingPrint_prefersFormDataLastModified() {
+		HCRHelper hcrHelper = new HCRHelper();
+		JsonObject formData = new JsonObject();
+		formData.addProperty("lastModified", 1_700_000_000_000L);
+		formData.addProperty("isExport", false);
+		formData.addProperty("format", "html");
+		JasperPrint cacheJasperPrint = mock(JasperPrint.class);
+		when(cacheJasperPrint.getProperty("lastModifiedCache")).thenReturn("999");
+
+		try (MockedConstruction<HCRExportHelper> construction = mockConstruction(HCRExportHelper.class,
+				(mock, context) -> when(mock.exportInBytes(anyString(), anyInt(), anyInt(), anyBoolean()))
+						.thenReturn(new byte[1]))) {
+			JsonObject response = hcrHelper.provideResponseUsingPrint(formData, cacheJasperPrint, 10);
+			assertEquals(1_700_000_000_000L, response.get("lastModified").getAsLong());
+			verify(cacheJasperPrint).setProperty("lastModifiedCache", "1700000000000");
+		}
+	}
+
+	@Test
+	public void ut_b8b_test_provideResponseUsingPrint_fallsBackToJasperPrintProperty() {
+		HCRHelper hcrHelper = new HCRHelper();
+		JsonObject formData = new JsonObject();
+		formData.addProperty("isExport", false);
+		formData.addProperty("format", "html");
+		JasperPrint cacheJasperPrint = mock(JasperPrint.class);
+		when(cacheJasperPrint.getProperty("lastModifiedCache")).thenReturn("123456789");
+
+		try (MockedConstruction<HCRExportHelper> construction = mockConstruction(HCRExportHelper.class,
+				(mock, context) -> when(mock.exportInBytes(anyString(), anyInt(), anyInt(), anyBoolean()))
+						.thenReturn(new byte[1]))) {
+			JsonObject response = hcrHelper.provideResponseUsingPrint(formData, cacheJasperPrint, 10);
+			assertEquals(123456789L, response.get("lastModified").getAsLong());
+		}
+	}
+
+	@Test
+	public void ut_b8c_test_prepareExecuteJasperReport_setsLastModifiedFromDataCache() throws Exception {
+		HCRHelper hcrHelper = new HCRHelper();
+		CacheHelper cacheHelper = mock(CacheHelper.class);
+		CacheManager cacheManager = mock(HCRQueryProcessCacheManagerForResultSet.class);
+		Cache cache = mock(Cache.class);
+		CacheService cacheService = mock(CacheService.class);
+		Cache cacheModel = new Cache();
+		cacheModel.setCacheFilePath("cache/file");
+		cacheModel.setCacheFileTimeStamp(new Date(1_700_000_000_000L));
+
+		Field field = HCRHelper.class.getDeclaredField("cacheHelper");
+		field.setAccessible(true);
+		field.set(hcrHelper, cacheHelper);
+
+		JsonObject formData = new JsonObject();
+		JsonObject connectionDetails = new JsonObject();
+		connectionDetails.addProperty("temp_uuid", "temp-uuid");
+		formData.add("connectionDetails", connectionDetails);
+
+		when(cacheHelper.prepareCacheFromRequest(cacheManager)).thenReturn(cache);
+		when(cacheHelper.processCache(any(), any(), any(), any(), any(), any())).thenReturn(false);
+		when(cacheHelper.designCacheKeyFor(cache)).thenReturn("design-key");
+		when(cacheService.findUniqueCache(cache)).thenReturn(cacheModel);
+		when(cacheManager.getConnectionId()).thenReturn(1L);
+
+		try (MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class);
+				MockedStatic<ApplicationContextAccessor> appContext = mockStatic(ApplicationContextAccessor.class)) {
+			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(cacheManager);
+			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(formData)).thenReturn("cache-name");
+			appContext.when(() -> ApplicationContextAccessor.getBean(CacheService.class)).thenReturn(cacheService);
+
+			hcrHelper.prepareExecuteJasperReport(formData, false, null);
+
+			assertEquals("design-key", formData.get("designCacheKey").getAsString());
+			assertEquals(1_700_000_000_000L, formData.get("lastModified").getAsLong());
+		}
+	}
+
+	@Test
+	public void ut_b8d_test_prepareExecuteJasperReport_skipsLastModifiedWhenCacheMissing() throws Exception {
+		HCRHelper hcrHelper = new HCRHelper();
+		CacheHelper cacheHelper = mock(CacheHelper.class);
+		CacheManager cacheManager = mock(HCRQueryProcessCacheManagerForResultSet.class);
+		Cache cache = mock(Cache.class);
+		CacheService cacheService = mock(CacheService.class);
+
+		Field field = HCRHelper.class.getDeclaredField("cacheHelper");
+		field.setAccessible(true);
+		field.set(hcrHelper, cacheHelper);
+
+		JsonObject formData = new JsonObject();
+		JsonObject connectionDetails = new JsonObject();
+		connectionDetails.addProperty("temp_uuid", "temp-uuid");
+		formData.add("connectionDetails", connectionDetails);
+
+		when(cacheHelper.prepareCacheFromRequest(cacheManager)).thenReturn(cache);
+		when(cacheHelper.processCache(any(), any(), any(), any(), any(), any())).thenReturn(false);
+		when(cacheHelper.designCacheKeyFor(cache)).thenReturn(null);
+		when(cacheService.findUniqueCache(cache)).thenReturn(null);
+		when(cacheManager.getConnectionId()).thenReturn(1L);
+
+		try (MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class);
+				MockedStatic<ApplicationContextAccessor> appContext = mockStatic(ApplicationContextAccessor.class)) {
+			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(cacheManager);
+			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(formData)).thenReturn("cache-name");
+			appContext.when(() -> ApplicationContextAccessor.getBean(CacheService.class)).thenReturn(cacheService);
+
+			hcrHelper.prepareExecuteJasperReport(formData, false, null);
+
+			assertFalse(formData.has("lastModified"));
+		}
+	}
+
+	@Test
 	public void ut_b9_test_prepareQueryForReport() {
 		HCRHelper hcrHelper = new HCRHelper();
 		JsonObject formData = new JsonObject();
@@ -1226,9 +1342,13 @@ public class HCRHelperTest {
 		connectionDetails.addProperty("temp_uuid", "temp-uuid-fetch");
 		connectionDetails.addProperty("map_id", 1);
 
-		try (MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
+		try (MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class);
+				MockedStatic<ApplicationContextAccessor> appContext = mockStatic(ApplicationContextAccessor.class)) {
+			CacheService cacheService = mock(CacheService.class);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
+			appContext.when(() -> ApplicationContextAccessor.getBean(CacheService.class)).thenReturn(cacheService);
+			when(cacheService.findUniqueCache(cache)).thenReturn(null);
 
 			when(cacheHelper.prepareCacheFromRequest(resultSetCacheManager)).thenReturn(cache);
 			when(cacheHelper.processCache(null, null, "report-cache", false, cache, resultSetCacheManager))

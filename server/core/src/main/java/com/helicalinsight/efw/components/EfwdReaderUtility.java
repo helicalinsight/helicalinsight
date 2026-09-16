@@ -24,6 +24,7 @@ import com.helicalinsight.admin.dto.HIEfwdDTO;
 import com.helicalinsight.admin.dto.PlainConnDTO;
 import com.helicalinsight.admin.dto.UserDTO;
 import com.helicalinsight.admin.model.HIEfwdConnSecurity;
+import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GlobalJdbcType;
@@ -141,8 +142,10 @@ public class EfwdReaderUtility {
         List<EfwdConnDTO> allConnectionsOwner = efwdConnectionService.getAllConnectionOfLoggedInUser(currentLoggedInUserId, collect,type);
         List<EfwdConnDTO> connectionFromFolders =  new ArrayList<>();
         Map<Integer , Integer> securityMap =  hiResourceServiceDB.getSecurityMap();
-        List<Integer> foldersResourceIds =  hiResourceServiceDB.getChildrenResourceByParentIds(new ArrayList<>(securityMap.keySet()));
-        List<EfwdConnDTO> connectionsOfCurrentFolder = efwdConnectionService.findConnectionByResourceIds(foldersResourceIds,Boolean.FALSE,Boolean.TRUE);
+        Set<Integer> folderIds = new HashSet<>(securityMap.keySet());
+        folderIds.addAll(hiResourceServiceDB.getHIResourceIdsByCreatedBy(null));
+        folderIds.addAll(hiResourceServiceDB.getChildrenResourceByParentIds(new ArrayList<>(securityMap.keySet())));
+        List<EfwdConnDTO> connectionsOfCurrentFolder = efwdConnectionService.findConnectionByResourceIds(new ArrayList<>(folderIds),Boolean.FALSE,Boolean.TRUE);
         if(!type.equalsIgnoreCase("all")) {
             connectionsOfCurrentFolder = connectionsOfCurrentFolder.stream().filter(item -> item.getType().equalsIgnoreCase(type)).collect(Collectors.toList());
             connectionFromFolders.addAll(connectionsOfCurrentFolder);
@@ -172,8 +175,10 @@ public class EfwdReaderUtility {
 			} else if (permission == null) {
 				permission = securityMap.get(resourceDTO.getResourceId());
 				if (permission == null) {
-					// considering it as public folder.
-					permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
+					permission = resolveInheritedFolderPermission(resourceDTO.getResourceId(), securityMap , hiResourceServiceDB);
+					if (permission == null) {
+			            permission = DataSourceSecurityUtility.getPermissionLevel(DataSourceSecurityUtility.PUBLIC);
+			        }
 				}
 			}
 			addADataSource(dataSources, connection, access, permission);
@@ -234,4 +239,24 @@ public class EfwdReaderUtility {
     	else if ( GlobalJdbcType.MANAGED_GROOVY_DATASOURCE.equalsIgnoreCase(type)) return "";
     	else throw new EfwdServiceException("Invalid Datasource type");
     }
+    
+    /**
+     * Walk folder ancestors until a share entry is found in securityMap (User/ROLE/ORG).
+     * resourceId here is hi_resource_efwd.parent_resource_id (the containing folder).
+     */
+	private Integer resolveInheritedFolderPermission(Integer resourceId, Map<Integer, Integer> securityMap, HIResourceServiceDB hiResourceServiceDB) {
+		Integer currentId = resourceId;
+		while (currentId != null) {
+			Integer permission = securityMap.get(currentId);
+			if (permission != null) {
+				return permission;
+			}
+			HIResource resource = hiResourceServiceDB.findResourceById(currentId, true);
+			if (resource == null) {
+				return null;
+			}
+			currentId = resource.getParentId();
+		}
+		return null;
+	}
 }

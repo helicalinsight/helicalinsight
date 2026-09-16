@@ -121,14 +121,33 @@ public class StreamedResultsetTest {
         assertEquals(metaData, result);
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testNext_WhenExceptionOccurs() throws Exception {
 
         when(rs1.next()).thenThrow(new SQLException("DB error"));
 
-        boolean result = streamedResultset.next();
+        streamedResultset.next();
+    }
 
-        assertFalse(result);
+    @Test
+    public void testGetMetaData_WhenMetadataMissing_ReturnsNull() throws Exception {
+
+        setField(streamedResultset, "currentRs", null);
+        setField(streamedResultset, "metaData", null);
+
+        assertNull(streamedResultset.getMetaData());
+    }
+
+    @Test(expected = SQLException.class)
+    public void testNext_WhenChunkIteratorFails() throws Exception {
+
+        setField(streamedResultset, "currentRs", null);
+
+        when(iterator.hasNext()).thenReturn(true);
+        when(iterator.next()).thenThrow(new IllegalStateException(
+                "Error: SQLException: must appear in GROUP BY"));
+
+        streamedResultset.next();
     }
 
     @Test

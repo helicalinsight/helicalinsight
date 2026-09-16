@@ -22,7 +22,7 @@ const List = props => {
         return activeReport
     })
     let { name, tables } = metadata
-    let { mapping, column, aggregate, backendDataType, dataType, cascade,  displayAggregateForAdvanceFilters: displayAggregate = [], valueAggregateForAdvanceFilters: valueAaggregate = [] } = { ...filter }
+    let { mapping, column, aggregate, backendDataType, dataType, cascade, displayAggregateForAdvanceFilters: displayAggregate = [], valueAggregateForAdvanceFilters: valueAaggregate = [] } = { ...filter }
     let { valueColumn, displayColumn } = mapping
     const handleClick = ({ item }) => {
         setOpen(false)
@@ -88,7 +88,7 @@ const List = props => {
             }
         } else {
             let value = item.key
-            checkForDisplayDBMonthFunction(filter?.condition, filter, notify, dispatch,value)
+            checkForDisplayDBMonthFunction(filter?.condition, filter, notify, dispatch, value)
             let dbFuntions, dbObj;
             try {
                 dbFuntions = databaseFunctions
@@ -115,13 +115,15 @@ const List = props => {
                 mappingObj = {
                     ...newMapping,
                     valueDBFunction: databaseFunction,
-                    valueDBFuntionInfo: dbFunc
+                    valueDBFuntionInfo: dbFunc,
+                    valueDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${valueColumn.alias})`
                 }
                 tempFilter.databaseFunction = dbFunc
             } else if (columnType == 'display') {
                 mappingObj = {
                     ...mapping,
-                    DisplayDBFunction: databaseFunction
+                    DisplayDBFunction: databaseFunction,
+                    displayDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${displayColumn.alias})`
                 }
             }
             tempFilter.mapping = mappingObj

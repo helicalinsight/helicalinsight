@@ -331,7 +331,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       ? "message-container__chat-message-user"
       : "message-container__chat-message-bot",
     isFullWidth ? "message-container__chat-message--constrained" : "",
-    chatItem?.error ? "message-container__chat-message--error" : "",
+    // chatItem?.error ? "message-container__chat-message--error" : "",
     isLoadErrorState ? "message-container__chat-message--load-error" : "",
   ]
     .filter(Boolean)

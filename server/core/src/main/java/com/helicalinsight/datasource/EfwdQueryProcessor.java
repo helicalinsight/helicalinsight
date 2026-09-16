@@ -216,6 +216,16 @@ public class EfwdQueryProcessor {
             this.areQuotesConfigured = areQuotesConfigured;
             this.type = type;
         }
+        
+        /**
+         * if no key -> null -> default
+         * if key    -> BLANK 
+         * if key    -> value -> Numeric
+         *                    -> String -> Normal String ( Quotes required )
+         *                              -> Expression ( Quotes not required ) 
+         *                    			
+         * @return
+         */
 
         public String otherTypes() {
             // If it is none of the above types then
@@ -230,6 +240,19 @@ public class EfwdQueryProcessor {
                         defaultValue = "'" + parameterValueFromRequest + "'";
                     }
                 } else {
+                	//FIXME: Temp fix, need to find a permanent solution.
+                	if (parameterValueFromRequest.isEmpty() && defaultValue != null) {
+                       defaultValue = "'" + defaultValue + "'";
+                	}
+                	else {
+                		if (areQuotesConfigured) {
+                            defaultValue = openQuote + parameterValueFromRequest + closeQuote;
+                        } else if ("Numeric".equalsIgnoreCase(type)) {
+                            defaultValue = parameterValueFromRequest;
+                        } else {
+                            defaultValue = "'" + parameterValueFromRequest + "'";
+                        }
+                	}
                     if (defaultValue == null) {
                         throw new EfwdServiceException("For one of the parameters, parameter value is present in the " +
                                 "request but is empty. Default value is also null. Can't process query.");

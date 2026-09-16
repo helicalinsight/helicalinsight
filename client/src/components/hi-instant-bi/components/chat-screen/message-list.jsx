@@ -82,13 +82,13 @@ const MessageList = (props = {}) => {
         const content = el.firstElementChild;
         if (!content) return undefined;
         const observer = new ResizeObserver(() => {
-            if (stickToBottomRef.current) {
+            if (!isOpenMode && stickToBottomRef.current) {
                 scrollToBottom(false);
             }
         });
         observer.observe(content);
         return () => observer.disconnect();
-    }, [messages.length]);
+    }, [messages.length, isOpenMode]);
 
     //  (open/edit file)
     useEffect(() => {

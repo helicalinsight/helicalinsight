@@ -4,11 +4,34 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Provider } from 'react-redux';
 import { hiMockAxios } from '../../../../app/mock-axios';
-import { dropIntoParams } from '../../../../components/hi-reports/hi-editing-area/utils/marks-utils';
-import { loadChildReport } from '../../../../components/hi-reports/utils/base';
-import { HelicalReports } from "../../../../pages/helical-reports-page";
-import reducers from '../../../../redux';
-import { appActions } from '../../../../redux/actions';
+
+jest.setTimeout(30000);
+
+// Mock muze wasm fetch (js/muze/*.module.wasm via whatwg-fetch/XHR) which
+// otherwise rejects with "TypeError: Network request failed" mid-suite.
+// Must be installed BEFORE requiring hreport modules (which transitively import
+// @chartshq/muze), so use dynamic requires after mock.
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes(".wasm") || urlStr.includes("muze")) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error("fetch not available"));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { dropIntoParams } = require('../../../../components/hi-reports/hi-editing-area/utils/marks-utils');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { loadChildReport } = require('../../../../components/hi-reports/utils/base');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { HelicalReports } = require("../../../../pages/helical-reports-page");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const reducers = require('../../../../redux').default;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { appActions } = require('../../../../redux/actions');
 const crypto = require('crypto');
 const flushPromises = () => new Promise(setImmediate);
 const App = ({store}) => {

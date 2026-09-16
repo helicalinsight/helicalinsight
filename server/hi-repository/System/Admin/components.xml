@@ -167,7 +167,7 @@
             <instant mandatory="true">
                 <saveReport class="com.helicalinsight.instant.InstantReportCreatorDb"
                             classifier="db.generic, db.calcite, db.workflow,  db.noSql"/>
-                <getReportForEdit class="com.helicalinsight.instant.report.InstantReportReaderComponent"/>
+                <getReportForEdit class="com.helicalinsight.instant.report.InstantReportForEditReaderComponent"/>
                 <getReport class="com.helicalinsight.instant.report.InstantReportReaderComponent"/>
 
                 <saveAiAgent class="com.helicalinsight.instant.AIModelCreatorDb" />

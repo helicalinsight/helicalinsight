@@ -3,6 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     addFieldToCanvas,
     addNewReport,
+    applyReportScripts,
+    changeEditorContent,
     changeFilterCondition,
     changeFilterValue,
     changeOptions,
@@ -64,19 +66,16 @@ function getHreportInfo(reportModel = {}) {
         location = "",
         metadataFileName = "",
         filters = [],
-        limitBy
+        limitBy,
+        filterExpression = []
     } = data_model || {};
 
-    const { aggregate = [], groupBy = [] } = functions || {};
+    const { groupBy = [] } = functions || {};
 
     const columnToReturn = [],
         rowsToReturn = [],
         filtersToReturn = [],
         fetchAndHideFields = [];
-
-    function getAggregations(column) {
-        return aggregate.find((clm) => clm.alias === column.alias)
-    }
 
     function getGroupBy(column) {
         return groupBy.find((clm) => clm.column === column.alias)
@@ -99,9 +98,8 @@ function getHreportInfo(reportModel = {}) {
             column.custom = item.custom
             column.column = item.column
         }
-        const aggregateFn = getAggregations(item);
-        if (aggregateFn) {
-            column.aggregate = aggregateFn?.function || null;
+        if (item.aggregate && Array.isArray(item?.aggregateList) && item?.aggregateList?.length) {
+            column.aggregate = item?.aggregateList
         }
 
         const groupByFn = getGroupBy(item);
@@ -175,7 +173,8 @@ function getHreportInfo(reportModel = {}) {
         markType: mark,
         vizType: vizType ? vizType.toLowerCase() : "",
         vfTemplate: atob(vf_template),
-        limitBy
+        limitBy,
+        filterExpression
     }
 }
 
@@ -199,7 +198,8 @@ function createHReportBridge(props = {}) {
         markType = "",
         vizType = "",
         vfTemplate = "",
-        limitBy = null
+        limitBy = null,
+        filterExpression = [];
 
     function setupReportData(reportModel) {
         const reportData = getHreportInfo(reportModel);
@@ -211,6 +211,7 @@ function createHReportBridge(props = {}) {
         vizType = reportData.vizType;
         vfTemplate = reportData.vfTemplate;
         limitBy = reportData.limitBy;
+        filterExpression = reportData.filterExpression;
     }
 
     function registerReport() {
@@ -312,17 +313,16 @@ function createHReportBridge(props = {}) {
             }
         }
         if (field.aggregate) {
-            dispatch(updateAggregations({ id: fieldId, key: [field.aggregate], group: "aggregate" }))
+            dispatch(updateAggregations({ id: fieldId, key: field.aggregate, group: "aggregate" }))
+        }
+        if (!field.aggregate) {
+            dispatch(updateAggregations({ id: fieldId, key: [], group: "aggregate" }))
         }
         if (field.fetchAndHide) {
             dispatch(updateCanvasField({ id: fieldId, key: "hiddenIncludeInResultSet" }));
         }
         if (!field.groupBy) {
-            const currentField = getFieldById(fieldId) || {};
-            const { floatingType = "" } = currentField || {};
-            if (floatingType === "discrete") {
-                dispatch(updateAggregations({ id: fieldId, key: [], group: "groupBy" }))
-            }
+            dispatch(updateAggregations({ id: fieldId, key: [], group: "groupBy" }))
         }
     }
 
@@ -527,6 +527,14 @@ function createHReportBridge(props = {}) {
         }
     }
 
+    function updateFilterExpression(filterExpression = []) {
+        if (Array.isArray(filterExpression) && filterExpression.length) {
+            dispatch(changeEditorContent({ id: "pre-fetch", value: `setFilterExpression(${filterExpression.map(item => `"${item}"`).join(', ')})` }))
+            dispatch(applyReportScripts())
+        }
+        return;
+    }
+
     function updateReportVizDetails(metadata) {
         const metadataTables = getMetadataTables(metadata);
         if (columns.length) {
@@ -542,6 +550,7 @@ function createHReportBridge(props = {}) {
         } else {
             updateHreportFilters(interactions.filters);
         }
+        updateFilterExpression(filterExpression);
         updateLimitBy(limitBy);
         updateVFTemplate();
         updateVizAndMarks();

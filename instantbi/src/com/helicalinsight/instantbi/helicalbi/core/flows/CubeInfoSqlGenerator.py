@@ -82,6 +82,12 @@ class CubeInfoSqlGenerator:
         merge_time_consumed(state, read_time_consumed(res))
         state["sql"] = extract_sql(res["final_sql"], state["dialect"])
         state["sql_reason"] = res.get("sql_reason", "") or ""
+        if "domain" in res:
+            state["domain"] = res.get("domain") or []
+        if "topics" in res:
+            state["topics"] = res.get("topics") or []
+        if res.get("topic_mappings"):
+            state["topic_mappings"] = res["topic_mappings"]
         state["required_details"] = {
             "required_tables": res.get("required_tables"),
             "required_joins": res.get("required_joins"),
@@ -91,6 +97,8 @@ class CubeInfoSqlGenerator:
             "required_column_description": res.get("required_column_description"),
             "required_functions": res.get("required_functions"),
             "required_cube_info": res.get("required_cube_info") or {},
+            "required_domain": state.get("domain") or [],
+            "required_topic": state.get("topics") or [],
             "column_sort_orders": res.get("column_sort_orders") or state.get("column_sort_orders") or "",
             "sql_domain_context": res.get("sql_domain_context") or "",
             "filters": res.get("filters", ""),

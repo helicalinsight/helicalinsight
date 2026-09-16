@@ -42,8 +42,8 @@ def test_two_dimensions_one_measure_picks_heatmap_not_table():
     assert picked != "table"
 
 
-def test_two_dimensions_two_measures_picks_relation():
-    """Relation has no dim/measure cap — 2x2 still gets a chart."""
+def test_two_dimensions_two_measures_picks_grid_table():
+    """Multi-dim multi-measure prefers Grid Table over Relation."""
     picked = _pick_chart_type(
         _md(
             ("region", "text"),
@@ -52,10 +52,10 @@ def test_two_dimensions_two_measures_picks_relation():
             ("cost", "numeric"),
         )
     )
-    assert picked == "relation"
+    assert picked == "grid_table"
 
 
-def test_three_dimensions_two_measures_picks_relation():
+def test_three_dimensions_two_measures_picks_grid_table():
     picked = _pick_chart_type(
         _md(
             ("region", "text"),
@@ -65,7 +65,20 @@ def test_three_dimensions_two_measures_picks_relation():
             ("cost", "numeric"),
         )
     )
-    assert picked == "relation"
+    assert picked == "grid_table"
+
+
+def test_three_dimensions_one_measure_picks_grid_table_not_relation():
+    picked = _pick_chart_type(
+        _md(
+            ("booking_platform", "text"),
+            ("travel_type", "text"),
+            ("travel_medium", "text"),
+            ("travel_cost", "numeric"),
+        )
+    )
+    assert picked == "grid_table"
+    assert picked != "relation"
 
 
 def test_ordered_dimension_one_measure_picks_line():
@@ -87,4 +100,22 @@ def test_explicit_table_request_still_honored():
             user_query="show this as a table",
         )
         == "table"
+    )
+
+
+def test_grid_chart_request_picks_grid_table():
+    assert (
+        _pick_chart_type(
+            _md(
+                ("booking_platform", "text"),
+                ("travel_type", "text"),
+                ("travel_medium", "text"),
+                ("travel_cost", "numeric"),
+            ),
+            user_query=(
+                "show me travel cost, booking platform by travel type "
+                "and travel medium in grid chart"
+            ),
+        )
+        == "grid_table"
     )

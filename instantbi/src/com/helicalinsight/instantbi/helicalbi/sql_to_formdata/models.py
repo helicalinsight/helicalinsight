@@ -28,8 +28,8 @@ class ColumnRef:
 class SelectItem:
     alias: str
     column: ColumnRef | None = None
-    aggregate: str | None = None  # primary db.generic.aggregate.*
-    aggregates: list[str] = field(default_factory=list)  # e.g. [sum, distinct]
+    aggregate: str | None = None  # primary (outer) db.generic.aggregate.*
+    aggregates: list[str] = field(default_factory=list)  # stacked outer→inner, e.g. [sum, count]
     database_function: dict | None = None
     # SQL of the database-function expression only (no AS alias / outer aggregate)
     database_function_sql: str = ""

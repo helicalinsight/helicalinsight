@@ -1,14 +1,11 @@
 package com.helicalinsight.datasource;
 
 import java.io.File;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.sql.rowset.RowSetProvider;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +90,13 @@ public class ChunkIterator<T> implements Iterator<T> {
 	}
 
 	private File completeFile() {
-		return new File(directory, ".cache_complete");
+		return StreamingCacheMarkers.completeFile(directory);
+	}
+
+	private void checkError() {
+		if (streamingMode) {
+			StreamingCacheMarkers.throwIfError(directory);
+		}
 	}
 	
 	 @Override
@@ -102,6 +105,8 @@ public class ChunkIterator<T> implements Iterator<T> {
 		 	if (completed) {
 		 		return false;
 		 	}
+
+		 	checkError();
 		 	
 		 	 if (!streamingMode) {
 			        return singleFile != null && singleFile.exists();
@@ -118,7 +123,6 @@ public class ChunkIterator<T> implements Iterator<T> {
 	        return true;
 	    }
 
-	    @SuppressWarnings("unchecked")
 		@Override
 	    public T next() {
 	    	
@@ -137,6 +141,7 @@ public class ChunkIterator<T> implements Iterator<T> {
 	        int retry = 0;
 
 	        while (retry < MAX_RETRY) {
+	        	checkError();
 
 	            File file = chunkFile(cursor);
 
@@ -149,15 +154,14 @@ public class ChunkIterator<T> implements Iterator<T> {
 	                    throw new RuntimeException("Failed reading chunk: " + file, e);
 	                }
 	            }
-	            
-	            
 
 	            if (completeFile().exists()) {
 	            	if (file.exists() && file.length() > 0) {
 	            		continue;
 	            	}
 	            	completed = true;
-	            	return empty();
+	            	throw new NoSuchElementException(
+	            			"Streaming cache completed with no data chunks at " + directory);
 	            }
 
 	            try {
@@ -169,18 +173,10 @@ public class ChunkIterator<T> implements Iterator<T> {
 	            logger.debug("Retrying for chunk :  {} , {} time", file, retry);
 	            retry++;
 	        }
-	        
-	        completed = true;
-	        
-	        return empty();
-	    }
 
-	    @SuppressWarnings("unchecked")
-	    private T empty() {
-	        try {
-	            return (T) RowSetProvider.newFactory().createCachedRowSet();
-	        } catch (SQLException e) {
-	            throw new RuntimeException(e);
-	        }
+	        checkError();
+	        completed = true;
+	        throw new IllegalStateException(
+	        		"Timed out waiting for streaming cache chunks in " + directory);
 	    }
 }

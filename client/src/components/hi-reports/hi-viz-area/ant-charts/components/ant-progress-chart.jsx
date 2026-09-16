@@ -12,7 +12,8 @@ import AntGaugeChart from './ant-gauge-chart';
 
 
 const AntProgressChart = (props) => {
-    const { data = [],
+    let {
+        data = [],
         report = {},
         columnMeasures,
         rowsMeasures,
@@ -130,13 +131,14 @@ const AntProgressChart = (props) => {
         isNumericTarget,
         getStatisticTooltip
     }
+    if (height < 0 || chartAreaWidth < 11) return null;
 
     switch (chartType) {
         case "ring":
             const config = {
                 height: height,
                 width: chartAreaWidth,
-                autoFit: false,
+                autoFit: true,
                 percent: percent,
                 color: ['#5B8FF9', '#E8EDF3'],
                 statistic: {
@@ -149,7 +151,7 @@ const AntProgressChart = (props) => {
                 }
             };
             return (
-                <Row justify={"center"} height={chartAreaHeight}>
+                <Row justify={"center"} style={{ height: `${height}px` }}>
                     <div style={{ height: `${height}px` }}>
                         <div className="title-subtitle-container">
                             {title?.position === "top" && getPropertyElement(titleStyle, title)}

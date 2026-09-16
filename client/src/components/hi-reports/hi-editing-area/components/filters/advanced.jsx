@@ -1,31 +1,33 @@
-import { useState } from "react";
-import { Card, Checkbox, Row, Col, Menu, Tooltip, Dropdown, Button, Input, Divider } from "antd";
 import {
-  PlusOutlined,
-  CaretUpOutlined,
-  VerticalAlignMiddleOutlined,
   CaretDownOutlined,
+  CaretUpOutlined,
   CloseOutlined,
+  EditOutlined,
+  PlusOutlined,
+  VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
-import { useSelector } from "react-redux";
-import { useDispatch } from "react-redux";
+import { Button, Card, Checkbox, Col, Dropdown, Input, Menu, Row, Tooltip } from "antd";
+import _ from "lodash";
+import { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
-  updateFilterMapping,
-  toggleFilterVisibility,
-  toggleFilterUnique,
-  toggleFilterIngnorance,
-  changeDateFilterFormat,
   addCustomDisplayDateFormat,
-  updateCustomDisplayDateFormat
+  changeDateFilterFormat,
+  toggleFilterIngnorance,
+  toggleFilterUnique,
+  toggleFilterVisibility,
+  updateCustomDisplayDateFormat,
+  updateFilterAdvDbFns,
+  updateFilterMapping
 } from "../../../../../redux/actions/hreport.actions";
 import { getColumnbject, getDefaultDisplayDateFormats } from "../../../../../utils/filter-utils";
-import _ from "lodash";
-import List from "./list";
 import HITooltip from "../../../../common/components/hi-tooltip";
 import notify from "../../../../hi-notifications/notify";
+import AdvancedFnEditor from "./advanced-fn-editor";
+import List from "./list";
 
 const Advanced = (props) => {
-  const { metadata, filters, databaseFunctions, functions } = useSelector((state) => {
+  const { metadata, filters, fields, databaseFunctions, functions } = useSelector((state) => {
     let activeReport = state.hreport.present.reports.find((report) => report.active);
     return activeReport;
   });
@@ -33,6 +35,7 @@ const Advanced = (props) => {
   const [type, setType] = useState("column");
   const [open, setOpen] = useState(false);
   const [customFormat, setCustomFormat] = useState('')
+  const [editingField, setEditingField] = useState(null);
   const Notify = notify(dispatch);
   let { tables } = metadata;
   let columnDbFunctions = databaseFunctions;
@@ -155,6 +158,60 @@ const Advanced = (props) => {
     dispatch(updateCustomDisplayDateFormat({ uid: filter.uid, key, reportId, remove: true }));
   }
 
+  const getFieldFromReport = (column = "") => {
+    return fields.find((field) => field.column === column);
+  }
+
+  const resetEditingField = () => {
+    setEditingField(null);
+  }
+
+  const handleDisplayEditingField = () => {
+    const reportField = getFieldFromReport(mapping?.displayColumn?.fullyQualifiedColumn);
+    setEditingField({
+      ...(mapping?.displayColumn || {}),
+      id: reportField?.id,
+      functionsDefinition: mapping?.displayDBfunctionsDefinition || "",
+      columnType: "display"
+    });
+  }
+
+  const handleValueEditingField = () => {
+    const reportField = getFieldFromReport(mapping?.valueColumn?.fullyQualifiedColumn);
+    setEditingField({
+      ...(mapping?.valueColumn || {}),
+      id: reportField?.id,
+      functionsDefinition: mapping?.valueDBfunctionsDefinition || "",
+      columnType: "value"
+    });
+  }
+
+
+  const handleClose = () => {
+    resetEditingField();
+  }
+
+  const onChangeDisplayDBFnsDefinition = (value) => {
+    dispatch(updateFilterAdvDbFns({ uid: filter.uid, key: "displayDBfunctionsDefinition", value, reportId }))
+    setEditingField(({ ...editingField, functionsDefinition: value }))
+  }
+
+  const onChangeValueDBFnsDefinition = (value) => {
+    dispatch(updateFilterAdvDbFns({ uid: filter.uid, key: "valueDBfunctionsDefinition", value, reportId }))
+    setEditingField(({ ...editingField, functionsDefinition: value }))
+  }
+
+
+  const getDisplayFieldForDbFn = () => {
+    const { fullyQualifiedColumn } = mapping?.displayColumn || {}
+    return fields.find((field) => field.column === fullyQualifiedColumn) || {};
+  }
+
+  const getValueFieldForDbFn = () => {
+    const { fullyQualifiedColumn } = mapping?.valueColumn || {}
+    return fields.find((field) => field.column === fullyQualifiedColumn) || {};
+  }
+
   const dateFormatSelector = (
     <Dropdown
       style={{ width: "100%" }}
@@ -247,6 +304,9 @@ const Advanced = (props) => {
             </span>
           </div>
         }
+        style={{
+          visibility: editingField ? "hidden" : "visible"
+        }}
       >
         <div className="advanced-mode-tabs" >
           <div onClick={() => handleTypeChange("column")}
@@ -274,15 +334,29 @@ const Advanced = (props) => {
                 </span>
               }
             >
-              <Row span={12} >
-                <List
-                  list={columnDbFunctions}
-                  filter={filter}
-                  columnType="display"
-                  isDbFunc={true}
-                  showOrderBy={true}
-                  initialValue={mapping.DisplayDBFunction}
-                />
+              <Row span={12} justify={"space-between"} align={"middle"}>
+                <Col span={21} >
+                  <List
+                    list={columnDbFunctions}
+                    filter={filter}
+                    columnType="display"
+                    isDbFunc={true}
+                    showOrderBy={true}
+                    initialValue={mapping.DisplayDBFunction}
+                  />
+                </Col>
+                <Col span={2}>
+                  <Button
+                    onClick={handleDisplayEditingField}
+                    size="small"
+                    type="link"
+                    icon={
+                      <Tooltip title="Edit in function editor.">
+                        <EditOutlined />
+                      </Tooltip>
+                    }
+                  />
+                </Col>
               </Row>
               <Row span={12}>
                 <List
@@ -321,15 +395,29 @@ const Advanced = (props) => {
                 </span>
               }
             >
-              <Row span={12}>
-                <List
-                  list={columnDbFunctions}
-                  filter={filter}
-                  columnType="value"
-                  isDbFunc={true}
-                  showOrderBy={true}
-                  initialValue={mapping.valueDBFunction}
-                />
+              <Row span={12} justify={"space-between"} align={"middle"} >
+                <Col span={21}>
+                  <List
+                    list={columnDbFunctions}
+                    filter={filter}
+                    columnType="value"
+                    isDbFunc={true}
+                    showOrderBy={true}
+                    initialValue={mapping.valueDBFunction}
+                  />
+                </Col>
+                <Col span={2}>
+                  <Button
+                    onClick={handleValueEditingField}
+                    size="small"
+                    type="link"
+                    icon={
+                      <Tooltip title="Edit in function editor.">
+                        <EditOutlined />
+                      </Tooltip>
+                    }
+                  />
+                </Col>
               </Row>
               <Row span={12}>
                 <List
@@ -386,6 +474,23 @@ const Advanced = (props) => {
           </>
         )}
       </Card>
+      {editingField?.columnType === "display" &&
+        <AdvancedFnEditor
+          editingField={editingField}
+          field={getDisplayFieldForDbFn()}
+          onChange={onChangeDisplayDBFnsDefinition}
+          onClose={handleClose}
+          filter={filter}
+        />
+      }
+      {editingField?.columnType === "value" &&
+        <AdvancedFnEditor
+          editingField={editingField}
+          field={getValueFieldForDbFn()}
+          onChange={onChangeValueDBFnsDefinition}
+          onClose={handleClose}
+          filter={filter}
+        />}
     </div>
   );
 };

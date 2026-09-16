@@ -215,7 +215,7 @@ const hreportReducer = (state = intialState, action) => {
 			return produce(state, (draft) => {
 				draft.reports = draft.reports.map((report) => {
 					if (report.active) {
-						let { funcs, metadata, dateFunctions, loading, isCube, cube } = action.payload || {};
+						let { funcs, metadata, dateFunctions, loading, isCube, cube } = cloneDeep(action.payload) || {};
 						if (loading) {
 							return { ...report, metadata: { loading } };
 						}
@@ -2120,6 +2120,23 @@ const hreportReducer = (state = intialState, action) => {
 				draft.reports[0].active = true;
 				draft.activeReportId = report.id;
 				draft.baseStateReports = [report];
+			});
+		}
+
+		case actionTypes.UPDATE_FILTER_ADV_DB_FUNCTIONS: {
+			const { uid, reportId, key, value } = action.payload || {}
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.map((report) => {
+					if (report.id === reportId || report.active) {
+						report.filters = report.filters.map((filter) => {
+							if (filter.uid === uid) {
+								filter.mapping[key] = value
+							}
+							return filter
+						})
+					}
+					return report;
+				});
 			});
 		}
 

@@ -1,5 +1,6 @@
 import { ConsoleSqlOutlined, DatabaseOutlined, EyeOutlined, TableOutlined } from "@ant-design/icons";
 import { Spin } from "antd";
+import { cloneDeep } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
@@ -481,7 +482,7 @@ export const getMetadataForHreport = (dispatch) => {
   dispatch((_, getState) => {
     const activeReport = getState().instantBI.reports.find((report) => report.active) || {};
     if (activeReport.metadataForHreport) {
-      metadataForHreport = activeReport.metadataForHreport
+      metadataForHreport = cloneDeep(activeReport.metadataForHreport);
     }
   })
   return metadataForHreport
@@ -498,20 +499,71 @@ export const getHReportSelectedChartType = (hreportId, reports, vizType) => {
 }
 
 
-export const getVizHeight = (vizType, chatResponse = {}) => {
+export const getHReportVizInfo = (hreportId, reports = [], fallbackSelectedType = "", fallbackSubVizType = "") => {
+  const currentReport = (reports || []).find((report) => report?.id === hreportId) || null;
+  const allMark = currentReport?.marksList?.find((mark) => mark?.value === "_all_");
+  return {
+    selectedType: currentReport?.selectedType || fallbackSelectedType || "",
+    subVizType: allMark?.subVizType ?? fallbackSubVizType ?? "",
+    report: currentReport,
+  };
+}
+
+const getVizSectionTotal = (chatResponse = {}, hreportReport = null) => {
+  const { report_model } = chatResponse || {};
+  const { viz_model = {} } = report_model || {};
+  const { data = {} } = viz_model || {};
+  const rows = Array.isArray(data?.rows) ? data.rows : [];
+  const columns = Array.isArray(data?.columns) ? data.columns : [];
+  const modelTotal = rows.length + columns.length;
+  const fieldsTotal = Array.isArray(hreportReport?.fields) ? hreportReport.fields.length : 0;
+  return Math.max(modelTotal, fieldsTotal, 0);
+}
+
+const normalizeVizOptions = (options) => {
+  if (typeof options === "string") return { subVizType: options, report: null };
+  if (options && typeof options === "object") return options;
+  return {};
+}
+
+const isCircularViz = (selectedType = "", subVizType = "") => {
+  if (isIbCircularChart(subVizType, "")) return true;
+  const sub = String(subVizType || "").toLowerCase();
+  return ["pie", "donut", "doughnut", "arc", "rose", "radar", "gauge", "progress", "wordcloud", "funnel", "treemap", "sunburst"].includes(sub);
+}
+
+
+export const getVizHeight = (vizType, chatResponse = {}, options = {}) => {
   const FACTOR = 7;
-  if (vizType === "Card") {
+  const { subVizType = "", report = null } = normalizeVizOptions(options);
+  if (vizType === "Card" || vizType === "Ant_Card" || vizType === "KPI") {
     return FACTOR;
   }
-  if (vizType === "Table") {
+  if (vizType === "Table" || vizType === "S2Chart" || vizType === "GridTable" || vizType === "CrossTab") {
     const { report_model } = chatResponse || {}
     const { viz_model = {} } = report_model || {}
     const { data = {} } = viz_model || {}
     const { rows = [], columns = [] } = data || {}
-    const rowsLength = rows.length;
-    const columnsLength = columns.length;
-    const min = Math.min(rowsLength + columnsLength, 5);
+    const liveFields = Array.isArray(report?.fields) ? report.fields.length : 0;
+    const min = Math.min(Math.max(rows.length + columns.length, liveFields), 5);
     return min * FACTOR + 3;
+  }
+  if (vizType === "MapChart") {
+    return 40;
+  }
+  if (isCircularViz(vizType, subVizType)) {
+    return 28;
+  }
+  if (vizType === "Antcharts" || vizType === "GridChart" || vizType === "Chart") {
+    const sub = String(subVizType || "").toLowerCase();
+    if (["bar", "column"].includes(sub)) {
+      const sections = getVizSectionTotal(chatResponse, report);
+      return Math.min(22 + sections * 2.5, 44);
+    }
+    if (["line", "area", "point", "scatter", "text"].includes(sub)) {
+      return 32;
+    }
+    return FACTOR * 5;
   }
 
   return FACTOR * 5;

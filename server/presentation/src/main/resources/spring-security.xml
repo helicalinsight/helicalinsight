@@ -297,6 +297,9 @@
 
         <intercept-url pattern="/adhoc*" access="denyAll"/>
 
+        <intercept-url pattern="/getFonts*"
+                       access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+
         <intercept-url pattern="/getExternalResource*"
                        access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 

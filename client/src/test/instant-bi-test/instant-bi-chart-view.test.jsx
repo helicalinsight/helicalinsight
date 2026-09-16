@@ -1,6 +1,7 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
+import { Provider } from "react-redux";
 import {
   ChartView,
   parseBackendErrorMessage,
@@ -29,6 +30,28 @@ jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => {
   };
 });
 
+jest.mock("../../pages", () => {
+  const React = require("react");
+  return {
+    HelicalReports: () => <div data-testid="ib-custom-chart" />,
+  };
+});
+
+function createMockStore() {
+  return {
+    getState: () => ({
+      hreport: { present: { reports: [] } },
+      app: {},
+    }),
+    dispatch: jest.fn(),
+    subscribe: () => () => {},
+  };
+}
+
+function renderWithProvider(ui) {
+  return render(<Provider store={createMockStore()}>{ui}</Provider>);
+}
+
 const tableData = [
   { alias: "Chennai", total_travel_cost: 1350 },
   { alias: "Jaipur", total_travel_cost: 1200 },
@@ -36,7 +59,7 @@ const tableData = [
 
 describe("ChartView", () => {
   it("should show chart render error when vf is missing for non-table charts", () => {
-    render(
+    renderWithProvider(
       <ChartView
         data={tableData}
         vf=""
@@ -55,7 +78,7 @@ describe("ChartView", () => {
     const backendError =
       "{'message': 'Error: SecurityException: The Table you are trying to access is out of scope or not found in the metadata', 'className': 'SecurityException'}";
 
-    render(
+    renderWithProvider(
       <ChartView
         data={tableData}
         vf=""
@@ -74,8 +97,8 @@ describe("ChartView", () => {
     ).toBeInTheDocument();
   });
 
-  it("should use compact kpi wrapper without fixed chart height", () => {
-    const { container } = render(
+  it("should use compact kpi wrapper without fixed chart height", async () => {
+    const { container } = renderWithProvider(
       <ChartView
         compact
         width={400}
@@ -88,7 +111,9 @@ describe("ChartView", () => {
     const wrapper = container.querySelector(".chart-wrapper--kpi");
     expect(wrapper).toBeTruthy();
     expect(wrapper.style.height).toBe("");
-    expect(screen.getByTestId("ib-custom-chart")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId("ib-custom-chart")).toBeInTheDocument(),
+    );
   });
 });
 

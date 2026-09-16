@@ -36,6 +36,16 @@ def add_insight(thread_id, content):
     })
 
 
+def reset_thread(thread_id):
+    """Drop ChatManager history for one chat so a loaded report can replace it."""
+    if not thread_id:
+        return
+    chat_store.pop(thread_id, None)
+    viz_response_store.pop(thread_id, None)
+    sql_store.pop(thread_id, None)
+    prev_insight.pop(thread_id, None)
+
+
 def get_last_n(thread_id, n=3):
     if thread_id not in chat_store:
         return []

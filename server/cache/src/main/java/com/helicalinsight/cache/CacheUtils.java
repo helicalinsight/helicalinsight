@@ -14,6 +14,7 @@ import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
 import com.helicalinsight.efw.resourceprocessor.ResourceProcessorFactory;
 import com.helicalinsight.efw.utility.JsonUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,7 +68,11 @@ public class CacheUtils {
 			} else {
 				File file = new File(physicalCacheFile);
 				if (file.exists()) {
-					file.delete();
+					if (file.isDirectory()) {
+						FileUtils.deleteQuietly(file);
+					} else {
+						file.delete();
+					}
 				}
 			}
 			cacheService.deleteCache(enquiryCache.getCacheId());

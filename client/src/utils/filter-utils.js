@@ -741,7 +741,7 @@ export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, da
         display: orderBy,
         value: 'none' 
     }
-    return {
+    const returnObj = {
         "isEnabled": true,
         unique:true,
         "valueDBFunction": valueDBFunction ? extractDatabaseFunctions(fromJS(valueDBFunction), `${database}.${filter.column}`) : filter.databaseFunction, //-- commented for replacing function nem with function object
@@ -776,7 +776,9 @@ export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, da
                 filter.aggregate && filter.aggregate.length ? filter.aggregate[0] : 'none'
         }),
     }
-
+    returnObj.displayDBfunctionsDefinition = !returnObj.DisplayDBFunction ? "" : `${returnObj.DisplayDBFunction.value}(${returnObj.displayColumn.alias})`
+    returnObj.displayDBfunctionsDefinition = !returnObj.valueDBFunction ? "" : `${returnObj.valueDBFunction.value}(${returnObj.valueColumn.alias})`
+    return returnObj;
 }
 
 // const setParameters = (parameters,formData,callbackFn) => {

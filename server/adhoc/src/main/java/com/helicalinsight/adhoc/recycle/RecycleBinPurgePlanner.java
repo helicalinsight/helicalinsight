@@ -124,13 +124,12 @@ public class RecycleBinPurgePlanner {
 			}
 
 			try {
-				requiresNewTx.execute(_ -> {
-					boolean deleted = resourceServiceDb.hardDeleteResourcesByIds(List.of(rootId), force);
-					if (!deleted) {
-						throw new EfwServiceException("Failed to hard-delete recycle-bin resources.");
-					}
-					return null;
-				});
+				Set<Long> deletedBinIds = requiresNewTx.execute(_ ->
+						resourceServiceDb.hardDeleteResourcesByIds(List.of(rootId), force));
+				if (deletedBinIds != null) {
+					completed.addAll(deletedBinIds);
+					deletedBinIds.forEach(id -> deleteStatusMap.put(id, true));
+				}
 				for (RecycleBinDTO bin : binsForRoot) {
 					Long binId = bin.getRecycleBinId();
 					completed.add(binId);

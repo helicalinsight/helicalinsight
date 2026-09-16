@@ -91,6 +91,12 @@ class SqlGenerator:
         merge_time_consumed(state, read_time_consumed(res))
         state["sql"] = extract_sql(res["final_sql"], state["dialect"])
         state["sql_reason"] = res.get("sql_reason", "") or ""
+        if "domain" in res:
+            state["domain"] = res.get("domain") or []
+        if "topics" in res:
+            state["topics"] = res.get("topics") or []
+        if res.get("topic_mappings"):
+            state["topic_mappings"] = res["topic_mappings"]
         state["required_details"] = {
             "required_tables": res["required_tables"],
             "required_joins": res["required_joins"],
@@ -98,6 +104,8 @@ class SqlGenerator:
             "business_metrics": [],
             "required_business_metrics": res["required_business_metrics"],
             "required_cube_info": res.get("required_cube_info") or {},
+            "required_domain": state.get("domain") or [],
+            "required_topic": state.get("topics") or [],
             "filters": res.get("filters", ""),
             "messages": [],
         }

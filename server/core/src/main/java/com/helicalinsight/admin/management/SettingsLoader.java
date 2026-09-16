@@ -136,6 +136,7 @@ public class SettingsLoader implements Runnable {
         applicationProperties.setManifestVersion(properties.get("manifest_version"));
         applicationProperties.setResultSetConfig(configureResultSetConfig(settingsJson));
         applicationProperties.setProductWebSite(properties.get("product_website"));
+        applicationProperties.setFontsPath(getFontsPath(systemFolder));
         int jdbcQueryCancellationTime;
         try {
             jdbcQueryCancellationTime = GsonUtility.optInt(settingsJson, "jdbcQueryCancellationTime");
@@ -206,5 +207,9 @@ public class SettingsLoader implements Runnable {
     		return new ResultSetConfigDTO(batchSize, fetchSize, dbSpecificOverrides, autoCommit);
     	}
     	return null;
+    }
+    
+    private final String getFontsPath(String systemFolder) {
+    	return systemFolder + File.separator + "Admin" + File.separator +  "fonts"; 
     }
 }

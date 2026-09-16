@@ -3061,14 +3061,14 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			"The clear operation was not completed, because some of the files linked to it are not in deleted state, Please delete them manually.";
 
 	@Override
-	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
+	public Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds) {
 		return hardDeleteResourcesByIds(rootResourceIds, false);
 	}
 
 	@Override
-	public boolean hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
+	public Set<Long> hardDeleteResourcesByIds(Collection<Integer> rootResourceIds, boolean force) {
 		if (rootResourceIds == null || rootResourceIds.isEmpty()) {
-			return true;
+			return Set.of();
 		}
 		try {
 			Set<Integer> treeIds = new LinkedHashSet<>(rootResourceIds);
@@ -3078,7 +3078,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				assertNoLiveEfwdUnderResources(treeIds);
 			}
 
-			deletePlainConnectionsForResourceIds(treeIds);
+			Set<Long> deletedBinIds = new LinkedHashSet<>();
+			deletedBinIds.addAll(deletePlainConnectionsForResourceIds(treeIds));
 
 			Set<Integer> ids = new LinkedHashSet<>(treeIds);
 			ids.addAll(findReportResourceIdsLinkedToMetadataResources(treeIds));
@@ -3095,7 +3096,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			deletePhaseStatusForResourceIds(ordered);
 			deleteAuditDetailsForResourceIds(ordered);
 
-			recycleBinService.deleteRecycleBinsByResourceIds(ids);
+			deletedBinIds.addAll(recycleBinService.deleteRecycleBinsByResourceIds(ids));
 
 			for (List<Integer> chunk : chunked(ordered, CHUNK)) {
 				session.createMutationQuery("delete HIResourceSecurityDB rs where rs.hiResource.id in (:ids)")
@@ -3119,7 +3120,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				session.clear();
 			}
 
-			return true;
+			return deletedBinIds;
 		} catch (EfwServiceException e) {
 			throw e;
 		} catch (Exception e) {
@@ -3178,9 +3179,9 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 		return reportIds;
 	}
 
-	private void deletePlainConnectionsForResourceIds(Collection<Integer> resourceIds) {
+	private List<Long> deletePlainConnectionsForResourceIds(Collection<Integer> resourceIds) {
 		if (resourceIds == null || resourceIds.isEmpty()) {
-			return;
+			return List.of();
 		}
 		Session session = getSession();
 		// Native: includes soft-deleted connections even if isDeletedFilter was re-enabled.
@@ -3193,6 +3194,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				.setParameterList("ids", resourceIds)
 				.getResultList();
 
+		List<Long> efwdBinIds = List.of();
 		if (!connIds.isEmpty()) {
 			for (List<Integer> chunk : chunked(connIds, CHUNK)) {
 				session.createNativeMutationQuery("""
@@ -3247,7 +3249,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				}
 			}
 
-			List<Long> efwdBinIds = session.createSelectionQuery("""
+			efwdBinIds = session.createSelectionQuery("""
 					select link.recycleBin.id
 					from HIRecycleBinHIEfwdConnection link
 					where link.efwdConnection.id in (:ids)
@@ -3273,6 +3275,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 					.setParameterList("ids", chunk)
 					.executeUpdate();
 		}
+		return efwdBinIds;
 	}
 
 	private void deleteSchedulesForResourceIds(Collection<Integer> resourceIds) {
@@ -3506,7 +3509,8 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	
 	@Override
 	public boolean hardDelete(HIResource hiResource) {
-		return hardDeleteResourcesByIds(Set.of(hiResource.getResourceId()));
+		hardDeleteResourcesByIds(Set.of(hiResource.getResourceId()));
+		return true;
 	}
 
 	private static List<List<Integer>> chunked(List<Integer> ids, int size) {
@@ -3538,5 +3542,29 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 			}
 		}
 		return parentByChild;
+	}
+
+	@Override
+	public List<Integer> getHIResourceIdsByCreatedBy(Integer createdBy) {
+		try {
+			Session session = getSession();
+			String hql;
+			SelectionQuery<Integer> query;
+	        if (createdBy == null) {
+	            hql = "select r.resourceId from HIResource r where r.createdBy is null";
+	            query = session.createSelectionQuery(hql, Integer.class);
+	        } else {
+	            hql = "select r.resourceId from HIResource r where r.createdBy = :createdBy";
+	            query = session.createSelectionQuery(hql, Integer.class);
+	            query.setParameter("createdBy", createdBy);
+	        }
+			query.setCacheable(true);
+			query.setReadOnly(true);
+			return query.getResultList();
+		}
+		catch (Exception e) {
+			logger.error("Error occurred while fetching resourceIds by createdBy : {}", createdBy, e);
+			return Collections.emptyList();
+		}
 	}
 }

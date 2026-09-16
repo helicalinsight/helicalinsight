@@ -69,6 +69,8 @@ public enum ApplicationProperties {
     private String encryptionSecret;
     private Map<String,HIPhase> hiResourcePhases;
     private ResultSetConfigDTO resultSetConfig;
+    
+    private String fontsPath;
 
     public String getShowExperimentalFeatures() {
         return showExperimentalFeatures;
@@ -434,5 +436,13 @@ public enum ApplicationProperties {
 	
 	public void setProductWebSite(String productWebSite) {
 		this.productWebsite=productWebSite;
+	}
+	
+	public void setFontsPath(String fontsPath) {
+		this.fontsPath = fontsPath;
+	} 
+	
+	public String getFontsPath() {
+		return fontsPath;
 	}
 }

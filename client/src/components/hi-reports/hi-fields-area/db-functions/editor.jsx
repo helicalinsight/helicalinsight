@@ -1,11 +1,11 @@
 
 import { useState } from "react";
-import { Input,  Drawer, Row, Col, Menu,List } from "antd"
+import { Input, Drawer, Row, Col, Menu, List } from "antd"
 import { editFieldFunctions, updateFunctionDefination } from "../../../../redux/actions/hreport.actions"
 import { useSelector, useDispatch } from "react-redux";
 import AutoSuggestComponent from "./auto-suggest";
-import { 
-    addSelectedValue, checkIsFound, getTooltip, getCurrentValue, getSuggestions, getActiveFunc,setCursorPos 
+import {
+    addSelectedValue, checkIsFound, getTooltip, getCurrentValue, getSuggestions, getActiveFunc, setCursorPos
 } from "../utils/suggetions";
 import { useEffect } from "react";
 import "./editor.scss"
@@ -16,81 +16,101 @@ import { toTitleCase } from "../../../../utils/text-utils"
 
 const FunctionsEditor = props => {
     let { field } = props
-    const [lastCursorPos,setLastCursorPos] = useState(0)
-    const [activeTab,setActiveTab] = useState("functions")
-    const [activeFunc,setActiveFunc] = useState(null)
-    const [selectedDatatype,setSelectedDatatype] = useState("text")
-    const [searchedText,setSearchedText] = useState("")
-    const [suggestions,setSuggestions] = useState([])
-    const [showSuggestions,setShowSuggestions] = useState(true)
-    const [currentTooltip,setCurrentTooltip] = useState(null)
-    const [cursorPosOnBlur,setCursorPosOnBlur] = useState(0)
-    const [autoSuggestValue,setAutoSuggestValue] = useState("")
-    const allFuncsList = []
-    const { editingField, databaseFunctions, fields } = useSelector(state => {
+    const [lastCursorPos, setLastCursorPos] = useState(0)
+    const [activeTab, setActiveTab] = useState("functions")
+    const [activeFunc, setActiveFunc] = useState(null)
+    const [selectedDatatype, setSelectedDatatype] = useState("text")
+    const [searchedText, setSearchedText] = useState("")
+    const [suggestions, setSuggestions] = useState([])
+    const [showSuggestions, setShowSuggestions] = useState(true)
+    const [currentTooltip, setCurrentTooltip] = useState(null)
+    const [cursorPosOnBlur, setCursorPosOnBlur] = useState(0)
+    const [autoSuggestValue, setAutoSuggestValue] = useState("")
+    const allFuncsList = [];
+    let editingField = null;
+    const { databaseFunctions, fields, ...restActiveReport } = useSelector(state => {
         let activeReport = state.hreport.present.reports.find(report => report.active)
         return activeReport
     })
+    editingField = restActiveReport.editingField;
+    if (props.editingField) {
+        editingField = props.editingField;
+    }
     Object.keys(databaseFunctions).map(type => {
         databaseFunctions[type].map(func => {
             allFuncsList.push(func)
         })
     })
     useEffect(() => {
-        if(field){
+        if (field) {
             const { type = {} } = field || {}
-            const {dataType = ''} = type
+            const { dataType = '' } = type
             setSelectedDatatype(() => (dataType && dataType === 'dateTime') ? 'date' : 'text')
         }
-    },[field])
-    useEffect(()=>{
-        if(lastCursorPos){
+    }, [field])
+    useEffect(() => {
+        if (lastCursorPos) {
             setCursorPos(lastCursorPos)
         }
-    },[lastCursorPos])
+    }, [lastCursorPos])
     useEffect(() => {
         setAutoSuggestValue(editingField?.functionsDefinition)
     }, [editingField?.functionsDefinition])
     const dispatch = useDispatch()
-    
+
     if (!editingField) return null
 
     const onCloseEditor = () => {
+        if (props.onClose && typeof props.onClose === "function") return props.onClose()
         dispatch(editFieldFunctions({ id: field.id }))
     }
     const handleSelectDataType = dataType => {
         setSelectedDatatype(dataType)
         setActiveTab("functions")
     }
-    const handleDoubleClick = (data,e) => {
+    const handleDoubleClick = (data, e) => {
         // e.preventDefault()
         e.stopPropagation();
         let selectedValue = addSelectedValue({ value: data.value, type: data.type }, lastCursorPos)
-        dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+        if (props.onChange && typeof props.onChange === "function") {
+            props.onChange(selectedValue.value)
+        } else {
+            dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+        }
         setLastCursorPos(selectedValue.cursorPos)
     }
-    const handleFunctionClick = (data,e) => {
+    const handleFunctionClick = (data, e) => {
         e.stopPropagation();
-        let isFound = checkIsFound({newValue:data,databaseFunctions})
+        let isFound = checkIsFound({ newValue: data, databaseFunctions })
         setActiveFunc(isFound)
     }
     const onChange = (event, { newValue, method }) => {
         if (method === "type") {
-            let isFound = checkIsFound({databaseFunctions})
-            if(!newValue) dispatch(updateFunctionDefination({ functionsDefinition: newValue }))
+            let isFound = checkIsFound({ databaseFunctions })
+            if (!newValue) {
+                if (props.onChange && typeof props.onChange === "function") {
+                    props.onChange(newValue)
+                } else {
+                    dispatch(updateFunctionDefination({ functionsDefinition: newValue }))
+                }
+            }
             setAutoSuggestValue(newValue)
             setCurrentTooltip(getTooltip(databaseFunctions))
-            if(isFound || !newValue) setActiveFunc(isFound)
+            if (isFound || !newValue) setActiveFunc(isFound)
         } else if (method === "enter" || method === "click") {
-            let isFound = checkIsFound({newValue,databaseFunctions})
+            let isFound = checkIsFound({ newValue, databaseFunctions })
             let selectedValue = addSelectedValue(newValue)
-            dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+            if (props.onChange && typeof props.onChange === "function") {
+                props.onChange(selectedValue.value)
+            } else {
+                dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+            }
             setAutoSuggestValue(selectedValue.value)
-            if(isFound) setActiveFunc(isFound)
+            if (isFound) setActiveFunc(isFound)
             setLastCursorPos(selectedValue.cursorPos)
         } else if (method === "down" || method === "up") {
-            let isFound = checkIsFound({newValue,databaseFunctions})
-            if(isFound) setActiveFunc(isFound)
+            let isFound = checkIsFound({ newValue, databaseFunctions })
+            if (isFound) setActiveFunc(isFound)
         }
     }
     const handleBlur = () => {
@@ -119,11 +139,15 @@ const FunctionsEditor = props => {
         let pos = val.slice(0, elem.selectionStart).length;
         let activeFunc = getActiveFunc(databaseFunctions, pos)
         setCurrentTooltip(getTooltip(databaseFunctions, pos))
-        if(activeFunc) setActiveFunc(activeFunc)
+        if (activeFunc) setActiveFunc(activeFunc)
     }
     const handleDrop = item => {
         let selectedValue = addSelectedValue({ value: item.value, type: item.draggingFrom }, cursorPosOnBlur)
-        dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+        if (props.onChange && typeof props.onChange === "function") {
+            props.onChange(selectedValue.value)
+        } else {
+            dispatch(updateFunctionDefination({ functionsDefinition: selectedValue.value }))
+        }
         setLastCursorPos(selectedValue.cursorPos)
     }
     const onSuggestionsFetchRequested = () => {
@@ -163,8 +187,8 @@ const FunctionsEditor = props => {
         filteredFunctions = databaseFunctions[selectedDatatype].filter(func => func.value.toLowerCase().search(searchedText.toLowerCase()) > -1)
         filteredColumns = fields.filter(clmn => clmn.column.split(".")[1].toLowerCase().search(searchedText.toLowerCase()) > -1)
     }
-    let sortedFunctions = [...filteredFunctions].sort((a,b)=> a.value > b.value ? 1 : -1 )
-    let tempEditingField = {...editingField, functionsDefinition: autoSuggestValue }
+    let sortedFunctions = [...filteredFunctions].sort((a, b) => a.value > b.value ? 1 : -1)
+    let tempEditingField = { ...editingField, functionsDefinition: autoSuggestValue }
 
 
     return (
@@ -197,19 +221,21 @@ const FunctionsEditor = props => {
                 </Col>
             </Row>
             <Row>
-            {activeFunc && <DescriptionComponent 
+                {activeFunc && <DescriptionComponent
                     activeFunc={activeFunc}
                     databaseFunctions={databaseFunctions}
-                     />}
+                />}
             </Row>
             <Row>
                 <Col span={24} >
                     <Row>
                         <Col span={24} >
-                            <Menu 
-                            data-testid = "hi-report-editor-menu"
+                            <Menu
+                                data-testid="hi-report-editor-menu"
                                 // onClick={this.handleClick} 
-                                selectedKeys={[activeTab]} mode="horizontal">
+                                selectedKeys={[activeTab]}
+                                mode="horizontal"
+                            >
                                 <Menu.Item key="dataType" onClick={handleShowDataTypes} >
                                     Data Type
                                 </Menu.Item>
@@ -222,69 +248,70 @@ const FunctionsEditor = props => {
                             </Menu>
                         </Col>
                     </Row>
-                        <Row>
-                            <Col span={24} >
-                                <Input placeholder={`Search ${activeTab}`} allowClear onChange={handleSearch} />
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col span={24}>
-                                {activeTab === "dataType" && (
-                                    <List
-                                        size="small"
-                                        className="functions-scrollbar"
-                                        bordered
-                                        dataSource={filteredDatatypes}
-                                        renderItem={item => {
-                                            let className = "db-func-list-item"
-                                            if (selectedDatatype === item) {
-                                                className = "db-func-list-item db-func-list-item-active"
-                                            }
-                                            return (
-                                                <div onClick={()=>handleSelectDataType(item)} className={className}  >
-                                                    {toTitleCase(item)}
-                                                </div>
-                                            )
+                    <Row>
+                        <Col span={24} >
+                            <Input placeholder={`Search ${activeTab}`} allowClear onChange={handleSearch} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col span={24}>
+                            {activeTab === "dataType" && (
+                                <List
+                                    size="small"
+                                    className="functions-scrollbar"
+                                    bordered
+                                    dataSource={filteredDatatypes}
+                                    renderItem={item => {
+                                        let className = "db-func-list-item"
+                                        if (selectedDatatype === item) {
+                                            className = "db-func-list-item db-func-list-item-active"
                                         }
-                                             
-                                        }
-                                    />
-                                )}
-                                 {activeTab === "functions" && (
-                                     <List
-                                        size="small"
-                                        className="functions-scrollbar"
-                                        bordered
-                                        dataSource={sortedFunctions}
-                                        renderItem={item =><Param 
-                                            handleFunctionClick={handleFunctionClick}
-                                            handleDoubleClick={handleDoubleClick}
-                                            item={item} type={"function"} />}
-                                    />
-                                )}
-                                {activeTab === "fields" && (
-                                     <List
-                                        size="small"
-                                        className="functions-scrollbar"
-                                        bordered
-                                        dataSource={filteredColumns}
-                                        
-                                        renderItem={item => <Param 
-                                            handleDoubleClick={handleDoubleClick}
-                                            item={item} type={"column"} /> }
-                                    />
-                                )}
-                            </Col>
-                        </Row>
+                                        return (
+                                            <div onClick={() => handleSelectDataType(item)} className={className}  >
+                                                {toTitleCase(item)}
+                                            </div>
+                                        )
+                                    }
+
+                                    }
+                                />
+                            )}
+                            {activeTab === "functions" && (
+                                <List
+                                    size="small"
+                                    className="functions-scrollbar"
+                                    bordered
+                                    dataSource={sortedFunctions}
+                                    renderItem={item => <Param
+                                        handleFunctionClick={handleFunctionClick}
+                                        handleDoubleClick={handleDoubleClick}
+                                        item={item} type={"function"} />}
+                                />
+                            )}
+                            {activeTab === "fields" && (
+                                <List
+                                    size="small"
+                                    className="functions-scrollbar"
+                                    bordered
+                                    dataSource={filteredColumns}
+
+                                    renderItem={item => <Param
+                                        handleDoubleClick={handleDoubleClick}
+                                        item={item} type={"column"} />}
+                                />
+                            )}
+                        </Col>
+                    </Row>
                 </Col>
             </Row>
             <div className="editor-footer" >
-                
-                    <SaveBlock closeDialog={closeDialog}
-                        databaseFunctions={databaseFunctions} fields={fields} 
-                        // editingField={editingField}
-                        editingField={tempEditingField}
-                         /> 
+
+                <SaveBlock closeDialog={closeDialog}
+                    databaseFunctions={databaseFunctions} fields={fields}
+                    // editingField={editingField}
+                    editingField={tempEditingField}
+                    onSave={props.onSave || null}
+                />
             </div>
         </Drawer>
     )

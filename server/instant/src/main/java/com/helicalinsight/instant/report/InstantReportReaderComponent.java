@@ -1,10 +1,9 @@
 package com.helicalinsight.instant.report;
 
-import com.helicalinsight.adhoc.report.AdhocReport;
-import com.helicalinsight.adhoc.report.ReportOpenHelper;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.helicalinsight.adhoc.report.AdhocReport;
+import com.helicalinsight.adhoc.report.ReportOpenHelper;
 import com.helicalinsight.efw.serviceframework.IComponent;
 
 
@@ -18,6 +17,7 @@ import com.helicalinsight.efw.serviceframework.IComponent;
  */
 @SuppressWarnings("unused")
 public class InstantReportReaderComponent implements IComponent {
+
 	/**
      * Executes the component to read an instant report.
      *
@@ -38,7 +38,8 @@ public class InstantReportReaderComponent implements IComponent {
                     "Aborting operation.");
         }
 
-        return ReportOpenHelper.reportContentAsJson(adhocReport).toString();
+        JsonObject reportContent = ReportOpenHelper.reportContentAsJson(adhocReport);
+        return reportContent.toString();
     }
 
     @Override

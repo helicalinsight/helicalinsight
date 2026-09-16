@@ -80,3 +80,16 @@ class TestVizSqlInsightStores:
         assert ChatManager.get_last_n_viz("ghost") == []
         assert ChatManager.get_last_sql("ghost") == []
         assert ChatManager.get_last_insight("ghost") == []
+
+    def test_reset_thread_clears_all_stores(self, reset_chat_stores):
+        ChatManager.add_message("t1", "q")
+        ChatManager.add_sql("t1", {"sql": "SELECT 1"})
+        ChatManager.add_viz_response("t1", {"chart": "bar"})
+        ChatManager.add_insight("t1", "ok")
+        ChatManager.add_message("t2", "keep")
+        ChatManager.reset_thread("t1")
+        assert ChatManager.get_last_n("t1") == []
+        assert ChatManager.get_last_sql("t1") == []
+        assert ChatManager.get_last_n_viz("t1") == []
+        assert ChatManager.get_last_insight("t1") == []
+        assert ChatManager.get_last_n("t2")[0]["previous_query"] == "keep"

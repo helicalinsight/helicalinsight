@@ -400,6 +400,43 @@ class TestChatResponse:
         assert response.report_model.data_model["columns"] == [{"alias": "Travel Cost"}]
         assert response.report_model.data_model["sql"] == "select 1"
 
+    def test_folds_having_into_filters_on_data_model(self):
+        form_data = {
+            "location": "test",
+            "metadataFileName": "pg_sample_travel_data.metadata",
+            "sql": "select 1",
+            "columns": [{"alias": "Travel Type"}],
+            "filters": [
+                {
+                    "column": {"name": "travel_type", "id": "1"},
+                    "alias": "Travel Type",
+                    "condition": "EQUALS",
+                    "values": ["International"],
+                    "id": 0,
+                }
+            ],
+            "customFilterExpression": " ${0} ",
+            "having": [
+                {
+                    "column": {"name": "travel_id", "id": "2"},
+                    "alias": "count_travel_id",
+                    "condition": "IS_BETWEEN",
+                    "values": [20, 50],
+                    "id": 0,
+                }
+            ],
+            "customHavingExpression": " ${0} ",
+        }
+        response = ChatResponse.from_model_state({"viz_form_data": form_data})
+        data_model = response.report_model.data_model
+        assert "having" not in data_model
+        assert "customHavingExpression" not in data_model
+        assert data_model["filters"][0]["id"] == 0
+        assert data_model["filters"][1]["id"] == 0
+        assert data_model["filters"][1]["values"] == [20, 50]
+        assert data_model["customFilterExpression"] == " ${0} "
+        assert data_model["filterExpression"] == ["Travel Type", "count_travel_id"]
+
     def test_data_model_is_none_without_viz_form_data(self):
         response = ChatResponse.from_model_state({})
         assert response.report_model.data_model is None
@@ -412,13 +449,18 @@ class TestChatResponse:
                 "viz_hint": "bar",
                 "viz_model": {
                     "chart": {"viz": "Bar", "mark": "Chart"},
-                    "data": {"rows": ["region"], "columns": ["amount"], "filters": []},
+                    "data": {
+                        "rows": ["region"],
+                        "columns": ["amount"],
+                        "filters": [{"name": "region", "value": "West", "condition": "EQ"}],
+                    },
                     "properties": {"title": "Sales"},
                 },
             }
         )
         payload = response.to_dict()
         assert payload["report_model"]["viz_model"]["chart"]["viz"] == "Bar"
+        assert "filters" not in (payload["report_model"]["viz_model"].get("data") or {})
         assert "viz_model" not in payload["viz"]
         assert "data_model" not in payload
 

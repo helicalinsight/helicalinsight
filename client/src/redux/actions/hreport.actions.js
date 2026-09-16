@@ -705,3 +705,10 @@ export const loadReportFromLocalStorage = (data) => {
 		payload: data
 	};
 };
+
+export const updateFilterAdvDbFns = (data) => {
+	return {
+		type: actionTypes.UPDATE_FILTER_ADV_DB_FUNCTIONS,
+		payload: data
+	};
+};

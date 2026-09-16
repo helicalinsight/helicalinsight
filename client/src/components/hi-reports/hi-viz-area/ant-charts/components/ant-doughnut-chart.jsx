@@ -398,8 +398,6 @@ const DonutChart = (props) => {
         }
     };
 
-    console.log("config", config);
-
     return (
         <div style={{ height: `${height}px` }}>
             <div className="title-subtitle-container">

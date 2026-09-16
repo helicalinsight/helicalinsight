@@ -8,30 +8,49 @@ import {
   waitFor,
 } from "@testing-library/react";
 
-import {
-  generateReport,
-  openMetadata,
-} from "../../../components/hi-reports/utils/base";
-import reducers from "../../../redux";
-import { getVisulisationState } from "../hreport.request.mock.js";
-import { formdata_with_numeric_column_aggreate } from "./mock.data";
-import actionTypes from "../../../redux/actions/actionTypes";
-import { hiMockAxios } from "../../../app/mock-axios";
-import {
-  getTableTree,
-} from "../../../components/hi-reports/utils/utilities";
-import { saveDataBaseFunction } from "../../../components/hi-reports/hi-fields-area/utils/utilities";
-import {
+jest.setTimeout(30000);
+
+// Mock muze wasm fetch (js/muze/*.module.wasm via whatwg-fetch/XHR) which
+// otherwise rejects with "TypeError: Network request failed" mid-suite.
+// Must be installed BEFORE requiring hreport modules (which transitively import
+// @chartshq/muze via base -> utilities -> grid-chart-utils), so use dynamic
+// requires after mock. Returning a never-settling promise keeps muze chunk
+// loading pending without rejecting.
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+  const urlStr = String(url);
+  if (urlStr.includes(".wasm") || urlStr.includes("muze")) {
+    return new Promise(() => {});
+  }
+  return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error("fetch not available"));
+});
+afterAll(() => {
+  global.fetch = __originalFetch;
+});
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { generateReport, openMetadata } = require("../../../components/hi-reports/utils/base");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const reducers = require("../../../redux").default;
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { getVisulisationState } = require("../hreport.request.mock.js");
+const { formdata_with_numeric_column_aggreate } = require("./mock.data");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const actionTypes = require("../../../redux/actions/actionTypes").default;
+const { hiMockAxios } = require("../../../app/mock-axios");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { getTableTree } = require("../../../components/hi-reports/utils/utilities");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { saveDataBaseFunction } = require("../../../components/hi-reports/hi-fields-area/utils/utilities");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const {
   addFieldToCanvas,
   changeFilterCondition,
   createFilter,
   toggleFilterUnique,
   updateOrderBy,
-} from "../../../redux/actions/hreport.actions";
-import {
-  fetchFilterValues,
-  getMinMaxValues,
-} from "../../../utils/filter-utils";
+} = require("../../../redux/actions/hreport.actions");
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { fetchFilterValues, getMinMaxValues } = require("../../../utils/filter-utils");
 const flushPromises = () => new Promise(setImmediate);
 
 describe("Helical Report Utilities", () => {

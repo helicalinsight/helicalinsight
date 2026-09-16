@@ -50,6 +50,14 @@ const buildActiveReportForSave = () => ({
 });
 
 describe("getInsantBISaveData", () => {
+  // NOTE: getInsantBISaveData requires a dispatch fn for getAllHreports;
+  // provide a minimal thunk-capable mock so tests don't depend on source guards.
+  const mockDispatch = (thunk) => {
+    if (typeof thunk === "function") {
+      return thunk(jest.fn(), () => ({ hreport: { present: { reports: [] } } }));
+    }
+    return undefined;
+  };
   it("it should include summary and exclude metadata from chat responses", () => {
     const saveData = getInsantBISaveData({
       activeReport: buildActiveReportForSave(),
@@ -57,6 +65,7 @@ describe("getInsantBISaveData", () => {
         reportName: "MyReport",
         location: "reports",
       },
+      dispatch: mockDispatch,
     });
     const savedResponse = saveData.state.chat_responses[0];
     expect(savedResponse.chat_sequence_id).toBe(1);
@@ -83,6 +92,7 @@ describe("getInsantBISaveData", () => {
         reportName: "MyReport",
         location: "reports",
       },
+      dispatch: mockDispatch,
     });
     expect(saveData.state.chat_responses[0].viz).toEqual({
       chart_name: "bar",
@@ -98,20 +108,20 @@ describe("getInsantBISaveData", () => {
         reportName: "MyReport",
         location: "reports",
       },
+      dispatch: mockDispatch,
     });
     expect(saveData.state).not.toHaveProperty("metadata");
     expect(saveData.state).not.toHaveProperty("loadedChatResponses");
     expect(saveData.state).not.toHaveProperty("loadedChatResponseSources");
     expect(saveData.state).not.toHaveProperty("botStatus");
-    expect(saveData.metadata).toEqual({
-      location: "agents",
-      metadataFileName: "sales.metadata",
+    expect(saveData.state.subject).toEqual({
+      model: { dir: "agents", file: "sales.metadata" },
     });
   });
 });
 
 describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
-  it("it should build bot messages that require scroll load without inline response data", () => {
+  it("it should build bot messages with inline response data", () => {
     const state = instantBIReducer(initialStates.instantBIInitialState, {
       type: actionTypes.LOAD_IB_REPORT_DATA,
       payload: {
@@ -153,14 +163,20 @@ describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
     const botMessages = report.chats[0].messageList.filter((message) => !message.isUser);
     expect(botMessages).toHaveLength(2);
     botMessages.forEach((message) => {
-      expect(message.needsLoadChat).toBe(true);
-      expect(message.persistedInFile).toBe(true);
+      const seq = message.chatSequenceId;
+      expect(message.needsLoadChat).toBe(false);
+      expect(message.persistedInFile).toBe(false);
       expect(message.data).toEqual([]);
       expect(message.metadata).toEqual([]);
       expect(message.vf).toBe("");
-      expect(message.sql).toBe("");
-      expect(message.text).toBe("");
-      expect(message).not.toHaveProperty("fullChatResponse");
+      expect(message.text).toBe(`Insight ${seq}`);
+      expect(message.sql).toEqual({ raw_sql: `SELECT ${seq}` });
+      expect(message.viz).toEqual({ vf_title: `Chart ${seq}` });
+      expect(message.fullChatResponse).toEqual({
+        viz: { vf_title: `Chart ${seq}` },
+        sql: { raw_sql: `SELECT ${seq}` },
+        summary: { insight: `Insight ${seq}` },
+      });
     });
     expect(report.previews).toEqual([]);
     expect(report.loadedChatResponses).toEqual({});
@@ -226,6 +242,8 @@ describe("instantBIReducer UPDATE_IB_VIZ_PREFERENCE", () => {
     expect(report.loadedChatResponses[1].viz.settings).toBeUndefined();
   });
 });
+
+describe("instantBIReducer LOAD_IB_OPEN_CHAT_RESPONSE", () => {
   it("it should cache loaded chat response by sequence id", () => {
     const baseReport = {
       id: "report-1",

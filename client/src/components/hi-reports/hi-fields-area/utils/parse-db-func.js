@@ -5,8 +5,29 @@ import { getFieldDisplayName } from '../../../../utils/utilities';
 const makeDbFunc = ({ allFuncsList, fields, expression }) => {
     let funcName = expression.split('(')[0]
     let selectedFunc = allFuncsList.find(func => func.value === funcName)
+    
+    if (!selectedFunc && funcName.trim().toUpperCase() === 'RAW') {
+        selectedFunc = allFuncsList.find(func => (func.value || '').toUpperCase() === 'RAW')
+    }
+
     let databaseFunction = {}
     if (selectedFunc) {
+
+        // RAW(...) wraps hand-written SQL (e.g. window functions like LAG() OVER ()).
+        // Pass the inner expression through untouched — splitting it on commas or
+        // recursing into SUM / LAG / NULLIF / EXTRACT fragments mangles it.
+        if ((selectedFunc.value || '').toUpperCase() === 'RAW') {
+            const rawExpression = expression.substring(expression.indexOf("(") + 1, expression.lastIndexOf(")"))
+            const rawParameters = (selectedFunc.parameters || []).map((param, index) => (
+                index === 0 ? { ...param, column: false, value: rawExpression } : { ...param }
+            ))
+            return {
+                ...selectedFunc,
+                parameters: rawParameters.length ? rawParameters : [{ column: false, value: rawExpression }]
+            }
+        }
+
+
         databaseFunction = {...selectedFunc}
         let argString = expression.substring(expression.indexOf("(") + 1, expression.lastIndexOf(")"))
         // argString = argString.replace(/ /g, '')

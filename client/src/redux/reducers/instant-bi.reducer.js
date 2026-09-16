@@ -390,7 +390,7 @@ const instantBIReducer = (
       } = action.payload;
       const { metadata = {}, reportName, state: stateData = {} } = data || {}
       const { inputs = [], chat_responses = [], ...restState } = stateData || {}
-      const chatId = restState.activeChatID || uuidv4();
+      const chatId = restState.activeChatID || restState.activeChatId || uuidv4();
       const sortedInputs = [...inputs].sort((a, b) => a.chat_sequence_id - b.chat_sequence_id);
       const sortedResponses = [...chat_responses].sort((a, b) => a.chat_sequence_id - b.chat_sequence_id);
       const uniqueSequenceIds = [...new Set([
@@ -465,15 +465,18 @@ const instantBIReducer = (
         draft.loading = loading;
         draft.mode = mode;
         draft.activeReportId = reportId;
+        const nextReport = { ...finalStateData, id: reportId, active: true };
         if (draft.reports.some(report => report.id === reportId)) {
           draft.reports = draft.reports.map((report) => {
             if (report.id === reportId) {
-              return finalStateData;
+              return nextReport;
             }
-            return report;
+            return { ...report, active: false };
           })
         } else {
-          draft.reports = [finalStateData]
+          // Never wipe other tabs on id mismatch; append instead so a
+          // pristine-tab reuse bug can't delete previously opened reports.
+          draft.reports = [...draft.reports.map((report) => ({ ...report, active: false })), nextReport];
         }
       })
     }

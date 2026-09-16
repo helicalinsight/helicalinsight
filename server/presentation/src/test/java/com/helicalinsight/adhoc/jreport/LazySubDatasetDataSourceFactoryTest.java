@@ -22,6 +22,7 @@ import com.helicalinsight.cache.CacheHelper;
 import com.helicalinsight.cache.CacheUtils;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManagerForResultSet;
 import com.helicalinsight.cache.model.Cache;
+import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 
@@ -58,7 +59,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -96,7 +97,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -121,7 +122,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 		HCRHelper hcrHelper = new HCRHelper();
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			LazySubDatasetDataSourceFactory.resolve(factory, "mode_of_payment");
 		}
 	}
@@ -146,7 +147,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -191,7 +192,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -228,7 +229,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -262,7 +263,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -299,7 +300,7 @@ public class LazySubDatasetDataSourceFactoryTest {
 
 		try (MockedStatic<ApplicationContextAccessor> applicationContext = mockStatic(ApplicationContextAccessor.class);
 				MockedStatic<CacheUtils> cacheUtils = mockStatic(CacheUtils.class)) {
-			applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+			stubAppContextBeans(applicationContext, hcrHelper);
 			cacheUtils.when(() -> CacheUtils.getCacheManager("/hcrResultSet")).thenReturn(resultSetCacheManager);
 			cacheUtils.when(() -> CacheUtils.getCacheNameFromConnection(any(JsonObject.class))).thenReturn("report-cache");
 
@@ -316,6 +317,14 @@ public class LazySubDatasetDataSourceFactoryTest {
 			assertEquals(200, totalPriceValues.get(1).getAsInt());
 			assertTrue(mergedConnectionDetails.get("Total Price").isJsonArray());
 		}
+	}
+
+	private void stubAppContextBeans(MockedStatic<ApplicationContextAccessor> applicationContext,
+			HCRHelper hcrHelper) {
+		CacheService cacheService = mock(CacheService.class);
+		applicationContext.when(() -> ApplicationContextAccessor.getBean(HCRHelper.class)).thenReturn(hcrHelper);
+		applicationContext.when(() -> ApplicationContextAccessor.getBean(CacheService.class)).thenReturn(cacheService);
+		when(cacheService.findUniqueCache(any())).thenReturn(null);
 	}
 
 	private void injectCacheHelper(HCRHelper hcrHelper, CacheHelper cacheHelper)

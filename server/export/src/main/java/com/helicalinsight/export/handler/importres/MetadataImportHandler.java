@@ -102,7 +102,7 @@ public class MetadataImportHandler extends AbstractResourceImportHandler {
 		joinsOrder = new HashMap<>();
 		
 		if (null != existingMdResorce) {
-			existingMdResorce.setCreatedBy(resource.getCreatedBy());
+			existingMdResorce.setCreatedBy(metadata.getCreatedBy());
 			resource = existingMdResorce;
 			if("update".equalsIgnoreCase(conflictMode) && context.recover(existingMdResorce)) {
 				existingMdResorce.setTitle(metadata.getFileName());

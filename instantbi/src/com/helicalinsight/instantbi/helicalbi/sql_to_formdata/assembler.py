@@ -156,11 +156,15 @@ def assemble_form_data(
 
     if filters:
         form_data["filters"] = filters
-        form_data["customFilterExpression"] = _build_expression(len(filters), "AND")
+        form_data["customFilterExpression"] = _build_indexed_expression(filters)
 
     if having:
         form_data["having"] = having
-        form_data["customHavingExpression"] = _build_expression(len(having), "AND")
+        form_data["customHavingExpression"] = _build_indexed_expression(having)
+
+    filter_expression = _build_filter_expression(filters, having)
+    if filter_expression is not None:
+        form_data["filterExpression"] = filter_expression
 
     if include_parts:
         form_data["_parts"] = {
@@ -172,7 +176,7 @@ def assemble_form_data(
             "having": having,
         }
 
-    return form_data
+    return fold_having_into_filters(form_data)
 
 
 def sql_to_form_data(
@@ -230,11 +234,94 @@ def sql_to_form_data(
     )
 
 
-def _build_expression(count: int, default_op: str = "AND") -> str:
-    if count <= 0:
+def fold_having_into_filters(form_data: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Append ``having[]`` onto ``filters[]`` as-is and drop ``having``.
+
+    Does not rewrite ``customFilterExpression``. ``customHavingExpression`` is
+    dropped with ``having`` because that array no longer exists on the wire.
+
+    ``filterExpression`` is alias-based ``[where, having?]`` and is filled here
+    when the payload still has a separate ``having`` array (e.g. ChatResponse).
+    """
+    if not isinstance(form_data, dict):
+        return form_data
+    payload = dict(form_data)
+    having = payload.pop("having", None)
+    payload.pop("customHavingExpression", None)
+    extra: list[Any] = []
+    if isinstance(having, list):
+        extra = [
+            dict(item) if isinstance(item, dict) else item
+            for item in having
+            if item not in (None, "")
+        ]
+
+    filters = [
+        dict(item) if isinstance(item, dict) else item
+        for item in (payload.get("filters") or [])
+    ]
+    if "filterExpression" not in payload:
+        expr = _build_filter_expression(filters, extra)
+        if expr is not None:
+            payload["filterExpression"] = expr
+
+    if extra:
+        filters.extend(extra)
+        payload["filters"] = filters
+    return payload
+
+
+def _filter_alias(item: Any) -> str:
+    if not isinstance(item, dict):
         return ""
-    if count == 1:
-        return " ${0} "
-    parts = [f"${{{i}}}" for i in range(count)]
-    joined = f" {default_op} ".join(parts)
-    return f" {joined} "
+    return str(item.get("alias") or item.get("label") or "").strip()
+
+
+def _join_filter_terms(items: list[Any], term_fn) -> str:
+    """Join terms with each item's operator. No operator when there is one item."""
+    parts: list[str] = []
+    for item in items:
+        term = term_fn(item)
+        if not term:
+            continue
+        if not parts:
+            parts.append(term)
+            continue
+        op = "AND"
+        if isinstance(item, dict):
+            op = str(item.get("operator") or "AND").strip() or "AND"
+        parts.append(f"{op} {term}")
+    return " ".join(parts)
+
+
+def _build_indexed_expression(items: list[Any]) -> str:
+    index = {"n": 0}
+
+    def _term(_item: Any) -> str:
+        token = f"${{{index['n']}}}"
+        index["n"] += 1
+        return token
+
+    expr = _join_filter_terms(items, _term)
+    return f" {expr} " if expr else ""
+
+
+def _build_filter_expression(
+    where_items: list[Any] | None,
+    having_items: list[Any] | None,
+) -> list[str] | None:
+    """Alias expression for WHERE / HAVING, e.g. ``["destination OR source"]``.
+
+    Index 0 is WHERE; index 1 is HAVING when any HAVING predicates exist.
+    HAVING-only queries use ``["", "sum_travel_cost OR sum_travelled_by"]``.
+    """
+    where_items = where_items or []
+    having_items = having_items or []
+    if not where_items and not having_items:
+        return None
+    where_expr = _join_filter_terms(where_items, _filter_alias)
+    if having_items:
+        return [where_expr, _join_filter_terms(having_items, _filter_alias)]
+    if not where_expr:
+        return None
+    return [where_expr]

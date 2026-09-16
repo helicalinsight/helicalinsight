@@ -21,9 +21,10 @@ def build_functions(
     for col in columns:
         if not col.get("aggregate"):
             continue
+        agg_list = col.get("aggregateList") or ["db.generic.aggregate.sum"]
         entry = {
             "column": col["column"],
-            "function": (col.get("aggregateList") or ["db.generic.aggregate.sum"])[0],
+            "function": "_".join(agg_list),
             "alias": col.get("alias"),
         }
         if col.get("custom"):

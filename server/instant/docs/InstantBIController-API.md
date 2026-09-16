@@ -140,7 +140,7 @@ input=Show total sales by region&chatid=abc123&chat_sequence_id=1&subject={"mode
 
 ---
 
-## 3b. Agent Dashboard
+## 3a. Agent Dashboard
 
 **`GET | POST`** `/ai/agent-dashboard`
 

@@ -10,19 +10,8 @@ from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class VizFilter(BaseModel):
-    """A single filter binding on the visualization data shelf."""
-
-    name: str = Field(default="", description="Filter field / column name.")
-    value: Any = Field(default="", description="Filter value (string, number, list, etc.).")
-    condition: str = Field(
-        default="",
-        description="Filter operator / condition (e.g. equals, in, between).",
-    )
-
-
 class VizData(BaseModel):
-    """Data shelf encoding: rows, columns, and filters."""
+    """Data shelf encoding: rows and columns (filters live on data_model)."""
 
     rows: list[str] = Field(
         default_factory=list,
@@ -32,10 +21,15 @@ class VizData(BaseModel):
         default_factory=list,
         description="Column / measure field names.",
     )
-    filters: list[VizFilter] = Field(
-        default_factory=list,
-        description="Active filters applied to the visualization data.",
-    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def _drop_filters(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+        payload.pop("filters", None)
+        return payload
 
 
 class VizChart(BaseModel):

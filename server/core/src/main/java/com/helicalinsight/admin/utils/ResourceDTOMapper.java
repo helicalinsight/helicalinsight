@@ -692,8 +692,7 @@ public class ResourceDTOMapper {
 		HIEfwdDTO resourceDto = new HIEfwdDTO();
 		resourceDto.setResourceId(resource.getResourceId());
 		resourceDto.setResourceUrl(resource.getResourceURL());
-		Integer userId = resource.getCreatedBy();
-		User user = userService.findUser(userId);
+		User user = connection.getHiResourceEFWD().getCreatedBy();
 		resourceDto.setCreatedBy(map(user));
 		resourceDto.setIsDeleted(resource.isDeleted());
 		dto.setResource(resourceDto);

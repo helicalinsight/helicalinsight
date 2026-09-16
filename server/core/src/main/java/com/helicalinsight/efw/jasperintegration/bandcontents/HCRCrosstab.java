@@ -111,6 +111,8 @@ public class HCRCrosstab implements IHCRBandContents {
 
 			cell.setContents(designCell);
 
+			JsonObject customSettings = GsonUtility.optJsonObject(cellJson, "customSettings");
+	        HCRUtils.applyCustomProperties(designCell, customSettings);
 			try {
 				crosstab.addCell(cell);
 			} catch (JRException ex) {
@@ -143,8 +145,8 @@ public class HCRCrosstab implements IHCRBandContents {
 		logger.debug("Adding row group to crosstab.");
 
 		JsonArray rowGroups = json.getAsJsonArray("rowGroups");
-		for (int i = 0; i < rowGroups.size(); i++) {
-			JsonObject rowGroupJson = rowGroups.get(i).getAsJsonObject();
+		for (int rgIdx = 0; rgIdx < rowGroups.size(); rgIdx++) {
+			JsonObject rowGroupJson = rowGroups.get(rgIdx).getAsJsonObject();
 			JRDesignCrosstabRowGroup rowGroup = new JRDesignCrosstabRowGroup();
 			rowGroup.setName(rowGroupJson.get("name").getAsString());
 			rowGroup.setWidth(rowGroupJson.get("width").getAsInt());

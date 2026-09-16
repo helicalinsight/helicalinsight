@@ -28,7 +28,16 @@ _CHART_OPTION_ROWS: tuple[tuple, ...] = (
     ("calendar", 1, 1, 0, 1, "Calendar: 1 date dimension in columns.", True, ("calendar heatmap", "calendar chart", "date heatmap")),
     ("wordcloud", 1, 1, 0, 0, "Word cloud: 1 dimension and 0 measures.", False, ("word cloud", "tag cloud", "text")),
     ("table", 0, None, 0, None, "Tabular fallback for any shape.", False, ("data table", "grid")),
-    ("grid_table", 0, None, 0, None, "Crosstab / grid table.", False, ("crosstab", "pivot table")),
+    (
+        "grid_table",
+        0,
+        None,
+        0,
+        None,
+        "Crosstab / grid table.",
+        False,
+        ("crosstab", "pivot table", "grid chart", "grid table"),
+    ),
 )
 
 

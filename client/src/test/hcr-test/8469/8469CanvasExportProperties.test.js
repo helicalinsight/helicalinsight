@@ -6,22 +6,8 @@ import { Provider } from "react-redux";
 import CanvasExportProperties from "../../../components/hi-canned-reports/hcrCanvas/canvasProperty/hcrCanvasExportProperties";
 import { hcrActions } from "../../../redux/actions";
 
-// MOCK window.matchMedia for Ant Design
-beforeAll(() => {
-  Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: jest.fn().mockImplementation((query) => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(), // deprecated
-      removeListener: jest.fn(), // deprecated
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    })),
-  });
-});
+// window.matchMedia is already mocked in src/test/setupTests.js (beforeEach);
+// do not redefine it here to avoid "Cannot redefine property: matchMedia".
 
 // Mock InputFiled component
 const MockInputFiled = ({ label, value, onChange }) => (

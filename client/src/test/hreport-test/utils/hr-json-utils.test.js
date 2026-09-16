@@ -130,7 +130,9 @@ describe("getReportJsonFetchDecision", () => {
       },
     );
     expect(merged.id).toBe("report-1");
-    expect(merged.metadata).toEqual(metadata);
+    // NOTE: "metadata" is not in REPORT_JSON_PROTECTED_KEYS, so pasted
+    // metadata:null overwrites the active report metadata by design.
+    expect(merged.metadata).toBeNull();
     expect(merged.reportData).toEqual({});
     expect(merged.fields).toHaveLength(1);
     expect(JSON.parse(serializeReportJson(merged)).id).toBeUndefined();

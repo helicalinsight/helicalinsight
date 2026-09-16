@@ -1,9 +1,7 @@
 package com.helicalinsight.recyclebin;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.ServletContext;
@@ -26,13 +24,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.helicalinsight.adhoc.FileSystemOperationsController;
-import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.efw.controller.EfwServicesController;
 import com.helicalinsight.resourcesecurity.filter.ResourceAuthenticationAndAuthorizationFilter;
 import com.helicalinsight.test.utility.IntegrationTestUtility;
@@ -93,13 +89,11 @@ public class ResourceDeleteRestoreTest {
 	}
 
 	@Autowired
-	private EfwServicesController efwServicesController;
-
-	@Autowired
 	private FileSystemOperationsController fileSystemOperationsController;
 
 	@Test
 	public void rec_a1_create_a_folder() throws Exception {
+		testUtilitiy.clearRecycleBin();
 		testUtilitiy.createFolder("RecycleBinTest");
 	}
 
@@ -208,18 +202,7 @@ public class ResourceDeleteRestoreTest {
 
 	@Test
 	public void rec_a8_clear_recycle_bin() throws Exception {
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders.post("/services");
-		String formData = "{\"action\":\"clear\"}";
-		Map<String, String> map = new HashMap<>();
-		map.put("type", "adhoc");
-		map.put("serviceType", "recycleBin");
-		map.put("service", "recycle");
-		map.put("formData", formData);
-
-		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
-		this.efwMock.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
-				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1)).andExpect(MockMvcResultMatchers
-						.jsonPath("$.response.message").value("Resource(s) deleted successfully."));
+		testUtilitiy.clearRecycleBin();
 		JSONArray array = listRecycleBin();
 		Assert.assertTrue(array.isEmpty());
 	}
