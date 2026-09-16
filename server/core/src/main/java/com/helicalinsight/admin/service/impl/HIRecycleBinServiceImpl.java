@@ -214,8 +214,8 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 	
 	@Transactional
 	@Override
-	public void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds) {
-		 hiRecycleBinDao.deleteRecycleBinsByResourceIds(resourceIds);
+	public List<Long> deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds) {
+		return hiRecycleBinDao.deleteRecycleBinsByResourceIds(resourceIds);
 	}
 
 	@Transactional

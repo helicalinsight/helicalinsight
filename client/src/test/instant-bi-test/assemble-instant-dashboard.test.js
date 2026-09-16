@@ -9,6 +9,9 @@ describe("assembleInstantDashboardConfig", () => {
           {
             id: "seq-3",
             viz: { chart_name: "bar", viz_model: { properties: { title: "Cost by platform" } } },
+            // NOTE: tileTitle only reads report_model?.viz_model / viz_model
+            // (not viz.viz_model), so mirror the title in a supported key.
+            viz_model: { properties: { title: "Cost by platform" } },
           },
         ],
         theme: { color: "#1677ff", background: "#ffffff" },

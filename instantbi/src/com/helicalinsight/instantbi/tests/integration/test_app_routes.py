@@ -961,6 +961,115 @@ class TestInstantToHr:
 
 
 # ---------------------------------------------------------------------------
+# /updateMemory
+# ---------------------------------------------------------------------------
+class TestUpdateMemory:
+    def test_hydrates_memory_from_report(self, flask_client, session_auth):
+        from helicalbi.common.ChatGraphMemory import chat_graph_memory
+        from helicalbi.common import ChatManager
+
+        chat_graph_memory.clear()
+        ChatManager.chat_store.clear()
+        report = {
+            "reportName": "Instant_1_edit",
+            "state": {
+                "activeChatId": "chat-edit-1",
+                "inputs": [{"chat_sequence_id": 1, "input": "cost by client"}],
+                "chat_responses": [
+                    {
+                        "chat_sequence_id": 1,
+                        "viz": {"chart_name": "bar", "vf_title": "Cost"},
+                        "sql": {
+                            "raw_sql": "SELECT 1",
+                            "dialect": "postgresql",
+                            "required_domain": ["Sales Order"],
+                            "required_topic": ["Sales"],
+                        },
+                        "summary": {"insight": "ok"},
+                    }
+                ],
+            },
+        }
+        resp = flask_client.post(
+            "/updateMemory",
+            json={
+                "input": {
+                    **session_auth,
+                    "report": report,
+                }
+            },
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["memory"]["chatid"] == "chat-edit-1"
+        assert body["memory"]["turns"] == 1
+        node = chat_graph_memory.get_node("chat-edit-1", 1)
+        assert node["sql"] == "SELECT 1"
+        assert node["user_query"] == "cost by client"
+        chat_graph_memory.clear()
+        ChatManager.chat_store.clear()
+
+    def test_hydrates_memory_from_hi_envelope(self, flask_client, session_auth):
+        from helicalbi.common.ChatGraphMemory import chat_graph_memory
+        from helicalbi.controller.helpers import resolve_sql_from_request
+
+        chat_graph_memory.clear()
+        envelope = {
+            "status": 1,
+            "response": {
+                "data": {
+                    "reportName": "Instant_1_edit",
+                    "state": {
+                        "activeChatId": "c80a03e1-9981-460b-a616-5bbdef276bb2",
+                        "id": "7af8c944-6aa8-4875-81a0-e4fc84e139df",
+                        "inputs": [
+                            {
+                                "chat_sequence_id": 1,
+                                "input": "What is the total travel cost per client per month?",
+                            }
+                        ],
+                        "chat_responses": [
+                            {
+                                "chat_sequence_id": 1,
+                                "sql": {
+                                    "raw_sql": "SELECT 1",
+                                    "dialect": "postgresql",
+                                    "required_domain": ["Sales Order"],
+                                    "required_topic": ["Sales"],
+                                },
+                                "summary": {"insight": "ok"},
+                            }
+                        ],
+                    },
+                }
+            },
+        }
+        resp = flask_client.post(
+            "/updateMemory",
+            json={"input": {**session_auth, "report": envelope}},
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["memory"]["chatid"] == "c80a03e1-9981-460b-a616-5bbdef276bb2"
+        assert body["memory"]["turns"] == 1
+        sql = resolve_sql_from_request(
+            {}, "c80a03e1-9981-460b-a616-5bbdef276bb2", 1, context="data-insight"
+        )
+        assert sql == "SELECT 1"
+        chat_graph_memory.clear()
+
+    def test_requires_report(self, flask_client, session_auth):
+        resp = flask_client.post(
+            "/updateMemory",
+            json={"input": {**session_auth}},
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 0
+        assert "report is required" in body["error"]
+
+
+# ---------------------------------------------------------------------------
 # /getSemanticData
 # ---------------------------------------------------------------------------
 class TestGetSemanticData:

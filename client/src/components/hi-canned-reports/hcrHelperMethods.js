@@ -5,7 +5,7 @@ import moment from "moment";
 import { v4 as uuidv4 } from "uuid";
 import requests from "../../base/requests";
 import constants from "../../constants";
-import { fileBrowserActions, hcrActions } from "../../redux/actions";
+import { appActions, fileBrowserActions, hcrActions } from "../../redux/actions";
 import { hcrTabInitialState } from "../../redux/reducers/hCR.reducer";
 import {
   checkRelativeDateFilter,
@@ -635,7 +635,7 @@ export const getQueryFormdata = ({
   return {
     name: "_temp_filename",
     version: 5,
-    efwd: {
+     efwd: {
       dataSources: {
         connections: [
           {
@@ -668,7 +668,7 @@ export const getQueryFormdata = ({
                 }) || {};
               let paraType = "";
               let paraDefault = parameter.value;
-              let paraValues = { default: parameter.value };
+              let paraValues = { default: "", value: parameter.value };
               if (parameter.type.toLowerCase().includes("collection")) {
                 paraType = "Collection";
               } else if (parameter.type.toLowerCase().includes("string")) {
@@ -677,7 +677,8 @@ export const getQueryFormdata = ({
                 // paraValues.closeQuote =  "%'";
               } else if (parameter.type.toLowerCase().includes("integer")) {
                 paraType = "Numeric";
-                paraValues.default = parseInt(paraDefault);
+                // paraValues.default = parseInt(paraDefault);
+                paraValues.value = parseInt(paraDefault);
               }
               return {
                 parameter: {
@@ -715,6 +716,12 @@ export const handleRunQuery = ({
     reqQuery,
     paraList,
   });
+  const clonedFormData = cloneDeep(formData)
+
+  formData?.efwd?.dataMaps[0]?.dataMap?.parameters.forEach((obj) => {
+    delete obj.parameter.value
+  })
+
   dispatch(hcrActions.setHcrQueryRunning(true));
 
   const saveInstance = saveQueryReportState(
@@ -736,12 +743,12 @@ export const handleRunQuery = ({
           temp_uuid: res.temp_uuid,
         },
       };
-      formData?.efwd?.dataMaps[0]?.dataMap?.parameters?.forEach((obj) => {
+      clonedFormData?.efwd?.dataMaps[0]?.dataMap?.parameters?.forEach((obj) => {
         executeQueryFormData.mapJson[obj.parameter.name] = obj.parameter?.type
           .toLowerCase()
           ?.includes("collection")
-          ? obj.parameter.default?.split(",").map((ele) => ele.trim())
-          : obj.parameter.default;
+          ? obj.parameter.value?.split(",").map((ele) => ele.trim())
+          : obj.parameter.value;
       });
       const runInstance = saveExecuteReportQuery(
         executeQueryFormData,
@@ -2861,21 +2868,6 @@ const addNodeToBand = ({ formData, node, band, bandLimits }) => {
     // if((node.y+node.height) > reqObj.bandHeight) {
     //     reqObj.bandHeight = node.y+node.height;
     // }
-    if (node.category === "text") {
-      reqObj.textField.push(getPreviewTextField(node));
-    } else if (node.category === "line") {
-      reqObj.lines.push(getPreviewLine(node));
-    } else if (node.category === "image") {
-      reqObj.image.push(getPreviewImage(node));
-    } else if (node.category === "pageBreak") {
-      reqObj.break.push(getPreviewBreak(node));
-    } else if (node.category === "chart") {
-      reqObj?.chart?.push(getPreviewChart(node));
-    } else if (node.category === "advancedTable") {
-      reqObj?.table?.push(getPreviewAdvancedTable(node));
-    } else if (node.category === "crosstabv2") {
-      reqObj?.crosstab?.push(getPreviewCrosstabV2(node));
-    }
 
     switch (node.category) {
       case "text":
@@ -3760,7 +3752,7 @@ export const handleSaveHcr = ({
 
     if (obj.dataSourcePane === hcrDSQuery) {
       obj.menu = obj.menu.map((query) => {
-          query.temp_uuid = tempUUIDsMap?.[query.id] ? tempUUIDsMap?.[query.id] || query?.temp_uuid : query?.temp_uuid;
+        query.temp_uuid = tempUUIDsMap?.[query.id] ? tempUUIDsMap?.[query.id] || query?.temp_uuid : query?.temp_uuid;
         return query
       })
     }
@@ -4039,6 +4031,11 @@ export const reportViewHcrGenerateReport = ({
         }
         if (!isPreviewing) {
           dispatch(hcrActions.handleTogglePreview(true));
+        }
+        if (openMode) {
+          if (res.lastModified) {
+            dispatch(appActions.changeLastModified(res.lastModified));
+          }
         }
         // dispatch(storeHCRPreviewDetails(res));
         // Notify.success({

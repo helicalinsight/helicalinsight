@@ -1074,6 +1074,22 @@ export const fetchDateFuncs = async (formData, dispatch, getApi) => {
 }
 
 
+const isRawDbFunction = (databaseFunction) => {
+	if (!databaseFunction || typeof databaseFunction !== "object") return false;
+	const key = databaseFunction.key || databaseFunction.functionName || databaseFunction.value || "";
+	return String(key).split(".").pop().toUpperCase() === "RAW";
+}
+
+const reportHasRawSql = (report) => {
+	if (!report) return false;
+	if ((report.fields || []).some((field) => isRawDbFunction(field.databaseFunction))) return true;
+	return (report.filters || []).some((filter) =>
+		isRawDbFunction(filter.databaseFunction) ||
+		isRawDbFunction(filter.mapping?.valueDBFunction) ||
+		isRawDbFunction(filter.mapping?.DisplayDBFunction)
+	);
+}
+
 export const openMetadata = async (formData, dispatch, getApi, responseOnly = false) => {
 	// dispatch(setMetadataLoading({ loading: true }))
 	if (!responseOnly) dispatch(setHreportSidebarLoading({ loading: true }))
@@ -1096,9 +1112,27 @@ export const openMetadata = async (formData, dispatch, getApi, responseOnly = fa
 			dateFunctions: dateFunctionsResponse || {},
 		}
 		if (responseOnly) return response;
+		
+		let prevMetadataFormData = null;
+		let hasRawSqlInUse = false;
+		dispatch((_, getState) => {
+			const activeReport = getState()?.hreport?.present?.reports?.find((report) => report.active);
+			prevMetadataFormData = activeReport?.metadata?.formData || null;
+			hasRawSqlInUse = reportHasRawSql(activeReport);
+		});
 		dispatch(
 			loadMetadata(response)
 		);
+		
+		if (hasRawSqlInUse && prevMetadataFormData &&
+			(prevMetadataFormData.location !== formData.location ||
+				prevMetadataFormData.metadataFileName !== formData.metadataFileName)) {
+			notify(dispatch).info({
+				type: "Frontend",
+				message: "Metadata has been changed — RAW SQL expressions used in fields will be passed as-is without parsing.",
+			});
+		}
+
 		// dispatch(setMetadataLoading({ loading: false }))
 		dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))
 		return response;

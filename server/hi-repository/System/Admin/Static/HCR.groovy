@@ -1,6 +1,6 @@
-import java.awt.GraphicsEnvironment;
+import com.helicalinsight.efw.services.FontService;
 import groovy.json.*;
-String[] fonts = GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames();
+String[] fonts = FontService.getAvailableFontFamilyNames();
 def jsonObj='''
 {
 	"HCR": {
@@ -205,6 +205,23 @@ def jsonObj='''
 						"height": 9.8472,
 						"width": 6.9583
 					}
+				}
+			},
+			"layout" : {
+				"Free Layout" : {
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.FreeLayout"
+				},
+				"Horizontal Layout" : {
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.HorizontalRowLayout"
+				},
+				"Vertical Layout" : {
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.VerticalRowLayout"
+				},
+				"Grid Layout" : {
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"
+				},
+				"Spreadsheet Layout" : {
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.spreadsheet.SpreadsheetLayout"
 				}
 			},
 			"whenNoDataType": {

@@ -72,10 +72,6 @@ class FunctionCatalog:
             elif key.endswith("orderBy.order") or ".orderBy." in key:
                 catalog.order_by_key = key
 
-        # COUNT(DISTINCT …) → distinct key when present
-        if "DISTINCT" in catalog.aggregate_by_sql and "COUNT_DISTINCT" not in catalog.aggregate_by_sql:
-            catalog.aggregate_by_sql["COUNT_DISTINCT"] = catalog.aggregate_by_sql["DISTINCT"]
-
         for _category, entries in (response.get("databaseFunctions") or {}).items():
             if not isinstance(entries, list):
                 continue

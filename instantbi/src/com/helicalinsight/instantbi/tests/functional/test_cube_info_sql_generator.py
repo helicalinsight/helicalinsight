@@ -57,6 +57,9 @@ def test_run_sql_subgraph_folds_final_sql():
             "picked_dimensions": ["booking platform"],
             "picked_metrics": ["cost of travel"],
         },
+        "domain": ["Sales Travel"],
+        "topics": ["Travel"],
+        "topic_mappings": [{"topic_name": "Travel", "component": ["booking platform"]}],
         "messages": ["keep-me"],
         "last_chats": ["drop-me"],
     }
@@ -80,8 +83,8 @@ def test_run_sql_subgraph_folds_final_sql():
         "thread_id": "1",
         "md_file_name": "m",
         "md_location": "/",
-        "topics": [],
-        "domain": [],
+        "topics": ["Travel", "Meeting"],
+        "domain": ["Sales Travel", "Client Meetings"],
         "token_usage": {},
         "time_consumed": {},
         "flow": [],
@@ -100,6 +103,10 @@ def test_run_sql_subgraph_folds_final_sql():
     assert result["required_details"]["required_cube_info"]["picked_dimensions"] == [
         "booking platform"
     ]
+    assert result["domain"] == ["Sales Travel"]
+    assert result["topics"] == ["Travel"]
+    assert result["required_details"]["required_domain"] == ["Sales Travel"]
+    assert result["required_details"]["required_topic"] == ["Travel"]
     sql_graph.invoke.assert_called_once()
     called_state = sql_graph.invoke.call_args[0][0]
     assert "domain_context" in called_state

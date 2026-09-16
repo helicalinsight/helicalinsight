@@ -216,7 +216,9 @@ public class HIRecycleBinServiceImplTest {
 
 	@Test
 	public void deleteRecycleBinsByResourceIdsDelegatesToDao() {
-		service.deleteRecycleBinsByResourceIds(List.of(1, 2));
+		when(hiRecycleBinDao.deleteRecycleBinsByResourceIds(List.of(1, 2))).thenReturn(List.of(10L, 11L));
+
+		assertEquals(List.of(10L, 11L), service.deleteRecycleBinsByResourceIds(List.of(1, 2)));
 		verify(hiRecycleBinDao).deleteRecycleBinsByResourceIds(List.of(1, 2));
 	}
 

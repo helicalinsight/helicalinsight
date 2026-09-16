@@ -36,7 +36,7 @@ public interface HIRecycleBinService {
 	void deleteRecycleBinByGlobalId(Integer globalId);
 	<T> Map<String, List<T>> getGlobalConnectionResources(Integer connectionId,Integer userId);
 	<T> Map<String, List<T>> getEfwdConnectionResources(Integer efwdResource, Integer userId);
-	void deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
+	List<Long> deleteRecycleBinsByResourceIds(Collection<Integer> resourceIds);
 
 	void deleteRecycleBinsByUserIds(Collection<Integer> userIds);
 

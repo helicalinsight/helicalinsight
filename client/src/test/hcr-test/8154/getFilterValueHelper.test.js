@@ -3,7 +3,6 @@ import * as helperMethods from '../../../components/hi-canned-reports/hcrHelperM
 import { render, fireEvent } from '@testing-library/react';
 
 jest.mock('../../../components/hi-canned-reports/hcrHelperMethods', () => ({
-  ...jest.requireActual('../../../components/hi-canned-reports/hcrHelperMethods'),
   getFilterValueForHCR: jest.fn(),
   validateNodes: () => ({ isValid: true, bandLimits: {} }),
   getHcrParameterFilters: () => [

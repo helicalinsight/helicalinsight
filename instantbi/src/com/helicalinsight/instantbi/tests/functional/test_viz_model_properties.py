@@ -33,6 +33,36 @@ def test_viz_properties_use_labelx_labely_and_drop_removed_keys():
     assert dumped["color"] == "#2F6FED"
 
 
+def test_viz_data_drops_filters():
+    model = VizModel.model_validate(
+        {
+            "data": {
+                "rows": ["Travel Type"],
+                "columns": ["Travel Count"],
+                "filters": [
+                    {
+                        "name": "Travel Type",
+                        "value": "International",
+                        "condition": "EQ",
+                    },
+                    {
+                        "name": 'COUNT("travel_details"."travel_id")',
+                        "value": [20, 50],
+                        "condition": "BETWEEN",
+                    },
+                ],
+            },
+            "chart": {"viz": "Bar", "mark": "Chart"},
+            "properties": {"labelX": "Travel Type"},
+        }
+    )
+    dumped = model.model_dump()
+    assert dumped["data"]["rows"] == ["Travel Type"]
+    assert dumped["data"]["columns"] == ["Travel Count"]
+    assert "filters" not in dumped["data"]
+    assert not hasattr(model.data, "filters")
+
+
 def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
     assert _chart_viz_and_mark("bar").model_dump() == {"viz": "Bar", "mark": "Chart"}
     assert _chart_viz_and_mark("column").model_dump() == {"viz": "Bar", "mark": "Chart"}
@@ -95,7 +125,7 @@ def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
 def test_merge_properties_polish_drops_removed_keys_and_renames_labels():
     model = VizModel.model_validate(
         {
-            "data": {"rows": ["city"], "columns": ["sales"], "filters": []},
+            "data": {"rows": ["city"], "columns": ["sales"]},
             "chart": {"viz": "Bar", "mark": "Chart"},
             "properties": {
                 "labelX": "city",
@@ -195,6 +225,7 @@ def test_build_viz_model_populates_properties_formatting(monkeypatch):
         "Travel Type": "",
         "Travel Cost": "$#,##0.00",
     }
+    assert "filters" not in model.data.model_dump()
 
     settings = viz_model_to_chart_settings(model, data_types=metadata)
     assert settings.measure_formats == {"Travel Cost": "$#,##0.00"}

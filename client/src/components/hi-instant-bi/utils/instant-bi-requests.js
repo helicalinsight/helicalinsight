@@ -259,6 +259,11 @@ export const fetchInstantBIReportAPI = ({
         })
     },
     errback: (err) => {
+      dispatch(
+        setInstantBIPageLoading({
+          loading: false,
+        })
+      );
       // dispatch(setAccessDeniedInfo({ subTitle: err.message }));
       // dispatch(updateRoute("/access-denied"));
     },
@@ -344,11 +349,14 @@ export const instantBiChatAPI = ({
           onError: () => {
             dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
             onAIMessage({
-              vf: "",
-              sql: "",
+              botMessage: "",
+              ...parsedResponse,
+              // vf: "",
+              // sql: "",
               error: true,
-              botMessage: error ?? IB_CHART_RENDER_ERROR,
               abortedRequest: false,
+              userInput: formData.input,
+              chatSequenceId
             })
           },
           eventUpdater: (e) => {
@@ -360,11 +368,14 @@ export const instantBiChatAPI = ({
       } else {
         dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
         onAIMessage({
-          vf: "",
-          sql: "",
+          // vf: "",
+          // sql: "",
+          botMessage: "",
+          ...parsedResponse,
           error: true,
-          botMessage: error,
           abortedRequest: false,
+          userInput: formData.input,
+          chatSequenceId
         })
       }
 
@@ -379,7 +390,7 @@ export const instantBiChatAPI = ({
         vf: "",
         sql: "",
         error: true,
-        botMessage: IB_CHART_RENDER_ERROR,
+        botMessage: "",
         abortedRequest: false,
       })
     },

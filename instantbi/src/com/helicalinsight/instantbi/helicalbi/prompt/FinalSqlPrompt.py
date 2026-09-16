@@ -63,8 +63,11 @@ Default column/measure functions (use when aggregating or grouping)
 -----------------------------------------------------
 Column sort orders for ORDER BY
 Only dimension Ascending=ASC and Descending=DESC are listed.
-Ignore none/empty sorts. Do not ORDER BY measures (column or formula).
-Prefer this ordering when the user question does not request a different sort.
+Ignore none/empty/Natural sorts. Do not ORDER BY measures (column or formula).
+If the section below says no sorts are configured, do not invent ORDER BY for
+all selected columns — omit ORDER BY unless the user explicitly asks to sort
+or rank. Prefer listed ordering when the user question does not request a
+different sort.
  {column_sort_orders}
 
 -----------------------------------------------------

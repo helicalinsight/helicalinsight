@@ -13,7 +13,7 @@ client-friendly payload with the shape::
         data:    [],
         metadata:    [],
         report_model: {
-            data_model: { location, metadataFileName, columns, filters, ... },
+            data_model: { location, metadataFileName, columns, filters, filterExpression, ... },
             viz_model:  { data, chart, properties, ... },
         },
         token_usage: { input_tokens, output_tokens, total_tokens,
@@ -57,14 +57,14 @@ class ReportModelSection(BaseModel):
         default=None,
         description=(
             "Adhoc formData from sql_to_formdata (location, metadataFileName, "
-            "columns, filters). Raw fetchData ``query`` is omitted when columns "
-            "are present so InstantBI generates SQL from the model."
+            "columns, filters, filterExpression). Raw fetchData ``query`` is omitted "
+            "when columns are present so InstantBI generates SQL from the model."
         ),
     )
     viz_model: Optional[dict[str, Any]] = Field(
         default=None,
         description=(
-            "Structured visualization model: data shelves (rows/columns/filters), "
+            "Structured visualization model: data shelves (rows/columns), "
             "chart (viz/mark), and properties (labelX/labelY, title, color, background, "
             "formatting)."
         ),
@@ -297,13 +297,18 @@ def _wire_data_model(form_data: Any) -> Optional[dict[str, Any]]:
     InstantBI ``QueryGeneratorAndExecutor`` executes ``formData.query`` as raw SQL
     when that key is present, ignoring columns/filters. sql_to_formdata models
     therefore must not carry ``query`` (including base64 SQL).
+
+    HAVING predicates are folded into ``filters`` here so the wire ``data_model``
+    never exposes a separate ``having`` array.
     """
     if not isinstance(form_data, dict) or not form_data:
         return None
     payload = dict(form_data)
     if payload.get("columns"):
         payload.pop("query", None)
-    return payload
+    from helicalbi.sql_to_formdata import fold_having_into_filters
+
+    return fold_having_into_filters(payload)
 
 
 def _resolved_sql_error(value: Any) -> str:
