@@ -35,7 +35,7 @@ def staticDataSources = '''[ {
 ]''';
 
 
-def supportedArray = ["Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
+def supportedArray = ["Mongodb", "Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
                       "Postgresql", "IBM Db2", "Access", "Sqlite", "Teradata", "Mariadb", "Hive", "Informix", "Presto", "Derby", "Dremio",
                       "Snowflake","Elasticsearch","Trino","Google Bigquery","Amazon Dynamodb","Amazon Redshift","Celerdata","Yugabyte",
                       "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Ξ Add Driver Ξ"]
@@ -68,6 +68,7 @@ JSONArray jsonArray = JSONArray.fromObject(supportedDs);
 def jsonSlurper = new JsonSlurper()
 def staticMongoArray = jsonSlurper.parseText(staticDataSources)
 def staticArray=[];
+staticArray += staticMongoArray;
 def virtualDsFlagObject = jsonSlurper.parseText(virtualStaticDs)
 boolean virtualDsFlag = JsonUtils.getSettingsJson().getBoolean("hideVirtualDatasourceInAllCategory");
 if (!virtualDsFlag) {
@@ -103,17 +104,15 @@ JSONObject jsonOfDrillDatasources = getFormatedDrillDatasources(jsobj)
 
 def resultJSON = [:]
 resultJSON."driversList" = []
+resultJSON.driversList += ["driver": "com.helicalinsight.nosql.mongo", "available": "true", "url": "mongodb://{{hostName}}:{{port}}/{{database}}", "parameters": [
+        "port"      : "27017",
+        "hostName"  : "localhost",
+        "database"  : "database",
+        "collection": "collection",
+        "sslPort"   : "3345"
+]];
 if ((jsonOfDrillDatasources != null) && drillEnabledTypes) {
     resultJSON."driversList" += jsonOfDrillDatasources.optJSONArray("drillDatasources")
-    resultJSON.driversList += ["driver": "com.helicalinsight.nosql.mongo", "available": "true", "url": "mongodb://{{hostName}}:{{port}}/{{database}}", "parameters": [
-            "port"      : "27017",
-            "hostName"  : "localhost",
-            "database"  : "database",
-            "collection": "collection",
-            "sslPort"   : "3345"
-    ]];
-
-    staticArray+=staticMongoArray;
 }
 resultJSON.driversList += ["driver": "dynamicSwitch","showInDatasource":"false", "available": "true", "parameters": [
 
