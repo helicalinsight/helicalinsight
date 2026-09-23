@@ -54,4 +54,8 @@ public interface RecycleBinHandler {
 	default boolean handle(RecycleBinDTO bin, Map<Long,Boolean> map) {
 		return true;
 	}
+
+	default boolean handle(RecycleBinDTO bin, Map<Long, Boolean> map, boolean force) {
+		return handle(bin, map);
+	}
 }
