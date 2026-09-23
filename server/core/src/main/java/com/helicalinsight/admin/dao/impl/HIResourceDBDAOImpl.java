@@ -2148,6 +2148,11 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 
 	@Override
 	public Boolean deleteDatasoureRelatedResources(Integer globalId) {
+		return deleteDatasoureRelatedResources(globalId, false);
+	}
+
+	@Override
+	public Boolean deleteDatasoureRelatedResources(Integer globalId, boolean force) {
 		Boolean deletedEverything = false;
 		List<Integer> metadataIds = findMetadataResourcesByGlobalConnectionId(globalId);
 		List<Integer> hcrIds = findHCRResourcesByGlobalConnectionId(globalId);
@@ -2164,7 +2169,7 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 				for (HIResource resource : resources) {
 					try {
 						if (resource != null) {
-							hardDelete(resource);
+							hardDelete(resource, force);
 						}
 					} catch (Exception e) {
 						logger.error("Exception occured during deletion with message : {} and cause {}", e.getMessage(),e.getCause());
@@ -3509,7 +3514,11 @@ public class HIResourceDBDAOImpl implements HIResourceDBDAO {
 	
 	@Override
 	public boolean hardDelete(HIResource hiResource) {
-		hardDeleteResourcesByIds(Set.of(hiResource.getResourceId()));
+		return hardDelete(hiResource, false);
+	}
+
+	public boolean hardDelete(HIResource hiResource, boolean force) {
+		hardDeleteResourcesByIds(Set.of(hiResource.getResourceId()), force);
 		return true;
 	}
 
