@@ -283,6 +283,133 @@ class SchemaIndexer:
             return ""
         return self.catalog.to_prompt(table_names)
 
+    def relation_exploration_pack(
+        self,
+        query: str,
+        *,
+        seed_names: Optional[Sequence[str]] = None,
+        top_k: int = 5,
+        max_tables: int = 6,
+        max_chars: int = 3500,
+    ) -> tuple[str, List[str], List[str]]:
+        """Same-table + join-neighbor columns for investigation planning.
+
+        Returns ``(prompt_text, allowed_labels, table_names)`` where labels include
+        physical column names and humanized variants so planners can cite either form.
+        """
+        from helicalbi.sql_agent.modes import truncate_text
+
+        seed_names = [str(n).strip() for n in (seed_names or []) if str(n).strip()]
+        seed_query = " ".join([query or "", *seed_names]).strip() or (query or "")
+        ranked = self.retrieve(seed_query, top_k=top_k) if seed_query else []
+        seed_tables = self._tables_matching_seeds(seed_names)
+        ordered: List[str] = []
+        seen: set[str] = set()
+        for name in seed_tables + ranked:
+            key = name.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            ordered.append(name)
+            if len(ordered) >= max_tables:
+                break
+        if not ordered:
+            return "", [], []
+
+        # Expand one-hop join neighbors after seed ranking.
+        for name in list(ordered):
+            for related_name in self.catalog.related_tables(name):
+                key = related_name.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                ordered.append(related_name)
+                if len(ordered) >= max_tables:
+                    break
+            if len(ordered) >= max_tables:
+                break
+        ordered = ordered[:max_tables]
+
+        lines = [
+            "Schema relation exploration (same-table columns and join neighbors).",
+            "Use these as complementary dimensions/measures for chart breakdowns:",
+        ]
+        allowed: List[str] = []
+
+        def _add_label(label: str) -> None:
+            text = str(label or "").strip()
+            if not text:
+                return
+            if text not in allowed:
+                allowed.append(text)
+            human = text.replace("_", " ").strip()
+            if human and human not in allowed and human.lower() != text.lower():
+                allowed.append(human)
+
+        for name in ordered:
+            table = self.catalog.get(name)
+            if table is None:
+                continue
+            lines.append(f"TABLE {table.name}")
+            same_cols = [col.name for col in table.columns if col.name]
+            if same_cols:
+                lines.append(f"  same_table_columns: {', '.join(same_cols)}")
+                for col in same_cols:
+                    _add_label(col)
+            if table.foreign_keys:
+                lines.append("  joins:")
+                for fk in table.foreign_keys:
+                    lines.append(
+                        f"    {table.name}.{fk.column} -> {fk.ref_table}.{fk.ref_column}"
+                    )
+            related = [
+                related_name
+                for related_name in self.catalog.related_tables(table.name)
+                if related_name.lower() in seen
+            ]
+            for related_name in related:
+                related_table = self.catalog.get(related_name)
+                if related_table is None:
+                    continue
+                related_cols = [col.name for col in related_table.columns if col.name]
+                preview = ", ".join(related_cols[:12])
+                if len(related_cols) > 12:
+                    preview += ", ..."
+                lines.append(
+                    f"  related_table {related_table.name}: {preview or '(no columns)'}"
+                )
+                for col in related_cols:
+                    _add_label(col)
+
+        pack = truncate_text("\n".join(lines), max(500, int(max_chars or 3500)))
+        return pack, allowed, list(ordered)
+
+    def _tables_matching_seeds(self, seed_names: Sequence[str]) -> List[str]:
+        if not seed_names:
+            return []
+        seed_tokens = [set(tokenize(name)) for name in seed_names]
+        scored: List[tuple[float, str]] = []
+        for table in self.catalog.tables():
+            best = 0.0
+            table_tokens = set(tokenize(table.name))
+            for tokens in seed_tokens:
+                if tokens and tokens <= table_tokens:
+                    best = max(best, 0.8)
+            for col in table.columns:
+                col_tokens = set(tokenize(col.name))
+                col_blob = set(tokenize(f"{col.name} {col.description}"))
+                for tokens in seed_tokens:
+                    if not tokens:
+                        continue
+                    overlap = len(tokens & col_blob) / max(1, len(tokens))
+                    if tokens <= col_tokens or tokens <= col_blob:
+                        overlap = max(overlap, 1.0)
+                    best = max(best, overlap)
+            if best >= 0.5:
+                scored.append((best, table.name))
+        scored.sort(key=lambda item: item[0], reverse=True)
+        return [name for _score, name in scored]
+
 
 def get_indexer(catalog_id: str = DEFAULT_CATALOG_ID) -> SchemaIndexer:
     indexer = _INDEXERS.get(catalog_id)

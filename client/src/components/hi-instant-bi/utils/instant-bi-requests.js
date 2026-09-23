@@ -270,8 +270,11 @@ export const fetchInstantBIReportAPI = ({
   });
 };
 
-export const parseInstantBIChatResponse = (res) => {
-  const { chat_response = {}, } = res || {};
+const handleUpdateHreportEvent = (reportId, { event, hreportId, data }, dispatch) => {
+  dispatch(updateHreportInitialInteraction({ reportId, hreportId, data, event }))
+}
+
+export const parseInstantBIChatResponseBody = (chat_response = {}) => {
   const {
     viz = {},
     sql: sqlData = {},
@@ -300,20 +303,283 @@ export const parseInstantBIChatResponse = (res) => {
     botMessage,
     createPreview: Boolean(vf),
     fullChatResponse: chatResponseWithoutData,
-    error
+    error: error || "",
   };
 };
 
+export const parseInstantBIChatResponse = (res) => {
+  const rawMode = res?.mode;
+  const mode = String(rawMode || "fast").toLowerCase();
+  const steps = Array.isArray(res?.chat_responses) ? res.chat_responses : [];
+  const askedQuestions = Array.isArray(res?.asked_questions) ? res.asked_questions : [];
+  const questionHistory = Array.isArray(res?.question_history)
+    ? res.question_history
+    : askedQuestions.map((question, index) => ({
+      index: index + 1,
+      question,
+      title: "",
+    }));
+  const phase = String(res?.phase || "").toLowerCase();
+  const isThink = mode === "think" || (!rawMode && (steps.length > 0 || askedQuestions.length > 0));
 
-const handleUpdateHreportEvent = (reportId, { event, hreportId, data }, dispatch) => {
-  dispatch(updateHreportInitialInteraction({ reportId, hreportId, data, event }))
-}
+  if (isThink) {
+    const chatResponses = steps.map((step) => {
+      const parsed = parseInstantBIChatResponseBody(step?.chat_response || {});
+      const subQuestion = step?.sub_question || "";
+      const title = step?.title || "";
+      const analysis = step?.analysis || "";
+      return {
+        ...parsed,
+        subQuestion,
+        title,
+        analysis,
+        stepChatSeqId: step?.chat_seq_id || "",
+        botMessage: parsed.botMessage || analysis || "",
+        vf_title: parsed.vf_title || title || parsed.vf_title,
+        error: parsed.error || "",
+      };
+    });
+    return {
+      mode: "think",
+      phase: phase || (chatResponses.length ? "execute" : "plan"),
+      chatResponses,
+      askedQuestions,
+      questionHistory,
+      citedQuestionIndexes: Array.isArray(res?.cited_question_indexes)
+        ? res.cited_question_indexes
+        : [],
+      openingInsight: res?.opening_insight || res?.openingInsight || "",
+      finalAnswer: res?.final_answer || "",
+      plan: res?.plan || {},
+      llmActivityDetails: res?.llm_activity_details || null,
+      dashboardModel: (() => {
+        const dashboard = res?.dashboard;
+        const model = res?.dashboard_model;
+        if (dashboard && typeof dashboard === "object" && Object.keys(dashboard).length) return dashboard;
+        if (model && typeof model === "object" && Object.keys(model).length) return model;
+        return dashboard || model || null;
+      })(),
+      error: res?.error || "",
+    };
+  }
 
+  return {
+    mode: "fast",
+    ...parseInstantBIChatResponseBody(res?.chat_response || {}),
+    error: res?.error || (res?.chat_response || {}).error || "",
+  };
+};
+
+const deliverParsedChatViaBridge = async ({
+  parsedResponse,
+  dispatch,
+  activeReportId,
+  onAIMessage,
+  userInput,
+  chatSequenceId,
+}) => {
+  if (parsedResponse.error) {
+    onAIMessage({
+      botMessage: "",
+      ...parsedResponse,
+      error: true,
+      abortedRequest: false,
+      userInput,
+      chatSequenceId,
+    });
+    return;
+  }
+
+  const hreportProps = {
+    reportId: uuidv4(),
+  };
+  hreportProps.reportMetadata = getMetadataForHreport(dispatch);
+  if (parsedResponse.fullChatResponse) {
+    parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
+  }
+
+  await new Promise((resolve) => {
+    const bridge = createHReportBridge({
+      dispatch,
+      reportModel: parsedResponse?.fullChatResponse?.report_model || {},
+      onComplete: () => {
+        onAIMessage({
+          ...parsedResponse,
+          userInput,
+          chatSequenceId,
+        });
+        resolve();
+      },
+      onError: () => {
+        onAIMessage({
+          botMessage: "",
+          ...parsedResponse,
+          error: true,
+          abortedRequest: false,
+          userInput,
+          chatSequenceId,
+        });
+        resolve();
+      },
+      eventUpdater: (e) => {
+        handleUpdateHreportEvent(activeReportId, e, dispatch);
+      },
+      ...hreportProps,
+    });
+    bridge.init().catch(() => {
+      onAIMessage({
+        botMessage: "",
+        ...parsedResponse,
+        error: true,
+        abortedRequest: false,
+        userInput,
+        chatSequenceId,
+      });
+      resolve();
+    });
+  });
+};
+
+/** Hydrate a think-step Preview from stored report_model (no /interactive LLM call). */
+export const hydrateThinkStepFromReportModel = async ({
+  stepItem = {},
+  dispatch,
+  activeReportId,
+  chatSequenceId,
+  userInput = "",
+}) => {
+  const chatResponse = stepItem.fullChatResponse
+    || stepItem.chat_response
+    || stepItem.chatResponse
+    || {};
+  const reportModel = stepItem.report_model
+    || stepItem.reportModel
+    || chatResponse.report_model
+    || {};
+  if (!reportModel || !Object.keys(reportModel).length) {
+    return {
+      error: true,
+      botMessage: "No report model available for this step.",
+    };
+  }
+  const fullChatResponse = {
+    ...chatResponse,
+    report_model: reportModel,
+  };
+  const parsed = {
+    ...parseInstantBIChatResponseBody(fullChatResponse),
+    fullChatResponse,
+    botMessage: chatResponse?.summary?.insight
+      || stepItem.answer
+      || stepItem.analysis
+      || "",
+  };
+  return new Promise((resolve) => {
+    deliverParsedChatViaBridge({
+      parsedResponse: parsed,
+      dispatch,
+      activeReportId,
+      userInput: userInput || stepItem.question || "",
+      chatSequenceId: chatSequenceId
+        || stepItem.chat_seq_id
+        || stepItem.chatSeqId
+        || "",
+      onAIMessage: (payload) => resolve(payload),
+    });
+  });
+};
+
+const normalizeThinkQuestionHistory = (questionHistory = []) =>
+  (Array.isArray(questionHistory) ? questionHistory : []).map((item, index) => {
+    const chatResponse = item?.fullChatResponse
+      || item?.chat_response
+      || item?.chatResponse
+      || {};
+    const reportModel = item?.report_model
+      || item?.reportModel
+      || chatResponse?.report_model
+      || {};
+    const fullChatResponse = {
+      ...chatResponse,
+      ...(reportModel && Object.keys(reportModel).length
+        ? { report_model: reportModel }
+        : {}),
+    };
+    return {
+      ...item,
+      index: item?.index || index + 1,
+      fullChatResponse,
+      chat_response: fullChatResponse,
+      report_model: reportModel,
+      chat_seq_id: item?.chat_seq_id || item?.chatSeqId || "",
+    };
+  });
+
+const processThinkChatResponses = async ({
+  chatResponses = [],
+  dispatch,
+  activeReportId,
+  formData,
+  chatSequenceId,
+  onAIMessage,
+  abortedRef,
+}) => {
+  try {
+    for (let index = 0; index < chatResponses.length; index += 1) {
+      if (abortedRef?.current) {
+        break;
+      }
+      const step = chatResponses[index];
+      const stepSeqId = step.stepChatSeqId || `${chatSequenceId}-${index + 1}`;
+      await deliverParsedChatViaBridge({
+        parsedResponse: step,
+        dispatch,
+        activeReportId,
+        onAIMessage,
+        userInput: step.subQuestion || formData.input,
+        chatSequenceId: stepSeqId,
+      });
+    }
+  } finally {
+    dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }));
+  }
+};
+
+const deliverThinkPlanMessage = ({
+  parsedResponse,
+  dispatch,
+  activeReportId,
+  formData,
+  chatSequenceId,
+  onAIMessage,
+}) => {
+  dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }));
+  onAIMessage({
+    mode: "think",
+    phase: parsedResponse.phase || "plan",
+    isThinkPlan: true,
+    askedQuestions: parsedResponse.askedQuestions || [],
+    questionHistory: normalizeThinkQuestionHistory(parsedResponse.questionHistory || []),
+    citedQuestionIndexes: parsedResponse.citedQuestionIndexes || [],
+    openingInsight: parsedResponse.openingInsight || "",
+    finalAnswer: parsedResponse.finalAnswer || "",
+    botMessage: parsedResponse.finalAnswer || "",
+    text: parsedResponse.finalAnswer || "",
+    createPreview: false,
+    userInput: formData.input,
+    chatSequenceId,
+    plan: parsedResponse.plan || {},
+    llmActivityDetails: parsedResponse.llmActivityDetails || null,
+    dashboardModel: parsedResponse.dashboardModel || null,
+    error: Boolean(parsedResponse.error),
+  });
+};
 
 export const instantBiChatAPI = ({
   formData,
   dispatch,
   onAIMessage = () => { },
+  onProgress,
   activeReportId,
   chatId,
   chatSequenceId,
@@ -327,51 +593,81 @@ export const instantBiChatAPI = ({
     subject: formData.subject,
     chatId,
     chatSequenceId,
+    mode: formData.mode,
+    onProgress,
     successCB: async (res) => {
-      const { error, ...parsedResponse } = parseInstantBIChatResponse(res);
-      if (!error) {
-        const hreportProps = {
-          reportId: uuidv4(),
-        };
-        hreportProps.reportMetadata = getMetadataForHreport(dispatch);
-        parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
-        const bridge = createHReportBridge({
+const parsedResponse = parseInstantBIChatResponse(res);
+const { error, mode, chatResponses = [], ...fastParsed } = parsedResponse;
+
+if (!error && !res.error) {
+  const hreportProps = {
+    reportId: uuidv4(),
+  };
+  hreportProps.reportMetadata = getMetadataForHreport(dispatch);
+  if (parsedResponse.fullChatResponse) {
+    parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
+  } else {
+    parsedResponse.fullChatResponse = { hreportId: hreportProps.reportId };
+  }
+}
+
+if (mode === "think") {
+  if (error && !(parsedResponse.askedQuestions || []).length && !chatResponses.length) {
+    dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+    onAIMessage({
+      botMessage: "",
+      error: true,
+      abortedRequest: false,
+      userInput: formData.input,
+      chatSequenceId,
+    });
+    return;
+  }
+  // Think execute returns text findings (question_history.analysis + final_answer).
+  // Empty chat_responses means no chart hydration — show the investigation panel.
+  if (
+    !(chatResponses || []).length &&
+    ((parsedResponse.askedQuestions || []).length || parsedResponse.finalAnswer)
+  ) {
+    deliverThinkPlanMessage({
+      parsedResponse,
+      dispatch,
+      activeReportId,
+      formData,
+      chatSequenceId,
+      onAIMessage,
+    });
+    return;
+  }
+  await processThinkChatResponses({
+    chatResponses,
           dispatch,
-          reportModel: parsedResponse?.fullChatResponse?.report_model || {},
-          onComplete: () => {
-            dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
-            onAIMessage({
-              ...parsedResponse,
-              userInput: formData.input,
-              chatSequenceId,
-            })
-          },
-          onError: () => {
-            dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
-            onAIMessage({
-              botMessage: "",
-              ...parsedResponse,
-              // vf: "",
-              // sql: "",
-              error: true,
-              abortedRequest: false,
-              userInput: formData.input,
-              chatSequenceId
-            })
-          },
-          eventUpdater: (e) => {
-            handleUpdateHreportEvent(activeReportId, e, dispatch);
-          },
-          ...hreportProps
+          activeReportId,
+          formData,
+          chatSequenceId,
+          onAIMessage,
+          abortedRef,
         });
-        await bridge.init();
+        return;
+      }
+
+      if (!error) {
+        await deliverParsedChatViaBridge({
+          parsedResponse: { ...fastParsed, error },
+          dispatch,
+          activeReportId,
+          onAIMessage: (payload) => {
+            dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+            onAIMessage(payload);
+          },
+          userInput: formData.input,
+          chatSequenceId,
+        });
       } else {
         dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
         onAIMessage({
-          // vf: "",
-          // sql: "",
           botMessage: "",
-          ...parsedResponse,
+          ...fastParsed,
           error: true,
           abortedRequest: false,
           userInput: formData.input,
@@ -404,6 +700,9 @@ export const buildInstantBIInteractiveChatFormData = ({
   chatSequenceId,
   requestId,
   nestedFormData,
+  mode,
+  sql,
+  chatResponseItem,
 }) => {
   const formData = {
     input,
@@ -419,6 +718,18 @@ export const buildInstantBIInteractiveChatFormData = ({
   if (nestedFormData) {
     formData.formData = nestedFormData;
   }
+  if (mode) {
+    formData.mode = mode;
+  }
+  if (["think", "auto"].includes(String(mode || "").toLowerCase())) {
+    formData.show_llm_activity_details = true;
+  }
+  if (sql) {
+    formData.sql = sql;
+  }
+  if (chatResponseItem && typeof chatResponseItem === "object") {
+    formData.chat_response_item = chatResponseItem;
+  }
   return formData;
 };
 
@@ -431,8 +742,12 @@ const instantBIInteractiveChatRequest = ({
   chatSequenceId,
   requestId,
   nestedFormData,
+  mode,
+  sql,
+  chatResponseItem,
   successCB = () => { },
   errorCB = () => { },
+  onProgress,
 }) =>
   requests.instantBI(dispatch).instantBIChatRequest({
     formData: buildInstantBIInteractiveChatFormData({
@@ -442,10 +757,14 @@ const instantBIInteractiveChatRequest = ({
       chatSequenceId,
       requestId,
       nestedFormData,
+      mode,
+      sql,
+      chatResponseItem,
     }),
     uri,
     callback: successCB,
     errback: errorCB,
+    onProgress,
   });
 
 export const buildInstantBIChatRequestFormData = ({
@@ -479,6 +798,7 @@ const instantBIChatFormRequest = ({
   requestId,
   successCB = () => { },
   errorCB = () => { },
+  onProgress,
 }) =>
   requests.instantBI(dispatch).instantBILoadChatRequest({
     formData: buildInstantBIChatRequestFormData({
@@ -491,6 +811,7 @@ const instantBIChatFormRequest = ({
     uri,
     callback: successCB,
     errback: errorCB,
+    onProgress,
   });
 
 export const instantLoadChatAPI = (params) =>
@@ -520,8 +841,11 @@ export const instantDataInsightAPI = ({
   subject,
   agent,
   requestId,
+  sql,
+  chatResponseItem,
   successCB = () => { },
   errorCB = () => { },
+  onProgress,
 }) => {
   if (useLoadChatPayload) {
     return instantBIChatFormRequest({
@@ -534,6 +858,7 @@ export const instantDataInsightAPI = ({
       requestId,
       successCB,
       errorCB,
+      onProgress,
     });
   }
 
@@ -545,8 +870,11 @@ export const instantDataInsightAPI = ({
     chatId,
     chatSequenceId,
     requestId,
+    sql,
+    chatResponseItem,
     successCB,
     errorCB,
+    onProgress,
   });
 };
 
@@ -621,10 +949,16 @@ export const loadInstantBIDataInsight = ({
   agent,
   useLoadChatPayload = false,
   existingChatResponse = {},
+  sql,
   Notify,
   abortedRef,
   onComplete = () => { },
+  onProgress,
 }) => {
+  const resolvedSql = sql
+    || existingChatResponse?.sql?.raw_sql
+    || existingChatResponse?.sql
+    || "";
   if (useLoadChatPayload) {
     if (!chatSequenceId || !userInput || !location || !fileName) {
       Notify?.error?.({
@@ -652,6 +986,9 @@ export const loadInstantBIDataInsight = ({
     fileName,
     chatId,
     agent,
+    sql: typeof resolvedSql === "string" ? resolvedSql : "",
+    chatResponseItem: existingChatResponse,
+    onProgress,
     successCB: (response) => {
       if (abortedRef?.current) {
         abortedRef.current = false;
@@ -661,14 +998,18 @@ export const loadInstantBIDataInsight = ({
       if (response?.error) {
         Notify?.error?.({
           type: "Frontend",
-          message: IB_CHART_RENDER_ERROR,
+          message: response?.error || IB_CHART_RENDER_ERROR,
         });
-        onComplete({ success: false });
+        onComplete({ success: false, response });
         return;
       }
       const insight = response?.insight;
       if (!insight || !reportId) {
-        onComplete({ success: false });
+        Notify?.error?.({
+          type: "Frontend",
+          message: "Unable to generate explanation for this chart.",
+        });
+        onComplete({ success: false, response });
         return;
       }
       const chatResponse = {
@@ -686,16 +1027,19 @@ export const loadInstantBIDataInsight = ({
           source: "data-insight",
         })
       );
-      onComplete({ success: true, response });
+      onComplete({ success: true, response, insight, data_insight: chatResponse.data_insight });
     },
     errorCB: (err) => {
       const aborted = Boolean(abortedRef?.current);
       if (abortedRef?.current) {
         abortedRef.current = false;
       } else {
-        Notify?.error?.({ type: "Frontend", message: IB_CHART_RENDER_ERROR });
+        Notify?.error?.({
+          type: "Frontend",
+          message: err?.message || IB_CHART_RENDER_ERROR,
+        });
       }
-      onComplete({ success: false, aborted });
+      onComplete({ success: false, aborted, error: err });
     },
   });
 };
@@ -991,3 +1335,36 @@ export const fetchRecommendationsAPI = ({
 
   return abortController;
 };
+
+export const collectConvertDashboardItems = (messageList = []) =>
+  (messageList || [])
+    .filter((message) => !message.isUser && message.fullChatResponse && !message.error && !message.isStreaming)
+    .map((message) => ({
+      id: message.chatSequenceId || message.id,
+      sql: message.sql || message.fullChatResponse?.sql?.raw_sql || "",
+      viz: message.fullChatResponse?.viz || {},
+      report_model: message.fullChatResponse?.report_model,
+    }));
+
+export const convertInstantBIDashboard = ({
+  dispatch,
+  chatId,
+  items,
+  subject,
+  input,
+  onProgress,
+  successCB = () => { },
+  errorCB = () => { },
+}) =>
+  requests.instantBI(dispatch).instantBIConvertDashboardRequest({
+    formData: {
+      chatid: chatId,
+      items,
+      subject,
+      input,
+    },
+    uri: uriConfig.instantConvertDashboard,
+    callback: successCB,
+    errback: errorCB,
+    onProgress,
+  });

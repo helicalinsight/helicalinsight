@@ -16,6 +16,30 @@ The `/interactive` endpoint turns a natural-language question into:
 
 The route is the main “ask a question, get SQL + chart + answer” entry point for the HelicalBI model layer.
 
+## Streaming (`streamResponse`)
+
+When the Java `streamResponse` setting is on, the client POSTs `/interactive?stream=true` (or `stream: true` in the JSON body). `InteractiveTurn.stream()` yields SSE; `run()` remains the buffered JSON path.
+
+| Event | When | `data` |
+|-------|------|--------|
+| `begin` | Request accepted | `{"status":"STARTED"}` |
+| `progress` | Request accepted | `Hi, you want to understand “{question}”. Let me find out what I can do.` |
+| `progress` | Each intent graph node | `Restating your question…` / `I know which area of the data this is about.` |
+| `progress` | SQL generator starts | `I can query the database for this.` |
+| `progress` | Each SQL graph node | tables → columns → joins → `Writing the SQL…` |
+| `progress` | SQL generator finished | `Found this query is suitable: {sql}` |
+| `progress` | SqlExecutor starts | `Executing your query…` |
+| `progress` | SqlExecutor finished | `Got your data.` |
+| `progress` | viz_graph starts | `Finding which visualization suits this best…` |
+| `progress` | Each viz graph node | chart type → polish |
+| `progress` | viz_graph finished | `Found it. Chart is ready.` |
+| `complete` | After `ChatResponse` | today's JSON body (`chat_response`, …) |
+| `error` | Abort or failure | `{"error":"...","aborted":true?}` |
+
+Abort is **stop only**. `chat_graph_memory.add_node` still runs only after a successful complete.
+
+The same contract is used by `/data-insight` and `/convert-dashboard`.
+
 ---
 
 ## High-level flow diagram
@@ -49,10 +73,11 @@ flowchart TD
     M --> N[SqlExecutor]
     N --> O[viz_graph]
     O --> P[ChatResponse + chat_graph_memory]
-    P --> Q[JSON response]
-
-    I -.->|POST /abort| R[RequestAborted]
-    R --> S[Error payload: aborted=true]
+    P --> Q{stream?}
+    Q -->|no| R[JSON response]
+    Q -->|yes| S[SSE complete with same JSON]
+    I -.->|POST /abort| T[RequestAborted]
+    T --> U[JSON or SSE error aborted=true]
 ```
 
 ---

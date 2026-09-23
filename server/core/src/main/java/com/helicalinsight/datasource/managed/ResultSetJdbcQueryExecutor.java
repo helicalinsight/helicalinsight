@@ -64,7 +64,7 @@ public class ResultSetJdbcQueryExecutor implements Callable<ResultSet> {
             resultSet = this.statement.executeQuery(this.sql);
             RowSetFactory factory = RowSetProvider.newFactory();
             CachedRowSet cachedResultSet = factory.createCachedRowSet();
-            cachedResultSet.populate(resultSet);
+            cachedResultSet.populate(ResultSetCacheTypeConversion.wrapForWrite(resultSet));
             return cachedResultSet;
         } catch (SQLException ex) {
         	System.out.println(ex.getCause());

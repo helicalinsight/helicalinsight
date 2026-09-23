@@ -50,6 +50,7 @@ const OutlineDSContextMenu = (props = {}) => {
     calculationId = null,
     parameterId = null,
     styleId = null,
+    conditionalStyleId = null
   } = props || {}
 
   const { fields = [], id: subDSId, groups = [], calculations = [], parameters = [] } = selectedSubDataSet || {}
@@ -213,7 +214,6 @@ const OutlineDSContextMenu = (props = {}) => {
           compId,
         }))
         return;
-        break;
       }
       case "delete_style_item": {
         dispatch(hcrActions.hcrUpdateTableStyles({
@@ -233,6 +233,22 @@ const OutlineDSContextMenu = (props = {}) => {
           }))
         }
         return;
+      }
+      case "create_conditional_style": {
+        dispatch(hcrActions.hcrUpdateTableStyles({
+          actionType: "createConditionalStyle",
+          styleId,
+          id: compId,
+        }))
+        return;
+      }
+      case "delete_conditional_style_item": {
+        dispatch(hcrActions.hcrUpdateTableStyles({
+          actionType: "deleteConditionalStyle",
+          styleId,
+          conditionalStyleId,
+          id: compId,
+        }))
         break;
       }
       default:

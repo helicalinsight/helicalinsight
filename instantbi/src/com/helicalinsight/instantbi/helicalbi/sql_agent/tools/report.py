@@ -96,7 +96,13 @@ class ReportTools:
 report_tools = ReportTools()
 
 
-@tool
+# description= is required: Nuitka --python-flag=no_docstrings strips __doc__.
+@tool(
+    description=(
+        "Build InstantBI report_model (data_model + viz_model) from the latest executed SQL. "
+        "Dashboard chart only."
+    )
+)
 def build_report(
     question: str,
     *,

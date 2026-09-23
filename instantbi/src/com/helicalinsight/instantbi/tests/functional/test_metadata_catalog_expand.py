@@ -23,13 +23,39 @@ def test_metadata_helpers_check_physical_api():
     metadata = {
         "tables": {
             "travel_details": {
-                "columns": {"travel_cost": {}, "travel_distance": {}},
+                "columns": {
+                    "travel_cost": {"alias": "Travel Cost"},
+                    "travel_distance": {},
+                },
             }
         }
     }
     assert metadata_has_table(metadata, "travel_details") is True
     assert metadata_has_column(metadata, "travel_details", "travel_distance") is True
+    assert metadata_has_column(metadata, "travel_details", "Travel Cost") is True
     assert metadata_has_column(metadata, "travel_details", "missing") is False
+
+
+def test_cube_metadata_indexes_column_aliases():
+    from helicalbi.sql_agent.database.catalog import SchemaCatalog, tables_from_cube_metadata
+
+    tables = tables_from_cube_metadata(
+        [
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {
+                        "column_name": "travel_cost",
+                        "alias_name": "Travel Cost",
+                        "data_type": "numeric",
+                    }
+                ],
+            }
+        ]
+    )
+    catalog = SchemaCatalog(tables)
+    assert catalog.has_column("travel_details", "travel_cost")
+    assert catalog.has_column("travel_details", "Travel Cost")
 
 
 def test_validator_accepts_metadata_column_without_expanding_cube():

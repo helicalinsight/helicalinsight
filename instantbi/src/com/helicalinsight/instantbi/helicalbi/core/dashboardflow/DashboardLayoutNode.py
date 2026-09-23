@@ -88,6 +88,12 @@ class DashboardLayoutNode:
             dumped = decision.model_dump() if hasattr(decision, "model_dump") else dict(decision)
             state["templateId"] = dumped.get("templateId") or state.get("templateId") or ""
             state["theme"] = dumped.get("theme") or state.get("theme") or fallback["theme"]
+            if dumped.get("title"):
+                state["title"] = str(dumped.get("title") or "")
+            if isinstance(dumped.get("header"), dict) and dumped.get("header"):
+                state["header"] = dumped["header"]
+            if isinstance(dumped.get("parameters"), dict) and dumped.get("parameters"):
+                state["parameters"] = dumped["parameters"]
             state["widgets"] = _merge_planned_widgets(state, dumped.get("widgets") or fallback["widgets"])
         except Exception:
             logger.exception("Dashboard layout LLM failed; using deterministic layout")

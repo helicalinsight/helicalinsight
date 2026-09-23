@@ -14,11 +14,13 @@ import {
     loadReportFilters,
     removeFieldFromCanvas,
     setHReportLoading,
+    toggleFloating,
     updateAggregations,
     updateCanvasField,
     updateCustomChart,
     updateCustomCondition,
     updateFieldAlias,
+    updateFilter,
     updateFilterAlias,
     updateOrderBy,
     updateSelectedType,
@@ -32,6 +34,7 @@ import {
 } from '../../hi-reports/utils/base';
 import { getTableTree } from '../../hi-reports/utils/utilities';
 import { checkReportsAvailable, getReportById, getUserState } from './utils';
+import { resolveHreportSelectedType } from './viz-type-map';
 
 function getHreportInfo(reportModel = {}) {
     const {
@@ -60,6 +63,10 @@ function getHreportInfo(reportModel = {}) {
         mark = ""
     } = chart || {};
 
+    const props = viz_model?.properties || {};
+    const geographicRoles = props.geographicRoles || props.geographic_roles || {};
+    const isMapMark = String(mark || "").toLowerCase() === "maps";
+
     const {
         columns: detailedColumns = [],
         functions = {},
@@ -79,6 +86,20 @@ function getHreportInfo(reportModel = {}) {
 
     function getGroupBy(column) {
         return groupBy.find((clm) => clm.column === column.alias)
+    }
+
+    function inferGeographicType(name = "") {
+        const text = String(name || "").trim().toLowerCase();
+        if (!text) return "";
+        const fromRoles = geographicRoles[name] || geographicRoles[text];
+        if (fromRoles) return String(fromRoles).trim();
+        if (/\b(lat|latitude)\b/.test(text) || /(^|_)lat($|_)/.test(text)) return "lat";
+        if (/\b(lon|lng|long|longitude)\b/.test(text) || /(^|_)lon(g)?($|_)/.test(text)) return "long";
+        if (/\b(city|cities)\b/.test(text)) return "city";
+        if (/\b(state|province|states|provinces)\b/.test(text)) return "state";
+        if (/\b(country|countries)\b/.test(text)) return "country";
+        if (/\bworld\b/.test(text)) return "world";
+        return "";
     }
 
 
@@ -107,6 +128,15 @@ function getHreportInfo(reportModel = {}) {
 
         if (item.hidden && item.includeInResultset) {
             column.fetchAndHide = true;
+        }
+        const geoType = String(item.geographicType || item.geographic_type || "").trim();
+        if (geoType) {
+            column.geographicType = geoType;
+        } else if (isMapMark) {
+            const inferred = inferGeographicType(item.alias || item?.column?.name || "");
+            if (inferred) {
+                column.geographicType = inferred;
+            }
         }
         return column;
     }
@@ -299,7 +329,8 @@ function createHReportBridge(props = {}) {
         dispatch(addFieldToCanvas({
             addedAs,
             id: fieldId,
-            ...fieldToAdd
+            ...fieldToAdd,
+            ...(field.geographicType ? { geographicType: field.geographicType } : {}),
         }))
         if (field.order) {
             dispatch(updateOrderBy({ id: fieldId, key: field.order }))
@@ -314,12 +345,18 @@ function createHReportBridge(props = {}) {
         }
         if (field.aggregate) {
             dispatch(updateAggregations({ id: fieldId, key: field.aggregate, group: "aggregate" }))
+            // InstantBI applies aggregate after addFieldToCanvas; clear the default
+            // discrete floatingType so COUNT/SUM measures behave as continuous.
+            dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "" }))
         }
         if (!field.aggregate) {
             dispatch(updateAggregations({ id: fieldId, key: [], group: "aggregate" }))
         }
         if (field.fetchAndHide) {
             dispatch(updateCanvasField({ id: fieldId, key: "hiddenIncludeInResultSet" }));
+        }
+        if (field.groupBy) {
+            dispatch(updateAggregations({ id: fieldId, key: ['db.generic.groupBy.group'], group: "groupBy" }))
         }
         if (!field.groupBy) {
             dispatch(updateAggregations({ id: fieldId, key: [], group: "groupBy" }))
@@ -397,7 +434,7 @@ function createHReportBridge(props = {}) {
                 }
                 updateFilterCondition(filterId, condition)
 
-                if (condition === "CUSTOM" && filterField.customCondition) {
+                if (filterField.customCondition) {
                     dispatch(updateCustomCondition({ uid: filterId, customCondition: filterField.customCondition }))
                 }
 
@@ -409,9 +446,27 @@ function createHReportBridge(props = {}) {
                     dispatch(updateFilterAlias({ uid: filterId, alias: filterField.alias, reportId }))
                 }
 
+                // Keep InstantBI Adhoc flags so SQL expression bounds are not quoted.
                 const createdFilter = getFilterById(filterId);
                 if (createdFilter) {
-                    eventUpdater({ hreportId: reportId, event: "add_filter", data: createdFilter });
+                    if (filterField.isCustomValue != null || filterField.encloseInQuotes != null) {
+                        dispatch(updateFilter({
+                            ...createdFilter,
+                            ...(filterField.isCustomValue != null
+                                ? { isCustomValue: filterField.isCustomValue }
+                                : {}),
+                            ...(filterField.encloseInQuotes != null
+                                ? { encloseInQuotes: filterField.encloseInQuotes }
+                                : {}),
+                            uid: filterId,
+                            reportId,
+                        }));
+                    }
+                    eventUpdater({
+                        hreportId: reportId,
+                        event: "add_filter",
+                        data: getFilterById(filterId) || createdFilter,
+                    });
                 }
             }
         })
@@ -469,21 +524,9 @@ function createHReportBridge(props = {}) {
     }
 
     function changeSelectedVizType(vizType, clear = false) {
-        const validChartTypesMap = {
-            GridChart: "GridChart",
-            Antcharts: "Antcharts",
-            Chart: "Antcharts",
-            MapChart: "MapChart",
-            Table: "Table",
-            S2Chart: "S2Chart",
-            GridTable: "S2Chart",
-            Card: "Card",
-            KPI: "Card",
-            vf: "VF",
-            VF: "VF",
-        }
-        if (vizType && validChartTypesMap[vizType]) {
-            dispatch(updateSelectedType({ selectedType: validChartTypesMap[vizType] }))
+        const selectedType = resolveHreportSelectedType(vizType);
+        if (selectedType) {
+            dispatch(updateSelectedType({ selectedType }))
         }
 
         if (!vizType && clear) {
@@ -500,7 +543,7 @@ function createHReportBridge(props = {}) {
     }
 
     function updateVizAndMarks() {
-        let selectedType = markType,
+        let selectedType = resolveHreportSelectedType(markType) || markType,
             subVizType = vizType;
         if (!isEmpty(interactions)) {
             selectedType = interactions?.selectedType || selectedType;

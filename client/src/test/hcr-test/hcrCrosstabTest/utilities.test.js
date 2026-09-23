@@ -1150,8 +1150,8 @@ describe('CT Column Groups Utilities', () => {
 
             expect(result).toEqual([
                 { id: 'crosstab_header_cell', col: [1, 2], row: [1, 1], widthUpdaters: [0], heightUpdaters: [] },
-                { col: [1, 2], row: [1, 2], widthUpdaters: [0], heightUpdaters: [], id: 'h2' },
-                { col: [1, 2], row: [2, 3], widthUpdaters: [0], heightUpdaters: [1], id: 't2' }
+                { col: [1, 2], row: [2, 3], widthUpdaters: [0], heightUpdaters: [1], id: 't2' },
+                { col: [1, 2], row: [1, 2], widthUpdaters: [0], heightUpdaters: [], id: 'h2' }
             ]);
         });
 

@@ -635,7 +635,7 @@ export const getQueryFormdata = ({
   return {
     name: "_temp_filename",
     version: 5,
-     efwd: {
+    efwd: {
       dataSources: {
         connections: [
           {
@@ -1479,7 +1479,8 @@ export const getPreviewTextField = (textField = {}) => {
     blankWhenNull,
     styleName,
     evalGroup,
-    properties = []
+    properties = [],
+    paragraph = {}
   } = textField;
 
   const nodeDetails = {
@@ -1520,8 +1521,15 @@ export const getPreviewTextField = (textField = {}) => {
     // paragraph: {},
     evaluationTime: evalTime,
     patternExpression: patternExp,
-    evaluationGroupName: evalGroup
+    evaluationGroupName: evalGroup,
   };
+
+  if (!isEmpty(paragraph)) {
+    nodeDetails.paragraph = {
+      lineSpacing: "Single",
+      ...paragraph
+    }
+  }
 
   if (horizontalAlign) {
     nodeDetails.horizontalTextAlign =
@@ -1779,9 +1787,19 @@ const getPreviewBreak = (pageBreak) => {
   return nodeDetails;
 };
 
-export const getCTNodesFormData = (crosstab = {}) => {
+const getLayoutProperty = (dispatch) => {
+  let properties = {}
+  dispatch((_, getState) => {
+    properties = getState()?.cannedReports?.present?.hCROldConfigurations?.HCR?.HCR?.designerProperties || {}
+  })
+  const { layout = {} } = properties || {}
+  return layout;
+}
+
+export const getCTNodesFormData = (crosstab = {}, dispatch) => {
   const { config = {}, styles = [] } = crosstab || {}
   const { nodes = {}, columnGroups = [], rowGroups = [], measureCells = [], measures = [] } = config || {}
+  const layoutProperties = getLayoutProperty(dispatch) || {}
 
   function getUpdateSize(node, style = {}) {
     const clonedNode = cloneDeep(node)
@@ -1795,7 +1813,7 @@ export const getCTNodesFormData = (crosstab = {}) => {
 
   function getGroups(groups = [], headerLabel, totalHeaderLabel, nodes = {}, sizeUnit) {
     return groups.map((cGrp) => {
-      const { cells = [], name } = cGrp || {};
+      const { cells = [], name, totalPosition } = cGrp || {};
       const [headerCell, totalCell] = cells || [];
       const { className = "", nodeIds: headerCellNodeIds = [], styleNameReference: hStyleId } = headerCell || {};
       const { nodeIds: totalCellNodesIds = [], styleNameReference: tStyleId } = totalCell || {};
@@ -1831,15 +1849,26 @@ export const getCTNodesFormData = (crosstab = {}) => {
             getPreviewTextField({
               ...totalHeader, x: 0, y: 0, label: totalHeader.label
             }))
-        }
+        },
+        ...(totalPosition ? { totalPosition } : {})
       }
     })
   }
 
+  function isLayoutHorizontal(layout) {
+    return ["Horizontal Layout", "Grid Layout"].includes(layout);
+  }
+
   function getCTCells(cells = [], nodes = {}) {
     return cells.map((cell) => {
-      const { width, height, nodeIds = [], columnTotalGroup, rowTotalGroup, styleNameReference: styleId } = cell || {};
+      const { width, height, nodeIds = [], columnTotalGroup, rowTotalGroup, styleNameReference: styleId, layout } = cell || {};
       let { styleName: styleNameReference, ...restStyle } = styles.find(({ id }) => id === styleId) || {};
+      const isHorizontalLayout = isLayoutHorizontal(layout);
+      let nodeHeight, nodeWidth;
+      if (isHorizontalLayout) {
+        nodeHeight = height;
+        nodeWidth = width / nodeIds.length;
+      }
 
       const returnObj = {
         width,
@@ -1848,18 +1877,33 @@ export const getCTNodesFormData = (crosstab = {}) => {
         textField: nodeIds.map((id, index, arr) => {
           let node = getUpdateSize(nodes[id], restStyle);
           if (node) {
-            let y = 0;
+            let y = 0, x = 0, width = nodes[id].width, height = nodes[id].height;
+            if (isHorizontalLayout) {
+              width = nodeWidth;
+              height = nodeHeight;
+            }
             const prevNodeId = arr[index - 1];
             if (prevNodeId) {
-              y = nodes[prevNodeId].height
+              if (!isHorizontalLayout) {
+                y = index * height
+              }
+              if (isHorizontalLayout) {
+                x = index * width
+              }
             }
-            return getPreviewTextField({ ...node, x: 0, y })
+            if (isHorizontalLayout) {
+
+            }
+            return getPreviewTextField({ ...node, x, y, width, height })
           }
           return null;
         }).filter(Boolean)
       }
       if (columnTotalGroup) returnObj.columnTotalGroup = columnTotalGroup;
       if (rowTotalGroup) returnObj.rowTotalGroup = rowTotalGroup;
+      if (layout) {
+        returnObj.customSettings = layoutProperties[layout];
+      }
       return returnObj;
     })
   }
@@ -1877,7 +1921,7 @@ export const getCTNodesFormData = (crosstab = {}) => {
   }
 }
 
-const getPreviewCrosstabV2 = (crosstab = {}) => {
+const getPreviewCrosstabV2 = (crosstab = {}, dispatch) => {
   const {
     positionType,
     stretchType,
@@ -1936,7 +1980,7 @@ const getPreviewCrosstabV2 = (crosstab = {}) => {
   let returnObj = {
     dataSetRun,
     //  add nodes details
-    ...getCTNodesFormData(crosstab),
+    ...getCTNodesFormData(crosstab, dispatch),
   };
 
   if (Object.keys(borders).length) {
@@ -2841,7 +2885,7 @@ export const addBand = () => {
   };
 };
 
-const addNodeToBand = ({ formData, node, band, bandLimits }) => {
+const addNodeToBand = ({ formData, node, band, bandLimits, dispatch }) => {
   let reqObj;
   if (band === "groups") {
     const grpObj = formData.designerProperties[band].find((ele) => {
@@ -2889,7 +2933,7 @@ const addNodeToBand = ({ formData, node, band, bandLimits }) => {
         reqObj?.table?.push(getPreviewAdvancedTable(node));
         break;
       case "crosstabv2":
-        reqObj?.crosstab?.push(getPreviewCrosstabV2(node));
+        reqObj?.crosstab?.push(getPreviewCrosstabV2(node, dispatch));
         break;
       default:
         break;
@@ -2921,8 +2965,9 @@ function getPgStyles(pgStyl, isTableStyle = false) {
     underLine,
     verticalAlign,
     isConditionalStyleReq,
-    expression,
-    expressionBackColor
+    // expression,
+    // expressionBackColor
+    conditionalStyles = []
   } = pgStyl;
 
   const pgStylObj = {
@@ -3049,15 +3094,25 @@ function getPgStyles(pgStyl, isTableStyle = false) {
     pgStylObj.foreColor = fontFill;
     pgStylObj.fontSize = fontSize;
 
-    if (isConditionalStyleReq && expression && expressionBackColor) {
-      pgStylObj.conditionalStyle = {
-        expression,
-        backColor: expressionBackColor
-      };
+    if (isConditionalStyleReq && conditionalStyles?.length) {
+      pgStylObj.conditionalStyle = conditionalStyles.map((style) => {
+        return {
+          expression: style.expression,
+          backColor: style.expressionBackColor
+        }
+      })
     }
   }
 
   return pgStylObj;
+}
+
+const getActiveReport = (dispatch) => {
+  let activeReport = {}
+  dispatch((_, getState) => {
+    activeReport = getState().cannedReports.present.hcrTabData.panes.find(pane => pane.key === getState().cannedReports.present.hcrTabData.activeKey) || {};
+  })
+  return activeReport
 }
 
 export const getPreviewFormData = ({
@@ -3079,7 +3134,8 @@ export const getPreviewFormData = ({
   hcrExportProperties = [],
   tempUUIDsMap,
   subDataSets = [],
-  tableStyles = []
+  tableStyles = [],
+  dispatch
 }) => {
   const title = [];
   const image = [];
@@ -3135,6 +3191,8 @@ export const getPreviewFormData = ({
 
   const crosstabAndChartNodes = nodes.filter((node) => ["chart"].includes(node.category));
 
+  const activeReport = getActiveReport(dispatch)
+
   const formData = {
     format: format,
     page: updatedPageNo ? updatedPageNo - 1 : 0,
@@ -3175,8 +3233,10 @@ export const getPreviewFormData = ({
     isExport,
     reportName,
     dir: saveDetails.location,
-    // genereteXML: true
   };
+  if (activeReport.enableJRXML) {
+    formData.generateXML = true
+  }
 
   if (hcrExportProperties?.length) {
     formData.designerProperties.applyCustomSettings = true;
@@ -3482,7 +3542,7 @@ export const getPreviewFormData = ({
         //     titleMinY = node.y;
         // }
         node.y = node.y - bandLimits.rt.header.upper;
-        addNodeToBand({ formData, node, band: "title" });
+        addNodeToBand({ formData, node, band: "title", dispatch });
         if (!formData.designerProperties.title.bandHeight) {
           formData.designerProperties.title.bandHeight = parseNumber(
             bandLimits.rt.header.lower - bandLimits.rt.header.upper,
@@ -3494,7 +3554,7 @@ export const getPreviewFormData = ({
         // if(node.y < summaryMinY) {
         //     summaryMinY = node.y;
         // }
-        addNodeToBand({ formData, node, band: "summary" });
+        addNodeToBand({ formData, node, band: "summary", dispatch });
         if (!formData.designerProperties.summary.bandHeight) {
           formData.designerProperties.summary.bandHeight = parseNumber(
             bandLimits.rt.footer.lower - bandLimits.rt.footer.upper,
@@ -3511,7 +3571,7 @@ export const getPreviewFormData = ({
         //     pgHeaderMinY = node.y;
         // }
         node.y = node.y - bandLimits.pg.header.upper;
-        addNodeToBand({ formData, node, band: "pageHeader" });
+        addNodeToBand({ formData, node, band: "pageHeader", dispatch });
         if (!formData.designerProperties.pageHeader.bandHeight) {
           formData.designerProperties.pageHeader.bandHeight = parseNumber(
             bandLimits.pg.header.lower - bandLimits.pg.header.upper,
@@ -3523,7 +3583,7 @@ export const getPreviewFormData = ({
         // if(node.y < pgFooterMinY) {
         //     pgFooterMinY = node.y;
         // }
-        addNodeToBand({ formData, node, band: "pageFooter" });
+        addNodeToBand({ formData, node, band: "pageFooter", dispatch });
         if (!formData.designerProperties.pageFooter.bandHeight) {
           formData.designerProperties.pageFooter.bandHeight = parseNumber(
             bandLimits.pg.footer.lower - bandLimits.pg.footer.upper,
@@ -3540,7 +3600,7 @@ export const getPreviewFormData = ({
         //     clmHeaderMinY = node.y;
         // }
         node.y = node.y - bandLimits.cl.header.upper;
-        addNodeToBand({ formData, node, band: "columnHeader" });
+        addNodeToBand({ formData, node, band: "columnHeader", dispatch });
         if (!formData.designerProperties.columnHeader.bandHeight) {
           formData.designerProperties.columnHeader.bandHeight = parseNumber(
             bandLimits.cl.header.lower - bandLimits.cl.header.upper,
@@ -3552,7 +3612,7 @@ export const getPreviewFormData = ({
         // if(node.y < clmFooterMinY) {
         //     clmFooterMinY = node.y;
         // }
-        addNodeToBand({ formData, node, band: "columnFooter" });
+        addNodeToBand({ formData, node, band: "columnFooter", dispatch });
         if (!formData.designerProperties.columnFooter.bandHeight) {
           formData.designerProperties.columnFooter.bandHeight = parseNumber(
             bandLimits.cl.footer.lower - bandLimits.cl.footer.upper,
@@ -3564,7 +3624,7 @@ export const getPreviewFormData = ({
       //     detailsMinY = node.y;
       // }
       node.y = node.y - bandLimits.rd.upper;
-      addNodeToBand({ formData, node, band: "details" });
+      addNodeToBand({ formData, node, band: "details", dispatch });
       if (!formData.designerProperties.details.bandHeight) {
         formData.designerProperties.details.bandHeight = parseNumber(
           bandLimits.rd.lower - bandLimits.rd.upper,
@@ -3575,7 +3635,7 @@ export const getPreviewFormData = ({
       //     lpfMinY = node.y;
       // }
       node.y = node.y - bandLimits.lpf.upper;
-      addNodeToBand({ formData, node, band: "lastPageFooter" });
+      addNodeToBand({ formData, node, band: "lastPageFooter", dispatch });
       if (!formData.designerProperties.lastPageFooter.bandHeight) {
         formData.designerProperties.lastPageFooter.bandHeight = parseNumber(
           bandLimits.lpf.lower - bandLimits.lpf.upper,
@@ -3586,7 +3646,7 @@ export const getPreviewFormData = ({
       //     noDataMinY = node.y;
       // }
       node.y = node.y - bandLimits.nd.upper;
-      addNodeToBand({ formData, node, band: "noData" });
+      addNodeToBand({ formData, node, band: "noData", dispatch });
       if (!formData.designerProperties.noData.bandHeight) {
         formData.designerProperties.noData.bandHeight = parseNumber(
           bandLimits.nd.lower - bandLimits.nd.upper,
@@ -3596,7 +3656,7 @@ export const getPreviewFormData = ({
       // if(node.y < groupsMinY) {
       //     groupsMinY = node.y;
       // }
-      addNodeToBand({ formData, node, band: "groups", bandLimits });
+      addNodeToBand({ formData, node, band: "groups", dispatch, bandLimits });
     }
 
     if (query?.executeQueryData?.field) {
@@ -4011,7 +4071,8 @@ export const reportViewHcrGenerateReport = ({
         hcrExportProperties,
         allQueries: queries.menu,
         subDataSets,
-        tableStyles
+        tableStyles,
+        dispatch
       }),
       (res) => {
         if (isStreamToggle) {
@@ -4443,6 +4504,7 @@ const initialSelectedPayload = {
   selectedGroup: [],
   selectedParameter: [],
   selectedStyle: [],
+  selectedConditionalStyle: []
 }
 
 export const updateCanvasTabViewComponent = (node, actionType, payload = {}) => {
@@ -4470,6 +4532,7 @@ export const updateCanvasTabViewComponent = (node, actionType, payload = {}) => 
     selectedParameter = [],
     selectedStyle = [],
     activeReport = {},
+    selectedConditionalStyle = []
   } = payload || {};
   const { columnOrder } = node || {};
   const { tableStyles = [] } = activeReport || {}
@@ -4841,6 +4904,11 @@ export const updateCanvasTabViewComponent = (node, actionType, payload = {}) => 
     case "selectTableStyle": {
       resetSelection()
       node.selectedStyle = selectedStyle;
+      break;
+    }
+    case "selectTableConditionalStyle": {
+      resetSelection()
+      node.selectedConditionalStyle = selectedConditionalStyle;
       break;
     }
     case "pasteCopiedNodes": {
@@ -5476,8 +5544,7 @@ export const getNewStyle = (tableId, prevStyles) => {
     tableId,
     isChanged: false,
     isConditionalStyleReq: true,
-    expression: "",
-    expressionBackColor: "#BFE1FF",
+    conditionalStyles: [],
     borders: {
       Top: {
         stroke: 1,
@@ -5515,6 +5582,60 @@ export const getNewStyle = (tableId, prevStyles) => {
     fontFill: "#000000",
     fill: "#F0F8FF",
     fontSize: 10
+  }
+}
+
+
+export const getNewConditionalStyle = (prevStyles = []) => {
+  let styleName = "Conditinal Style 1", counter = 1;
+
+  while (prevStyles.some((style) => style.styleName === styleName)) {
+    counter += 1;
+    styleName = `Conditinal Style ${counter}`;
+  }
+
+  return {
+    id: uuidv4(),
+    styleName,
+    expression: "",
+    expressionBackColor: "#BFE1FF",
+    // borders: {
+    //   Top: {
+    //     stroke: 1,
+    //     style: "SOLID",
+    //     color: "#000103"
+    //   },
+    //   Bottom: {
+    //     stroke: 1,
+    //     style: "SOLID",
+    //     color: "#000103"
+    //   },
+    //   Right: {
+    //     stroke: 1,
+    //     style: "SOLID",
+    //     color: "#000103"
+    //   },
+    //   Left: {
+    //     stroke: 1,
+    //     style: "SOLID",
+    //     color: "#000103"
+    //   }
+    // },
+    // padding: {
+    //   Top: 0,
+    //   Bottom: 0,
+    //   Right: 0,
+    //   Left: 0
+    // },
+    // lineStyles: {
+    //   stroke: 1,
+    //   style: "SOLID",
+    //   color: "#000000"
+    // },
+    // mode: "Opaque",
+    // fontFill: "#000000",
+    // fill: "#F0F8FF",
+    // fontSize: 10
   }
 }
 
@@ -5621,7 +5742,8 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
     newStyles = [],
     tableId,
     updatedStyles = {},
-    styles = []
+    styles = [],
+    conditionalStyleId
   } = payload || {};
 
   switch (actionType) {
@@ -5693,6 +5815,20 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
 
       break;
     }
+    case "updateConditionalStyle": {
+      activeReport.tableStyles = [...(activeReport.tableStyles || [])].map((style) => {
+        if (style.id === styleId) {
+          style.conditionalStyles = style.conditionalStyles.map((conditionalStyle) => {
+            if (conditionalStyle.id === conditionalStyleId) {
+              return { ...conditionalStyle, ...updatedStyles }
+            }
+            return conditionalStyle
+          })
+        }
+        return style;
+      });
+      break;
+    }
     case "createStyle": {
       const newStyle = getNewStyle(tableId, activeReport.tableStyles);
       activeReport.tableStyles.push(newStyle);
@@ -5717,7 +5853,31 @@ export const updateTableStyles = (activeReport, actionType, payload = {}) => {
     case "updateAltRowBanding": {
       activeReport.tableStyles = [...(activeReport.tableStyles || [])].map((style) => {
         if (style.id === styleId) {
-          return { ...style, ...updatedStyles }
+          style.conditionalStyles.push({
+            id: uuidv4(),
+            styleName: "",
+            ...updatedStyles
+          })
+        }
+        return style;
+      });
+      break;
+    }
+    case "createConditionalStyle": {
+      const prevConditionalStyes = activeReport.tableStyles.find((style) => style.id === styleId)?.conditionalStyles || [];
+      const newConditionalStyle = getNewConditionalStyle(prevConditionalStyes);
+      activeReport.tableStyles = [...(activeReport.tableStyles || [])].map((style) => {
+        if (style.id === styleId) {
+          style.conditionalStyles.push(newConditionalStyle);
+        }
+        return style;
+      });
+      break;
+    }
+    case "deleteConditionalStyle": {
+      activeReport.tableStyles = [...(activeReport.tableStyles || [])].map((style) => {
+        if (style.id === styleId) {
+          style.conditionalStyles = style.conditionalStyles.filter((conditionalStyle) => conditionalStyle.id !== conditionalStyleId);
         }
         return style;
       });
@@ -5757,7 +5917,8 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     position,
     cellsToUpdate = [],
     type,
-    resizeFactor
+    resizeFactor,
+    selectedConditionalStyle = []
   } = payload || {}
 
   const initialSelectionPayload = {
@@ -5770,7 +5931,8 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     selectedStyle: [],
     selectedCTGroup: [],
     selectedCTMeasure: [],
-    selectedCrosstab: null
+    selectedCrosstab: null,
+    selectedConditionalStyle: []
   }
   function resetSelection() {
     for (let item in initialSelectionPayload) {
@@ -5926,6 +6088,11 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     case "selectTableStyle": {
       resetSelection()
       component.selectedStyle = selectedStyle;
+      break;
+    }
+    case "selectTableConditionalStyle": {
+      resetSelection()
+      component.selectedConditionalStyle = selectedConditionalStyle;
       break;
     }
     case "selectCTGroup": {

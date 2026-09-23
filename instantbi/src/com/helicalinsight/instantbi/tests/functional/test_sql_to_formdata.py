@@ -127,6 +127,53 @@ def _catalog() -> FunctionCatalog:
     )
 
 
+def _catalog_with_round_and_case() -> FunctionCatalog:
+    """Catalog that includes ROUND/CASE — reproduces production getFunctions traps."""
+    payload = {
+        "response": {
+            "reference": "postgresql",
+            "functions": {
+                "db.generic.aggregate.sum": "sum",
+                "db.generic.aggregate.count": "count",
+                "db.generic.aggregate.avg": "avg",
+                "db.generic.aggregate.min": "min",
+                "db.generic.aggregate.max": "max",
+                "db.generic.aggregate.distinct": "distinct",
+                "db.generic.groupBy.group": "group",
+                "db.generic.orderBy.order": "order",
+            },
+            "databaseFunctions": {
+                "numeric": [
+                    {
+                        "key": "sql.numeric.round",
+                        "value": "ROUND",
+                        "signature": "round(${numeric},${decimals})",
+                        "returns": "numeric",
+                        "parameters": [{"name": "numeric"}, {"name": "decimals"}],
+                    },
+                    {
+                        "key": "sql.numeric.nullif",
+                        "value": "NULLIF",
+                        "signature": "nullif(${value1},${value2})",
+                        "returns": "numeric",
+                        "parameters": [{"name": "value1"}, {"name": "value2"}],
+                    },
+                ],
+                "conditional": [
+                    {
+                        "key": "sql.conditional.case",
+                        "value": "CASE",
+                        "signature": "case()",
+                        "returns": "other",
+                        "parameters": [],
+                    },
+                ],
+            },
+        }
+    }
+    return FunctionCatalog.from_api_payload(payload)
+
+
 def _metadata() -> dict:
     return build_column_index(
         {
@@ -176,20 +223,35 @@ def _metadata() -> dict:
                         }
                     }
                 },
+                "meeting_details": {
+                    "columns": {
+                        "meeting_by": {
+                            "id": "1044",
+                            "alias": "meeting_by",
+                            "type": {"java.lang.String": "text"},
+                        },
+                        "meet_cancellation_status": {
+                            "id": "1048",
+                            "alias": "meet_cancellation_status",
+                            "type": {"java.lang.String": "text"},
+                        }
+                    }
+                },
             },
         }
     )
 
 
-def _form_data(sql: str) -> dict:
-    return sql_to_form_data(
-        sql,
-        location="0007",
-        metadata_file_name="pg_sample_travel_data_agent.metadata",
-        catalog=_catalog(),
-        metadata=_metadata(),
-        dialect="postgres",
-    )
+def _form_data(sql: str, **kwargs) -> dict:
+    opts = {
+        "location": "0007",
+        "metadata_file_name": "pg_sample_travel_data_agent.metadata",
+        "catalog": _catalog(),
+        "metadata": _metadata(),
+        "dialect": "postgres",
+    }
+    opts.update(kwargs)
+    return sql_to_form_data(sql, **opts)
 
 
 def _column_by_alias(form_data: dict, alias: str) -> dict:
@@ -308,9 +370,9 @@ class TestILikeFilter:
         ]
         assert form_data["customFilterExpression"] == " ${0} "
         assert form_data["filterExpression"] == ["Employee Name"]
-        assert _column_by_alias(form_data, "Employee Name")["order"] == "asc"
+        # Lone SELECT columns stay in data_model even when they are also filtered.
+        assert [c.get("alias") for c in form_data.get("columns") or []] == ["Employee Name"]
         assert "orderBy" not in form_data.get("functions", {})
-        assert "hidden" not in _column_by_alias(form_data, "Employee Name")
 
     def test_extract_filter_uses_database_function_on_signature_match(self):
         sql = """
@@ -382,6 +444,52 @@ class TestILikeFilter:
         )
         assert filt["values"] == ["2024-01"]
 
+    def test_date_trunc_bound_is_catalog_value_not_select_alias(self):
+        """WHERE col >= DATE_TRUNC(...) is a function bound, not a column function.
+
+        ``databaseFunction`` on a filter means the function wraps the filtered
+        column (MONTH(date) = 3). DATE_TRUNC on CURRENT_DATE belongs in values.
+        Also do not steal SELECT aliases like Year/Month from EXTRACT on the
+        same physical column.
+        """
+        sql = """
+        SELECT
+          EXTRACT(YEAR FROM travel_details.travel_date) AS "Year",
+          EXTRACT(MONTH FROM travel_details.travel_date) AS "Month",
+          SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date >= DATE_TRUNC('QUARTER', CURRENT_DATE - INTERVAL '3 MONTHS')
+          AND travel_details.travel_date < DATE_TRUNC('QUARTER', CURRENT_DATE)
+        GROUP BY
+          EXTRACT(YEAR FROM travel_details.travel_date),
+          EXTRACT(MONTH FROM travel_details.travel_date)
+        LIMIT 100
+        """
+        form_data = _form_data(sql)
+        filters = form_data["filters"]
+        assert len(filters) == 2
+        for filt in filters:
+            assert "databaseFunction" not in filt
+            assert filt["column"] == {
+                "name": "sampletraveldata.public.travel_details.travel_date",
+                "id": "2859",
+            }
+            assert filt["alias"] == "travel_date"
+            assert filt["label"] == "travel_date"
+            value = str((filt.get("values") or [""])[0])
+            assert "TIMESTAMP_TRUNC" not in value.upper()
+            assert "DATETRUNC" in value.upper() or "DATE_TRUNC" in value.upper()
+            assert "QUARTER" in value.upper()
+            assert "CURRENT_DATE" in value.upper()
+        assert filters[0]["condition"] == "CUSTOM"
+        assert filters[0]["customCondition"] == ">="
+        assert filters[0]["isCustomValue"] is True
+        assert filters[0]["encloseInQuotes"] is False
+        assert filters[1]["condition"] == "CUSTOM"
+        assert filters[1]["customCondition"] == "<"
+        assert filters[1]["isCustomValue"] is True
+        assert filters[1]["encloseInQuotes"] is False
+
     def test_like_contains_matches_ilike_wire_shape(self):
         sql = """
         SELECT employee_details.employee_name AS "Employee Name"
@@ -441,10 +549,11 @@ class TestTextFilterConditions:
         assert self._filter(
             "employee_details.employee_name <> 'Ahmed Haider'"
         ) == _base_filter(
-            condition="NOT_EQUALS",
+            condition="CUSTOM",
             customCondition="<>",
             values=["Ahmed Haider"],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_contains(self):
@@ -506,7 +615,7 @@ class TestTextFilterConditions:
         assert self._filter(
             "employee_details.employee_name IS NULL"
         ) == _base_filter(
-            condition="IS_NULL",
+            condition="CUSTOM",
             customCondition="IS NULL",
             encloseInQuotes=False,
         )
@@ -572,42 +681,47 @@ class TestNumericFilterConditions:
 
     def test_not_equals(self):
         assert self._filter("travel_details.travel_cost <> 100") == _base_numeric(
-            condition="NOT_EQUALS",
+            condition="CUSTOM",
             customCondition="<>",
             values=[100],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_is_greater_than(self):
         assert self._filter("travel_details.travel_cost > 100") == _base_numeric(
-            condition="IS_GREATER_THAN",
+            condition="CUSTOM",
             customCondition=">",
             values=[100],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_is_greater_than_or_equal_to(self):
         assert self._filter("travel_details.travel_cost >= 100") == _base_numeric(
-            condition="IS_GREATER_THAN_OR_EQUAL_TO",
+            condition="CUSTOM",
             customCondition=">=",
             values=[100],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_is_less_than(self):
         assert self._filter("travel_details.travel_cost < 100") == _base_numeric(
-            condition="IS_LESS_THAN",
+            condition="CUSTOM",
             customCondition="<",
             values=[100],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_is_less_than_or_equal_to(self):
         assert self._filter("travel_details.travel_cost <= 100") == _base_numeric(
-            condition="IS_LESS_THAN_OR_EQUAL_TO",
+            condition="CUSTOM",
             customCondition="<=",
             values=[100],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_is_one_of(self):
@@ -640,6 +754,7 @@ class TestNumericFilterConditions:
             customCondition="BETWEEN",
             values=[100, 200],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_not_in_between(self):
@@ -650,6 +765,7 @@ class TestNumericFilterConditions:
             customCondition="NOT BETWEEN",
             values=[100, 200],
             isCustomValue=True,
+            encloseInQuotes=False,
         )
 
     def test_in_range(self):
@@ -674,7 +790,7 @@ class TestNumericFilterConditions:
 
     def test_is_null(self):
         assert self._filter("travel_details.travel_cost IS NULL") == _base_numeric(
-            condition="IS_NULL",
+            condition="CUSTOM",
             customCondition="IS NULL",
             encloseInQuotes=False,
         )
@@ -887,13 +1003,7 @@ class TestUnmappedFunctionRawColumn:
         assert _is_raw_fn(col["databaseFunction"])
         assert "upper" in _norm_sql(col["databaseFunction"])
         assert "sum(" not in _norm_sql(col["databaseFunction"])
-        assert form_data["functions"]["aggregate"] == [
-            {
-                "column": col["column"],
-                "function": "db.generic.aggregate.sum",
-                "alias": "Travel Cost",
-            }
-        ]
+        assert "aggregate" not in (form_data.get("functions") or {})
 
 
 class TestDerbyDialect:
@@ -954,15 +1064,7 @@ class TestStackedAggregates:
             "name": "sampletraveldata.public.travel_details.destination",
             "id": "2870",
         }
-        assert form_data["functions"]["aggregate"] == [
-            {
-                "column": col["column"],
-                "function": (
-                    "db.generic.aggregate.sum_db.generic.aggregate.count"
-                ),
-                "alias": "Destination Count",
-            }
-        ]
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_count_distinct_is_stacked(self):
         form_data = _form_data(
@@ -981,9 +1083,7 @@ class TestStackedAggregates:
             "name": "sampletraveldata.public.travel_details.destination",
             "id": "2870",
         }
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.count_db.generic.aggregate.distinct"
-        )
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_sum_count_distinct_is_stacked(self):
         form_data = _form_data(
@@ -998,10 +1098,7 @@ class TestStackedAggregates:
             "db.generic.aggregate.count",
             "db.generic.aggregate.distinct",
         ]
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.sum_db.generic.aggregate.count_"
-            "db.generic.aggregate.distinct"
-        )
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_avg_sum_count_is_stacked(self):
         form_data = _form_data(
@@ -1016,10 +1113,7 @@ class TestStackedAggregates:
             "db.generic.aggregate.sum",
             "db.generic.aggregate.count",
         ]
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.avg_db.generic.aggregate.sum_"
-            "db.generic.aggregate.count"
-        )
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_sum_distinct_appends_distinct(self):
         form_data = _form_data(
@@ -1051,9 +1145,7 @@ class TestStackedAggregates:
             "name": "sampletraveldata.public.travel_details.destination",
             "id": "2870",
         }
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.distinct_db.generic.aggregate.count"
-        )
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_select_distinct_count_is_stacked(self):
         form_data = _form_data(
@@ -1082,7 +1174,7 @@ class TestStackedAggregates:
             "db.generic.aggregate.count",
         ]
 
-    def test_select_distinct_on_dimension_is_not_stacked(self):
+    def test_select_distinct_on_dimension_gets_distinct_aggregate(self):
         form_data = _form_data(
             """
             select distinct travel_details.destination as "Destination"
@@ -1090,8 +1182,21 @@ class TestStackedAggregates:
             """
         )
         col = _column_by_alias(form_data, "Destination")
-        assert "aggregate" not in col
-        assert "aggregateList" not in col
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == ["db.generic.aggregate.distinct"]
+        assert "aggregate" not in (form_data.get("functions") or {})
+
+    def test_select_distinct_travel_medium_gets_distinct_aggregate(self):
+        form_data = _form_data(
+            """
+            SELECT DISTINCT "travel_details"."travel_medium" AS "Travel Medium"
+            FROM "travel_details"
+            LIMIT 100
+            """
+        )
+        col = _column_by_alias(form_data, "Travel Medium")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == ["db.generic.aggregate.distinct"]
 
     def test_min_and_max_are_single_aggregates(self):
         form_data = _form_data(
@@ -1132,9 +1237,7 @@ class TestStackedAggregates:
             "db.generic.aggregate.max",
             "db.generic.aggregate.count",
         ]
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.max_db.generic.aggregate.count"
-        )
+        assert "aggregate" not in (form_data.get("functions") or {})
 
     def test_min_max_is_stacked(self):
         form_data = _form_data(
@@ -1166,11 +1269,233 @@ class TestStackedAggregates:
             "db.generic.aggregate.count",
             "db.generic.aggregate.distinct",
         ]
-        assert form_data["functions"]["aggregate"][0]["function"] == (
-            "db.generic.aggregate.avg_db.generic.aggregate.sum_"
-            "db.generic.aggregate.min_db.generic.aggregate.max_"
-            "db.generic.aggregate.count_db.generic.aggregate.distinct"
+        assert "aggregate" not in (form_data.get("functions") or {})
+
+
+class TestFilterAggregate:
+    """SUM(...) FILTER (WHERE ...) is a measure, not a GROUP BY dimension."""
+
+    def test_sum_filter_is_not_added_to_groupby(self):
+        form_data = _form_data(
+            """
+            SELECT
+              SUM(travel_details.travel_cost)
+                FILTER (WHERE travel_details.travel_type = 'International')
+                AS "Cost by Cancellation",
+              EXTRACT(MONTH FROM travel_details.travel_date) AS "Travel Month",
+              SUM(travel_details.travel_id) AS "Travel Id"
+            FROM sampletraveldata.public.travel_details
+            GROUP BY EXTRACT(MONTH FROM travel_details.travel_date)
+            LIMIT 100
+            """
         )
+        cost = _column_by_alias(form_data, "Cost by Cancellation")
+        assert cost["aggregate"] is True
+        assert cost["aggregateList"] == ["db.generic.aggregate.sum"]
+        assert _is_raw_fn(cost["databaseFunction"])
+        assert "filter" in _norm_sql(cost["databaseFunction"])
+        group_aliases = [g["column"] for g in form_data.get("functions", {}).get("groupBy", [])]
+        assert group_aliases == ["Travel Month"]
+        assert "Cost by Cancellation" not in group_aliases
+
+    def test_groupby_follows_sql_not_non_aggregate_selects(self):
+        """Rate formulas with nested COUNT must not enter groupBy unless SQL groups by them."""
+        form_data = _form_data(
+            """
+            SELECT
+              "meeting_details"."meeting_by" AS "Employee Name",
+              COUNT("meeting_details"."meeting_by") AS "Total Meetings",
+              COUNT(
+                CASE WHEN "meeting_details"."meet_cancellation_status" = 'No' THEN 1 END
+              ) AS "Successful Meetings",
+              ROUND(
+                CAST(
+                  COUNT(
+                    CASE WHEN "meeting_details"."meet_cancellation_status" = 'Yes' THEN 1 END
+                  ) * 100.0
+                  / NULLIF(COUNT("meeting_details"."meeting_by"), 0) AS DECIMAL
+                ),
+                2
+              ) AS "Cancellation Rate"
+            FROM "sampletraveldata"."public"."meeting_details"
+            GROUP BY "meeting_details"."meeting_by"
+            LIMIT 100
+            """
+        )
+        rate = _column_by_alias(form_data, "Cancellation Rate")
+        assert "aggregate" not in rate
+        group_aliases = [g["column"] for g in form_data.get("functions", {}).get("groupBy", [])]
+        assert group_aliases == ["Employee Name"]
+        assert "Cancellation Rate" not in group_aliases
+
+    def test_round_rate_formula_emits_raw_not_quoted_round(self):
+        """ROUND(CAST(100*COUNT…/COUNT…)) must be RAW(full SQL), never ROUND('…')."""
+        form_data = _form_data(
+            """
+            SELECT
+              "meeting_details"."meeting_by" AS "Employee Name",
+              ROUND(
+                CAST(
+                  100.0 * COUNT(
+                    CASE WHEN "meeting_details"."meet_cancellation_status" = 'Yes' THEN 1 END
+                  ) / NULLIF(COUNT("meeting_details"."meeting_by"), 0) AS DECIMAL
+                ),
+                2
+              ) AS "Cancellation Rate"
+            FROM "sampletraveldata"."public"."meeting_details"
+            GROUP BY "meeting_details"."meeting_by"
+            LIMIT 100
+            """,
+            catalog=_catalog_with_round_and_case(),
+        )
+        rate = _column_by_alias(form_data, "Cancellation Rate")
+        dbf = str(rate.get("databaseFunction") or "")
+        assert dbf.startswith("RAW("), dbf
+        assert "ROUND(" in dbf
+        assert "COUNT(" in dbf
+        assert "CASE WHEN" in dbf.upper().replace("  ", " ") or "CASE WHEN" in dbf
+        assert not dbf.startswith("ROUND('")
+        assert "''Yes''" not in dbf
+
+    def test_count_case_when_emits_raw_case_not_case_parens(self):
+        """COUNT(CASE WHEN …) must keep the CASE body as RAW, not CASE()."""
+        form_data = _form_data(
+            """
+            SELECT
+              COUNT(
+                CASE WHEN "meeting_details"."meet_cancellation_status" = 'Yes' THEN 1 END
+              ) AS "Cancelled Meetings"
+            FROM "meeting_details"
+            LIMIT 100
+            """,
+            catalog=_catalog_with_round_and_case(),
+        )
+        col = _column_by_alias(form_data, "Cancelled Meetings")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == ["db.generic.aggregate.count"]
+        dbf = str(col.get("databaseFunction") or "")
+        assert "CASE WHEN" in dbf.upper() or "case when" in dbf.lower()
+        assert dbf != "CASE()"
+        assert "CASE()" not in dbf
+
+
+class TestSelectAlsoFiltered:
+    """SELECT fields that are also WHERE / HAVING drop out of data_model.columns."""
+
+    def test_where_dimension_is_removed_from_select_columns(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.booking_platform AS "Booking Platform",
+              EXTRACT(MONTH FROM travel_details.travel_date) AS "Travel Month",
+              SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            WHERE EXTRACT(MONTH FROM travel_details.travel_date) = 3
+            GROUP BY
+              travel_details.booking_platform,
+              EXTRACT(MONTH FROM travel_details.travel_date)
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert aliases == ["Booking Platform", "Travel Cost"]
+        assert "Travel Month" not in aliases
+        group_aliases = [g["column"] for g in form_data.get("functions", {}).get("groupBy", [])]
+        assert group_aliases == ["Booking Platform"]
+        assert "Travel Month" not in group_aliases
+        assert any(
+            item.get("alias") == "Travel Month" or "travel_date" in str(item.get("column") or "").lower()
+            for item in form_data.get("filters") or []
+        )
+
+    def test_having_measure_is_removed_from_select_columns(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.destination AS "destination",
+              SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            GROUP BY travel_details.destination
+            HAVING SUM(travel_details.travel_cost) > 100
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert aliases == ["destination"]
+        assert "Travel Cost" not in aliases
+
+    def test_lone_having_measure_stays_in_select(self):
+        form_data = _form_data(
+            """
+            SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            HAVING SUM(travel_details.travel_cost) > 100
+               AND SUM(travel_details.travel_cost) < 2
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert aliases == ["Travel Cost"]
+        assert form_data["columns"][0]["aggregate"] is True
+
+    def test_lone_where_dimension_stays_in_select(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.destination AS "destination"
+            FROM travel_details
+            WHERE travel_details.destination = 'Paris'
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert aliases == ["destination"]
+        assert any(
+            item.get("alias") == "destination"
+            or "destination" in str(item.get("column") or "").lower()
+            for item in form_data.get("filters") or []
+        )
+
+    def test_filter_inside_select_is_not_treated_as_where(self):
+        form_data = _form_data(
+            """
+            SELECT
+              SUM(travel_details.travel_cost)
+                FILTER (WHERE travel_details.travel_type = 'International')
+                AS "Cost by Cancellation",
+              EXTRACT(MONTH FROM travel_details.travel_date) AS "Travel Month"
+            FROM travel_details
+            GROUP BY EXTRACT(MONTH FROM travel_details.travel_date)
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert "Cost by Cancellation" in aliases
+        assert "Travel Month" in aliases
+
+    def test_count_where_same_column_keeps_the_measure(self):
+        form_data = _form_data(
+            """
+            SELECT COUNT(travel_details.destination) AS "Cancelled Meetings"
+            FROM travel_details
+            WHERE travel_details.destination = 'Paris'
+            """
+        )
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert aliases == ["Cancelled Meetings"]
+        assert form_data["columns"][0]["aggregate"] is True
+
+    def test_rm_cols_in_filter_false_keeps_where_dimension(self):
+        sql = """
+            SELECT
+              travel_details.booking_platform AS "Booking Platform",
+              EXTRACT(MONTH FROM travel_details.travel_date) AS "Travel Month",
+              SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            WHERE EXTRACT(MONTH FROM travel_details.travel_date) = 3
+            GROUP BY
+              travel_details.booking_platform,
+              EXTRACT(MONTH FROM travel_details.travel_date)
+        """
+        form_data = _form_data(sql, rm_cols_in_filter=False)
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert "Travel Month" in aliases
+        group_aliases = [g["column"] for g in form_data.get("functions", {}).get("groupBy", [])]
+        assert "Travel Month" in group_aliases
 
 
 class TestHavingFoldedIntoFilters:
@@ -1205,11 +1530,17 @@ class TestHavingFoldedIntoFilters:
         assert having_item["condition"] == "IS_BETWEEN"
         assert having_item["customCondition"] == "BETWEEN"
         assert having_item["values"] == [20, 50]
+        assert having_item["isCustomValue"] is True
+        assert having_item["encloseInQuotes"] is False
         assert having_item["function"] == "db.generic.aggregate.count"
-        assert having_item["column"] == {
+        assert         having_item["column"] == {
             "name": "sampletraveldata.public.travel_details.travel_id",
             "id": "1064",
         }
+        aliases = [col.get("alias") for col in form_data.get("columns") or []]
+        assert "Travel Type" not in aliases
+        assert "Travel Count" not in aliases
+        assert "groupBy" not in form_data.get("functions", {})
 
     def test_include_parts_keeps_having_before_fold(self):
         form_data = sql_to_form_data(
@@ -1306,5 +1637,44 @@ class TestFilterExpression:
             """
         )
         assert form_data["filterExpression"] == ["", "sum_travel_cost"]
+
+
+class TestCaseWhenRawUnquoted:
+    """CASE WHEN → RAW must omit identifier escapes (Helical blanks quoted CASE)."""
+
+    def test_count_case_when_raw_has_no_identifier_quotes(self):
+        form_data = _form_data(
+            """
+            SELECT COUNT(
+              CASE WHEN "meeting_details"."meet_cancellation_status" = 'Yes' THEN 1 END
+            ) AS "Cancelled Meetings"
+            FROM "meeting_details"
+            LIMIT 100
+            """
+        )
+        col = _column_by_alias(form_data, "Cancelled Meetings")
+        assert col["aggregate"] is True
+        assert col["aggregateList"] == ["db.generic.aggregate.count"]
+        assert _is_raw_fn(col["databaseFunction"])
+        dbf = str(col["databaseFunction"])
+        assert '"' not in dbf
+        assert "`" not in dbf
+        assert "CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 END" in dbf
+        assert col["usedColumns"] == [
+            "sampletraveldata.public.meeting_details.meet_cancellation_status"
+        ]
+
+    def test_backslash_escaped_quotes_in_sql_still_convert(self):
+        # JSON-style \\" before identifiers must be ignored before parse.
+        sql = (
+            'SELECT COUNT(CASE WHEN "meeting_details".\\"meet_cancellation_status\\" = \'Yes\' '
+            'THEN 1 END) AS \\"Cancelled Meetings\\" FROM \\"meeting_details\\" LIMIT 100'
+        )
+        form_data = _form_data(sql)
+        col = _column_by_alias(form_data, "Cancelled Meetings")
+        dbf = str(col["databaseFunction"])
+        assert _is_raw_fn(dbf)
+        assert '"' not in dbf
+        assert "CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 END" in dbf
 
 

@@ -1173,8 +1173,8 @@ export const getTableStyles = (tableId, tableCount) => {
       tableId,
       isChanged: false,
       isConditionalStyleReq: true,
-      expression: "",
-      expressionBackColor: "#BFE1FF",
+      // expression: "",
+      // expressionBackColor: "#BFE1FF",
       borders: {
         Top: {
           stroke: 1,
@@ -1211,7 +1211,8 @@ export const getTableStyles = (tableId, tableCount) => {
       mode: "Opaque",
       fontFill: "#000000",
       fill: "#F0F8FF",
-      fontSize: 10
+      fontSize: 10,
+      conditionalStyles: [],
     },
     {
       styleName: tableCount > 0 ? `TABLE ${tableCount}_CH` : "TABLE_CH",
@@ -1225,8 +1226,8 @@ export const getTableStyles = (tableId, tableCount) => {
       tableId,
       isChanged: false,
       isConditionalStyleReq: true,
-      expression: "",
-      expressionBackColor: "#BFE1FF",
+      // expression: "",
+      // expressionBackColor: "#BFE1FF",
       borders: {
         Top: {
           stroke: 1,
@@ -1263,7 +1264,8 @@ export const getTableStyles = (tableId, tableCount) => {
       mode: "Opaque",
       fontFill: "#000000",
       fill: "#BFE1FF",
-      fontSize: 10
+      fontSize: 10,
+      conditionalStyles: [],
     },
     {
       styleName: tableCount > 0 ? `TABLE ${tableCount}_TD` : "TABLE_TD",
@@ -1273,8 +1275,8 @@ export const getTableStyles = (tableId, tableCount) => {
       mode: "Opaque",
       isChanged: false,
       isConditionalStyleReq: true,
-      expression: "",
-      expressionBackColor: "#BFE1FF",
+      // expression: "",
+      // expressionBackColor: "#BFE1FF",
       isTD: true,
       borders: {
         Top: {
@@ -1312,7 +1314,8 @@ export const getTableStyles = (tableId, tableCount) => {
       mode: "Opaque",
       fontFill: "#000000",
       fill: "#FFFFFF",
-      fontSize: 10
+      fontSize: 10,
+      conditionalStyles: [],
     }
   ]
 }
@@ -1335,8 +1338,7 @@ export const getCrosstabStyles = (crosstabId, count) => {
       crosstabId,
       isChanged: false,
       isConditionalStyleReq: true,
-      expression: "",
-      expressionBackColor: "#BFE1FF",
+      conditionalStyles: [],
       borders: {
         Top: {
           stroke: 1,

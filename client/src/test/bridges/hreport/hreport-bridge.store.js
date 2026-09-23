@@ -55,17 +55,34 @@ const actionCreators = {
     }),
     updateOrderBy: jest.fn((payload) => ({ type: 'UPDATE_ORDER_BY', payload })),
     updateFieldAlias: jest.fn((payload) => ({ type: 'UPDATE_FIELD_ALIAS', payload })),
-    createFilter: jest.fn((payload) => ({ type: 'CREATE_FILTER', payload })),
+    createFilter: jest.fn((payload) => {
+        const report = latestReport();
+        if (report) {
+            report.filters.push({ ...payload, uid: payload.uid });
+        }
+        return { type: 'CREATE_FILTER', payload };
+    }),
     changeFilterCondition: jest.fn((payload) => ({ type: 'CHANGE_FILTER_CONDITION', payload })),
     changeFilterValue: jest.fn((payload) => ({ type: 'CHANGE_FILTER_VALUE', payload })),
     updateFilterAlias: jest.fn((payload) => ({ type: 'UPDATE_FILTER_ALIAS', payload })),
+    updateFilter: jest.fn((payload) => {
+        const report = latestReport();
+        if (report) {
+            report.filters = report.filters.map((filter) =>
+                filter.uid === payload.uid ? { ...filter, ...payload } : filter
+            );
+        }
+        return { type: 'UPDATE_FILTER', payload };
+    }),
     updateCustomCondition: jest.fn((payload) => ({ type: 'UPDATE_CUSTOM_CONDITION', payload })),
     updateCustomChart: jest.fn((payload) => ({ type: 'UPDATE_CUSTOM_CHART', payload })),
     updateSelectedType: jest.fn((payload) => ({ type: 'UPDATE_SELECTED_TYPE', payload })),
     updateSubVizType: jest.fn((payload) => ({ type: 'UPDATE_SUB_VIZ_TYPE', payload })),
     setHReportLoading: jest.fn((payload) => ({ type: 'SET_HREPORT_LOADING', payload })),
     updateAggregations: jest.fn((payload) => ({ type: 'UPDATE_AGGREGATIONS', payload })),
+    toggleFloating: jest.fn((payload) => ({ type: 'TOGGLE_FLOATING', payload })),
     loadReportFilters: jest.fn((payload) => ({ type: 'LOAD_REPORT_FILTERS', payload })),
+    changeOptions: jest.fn((payload) => ({ type: 'CHANGE_OPTIONS', payload })),
 };
 
 const bridgeUtils = {

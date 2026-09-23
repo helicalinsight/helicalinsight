@@ -319,6 +319,7 @@ const getInitialIBChatState = () => {
   let id = uuidv4();
   return {
     botStatus: false,
+    botMessage: "",
     activeChatID: id,
     activePreviewID: null,
     loadedChatResponses: {},

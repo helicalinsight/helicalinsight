@@ -115,7 +115,8 @@ const CannedReportsPage = (props) => {
     pageDetails = {},
     hcrPreviewData = {},
     subDataSets = [],
-    tableStyles = []
+    tableStyles = [],
+    enableJRXML
   } = activeTab || {};
 
   const { hcrExportPropertiesData = {} } = useSelector((state) => state.cannedReports.present) || {};
@@ -159,6 +160,7 @@ const CannedReportsPage = (props) => {
   const Notify = notify(dispatch);
 
   const [saveType, setSaveType] = useState("save");
+  const [showJRXML, setShowJRXML] = useState(false)
   const [openJsonViewer, setOpenJsonViewer] = useState(false);
   const tabNumbers = hcrTabData.panes.map((ele) => ele.key);
   const editCBRef = useRef(null);
@@ -234,6 +236,16 @@ const CannedReportsPage = (props) => {
     handlePreviewUpdate({ isPreviewLoading: value })
   }
 
+  const maybeFetchJrxml = (res, updatedPageNo) => {
+    if (!enableJRXML) return;
+    if (updatedPageNo) return;
+    if (activeTab?.jrxmlXml || activeTab?.jrxmlLoading) return;
+    const jrxmlPath = res?.jrxmlData?.path || "";
+    if (!jrxmlPath) return;
+
+    dispatch(hcrActions.hcrUpdateJRXMLPath({ reportKey, path: jrxmlPath }));
+  };
+
   const handleStreamResSuccess = (data) => {
     let dataObj = Object.values(data)?.[0] || {}
     const updatedValues = {
@@ -249,6 +261,9 @@ const CannedReportsPage = (props) => {
           pageDetails: { totalPageCount: totalPageCount * 10, currentPageNo: parseInt(currentPageNo || "0") + 1 }
         }));
       }
+    }
+    if (dataObj?.jrxmlData) {
+      maybeFetchJrxml(dataObj)
     }
     handlePreviewUpdate(updatedValues)
     dispatch(hcrActions.handlePreviewTag({ previewTag: dataObj?.response, reportKey }))
@@ -384,7 +399,8 @@ const CannedReportsPage = (props) => {
           hcrExportProperties,
           tempUUIDsMap: queryTempuuidsMap.current,
           subDataSets,
-          tableStyles
+          tableStyles,
+          dispatch
         })
         const isStream = isStreamToggle && (!streamFirstPageData || isCache)
         if (isStreamToggle && !isStream && !isCache) {
@@ -414,6 +430,7 @@ const CannedReportsPage = (props) => {
                 }),
               );
               handlePreviewUpdate({ isPreviewLoading: false })
+              maybeFetchJrxml(res, updatedPageNo);
             }
             dispatch(appActions.changeLastModified());
           },
@@ -786,7 +803,8 @@ const CannedReportsPage = (props) => {
           hcrExportProperties,
           tempUUIDsMap: queryTempuuidsMap.current,
           subDataSets,
-          tableStyles
+          tableStyles,
+          dispatch
         });
         handleSaveHcr({
           selectedQueryId,
@@ -1115,7 +1133,8 @@ const CannedReportsPage = (props) => {
       hcrExportProperties,
       tempUUIDsMap: queryTempuuidsMap.current,
       subDataSets,
-      tableStyles
+      tableStyles,
+      dispatch
     });
     postDownloadRequest({
       dispatch,
@@ -1148,16 +1167,25 @@ const CannedReportsPage = (props) => {
     itemClz: "hcr-mr-18",
   };
 
+  const jrxmlShowItem = enableJRXML ? {
+    tooltip: "JRXML",
+    icon: <FileTextOutlined />,
+    callBack: () => {
+      setShowJRXML(true);
+    },
+    itemClz: "hcr-mr-18",
+  } : null
+
   if (isPreviewing) {
     taskbar = [
       reportPagination,
       previewCloseItem,
-      taskbarExport,
+      taskbarExport
     ];
     if (previewParameters.showParameters) {
       taskbar = [...taskbar, taskbarFilter];
     }
-    taskbar = [...taskbar, hcrShrtCuts];
+    taskbar = [...taskbar, jrxmlShowItem, hcrShrtCuts].filter(Boolean);
   }
 
   const handleTabActiveKey = ({ activeKey }) => {
@@ -1217,7 +1245,8 @@ const CannedReportsPage = (props) => {
       hcrExportProperties,
       tempUUIDsMap: queryTempuuidsMap.current,
       subDataSets,
-      tableStyles
+      tableStyles,
+      dispatch
     });
     handleSaveHcr({
       selectedQueryId,
@@ -1244,6 +1273,28 @@ const CannedReportsPage = (props) => {
     dispatch(fileBrowserActions.setSearchResults(null));
     dispatch(hcrActions.setHcrFilebrowserFor(false));
   };
+
+  const getAlteredStyles = (tableStyles) => {
+    return tableStyles.map((style, index) => {
+      const { expression, expressionBackColor, ...restStyles } = style || {}
+      if (restStyles.conditionalStyles) {
+        return style;
+      }
+      const newStyle = {
+        ...restStyles,
+        conditionalStyles: []
+      }
+      if (expression) {
+        newStyle.conditionalStyles.push({
+          id: uuidv4(),
+          styleName: "Conditional Style " + index,
+          expression,
+          expressionBackColor: expressionBackColor || ""
+        })
+      }
+      return newStyle;
+    })
+  }
 
   function handleHcrEdit(record, isReportMode) {
     const dirArr = record.path.split("/")?.filter((ele) => ele !== record.name);
@@ -1302,6 +1353,7 @@ const CannedReportsPage = (props) => {
             if (ctStyles.length) {
               tableStyles = [...tableStyles, ...ctStyles]
             }
+            tableStyles = getAlteredStyles(tableStyles)
           } else {
             const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
             tableStyles = [...tStyles, ...ctStyles];
@@ -1460,6 +1512,7 @@ const CannedReportsPage = (props) => {
               if (ctStyles.length) {
                 tableStyles = [...tableStyles, ...ctStyles]
               }
+              tableStyles = getAlteredStyles(tableStyles)
             } else {
               const { alteredNodes, tableStyles: tStyles = [] } = getTableStylesFromReportState(nodes)
               tableStyles = [...tStyles, ...ctStyles];
@@ -1847,6 +1900,8 @@ const CannedReportsPage = (props) => {
       <PreviewArea
         previewTag={previewTag}
         isPreviewLoading={isPreviewLoading}
+        showJRXML={showJRXML}
+        onClose={() => setShowJRXML(false)}
       />
     </div>
   );
@@ -1871,6 +1926,7 @@ const CannedReportsPage = (props) => {
         subDataSets={subDataSets}
         tableStyles={tableStyles}
         resetQueryuuids={resetQueryuuids}
+        maybeFetchJrxml={maybeFetchJrxml}
       />
       {["open"].includes(props.mode) ? (
         <div style={{ height: "100%" }}>

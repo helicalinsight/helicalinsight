@@ -462,6 +462,14 @@ const HCRFlowchart = ({
     tableStyles = [],
   } = activeTab;
 
+  const designerProperties = useSelector(
+    (state) =>
+      state.cannedReports.present?.hCROldConfigurations
+        ?.HCR?.HCR?.designerProperties || {},
+  );
+
+  const calculationsMapping = designerProperties?.variables?.calculationsMapping || {};
+
   const dispatch = useDispatch();
   const {
     margin: canvasMargin = {},
@@ -953,17 +961,28 @@ const HCRFlowchart = ({
     return repeatItems;
   }
 
+  const getCalculationMapping = (dataType) => {
+    const mapping = calculationsMapping[dataType] || {};
+    if (!isEmpty(mapping)) {
+      return Object.keys(mapping).map((key) => {
+        return getItem(key, mapping[key]);
+      })
+    }
+
+    return dataType?.toLowerCase().includes("integer")
+      ? calculations.map((ele) => getItem(ele.label, ele.key || ele.label))
+      : [
+        getItem("Count", "Count"),
+        getItem("Distinct Count", "DistinctCount"),
+      ]
+  }
+
   function getCalculationsItems(dataType) {
     const calculationItems = [
       getItem(
         "Calculations",
         "calculations",
-        dataType?.toLowerCase().includes("integer")
-          ? calculations.map((ele) => getItem(ele.label, ele.key || ele.label))
-          : [
-            getItem("Count", "Count"),
-            getItem("Distinct Count", "DistinctCount"),
-          ]
+        getCalculationMapping(dataType)
       ),
     ];
     return calculationItems;
@@ -1278,12 +1297,17 @@ const HCRFlowchart = ({
                       className="hcr-context"
                       onClick={(selectedItem) => {
                         if (data.target.data) {
+                          let className = data.target.data?.backendDataType || null;
+                          if (["Count", "DistinctCount"].includes(selectedItem.key)) {
+                            className = "java.lang.Integer";
+                          }
                           if (selectedNodes?.length) {
                             selectedNodes.forEach((selectedNode) => {
                               dispatch(
                                 hcrActions.addCalculation({
                                   node: selectedNode,
                                   calculation: selectedItem.key,
+                                  className
                                 })
                               );
                             });
@@ -1292,6 +1316,7 @@ const HCRFlowchart = ({
                               hcrActions.addCalculation({
                                 node: data.target.data,
                                 calculation: selectedItem.key,
+                                className
                               })
                             );
                           }

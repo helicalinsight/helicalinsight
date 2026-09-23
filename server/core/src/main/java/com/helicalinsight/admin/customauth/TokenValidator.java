@@ -1,11 +1,13 @@
 package com.helicalinsight.admin.customauth;
 
 import com.helicalinsight.admin.exception.AuthenticationException;
+import com.helicalinsight.efw.utility.ConfigurationFileReader;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,6 +19,10 @@ import java.util.regex.Pattern;
  */
 public class TokenValidator {
     private static final Logger logger = LoggerFactory.getLogger(TokenValidator.class);
+    private static final String[] DEFAULT_KEYS = {
+            "defaultRole", "defaultEmail", "defaultCompany", "defaultTimezone"
+    };
+
     private String token;
     private Map<String, String> tokenMap;
     private Properties defaultProperties = new Properties();
@@ -28,10 +34,38 @@ public class TokenValidator {
     public TokenValidator(String token) {
         this.token = token;
         tokenMap = new HashMap<>();
+        loadDefaultProperties();
+    }
+
+    private void loadDefaultProperties() {
         try {
-            defaultProperties.load(CustomUserDetailService.class.getResourceAsStream("/customAuthentication.properties"));
+            Map<String, String> project = ConfigurationFileReader.getProjectPropertiesFile();
+            for (String key : DEFAULT_KEYS) {
+                String value = project.get(key);
+                if (StringUtils.isNotBlank(value)) {
+                    defaultProperties.setProperty(key, value);
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Could not load default SSO properties from project.properties", e);
+        }
+
+        Properties customAuth = new Properties();
+        try (InputStream input = CustomUserDetailService.class.getResourceAsStream("/customAuthentication.properties")) {
+            if (input != null) {
+                customAuth.load(input);
+            }
         } catch (IOException e) {
             logger.error("Problem loading the custom authentication properties file!");
+        }
+
+        for (String key : DEFAULT_KEYS) {
+            if (!defaultProperties.containsKey(key) || StringUtils.isBlank(defaultProperties.getProperty(key))) {
+                String fallback = customAuth.getProperty(key);
+                if (StringUtils.isNotBlank(fallback)) {
+                    defaultProperties.setProperty(key, fallback.trim());
+                }
+            }
         }
     }
 

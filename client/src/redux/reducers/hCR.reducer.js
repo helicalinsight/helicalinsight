@@ -121,7 +121,7 @@ export const hcrTabInitialState = {
             keyValuePairs: {
                 borders: {},
                 padding: {},
-                lineStyles: {}, 
+                lineStyles: {},
             },
         },
     },
@@ -139,7 +139,9 @@ export const hcrTabInitialState = {
     hcrPreviewData: initialPreviewData,
     hcrTableClipboardData: {},
     subDataSets: [],
-    tableStyles: []
+    tableStyles: [],
+    enableJRXML: false,
+    jrxmlPath: null,
 };
 
 export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
@@ -263,8 +265,21 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 const reqPane = getReqPane(draft);
                 // reqPane.isPreviewing = !reqPane.isPreviewing;
                 reqPane.isPreviewing = action.payload;
+
+                if (action.payload === false) {
+                    reqPane.jrxmlPath = null;
+                }
             });
         }
+        case actionTypes.HCR_UPDATE_JRXML_PATH: {
+            return produce(state, (draft) => {
+                const { reportKey, path } = action.payload || {};
+                let reqPane = reportKey ? getReqPaneByKey(draft, reportKey) : getReqPane(draft);
+                if (!reqPane) reqPane = getReqPane(draft);
+                reqPane.jrxmlPath = path;
+            });
+        }
+
         case actionTypes.UPDATE_PARAMETER_LIST: {
             return produce(state, (draft) => {
                 const reqPane = getReqPane(draft);
@@ -284,7 +299,7 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
         case actionTypes.HCR_ADD_CALCULATION: {
             return produce(state, (draft) => {
                 const reqPane = getReqPane(draft);
-                let { node, calculation } = action.payload;
+                let { node, calculation, className = null } = action.payload;
                 let i = 1;
                 let reqCalcName = `${calculation}_${node.name}${i}`;
                 let reqCalcId = i;
@@ -299,7 +314,7 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 }
                 const reqCalc = {
                     calculation: calculation || 'Count',
-                    className: 'java.lang.Integer',
+                    className: className || 'java.lang.Integer',
                     expression: node.label,
                     id: uuidv4(),
                     name: reqCalcName,
@@ -2259,6 +2274,15 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
             });
         }
 
+        case actionTypes.HCR_UDPATE_JRXML_PROPERTY: {
+            const { value } = action.payload || {}
+            return produce(state, (draft) => {
+                let reqPane = getReqPane(draft);
+                if (reqPane) {
+                    reqPane.enableJRXML = value
+                }
+            });
+        }
         // case NEW_CONFIGURATION:
         // 	return { ...state, propertyPaneData: { ...state.propertyPaneData, newConfiguration: action.payload } };
         // case HCR_GROUPS:

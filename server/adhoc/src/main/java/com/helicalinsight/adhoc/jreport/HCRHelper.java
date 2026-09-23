@@ -568,18 +568,18 @@ public class HCRHelper {
 	public void generateJRXML(String uuid, JsonObject formData, JasperReport jasperReport, JsonObject jrxmlData)
 			throws JRException {
 
-		String dir = GsonUtility.optStringValue(formData, "dir", null);
-		String parentPath;
-		if (dir != null) {
-			parentPath = applicationProperties.getSolutionDirectory() + File.separator + dir;
-			jrxmlData.addProperty("jrxmlDir", dir);
-		} else
-			parentPath = TempDirectoryCleaner.getTempDirectory().getAbsolutePath();
+		String dir = GsonUtility.optStringValue(formData, "dir", "");
+		String parentPath =  TempDirectoryCleaner.getTempDirectory().getAbsolutePath() + File.separator + dir;
 
-		String targetFile = File.separator + uuid + ".jrxml";
-		String targetFolder = parentPath + targetFile;
+		jrxmlData.addProperty("jrxmlDir", dir);
+		
+		String targetFile =  uuid + ".jrxml";
+		String targetFolder = parentPath + File.separator +  targetFile;
+		FileUtils.createDirectory(new File(parentPath));
 		JasperCompileManager.writeReportToXmlFile(jasperReport, targetFolder);
 		jrxmlData.addProperty("uuid", uuid);
+		String path = "_TEMP_/" +((dir.isBlank()) ? "" : dir + "/") + targetFile;
+		jrxmlData.addProperty("path", path);
 	}
 
 	public List<JsonObject> extractRequiredParametersNames(JasperReport jasperMasterReport) {

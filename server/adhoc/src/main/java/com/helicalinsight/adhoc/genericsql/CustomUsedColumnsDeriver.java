@@ -23,8 +23,8 @@ import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.utility.JaxbUtils;
 
 /**
- * Derives {@code usedColumns} for custom expressions that do not already supply them.
- * Parses the custom {@code column} value (constant, metadata column, formula, or subquery)
+ * Derives {@code usedColumns} for custom expressions and {@code sql.text.raw} database functions.
+ * Parses the custom {@code column} value or the raw SQL {@code parameters.column} expression
  * and attaches fully qualified metadata column names so downstream validation and FROM-clause
  * building can discover referenced tables.
  */
@@ -34,6 +34,9 @@ public final class CustomUsedColumnsDeriver {
 
     /** Enables complexQuery token extraction in {@link SqlUtils}. */
     private static final String ALLOW_COMPLEX = "allow_complex_json_queries";
+
+    /** Raw SQL wrapper whose {@code parameters.column} is a native expression. */
+    private static final String SQL_TEXT_RAW = "sql.text.raw";
 
     /**
      * Quoted identifiers: {@code "col"}, {@code `col`}, {@code [col]}.
@@ -51,7 +54,8 @@ public final class CustomUsedColumnsDeriver {
 
     /**
      * Mutates {@code formData} in place: for each custom item missing {@code usedColumns},
-     * derives and writes resolved metadata FQDNs.
+     * and for each {@code sql.text.raw} database function, derives and writes resolved
+     * metadata FQDNs.
      *
      * @param formData     adhoc form data (columns / filters / having / functions)
      * @param metadataJson metadata JSON string (same payload passed to prepareQuery)
@@ -116,18 +120,12 @@ public final class CustomUsedColumnsDeriver {
 
     private static void deriveForItem(@NotNull JsonObject item, @NotNull List<String> fqColumns,
                                       @Nullable Map<String, Set<String>> aliasToOriginals) {
-        if (!item.has("custom") || item.has("usedColumns")) {
-            return;
-        }
-        JsonElement columnElement = item.get("column");
-        String expression = null;
-        if (columnElement != null && columnElement.isJsonObject()) {
-            JsonElement inner = columnElement.getAsJsonObject().get("column");
-            if (inner != null && inner.isJsonPrimitive()) {
-                expression = inner.getAsString();
+        String expression = extractRawSqlExpression(item);
+        if (StringUtils.isBlank(expression)) {
+            if (!item.has("custom") || item.has("usedColumns")) {
+                return;
             }
-        } else if (columnElement != null && columnElement.isJsonPrimitive()) {
-            expression = columnElement.getAsString();
+            expression = extractCustomColumnExpression(item);
         }
         if (StringUtils.isBlank(expression)) {
             return;
@@ -137,15 +135,69 @@ public final class CustomUsedColumnsDeriver {
         if (resolved.isEmpty()) {
             return;
         }
+        attachUsedColumns(item, resolved);
+    }
 
-        JsonArray usedColumns = new JsonArray();
-        for (String fqdn : resolved) {
-            if (StringUtils.isNotBlank(fqdn)) {
-                usedColumns.add(fqdn);
+    /**
+     * {@code sql.text.raw} embeds native SQL in {@code databaseFunction.parameters.column}.
+     * That expression can reference extra tables (e.g. {@code FILTER(WHERE other_table.col = ...)}).
+     */
+    @Nullable
+    private static String extractRawSqlExpression(@NotNull JsonObject item) {
+        JsonObject databaseFunction = GsonUtility.optJsonObject(item, "databaseFunction");
+        if (databaseFunction == null) {
+            return null;
+        }
+        String functionName = StringUtils.trimToEmpty(GsonUtility.optString(databaseFunction, "functionName"));
+        if (!SQL_TEXT_RAW.equals(functionName)) {
+            return null;
+        }
+        JsonObject parameters = GsonUtility.optJsonObject(databaseFunction, "parameters");
+        if (parameters == null) {
+            return null;
+        }
+        String column = GsonUtility.optString(parameters, "column");
+        return StringUtils.isBlank(column) ? null : column;
+    }
+
+    @Nullable
+    private static String extractCustomColumnExpression(@NotNull JsonObject item) {
+        JsonElement columnElement = item.get("column");
+        if (columnElement != null && columnElement.isJsonObject()) {
+            JsonElement inner = columnElement.getAsJsonObject().get("column");
+            if (inner != null && inner.isJsonPrimitive()) {
+                return inner.getAsString();
+            }
+        } else if (columnElement != null && columnElement.isJsonPrimitive()) {
+            return columnElement.getAsString();
+        }
+        return null;
+    }
+
+    private static void attachUsedColumns(@NotNull JsonObject item, @NotNull Set<String> resolved) {
+        Set<String> merged = new LinkedHashSet<>();
+        JsonArray existing = GsonUtility.optJsonArray(item, "usedColumns");
+        if (existing != null) {
+            for (JsonElement element : existing) {
+                if (element != null && element.isJsonPrimitive()) {
+                    String value = element.getAsString();
+                    if (StringUtils.isNotBlank(value)) {
+                        merged.add(value);
+                    }
+                }
             }
         }
-        if (usedColumns.isEmpty()) {
+        for (String fqdn : resolved) {
+            if (StringUtils.isNotBlank(fqdn)) {
+                merged.add(fqdn);
+            }
+        }
+        if (merged.isEmpty()) {
             return;
+        }
+        JsonArray usedColumns = new JsonArray();
+        for (String fqdn : merged) {
+            usedColumns.add(fqdn);
         }
         item.add("usedColumns", usedColumns);
     }

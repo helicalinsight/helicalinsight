@@ -347,12 +347,34 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
     // Do not persist legacy InstantBI chart settings.
     delete viz.settings;
 
-    return {
+    const saved = {
       chat_sequence_id: msg.chatSequenceId,
       ...loadedForSave,
       ...chatResponseForSave,
       viz,
     };
+
+    if (msg.isThinkPlan) {
+      saved.is_think_plan = true;
+      saved.asked_questions = msg.askedQuestions || [];
+      saved.question_history = (msg.questionHistory || []).map((step) => {
+        if (!step || typeof step !== "object") return step;
+        const { vizActivityTrail, ...cleanStep } = step;
+        return cleanStep;
+      });
+      saved.cited_question_indexes = msg.citedQuestionIndexes || [];
+      saved.opening_insight = msg.openingInsight || "";
+      saved.final_answer = msg.finalAnswer || msg.text || "";
+      saved.plan = msg.plan || {};
+      saved.dashboard_model = msg.dashboardModel || msg.plan?.dashboard || null;
+      saved.dashboard = saved.dashboard_model;
+      saved.llm_activity_details = msg.llmActivityDetails || null;
+      if (!saved.summary && saved.final_answer) {
+        saved.summary = { insight: saved.final_answer };
+      }
+    }
+
+    return saved;
   })
 
   const modelSubject = getInstantBIAgentSubject(activeReport) || {};

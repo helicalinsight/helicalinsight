@@ -1,5 +1,7 @@
 //package com.helicalinsight.cache;
 //
+//import static org.junit.Assert.assertEquals;
+//import static org.junit.Assert.assertTrue;
 //import static org.mockito.ArgumentMatchers.anyString;
 //import static org.mockito.Mockito.mock;
 //import static org.mockito.Mockito.mockStatic;
@@ -9,6 +11,8 @@
 //import java.io.IOException;
 //import java.lang.reflect.Field;
 //import java.util.Date;
+//import java.util.Map;
+//
 //import org.junit.Test;
 //import org.mockito.MockedStatic;
 //
@@ -24,38 +28,35 @@
 //	
 //	@Test
 //	public void testisCacheEnabled() {
-//		CacheUtils cacheUtils = new CacheUtils();
 //		CacheUtils.isCacheEnabled();
 //	}
 //
 //
 //	@Test
 //	public void testgetCacheDirectory() {
-//		CacheUtils cacheUtils = new CacheUtils();
 //		CacheUtils.getCacheDirectory();
 //	}
 //	@Test
 //	public void testinit() {
-//		CacheUtils cacheUtils = new CacheUtils();
 //		CacheUtils.init();
 //	}
 //
 //	@Test
 //	public void testgetCacheXmlJson() {
-//		CacheUtils cacheUtils = new CacheUtils();
 //		CacheUtils.getCacheXmlJson();
 //	}
 //	
 //	
 //	//----------------------------
-//	//@Test
+//	@Test
 //	public void testGetRefreshUrl() throws NoSuchFieldException, SecurityException,
 //								IllegalArgumentException, IllegalAccessException {
 //		JsonObject object = new JsonObject();
-//		JsonArray refreshUrl = new JsonArray();
+//		JsonObject refreshUrl = new JsonObject();
 //		object.addProperty("cacheExtension", ".cache");
 //		object.addProperty("enableThread", "true");
 //		object.add("refreshUrl", refreshUrl);
+//		
 //		Field field = CacheUtils.class.getDeclaredField("cacheXmlJson");
 //		field.setAccessible(true);
 //		CacheUtils cacheUtils = new CacheUtils();
@@ -65,7 +66,7 @@
 //		CacheUtils.isThreadingEnabled();
 //	}
 //	
-//	@Test
+////	@Test
 //	public void testGetCacheManager_a1() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		try(MockedStatic<ApplicationContextAccessor> mockedstatic = mockStatic(ApplicationContextAccessor.class)){
 //			CacheManager cacheMock = mock(CacheManager.class);
@@ -86,7 +87,7 @@
 //		CacheUtils.getCacheManager("url");
 //		}
 //	}
-//	@Test
+////	@Test
 //	public void testGetCacheManager_a2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		JsonObject object = new JsonObject();
 //		JsonObject cacheManager = new JsonObject();
@@ -103,7 +104,7 @@
 //		field.set(cacheUtils, object);
 //		CacheUtils.getCacheManager("url");
 //	}
-//	@Test
+////	@Test
 //	public void testGetCacheManager_a3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		JsonObject object = null;
 //		Field field = CacheUtils.class.getDeclaredField("cacheXmlJson");
@@ -113,7 +114,7 @@
 //		CacheUtils.getCacheManager("url");
 //	}
 //    
-//	@Test
+////	@Test
 //	public void testgetActualCacheExpireDuration_a1() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		CacheUtils cacheUtils = new CacheUtils();
 //		Field field = CacheUtils.class.getDeclaredField("durationUnit");
@@ -121,7 +122,7 @@
 //		field.set(cacheUtils, "minutes");
 //		CacheUtils.getActualCacheExpireDuration();
 //	}
-//	@Test
+////	@Test
 //	public void testgetActualCacheExpireDuration_a2() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		CacheUtils cacheUtils = new CacheUtils();
 //		Field field = CacheUtils.class.getDeclaredField("durationUnit");
@@ -129,7 +130,7 @@
 //		field.set(cacheUtils, "hours");
 //		CacheUtils.getActualCacheExpireDuration();
 //	}
-//	@Test
+////	@Test
 //	public void testgetActualCacheExpireDuration_a3() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 //		CacheUtils cacheUtils = new CacheUtils();
 //		Field field = CacheUtils.class.getDeclaredField("durationUnit");
@@ -222,5 +223,90 @@
 //		String filePath = "/home/helical/Performance/Test.txt";
 //		CacheUtils.deleteOldCache(cache, filePath, cacheService);
 //	}
-//	
+//
+//	@Test
+//	public void parseTypeConversion_withTypeArray_buildsMap() {
+//		JsonObject cacheJson = new JsonObject();
+//		JsonObject typeConversion = new JsonObject();
+//		JsonArray types = new JsonArray();
+//		JsonObject duck = new JsonObject();
+//		duck.addProperty("from", "org.duckdb.JsonNode");
+//		duck.addProperty("to", "java.lang.String");
+//		types.add(duck);
+//		JsonObject jackson = new JsonObject();
+//		jackson.addProperty("from", "com.fasterxml.jackson.databind.JsonNode");
+//		jackson.addProperty("to", "java.lang.String");
+//		types.add(jackson);
+//		typeConversion.add("type", types);
+//		cacheJson.add("typeConversion", typeConversion);
+//
+//		Map<String, String> map = CacheUtils.parseTypeConversion(cacheJson);
+//		assertEquals("java.lang.String", map.get("org.duckdb.JsonNode"));
+//		assertEquals("java.lang.String", map.get("com.fasterxml.jackson.databind.JsonNode"));
+//		assertEquals(2, map.size());
+//	}
+//
+//	@Test
+//	public void parseTypeConversion_withSingleTypeObject_buildsMap() {
+//		JsonObject cacheJson = new JsonObject();
+//		JsonObject typeConversion = new JsonObject();
+//		JsonObject type = new JsonObject();
+//		type.addProperty("from", "org.duckdb.JsonNode");
+//		type.addProperty("to", "java.lang.String");
+//		typeConversion.add("type", type);
+//		cacheJson.add("typeConversion", typeConversion);
+//
+//		Map<String, String> map = CacheUtils.parseTypeConversion(cacheJson);
+//		assertEquals(1, map.size());
+//		assertEquals("java.lang.String", map.get("org.duckdb.JsonNode"));
+//	}
+//
+//	@Test
+//	public void parseTypeConversion_missingSection_returnsEmptyMap() {
+//		Map<String, String> map = CacheUtils.parseTypeConversion(new JsonObject());
+//		assertTrue(map.isEmpty());
+//	}
+//
+//	@Test
+//	public void parseTypeConversion_null_returnsEmptyMap() {
+//		Map<String, String> map = CacheUtils.parseTypeConversion(null);
+//		assertTrue(map.isEmpty());
+//	}
+//
+//	@Test
+//	public void parseTypeConversion_blankFromOrTo_skipsEntry() {
+//		JsonObject cacheJson = new JsonObject();
+//		JsonObject typeConversion = new JsonObject();
+//		JsonArray types = new JsonArray();
+//		JsonObject blankFrom = new JsonObject();
+//		blankFrom.addProperty("from", "");
+//		blankFrom.addProperty("to", "java.lang.String");
+//		types.add(blankFrom);
+//		JsonObject blankTo = new JsonObject();
+//		blankTo.addProperty("from", "org.duckdb.JsonNode");
+//		blankTo.addProperty("to", "");
+//		types.add(blankTo);
+//		JsonObject valid = new JsonObject();
+//		valid.addProperty("from", "org.duckdb.JsonNode");
+//		valid.addProperty("to", "java.lang.String");
+//		types.add(valid);
+//		typeConversion.add("type", types);
+//		cacheJson.add("typeConversion", typeConversion);
+//
+//		Map<String, String> map = CacheUtils.parseTypeConversion(cacheJson);
+//		assertEquals(1, map.size());
+//		assertEquals("java.lang.String", map.get("org.duckdb.JsonNode"));
+//	}
+//
+//	@Test
+//	public void parseTypeConversion_emptyTypeArray_returnsEmptyMap() {
+//		JsonObject cacheJson = new JsonObject();
+//		JsonObject typeConversion = new JsonObject();
+//		typeConversion.add("type", new JsonArray());
+//		cacheJson.add("typeConversion", typeConversion);
+//
+//		Map<String, String> map = CacheUtils.parseTypeConversion(cacheJson);
+//		assertTrue(map.isEmpty());
+//	}
+//
 //}

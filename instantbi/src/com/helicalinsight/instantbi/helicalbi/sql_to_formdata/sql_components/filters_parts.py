@@ -128,6 +128,11 @@ def _label_for(item: FilterItem, parsed: ParsedQuery, meta: dict, fallback: str)
                 and sel.column.table.lower() != item.column.table.lower()
             ):
                 continue
+            # Only reuse a SELECT alias when it is the same expression (raw column
+            # or the same database function). EXTRACT(YEAR) must not label a
+            # raw travel_date WHERE as "Year".
+            if not _same_filter_select_expr(sel, item):
+                continue
             return sel.alias
         by_column = meta.get("by_column") or {}
         hit = by_column.get(item.column.short) or by_column.get(item.column.name)
@@ -138,21 +143,42 @@ def _label_for(item: FilterItem, parsed: ParsedQuery, meta: dict, fallback: str)
     return fallback
 
 
+def _same_filter_select_expr(sel, item: FilterItem) -> bool:
+    sel_fn = str(sel.database_function_sql or "").strip().lower()
+    item_fn = str(item.database_function_sql or "").strip().lower()
+    return sel_fn == item_fn
+
+
 def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
+    """Map UI conditions to Adhoc executeQuery wire.
+
+    Adhoc ``SqlQueryUtilities.condition`` only accepts EQUALS / IS_ONE_OF /
+    IN_RANGE / NOT_IN_RANGE / CUSTOM. Comparison and other ops that carry a
+    ``customCondition`` must therefore emit ``condition: CUSTOM``.
+
+    SQL expression bounds (e.g. ``DATE_TRUNC(...)``) need ``isCustomValue`` and
+    ``encloseInQuotes: false`` so Adhoc does not quote them as string literals.
+    """
     ui = item.ui_condition
     values = list(item.values)
 
     if ui == "EQUALS":
         wire["values"] = values
+        if _values_are_sql_expressions(values):
+            wire["isCustomValue"] = True
+            wire["encloseInQuotes"] = False
         return wire
 
     if ui == "NOT_EQUALS":
+        wire["condition"] = "CUSTOM"
         wire["customCondition"] = "<>"
         wire["isCustomValue"] = True
+        wire["encloseInQuotes"] = False
         wire["values"] = values
         return wire
 
     if ui == "IS_ONE_OF":
+        # Native Adhoc condition (not CUSTOM) — values stay as a list.
         wire["customCondition"] = " IN ("
         wire["isCustomValue"] = True
         wire["encloseInQuotes"] = False
@@ -168,6 +194,7 @@ def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
 
     if ui in ("CONTAINS", "DOES_NOT_CONTAINS", "STARTS_WITH", "ENDS_WITH",
               "DOES_NOT_STARTS_WITH", "DOES_NOT_ENDS_WITH"):
+        # Keep UI condition names; getFilters.js formats LIKE wildcards/quotes.
         mapping = CONDITION_WIRE_MAP[ui]
         wire["customCondition"] = mapping["customCondition"]
         wire["encloseInQuotes"] = False
@@ -176,14 +203,18 @@ def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
 
     if ui in ("IS_LESS_THAN", "IS_GREATER_THAN", "IS_LESS_THAN_OR_EQUAL_TO", "IS_GREATER_THAN_OR_EQUAL_TO"):
         mapping = CONDITION_WIRE_MAP[ui]
+        wire["condition"] = "CUSTOM"
         wire["customCondition"] = mapping["customCondition"]
         wire["isCustomValue"] = True
+        wire["encloseInQuotes"] = False
         wire["values"] = values
         return wire
 
     if ui in ("IS_BETWEEN", "IS_NOT_BETWEEN"):
+        # Keep UI names; getFilters.js joins values into a single BETWEEN payload.
         wire["customCondition"] = "NOT BETWEEN" if ui == "IS_NOT_BETWEEN" else "BETWEEN"
         wire["isCustomValue"] = True
+        wire["encloseInQuotes"] = False
         wire["values"] = values
         return wire
 
@@ -194,11 +225,13 @@ def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
         return wire
 
     if ui == "IS_NULL":
+        wire["condition"] = "CUSTOM"
         wire["customCondition"] = "IS NULL"
         wire["encloseInQuotes"] = False
         return wire
 
     if ui == "IS_NOT_NULL":
+        wire["condition"] = "CUSTOM"
         wire["customCondition"] = "IS NOT NULL"
         wire["encloseInQuotes"] = False
         return wire
@@ -206,11 +239,36 @@ def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
     return _as_custom_filter(wire, item, values)
 
 
+def _values_are_sql_expressions(values: list[Any]) -> bool:
+    """True when a filter bound looks like SQL (DATE_TRUNC / CURRENT_DATE / …)."""
+    for value in values:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        upper = text.upper()
+        if "(" in text and ")" in text:
+            return True
+        if any(
+            token in upper
+            for token in (
+                "CURRENT_DATE",
+                "CURRENT_TIMESTAMP",
+                "NOW()",
+                "INTERVAL ",
+                "DATE_TRUNC",
+                "DATETRUNC",
+            )
+        ):
+            return True
+    return False
+
+
 def _as_custom_filter(wire: dict, item, values: list[Any]) -> dict:
     """Unmatched UI condition or complex SQL → condition CUSTOM, values = full payload."""
     wire["condition"] = "CUSTOM"
     wire["customCondition"] = item.custom_sql or item.raw_sql or "CUSTOM"
     wire["isCustomValue"] = True
+    wire["encloseInQuotes"] = False
     wire["mode"] = "custom"
     wire["values"] = _custom_payload(item, values)
     return wire

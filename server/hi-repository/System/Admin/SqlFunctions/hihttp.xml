@@ -1399,6 +1399,19 @@
 		result: "John"</description>
     </function>
 	
+	<function group="json" returns="text">
+        <key>sql.json.json_extract_string</key>
+        <value>json_extract_string</value>
+        <signature><![CDATA[JSON_EXTRACT_STRING(${json}::json, ${path})]]></signature>
+        <parameters>
+		   <parameter column="true" name="json"/>
+		   <parameter column="true" name="path"/>
+        </parameters>
+        <description>The JSON_EXTRACT_STRING function is used to extract String value based on JSON paths.
+		ex: JSON_EXTRACT('{"name": "John", "age": 30, "city": "New York"}', '$.name') 
+		result: John</description>
+    </function>
+	
 	
 	<function group="json" returns="other">
         <key>sql.json.json_extract_path</key>

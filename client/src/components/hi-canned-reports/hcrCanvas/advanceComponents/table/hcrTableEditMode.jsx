@@ -32,7 +32,8 @@ const HCRAdvancedTableEdit = (props = {}) => {
     selectedQueryID,
     selectedGroup = [],
     selectedParameter = [],
-    selectedStyle = []
+    selectedStyle = [],
+    selectedConditionalStyle = []
   } = data || {};
   const availableBands = getActiveBands(bands, cells);
 
@@ -67,7 +68,8 @@ const HCRAdvancedTableEdit = (props = {}) => {
     currentCalculation = selectedCalculation[0],
     currentSelectedGroup = selectedGroup[0],
     currentParameter = selectedParameter[0],
-    currentSelectedStyle = selectedStyle[0]
+    currentSelectedStyle = selectedStyle[0],
+    currentSelectedConditionalStyle = selectedConditionalStyle[0];
 
   const [sidePanelOpen, setSidePanelOpen] = useState(false);
   const [currentShortCut, setCurrentShortCut] = useState("");
@@ -362,11 +364,11 @@ const HCRAdvancedTableEdit = (props = {}) => {
       }
     }
     window.addEventListener("keydown", handleCtrlKeys);
-    if (selectedNodeId || selectedCellId || outlineDsSelectedField || selectedTable || currentCalculation || currentSelectedGroup || currentParameter || currentSelectedStyle) {
+    if (selectedNodeId || selectedCellId || outlineDsSelectedField || selectedTable || currentCalculation || currentSelectedGroup || currentParameter || currentSelectedStyle || currentSelectedConditionalStyle) {
       handleOpenSidePanel()
     }
     return () => window.removeEventListener("keydown", handleCtrlKeys);
-  }, [selectedNodeId, selectedCellId, currentShortCut, selectedNodes, outlineDsSelectedField, selectedTable, currentCalculation, currentSelectedGroup, currentParameter, currentSelectedStyle]);
+  }, [selectedNodeId, selectedCellId, currentShortCut, selectedNodes, outlineDsSelectedField, selectedTable, currentCalculation, currentSelectedGroup, currentParameter, currentSelectedStyle, selectedConditionalStyle, currentSelectedConditionalStyle]);
 
   useEffect(() => {
     return () => {

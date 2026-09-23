@@ -57,18 +57,88 @@ def test_similar_charts_follow_result_shape():
     )
     assert "bar" not in names
     assert "table" not in names
+    assert "grid_table" not in names
     assert "line" in names
     assert "pie" in names or "donut" in names
+    assert "heatmap" not in names
 
 
-def test_auto_bar_keeps_dimension_on_rows():
+def test_similar_charts_exclude_heatmap_without_geo():
+    names = similar_charts_for_data(
+        _md(("region", "text"), ("product", "text"), ("sales", "numeric")),
+        current="grid_table",
+    )
+    assert "heatmap" not in names
+
+
+def test_similar_charts_include_grid_table_for_multi_dim_aggregate():
+    names = similar_charts_for_data(
+        _md(("region", "text"), ("product", "text"), ("sales", "numeric")),
+        current="relation",
+    )
+    assert "grid_table" in names
+
+
+def test_similar_charts_omit_grid_table_for_single_dimension():
+    names = similar_charts_for_data(
+        _md(("booking_platform", "text")),
+        current="wordcloud",
+    )
+    assert "grid_table" not in names
+    assert "table" not in names
+
+def test_lat_lon_viz_model_stays_chart_until_map_requested():
+    model, chart, ctx = build_viz_model(
+        data_types=_md(("latitude", "numeric"), ("longitude", "numeric")),
+        user_query="plot locations",
+    )
+    assert model.chart.mark != "Maps"
+    assert "geographicRoles" not in model.properties.model_dump()
+    assert "geographic_roles" not in ctx
+
+    model, chart, ctx = build_viz_model(
+        data_types=_md(("latitude", "numeric"), ("longitude", "numeric")),
+        user_query="plot locations on a map",
+    )
+    assert chart == "heatmap"
+    assert model.chart.model_dump() == {"viz": "Heatmap", "mark": "Maps"}
+    assert model.properties.model_dump().get("geographicRoles") == {
+        "latitude": "lat",
+        "longitude": "long",
+    }
+    assert ctx.get("geographic_roles") == {
+        "latitude": "lat",
+        "longitude": "long",
+    }
+
+
+def test_city_sales_viz_model_uses_map_only_when_asked():
+    model, chart, ctx = build_viz_model(
+        data_types=_md(("city", "text"), ("sales", "numeric")),
+        user_query="sales by city",
+    )
+    assert chart == "bar"
+    assert model.chart.mark != "Maps"
+    assert "geographic_roles" not in ctx
+
+    model, chart, ctx = build_viz_model(
+        data_types=_md(("city", "text"), ("sales", "numeric")),
+        user_query="sales by city on a map",
+    )
+    assert chart == "heatmap"
+    assert model.chart.model_dump() == {"viz": "Heatmap", "mark": "Maps"}
+    assert model.properties.model_dump().get("geographicRoles", {}).get("city") == "city"
+    assert ctx.get("geographic_roles", {}).get("city") == "city"
+
+
+def test_auto_bar_swaps_dimension_onto_columns():
     model, chart, _ = build_viz_model(
         data_types=_md(("region", "text"), ("sales", "numeric")),
         user_query="sales by region",
     )
     assert chart == "bar"
-    assert model.data.rows == ["region"]
-    assert model.data.columns == ["sales"]
+    assert model.data.rows == ["sales"]
+    assert model.data.columns == ["region"]
 
 
 def test_named_waterfall_without_viz_update_still_uses_valid_shelves():
@@ -110,8 +180,9 @@ def test_convert_to_bar_swaps_only_when_viz_update():
     auto, _, _ = build_viz_model(
         data_types=md, user_query="sales by region", viz_update=False
     )
-    assert auto.data.rows == ["region"]
-    assert auto.data.columns == ["sales"]
+    # Preferred shelves always applied at the end of viz_model build.
+    assert auto.data.rows == ["sales"]
+    assert auto.data.columns == ["region"]
 
     converted, chart, _ = build_viz_model(
         data_types=md,
@@ -147,3 +218,46 @@ def test_arrange_shelves_swaps_when_forced():
     assert swapped
     assert columns == ["region"]
     assert rows == ["sales"]
+
+
+def test_filtered_select_field_is_dropped_from_viz_and_chart_is_reconsidered(monkeypatch):
+    form_data = {
+        "columns": [
+            {
+                "alias": "Booking Platform",
+                "column": {"name": "travel_details.booking_platform", "id": "1"},
+            },
+            {
+                "alias": "Travel Cost",
+                "aggregate": True,
+                "aggregateList": ["db.generic.aggregate.sum"],
+                "column": {"name": "travel_details.travel_cost", "id": "2"},
+            },
+        ],
+        "filters": [
+            {
+                "alias": "Year",
+                "column": {"name": "travel_details.travel_date", "id": "3"},
+                "values": [2026],
+            }
+        ],
+    }
+    monkeypatch.setattr(
+        "helicalbi.viz.viz_model_fill._try_sql_to_form_data",
+        lambda *args, **kwargs: form_data,
+    )
+    model, chart, _ = build_viz_model(
+        data_types=_md(
+            ("Booking Platform", "text"),
+            ("Year", "numeric"),
+            ("Travel Cost", "numeric"),
+        ),
+        sql="SELECT booking_platform, year, SUM(travel_cost) FROM t GROUP BY 1, 2",
+        md_location="/meta",
+        md_file_name="meta.json",
+    )
+    assert "Year" not in model.data.rows
+    assert "Year" not in model.data.columns
+    assert model.data.rows == ["Travel Cost"]
+    assert model.data.columns == ["Booking Platform"]
+    assert chart == "bar"

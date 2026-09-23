@@ -10,6 +10,7 @@ import com.helicalinsight.instant.ai.payload.ConvertDashboardPayload;
 import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
+import com.helicalinsight.instant.ai.util.InstantBIStreamSession;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 /**
  * Proxies InstantBI dashboard conversion to the Python {@code /convert-dashboard} service.
@@ -33,7 +35,7 @@ public class AiConvertDashboardServiceImpl implements IInstantBIService {
             throws IOException {
         ConvertDashboardPayload payload = (ConvertDashboardPayload) instantBIPayload;
         try {
-            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
+            Callable<JsonObject> bodyPreparer = () -> {
                 JsonObject js = new JsonObject();
                 JsonObject userInput = new JsonObject();
 
@@ -50,7 +52,14 @@ public class AiConvertDashboardServiceImpl implements IInstantBIService {
 
                 js.add("input", userInput);
                 return js;
-            }, "/convert-dashboard");
+            };
+            if (InstantBIUtils.isStreamResponseEnabled()) {
+                new InstantBIStreamSession(response, InstantBIUtils.resolveRequestId(request))
+                        .forwardFromPython("/convert-dashboard", bodyPreparer.call());
+                return;
+            }
+            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(
+                    request, bodyPreparer, "/convert-dashboard");
 
             JsonObject responseObject = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
             JsonObject mainObject = new JsonObject();

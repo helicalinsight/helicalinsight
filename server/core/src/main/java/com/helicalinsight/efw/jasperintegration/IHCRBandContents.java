@@ -1,12 +1,14 @@
 package com.helicalinsight.efw.jasperintegration;
 
 import net.sf.jasperreports.engine.JRBoxContainer;
+import net.sf.jasperreports.engine.JRDataset;
 import net.sf.jasperreports.engine.JRGroup;
 import net.sf.jasperreports.engine.JRParagraph;
 import net.sf.jasperreports.engine.base.JRBaseElement;
 import net.sf.jasperreports.engine.design.*;
 import net.sf.jasperreports.engine.type.*;
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
@@ -14,6 +16,7 @@ import org.apache.commons.lang.StringUtils;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.datasource.HCRUtils;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 
 
 /**
@@ -155,23 +158,41 @@ public interface IHCRBandContents {
     default void evaluationGroup(JsonObject componentJson, JasperDesign jasperDesign, JRDesignElement element, String evaluationTime) {
         
     	if ("Group".equals(evaluationTime)) {
-            Map<String, JRGroup> groupsMap = jasperDesign.getGroupsMap();
+            
+    		Map<String, JRGroup> groupsMap = jasperDesign.getGroupsMap();
             
             String evaluationGroupName = GsonUtility.optStringValue(componentJson, "evaluationGroupName", "");
             
             if ( StringUtils.isBlank(evaluationGroupName)) return ;
             
-            JRGroup group =  groupsMap.get(evaluationGroupName);
-            if ( element instanceof JRDesignTextField textField) {
-            	textField.setEvaluationGroup(group);
-            }
-            if (element instanceof JRDesignImage image) {
-            	image.setEvaluationGroup(group);
-            }
-            if(element instanceof JRDesignChart chart) {
-            	chart.setEvaluationGroup(group);
-            }
+            
+            accumulateSubDatasetGroups(jasperDesign, groupsMap);
+            
+            JRGroup	group =  groupsMap.get(evaluationGroupName);
+           
+			if (group != null) {
+				if (element instanceof JRDesignTextField textField) {
+					textField.setEvaluationGroup(group);
+				}
+				if (element instanceof JRDesignImage image) {
+					image.setEvaluationGroup(group);
+				}
+				if (element instanceof JRDesignChart chart) {
+					chart.setEvaluationGroup(group);
+				}
+			}
         }
     }
+    
+	private void accumulateSubDatasetGroups(JasperDesign jasperDesign, Map<String, JRGroup> groupsMap) {
+		Arrays.stream(jasperDesign.getDatasets()).flatMap(dataset -> Arrays.stream(dataset.getGroups()))
+				.forEach(group -> {
+					String groupName = group.getName();
+					if (groupsMap.putIfAbsent(groupName, group) != null) {
+						throw new EfwServiceException("Duplicate group name found. [Group = " + groupName + " ]");
+					}
+				});
+
+	}
 
 }

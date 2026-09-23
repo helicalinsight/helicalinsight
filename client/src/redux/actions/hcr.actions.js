@@ -358,8 +358,18 @@ const hcrUpdateReportThroughEditor = (payload) => {
     return { type: actionTypes.HCR_UPDATE_REPORT_STATE_THROUGH_EDITOR, payload };
 }
 
+const hcrUpdateJRXMLProperty = (payload) => {
+    return { type: actionTypes.HCR_UDPATE_JRXML_PROPERTY, payload };
+}
+const hcrUpdateJRXMLPath = (payload) => {
+    return { type: actionTypes.HCR_UPDATE_JRXML_PATH, payload };
+}
+
+
+
 
 export const hcrActions = {
+    hcrUpdateJRXMLPath,
     handleHcrImageDel,
     setHcrFilebrowserFor,
     handleHcrImagesList,
@@ -434,5 +444,6 @@ export const hcrActions = {
     hcrUpdateSubdataSets,
     hcrUpdateTableStyles,
     hcrUpdateCrosstabComponent,
-    hcrUpdateReportThroughEditor
+    hcrUpdateReportThroughEditor,
+    hcrUpdateJRXMLProperty
 };

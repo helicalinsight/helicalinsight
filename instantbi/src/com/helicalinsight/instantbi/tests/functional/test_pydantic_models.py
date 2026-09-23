@@ -380,10 +380,16 @@ class TestChatResponse:
             "columns": [],
         }
         response = ChatResponse.from_model_state({"viz_form_data": form_data})
-        assert response.report_model.data_model == form_data
-        assert response.to_dict()["report_model"]["data_model"] == form_data
+        expected = {
+            "query": "c2VsZWN0IDE=",
+            "columns": [],
+        }
+        assert response.report_model.data_model == expected
+        assert response.to_dict()["report_model"]["data_model"] == expected
         assert response.report_model.data_model["columns"] == []
         assert response.report_model.data_model["query"] == "c2VsZWN0IDE="
+        assert "location" not in response.report_model.data_model
+        assert "metadataFileName" not in response.report_model.data_model
         assert "data_model" not in response.to_dict()
 
     def test_strips_query_from_adhoc_data_model_when_columns_present(self):
@@ -397,8 +403,53 @@ class TestChatResponse:
         }
         response = ChatResponse.from_model_state({"viz_form_data": form_data})
         assert "query" not in response.report_model.data_model
+        assert "location" not in response.report_model.data_model
+        assert "metadataFileName" not in response.report_model.data_model
         assert response.report_model.data_model["columns"] == [{"alias": "Travel Cost"}]
         assert response.report_model.data_model["sql"] == "select 1"
+
+    def test_strips_functions_aggregate_from_data_model(self):
+        form_data = {
+            "columns": [
+                {
+                    "alias": "Travel Cost",
+                    "aggregate": True,
+                    "aggregateList": ["db.generic.aggregate.sum"],
+                }
+            ],
+            "functions": {
+                "aggregate": [
+                    {
+                        "column": {"name": "travel_cost", "id": "1"},
+                        "function": "db.generic.aggregate.sum",
+                        "alias": "Travel Cost",
+                    }
+                ],
+                "groupBy": [{"column": "Platform", "custom": True}],
+            },
+        }
+        response = ChatResponse.from_model_state({"viz_form_data": form_data})
+        data_model = response.report_model.data_model
+        assert "aggregate" not in (data_model.get("functions") or {})
+        assert data_model["functions"]["groupBy"] == [
+            {"column": "Platform", "custom": True}
+        ]
+        assert data_model["columns"][0]["aggregate"] is True
+        assert data_model["columns"][0]["aggregateList"] == [
+            "db.generic.aggregate.sum"
+        ]
+
+        kpi_only = ChatResponse.from_model_state(
+            {
+                "viz_form_data": {
+                    "columns": [{"alias": "Travel Cost", "aggregate": True}],
+                    "functions": {
+                        "aggregate": [{"function": "db.generic.aggregate.sum"}],
+                    },
+                }
+            }
+        )
+        assert "functions" not in (kpi_only.report_model.data_model or {})
 
     def test_folds_having_into_filters_on_data_model(self):
         form_data = {
@@ -431,6 +482,8 @@ class TestChatResponse:
         data_model = response.report_model.data_model
         assert "having" not in data_model
         assert "customHavingExpression" not in data_model
+        assert "location" not in data_model
+        assert "metadataFileName" not in data_model
         assert data_model["filters"][0]["id"] == 0
         assert data_model["filters"][1]["id"] == 0
         assert data_model["filters"][1]["values"] == [20, 50]
@@ -722,6 +775,15 @@ class TestOptionalPromptReason:
             final_sql_prompt
         )
         assert "do not use a JOIN" in final_sql_prompt
+
+    def test_final_sql_prompt_prefers_join_over_nested_having_subquery(self):
+        from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+
+        assert "JOINs preferred over nested subqueries" in final_sql_prompt
+        assert "Do NOT write nested scalar subqueries in WHERE or HAVING" in (
+            final_sql_prompt
+        )
+        assert "above/below average by group" in final_sql_prompt
 
     def test_sql_prompts_forbid_star_and_count_star(self):
         from helicalbi.prompt.DetectColumnPrompt import detect_column_prompt_string

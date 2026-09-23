@@ -134,6 +134,7 @@ describe("getHeaders", () => {
         const headers = client.getHeaders();
         expect(headers["Content-Type"]).toBe("application/x-www-form-urlencoded");
         expect(headers["Authorization"]).toBe("Bearer token");
+        expect(headers["Accept"]).toBe("text/event-stream");
     });
 
     it("axios headers override defaults when keys clash", () => {
@@ -151,6 +152,7 @@ describe("getHeaders", () => {
         expect(client.getHeaders()).toEqual({
             "Content-Type": "application/x-www-form-urlencoded",
             "Authorization": "Bearer token",
+            "Accept": "text/event-stream",
         });
     });
 });

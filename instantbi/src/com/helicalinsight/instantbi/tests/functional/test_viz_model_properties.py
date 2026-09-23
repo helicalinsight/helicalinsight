@@ -89,6 +89,22 @@ def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
         "viz": "Heatmap",
         "mark": "Maps",
     }
+    assert _chart_viz_and_mark("point", geo=True).model_dump() == {
+        "viz": "Point",
+        "mark": "Maps",
+    }
+    assert _chart_viz_and_mark("line", geo=True).model_dump() == {
+        "viz": "Line",
+        "mark": "Maps",
+    }
+    assert _chart_viz_and_mark("point").model_dump() == {
+        "viz": "Point",
+        "mark": "Chart",
+    }
+    assert _chart_viz_and_mark("line").model_dump() == {
+        "viz": "Line",
+        "mark": "Chart",
+    }
     assert _chart_viz_and_mark("kpi").model_dump() == {"viz": "KPI", "mark": "Card"}
     assert _chart_viz_and_mark("table").model_dump() == {"viz": "Table", "mark": "Table"}
     assert _chart_viz_and_mark("grid_table").model_dump() == {

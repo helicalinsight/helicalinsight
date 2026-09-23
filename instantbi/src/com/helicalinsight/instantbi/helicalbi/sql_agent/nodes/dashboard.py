@@ -30,10 +30,13 @@ def _items_from_collected(state: AgentState) -> List[dict[str, Any]]:
     thread_id = str(state.get("thread_id") or "")
     items: List[dict[str, Any]] = []
     for index, step in enumerate(state.get("collected_data") or [], start=1):
-        if step.get("include_in_dashboard") is False:
-            continue
         chat_response = step.get("chat_response") if isinstance(step.get("chat_response"), dict) else {}
-        if not _has_real_viz(step, chat_response):
+        has_viz = _has_real_viz(step, chat_response)
+        # Think-mode analysis steps set include_in_dashboard=False but still carry
+        # report_model for Preview / Dashboard Model layout.
+        if step.get("include_in_dashboard") is False and not has_viz:
+            continue
+        if not has_viz:
             continue
         seq = str(step.get("chat_seq_id") or index)
         raw = {
@@ -63,7 +66,7 @@ def _keep_laid_out_item(item: dict[str, Any]) -> bool:
         return has_viz or isinstance(item.get("viz_model"), dict)
     if kind == "viz":
         return has_viz or bool(item.get("viz_model"))
-    if kind == "summary":
+    if kind in {"summary", "text"}:
         return bool(str(model.get("html") or model.get("title") or "").strip())
     if kind == "filter":
         return bool(str(model.get("column") or model.get("title") or "").strip())
@@ -91,8 +94,20 @@ def _filter_invented_tiles(dashboard: dict[str, Any]) -> dict[str, Any]:
 
 def dashboard_node(state: AgentState) -> Dict[str, Any]:
     """Assemble InstantBI viz items into a dashboard via the existing layout graph."""
-    items = _items_from_collected(state)
     thread_id = str(state.get("thread_id") or "")
+    if state.get("build_dashboard") is False:
+        logger.info("Skipping dashboard layout (build_dashboard=False)")
+        return {
+            "dashboard": {
+                "dashboardid": thread_id,
+                "chatid": thread_id,
+                "items": [],
+                "theme": {},
+                "templateId": "",
+                "layout": [],
+            }
+        }
+    items = _items_from_collected(state)
     if not items:
         logger.warning("Dashboard node found no visualization items")
         return {
@@ -131,6 +146,10 @@ def dashboard_node(state: AgentState) -> Dict[str, Any]:
     dashboard = {
         "dashboardid": thread_id,
         "chatid": thread_id,
+        "title": result.get("title") or state.get("original_question") or "",
+        "header": result.get("header") or {},
+        "parameters": result.get("parameters") or {},
+        "variables": result.get("variables") or {},
         "items": result.get("items") or items,
         "theme": result.get("theme") or {},
         "templateId": result.get("templateId") or runtime["template_id"] or "",

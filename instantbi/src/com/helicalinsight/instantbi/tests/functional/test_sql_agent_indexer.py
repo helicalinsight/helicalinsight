@@ -121,3 +121,94 @@ def test_index_from_cube_metadata(sample_cube_metadata):
     subset = indexer.retrieve_schema("employee names and meeting clients", top_k=5)
     assert "TABLE employee_details" in subset
     assert "TABLE meeting_details" in subset
+
+
+def test_instantbi_left_right_joins_become_foreign_keys():
+    from helicalbi.sql_agent.database.catalog import tables_from_cube_metadata
+
+    cubes = [
+        {
+            "database_table": "travel_details",
+            "columns": [
+                {"column_name": "travel_cost", "data_type": "numeric"},
+                {"column_name": "travel_type", "data_type": "text"},
+                {"column_name": "travelled_by", "data_type": "integer"},
+                {"column_name": "travel_year", "data_type": "integer"},
+            ],
+        },
+        {
+            "database_table": "employee_details",
+            "columns": [
+                {"column_name": "employee_id", "data_type": "integer"},
+                {"column_name": "department", "data_type": "text"},
+            ],
+        },
+        {
+            "database_table": "meeting_details",
+            "columns": [
+                {"column_name": "meeting_by", "data_type": "integer"},
+                {"column_name": "client_name", "data_type": "text"},
+            ],
+        },
+    ]
+    joins = [
+        {
+            "type": "inner",
+            "left": {"table": "employee_details", "column": "employee_id"},
+            "right": {"table": "travel_details", "column": "travelled_by"},
+        },
+        {
+            "type": "inner",
+            "left": {"table": "employee_details", "column": "employee_id"},
+            "right": {"table": "meeting_details", "column": "meeting_by"},
+        },
+    ]
+    tables = {t.name: t for t in tables_from_cube_metadata(cubes, joins)}
+    travel_fks = {(fk.ref_table, fk.column) for fk in tables["travel_details"].foreign_keys}
+    assert ("employee_details", "travelled_by") in travel_fks
+    emp_refs = {fk.ref_table for fk in tables["employee_details"].foreign_keys}
+    assert "travel_details" in emp_refs
+    assert "meeting_details" in emp_refs
+
+
+def test_relation_exploration_pack_includes_same_table_and_joins():
+    indexer = SchemaIndexer()
+    cubes = [
+        {
+            "database_table": "travel_details",
+            "columns": [
+                {"column_name": "travel_cost", "data_type": "numeric"},
+                {"column_name": "travel_type", "data_type": "text"},
+                {"column_name": "travel_year", "data_type": "integer"},
+                {"column_name": "travelled_by", "data_type": "integer"},
+            ],
+        },
+        {
+            "database_table": "employee_details",
+            "columns": [
+                {"column_name": "employee_id", "data_type": "integer"},
+                {"column_name": "department", "data_type": "text"},
+            ],
+        },
+    ]
+    joins = [
+        {
+            "left": {"table": "employee_details", "column": "employee_id"},
+            "right": {"table": "travel_details", "column": "travelled_by"},
+        }
+    ]
+    indexer.index_from_cube_metadata(cubes, joins)
+    pack, allowed, tables = indexer.relation_exploration_pack(
+        "Total travel cost per year",
+        seed_names=["Travel Cost"],
+        top_k=3,
+        max_tables=4,
+    )
+    assert "same_table_columns" in pack
+    assert "travel_type" in pack
+    assert "travel_year" in pack
+    assert "travel_details" in tables
+    assert "employee_details" in pack or "department" in pack
+    assert "travel_cost" in allowed
+    assert any(a.lower() == "travel cost" for a in allowed)
+    assert "department" in allowed

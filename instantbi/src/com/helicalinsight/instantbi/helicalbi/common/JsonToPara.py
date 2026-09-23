@@ -334,7 +334,7 @@ def metadata_has_column(
     table_name: str,
     column_name: str,
 ) -> bool:
-    """True when the metadata API lists this physical column on the table."""
+    """True when the metadata API lists this physical column or its alias."""
     tables = (metadata_response or {}).get("tables") or {}
     if not isinstance(tables, dict):
         return False
@@ -346,7 +346,14 @@ def metadata_has_column(
         columns = table.get("columns") or {}
         if not isinstance(columns, dict):
             return False
-        return any(_norm_meta_name(col) == needle_col for col in columns)
+        for col_name, col_meta in columns.items():
+            if _norm_meta_name(col_name) == needle_col:
+                return True
+            if isinstance(col_meta, dict):
+                alias = col_meta.get("alias") or col_meta.get("alias_name") or ""
+                if alias and _norm_meta_name(alias) == needle_col:
+                    return True
+        return False
     return False
 
 

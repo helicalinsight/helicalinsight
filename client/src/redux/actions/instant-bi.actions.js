@@ -59,6 +59,20 @@ export const updateIBChatMessageList = (data) => {
   }
 }
 
+export const patchIBChatMessage = (data) => {
+  return {
+    type: actionTypes.PATCH_IB_CHAT_MESSAGE,
+    payload: data
+  }
+}
+
+export const removeIBChatMessage = (data) => {
+  return {
+    type: actionTypes.REMOVE_IB_CHAT_MESSAGE,
+    payload: data
+  }
+}
+
 export const updateBIBotStatus = (data) => {
   return {
     type: actionTypes.UPDATE_IB_BOT_STATUS,

@@ -33,6 +33,7 @@ describe("Instant BI Requests Service Tests", () => {
     expect(uriConfig.instantLoadChat).toBe("ai/load-chat");
     expect(uriConfig.instantDataInsight).toBe("ai/data-insight");
     expect(uriConfig.instantConvertChart).toBe("ai/convert-chart");
+    expect(uriConfig.instantConvertDashboard).toBe("ai/convert-dashboard");
     expect(uriConfig.instantListCharts).toBe("ai/list-charts");
     expect(uriConfig.instantBIDomain).toBe("ai/recommendation/domain");
     expect(uriConfig.instantBIRecommendation).toBe("ai/recommendation/analyst");
@@ -67,6 +68,7 @@ describe("Instant BI Requests Service Tests", () => {
     expect(instantBIInstance.instantBIFetchDomain).toBeDefined();
     expect(instantBIInstance.instantBIFetchRecommendation).toBeDefined();
     expect(instantBIInstance.instantBIConvertChartRequest).toBeDefined();
+    expect(instantBIInstance.instantBIConvertDashboardRequest).toBeDefined();
     expect(instantBIInstance.instantBIListChartsRequest).toBeDefined();
   });
 });

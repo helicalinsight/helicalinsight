@@ -1,18 +1,15 @@
 package com.helicalinsight.export.unit;
 
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.when;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 
-import com.helicalinsight.efw.ApplicationProperties;
+import com.helicalinsight.admin.customauth.CipherUtils;
 import com.helicalinsight.export.crypto.CryptoUtility;
 import com.helicalinsight.export.exception.ResourceExportException;
 import com.helicalinsight.export.exception.ResourceImportException;
@@ -21,20 +18,25 @@ public class CryptoUtilityTest extends ExportUnitTestBase {
 
 	private static final String SECRET = "1234567890123456";
 
+	@After
+	public void clearOverride() {
+		CipherUtils.setProjectPropertiesOverride(null);
+	}
+
 	@Test
 	public void ut_a1_testEncryptDecryptRoundTrip() throws Exception {
-		ApplicationProperties properties = mock(ApplicationProperties.class);
-		when(properties.getEncryptionSecret()).thenReturn(SECRET);
-		when(properties.getEncryptionAlgorithm()).thenReturn("AES");
+		Map<String, String> props = new HashMap<>();
+		props.put("export.cipherAlgorithm", "AES");
+		props.put("export.cipherMode", "CBC");
+		props.put("export.cipherPadding", "PKCS5Padding");
+		props.put("export.cipherKey", SECRET);
+		CipherUtils.setProjectPropertiesOverride(props);
 
-		try (MockedStatic<ApplicationProperties> mocked = mockStatic(ApplicationProperties.class)) {
-			mocked.when(ApplicationProperties::getInstance).thenReturn(properties);
-			CryptoUtility utility = new CryptoUtility();
-			byte[] original = "test-content".getBytes(StandardCharsets.UTF_8);
-			byte[] encrypted = utility.encrypt(original);
-			byte[] decrypted = utility.decrypt(encrypted);
-			Assert.assertArrayEquals(original, decrypted);
-		}
+		CryptoUtility utility = new CryptoUtility();
+		byte[] original = "test-content".getBytes(StandardCharsets.UTF_8);
+		byte[] encrypted = utility.encrypt(original);
+		byte[] decrypted = utility.decrypt(encrypted);
+		Assert.assertArrayEquals(original, decrypted);
 	}
 
 	@Test

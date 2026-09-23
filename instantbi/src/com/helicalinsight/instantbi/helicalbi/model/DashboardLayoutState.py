@@ -17,6 +17,10 @@ class DashboardLayoutState(TypedDict, total=False):
     layout_plan: str
     filter_components: list[dict[str, Any]]
     theme: dict[str, Any]
+    title: str
+    header: dict[str, Any]
+    parameters: dict[str, Any]
+    variables: dict[str, Any]
     summary: dict[str, Any]
     sections: list[dict[str, Any]]
     filters: list[dict[str, Any]]

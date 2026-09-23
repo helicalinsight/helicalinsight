@@ -140,7 +140,7 @@ describe("convertSqlToHrSaveFormData", () => {
     });
     expect(mapVizToHelical({ chart_name: "table" }).selectedType).toBe("Table");
     expect(mapVizToHelical({ mark: "Card", viz: "Bar" }).selectedType).toBe("Card");
-    expect(mapVizToHelical({ mark: "Grid Table" }).selectedType).toBe("SyncChart");
+    expect(mapVizToHelical({ mark: "Grid Table", viz: "Grid table" }).selectedType).toBe("S2Chart");
     expect(mapVizToHelical({ mark: "Maps", viz: "Heatmap" })).toMatchObject({
       selectedType: "MapChart",
       subVizType: "heatmap",

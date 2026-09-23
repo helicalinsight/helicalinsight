@@ -89,6 +89,100 @@
         margin-top: 6px;
 }
 
+    .ib-chat-mode-and-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .ib-chat-mode-select-wrap {
+        display: inline-flex;
+        width: 34px;
+        height: 34px;
+    }
+
+    .ib-chat-mode-select {
+        width: 34px !important;
+        min-width: 34px;
+        height: 34px;
+        flex-shrink: 0;
+
+        .ant-select-selector {
+            width: 34px !important;
+            height: 34px !important;
+            min-height: 34px !important;
+            padding: 0 !important;
+            border: none !important;
+            border-radius: 50% !important;
+            background: #f1f1f1 !important;
+            box-shadow: none !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ant-select-selection-search {
+            display: none;
+        }
+
+        .ant-select-selection-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 !important;
+            line-height: 1 !important;
+            color: #333;
+        }
+
+        .ant-select-arrow {
+            display: none;
+        }
+
+        .ib-chat-mode-option__label {
+            display: none;
+        }
+
+        .ib-chat-mode-option {
+            gap: 0;
+        }
+
+        .anticon,
+        svg {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        &:hover .ant-select-selector {
+            background: #e7e7e7 !important;
+        }
+
+        &.ant-select-open .ant-select-selector,
+        &.ant-select-focused .ant-select-selector {
+            background: #e7e7e7 !important;
+        }
+
+        &.ant-select-disabled .ant-select-selector {
+            opacity: 0.6;
+        }
+    }
+
+    .ib-chat-mode-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        line-height: 1;
+        color: inherit;
+
+        .anticon,
+        svg {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+
     .ib-metadata-button {
         display: flex;
         align-items: center;
@@ -263,3 +357,25 @@
              height: 18px;
             background: #e5e5e5;
         }
+
+.ib-chat-mode-select-dropdown {
+    min-width: 120px !important;
+
+    .ib-chat-mode-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+
+        .anticon,
+        svg {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+    }
+
+    .ib-chat-mode-option__label {
+        display: inline;
+    }
+}

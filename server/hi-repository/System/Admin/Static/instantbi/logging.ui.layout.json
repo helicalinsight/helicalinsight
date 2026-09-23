@@ -66,6 +66,14 @@
               "description": "Write rendered LLM prompts and token activity to the logs."
             },
             {
+              "name": "show_llm_activity_details",
+              "label": "Show LLM activity details",
+              "type": "boolean",
+              "control": "tick",
+              "span": 6,
+              "description": "Include think-mode reasoning path (domains, topics, tables, strategy, questions, graph nodes) in the API response."
+            },
+            {
               "name": "show_endpoint_log",
               "label": "Show endpoint log",
               "type": "boolean",

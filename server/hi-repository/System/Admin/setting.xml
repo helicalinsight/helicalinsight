@@ -162,6 +162,8 @@
             <content name="html" pattern="*.html" responseContent="text/html"/>
             <content name="tsv" pattern="*.tsv" responseContent="text/tab-separated-values"/>
             <content name="json" pattern="*.json" responseContent="application/json"/>
+			<content name="xml" pattern="*.jrxml" responseContent="application/xml"/>
+			<content name="xml" pattern="*.xml" responseContent="application/xml"/>
         </type>
         <type class="com.helicalinsight.efw.externalresources.ImageReader" name="content.image">
             <content name="jpg" pattern="*.jpg"/>

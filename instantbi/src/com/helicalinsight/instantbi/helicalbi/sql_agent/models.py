@@ -26,6 +26,18 @@ class DashboardChartSpec(BaseModel):
         description="Target, benchmark, or period comparison to show beside the value.",
     )
     include_in_dashboard: bool = Field(default=True)
+    topic: str = Field(
+        default="",
+        description="Semantic-model topic this chart is grounded in.",
+    )
+    components: List[str] = Field(
+        default_factory=list,
+        description="Dimension/measure names from the topic this chart should use.",
+    )
+    measure_hints: List[str] = Field(
+        default_factory=list,
+        description="Preferred measure or calculated-metric names from the grounding pack.",
+    )
 
 
 class InvestigationPlan(BaseModel):

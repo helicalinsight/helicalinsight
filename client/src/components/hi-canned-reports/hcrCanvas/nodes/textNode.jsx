@@ -22,9 +22,11 @@ const TextNode = (props) => {
         height = canvasDefaultNodeHeight,
         borders = {},
         padding = {},
+        paragraph = {}
     } = data;
     const defaultBorder = `0px solid #000000`;
     const defaultPadding = 0;
+    const lineSpacing = paragraph.lineSpacing || "Single"
 
     let alignItems,
         justifyContent,
@@ -80,6 +82,24 @@ const TextNode = (props) => {
             : defaultBorder,
         // overflow: 'hidden'
     };
+
+    if ("lineSpacingSize" in paragraph) {
+        if (["Fixed", "AtLeast"].includes(lineSpacing)) {
+            styleObj.lineHeight = `${paragraph.lineSpacingSize}px`
+        }
+        if (lineSpacing === "Proportional") {
+            styleObj.lineHeight = paragraph.lineSpacingSize
+        }
+        if (lineSpacing === "Single") {
+            styleObj.lineHeight = 1
+        }
+        if (lineSpacing === "1_1_2") {
+            styleObj.lineHeight = 1.5
+        }
+        if (lineSpacing === "Double") {
+            styleObj.lineHeight = 2
+        }
+    }
 
     if (italic) {
         styleObj.fontStyle = "italic";

@@ -64,7 +64,8 @@ const OutlinePanel = (props = {}) => {
     const treeData = getOutlineTreeData({ currentComponentData: currentComponent, subDataSetOptions: subDSOptions, selectedSubDataSet, name, tableStyles });
 
     const handleSelect = (selectedKeys, info) => {
-        const { selectedNodes = [] } = info || {}
+        const { selectedNodes = [], node = {} } = info || {}
+        const { styleId } = node || {}
         const { isNode = false, columnId = "", bandType = "", isField = false, selectKey = "" } = selectedNodes?.[0] || {}
         let selectedKey = selectedKeys[0], payload = {};
         switch (selectKey) {
@@ -160,6 +161,14 @@ const OutlinePanel = (props = {}) => {
                 payload = {
                     id,
                     actionType: "selectCrosstab",
+                }
+                break;
+            }
+            case "table-conditional-style-item": {
+                payload = {
+                    id,
+                    actionType: "selectTableConditionalStyle",
+                    selectedConditionalStyle: [{ conditionalStyleId: selectedKey, styleId }]
                 }
                 break;
             }

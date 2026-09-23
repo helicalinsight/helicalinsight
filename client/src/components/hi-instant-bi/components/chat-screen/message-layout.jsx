@@ -17,6 +17,9 @@ import InstantChartView from "./chart-view"
 import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
 import "./chat-screen.scss"
 import ChatTabs from "./chat-tabs"
+import { getSharedChatTabsShell } from "./chat-tabs-shared"
+import ThinkPlanPanel from "./think-plan-panel"
+import WorkBehindIcon from "./work-behind-icon"
 
 const { Text } = Typography
 
@@ -94,12 +97,14 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     abortedSequenceIds = [],
     dataInsight: messageDataInsight = "",
     dataInsightTokenUsage = {},
-    hreportLoading
+    hreportLoading,
+    onShowThinkQuestion,
   } = rest || {}
   const [activeTab, setActiveTab] = useState("preview"); // preview | data | sql
   const [isMaximized, setIsMaximized] = useState(false);
   const [hasPreviewError, setHasPreviewError] = useState(false);
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
+  const [dataInsightTrail, setDataInsightTrail] = useState([]);
   const [isConvertingChart, setIsConvertingChart] = useState(false);
   const [vfEditorLaunch, setVfEditorLaunch] = useState(null); // { code } | null
   const messageRef = useRef(null);
@@ -274,6 +279,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     if (isLoadingDataInsight) return;
     dataInsightAbortedRef.current = false;
     setIsLoadingDataInsight(true);
+    setDataInsightTrail([]);
     dataInsightApiRef.current = loadInstantBIDataInsight({
       dispatch,
       reportId,
@@ -296,6 +302,16 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       } || {},
       Notify,
       abortedRef: dataInsightAbortedRef,
+      onProgress: (progress) => {
+        if (progress?.message) {
+          setDataInsightTrail((prev) => {
+            if (prev[prev.length - 1] === progress.message) {
+              return prev;
+            }
+            return [...prev, progress.message];
+          });
+        }
+      },
       onComplete: () => {
         setIsLoadingDataInsight(false);
         dataInsightApiRef.current = null;
@@ -338,12 +354,18 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     .join(" ");
 
   const tabsProps = {
-    hasMessage,
-    showMaximizeButton,
-    isMaximized,
-    setIsMaximized,
-    showDataInsightButton,
-    isOpenMode,
+    ...getSharedChatTabsShell({
+      isOpenMode,
+      hasMessage,
+      showMaximizeButton,
+      isMaximized,
+      setIsMaximized,
+      showDataInsightButton,
+      workingLines: chatItem.activityTrail || [],
+      workingActive: Boolean(chatItem.isStreaming),
+      workingQuestion: chatItem.userInput || userInput || "",
+      workingFallback: "No workings recorded for this response.",
+    }),
     similarChart,
     vizDetails,
     canEditPreferences,
@@ -360,6 +382,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     resolvedFullChatResponse,
     fullChatResponse: { ...fullChatResponse, hreportLoading },
     isLoadingDataInsight,
+    dataInsightTrail,
     dataInsightContent,
     hasDataInsightTokens,
     dataInsightTokens,
@@ -367,11 +390,10 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     handleAbortDataInsight,
     handleCopySQL,
     sqlDetails,
-    vizDetails,
     tokenUsage,
     dispatch,
     handleDataInsight,
-    activeReport
+    activeReport,
   }
 
   return (
@@ -406,6 +428,59 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
               ) : (
                 <Text type="secondary">Just a moment…</Text>
               )
+            ) : chatItem.isStreaming && chatItem.isThinkPlan ? (
+              <ThinkPlanPanel
+                questionHistory={chatItem.questionHistory || []}
+                askedQuestions={chatItem.askedQuestions || []}
+                openingInsight={chatItem.openingInsight || ""}
+                finalAnswer={chatItem.finalAnswer || ""}
+                citedQuestionIndexes={chatItem.citedQuestionIndexes || []}
+                activityTrail={chatItem.activityTrail || []}
+                userInput={chatItem.userInput || userInput}
+                planMessageId={chatItem.id}
+                planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
+                isOpenMode={isOpenMode}
+                isStreaming
+                dispatch={dispatch}
+                activeReport={activeReport}
+                llmActivityDetails={chatItem.llmActivityDetails || null}
+                plan={chatItem.plan || null}
+                dashboardModel={chatItem.dashboardModel || null}
+                onShowQuestion={(question, index, stepItem) =>
+                  onShowThinkQuestion?.(question, index, chatItem, stepItem)
+                }
+              />
+            ) : chatItem.isThinkPlan ? (
+              <ThinkPlanPanel
+                questionHistory={chatItem.questionHistory || []}
+                askedQuestions={chatItem.askedQuestions || []}
+                openingInsight={chatItem.openingInsight || ""}
+                finalAnswer={chatItem.finalAnswer || resolvedText || ""}
+                citedQuestionIndexes={chatItem.citedQuestionIndexes || []}
+                activityTrail={chatItem.activityTrail || []}
+                userInput={chatItem.userInput || userInput}
+                planMessageId={chatItem.id}
+                planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
+                isOpenMode={isOpenMode}
+                dispatch={dispatch}
+                activeReport={activeReport}
+                llmActivityDetails={chatItem.llmActivityDetails || null}
+                plan={chatItem.plan || null}
+                dashboardModel={chatItem.dashboardModel || null}
+                onShowQuestion={(question, index, stepItem) =>
+                  onShowThinkQuestion?.(question, index, chatItem, stepItem)
+                }
+              />
+            ) : chatItem.isStreaming ? (
+              <div className="ib-stream-with-work-behind" data-testid="ib-streaming-activity">
+                <WorkBehindIcon
+                  active
+                  lines={chatItem.activityTrail || []}
+                  question={chatItem.userInput || userInput}
+                  fallback="Working on your visualization…"
+                  testId="ib-viz-stream-work-behind"
+                />
+              </div>
             ) : (
               <div className="message-container__bot-content" >
                 <div className="message-container__bot-markdown-renderer">
@@ -425,7 +500,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                   </Row>
                   <Modal
                     title="Preview"
-                    open={isMaximized && showMaximizeButton}
+                    visible={isMaximized && showMaximizeButton}
                     onCancel={() => setIsMaximized(false)}
                     width="95%"
                     style={{ top: 20 }}
