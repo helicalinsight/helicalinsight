@@ -34,13 +34,69 @@ def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_re
             "get_db_function_of_metadata",
             return_value=db_ref or {"reference": "postgres"},
         ),
-        patch("helicalbi.controller.interactive.sql_generator_graph", sql_generator_mock),
+        patch("GraphBuilderManger.sql_generator_graph", sql_generator_mock),
+        patch(
+            "GraphBuilderManger.cube_info_sql_generator_graph",
+            sql_generator_mock,
+        ),
+        patch(
+            "helicalbi.interactive.fast_flow.SqlExecutor.process_flow",
+            side_effect=lambda state: state,
+        ),
+        patch(
+            "helicalbi.interactive.fast_flow.SqlExecutor.write_insight",
+            side_effect=lambda state: state,
+        ),
         patch(
             "helicalbi.controller.interactive.SqlExecutor.process_flow",
             side_effect=lambda state: state,
         ),
+        patch(
+            "helicalbi.controller.interactive.SqlExecutor.write_insight",
+            side_effect=lambda state: state,
+        ),
+        patch(
+            "helicalbi.controller.interactive.sql_generator_graph",
+            sql_generator_mock,
+        ),
+        patch(
+            "helicalbi.controller.interactive.cube_info_sql_generator_graph",
+            sql_generator_mock,
+        ),
         patch("helicalbi.controller.interactive.audit_llm_usage_async"),
     )
+
+
+def parse_sse_events(raw):
+    """Parse Flask SSE bytes into ``{event, data}`` dicts."""
+    text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
+    events = []
+    for block in text.split("\n\n"):
+        if not block.strip():
+            continue
+        event_name = None
+        data_lines = []
+        for line in block.splitlines():
+            if line.startswith("event:"):
+                event_name = line.split(":", 1)[1].strip()
+            elif line.startswith("data:"):
+                data_lines.append(line.split(":", 1)[1].strip())
+        if event_name is None:
+            continue
+        payload = json.loads("\n".join(data_lines)) if data_lines else None
+        events.append({"event": event_name, "data": payload})
+    return events
+
+
+def post_and_parse_sse(client, path, payload):
+    """POST with stream=true and consume the body while patches are still active."""
+    resp = client.post(path, query_string={"stream": "true"}, json=payload)
+    try:
+        raw = resp.get_data()
+    except RuntimeError:
+        raw = b"".join(resp.response)
+    events = parse_sse_events(raw)
+    return resp, events
 
 
 # ---------------------------------------------------------------------------
@@ -219,13 +275,96 @@ class TestInteractive:
         assert main_mock.invoke.called
         assert viz_mock.invoke.called
         data_model = chat["report_model"]["data_model"]
-        assert data_model["location"] == "/meta"
-        assert data_model["metadataFileName"] == "metadata.json"
+        assert "location" not in data_model
+        assert "metadataFileName" not in data_model
         assert data_model["columns"]
         assert data_model["columns"][0]["alias"] == "a"
         assert "query" not in data_model
         assert "data_model" not in chat
         assert "viz_model" not in chat.get("viz", {})
+        assert body.get("mode") == "fast"
+
+    def test_think_mode_returns_chat_responses_list(
+        self, app_module, flask_client, session_auth
+    ):
+        think_payload = {
+            "mode": "think",
+            "asked_questions": ["q1", "q2"],
+            "chat_responses": [
+                {"sub_question": "q1", "chat_response": {"summary": {"insight": "a"}}},
+                {"sub_question": "q2", "chat_response": {"summary": {"insight": "b"}}},
+            ],
+            "chat_response": {"summary": {"insight": "a"}},
+            "final_answer": "done",
+            "token_usage": {},
+        }
+        with (
+            patch(
+                "helicalbi.interactive.think_flow.ThinkTurn.run",
+                return_value=think_payload,
+            ) as think_mock,
+            patch("helicalbi.controller.interactive.add_message"),
+            patch("helicalbi.controller.interactive.get_last_n", return_value=[]),
+            patch("helicalbi.controller.interactive.audit_llm_usage_async"),
+        ):
+            payload = self._build_payload(session_auth, query="Analyze CAC")
+            payload["input"]["mode"] = "think"
+            resp = flask_client.post("/interactive", json=payload)
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["mode"] == "think"
+        assert body["asked_questions"] == ["q1", "q2"]
+        assert len(body["chat_responses"]) == 2
+        assert body["chat_responses"][0]["sub_question"] == "q1"
+        think_mock.assert_called_once()
+
+    def test_rm_cols_in_filter_defaults_false_and_query_param_enables(
+        self, app_module, flask_client, session_auth, patch_graphs
+    ):
+        _, viz_mock = patch_graphs
+        viz_state = {
+            "sql": "select a from t",
+            "messages": [],
+            "sql_result": {"data": [{"a": 1}], "metadata": [{}]},
+            "dialect": "postgres",
+        }
+        viz_mock.invoke.side_effect = lambda *args, **kwargs: dict(viz_state)
+        helper_mock = MagicMock()
+        helper_mock.get_model_semantic_layer.return_value = {
+            "cube_metadata": [{"database_table": "t"}]
+        }
+        helper_mock.get_metadata_layerfile.return_value = "metadata.json"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+
+        payload = self._build_payload(session_auth)
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(app_module, helper_mock):
+                stack.enter_context(ctx)
+            form_default = stack.enter_context(
+                patch(
+                    "helicalbi.viz.viz_model_fill._try_sql_to_form_data",
+                    return_value={"columns": [{"alias": "a"}]},
+                )
+            )
+            resp = flask_client.post("/interactive", json=payload)
+        assert resp.status_code == 200
+        assert form_default.call_args.kwargs["rm_cols_in_filter"] is False
+
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(app_module, helper_mock):
+                stack.enter_context(ctx)
+            form_on = stack.enter_context(
+                patch(
+                    "helicalbi.viz.viz_model_fill._try_sql_to_form_data",
+                    return_value={"columns": [{"alias": "a"}]},
+                )
+            )
+            resp = flask_client.post(
+                "/interactive?rm_cols_in_filter=true", json=payload
+            )
+        assert resp.status_code == 200
+        assert form_on.call_args.kwargs["rm_cols_in_filter"] is True
 
     def test_sql_error_populates_data_model_columns_without_viz(
         self, app_module, flask_client, session_auth, patch_graphs
@@ -376,7 +515,7 @@ class TestInteractive:
         }
         main_mock.invoke.return_value = empty_state
 
-        with caplog.at_level(logging.DEBUG, logger="helicalbi.controller.interactive"), ExitStack() as stack:
+        with caplog.at_level(logging.DEBUG, logger="helicalbi.interactive.fast_flow"), ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(
                 app_module, helper_mock, metadata=metadata_payload
             ):
@@ -408,6 +547,107 @@ class TestInteractive:
         assert "Invoking SQL generator graph" in log_text
         assert "Executing SQL" in log_text
         assert "Invoking visualization graph" in log_text
+
+    def test_stream_emits_activity_then_complete_matching_json(
+        self, app_module, flask_client, session_auth, patch_graphs
+    ):
+        main_mock, viz_mock = patch_graphs
+        viz_mock.invoke.return_value = {
+            "sql": "select a from t",
+            "flow": ["[ABC123XYZ]", "no-match"],
+            "messages": [],
+            "sql_result": {"data": [{"a": 1}], "metadata": [{}]},
+            "dialect": "postgres",
+        }
+        helper_mock = MagicMock()
+        helper_mock.get_model_semantic_layer.return_value = {
+            "cube_metadata": [{"database_table": "t"}]
+        }
+        helper_mock.get_metadata_layerfile.return_value = "metadata.json"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+        payload = self._build_payload(session_auth)
+
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(app_module, helper_mock):
+                stack.enter_context(ctx)
+            json_resp = flask_client.post("/interactive", json=payload)
+            json_body = json.loads(json_resp.get_data())
+            stream_resp, events = post_and_parse_sse(
+                flask_client, "/interactive", payload
+            )
+
+        assert json_resp.status_code == 200
+        assert stream_resp.status_code == 200
+        assert stream_resp.mimetype == "text/event-stream"
+        assert "Connection" not in stream_resp.headers
+        assert events[0]["event"] == "begin"
+        assert events[0]["data"]["status"] == "STARTED"
+        progress = [item for item in events if item["event"] == "progress"]
+        messages = [item["data"]["message"] for item in progress]
+        assert messages[0].startswith("Hi, you want to understand")
+        assert "Show me sales" in messages[0]
+        assert "I can query the database for this." in messages
+        assert any(item.startswith("Found this query is suitable") for item in messages)
+        assert "Executing your query…" in messages
+        assert "Got your data." in messages
+        assert "Finding which visualization suits this best…" in messages
+        assert messages[-1] == "Found it. Chart is ready."
+        complete = [item for item in events if item["event"] == "complete"]
+        assert len(complete) == 1
+        stream_body = complete[0]["data"]
+        assert stream_body["chat_response"]["sql"] == json_body["chat_response"]["sql"]
+        assert stream_body["chat_response"]["viz"] == json_body["chat_response"]["viz"]
+        assert (
+            stream_body["chat_response"]["report_model"]
+            == json_body["chat_response"]["report_model"]
+        )
+        assert "data" not in stream_body["chat_response"]
+
+    def test_stream_abort_returns_error_event(
+        self, app_module, flask_client, session_auth, patch_graphs
+    ):
+        main_mock, _ = patch_graphs
+        request_id = "interactive-stream-abort-789"
+
+        def invoke_and_abort(state, config):
+            app_module.request_cancellation.cancel(request_id)
+            return main_mock.invoke.return_value
+
+        main_mock.invoke.side_effect = invoke_and_abort
+        helper_mock = MagicMock()
+        helper_mock.get_model_semantic_layer.return_value = {
+            "cube_metadata": [{"database_table": "t"}]
+        }
+        helper_mock.get_metadata_layerfile.return_value = "metadata.json"
+        helper_mock.get_metadata_layerlocation.return_value = "/meta"
+        payload = {
+            "requestId": request_id,
+            "input": {
+                "inputString": "Show me sales",
+                "sessionCookie": session_auth["sessionCookie"],
+                "username": session_auth["username"],
+                "model": {"file": "model.json", "dir": "/models"},
+                "chatid": "chat-1",
+                "chat_seq_id": "1",
+            },
+        }
+
+        with ExitStack() as stack:
+            for ctx in _patch_interactive_pipeline(
+                app_module,
+                helper_mock,
+                metadata={"joins": [], "databaseName": "db"},
+            ):
+                stack.enter_context(ctx)
+            resp, events = post_and_parse_sse(flask_client, "/interactive", payload)
+
+        assert resp.status_code == 200
+        assert events[0]["event"] == "begin"
+        error_events = [item for item in events if item["event"] == "error"]
+        assert len(error_events) == 1
+        assert error_events[0]["data"]["aborted"] is True
+        assert error_events[0]["data"]["error"] == "Request has been cancelled."
+        assert not any(item["event"] == "complete" for item in events)
 
 
 # ---------------------------------------------------------------------------
@@ -767,6 +1007,84 @@ class TestDataInsight:
         assert '"name": "dept"' in prompt
         assert '"value": "sales"' in prompt
 
+    def test_stream_emits_activity_then_complete_matching_json(
+        self, app_module, flask_client, session_auth
+    ):
+        llm_response, usage = self._llm_insight_response()
+        payload = {
+            "input": {
+                "sql": "SELECT region, sales FROM t",
+                "user_question": "What were sales by region?",
+                "username": "tester",
+                "thread_id": "chat-stream-1",
+                "sessionCookie": session_auth["sessionCookie"],
+                "username": session_auth["username"],
+                "md_location": "/meta",
+                "md_file_name": "metadata.json",
+            }
+        }
+        with patch.object(
+            app_module, "execute_query", return_value=self._successful_query()
+        ), patch.object(app_module, "invoke_llm", return_value=(llm_response, usage)):
+            json_resp = flask_client.post("/data-insight", json=payload)
+            json_body = json.loads(json_resp.get_data())
+            stream_resp, events = post_and_parse_sse(
+                flask_client, "/data-insight", payload
+            )
+
+        assert stream_resp.mimetype == "text/event-stream"
+        assert "Connection" not in stream_resp.headers
+        assert events[0]["event"] == "begin"
+        messages = [
+            item["data"]["message"]
+            for item in events
+            if item["event"] == "progress"
+        ]
+        assert messages == [
+            "Executing your query…",
+            "Got your data.",
+            "Writing an insight from your data…",
+            "Insight is ready.",
+        ]
+        complete = [item for item in events if item["event"] == "complete"]
+        assert len(complete) == 1
+        assert complete[0]["data"] == json_body
+
+    def test_stream_abort_returns_error_event(
+        self, app_module, flask_client, session_auth
+    ):
+        request_id = "insight-stream-abort-1"
+
+        def execute_and_abort(**kwargs):
+            app_module.request_cancellation.cancel(request_id)
+            return self._successful_query()
+
+        llm_response, usage = self._llm_insight_response()
+        with patch.object(
+            app_module, "execute_query", side_effect=execute_and_abort
+        ), patch.object(app_module, "invoke_llm", return_value=(llm_response, usage)):
+            resp, events = post_and_parse_sse(
+                flask_client,
+                "/data-insight",
+                {
+                    "requestId": request_id,
+                    "input": {
+                        "sql": "SELECT region, sales FROM t",
+                        "user_question": "What were sales by region?",
+                        "thread_id": "chat-abort-insight",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                        "md_location": "/meta",
+                        "md_file_name": "metadata.json",
+                    },
+                },
+            )
+
+        error_events = [item for item in events if item["event"] == "error"]
+        assert len(error_events) == 1
+        assert error_events[0]["data"]["aborted"] is True
+        assert not any(item["event"] == "complete" for item in events)
+
 
 # ---------------------------------------------------------------------------
 # /instant-to-hr
@@ -958,6 +1276,94 @@ class TestInstantToHr:
         assert resp.status_code == 200
         body = json.loads(resp.data)
         assert body["error"] == "convert failed"
+
+
+# ---------------------------------------------------------------------------
+# /sql-to-report-model
+# ---------------------------------------------------------------------------
+class TestSqlToReportModel:
+    def test_returns_report_model(self, flask_client, session_auth):
+        form_data = {
+            "location": "/meta",
+            "metadataFileName": "metadata.json",
+            "columns": [
+                {
+                    "column": {"name": "t.region", "id": "1"},
+                    "alias": "region",
+                    "floatingType": "discrete",
+                },
+                {
+                    "column": {"name": "t.amount", "id": "2"},
+                    "alias": "amount",
+                    "aggregate": True,
+                    "floatingType": "continuous",
+                },
+            ],
+            "query": "c2VsZWN0IDE=",
+        }
+        with patch(
+            "helicalbi.controller.sql_to_report_model.sql_to_form_data", return_value=form_data
+        ) as mock_convert:
+            resp = flask_client.post(
+                "/sql-to-report-model",
+                json={
+                    "input": {
+                        "sql": "SELECT region FROM t",
+                        "location": "/meta",
+                        "metadataFileName": "metadata.json",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        report_model = body["report_model"]
+        assert report_model["data_model"]["columns"][0]["alias"] == "region"
+        assert report_model["data_model"]["sql"] == 'SELECT "region" FROM "t"'
+        assert "query" not in report_model["data_model"]
+        assert "location" not in report_model["data_model"]
+        assert "metadataFileName" not in report_model["data_model"]
+        assert report_model["viz_model"]["data"]["rows"] == ["amount"]
+        assert report_model["viz_model"]["data"]["columns"] == ["region"]
+        assert report_model["viz_model"]["chart"]["viz"]
+        mock_convert.assert_called_once()
+        assert mock_convert.call_args.args[0] == 'SELECT "region" FROM "t"'
+        assert mock_convert.call_args.kwargs["location"] == "/meta"
+        assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
+        assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
+
+    def test_missing_sql_returns_error(self, flask_client, session_auth):
+        resp = flask_client.post(
+            "/sql-to-report-model",
+            json={
+                "input": {
+                    "location": "/meta",
+                    "metadataFileName": "metadata.json",
+                    "sessionCookie": session_auth["sessionCookie"],
+                    "username": session_auth["username"],
+                }
+            },
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "sql is required" in body["error"]
+
+    def test_missing_metadata_returns_error(self, flask_client, session_auth):
+        resp = flask_client.post(
+            "/sql-to-report-model",
+            json={
+                "input": {
+                    "sql": "SELECT 1",
+                    "sessionCookie": session_auth["sessionCookie"],
+                    "username": session_auth["username"],
+                }
+            },
+        )
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert "location and metadataFileName are required" in body["error"]
 
 
 # ---------------------------------------------------------------------------
@@ -1234,6 +1640,87 @@ class TestConvertDashboard:
         assert "sql_parts" not in invoked
         assert "vf_template" not in (invoked.get("viz") or {})
         graph_mock.invoke.assert_called_once()
+
+    def test_stream_emits_activity_then_complete_matching_json(
+        self, flask_client, session_auth
+    ):
+        graph_result = {
+            "items": [
+                {
+                    "component_id": "ab12CD34",
+                    "report_model": {
+                        "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
+                        "data_model": None,
+                    },
+                    "dashboard_model": {
+                        "kind": "viz",
+                        "title": "Cost",
+                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
+                    },
+                }
+            ],
+            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "templateId": "t1",
+            "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
+        }
+        graph_mock = MagicMock()
+        graph_mock.invoke.return_value = graph_result
+
+        def stream_updates(state, stream_mode="updates"):
+            yield {"CollectContext": {"items": graph_result["items"]}}
+            yield {"PlanSummary": {"theme": graph_result["theme"]}}
+            yield {"SelectFilters": {}}
+            yield {
+                "MakeLayout": {
+                    "layout": graph_result["layout"],
+                    "templateId": graph_result["templateId"],
+                }
+            }
+
+        graph_mock.stream.side_effect = stream_updates
+        payload = {
+            "input": {
+                "chatid": "c1",
+                "sessionCookie": session_auth["sessionCookie"],
+                "username": session_auth["username"],
+                "items": [
+                    {
+                        "id": "seq-3",
+                        "sql": "SELECT region FROM t",
+                        "viz": {"chart_name": "bar", "vf_template": "function(){}"},
+                    }
+                ],
+            }
+        }
+        with patch(
+            "helicalbi.controller.convert_dashboard.dashboard_layout_graph", graph_mock
+        ):
+            json_resp = flask_client.post("/convert-dashboard", json=payload)
+            json_body = json.loads(json_resp.get_data())
+            stream_resp, events = post_and_parse_sse(
+                flask_client, "/convert-dashboard", payload
+            )
+
+        assert stream_resp.mimetype == "text/event-stream"
+        assert "Connection" not in stream_resp.headers
+        assert events[0]["event"] == "begin"
+        messages = [
+            item["data"]["message"]
+            for item in events
+            if item["event"] == "progress"
+        ]
+        assert messages == [
+            "Collecting your visualizations…",
+            "Planning the dashboard…",
+            "Selecting filters…",
+            "Generating the layout…",
+            "Dashboard is ready.",
+        ]
+        complete = [item for item in events if item["event"] == "complete"]
+        assert len(complete) == 1
+        assert complete[0]["data"] == json_body
+        graph_mock.invoke.assert_called_once()
+        graph_mock.stream.assert_called_once()
 
     def test_missing_items_returns_error(self, flask_client, session_auth):
         resp = flask_client.post(

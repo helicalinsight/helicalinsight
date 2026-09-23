@@ -4,10 +4,17 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping, Optional, Sequence
 
+from helicalbi.sql_agent.activity_details import strategy_selection_reason
 from helicalbi.sql_agent.config import DEFAULT_DASHBOARD_SUB_QUESTIONS
 from helicalbi.sql_agent.instantbi_turn import load_model_session
-from helicalbi.sql_agent.modes import DEFAULT_MODE, mode_to_public_dict, resolve_mode_profile
-from helicalbi.sql_agent.nodes.investigation_planner import build_investigation_plan
+from helicalbi.sql_agent.modes import (
+    DEFAULT_MODE,
+    MODE_FAST,
+    MODE_RESEARCH,
+    mode_to_public_dict,
+    resolve_mode_profile,
+)
+from helicalbi.sql_agent.nodes.plan_graph import run_plan_context_graph
 from helicalbi.sql_agent.personas import resolve_persona
 from helicalbi.sql_agent.plan_memory import load_plan, save_plan
 from helicalbi.sql_agent.strategy_tree import (
@@ -69,6 +76,14 @@ def plan_to_public_dict(plan: Any) -> dict[str, Any]:
     return public
 
 
+def _topic_caps_for_mode(mode_name: str) -> tuple[int, int]:
+    if mode_name == MODE_FAST:
+        return 1, 2
+    if mode_name == MODE_RESEARCH:
+        return 2, 4
+    return 2, 3
+
+
 def create_and_store_plan(
     question: str,
     *,
@@ -101,18 +116,26 @@ def create_and_store_plan(
         user_query=question,
         last_chats=last_chats,
     )
-    semantic_overview = session.get("semantic_overview") or session.get("schema_overview") or ""
+    max_domains, max_topics = _topic_caps_for_mode(mode_profile.name)
     work_state: dict[str, Any] = {"token_usage": {}, "request_id": request_id}
-    plan = build_investigation_plan(
+    graph_result = run_plan_context_graph(
         question,
         persona=persona,
-        semantic_overview=semantic_overview,
+        strategy=strategy,
+        session=session,
         max_charts=mode_profile.max_charts,
         overview_chars=mode_profile.overview_chars,
-        state=work_state,
-        strategy=strategy,
+        max_domains=max_domains,
+        max_topics=max_topics,
+        request_id=request_id,
+        token_usage=work_state.get("token_usage"),
     )
-    plan_dict = plan_to_public_dict(plan)
+    work_state["token_usage"] = graph_result.get("token_usage") or {}
+    plan_dict = plan_to_public_dict(graph_result.get("plan") or {})
+    if not plan_dict.get("domain") and graph_result.get("selected_domains"):
+        plan_dict["domain"] = graph_result["selected_domains"][0]
+    if not plan_dict.get("topics") and graph_result.get("selected_topics"):
+        plan_dict["topics"] = list(graph_result.get("selected_topics") or [])
     applied_id = str(plan_dict.get("strategy_id") or strategy.get("id") or "")
     if applied_id and applied_id != strategy.get("id"):
         suggested_id = strategy.get("id")
@@ -127,7 +150,15 @@ def create_and_store_plan(
         persona = attach_strategy(persona, strategy)
     if not plan_dict.get("template_id") and applied_id:
         plan_dict["template_id"] = str(get_strategy(applied_id).get("template_id") or "")
-    persona = public_persona(persona)
+    strategy_selection = dict(strategy.get("selection") or {})
+    strategy_detail = {
+        "id": str(strategy.get("id") or applied_id or ""),
+        "name": strategy.get("name") or strategy.get("label") or "",
+        "template_id": strategy.get("template_id") or plan_dict.get("template_id") or "",
+        "selection": strategy_selection,
+        "reason": strategy_selection_reason(strategy),
+    }
+    public_persona_view = public_persona(persona)
     strategy_id = public_strategy(plan_dict.get("strategy_id") or strategy)
     if not plan_dict.get("strategy_id"):
         plan_dict["strategy_id"] = strategy_id
@@ -135,35 +166,46 @@ def create_and_store_plan(
         "status": "planned",
         "original_question": question,
         "plan": plan_dict,
-        "persona": persona,
+        "persona": public_persona_view,
         "user_role": list(user_role or []),
         "user_profile": list(user_profile or []),
         "agent_mode": mode_profile.name,
         "model": {"file": model_file_name, "dir": model_location},
         "request_id": request_id,
+        "selected_domains": list(graph_result.get("selected_domains") or []),
+        "selected_topics": list(graph_result.get("selected_topics") or []),
+        "selected_tables": list(graph_result.get("selected_tables") or []),
+        "strategy_selection": strategy_selection,
+        "plan_activity_trace": list(graph_result.get("activity_trace") or []),
     }
     save_plan(thread_id, chat_seq_id, record)
     logger.info(
-        "Stored dashboard plan thread=%s seq=%s persona=%s strategy=%s template=%s charts=%s",
+        "Stored dashboard plan thread=%s seq=%s persona=%s strategy=%s template=%s charts=%s topics=%s",
         thread_id,
         chat_seq_id,
-        persona.get("name"),
+        public_persona_view.get("name"),
         strategy_id,
         plan_dict.get("template_id"),
         len(plan_dict.get("charts") or []),
+        plan_dict.get("topics"),
     )
     return {
         "phase": "plan",
         "original_question": question,
         "dashboardid": thread_id,
         "dashboard_sequence_id": str(chat_seq_id or "1"),
-        "persona": persona,
+        "persona": public_persona_view,
         "strategy": strategy_id,
+        "strategy_detail": strategy_detail,
         "plan": plan_dict,
         "message": PLAN_READY_MESSAGE,
         "token_usage": work_state.get("token_usage") or {},
         "mode": mode_to_public_dict(mode_profile),
-        "asked_questions": [str(chart.get("question") or "").strip() for chart in (plan_dict.get("charts") or []) if str(chart.get("question") or "").strip()],
+        "asked_questions": [
+            str(chart.get("question") or "").strip()
+            for chart in (plan_dict.get("charts") or [])
+            if str(chart.get("question") or "").strip()
+        ],
         "final_answer": "",
         "dashboard": {},
         "sub_questions": [],
@@ -177,6 +219,10 @@ def create_and_store_plan(
             for index, chart in enumerate(plan_dict.get("charts") or [], start=1)
         ],
         "attempt_count": 0,
+        "selected_domains": list(graph_result.get("selected_domains") or []),
+        "selected_topics": list(graph_result.get("selected_topics") or []),
+        "selected_tables": list(graph_result.get("selected_tables") or []),
+        "plan_activity_trace": list(graph_result.get("activity_trace") or []),
     }
 
 

@@ -12,8 +12,8 @@ import Base64 from "../utils/Base64";
 function cannedReport(dispatch) {
   const previewRequest = (
     formData,
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
     isStreamToggle = false,
   ) => {
     if (isStreamToggle) {
@@ -23,16 +23,16 @@ function cannedReport(dispatch) {
   };
   const previewRequestStream = (
     formData,
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/generateReport";
     return streamPostRequest(dispatch, uri, formData, callback, errback);
   };
   const previewRequestNormal = (
     formData,
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/generateReport";
     return postRequest(dispatch, uri, formData, callback, errback);
@@ -41,24 +41,24 @@ function cannedReport(dispatch) {
   const hcrImageServiceRequest = (
     formData,
     uri,
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     postRequest(dispatch, uri, formData, callback, errback);
   };
   const hcrConfigurationsRequest = (
     formData,
     uri,
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     postRequest(dispatch, uri, formData, callback, errback);
   };
 
   const saveHcrRequest = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/saveReportState";
     return postRequest(dispatch, uri, formData, callback, errback);
@@ -66,8 +66,8 @@ function cannedReport(dispatch) {
 
   const editHcrRequest = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/fetchReportState";
     return postRequest(dispatch, uri, formData, callback, errback);
@@ -75,8 +75,8 @@ function cannedReport(dispatch) {
 
   const saveQueryReportState = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/saveReportState";
     return postRequest(dispatch, uri, formData, callback, errback);
@@ -84,22 +84,22 @@ function cannedReport(dispatch) {
 
   const saveExecuteReportQuery = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "hcr/report/executeReportQuery";
     return postRequest(dispatch, uri, formData, callback, errback);
   };
 
-  const getResources = (callback = () => {}, errback = () => {}) => {
+  const getResources = (callback = () => { }, errback = () => { }) => {
     const formData = { extensions: "WyJpbWFnZSJd" };
     return getRequest(dispatch, "/getResources", formData, callback, errback);
   };
 
   const handleDeleteImage = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     return postRequest(
       dispatch,
@@ -112,12 +112,17 @@ function cannedReport(dispatch) {
 
   const getExportProperties = (
     formData = {},
-    callback = () => {},
-    errback = () => {},
+    callback = () => { },
+    errback = () => { },
   ) => {
     const uri = "content/static/getContents";
     return postRequest(dispatch, uri, formData, callback, errback);
   };
+
+  const getJRXMLData = (formdata, uri, callback = () => { }, errback = () => { }) => {
+    uri = `/getExternalResource?path=${formdata}`;
+    return getRequest(dispatch, uri, {}, callback, errback, true)
+  }
 
   return {
     handleDeleteImage,
@@ -130,6 +135,7 @@ function cannedReport(dispatch) {
     saveQueryReportState,
     getExportProperties,
     hcrImageServiceRequest,
+    getJRXMLData
   };
 }
 

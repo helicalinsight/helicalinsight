@@ -31,8 +31,6 @@ def sql_to_data_model(
     if not cleaned_sql or not metadata_file_name or not location:
         return None
     return {
-        "location": location,
-        "metadataFileName": metadata_file_name,
         "query": base64.b64encode(cleaned_sql.encode("utf-8")).decode("utf-8"),
         "columns": [],
     }
@@ -213,6 +211,29 @@ def generate_sql_for_question(
 
     if agent_context is not None:
         from helicalbi.sql_agent.instantbi_agent_graph import run_agent_sql_turn
+
+        hints = [
+            str(item).strip()
+            for item in (agent_context.get("measure_hints") or [])
+            if str(item).strip()
+        ]
+        components = [
+            str(item).strip()
+            for item in (agent_context.get("components") or [])
+            if str(item).strip()
+        ]
+        hint_bits = []
+        if hints:
+            hint_bits.append("Preferred measures: " + ", ".join(hints))
+        if components:
+            hint_bits.append("Preferred components: " + ", ".join(components))
+        semantic_extra = str(agent_context.get("current_semantic_context") or "").strip()
+        if semantic_extra:
+            hint_bits.append(semantic_extra)
+        if hint_bits:
+            prior = str(state.get("domain_context") or "").strip()
+            joined = "\n".join(hint_bits)
+            state["domain_context"] = f"{prior}\n{joined}".strip() if prior else joined
 
         # Agent path: do not pollute ChatManager history with every facet.
         return run_agent_sql_turn(

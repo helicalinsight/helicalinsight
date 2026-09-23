@@ -260,6 +260,8 @@
         <intercept-url pattern="/ai/convert-hreport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-dashboard/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/convert-dashboard*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/sql-to-report-model/*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/ai/sql-to-report-model*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/ai/utility/**" access="hasAnyRole('ROLE_ADMIN')"/>
         <intercept-url pattern="/ai/utility*" access="hasAnyRole('ROLE_ADMIN')"/>
         <intercept-url pattern="/ai/settings/**" access="hasAnyRole('ROLE_ADMIN')"/>

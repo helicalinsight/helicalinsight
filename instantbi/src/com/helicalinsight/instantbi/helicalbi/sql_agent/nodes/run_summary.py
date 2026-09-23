@@ -79,5 +79,7 @@ def append_question(existing: List[str] | None, question: str) -> List[str]:
     if not text:
         return list(existing or [])
     out = list(existing or [])
+    if out and out[-1].strip().lower() == text.lower():
+        return out
     out.append(text)
     return out

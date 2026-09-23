@@ -10,6 +10,7 @@ import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
 import com.helicalinsight.instant.ai.payload.LlmUsageAuditPayload;
 import com.helicalinsight.instant.ai.payload.RecommendAnalystPayload;
 import com.helicalinsight.instant.ai.payload.RecommendDomainPayload;
+import com.helicalinsight.instant.ai.payload.SqlToReportModelPayload;
 import com.helicalinsight.instant.ai.payload.UtilityConfigPayload;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
@@ -57,11 +58,14 @@ public class InstantBIController {
             @RequestParam("chatid") String chatid,
             @RequestParam("chat_sequence_id") String chatSeqId,
             @RequestParam(value = "subject", required = false) String subject,
+            @RequestParam(value = "mode", required = false) String mode,
+            @RequestParam(value = "removeColsInFilter", required = false) String removeColsInFilter,
             HttpServletRequest request,
             HttpServletResponse response) throws IOException {
         validateStatus();
         InstantBIServiceFactory.getInteractiveChatService()
-                .execute(new InteractiveChatPayload(input, chatid, chatSeqId, subject), request, response);
+                .execute(new InteractiveChatPayload(input, chatid, chatSeqId, subject, mode,
+                        InstantBIUtils.parseOptionalRequestBoolean(removeColsInFilter)), request, response);
     }
 
     @RequestMapping("/agent-dashboard")
@@ -122,6 +126,18 @@ public class InstantBIController {
         InstantBIServiceFactory.getConvertDashboardService()
                 .execute(new ConvertDashboardPayload(chatid, items, subjectString, formData, inputParam),
                         request, response);
+    }
+
+    @RequestMapping("/sql-to-report-model")
+    public void sqlToReportModel(
+            @RequestParam("sql") String sql,
+            @RequestParam("location") String location,
+            @RequestParam("metadataFileName") String metadataFileName,
+            HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+        validateStatus();
+        InstantBIServiceFactory.getSqlToReportModelService()
+                .execute(new SqlToReportModelPayload(sql, location, metadataFileName), request, response);
     }
 
     // ------------------------------------------------------------------

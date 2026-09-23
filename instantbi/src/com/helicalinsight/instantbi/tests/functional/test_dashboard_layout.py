@@ -128,15 +128,87 @@ class TestGridClamp:
         assert "b" in ids
         assert clamped["theme"]["color"] == "#111111"
         assert clamped["sections"] == []
+        assert clamped["title"]
+        assert "enable" in clamped["header"]
+        assert "orientation" in clamped["parameters"]
+        assert isinstance(clamped["variables"], dict)
         viz_a = next(row for row in clamped["items"] if row["component_id"] == "a")
         assert "chat_sequence_id" not in viz_a
         assert "chatid" not in viz_a
         assert viz_a["id"] == "a"
         assert viz_a["dashboard_model"]["layout"]["w"] == 6
+        assert viz_a["dashboard_model"]["header"]["enable"] is True
+        assert viz_a["dashboard_model"]["header"]["backgroundColor"] == "#111111"
+        assert viz_a["dashboard_model"]["export"] is True
         assert "sql_parts" not in viz_a
         kinds = {row["dashboard_model"]["kind"] for row in clamped["items"]}
         assert {"viz", "summary", "filter", "kpi", "svg"} <= kinds
 
+    def test_apply_decision_emits_professional_shell_and_tile_chrome(self):
+        items = [_item("a", user_query="Travel spend overview")]
+        clamped = apply_decision(
+            items,
+            {
+                "title": "Travel Dashboard",
+                "header": {
+                    "enable": True,
+                    "title": "HELICAL TRAVEL DASHBOARD {{travel_date}} {{travel_type}}",
+                    "backgroundColor": "#000000",
+                },
+                "parameters": {"orientation": "right", "enableApplyButton": True},
+                "variables": {"travel_date": [2015], "travel_type": ["Domestic"]},
+                "widgets": [
+                    {
+                        "kind": "viz",
+                        "component_id": "a",
+                        "x": 0,
+                        "y": 2,
+                        "w": 4,
+                        "h": 2,
+                        "header_title": "{{travel_type}}  {{travel_date}}",
+                        "listeners": ["travel_type", "travel_date"],
+                    },
+                    {
+                        "kind": "filter",
+                        "column": "travel_date",
+                        "default_values": [2015],
+                        "listeners": ["a"],
+                        "x": 0,
+                        "y": 0,
+                        "w": 3,
+                        "h": 1,
+                    },
+                    {
+                        "kind": "text",
+                        "title": "STORY LINE:",
+                        "html": "Travel dashboard story",
+                        "x": 7,
+                        "y": 10,
+                        "w": 5,
+                        "h": 3,
+                    },
+                ],
+                "theme": {"color": "#1677ff", "background": "#ffffff"},
+            },
+        )
+        assert clamped["title"] == "Travel Dashboard"
+        assert clamped["header"]["title"].startswith("HELICAL TRAVEL DASHBOARD")
+        assert clamped["header"]["backgroundColor"] == "#000000"
+        assert clamped["parameters"]["orientation"] == "right"
+        assert clamped["variables"]["travel_date"] == [2015]
+        viz = next(row for row in clamped["items"] if row["dashboard_model"]["kind"] == "viz")
+        assert viz["dashboard_model"]["header"]["title"] == "{{travel_type}}  {{travel_date}}"
+        assert viz["dashboard_model"]["listeners"] == ["travel_type", "travel_date"]
+        assert isinstance(viz.get("report_model"), dict)
+        filt = next(row for row in clamped["items"] if row["dashboard_model"]["kind"] == "filter")
+        assert filt["dashboard_model"]["defaultValues"] == [2015]
+        story = next(
+            row
+            for row in clamped["items"]
+            if row["dashboard_model"]["kind"] in {"text", "summary"}
+            and "story" in str(row["dashboard_model"].get("html") or "").lower()
+        )
+        assert story["dashboard_model"]["html"] == "Travel dashboard story"
     def test_apply_decision_drops_filters_not_on_chats(self):
         items = [_item("a")]
         items[0]["viz"]["viz_model"]["data"]["filters"] = []

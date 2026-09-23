@@ -115,6 +115,7 @@ def assemble_form_data(
     location: str = "",
     metadata_file_name: str = "",
     include_parts: bool = False,
+    rm_cols_in_filter: bool = True,
 ) -> dict[str, Any]:
     """
     Build formData from ParsedQuery using independent parts, then merge.
@@ -130,6 +131,8 @@ def assemble_form_data(
     columns = build_columns(parsed, meta)
     filters = build_filters(parsed, meta)
     having = build_having(parsed, meta)
+    if rm_cols_in_filter:
+        columns = drop_select_columns_also_filtered(columns, filters, having)
     functions = build_functions(parsed, columns)
     db_fn_parts = attach_database_functions(parsed, columns, filters, having)
 
@@ -179,6 +182,81 @@ def assemble_form_data(
     return fold_having_into_filters(form_data)
 
 
+def drop_select_columns_also_filtered(
+    columns: list[dict[str, Any]],
+    filters: list[dict[str, Any]] | None,
+    having: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Drop SELECT columns that are also WHERE / HAVING predicates.
+
+    Dimensions that appear in WHERE or HAVING stay as filters only.
+    Aggregates are dropped only when HAVING thresholds the same measure;
+    ``COUNT(col) WHERE col = …`` keeps the measure.
+    A lone SELECT column is never dropped for WHERE or HAVING —
+    ``SELECT SUM(cost) HAVING SUM(cost) > 100`` or ``SELECT dest WHERE dest = 'Paris'``
+    would otherwise leave an empty ``data_model`` / viz.
+    """
+    where_preds = [item for item in (filters or []) if isinstance(item, dict)]
+    having_preds = [item for item in (having or []) if isinstance(item, dict)]
+    if not columns or not (where_preds or having_preds):
+        return columns
+    if sum(1 for col in columns if isinstance(col, dict)) <= 1:
+        return columns
+    kept: list[dict[str, Any]] = []
+    for col in columns:
+        if not isinstance(col, dict):
+            continue
+        if col.get("aggregate"):
+            if any(_same_projected_field(col, pred) for pred in having_preds):
+                continue
+        elif any(_same_projected_field(col, pred) for pred in where_preds + having_preds):
+            continue
+        kept.append(col)
+    return kept
+
+
+def _same_projected_field(column: dict[str, Any], predicate: dict[str, Any]) -> bool:
+    if not _dbf_compatible(column, predicate):
+        return False
+    col_id, col_name = _column_id_name(column)
+    pred_id, pred_name = _column_id_name(predicate)
+    if col_id and pred_id:
+        return col_id == pred_id
+    if col_name and pred_name:
+        return col_name == pred_name
+    col_alias = str(column.get("alias") or "").strip().lower()
+    pred_alias = str(predicate.get("alias") or predicate.get("label") or "").strip().lower()
+    return bool(col_alias) and col_alias == pred_alias
+
+
+def _column_id_name(item: dict[str, Any]) -> tuple[str, str]:
+    ref = item.get("column")
+    if isinstance(ref, dict):
+        return (
+            str(ref.get("id") or "").strip(),
+            str(ref.get("name") or "").strip().lower(),
+        )
+    return "", str(ref or "").strip().lower()
+
+
+def _dbf_compatible(column: dict[str, Any], predicate: dict[str, Any]) -> bool:
+    left = _dbf_key(column)
+    right = _dbf_key(predicate)
+    if left == right:
+        return True
+    if not left or not right:
+        return False
+    return left.split("(", 1)[0] == right.split("(", 1)[0]
+
+
+def _dbf_key(item: dict[str, Any]) -> str:
+    text = str(item.get("databaseFunction") or "").strip().lower()
+    text = " ".join(text.replace('"', "").replace("'", "").split())
+    if text.startswith("raw(") and text.endswith(")"):
+        text = text[4:-1].strip()
+    return text
+
+
 def sql_to_form_data(
     sql: str,
     *,
@@ -191,6 +269,7 @@ def sql_to_form_data(
     dialect: str | None = None,
     metadata: dict | None = None,
     include_parts: bool = False,
+    rm_cols_in_filter: bool = True,
 ) -> dict[str, Any]:
     """
     End-to-end: getFunctions → catalog (dialect from reference) → parse SQL → assemble formData.
@@ -231,6 +310,7 @@ def sql_to_form_data(
         location=resolved_location,
         metadata_file_name=metadata_file_name,
         include_parts=include_parts,
+        rm_cols_in_filter=rm_cols_in_filter,
     )
 
 

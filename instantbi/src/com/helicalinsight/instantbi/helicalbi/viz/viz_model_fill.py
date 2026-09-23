@@ -35,8 +35,9 @@ logger = logging.getLogger(__name__)
 
 # Prefer common charts when several options match the data shape.
 # Keys must match viz/charts/*.json names. ``table`` is last-resort
-# only — it matches every shape, so putting it earlier hid heatmaps
-# and radar for multi-dimension / multi-measure results.
+# only. Maps are chosen only when the user asks for a map.
+# ``grid_table`` is omitted here — auto-picked only for multi-dimension
+# results that include aggregates (see dims >= 2 branch in _pick_chart_type).
 _CHART_PREFERENCE = (
     "bar",
     "column",
@@ -46,8 +47,6 @@ _CHART_PREFERENCE = (
     "progress",
     "radar",
     "heatmap",
-    # Multi-dimension breakdowns: prefer Grid Table over Relation/Sankey.
-    "grid_table",
     "relation",
     "pie",
     "donut",
@@ -56,6 +55,51 @@ _CHART_PREFERENCE = (
     "calendar",
     "wordcloud",
     "point",
+)
+_MAP_CHARTS = frozenset({"heatmap"})
+_MAP_MARK_VIZ: dict[str, tuple[str, str]] = {
+    "line": ("Maps", "Line"),
+    "point": ("Maps", "Point"),
+    "heatmap": ("Maps", "Heatmap"),
+}
+_LAT_TOKENS = frozenset({"lat", "latitude"})
+_LON_TOKENS = frozenset({"lon", "lng", "longitude"})
+_CITY_TOKENS = frozenset({"city", "cities"})
+_STATE_TOKENS = frozenset({
+    "state",
+    "states",
+    "province",
+    "provinces",
+    "state_province",
+})
+_COUNTRY_TOKENS = frozenset({"country", "countries"})
+_WORLD_TOKENS = frozenset({"world"})
+_PLACE_TOKENS = (
+    _CITY_TOKENS
+    | _STATE_TOKENS
+    | _COUNTRY_TOKENS
+    | _WORLD_TOKENS
+    | frozenset({
+        "county",
+        "counties",
+        "zip",
+        "zipcode",
+        "postal",
+        "postalcode",
+        "postcode",
+        "address",
+    })
+)
+# HelicalReports Geographic submenu keys (menu.jsx / geographicalSubTypes).
+_GEO_ROLE_LAT = "lat"
+_GEO_ROLE_LON = "long"
+_GEO_ROLE_CITY = "city"
+_GEO_ROLE_STATE = "state"
+_GEO_ROLE_COUNTRY = "country"
+_GEO_ROLE_WORLD = "world"
+_AGG_SQL_RE = re.compile(
+    r"\b(?:sum|count|avg|average|min|max)\s*\(|\bgroup\s+by\b",
+    re.IGNORECASE,
 )
 _VIZ_UPDATE_ACTIONS = frozenset({"updt_viz", "updt_both", "viz_update"})
 _VIZ_UPDATE_INTENTS = frozenset({
@@ -69,11 +113,31 @@ _CONVERT_RE = re.compile(
     re.IGNORECASE,
 )
 # Plain table matches every shape — keep it last-resort only.
-# grid_table is preferred for multi-dimension results (see _CHART_PREFERENCE).
+# grid_table is reserved for multi-dimension + aggregate (see _pick_chart_type).
 _FALLBACK_CHARTS = frozenset({"table"})
 _ORDERED_PREFERENCE = (
     "line",
     "area",
+)
+# Time-part / date names — EXTRACT(QUARTER) is often typed numeric in result metadata.
+_ORDERED_NAME_TOKENS = frozenset({
+    "date",
+    "datetime",
+    "timestamp",
+    "time",
+    "year",
+    "quarter",
+    "qtr",
+    "month",
+    "week",
+    "day",
+    "hour",
+    "period",
+})
+_ORDERED_FN_RE = re.compile(
+    r"\b(year|quarter|qtr|month|week|dayofyear|day|hour|date_trunc|datetrunc|extract)\b"
+    r"|sql\.datetime|sql\.date\.",
+    re.IGNORECASE,
 )
 
 # HI report mark (parent) → allowed child viz values.
@@ -131,6 +195,147 @@ _CHART_TYPE_TO_MARK_VIZ: dict[str, tuple[str, str]] = {
 
 _META_ONLY_KEYS = frozenset({"rows", "row_count", "rowcount", "count", "total_rows"})
 _TYPE_KEYS = ("type", "data_type", "dataType", "dtype", "columnType")
+
+
+def _name_tokens(name: str) -> set[str]:
+    text = str(name or "").strip().lower().replace("-", "_").replace(".", "_")
+    if not text:
+        return set()
+    tokens = {part for part in re.split(r"[^\w]+|_", text) if part}
+    compact = text.replace("_", "")
+    if compact:
+        tokens.add(compact)
+    return tokens
+
+
+def _candidate_field_names(
+    data_types: Any = None,
+    *,
+    field_names: Optional[list[str]] = None,
+    form_data: Optional[dict[str, Any]] = None,
+) -> list[str]:
+    names: list[str] = list(field_names or [])
+    names.extend(extract_result_field_names(data_types))
+    if isinstance(form_data, dict):
+        for col in form_data.get("columns") or []:
+            if not isinstance(col, dict):
+                continue
+            names.append(_display_name(col))
+            names.append(_wire_column_path(col.get("column")))
+    return _unique(names)
+
+
+def infer_geographic_type(
+    name: str,
+    *,
+    cube_metadata: Optional[list] = None,
+) -> Optional[str]:
+    """Map a field name / cube semantic to HelicalReports ``geographicType``.
+
+    Values match the Geographic submenu: lat, long, world, country, state, city.
+    """
+    text = str(name or "").strip()
+    if not text:
+        return None
+    tokens = _name_tokens(text)
+    cube_index = _cube_fields_by_name(cube_metadata)
+    cube_item = cube_index.get(text.lower()) or {}
+    semantic = str(
+        cube_item.get("semantic_type") or cube_item.get("semanticType") or ""
+    ).strip().lower()
+
+    if tokens & _LAT_TOKENS or "latitud" in semantic:
+        return _GEO_ROLE_LAT
+    if tokens & _LON_TOKENS or "longitud" in semantic:
+        return _GEO_ROLE_LON
+    if tokens & _CITY_TOKENS or "city" in semantic:
+        return _GEO_ROLE_CITY
+    if tokens & _STATE_TOKENS or "province" in semantic or "state_province" in semantic:
+        return _GEO_ROLE_STATE
+    if tokens & _COUNTRY_TOKENS or "country" in semantic:
+        return _GEO_ROLE_COUNTRY
+    if tokens & _WORLD_TOKENS:
+        return _GEO_ROLE_WORLD
+    if tokens & _PLACE_TOKENS:
+        # County / postal / address → city GeoJSON role.
+        return _GEO_ROLE_CITY
+    if "geography" in semantic or semantic in {"geo", "geographic"}:
+        return _GEO_ROLE_CITY
+    return None
+
+
+def geographic_roles_for_names(
+    names: list[str],
+    *,
+    cube_metadata: Optional[list] = None,
+) -> dict[str, str]:
+    """Alias → HelicalReports geographicType for map-tagged fields."""
+    roles: dict[str, str] = {}
+    for name in _unique(names):
+        role = infer_geographic_type(name, cube_metadata=cube_metadata)
+        if role:
+            roles[name] = role
+    return roles
+
+
+def apply_geographic_types_to_form_data(
+    form_data: Optional[dict[str, Any]],
+    roles: dict[str, str],
+) -> Optional[dict[str, Any]]:
+    """Stamp ``geographicType`` onto matching ``form_data`` columns (by alias)."""
+    if not isinstance(form_data, dict) or not roles:
+        return form_data
+    index = {str(k).strip().lower(): v for k, v in roles.items() if k and v}
+    if not index:
+        return form_data
+    payload = dict(form_data)
+    columns: list[Any] = []
+    for col in payload.get("columns") or []:
+        if not isinstance(col, dict):
+            columns.append(col)
+            continue
+        entry = dict(col)
+        alias = str(entry.get("alias") or "").strip()
+        path = _wire_column_path(entry.get("column"))
+        leaf = path.rsplit(".", 1)[-1].strip() if path else ""
+        role = (
+            index.get(alias.lower())
+            or index.get(leaf.lower())
+            or index.get(path.lower())
+        )
+        if role:
+            entry["geographicType"] = role
+        columns.append(entry)
+    payload["columns"] = columns
+    return payload
+
+
+def _is_distinct_only_aggregate(col: dict[str, Any]) -> bool:
+    """True when the only applied aggregate is Distinct (SELECT DISTINCT col)."""
+    keys = col.get("aggregateList")
+    if not isinstance(keys, list) or len(keys) != 1:
+        return False
+    return "aggregate.distinct" in str(keys[0] or "").lower()
+
+
+def _has_aggregate_columns(
+    form_data: Optional[dict[str, Any]],
+    sql: str,
+    measure_count: int,
+) -> bool:
+    if isinstance(form_data, dict):
+        for col in form_data.get("columns") or []:
+            if not isinstance(col, dict):
+                continue
+            if _is_distinct_only_aggregate(col):
+                continue
+            if col.get("aggregate") or col.get("aggregateList"):
+                return True
+            if str(col.get("fieldType") or "").lower() == "measure":
+                return True
+    if _AGG_SQL_RE.search(sql or ""):
+        return True
+    return measure_count >= 1
 
 
 def _unique(names: list[str]) -> list[str]:
@@ -254,6 +459,8 @@ _QUERY_CHART_ALIASES = (
     ("line", "line"),
     ("area", "area"),
     ("heatmap", "heatmap"),
+    ("geo map", "heatmap"),
+    ("map", "heatmap"),
     ("kpi", "kpi"),
     ("card", "kpi"),
     # Longer grid phrases first so "grid chart" / "grid table" win over "grid".
@@ -273,6 +480,17 @@ _QUERY_CHART_ALIASES = (
     ("calendar", "calendar"),
     ("relation", "relation"),
 )
+
+
+_MAP_REQUEST_RE = re.compile(
+    r"\b(?:heat\s*maps?|heatmaps?|geo\s*maps?|maps?)\b",
+    re.IGNORECASE,
+)
+
+
+def _user_asked_for_map(user_query: str) -> bool:
+    """True when the question names a map, heatmap, or geo map."""
+    return bool(_MAP_REQUEST_RE.search(user_query or ""))
 
 
 def _chart_named_in_query(user_query: str) -> Optional[str]:
@@ -301,18 +519,105 @@ def is_viz_update_intent(action: str = "", intent: str = "") -> bool:
     return token in _VIZ_UPDATE_INTENTS
 
 
+def _text_looks_ordered(text: str) -> bool:
+    raw = str(text or "").strip()
+    if not raw:
+        return False
+    if _name_tokens(raw) & _ORDERED_NAME_TOKENS:
+        return True
+    return bool(_ORDERED_FN_RE.search(raw))
+
+
+def _form_data_has_ordered_dimension(form_data: Optional[dict[str, Any]]) -> bool:
+    """True when a non-aggregate formData column is a date/time part (EXTRACT, etc.)."""
+    if not isinstance(form_data, dict):
+        return False
+    for col in form_data.get("columns") or []:
+        if not isinstance(col, dict):
+            continue
+        if col.get("aggregate") or col.get("aggregateList"):
+            if not _is_distinct_only_aggregate(col):
+                continue
+        if _text_looks_ordered(_display_name(col)):
+            return True
+        dbf = col.get("databaseFunction")
+        if isinstance(dbf, dict):
+            dbf = str(dbf.get("function") or dbf.get("key") or dbf)
+        if _text_looks_ordered(str(dbf or "")):
+            return True
+        if _text_looks_ordered(_wire_column_path(col.get("column"))):
+            return True
+    return False
+
+
+def _names_or_cube_are_ordered(
+    names: list[str],
+    *,
+    cube_metadata: Optional[list] = None,
+) -> bool:
+    cube_index = _cube_fields_by_name(cube_metadata)
+    for name in names:
+        if _text_looks_ordered(name):
+            return True
+        cube_item = cube_index.get(str(name or "").strip().lower()) or {}
+        semantic = str(
+            cube_item.get("semantic_type") or cube_item.get("semanticType") or ""
+        ).lower()
+        if any(
+            marker in semantic
+            for marker in ("date", "time", "temporal", "quarter", "year", "month")
+        ):
+            return True
+    return False
+
+
+def _detect_ordered(
+    data_types: Any,
+    *,
+    ordered: bool = False,
+    field_names: Optional[list[str]] = None,
+    form_data: Optional[dict[str, Any]] = None,
+    cube_metadata: Optional[list] = None,
+) -> bool:
+    """Prefer line/area when a shelf is a date or EXTRACT(year/quarter/month/...)."""
+    if ordered:
+        return True
+    _, _, inferred = infer_chart_shape(data_types)
+    if inferred:
+        return True
+    if _form_data_has_ordered_dimension(form_data):
+        return True
+    if isinstance(form_data, dict):
+        # Shelves already inspected; do not treat measure names like "YoY" as ordered.
+        return False
+    names = _candidate_field_names(
+        data_types, field_names=field_names, form_data=form_data
+    )
+    return _names_or_cube_are_ordered(names, cube_metadata=cube_metadata)
+
+
 def _pick_chart_type(
     data_types: Any,
     *,
     viz_hint: str = "",
     user_query: str = "",
     viz_update: bool = False,
+    dimension_count: Optional[int] = None,
+    measure_count: Optional[int] = None,
+    ordered: bool = False,
+    form_data: Optional[dict[str, Any]] = None,
+    cube_metadata: Optional[list] = None,
+    sql: str = "",
+    field_names: Optional[list[str]] = None,
 ) -> str:
     """Choose a catalog visualization_type without calling the LLM.
 
     On ``VIZ_UPDATE``, a chart named in the user request beats leftover
     ``viz_hint``. On a new / SQL query, leftover hint is ignored so the
     pick follows the actual result shape (unless the user named a chart).
+
+    Maps are used only when the question names a map. Extra grouping
+    columns become a table, or a grid table when aggregates are present.
     """
     requested = _chart_named_in_query(user_query)
     if viz_update:
@@ -324,19 +629,45 @@ def _pick_chart_type(
     elif requested:
         return requested
 
-    dims, measures, ordered = infer_chart_shape(data_types)
+    if dimension_count is not None and measure_count is not None:
+        dims, measures = dimension_count, measure_count
+    else:
+        dims, measures, ordered = infer_chart_shape(data_types)
+    ordered = _detect_ordered(
+        data_types,
+        ordered=ordered,
+        field_names=field_names,
+        form_data=form_data,
+        cube_metadata=cube_metadata,
+    )
+
     options = possible_chart_options(dims, measures, ordered)
     if not options:
         return "table"
 
     by_name = {opt.visualization_type: opt for opt in options}
+    # Maps heatmap is geo-only; never auto-pick it for a generic matrix.
+    for map_chart in _MAP_CHARTS:
+        by_name.pop(map_chart, None)
+
+    # Crosstab / Grid Table only when several dimensions break down an aggregate.
+    if dims >= 2:
+        has_agg = _has_aggregate_columns(form_data, sql, measures)
+        if has_agg and "grid_table" in by_name:
+            return "grid_table"
+        if "table" in by_name:
+            return "table"
+
     preference = _ORDERED_PREFERENCE + _CHART_PREFERENCE if ordered else _CHART_PREFERENCE
     for preferred in preference:
         if preferred in by_name and preferred not in _FALLBACK_CHARTS:
             return preferred
     for opt in options:
-        if opt.visualization_type not in _FALLBACK_CHARTS:
-            return opt.visualization_type
+        name = opt.visualization_type
+        if name in _MAP_CHARTS or name in _FALLBACK_CHARTS:
+            continue
+        if name in by_name:
+            return name
     return "table"
 
 
@@ -345,18 +676,54 @@ def similar_charts_for_data(
     *,
     current: str = "",
     limit: int = 8,
+    dimension_count: Optional[int] = None,
+    measure_count: Optional[int] = None,
+    ordered: bool = False,
+    form_data: Optional[dict[str, Any]] = None,
+    cube_metadata: Optional[list] = None,
+    field_names: Optional[list[str]] = None,
+    sql: str = "",
 ) -> list[str]:
     """Chart types compatible with the result shape, excluding the current pick."""
-    dims, measures, ordered = infer_chart_shape(data_types)
+    if dimension_count is not None and measure_count is not None:
+        dims, measures = dimension_count, measure_count
+    else:
+        dims, measures, ordered = infer_chart_shape(data_types)
+    ordered = _detect_ordered(
+        data_types,
+        ordered=ordered,
+        field_names=field_names,
+        form_data=form_data,
+        cube_metadata=cube_metadata,
+    )
     options = possible_chart_options(dims, measures, ordered)
     current_key = (resolve_chart_name(current) or current or "").strip().lower()
-    skip = _FALLBACK_CHARTS | {current_key, "other", ""}
+    skip = _FALLBACK_CHARTS | _MAP_CHARTS | {current_key, "other", ""}
+    # Same rule as auto-pick: grid_table only for multi-dim + aggregates.
+    has_agg = _has_aggregate_columns(form_data, sql, measures)
+    if not (dims >= 2 and has_agg):
+        skip = skip | {"grid_table"}
     by_name = {opt.visualization_type: opt for opt in options}
     ordered_names: list[str] = []
     preference = _ORDERED_PREFERENCE + _CHART_PREFERENCE if ordered else _CHART_PREFERENCE
     for name in preference:
         if name in by_name and name not in skip and name not in ordered_names:
             ordered_names.append(name)
+    # Prefer grid_table over relation for multi-dim aggregate suggestions.
+    if (
+        dims >= 2
+        and has_agg
+        and "grid_table" in by_name
+        and "grid_table" not in skip
+        and "grid_table" not in ordered_names
+    ):
+        # Insert after common categorical charts, before relation/sankey-style.
+        insert_at = len(ordered_names)
+        for i, name in enumerate(ordered_names):
+            if name == "relation":
+                insert_at = i
+                break
+        ordered_names.insert(insert_at, "grid_table")
     for opt in options:
         name = opt.visualization_type
         if name not in skip and name not in ordered_names:
@@ -375,9 +742,12 @@ def _roles_from_metadata(data_types: Any) -> tuple[list[str], list[str]]:
     return _unique(dimensions), _unique(measures)
 
 
-def _chart_viz_and_mark(chart_type: str) -> VizChart:
+def _chart_viz_and_mark(chart_type: str, *, geo: bool = False) -> VizChart:
     """Map catalog type → VizChart(mark=HI parent, viz=child under that mark)."""
     key = resolve_chart_name(chart_type) or str(chart_type or "").strip().lower()
+    if geo and key in _MAP_MARK_VIZ:
+        mark, viz = _MAP_MARK_VIZ[key]
+        return VizChart(viz=viz, mark=mark)
     mapped = _CHART_TYPE_TO_MARK_VIZ.get(key)
     if mapped:
         mark, viz = mapped
@@ -445,6 +815,9 @@ def _shelves_from_form_data(
         is_measure = bool(col.get("aggregate")) or (
             str(col.get("fieldType") or "").lower() == "measure"
         )
+        # Distinct-only is still a categorical dimension (unique values list).
+        if _is_distinct_only_aggregate(col):
+            is_measure = False
         if is_measure:
             columns.append(name)
         else:
@@ -516,6 +889,7 @@ def _try_sql_to_form_data(
     dialect: str | None = None,
     metadata: dict[str, Any] | None = None,
     catalog: Any = None,
+    rm_cols_in_filter: bool = True,
 ) -> Optional[dict[str, Any]]:
     """Run sql_to_formdata when metadata refs are available; else None.
 
@@ -548,10 +922,8 @@ def _try_sql_to_form_data(
             dialect=dialect,
             metadata=metadata,
             catalog=_as_function_catalog(catalog),
+            rm_cols_in_filter=rm_cols_in_filter,
         )
-        if not (form_data.get("columns") or []):
-            logger.info("viz_model_fill: sql_to_formdata returned no columns")
-            return None
         logger.info(
             "viz_model_fill: sql_to_formdata ok columns=%s filters=%s",
             len(form_data.get("columns") or []),
@@ -613,6 +985,7 @@ def _resolve_shelves(
     md_location: str = "",
     md_file_name: str = "",
     dialect: str | None = None,
+    rm_cols_in_filter: bool = True,
 ) -> tuple[list[str], list[str], Optional[dict[str, Any]]]:
     """Prefer sql_to_formdata for rows/columns shelves."""
     result_fields = extract_result_field_names(data_types)
@@ -622,14 +995,14 @@ def _resolve_shelves(
         md_location=md_location,
         md_file_name=md_file_name,
         dialect=dialect,
+        rm_cols_in_filter=rm_cols_in_filter,
     )
 
-    if form_data:
+    if form_data is not None:
         rows, columns = _shelves_from_form_data(
             form_data, result_fields=result_fields
         )
-        if rows or columns:
-            return rows, columns, form_data
+        return rows, columns, form_data
 
     rows, columns = _shelves_from_metadata(data_types, sample_row=sample_row)
     return rows, columns, form_data
@@ -672,21 +1045,15 @@ def build_viz_model(
     md_file_name: str = "",
     dialect: str | None = None,
     viz_update: bool = False,
+    rm_cols_in_filter: bool = True,
 ) -> tuple[VizModel, str, dict[str, Any]]:
     """Build a VizModel and related viz context.
 
     Rows / columns prefer ``sql_to_formdata`` (same path as instant-to-hr).
-    Preferred shelf swap (dim on columns, measure on rows) runs only when
-    ``viz_update`` is True and the user asked to convert / named a chart.
+    At the end, shelves are always swapped into the preferred HI orientation
+    (typically dimensions on columns, measures on rows).
     Returns ``(viz_model, chart_type, viz_column_context)``.
     """
-    requested = _chart_named_in_query(user_query)
-    chart_type = _pick_chart_type(
-        data_types,
-        viz_hint=viz_hint,
-        user_query=user_query,
-        viz_update=viz_update,
-    )
     rows, columns, form_data = _resolve_shelves(
         data_types=data_types,
         sql=sql,
@@ -695,41 +1062,61 @@ def build_viz_model(
         md_location=md_location,
         md_file_name=md_file_name,
         dialect=dialect,
+        rm_cols_in_filter=rm_cols_in_filter,
     )
+    pick_kwargs = {
+        "viz_hint": viz_hint,
+        "user_query": user_query,
+        "viz_update": viz_update,
+        "form_data": form_data,
+        "cube_metadata": cube_metadata,
+        "sql": sql,
+        "field_names": list(rows) + list(columns),
+    }
+    if form_data is not None:
+        chart_type = _pick_chart_type(
+            data_types,
+            dimension_count=len(rows),
+            measure_count=len(columns),
+            **pick_kwargs,
+        )
+    else:
+        chart_type = _pick_chart_type(data_types, **pick_kwargs)
 
-    dimensions, measures = _roles_from_metadata(data_types)
-    if not dimensions and not measures:
+    if form_data is not None:
         dimensions, measures = list(rows), list(columns)
     else:
-        # Keep shelf names that metadata did not classify.
-        known = {n.lower() for n in dimensions + measures}
-        for name in list(rows) + list(columns):
-            if name.lower() in known:
-                continue
-            if name in columns:
-                measures.append(name)
-            else:
-                dimensions.append(name)
-        dimensions, measures = _unique(dimensions), _unique(measures)
+        dimensions, measures = _roles_from_metadata(data_types)
+        if not dimensions and not measures:
+            dimensions, measures = list(rows), list(columns)
+        else:
+            # Keep shelf names that metadata did not classify.
+            known = {n.lower() for n in dimensions + measures}
+            for name in list(rows) + list(columns):
+                if name.lower() in known:
+                    continue
+                if name in columns:
+                    measures.append(name)
+                else:
+                    dimensions.append(name)
+            dimensions, measures = _unique(dimensions), _unique(measures)
 
-    convert_requested = bool(
-        viz_update and (requested or _CONVERT_RE.search(user_query or ""))
-    )
+    # Always finish in preferred HI orientation (typically measures on rows,
+    # dimensions on columns) — InstantBI form_data defaults are the reverse.
     rows, columns, swapped = arrange_shelves(
         chart_type,
         rows,
         columns,
         dimensions=dimensions,
         measures=measures,
-        force_preferred=convert_requested,
+        force_preferred=True,
     )
     if swapped:
         logger.info(
             "viz_model_fill swapped shelves chart=%s viz_update=%s "
-            "force_preferred=%s rows=%s columns=%s",
+            "force_preferred=True rows=%s columns=%s",
             chart_type,
             viz_update,
-            convert_requested,
             rows,
             columns,
         )
@@ -746,9 +1133,24 @@ def build_viz_model(
         viz_context = dict(viz_context)
         viz_context["form_data"] = form_data
     viz_context = dict(viz_context)
-    viz_context["similar_chart"] = similar_charts_for_data(
-        data_types, current=chart_type
-    )
+    similar_kwargs = {
+        "current": chart_type,
+        "form_data": form_data,
+        "cube_metadata": cube_metadata,
+        "field_names": list(rows) + list(columns),
+        "sql": sql or "",
+    }
+    if form_data is not None:
+        viz_context["similar_chart"] = similar_charts_for_data(
+            data_types,
+            dimension_count=len(rows),
+            measure_count=len(columns),
+            **similar_kwargs,
+        )
+    else:
+        viz_context["similar_chart"] = similar_charts_for_data(
+            data_types, **similar_kwargs
+        )
 
     model_columns = _data_model_column_names(form_data)
     if not model_columns:
@@ -782,27 +1184,57 @@ def build_viz_model(
         rows[0] if rows else (columns[1] if len(columns) > 1 else None),
     )
 
+    chart = _chart_viz_and_mark(
+        chart_type,
+        geo=_user_asked_for_map(user_query) and chart_type in {"line", "point"},
+    )
+    geographic_roles: dict[str, str] = {}
+    if chart.mark == "Maps":
+        # Use all result/form fields — shelf layout may drop a lat/lon pair.
+        geo_names = _candidate_field_names(
+            data_types,
+            field_names=list(rows) + list(columns),
+            form_data=form_data,
+        )
+        geographic_roles = geographic_roles_for_names(
+            geo_names,
+            cube_metadata=cube_metadata,
+        )
+        if geographic_roles and isinstance(form_data, dict):
+            form_data = apply_geographic_types_to_form_data(
+                form_data, geographic_roles
+            )
+
     model = VizModel(
         data=VizData(
             rows=rows,
             columns=columns,
         ),
-        chart=_chart_viz_and_mark(chart_type),
+        chart=chart,
         properties=VizProperties(
             labelX=label_x,
             labelY=label_y,
             title=title,
             color="",
             formatting=formatting,
+            **({"geographicRoles": geographic_roles} if geographic_roles else {}),
         ),
     )
+    if form_data is not None:
+        viz_context = dict(viz_context)
+        viz_context["form_data"] = form_data
+    if geographic_roles:
+        viz_context = dict(viz_context)
+        viz_context["geographic_roles"] = geographic_roles
     logger.info(
-        "viz_model_fill built chart=%s viz=%s mark=%s rows=%s columns=%s source=%s",
+        "viz_model_fill built chart=%s viz=%s mark=%s rows=%s columns=%s "
+        "geo_roles=%s source=%s",
         chart_type,
         model.chart.viz,
         model.chart.mark,
         rows,
         columns,
+        geographic_roles,
         "sql_to_formdata" if form_data is not None else "metadata",
     )
     return model, chart_type, viz_context

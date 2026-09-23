@@ -19,6 +19,7 @@ import {
     updateSubVizType,
     setHReportLoading,
     updateAggregations,
+    toggleFloating,
     loadReportFilters,
 } from '../../../redux/actions/hreport.actions';
 import { checkReportsAvailable } from '../../../components/bridges/hreport/utils';
@@ -342,6 +343,23 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
 
         expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: ['SUM'], group: 'aggregate' });
         expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: [], group: 'groupBy' });
+        expect(toggleFloating).toHaveBeenCalledWith({
+            id: 'gen-1',
+            reportId: REPORT_ID,
+            floatingType: '',
+        });
+    });
+
+    test('does not clear floatingType for non-aggregate dimensions', async () => {
+        const reportModel = makeReportModel({
+            rows: ['region'],
+            detailedColumns: [makeDetailed('region', 'col-region')],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(toggleFloating).not.toHaveBeenCalled();
     });
 
     test('falls back to a bare field entry when a column cannot be matched in tables', async () => {
@@ -440,6 +458,40 @@ describe('createHReportBridge - filters', () => {
             uid: 'gen-1',
             customCondition: 'region = "EMEA"',
         });
+    });
+
+    test('preserves isCustomValue and encloseInQuotes for SQL expression bounds', async () => {
+        const { updateFilter } = require('./hreport-bridge.store').actionCreators;
+        const reportModel = makeReportModel({
+            detailedColumns: [makeDetailed('order_date', 'col-date')],
+            filters: [
+                {
+                    alias: 'order_date',
+                    column: { id: 'col-date', name: 'order_date' },
+                    condition: 'CUSTOM',
+                    customCondition: '>=',
+                    isCustomValue: true,
+                    encloseInQuotes: false,
+                    values: ["DATETRUNC('QUARTER', CURRENT_DATE)"],
+                },
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(updateCustomCondition).toHaveBeenCalledWith({
+            uid: 'gen-1',
+            customCondition: '>=',
+        });
+        expect(updateFilter).toHaveBeenCalledWith(
+            expect.objectContaining({
+                uid: 'gen-1',
+                reportId: REPORT_ID,
+                isCustomValue: true,
+                encloseInQuotes: false,
+            })
+        );
     });
 
     test('adds db-function backed filters as temporary columns then removes them', async () => {
@@ -567,16 +619,82 @@ describe('createHReportBridge - viz types and marks', () => {
         expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'Card' });
     });
 
-    test('maps aliased chart type names to internal types', async () => {
+    test('maps InstantBI Grid Table picker label to S2Chart', async () => {
         const reportModel = makeReportModel({
-            mark: 'GridTable',
-            viz: 'bar',
+            mark: 'Grid Table',
+            viz: 'Grid table',
         });
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
-
         expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'S2Chart' });
+    });
+
+    test('maps InstantBI Maps picker label to MapChart', async () => {
+        const reportModel = makeReportModel({
+            mark: 'Maps',
+            viz: 'Heatmap',
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'MapChart' });
+    });
+
+    test('stamps geographicType from geographicRoles onto the map dimension', async () => {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    { alias: 'destination', column: { id: '1071', name: 'destination' } },
+                    { alias: 'travel_cost', column: { id: '1072', name: 'travel_cost' } },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            rows: ['Client Destination'],
+            columns: ['Travel Cost'],
+            mark: 'Maps',
+            viz: 'Heatmap',
+            detailedColumns: [
+                makeDetailed('Client Destination', '1071', {
+                    column: {
+                        name: 'sampletraveldata.public.travel_details.destination',
+                        id: '1071',
+                    },
+                }),
+                makeDetailed('Travel Cost', '1072', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                    column: {
+                        name: 'sampletraveldata.public.travel_details.travel_cost',
+                        id: '1072',
+                    },
+                }),
+            ],
+        });
+        reportModel.viz_model.properties = {
+            geographicRoles: { 'Client Destination': 'city' },
+        };
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'travel-meta' } },
+        });
+
+        expect(addFieldToCanvas).toHaveBeenCalledWith(
+            expect.objectContaining({
+                addedAs: 'row',
+                geographicType: 'city',
+                column: expect.objectContaining({ id: '1071' }),
+            })
+        );
+        expect(updateFieldAlias).toHaveBeenCalledWith({
+            id: 'gen-2',
+            alias: 'Client Destination',
+        });
+        const measureCall = addFieldToCanvas.mock.calls.find(
+            ([payload]) => payload.column && payload.column.id === '1072'
+        );
+        expect(measureCall[0].geographicType).toBeUndefined();
     });
 
     test('calls eventUpdater on viz change', async () => {
@@ -592,7 +710,7 @@ describe('createHReportBridge - viz types and marks', () => {
         expect(eventUpdater).toHaveBeenCalledWith({
             hreportId: REPORT_ID,
             event: 'change_viz',
-            data: { selectedType: 'KPI', subVizType: 'bar' },
+            data: { selectedType: 'Card', subVizType: 'bar' },
         });
     });
 

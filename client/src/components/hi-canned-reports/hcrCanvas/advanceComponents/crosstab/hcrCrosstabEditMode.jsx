@@ -46,7 +46,9 @@ const HCRCrosstabEditMode = (props = {}) => {
         selectedQueryID,
         selectedCTGroup = [],
         selectedCTMeasure = [],
-        selectedCrosstab = null
+        selectedCrosstab = null,
+        selectedConditionalStyle = []
+
     } = data || {};
 
     const {
@@ -76,7 +78,8 @@ const HCRCrosstabEditMode = (props = {}) => {
         currentParameter = selectedParameter[0],
         currentSelectedStyle = selectedStyle[0],
         currentSelectedGrp = selectedCTGroup[0],
-        currentSelectedMeasure = selectedCTMeasure[0];
+        currentSelectedMeasure = selectedCTMeasure[0],
+        currentSelectedConditionalStyle = selectedConditionalStyle[0];
 
     const {
         nodes = {},
@@ -404,11 +407,11 @@ const HCRCrosstabEditMode = (props = {}) => {
             }
         }
         window.addEventListener("keydown", handleCtrlKeys);
-        if (selectedNodeId || selectedCellId || outlineDsSelectedField || currentCalculation || currentSelectedGroup || currentParameter || currentSelectedStyle || currentSelectedGrp || currentSelectedMeasure || selectedCrosstab) {
+        if (selectedNodeId || selectedCellId || outlineDsSelectedField || currentCalculation || currentSelectedGroup || currentParameter || currentSelectedStyle || currentSelectedGrp || currentSelectedMeasure || selectedCrosstab || currentSelectedConditionalStyle) {
             setSidePanelOpen(true);
         }
         return () => window.removeEventListener("keydown", handleCtrlKeys);
-    }, [selectedNodeId, selectedCellId, currentShortCut, selectedNodes, outlineDsSelectedField, currentCalculation, currentSelectedGroup, currentParameter, currentSelectedStyle, currentSelectedGrp, currentSelectedMeasure, selectedCrosstab]);
+    }, [selectedNodeId, selectedCellId, currentShortCut, selectedNodes, outlineDsSelectedField, currentCalculation, currentSelectedGroup, currentParameter, currentSelectedStyle, currentSelectedGrp, currentSelectedMeasure, selectedCrosstab, currentSelectedConditionalStyle]);
 
     useEffect(() => {
         return () => {

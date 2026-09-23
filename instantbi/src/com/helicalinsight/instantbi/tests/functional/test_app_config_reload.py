@@ -65,3 +65,20 @@ def test_default_sql_limit_tracks_in_memory_reload():
     finally:
         with app_config._lock:
             app_config._raw = original
+
+
+def test_rm_cols_in_filter_tracks_in_memory_reload():
+    original = app_config._raw
+    original_mtime = app_config._loaded_mtime
+    try:
+        updated = deepcopy(original)
+        updated.setdefault("feature_flags", {})["rm_cols_in_filter"] = False
+        with app_config._lock:
+            app_config._raw = updated
+            app_config._loaded_mtime = app_config._config_mtime()
+
+        assert app_config.rm_cols_in_filter is False
+    finally:
+        with app_config._lock:
+            app_config._raw = original
+            app_config._loaded_mtime = original_mtime

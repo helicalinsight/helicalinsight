@@ -10,6 +10,7 @@ import CanvasGroupProperties from "./hcrGroupProperties";
 import CanvasPageStyles from "./hcrPageStyles";
 import CanvasExportProperties from "./hcrCanvasExportProperties";
 import { getLabel } from "../hcrCanvasPaneHelperMethods";
+import JRXMLProperties from "./hcrJRXMLProperties";
 
 export default function HCRCanvasProperty({ EditorPanels }) {
   const { InputFiled, Position, InputNumberFiled, Size, SelectField } =
@@ -201,6 +202,16 @@ export default function HCRCanvasProperty({ EditorPanels }) {
             InputNumberFiled={InputNumberFiled}
             InputFiled={InputFiled}
           />
+        </Collapse.Panel>
+      </Collapse>
+      <Collapse size={"small"} className="canvas-property-collapse">
+        <Collapse.Panel
+          header={
+            <span className="canvas-property-title">Miscellaneous</span>
+          }
+          key={"jrxml"}
+        >
+          <JRXMLProperties getLabel={getLabel} dispatch={dispatch} />
         </Collapse.Panel>
       </Collapse>
     </div>

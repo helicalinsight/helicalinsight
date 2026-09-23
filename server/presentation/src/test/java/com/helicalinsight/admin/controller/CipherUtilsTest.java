@@ -9,9 +9,6 @@ public class CipherUtilsTest {
 
 	@Test(expected = AuthenticationException.class)
 	public void testdecryptString() {
-		CipherUtils cipherUtils = new CipherUtils();
-		String decrypt = "segosegekfrek";
-		String decryptString = CipherUtils.decryptString(decrypt);
-		System.out.println(decryptString);
+		CipherUtils.decryptString("segosegekfrek");
 	}
 }

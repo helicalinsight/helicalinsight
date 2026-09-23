@@ -61,6 +61,7 @@ class AgentState(TypedDict, total=False):
     persona: Dict[str, Any]
     user_role: List[Any]
     user_profile: List[Any]
+    activity_trace: List[Dict[str, Any]]
 
 
 def initial_agent_state(
@@ -143,4 +144,5 @@ def initial_agent_state(
         "persona": persona or {},
         "user_role": list(user_role or []),
         "user_profile": list(user_profile or []),
+        "activity_trace": [],
     }

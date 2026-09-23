@@ -9,6 +9,7 @@ class HIStreamClient {
         this.hiAxios = null;
         this.defaultHeaders = {
             "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "text/event-stream",
         };
         this.getHiAxios();
     }
@@ -51,7 +52,8 @@ class HIStreamClient {
         let hiAxiosObject = this.getHiAxiosObject();
         return {
             ...this.defaultHeaders,
-            ...(hiAxiosObject.headers || {})
+            ...(hiAxiosObject.headers || {}),
+            Accept: "text/event-stream",
         }
     }
 
@@ -88,9 +90,18 @@ class HIStreamClient {
             const dataStr = dataLines.length > 0 ? dataLines.join("\n") : null;
 
             if (type === "error") {
-                const errorMessage = dataStr ?? "Unknown stream error"
+                let payload = dataStr;
+                try {
+                    payload = dataStr ? JSON.parse(dataStr) : null;
+                } catch {
+                    payload = dataStr;
+                }
+                const errorMessage =
+                    (payload && typeof payload === "object" && payload.error) ||
+                    dataStr ||
+                    "Unknown stream error";
                 notify(this.dispatch).error({ message: errorMessage, type: "Network Call" });
-                return { event: "error", data: errorMessage };
+                return { event: "error", data: payload };
             }
 
             try {

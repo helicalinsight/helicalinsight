@@ -13,7 +13,7 @@ client-friendly payload with the shape::
         data:    [],
         metadata:    [],
         report_model: {
-            data_model: { location, metadataFileName, columns, filters, filterExpression, ... },
+            data_model: { columns, filters, filterExpression, ... },
             viz_model:  { data, chart, properties, ... },
         },
         token_usage: { input_tokens, output_tokens, total_tokens,
@@ -56,9 +56,10 @@ class ReportModelSection(BaseModel):
     data_model: Optional[dict[str, Any]] = Field(
         default=None,
         description=(
-            "Adhoc formData from sql_to_formdata (location, metadataFileName, "
-            "columns, filters, filterExpression). Raw fetchData ``query`` is omitted "
-            "when columns are present so InstantBI generates SQL from the model."
+            "Adhoc formData from sql_to_formdata (columns, filters, filterExpression). "
+            "Raw fetchData ``query`` is omitted when columns are present so InstantBI "
+            "generates SQL from the model. ``location`` and ``metadataFileName`` are "
+            "internal assembler inputs and are not sent on the wire."
         ),
     )
     viz_model: Optional[dict[str, Any]] = Field(
@@ -298,6 +299,11 @@ def _wire_data_model(form_data: Any) -> Optional[dict[str, Any]]:
     when that key is present, ignoring columns/filters. sql_to_formdata models
     therefore must not carry ``query`` (including base64 SQL).
 
+    ``location`` and ``metadataFileName`` are used internally to fetch metadata
+    and functions; the InstantBI client does not read them from ``data_model``.
+    ``functions.aggregate`` is omitted for the same reason: measures use
+    column ``aggregate`` / ``aggregateList``. ``functions.groupBy`` is kept.
+
     HAVING predicates are folded into ``filters`` here so the wire ``data_model``
     never exposes a separate ``having`` array.
     """
@@ -306,9 +312,24 @@ def _wire_data_model(form_data: Any) -> Optional[dict[str, Any]]:
     payload = dict(form_data)
     if payload.get("columns"):
         payload.pop("query", None)
+    payload.pop("location", None)
+    payload.pop("metadataFileName", None)
+    _strip_functions_aggregate(payload)
     from helicalbi.sql_to_formdata import fold_having_into_filters
 
     return fold_having_into_filters(payload)
+
+
+def _strip_functions_aggregate(payload: dict[str, Any]) -> None:
+    functions = payload.get("functions")
+    if not isinstance(functions, dict):
+        return
+    functions = dict(functions)
+    functions.pop("aggregate", None)
+    if functions:
+        payload["functions"] = functions
+    else:
+        payload.pop("functions", None)
 
 
 def _resolved_sql_error(value: Any) -> str:

@@ -330,69 +330,63 @@ const getOutlineDSContextMenu = (data = {}) => {
             return [
                 { key: "create_parameter", label: "Create Parameter" }
             ];
-            break;
         }
         case "parameters-item": {
             return [
                 { key: "delete_parameter_item", label: "Delete" }
             ];
-            break;
         }
         case "fields": {
             return [
                 { key: "create_field", label: "Create Field" }
             ];
-            break;
         }
         case "fields-item": {
             return [
                 { key: "delete_fields_item", label: "Delete" }
             ]
-            break;
         }
         case "variables": {
             return [];
-            break;
         }
         case "variables-item": {
             return [];
-            break;
         }
         case "calculations": {
             return [
                 { key: "create_calculation", label: "Create Calculation" }
             ];
-            break;
         }
         case "calculations-item": {
             return [
                 { key: "delete_calculation_item", label: "Delete" }
             ];
-            break;
         }
         case "groups": {
             return [
                 { key: "create_group", label: "Create Group" }
             ];
-            break;
         }
         case "groups-item": {
             return [
                 { key: "delete_group_item", label: "Delete" }
             ];
-            break;
         }
         case "table-styles": {
             return [
                 { key: "create_style", label: "Create Style" }
             ];
-            break;
         }
         case "table-style-item": {
             return [
-                { key: "delete_style_item", label: "Delete" }
+                { key: "delete_style_item", label: "Delete" },
+                { key: "create_conditional_style", label: "Create Conditional Style" }
             ];
-            break;
+        }
+        case "table-conditional-style-item": {
+            return [
+                { key: "delete_conditional_style_item", label: "Delete" }
+            ];
         }
         default:
             break
@@ -559,7 +553,19 @@ export const getStylesOutline = (styles, componentData) => {
             dsContextMenu: true,
             menuType: "table-style-item",
             styleId: style.id,
-            componentData
+            componentData,
+            children: style?.conditionalStyles?.map((item) => {
+                return {
+                    title: item.expression || item.styleName,
+                    key: item.id,
+                    selectable: true,
+                    selectKey: "table-conditional-style-item",
+                    dsContextMenu: true,
+                    menuType: "table-conditional-style-item",
+                    conditionalStyleId: item.id,
+                    styleId: style.id,
+                }
+            }) || []
         }
     })
 }
@@ -832,12 +838,12 @@ const getQueryItems = (dsPaneTypes) => {
 const getSelectedKeys = (componentData = {}) => {
     const { category } = componentData || {}
     if (category === "advancedTable") {
-        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedTable, selectedCalculation, selectedGroup, selectedParameter, selectedStyle } = componentData || {};
-        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedTable || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0];
+        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedTable, selectedCalculation, selectedGroup, selectedParameter, selectedStyle, selectedConditionalStyle } = componentData || {};
+        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedTable || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0] || selectedConditionalStyle?.[0]?.conditionalStyleId;
     }
     if (category === "crosstabv2") {
-        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedCalculation, selectedGroup, selectedParameter, selectedStyle, selectedCTGroup = [], selectedCTMeasure = [] } = componentData || {};
-        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0] || selectedCTGroup?.[0] || selectedCTMeasure?.[0];
+        const { selectedCells, selectedNodes, outlineDsSelectedField, selectedCalculation, selectedGroup, selectedParameter, selectedStyle, selectedCTGroup = [], selectedCTMeasure = [], selectedConditionalStyle } = componentData || {};
+        return selectedCells?.[0] || selectedNodes?.[0] || outlineDsSelectedField || selectedCalculation?.[0] || selectedGroup?.[0] || selectedParameter?.[0] || selectedStyle?.[0] || selectedCTGroup?.[0] || selectedCTMeasure?.[0] || selectedConditionalStyle?.[0]?.conditionalStyleId;
     }
     return null;
 }
@@ -929,6 +935,13 @@ const getCrosstabLayout = (config = {}) => {
         const [hCell, tCell] = grp.cells || [];
         const widths = getWIndexesWithoutColumn()
         const heights = getHIndexesWithRowOnly()
+        cells.push({
+            col: [rIndex + 1, rowEnd],
+            row: [totalRowsCols - rIndex, totalRowsCols - rIndex + 1],
+            widthUpdaters: widths.slice(rIndex),
+            heightUpdaters: [heights.reverse()[rIndex]],
+            ...tCell
+        })
 
         cells.push({
             col: [rIndex + 1, nextArr.length ? rIndex + 2 : rowEnd],
@@ -936,13 +949,6 @@ const getCrosstabLayout = (config = {}) => {
             widthUpdaters: [widths[rIndex]],
             heightUpdaters: heights.slice(0).filter((_, i, arr) => i < arr.length - 1 - rIndex),
             ...hCell
-        })
-        cells.push({
-            col: [rIndex + 1, rowEnd],
-            row: [totalRowsCols - rIndex, totalRowsCols - rIndex + 1],
-            widthUpdaters: widths.slice(rIndex),
-            heightUpdaters: [heights.reverse()[rIndex]],
-            ...tCell
         })
     })
 

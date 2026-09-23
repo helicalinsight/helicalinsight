@@ -16,6 +16,47 @@ Metadata used in examples:
 
 ---
 
+## Tip: custom column without any metadata `{name, id}` column
+
+A custom column is self-contained. You do **not** need a normal metadata column in `columns`, `filters`, or `having` for the report to run.
+
+**Why this used to fail.** Table discovery for FROM/JOIN skipped `"custom": true` items and only walked `{ "name", "id" }` strings. A report that was only formulas had no table list, so SQL could not be built.
+
+**What happens now.** Before the query is prepared, the server parses identifiers out of the formula (`"booking_platform"`, `sum("employee_id"/"travel_id") - ("destination_id")`, …), matches them to the metadata file, and writes `usedColumns` (fully qualified names). Those FQDNs supply the FROM/JOIN tables.
+
+So this SELECT is enough — no companion `{ "name": "HIUSER.travel_details.booking_platform", "id": "107x" }`:
+
+```json
+{
+  "location": "HReportTest",
+  "metadataFileName": "Metadata_HReportTest.metadata",
+  "columns": [
+    {
+      "column": "\"booking_platform\"",
+      "alias": "bk_pf",
+      "custom": true,
+      "floatingType": "discrete"
+    }
+  ],
+  "functions": {
+    "groupBy": [{ "column": "bk_pf", "custom": true }]
+  }
+}
+```
+
+**SQL:** `SELECT "booking_platform" AS "bk_pf" FROM …travel_details…`  
+FROM comes from matching `"booking_platform"` in metadata, not from a `{name, id}` column.
+
+Same rule for custom filters and custom having: nested `column.column` is parsed even when that formula is **not** in SELECT (see combination 11). The client does **not** send `usedColumns`.
+
+**Still required**
+
+- The identifiers in the formula must exist in the metadata file. Bare `"booking_platform"` is resolved when the name is unique; if two tables share the name, qualify it (`travel_details.booking_platform` or the FQDN).
+- `location` + `metadataFileName` are still required so the server can load metadata and derive tables.
+- Do not send `{ "name", "id" }` on a custom item. The operand is the formula string, not a metadata field.
+
+---
+
 ## How the server reads a filter / having item
 
 | Item flag | `column` shape | Operand used in SQL |
@@ -878,7 +919,8 @@ Same nested custom filter as (1)/(2). `columns` has no `bk_pf`. Formula still co
 
 | Combination | Where it goes | Notes |
 |---|---|---|
-| Custom column in SELECT, no filter | — | SELECT emits formula `AS` alias; existing behaviour |
+| Custom column in SELECT, no filter | — | SELECT emits formula `AS` alias; FROM from derived `usedColumns` — no metadata `{name, id}` column needed |
+| Custom-only report (no `{name, id}` anywhere) | `columns` only, or + custom filter/having | Formula identifiers must exist in metadata; server attaches `usedColumns` |
 | Normal having only | `having` | `{name,id}` + `function`; no `custom` |
 | Custom filter + normal having + custom having | `filters` + `having[0]` + `having[1]` | `${0} AND ${1}` on having |
 | Two custom filters | `filters` | `${0} AND ${1}`; each item `custom: true` |
@@ -896,6 +938,7 @@ Same nested custom filter as (1)/(2). `columns` has no `bk_pf`. Formula still co
 - Put the SQL formula in nested `column.column`.
 - Use `filters` for non-aggregate formulas; `having` + `function` for aggregates.
 - Keep `databaseFunction` on the same item that should receive that SQL.
+- Rely on the formula alone for table discovery. Do not add a dummy `{name, id}` column just so FROM/JOIN works.
 
 **Do not**
 
@@ -904,3 +947,4 @@ Same nested custom filter as (1)/(2). `columns` has no `bk_pf`. Formula still co
 - Use the SELECT alias (`bk_pf` / `s_id`) as the SQL operand.
 - Put an aggregate custom item in `filters` (use `having`).
 - Treat `${n}` as the item `id` field.
+- Put `{ "name", "id" }` on a custom item (that shape is for normal metadata columns only).

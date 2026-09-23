@@ -136,12 +136,54 @@ const instantBIReducer = (
       })
     }
 
+    case actionTypes.PATCH_IB_CHAT_MESSAGE: {
+      const { activeChatID = "", reportId, messageId, patch = {} } = action.payload || {};
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.id === reportId) {
+            report.chats = report.chats.map((chat) => {
+              if (chat.chatID === activeChatID) {
+                chat.messageList = chat.messageList.map((message) =>
+                  message.id === messageId ? { ...message, ...patch, id: messageId } : message
+                )
+              }
+              return chat
+            })
+          }
+          return report
+        })
+      })
+    }
+
+    case actionTypes.REMOVE_IB_CHAT_MESSAGE: {
+      const { activeChatID = "", reportId, messageId } = action.payload || {};
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.id === reportId) {
+            report.chats = report.chats.map((chat) => {
+              if (chat.chatID === activeChatID) {
+                chat.messageList = chat.messageList.filter((message) => message.id !== messageId)
+              }
+              return chat
+            })
+          }
+          return report
+        })
+      })
+    }
+
     case actionTypes.UPDATE_IB_BOT_STATUS: {
-      const { reportId, status } = action.payload
+      const { reportId, status, botMessage } = action.payload
       return produce(state, (draft) => {
         draft.reports = draft.reports.map((report) => {
           if (report.id === reportId) {
             report.botStatus = status
+            if (botMessage !== undefined) {
+              report.botMessage = botMessage
+            }
+            if (!status) {
+              report.botMessage = ""
+            }
           }
           return report
         })
@@ -414,11 +456,30 @@ const instantBIReducer = (
         if (response) {
           const { chat_sequence_id, ...rest } = response || {}
           const messageId = uuidv4();
+          const isThinkPlan = Boolean(
+            rest.is_think_plan
+            || rest.isThinkPlan
+            || (Array.isArray(rest.question_history) && rest.question_history.length)
+            || (Array.isArray(rest.questionHistory) && rest.questionHistory.length)
+          );
+          const questionHistory = rest.questionHistory
+            || rest.question_history
+            || [];
+          const askedQuestions = rest.askedQuestions
+            || rest.asked_questions
+            || questionHistory.map((item) => item?.question).filter(Boolean);
+          const openingInsight = rest.openingInsight
+            || rest.opening_insight
+            || "";
+          const finalAnswer = rest.finalAnswer
+            || rest.final_answer
+            || rest?.summary?.insight
+            || "";
           messageList.push({
             id: messageId,
             isUser: false,
             user: false,
-            text: rest?.summary?.insight || "",
+            text: isThinkPlan ? finalAnswer : (rest?.summary?.insight || ""),
             isTyping: false,
             createdDate: new Date().toISOString(),
             data: [],
@@ -432,7 +493,19 @@ const instantBIReducer = (
             persistedInFile: false,
             fullChatResponse: { ...rest },
             hreportLoading: true,
-            ...rest
+            isThinkPlan,
+            askedQuestions,
+            questionHistory,
+            citedQuestionIndexes: rest.citedQuestionIndexes || rest.cited_question_indexes || [],
+            openingInsight,
+            finalAnswer,
+            plan: rest.plan || {},
+            llmActivityDetails: rest.llmActivityDetails || rest.llm_activity_details || null,
+            dashboardModel: rest.dashboardModel || rest.dashboard_model || rest.dashboard || null,
+            ...rest,
+            // Do not restore workings in open/edit.
+            activityTrail: [],
+            activity_trail: undefined,
           });
         }
       });

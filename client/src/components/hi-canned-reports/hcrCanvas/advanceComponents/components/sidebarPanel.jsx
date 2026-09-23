@@ -4,17 +4,18 @@ import {
 import { Drawer } from 'antd';
 import { useMemo } from "react";
 import { useDispatch } from "react-redux";
+import { getCellsFromCrosstab } from "../utils";
 import CalculationProperties from "./calculationProperties";
 import CellProperties from "./cellProperties";
+import CrosstabGroup from "./crosstabGroup";
+import CrosstabMeasure from "./crosstabMeasure";
 import GroupProperties from "./groupProperties";
 import NodeProperties from "./nodeProperties";
 import OutlineDSFieldProperties from "./outlineDSFieldProperties";
 import ParameterProperties from "./parameterProperties";
 import TableOutlineProperties from "./TableOutlineProperties";
 import TableStyles from "./tableStyles";
-import { getCellsFromCrosstab } from "../utils";
-import CrosstabGroup from "./crosstabGroup";
-import CrosstabMeasure from "./crosstabMeasure";
+import ConditionalStyles from "./conditionalStyles";
 const Wrapper = ({ children }) => {
     return (
         <div className="property-wrapper xflow-json-schema-form-body">
@@ -34,7 +35,8 @@ const resolveActivePanel = (data = {}) => {
         selectedStyle = [],
         selectedCTGroup = [],
         selectedCTMeasure = [],
-        selectedCrosstab = null
+        selectedCrosstab = null,
+        selectedConditionalStyle = []
     } = data;
 
     if (selectedCells.length) return { active: "cell", title: "Cell Properties" };
@@ -48,6 +50,7 @@ const resolveActivePanel = (data = {}) => {
     if (selectedCTGroup.length) return { active: "ctGroup", title: "Crosstab Group" };
     if (selectedCTMeasure.length) return { active: "ctMeasure", title: "Crosstab Measure" };
     if (selectedCrosstab) return { active: "table", title: "Crosstab" };
+    if (selectedConditionalStyle.length) return { active: "conditionalStyles", title: "Conditional Styles" };
     return { active: "default", title: "Property Pane" };
 }
 
@@ -68,20 +71,16 @@ const SidebarPanel = (props = {}) => {
         activeTab = {}
     } = props || {}
     const {
-        selectedCells = [],
-        selectedNodes = [],
-        outlineDsSelectedField = null,
-        selectedTable = null,
-        selectedCalculation = [],
-        selectedQueryID,
         selectedGroup = [],
         selectedParameter = [],
         selectedStyle = [],
         selectedCTGroup = [],
         selectedCTMeasure = [],
-        category
+        category,
+        selectedConditionalStyle = [],
     } = data || {}
     const { tableStyles = [] } = activeTab || {}
+    const { groups = [] } = selectedSubDS || {}
     const isCrosstab = category === "crosstabv2"
     const dispatch = useDispatch()
 
@@ -102,6 +101,7 @@ const SidebarPanel = (props = {}) => {
                                 ...(isCrosstab && { cells: getCellsFromCrosstab(data) })
                             }}
                             tableStyles={tableStyles}
+                            isCrosstab={isCrosstab}
                         />
                     </Wrapper>
                 );
@@ -112,6 +112,7 @@ const SidebarPanel = (props = {}) => {
                             EditorPanels={EditorPanels}
                             onNodeConfigChange={onNodeConfigChange}
                             nodeConfig={nodeConfig}
+                            groupOptions={groups}
                         />
                     </Wrapper>
                 );
@@ -220,6 +221,20 @@ const SidebarPanel = (props = {}) => {
                             selectedMeasure={selectedCTMeasure}
                             selectedSubDS={selectedSubDS}
                             classNames={classNames}
+                        />
+                    </Wrapper>
+                );
+            case "conditionalStyles":
+                return (
+                    <Wrapper>
+                        <ConditionalStyles
+                            tableData={data}
+                            EditorPanels={EditorPanels}
+                            selectedConditionalStyle={selectedConditionalStyle}
+                            onClose={onClose}
+                            tableStyles={tableStyles}
+                            dispatch={dispatch}
+                            selectedSubDS={selectedSubDS}
                         />
                     </Wrapper>
                 );

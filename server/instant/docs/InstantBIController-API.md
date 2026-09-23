@@ -10,8 +10,30 @@ API documentation for all endpoints in `com.helicalinsight.instant.ai.InstantBIC
 | **Methods** | `GET` or `POST` |
 | **Content type** | Query params (GET) or `application/x-www-form-urlencoded` (POST) — **not** JSON body |
 | **Auth** | Logged-in session (`JSESSIONID` cookie). Roles: `ROLE_USER`, `ROLE_ADMIN`, or `ROLE_VIEWER` |
-| **Encoding** | `agent`, `domain`, `subject`, and `formData` may be plain JSON/text or **Base64-encoded** strings |
+| **Encoding** | `agent`, `domain`, `subject`, `formData`, and `sql` may be plain JSON/text or **Base64-encoded** strings |
 | **Ajax header** | If the request is treated as Ajax, response is `application/json`; otherwise `text/html` |
+| **Streaming** | When `streamResponse` is `true` in `setting.xml`, `/ai/interactive-chat`, `/ai/data-insight`, and `/ai/convert-dashboard` return SSE (`text/event-stream`) instead of a buffered JSON body |
+
+### SSE activity streaming (`streamResponse`)
+
+The client already receives `applicationSettingsData.streamResponse`. Flag **off** is today's JSON. Flag **on** streams activity text until `complete`.
+
+Events match `HIStreamClient` (`event:` / `data:` JSON):
+
+| Event | Payload |
+|-------|---------|
+| `begin` | `{"status":"STARTED"}` |
+| `progress` | `{"stage":"...","status":"started"\|"done","message":"..."}` |
+| `complete` | `{ "status": 1, "response": { ... } }` — same inner JSON as the buffered path |
+| `error` | `{"error":"...","aborted":true?}` |
+
+Activity messages:
+
+- **interactive-chat:** opening line → each intent/SQL/viz **graph node** → Found this query is suitable: {sql} → Executing your query… → Got your data. → Found it. Chart is ready.
+- **data-insight:** Executing your query… → Got your data. → Writing an insight from your data… → Insight is ready.
+- **convert-dashboard:** each layout graph node (CollectContext → PlanSummary → SelectFilters → MakeLayout → Assemble → Audit) → Dashboard is ready.
+
+Abort is stop-only (no resume): `/cancelRequest` plus Python `POST /abort`. Chat history / memory write only on successful `complete`.
 
 ---
 
@@ -317,6 +339,56 @@ chatid=abc123&items=[{"id":"seq-3","sql":"SELECT ...","viz":{"chart_name":"bar",
 
 ---
 
+## 5a. SQL to Report Model
+
+**`GET | POST`** `/ai/sql-to-report-model`
+
+Turns SQL into InstantBI **`report_model`**. `data_model` comes from `sql_to_formdata`. `viz_model` is derived from SQL dimensions (non-aggregate SELECT columns) and measures (aggregates). Downstream InstantBI path is `/sql-to-report-model`.
+
+### Request Parameters
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `sql` | Yes | string | SQL to convert. May be Base64-encoded |
+| `location` | Yes | string | Metadata folder / location |
+| `metadataFileName` | Yes | string | Metadata file name |
+| `requestId` | No | string | Used for cancellable requests |
+
+### Example Request
+
+```http
+POST /ai/sql-to-report-model
+Content-Type: application/x-www-form-urlencoded
+
+sql=SELECT region, SUM(amount) FROM sales GROUP BY region&location=MyFolder&metadataFileName=Sales.metadata
+```
+
+### Response
+
+```json
+{
+  "status": 1,
+  "response": {
+    "report_model": {
+      "data_model": {
+        "location": "MyFolder",
+        "metadataFileName": "Sales.metadata",
+        "columns": [],
+        "filters": [],
+        "sql": "SELECT region, SUM(amount) FROM sales GROUP BY region"
+      },
+      "viz_model": {
+        "data": { "rows": ["region"], "columns": ["amount"] },
+        "chart": { "viz": "Bar", "mark": "Chart" },
+        "properties": { "title": "amount by region" }
+      }
+    }
+  }
+}
+```
+
+---
+
 ## 6. Chat Context
 
 **`GET | POST`** `/ai/chat-context`
@@ -404,5 +476,6 @@ Each endpoint forwards to the Instant BI Python service (`instantbiConfig.servic
 | `/ai/data-insight` | `/data-insight` |
 | `/ai/convert-hreport` | `/instant-to-hr` |
 | `/ai/convert-dashboard` | `/convert-dashboard` |
+| `/ai/sql-to-report-model` | `/sql-to-report-model` |
 | `/ai/chat-context` | `/chat` (+ `/metadataInsight` when context is metadata) |
 

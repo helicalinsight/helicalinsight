@@ -451,6 +451,7 @@ describe("parseInstantBIChatResponse", () => {
         token_usage: { total_tokens: 4 },
       },
     });
+    expect(parsed.mode).toBe("fast");
     expect(parsed.botMessage).toBe("Insight text");
     expect(parsed.data).toEqual([{ value: 1 }]);
     expect(parsed.metadata).toEqual([{ name: "value" }]);
@@ -460,6 +461,50 @@ describe("parseInstantBIChatResponse", () => {
     expect(parsed.fullChatResponse).not.toHaveProperty("data");
     expect(parsed.fullChatResponse).not.toHaveProperty("metadata");
     expect(parsed.fullChatResponse.token_usage).toEqual({ total_tokens: 4 });
+  });
+
+  it("should parse think mode chat_responses into a list", () => {
+    const parsed = parseInstantBIChatResponse({
+      mode: "think",
+      asked_questions: ["What is total cost?", "Cost by month?"],
+      opening_insight: "This looks at travel spend from a few angles.",
+      final_answer: "Costs rose",
+      chat_responses: [
+        {
+          sub_question: "What is total cost?",
+          title: "KPI",
+          analysis: "Total is 100",
+          chat_seq_id: "1-1",
+          chat_response: {
+            summary: { insight: "Total is 100" },
+            viz: { vf_title: "KPI", vf_template: btoa("function A(){}") },
+            sql: { raw_sql: "SELECT 100" },
+            data: [{ v: 100 }],
+          },
+        },
+        {
+          sub_question: "Cost by month?",
+          title: "Trend",
+          analysis: "Upward",
+          chat_seq_id: "1-2",
+          chat_response: {
+            summary: { insight: "Upward" },
+            viz: { vf_title: "Trend" },
+            sql: { raw_sql: "SELECT 2" },
+          },
+        },
+      ],
+    });
+    expect(parsed.mode).toBe("think");
+    expect(parsed.askedQuestions).toEqual(["What is total cost?", "Cost by month?"]);
+    expect(parsed.openingInsight).toBe("This looks at travel spend from a few angles.");
+    expect(parsed.finalAnswer).toBe("Costs rose");
+    expect(parsed.chatResponses).toHaveLength(2);
+    expect(parsed.chatResponses[0].subQuestion).toBe("What is total cost?");
+    expect(parsed.chatResponses[0].botMessage).toBe("Total is 100");
+    expect(parsed.chatResponses[0].createPreview).toBe(true);
+    expect(parsed.chatResponses[1].vf_title).toBe("Trend");
+    expect(parsed.chatResponses[1].createPreview).toBe(false);
   });
 });
 
@@ -506,6 +551,40 @@ describe("buildInstantBIInteractiveChatFormData", () => {
       input: "Show sales",
       chatid: "chat-1",
       chat_sequence_id: 2,
+    });
+  });
+
+  it("should include mode when provided", () => {
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Why is travel cost high?",
+        chatId: "chat-1",
+        chatSequenceId: 2,
+        mode: "think",
+      })
+    ).toEqual({
+      input: "Why is travel cost high?",
+      chatid: "chat-1",
+      chat_sequence_id: 2,
+      mode: "think",
+      show_llm_activity_details: true,
+    });
+  });
+
+  it("should send auto mode with activity details", () => {
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Total travel cost",
+        chatId: "chat-1",
+        chatSequenceId: 2,
+        mode: "auto",
+      })
+    ).toEqual({
+      input: "Total travel cost",
+      chatid: "chat-1",
+      chat_sequence_id: 2,
+      mode: "auto",
+      show_llm_activity_details: true,
     });
   });
 });

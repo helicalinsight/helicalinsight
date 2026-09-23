@@ -1,4 +1,9 @@
-"""LangChain tool registry for the InstantBI dashboard agent."""
+"""LangChain tool registry for the InstantBI dashboard agent.
+
+Tool wrappers use @tool(description=...) rather than relying on function
+docstrings, because production Nuitka builds strip __doc__ via
+--python-flag=no_docstrings.
+"""
 from __future__ import annotations
 
 from typing import List, Optional, Sequence

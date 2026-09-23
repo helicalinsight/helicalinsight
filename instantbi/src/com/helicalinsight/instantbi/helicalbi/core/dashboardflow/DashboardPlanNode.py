@@ -61,6 +61,20 @@ class DashboardPlanNode:
             planned_template = str(state.get("templateId") or "").strip()
             state["templateId"] = planned_template or dumped.get("templateId") or "analytical-grid"
             state["theme"] = theme if isinstance(theme, dict) else fallback_theme
+            state["title"] = str(
+                dumped.get("title") or state.get("user_query") or state.get("title") or ""
+            ).strip()
+            header = dumped.get("header") if isinstance(dumped.get("header"), dict) else {}
+            if not str(header.get("title") or "").strip() and state["title"]:
+                header = {
+                    **header,
+                    "enable": True,
+                    "title": state["title"],
+                    "backgroundColor": str(header.get("backgroundColor") or "#000000"),
+                }
+            state["header"] = header
+            parameters = dumped.get("parameters")
+            state["parameters"] = parameters if isinstance(parameters, dict) else {}
             state["layout_plan"] = str(dumped.get("layout_plan") or "")
             state["summary"] = {
                 "title": str(dumped.get("summary_title") or title),
@@ -70,6 +84,13 @@ class DashboardPlanNode:
             logger.exception("Dashboard plan LLM failed; using chat summaries")
             state["templateId"] = state.get("templateId") or "analytical-grid"
             state["theme"] = state.get("theme") or fallback_theme
+            state["title"] = str(state.get("user_query") or state.get("title") or "").strip()
+            state["header"] = {
+                "enable": bool(state["title"]),
+                "title": state["title"],
+                "backgroundColor": "#000000",
+            }
+            state["parameters"] = state.get("parameters") or {}
             state["layout_plan"] = "Place a summary banner at the top, then filters and KPIs, then charts."
             state["summary"] = {"title": title, "text": text}
         return state

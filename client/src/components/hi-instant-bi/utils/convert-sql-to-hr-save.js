@@ -4,6 +4,7 @@ import { getUpdatedColorProperties } from "../../hi-reports/hi-editing-area/util
 import { getSaveData } from "../../hi-reports/utils/base";
 import { add_column, add_filter, add_mark, add_row } from "../../hi-reports/utils/utilities";
 import { getIntialReportState } from "../../../redux/reducers/initialStates";
+import { resolveHreportSelectedType } from "../../bridges/hreport/viz-type-map";
 
 export const CONVERT_HREPORT_STORAGE_KEY = "convertHreportInfo";
 
@@ -31,14 +32,6 @@ const CHART_NAME_TO_MARK_VIZ = {
   grid_table: { mark: "Grid Table", viz: "" },
 };
 
-const MARK_TO_SELECTED_TYPE = {
-  table: "Table",
-  chart: "Antcharts",
-  card: "Card",
-  maps: "MapChart",
-  "grid table": "SyncChart",
-  "grid chart": "GridChart",
-};
 
 const noopDispatch = () => {};
 
@@ -254,7 +247,7 @@ export const mapVizToHelical = (viz = {}) => {
     mark = CHART_NAME_TO_MARK_VIZ[chartName].mark;
     child = child || CHART_NAME_TO_MARK_VIZ[chartName].viz;
   }
-  const selectedType = MARK_TO_SELECTED_TYPE[mark.toLowerCase()] || "Table";
+  const selectedType = resolveHreportSelectedType(mark) || "Table";
   const subVizType = child ? child.toLowerCase() : "";
   return { selectedType, subVizType, mark, viz: child };
 };
@@ -587,8 +580,42 @@ export const consumeConvertDashboardSeed = () => {
   return null;
 };
 
-const applyColumns = (report, columns, dispatch) => {
+const inferGeographicType = (name = "", roles = {}) => {
+  const text = String(name || "").trim();
+  if (!text) return "";
+  const fromRoles = roles[text] || roles[text.toLowerCase()];
+  if (fromRoles) return String(fromRoles).trim();
+  const lower = text.toLowerCase();
+  if (/\b(lat|latitude)\b/.test(lower) || /(^|_)lat($|_)/.test(lower)) return "lat";
+  if (/\b(lon|lng|long|longitude)\b/.test(lower) || /(^|_)lon(g)?($|_)/.test(lower)) return "long";
+  if (/\b(city|cities)\b/.test(lower)) return "city";
+  if (/\b(state|province|states|provinces)\b/.test(lower)) return "state";
+  if (/\b(country|countries)\b/.test(lower)) return "country";
+  if (/\bworld\b/.test(lower)) return "world";
+  return "";
+};
+
+const applyGeographicTypeToField = (field, item, roles = {}, isMap = false) => {
+  if (!field) return;
+  const fromItem = String(item?.geographicType || item?.geographic_type || "").trim();
+  if (fromItem) {
+    field.geographicType = fromItem;
+    return;
+  }
+  if (!isMap) return;
+  const inferred = inferGeographicType(
+    item?.alias || item?.column || field?.label || field?.metaDataAlias || "",
+    roles
+  );
+  if (inferred) {
+    field.geographicType = inferred;
+  }
+};
+
+const applyColumns = (report, columns, dispatch, options = {}) => {
   const items = columns || [];
+  const roles = options.geographicRoles || {};
+  const isMap = Boolean(options.isMap);
   const hasAggregate = items.some((item) =>
     isAggregateFunction(functionKey(item.databaseFunction))
   );
@@ -604,6 +631,7 @@ const applyColumns = (report, columns, dispatch) => {
         payload.defaultFunction = fnKey;
       }
       add_column(payload, report, dispatch);
+      applyGeographicTypeToField(lastField(report), item, roles, isMap);
       return;
     }
     if (isSqlFunction(fnKey)) {
@@ -616,6 +644,7 @@ const applyColumns = (report, columns, dispatch) => {
           field.floatingType = "";
         }
       }
+      applyGeographicTypeToField(field, item, roles, isMap);
       return;
     }
     if (isGroupByFunction(fnKey) || hasAggregate) {
@@ -624,6 +653,7 @@ const applyColumns = (report, columns, dispatch) => {
       payload.defaultFunction = fnKey;
     }
     add_row(payload, report, dispatch);
+    applyGeographicTypeToField(lastField(report), item, roles, isMap);
   });
   ensureGroupByForAggregates(report);
 };
@@ -782,7 +812,10 @@ export const buildHrReportFromParts = (payload = {}, dispatch = noopDispatch) =>
     report.reportInfo = { ...report.reportInfo, ...reportInfo };
   }
 
-  applyColumns(report, columns, dispatch);
+  const mappedViz = mapVizToHelical(viz || {});
+  const isMap = mappedViz.selectedType === "MapChart";
+  const geographicRoles = (viz && (viz.geographicRoles || viz.geographic_roles)) || {};
+  applyColumns(report, columns, dispatch, { isMap, geographicRoles });
   applyFilters(report, filters, dispatch);
   applyOrderBy(report, orderBy);
   applyColorMark(report, viz, columns, dispatch);

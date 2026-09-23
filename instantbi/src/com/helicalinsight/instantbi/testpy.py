@@ -86,10 +86,11 @@ class HiEeApiClient:
     ) -> dict | None:
 
         payload = {
-            "input": "Where are we spending too much on travel, and how can we reduce the cost?",
-            "dashboardid": "0b4036ab-08f9-4d3c-8bea-144ddb928c98",
-            "dashboard_sequence_id": "13",
-            "subject": "eyJtb2RlbCI6eyJmaWxlIjoiYWlnZW4ubW9kZWwiLCJkaXIiOiIwMDA3In19",
+            #"input": "Why my sales are dropping or  increasing for last quater as compared to first quarter",
+            "input": "execute plan",
+            "dashboardid": "0b4036ab-08f9-4d3c-8bea-144ddb928c",
+            "dashboard_sequence_id": "2",
+            "subject": "eyJtb2RlbCI6eyJmaWxlIjoiVHJhdmxlX0FnZW50Lm1vZGVsIiwiZGlyIjoiMDgwNiJ9fQ",
             "requestId": request_id or str(uuid.uuid4()),
         }
         return self.call_service(payload)

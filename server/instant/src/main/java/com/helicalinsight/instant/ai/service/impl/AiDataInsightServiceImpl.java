@@ -17,6 +17,7 @@ import com.helicalinsight.instant.ai.payload.DataInsightPayload;
 import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
+import com.helicalinsight.instant.ai.util.InstantBIStreamSession;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 @Service(InstantBIServiceFactory.DATA_INSIGHT_SERVICE)
 public class AiDataInsightServiceImpl implements IInstantBIService {
@@ -44,7 +46,7 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
         String subjectString = payload.getSubjectString();
         String downstreamEndpoint = payload.getDownstreamEndpoint();
         try {
-            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () -> {
+            Callable<JsonObject> bodyPreparer = () -> {
                 JsonObject js = new JsonObject();
                 JsonObject userInput = new JsonObject();
 
@@ -85,7 +87,14 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
 
                 js.add("input", userInput);
                 return js;
-            }, downstreamEndpoint);
+            };
+            if (InstantBIUtils.isStreamResponseEnabled() && "/data-insight".equals(downstreamEndpoint)) {
+                new InstantBIStreamSession(response, InstantBIUtils.resolveRequestId(request))
+                        .forwardFromPython(downstreamEndpoint, bodyPreparer.call());
+                return;
+            }
+            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(
+                    request, bodyPreparer, downstreamEndpoint);
             JsonObject responseObject = "/instant-to-hr".equals(downstreamEndpoint)
                     ? InstantBIUtils.prepareConvertHreportResponse(botResponse)
                     : InstantBIUtils.prepareDataInsightResponse(botResponse);

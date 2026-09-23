@@ -1,5 +1,6 @@
-import { instantBIPostRequest, postRequest } from "../service";
+import { instantBIPostRequest, instantBIStreamPostRequest, postRequest } from "../service";
 import Base64 from "../utils/Base64";
+import InstantBIStreamHandler from "../../components/hi-instant-bi/utils/instant-bi-stream-handler";
 
 export const uriConfig = {
   //     service:getDerivedFormdata
@@ -12,14 +13,15 @@ export const uriConfig = {
   adhocInstantSaveReport: "instantbi/instant/saveReport",
   adhocInstantGetReportForEdit: "instantbi/instant/getReportForEdit",
   adhocInstantGetReport: "instantbi/instant/getReport",
-  agentGenerate:"instantbi/instant/generateAgent",
-  agentSave:"instantbi/instant/saveAiAgent",
-  agentEdit:"instantbi/instant/getAiAgentForEdit",
+  agentGenerate: "instantbi/instant/generateAgent",
+  agentSave: "instantbi/instant/saveAiAgent",
+  agentEdit: "instantbi/instant/getAiAgentForEdit",
   // instantBIChat: "ai/chat",
   instantBIChat: "ai/interactive-chat",
-  instantLoadChat:"ai/load-chat",
-  instantDataInsight:"ai/data-insight",
+  instantLoadChat: "ai/load-chat",
+  instantDataInsight: "ai/data-insight",
   instantConvertChart: "ai/convert-chart",
+  instantConvertDashboard: "ai/convert-dashboard",
   instantListCharts: "ai/list-charts",
   instantBIDomain: "ai/recommendation/domain",
   instantBIRecommendation: "ai/recommendation/analyst",
@@ -29,6 +31,41 @@ export const uriConfig = {
   instantBISettingsModels: "ai/settings/models",
 };
 
+function wantsStream(dispatch) {
+  let streamResponse = false;
+  dispatch((_, getState) => {
+    streamResponse = Boolean(getState().app.applicationSettingsData?.streamResponse);
+  });
+  return streamResponse;
+}
+
+function postInstantBIMaybeStream(dispatch, uri, formData, callback, errback, onProgress) {
+  const streamable = [
+    uriConfig.instantBIChat,
+    uriConfig.instantDataInsight,
+    uriConfig.instantConvertDashboard,
+  ].includes(uri);
+  if (!wantsStream(dispatch) || !streamable) {
+    return instantBIPostRequest(dispatch, uri, formData, callback, errback);
+  }
+  const handler = new InstantBIStreamHandler({
+    onProgress,
+    onComplete: callback,
+    onError: (payload) => {
+      if (typeof errback === "function") {
+        errback(payload);
+      }
+    },
+  });
+  return instantBIStreamPostRequest(
+    dispatch,
+    uri,
+    formData,
+    (chunk) => handler.handleChunk(chunk),
+    errback,
+  );
+}
+
 function instantBI(dispatch) {
   const postInstantBIRequest = ({
     formData,
@@ -36,7 +73,7 @@ function instantBI(dispatch) {
     callback = () => { },
     errback = () => { },
   }) => {
-   return postRequest(dispatch, uri, formData, callback, errback);
+    return postRequest(dispatch, uri, formData, callback, errback);
   };
   const getMetadata = ({
     formData,
@@ -92,6 +129,7 @@ function instantBI(dispatch) {
     uri,
     callback = () => { },
     errback = () => { },
+    onProgress,
   }) => {
     let { subject = null, formData: nestedFormData = null } = formData || {}
     if (subject) {
@@ -102,7 +140,33 @@ function instantBI(dispatch) {
       nestedFormData = Base64.encode(JSON.stringify(nestedFormData))
       formData = { ...formData, formData: nestedFormData }
     }
-    return instantBIPostRequest(dispatch, uri, formData, callback, errback);
+    return postInstantBIMaybeStream(dispatch, uri, formData, callback, errback, onProgress);
+  }
+
+  const instantBIConvertDashboardRequest = ({
+    formData,
+    uri,
+    callback = () => { },
+    errback = () => { },
+    onProgress,
+  }) => {
+    let { subject = null, items = null } = formData || {};
+    if (subject && typeof subject !== "string") {
+      subject = Base64.encode(JSON.stringify(subject));
+      formData = { ...formData, subject };
+    }
+    if (items && typeof items !== "string") {
+      items = Base64.encode(JSON.stringify(items));
+      formData = { ...formData, items };
+    }
+    return postInstantBIMaybeStream(
+      dispatch,
+      uri || uriConfig.instantConvertDashboard,
+      formData,
+      callback,
+      errback,
+      onProgress,
+    );
   }
 
   const instantBILoadChatRequest = ({
@@ -110,13 +174,14 @@ function instantBI(dispatch) {
     uri,
     callback = () => { },
     errback = () => { },
+    onProgress,
   }) => {
     let { formData: nestedFormData = null } = formData || {}
     if (nestedFormData) {
       nestedFormData = Base64.encode(JSON.stringify(nestedFormData))
       formData = { ...formData, formData: nestedFormData }
     }
-    return instantBIPostRequest(dispatch, uri, formData, callback, errback);
+    return postInstantBIMaybeStream(dispatch, uri, formData, callback, errback, onProgress);
   }
 
   const instantBIFetchDomain = ({
@@ -180,6 +245,7 @@ function instantBI(dispatch) {
     // postDashboardRequestForUrl,
     instantBIChatRequest,
     instantBILoadChatRequest,
+    instantBIConvertDashboardRequest,
     instantBIFetchDomain,
     instantBIFetchRecommendation,
     instantBIConvertChartRequest,

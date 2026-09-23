@@ -87,8 +87,13 @@ public class ApplicationDefaultUsersInitializer implements ApplicationValuesInit
             if (userCount != null && userCount > 0) {
                 logger.info("Users already exist in DB. Skipping initialization.");
 
-                //  IMPORTANT: cleanup temp lock
-                tempFile.delete();
+                // Persist lock so later boots stay consistent and do not re-seed
+                // if the user table is later emptied while the lock is missing.
+                boolean renamed = tempFile.renameTo(lockFile);
+                if (!renamed) {
+                    tempFile.delete();
+                    throw new RuntimeException("Failed to rename temp lock to final lock");
+                }
                 return;
             }
 

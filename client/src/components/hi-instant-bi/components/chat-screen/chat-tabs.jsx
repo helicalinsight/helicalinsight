@@ -7,9 +7,12 @@ import {
     FileTextOutlined,
     FilterOutlined,
     FullscreenOutlined,
+    HistoryOutlined,
+    AppstoreOutlined,
+    ClusterOutlined,
     InfoCircleOutlined
 } from "@ant-design/icons"
-import { Button, Divider, Drawer, Popover, Tabs, Typography } from 'antd'
+import { Button, Drawer, Popover, Tabs, Typography } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { useSelector } from "react-redux"
@@ -20,11 +23,12 @@ import LoadingBar from '../../../common/components/hi-loading-bar'
 import ChartIcon from "../../../common/icons/chart-icons"
 import "../../components/ib-chart-preferences.scss"
 import InstantBITooltip from '../../instant-bi-tooltip-title'
-import CommonMarkdownTable from '../../utils/common-markdown-table'
 import { getHReportSelectedChartType } from "../../utils/common-utils"
 import InstantBIResponseMetadata from '../instant-bi-response-metadata'
 import AISparklesIcon from './ai-sparkles-icon'
+import ChatTypingText from "./chat-typing-text"
 import InstantChartView from "./chart-view"
+import WorkBehindIcon from "./work-behind-icon"
 import { JsonEditorPanel } from "../../../common/json-editor"
 import { cloneDeep } from "lodash"
 
@@ -172,12 +176,16 @@ const PreviewTab = (props = {}) => {
         resolvedFullChatResponse,
         fullChatResponse,
         isLoadingDataInsight,
+        dataInsightTrail,
         dataInsightContent,
         handleAbortDataInsight,
         hasDataInsightTokens,
         dataInsightTokens,
         dispatch,
-        activeReport
+        activeReport,
+        previewPlaceholder = null,
+        isPreviewLoading = false,
+        previewActivityTrail = [],
     } = props || {};
 
     const editingAreaRef = useRef(null);
@@ -211,6 +219,26 @@ const PreviewTab = (props = {}) => {
 
     const changeActiveReport = () => {
         dispatch(changeReport({ id: hreportId }));
+    }
+
+    if (!hreportId) {
+        return (
+            <div className="chart-preview-section chart-preview-section--empty">
+                {isPreviewLoading ? (
+                    <WorkBehindIcon
+                        active
+                        lines={previewActivityTrail}
+                        fallback="Preparing visualization…"
+                        title="Preview"
+                        testId="ib-think-preview-loading"
+                    />
+                ) : (
+                    previewPlaceholder || (
+                        <Text type="secondary">Select Preview to load the visualization.</Text>
+                    )
+                )}
+            </div>
+        );
     }
 
     return (
@@ -278,7 +306,11 @@ const PreviewTab = (props = {}) => {
                             data-testid="ib-data-insight-loading-bar"
                         >
                             <LoadingBar handleClick={handleAbortDataInsight} />
-                            <Text type="secondary">Preparing your explanation…</Text>
+                            <ChatTypingText
+                              lines={dataInsightTrail}
+                              fallback="Preparing your explanation…"
+                              active={isLoadingDataInsight}
+                            />
                         </div>
                     ) : (
                         <div className="message-container__data-insight-body">
@@ -296,22 +328,11 @@ const PreviewTab = (props = {}) => {
     )
 }
 
-const DataTab = (props = {}) => {
-    const { resolvedData } = props || {}
-    return (
-        <div className="message-container__bot-data-renderer">
-            <CommonMarkdownTable data={resolvedData || []} />
-        </div>
-    )
-}
-
 const SemanticTab = (props = {}) => {
     const {
-        activeTab,
         sqlDetails,
         vizDetails,
         tokenUsage,
-        resolvedData
     } = props || {}
     return (
         <div className="json-data-viewer">
@@ -324,13 +345,44 @@ const SemanticTab = (props = {}) => {
     )
 }
 
+const JsonTab = ({ value, emptyLabel = "No data available." }) => {
+    const hasValue = value != null && !(typeof value === "object" && !Object.keys(value || {}).length);
+    if (!hasValue) {
+        return <Text type="secondary">{emptyLabel}</Text>;
+    }
+    const text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    return (
+        <div style={{ height: 500 }} className="ib-json-tab">
+            <JsonEditorPanel value={text} active={false} />
+        </div>
+    );
+};
+
 const SQLTab = (props = {}) => {
     const {
         resolvedSql,
         handleCopySQL,
         fullChatResponse = {},
+        showDashboardTab = false,
+        showActivityDetailsTab = false,
+        dashboardModel = null,
+        llmActivityDetails = null,
     } = props || {}
     const [activeTab, setActiveTab] = useState("sql");
+    const jsonViews = {
+        spec: {
+            value: { report_model: fullChatResponse?.report_model || {} },
+            emptyLabel: "No report model available.",
+        },
+        dashboard: {
+            value: dashboardModel,
+            emptyLabel: "No dashboard model available.",
+        },
+        activity: {
+            value: llmActivityDetails,
+            emptyLabel: "No LLM activity details available.",
+        },
+    };
 
     function displaySQL() {
         return (
@@ -370,34 +422,143 @@ const SQLTab = (props = {}) => {
                     onClick={() => setActiveTab("spec")}
                 />
             </InstantBITooltip>
+            {showDashboardTab ? (
+                <InstantBITooltip title="Dashboard Model">
+                    <Button
+                        size="small"
+                        type="text"
+                        className="chart-preview-section__spec-button"
+                        icon={<AppstoreOutlined />}
+                        onClick={() => setActiveTab("dashboard")}
+                    />
+                </InstantBITooltip>
+            ) : null}
+            {showActivityDetailsTab ? (
+                <InstantBITooltip title="Activity Details">
+                    <Button
+                        size="small"
+                        type="text"
+                        className="chart-preview-section__spec-button"
+                        icon={<ClusterOutlined />}
+                        onClick={() => setActiveTab("activity")}
+                    />
+                </InstantBITooltip>
+            ) : null}
             {activeTab === "sql" && displaySQL()}
-            {activeTab === "spec" && (
-                <div style={{ height: 500 }}>
-
-                    <JsonEditorPanel value={JSON.stringify({ report_model: fullChatResponse?.report_model || {} }, null, 2)} active={false} />
-                </div>
-            )}
+            {jsonViews[activeTab] ? <JsonTab {...jsonViews[activeTab]} /> : null}
         </div>
     )
 }
+
+const WorkingTab = (props = {}) => {
+    const {
+        workingLines = [],
+        workingActive = false,
+        workingQuestion = "",
+        workingFallback = "Working on this…",
+    } = props || {};
+    const lines = Array.isArray(workingLines) ? workingLines.filter(Boolean) : [];
+    if (!lines.length && !workingActive) {
+        return <Text type="secondary">No workings recorded for this step.</Text>;
+    }
+    return (
+        <div className="ib-working-tab" data-testid="ib-working-tab">
+            <div className="ib-working-tab__heading">Working</div>
+            <div className="ib-working-tab__body">
+                {lines.length ? (
+                    lines.map((line, index) => {
+                        const text = String(line || "").trim();
+                        if (!text) return null;
+                        const isLast = index === lines.length - 1;
+                        if (workingActive && isLast) {
+                            return (
+                                <p key={`${index}-${text.slice(0, 24)}`} className="ib-working-tab__p">
+                                    <ChatTypingText
+                                        lines={[text]}
+                                        question={workingQuestion}
+                                        fallback={workingFallback}
+                                        active
+                                    />
+                                </p>
+                            );
+                        }
+                        return (
+                            <p key={`${index}-${text.slice(0, 24)}`} className="ib-working-tab__p">
+                                {text}
+                            </p>
+                        );
+                    })
+                ) : (
+                    <p className="ib-working-tab__p ib-working-tab__p--muted">{workingFallback}</p>
+                )}
+            </div>
+        </div>
+    );
+};
 
 const getTitle = (icon, title = "") => {
     return (<InstantBITooltip title={title}>{icon}</InstantBITooltip>)
 }
 
 const ChatTabs = (props = {}) => {
-    const [activeTab, setActiveTab] = useState("preview");
-    const { hasMessage, showMaximizeButton, isMaximized, setIsMaximized } = props || {}
+    const {
+        hasMessage,
+        showMaximizeButton,
+        setIsMaximized,
+        defaultTab,
+        semanticLabel = "Semantic",
+        showWorkingTab = false,
+        onTabChange,
+        onPreviewActivate,
+        previewFirst = true,
+    } = props || {};
+    const initialTab = defaultTab || (previewFirst ? "preview" : "semantic");
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    useEffect(() => {
+        if (defaultTab) {
+            setActiveTab(defaultTab);
+        }
+    }, [defaultTab]);
+
+    const handleTabChange = (active) => {
+        if (active === "maximize") {
+            setIsMaximized?.(true);
+            return;
+        }
+        setActiveTab(active);
+        onTabChange?.(active);
+        if (active === "preview") {
+            onPreviewActivate?.();
+        }
+    };
+
+    const semanticPane = (
+        <Tabs.TabPane tab={getTitle(<DatabaseOutlined />, semanticLabel)} key="semantic">
+            <SemanticTab {...props} />
+        </Tabs.TabPane>
+    );
+    const previewPane = (
+        <Tabs.TabPane tab={getTitle(<EyeOutlined />, "Preview")} key="preview">
+            <PreviewTab {...props} setActiveTab={setActiveTab} />
+        </Tabs.TabPane>
+    );
+    const sqlPane = (
+        <Tabs.TabPane tab={getTitle(<ConsoleSqlOutlined />, "SQL")} key="sql">
+            <SQLTab {...props} />
+        </Tabs.TabPane>
+    );
+    const workingPane = showWorkingTab ? (
+        <Tabs.TabPane tab={getTitle(<HistoryOutlined />, "Working")} key="working">
+            <WorkingTab {...props} />
+        </Tabs.TabPane>
+    ) : null;
+
     return (
         <Tabs
+            className="ib-icon-tabs"
             activeKey={activeTab}
-            onChange={(active) => {
-                if (active === "maximize") {
-                    setIsMaximized(true);
-                    return;
-                }
-                setActiveTab(active);
-            }}
+            onChange={handleTabChange}
         >
             {
                 (hasMessage && showMaximizeButton) &&
@@ -405,19 +566,24 @@ const ChatTabs = (props = {}) => {
                     {null}
                 </Tabs.TabPane>
             }
-            <Tabs.TabPane tab={getTitle(<EyeOutlined />, "Preview")} key="preview">
-                <PreviewTab {...props} setActiveTab={setActiveTab} />
-            </Tabs.TabPane>
-
-            <Tabs.TabPane tab={getTitle(<DatabaseOutlined />, "Semantic")} key="semantic">
-                <SemanticTab {...props} />
-            </Tabs.TabPane>
-
-            <Tabs.TabPane tab={getTitle(<ConsoleSqlOutlined />, "SQL")} key="sql">
-                <SQLTab {...props} />
-            </Tabs.TabPane>
+            {previewFirst ? (
+                <>
+                    {previewPane}
+                    {semanticPane}
+                    {sqlPane}
+                    {workingPane}
+                </>
+            ) : (
+                <>
+                    {semanticPane}
+                    {previewPane}
+                    {sqlPane}
+                    {workingPane}
+                </>
+            )}
         </Tabs>
     )
 }
 
+export { JsonTab };
 export default ChatTabs

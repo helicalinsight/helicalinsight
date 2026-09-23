@@ -3,7 +3,7 @@ import logging
 import traceback
 from typing import Any, List, Optional, Tuple
 
-from flask import request
+from flask import has_request_context, request
 
 from helicalbi.common.ErrorMessages import extract_message_from_stack_trace
 from helicalbi.common import app_config
@@ -91,6 +91,43 @@ def resolve_sql_from_request(
         chat_seq_id,
     )
     return ""
+
+
+def as_request_bool(value: Any, default: bool = True) -> bool:
+    """Parse a query/JSON flag. Unrecognized values keep ``default``."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y", "on"}:
+        return True
+    if text in {"false", "0", "no", "n", "off"}:
+        return False
+    return default
+
+
+def resolve_rm_cols_in_filter(
+    data: Optional[dict] = None,
+    user_input: Optional[dict] = None,
+    *,
+    default: Optional[bool] = None,
+) -> bool:
+    """Whether to drop SELECT columns that also appear in WHERE/HAVING.
+
+    Request query/JSON ``rm_cols_in_filter`` overrides
+    ``application_config.yaml`` ``feature_flags.rm_cols_in_filter`` (default True).
+    """
+    if default is None:
+        default = bool(getattr(app_config, "rm_cols_in_filter", True))
+    if has_request_context() and "rm_cols_in_filter" in request.args:
+        return as_request_bool(request.args.get("rm_cols_in_filter"), default)
+    for source in (data or {}, user_input or {}):
+        if isinstance(source, dict) and "rm_cols_in_filter" in source:
+            return as_request_bool(source.get("rm_cols_in_filter"), default)
+    return default
 
 
 def resolve_request_id(data: Optional[dict] = None, user_input: Optional[dict] = None) -> Optional[str]:

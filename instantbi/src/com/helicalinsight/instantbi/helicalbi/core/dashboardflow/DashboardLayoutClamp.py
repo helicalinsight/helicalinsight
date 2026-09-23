@@ -17,9 +17,17 @@ class DashboardLayoutClamp:
             "filters": state.get("filters"),
             "layout": state.get("layout"),
             "decorations": state.get("decorations") or [],
+            "title": state.get("title") or state.get("user_query") or "",
+            "header": state.get("header") or {},
+            "parameters": state.get("parameters") or {},
+            "variables": state.get("variables") or {},
         }
         clamped = apply_decision(items, decision)
         state["theme"] = clamped["theme"]
+        state["title"] = clamped.get("title") or ""
+        state["header"] = clamped.get("header") or {}
+        state["parameters"] = clamped.get("parameters") or {}
+        state["variables"] = clamped.get("variables") or {}
         state["items"] = clamped.get("items") or items
         state["summary"] = clamped.get("summary") or {}
         state["sections"] = clamped.get("sections") or []

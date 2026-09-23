@@ -260,7 +260,7 @@ const axiosPost = (
   return hiAxios;
 };
 
-export const getRequest = (dispatch, url, data, successCB, errorCB) => {
+export const getRequest = (dispatch, url, data, successCB, errorCB, returnRaw = false) => {
   // if (process.env.NODE_ENV === "development") {
   //   data.j_password = "hiadmin";
   //   data.j_username = "hiadmin";
@@ -278,6 +278,11 @@ export const getRequest = (dispatch, url, data, successCB, errorCB) => {
       // typeof successCB == "function" && successCB(data);
 
       let data = res.data;
+
+      if(returnRaw && typeof successCB == "function") {
+        return successCB(data);
+      }
+
       if (typeof res.data === "string") {
         try {
           data = JSON.parse(res.data);
@@ -558,6 +563,36 @@ export const instantBIPostRequest = function (
   }
   let options = { ...formData, requestId };
   return axiosPost(dispatch, url, qs.stringify(options), callback, errback);
+};
+
+export const instantBIStreamPostRequest = function (
+  dispatch,
+  url,
+  formData,
+  onChunk,
+  errback,
+) {
+  let requestId;
+  if (formData.hasOwnProperty("requestId")) {
+    requestId = formData.requestId;
+    delete formData["requestId"];
+  }
+  if (formData["htmlId"]) {
+    delete formData["htmlId"];
+  }
+  const hiStreamClient = new HIStreamClient({ dispatch });
+  requestId = requestId || hiStreamClient.getReqId();
+  let data = { ...formData, requestId };
+  if (typeof data === "object") {
+    data = qs.stringify(data);
+  }
+  const reqURL = hiStreamClient.getReqURL(url);
+  hiStreamClient
+    .post(reqURL, data, {
+      onChunk,
+    })
+    .catch((error) => typeof errback === "function" && errback(error));
+  return hiStreamClient;
 };
 
 export const streamPostRequest = function (

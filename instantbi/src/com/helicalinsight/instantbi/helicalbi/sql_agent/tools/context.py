@@ -62,7 +62,8 @@ class AgentToolContext:
 
     def next_seq(self) -> str:
         step = len(self.state.get("collected_data") or []) + 1
-        return f"{self.state.get('chat_seq_id') or '1'}-{step}"
+        parent = str(self.state.get("chat_seq_id") or "1").strip() or "1"
+        return f"{parent}-{step}"
 
     def unique_seq(self) -> str:
         """Prefer the seq from generate_sql, but never reuse one already collected."""

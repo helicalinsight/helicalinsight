@@ -75,11 +75,12 @@ def fetch_service_api(*, session_cookie: str, service_json: dict) -> dict:
     if session_cookie:
         session.cookies.set("JSESSIONID", session_cookie)
     try:
-        forwarded_headers = downstream_request_headers()
+        forwarded_headers = dict(downstream_request_headers())
+        forwarded_headers["Accept"] = "application/json"
         api_response = session.post(
             api_url,
             data=service_json,
-            headers=forwarded_headers or None,
+            headers=forwarded_headers,
             verify=False,
         )
     except requests.RequestException:

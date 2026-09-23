@@ -9,6 +9,7 @@ import com.helicalinsight.cache.model.Cache;
 import com.helicalinsight.cache.service.CacheService;
 import com.helicalinsight.cache.store.ApplicationCacheStore;
 import com.helicalinsight.datasource.GsonUtility;
+import com.helicalinsight.datasource.managed.ResultSetCacheTypeConversion;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.resourceprocessor.IProcessor;
@@ -24,7 +25,9 @@ import jakarta.annotation.PostConstruct;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 /**
  * its an common class or utility  for cacheHelper
  * The {@code @Component("cacheUtils")} annotation is used to mark a class as a Spring bean/component and bean name is cacheUtils.
@@ -241,7 +244,44 @@ public class CacheUtils {
 
 		cacheExpireDuration = Long.parseLong(cacheXmlJson.get("cacheExpireDuration").getAsString());
 		durationUnit = cacheXmlJson.get("durationUnit").getAsString();
+		ResultSetCacheTypeConversion.configure(parseTypeConversion(cacheXmlJson));
+	}
 
+	
+	public static Map<String, String> parseTypeConversion(JsonObject cacheJson) {
+		Map<String, String> map = new HashMap<>();
+		if (cacheJson == null || !cacheJson.has("typeConversion")) {
+			return map;
+		}
+		try {
+			JsonObject typeConversion = cacheJson.getAsJsonObject("typeConversion");
+			JsonElement typeEl = typeConversion.get("type");
+			if (typeEl == null || typeEl.isJsonNull()) {
+				return map;
+			}
+			if (typeEl.isJsonArray()) {
+				for (JsonElement el : typeEl.getAsJsonArray()) {
+					addTypeConversionEntry(map, el.getAsJsonObject());
+				}
+			} else if (typeEl.isJsonObject()) {
+				addTypeConversionEntry(map, typeEl.getAsJsonObject());
+			}
+		} catch (Exception e) {
+			logger.warn("Failed to parse typeConversion from cache.xml", e);
+		}
+		return map;
+	}
+
+	private static void addTypeConversionEntry(Map<String, String> map, JsonObject type) {
+		String from = GsonUtility.optStringValue(type, "from", null);
+		String to = GsonUtility.optStringValue(type, "to", null);
+		if (from != null && to != null && !from.isEmpty() && !to.isEmpty()) {
+			map.put(from, to);
+		}
+	}
+
+	public static Map<String, String> getTypeConversionMap() {
+		return parseTypeConversion(cacheXmlJson);
 	}
 	
 	@PostConstruct

@@ -67,8 +67,11 @@ def test_resolve_persona_from_role_and_profile():
 def test_decision_tree_picks_one_strategy():
     from helicalbi.sql_agent.strategy_tree import (
         classify_intent,
+        clear_strategy_catalog_cache,
         select_strategy,
     )
+
+    clear_strategy_catalog_cache()
 
     ceo = resolve_persona(["CEO"])
     revenue = select_strategy("Are we meeting our monthly revenue targets?", persona=ceo)
@@ -89,6 +92,15 @@ def test_decision_tree_picks_one_strategy():
     tactical = resolve_persona(["Product Owner"])
     margins = select_strategy("What factors are squeezing our profit margins?", persona=tactical)
     assert margins["id"] == STRATEGY_MECE
+
+    qoq = (
+        "Why my sales are dropping or increasing for last quarter "
+        "as compared to first quarter"
+    )
+    assert classify_intent(qoq) == "compare"
+    qoq_plan = select_strategy(qoq, persona=tactical)
+    assert qoq_plan["id"] == STRATEGY_PROGRESSIVE_DISCLOSURE
+    assert qoq_plan["selection"]["intent"] == "compare"
 
     forced = select_strategy("any question", persona=ceo, hint="mece_metric_structuring")
     assert forced["id"] == STRATEGY_MECE
@@ -204,20 +216,33 @@ def test_plan_prompt_allows_similar_line_adaptation():
     from helicalbi.sql_agent.config import CONTEXT_PLAN_PROMPT
 
     assert "{strategy_catalog}" in CONTEXT_PLAN_PROMPT
-    assert "closest equivalent" in CONTEXT_PLAN_PROMPT
+    assert "{grounding_pack}" in CONTEXT_PLAN_PROMPT
+    assert "semantic model" in CONTEXT_PLAN_PROMPT.lower()
     assert "poor fit" in CONTEXT_PLAN_PROMPT
-    assert "reference only" in CONTEXT_PLAN_PROMPT
+    assert "structural only" in CONTEXT_PLAN_PROMPT
     assert "Never copy" in CONTEXT_PLAN_PROMPT
+    assert "average order value" in CONTEXT_PLAN_PROMPT.lower()
+    assert "measure_hints" in CONTEXT_PLAN_PROMPT
+    assert "Think across relations" in CONTEXT_PLAN_PROMPT
+    assert "same-table" in CONTEXT_PLAN_PROMPT
 
 
 def test_strategy_prompt_omits_question_templates():
-    from helicalbi.sql_agent.strategy_tree import get_strategy, strategy_prompt_block
+    from helicalbi.sql_agent.strategy_tree import (
+        clear_strategy_catalog_cache,
+        get_strategy,
+        strategy_prompt_block,
+    )
 
+    clear_strategy_catalog_cache()
     block = strategy_prompt_block(get_strategy(STRATEGY_MECE))
     assert "Layout template name: analytical-grid" in block
     assert "question_template" not in block
     assert "What is the primary outcome KPI for:" not in block
     assert "{question}" not in block
+    assert "Independent drivers" not in block
+    assert "band=" in block
+    assert "viz=" in block
 
 
 def test_build_investigation_plan_falls_back_when_llm_fails(monkeypatch):
@@ -244,17 +269,32 @@ def test_plan_memory_round_trip():
 
 
 def test_create_and_store_plan(monkeypatch):
+    from helicalbi.sql_agent.nodes.investigation_planner import fallback_investigation_plan as fb
+
+    def _fake_graph(question, **kwargs):
+        plan = fb(
+            question,
+            persona=kwargs["persona"],
+            max_charts=kwargs["max_charts"],
+            strategy=kwargs.get("strategy"),
+        )
+        return {
+            "plan": plan.model_dump(),
+            "selected_domains": ["Sales"],
+            "selected_topics": ["Revenue"],
+            "token_usage": {},
+            "allowed_names": [],
+            "grounding_pack": "",
+            "validation_errors": [],
+        }
+
     monkeypatch.setattr(
         "helicalbi.sql_agent.investigation.load_model_session",
         lambda **kwargs: {"semantic_overview": "Domain: Sales / Revenue"},
     )
     monkeypatch.setattr(
-        "helicalbi.sql_agent.investigation.build_investigation_plan",
-        lambda question, **kwargs: fallback_investigation_plan(
-            question,
-            persona=kwargs["persona"],
-            max_charts=kwargs["max_charts"],
-        ),
+        "helicalbi.sql_agent.investigation.run_plan_context_graph",
+        _fake_graph,
     )
     result = create_and_store_plan(
         "Are we meeting our monthly revenue targets?",

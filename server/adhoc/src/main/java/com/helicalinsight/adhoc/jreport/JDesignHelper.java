@@ -71,6 +71,15 @@ public class JDesignHelper {
 		JsonObject designerPropertiesJson = formData.getAsJsonObject("designerProperties");
 
 		setPage(designerPropertiesJson);
+		
+		// QUERY section
+
+		addQuery(jasperDesign, designerPropertiesJson);
+
+		if (designerPropertiesJson.has("dataSets")) {
+			addDataSet(jasperDesign, designerPropertiesJson);
+		}
+		
 		// GROUP section
 		if (designerPropertiesJson.has("groups")) {
 			JsonArray groupsArray = designerPropertiesJson.getAsJsonArray("groups");
@@ -89,13 +98,7 @@ public class JDesignHelper {
 				addTitle(titleJson);
 		}
 
-		// QUERY section
-
-		addQuery(jasperDesign, designerPropertiesJson);
-
-		if (designerPropertiesJson.has("dataSets")) {
-			addDataSet(jasperDesign, designerPropertiesJson);
-		}
+		
 
 		// PAGEHEADER section
 		if (designerPropertiesJson.has("pageHeader")) {
@@ -308,23 +311,26 @@ public class JDesignHelper {
 		HCRUtils.preparePadding(designStyle, GsonUtility.optJsonObject(eachStyleJson, HCRUtils.PROPERTY_PADDING));
 		
 		if (eachStyleJson.has("conditionalStyle")) {
-			JsonObject conditionalStyleJson = eachStyleJson.getAsJsonObject("conditionalStyle");
-			JRDesignConditionalStyle conditionalStyle = new JRDesignConditionalStyle();
-			if (conditionalStyleJson.has("pattern"))
-				conditionalStyle.setPattern(conditionalStyleJson.get("pattern").getAsString());
-			if (conditionalStyleJson.has("horizontalTextAlign"))
-				conditionalStyle.setHorizontalTextAlign(
-						HorizontalTextAlignEnum.getByName(conditionalStyleJson.get("horizontalTextAlign").getAsString()));
-			if (conditionalStyleJson.has("backColor"))
-				conditionalStyle.setBackcolor(Color.decode(conditionalStyleJson.get("backColor").getAsString()));
-			if (conditionalStyleJson.has("rotationType"))
-				conditionalStyle.setRotation(RotationEnum.getByName(conditionalStyleJson.get("rotationType").getAsString()));
-			if (conditionalStyleJson.has("expression")) {
-				JRDesignExpression conditionalExpression = new JRDesignExpression();
-				conditionalExpression.setText(conditionalStyleJson.get("expression").getAsString());
-				conditionalStyle.setConditionExpression(conditionalExpression);
+			JsonArray conditionalStyleArray = eachStyleJson.getAsJsonArray("conditionalStyle");
+			for(JsonElement conditionalStyleJsonElement : conditionalStyleArray) {
+				JsonObject conditionalStyleJson = conditionalStyleJsonElement.getAsJsonObject();
+				JRDesignConditionalStyle conditionalStyle = new JRDesignConditionalStyle();
+				if (conditionalStyleJson.has("pattern"))
+					conditionalStyle.setPattern(conditionalStyleJson.get("pattern").getAsString());
+				if (conditionalStyleJson.has("horizontalTextAlign"))
+					conditionalStyle.setHorizontalTextAlign(
+							HorizontalTextAlignEnum.getByName(conditionalStyleJson.get("horizontalTextAlign").getAsString()));
+				if (conditionalStyleJson.has("backColor"))
+					conditionalStyle.setBackcolor(Color.decode(conditionalStyleJson.get("backColor").getAsString()));
+				if (conditionalStyleJson.has("rotationType"))
+					conditionalStyle.setRotation(RotationEnum.getByName(conditionalStyleJson.get("rotationType").getAsString()));
+				if (conditionalStyleJson.has("expression")) {
+					JRDesignExpression conditionalExpression = new JRDesignExpression();
+					conditionalExpression.setText(conditionalStyleJson.get("expression").getAsString());
+					conditionalStyle.setConditionExpression(conditionalExpression);
+				}
+				designStyle.addConditionalStyle(conditionalStyle);
 			}
-			designStyle.addConditionalStyle(conditionalStyle);
 		}
 
 		return designStyle;
@@ -443,6 +449,8 @@ public class JDesignHelper {
 				addParameters(parametersJson, dataset);
 			}
 			
+			jasperDesign.addDataset(dataset);
+			
 			if (eachJson.has("groups")) {
 				JsonArray groups = eachJson.getAsJsonArray("groups");
 				for(JsonElement eachJsonGroupElement : groups ) {
@@ -456,7 +464,6 @@ public class JDesignHelper {
 				JsonArray variablesArray = eachJson.getAsJsonArray("variables");
 				addVariables(variablesArray, dataset);
 			}
-			jasperDesign.addDataset(dataset);
 		}
 	}
 

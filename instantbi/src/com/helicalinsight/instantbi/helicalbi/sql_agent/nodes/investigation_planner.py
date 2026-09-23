@@ -66,6 +66,8 @@ def fallback_investigation_plan(
     persona: Mapping[str, Any],
     max_charts: int = 5,
     strategy: Optional[Mapping[str, Any]] = None,
+    selected_domains: Optional[List[str]] = None,
+    selected_topics: Optional[List[str]] = None,
 ) -> InvestigationPlan:
     """Deterministic plan from the selected strategy's JSON chart skeleton."""
     chosen = _resolve_strategy(question, persona, strategy)
@@ -77,14 +79,16 @@ def fallback_investigation_plan(
         DashboardChartSpec.model_validate(item)
         for item in charts_from_strategy(chosen, question, max_charts=max_charts)
     ]
+    domains = [str(d).strip() for d in (selected_domains or []) if str(d).strip()]
+    topics = [str(t).strip() for t in (selected_topics or []) if str(t).strip()]
     return InvestigationPlan(
         persona=name,
         tier=str(persona.get("tier") or PERSONA_TIERS.get(name) or "tactical"),
         strategies=[strategy_id] if strategy_id else [],
         strategy_id=strategy_id,
         template_id=str(chosen.get("template_id") or ""),
-        domain="",
-        topics=[],
+        domain=domains[0] if domains else "",
+        topics=topics,
         original_question=question,
         rationale=(
             f"Fallback {name} plan using decision-tree strategy "
@@ -106,22 +110,33 @@ def build_investigation_plan(
     *,
     persona: Mapping[str, Any],
     semantic_overview: str = "",
+    grounding_pack: str = "",
+    validation_feedback: str = "",
     max_charts: int = 5,
     overview_chars: int = 3500,
     state: Optional[Dict[str, Any]] = None,
     strategy: Optional[Mapping[str, Any]] = None,
+    selected_domains: Optional[List[str]] = None,
+    selected_topics: Optional[List[str]] = None,
 ) -> InvestigationPlan:
-    """LLM plan guided by one JSON strategy, with similar-line adaptation allowed."""
+    """LLM plan guided by strategy + topic grounding pack."""
     chosen = _resolve_strategy(question, persona, strategy)
     if not chosen.get("template_id") and chosen.get("id"):
         chosen = {**get_strategy(str(chosen.get("id"))), **chosen}
     work_persona = attach_strategy(persona, chosen)
+    domains = [str(d).strip() for d in (selected_domains or []) if str(d).strip()]
+    topics = [str(t).strip() for t in (selected_topics or []) if str(t).strip()]
     fallback = fallback_investigation_plan(
         question,
         persona=work_persona,
         max_charts=max_charts,
         strategy=chosen,
+        selected_domains=domains,
+        selected_topics=topics,
     )
+    overview = truncate_text(semantic_overview or "", overview_chars)
+    pack = truncate_text(grounding_pack or overview, overview_chars)
+    feedback = str(validation_feedback or "").strip()
     try:
         parsed = invoke_agent_model(
             CONTEXT_PLAN_PROMPT,
@@ -130,7 +145,11 @@ def build_investigation_plan(
                 "strategy_block": strategy_prompt_block(chosen),
                 "strategy_catalog": strategy_catalog_prompt_block(exclude_id=str(chosen.get("id") or "")),
                 "original_question": question,
-                "semantic_overview": truncate_text(semantic_overview or "", overview_chars),
+                "semantic_overview": overview,
+                "grounding_pack": pack or "(no topic grounding pack; use semantic overview)",
+                "validation_feedback": (
+                    f"Validation feedback from prior draft:\n{feedback}" if feedback else ""
+                ),
                 "max_charts": max_charts,
             },
             InvestigationPlan,
@@ -155,5 +174,9 @@ def build_investigation_plan(
     )
     data["original_question"] = question
     data["charts"] = charts
+    if not str(data.get("domain") or "").strip() and domains:
+        data["domain"] = domains[0]
+    if not data.get("topics") and topics:
+        data["topics"] = topics
     plan = InvestigationPlan.model_validate(data)
     return _cap_charts(plan, max_charts)

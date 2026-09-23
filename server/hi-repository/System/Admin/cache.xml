@@ -69,4 +69,9 @@
     	 <url bean="inMemoryApplicationCacheStore" pattern = "default" />
     	 <url bean="inMemoryApplicationCacheStore" pattern = "in-memory" />
     </cacheStore>
+    
+     <!-- non-serializable runtime class -> serializable store type (write-time, before populate) -->
+    <typeConversion>
+        <type from="org.duckdb.JsonNode" to="java.lang.String"/>
+    </typeConversion>
 </cache>

@@ -296,7 +296,7 @@ export const addFieldToReport = (payload, report, dispatch) => {
       hidden: hidden,
       metaDataAlias: payload.column.alias,
       databaseName: dataSource?.databaseName,
-      geographicType: "",
+      geographicType: payload.geographicType || "",
       isView: table?.type === "view" // added view check for bug id 6587
     };
     payload.table?.databaseName && (newCol.columnDatabase = payload.table.databaseName);  // added cubeDatabase

@@ -143,8 +143,11 @@ public class EfwdReaderUtility {
         List<EfwdConnDTO> connectionFromFolders =  new ArrayList<>();
         Map<Integer , Integer> securityMap =  hiResourceServiceDB.getSecurityMap();
         Set<Integer> folderIds = new HashSet<>(securityMap.keySet());
-        folderIds.addAll(hiResourceServiceDB.getHIResourceIdsByCreatedBy(null));
-        folderIds.addAll(hiResourceServiceDB.getChildrenResourceByParentIds(new ArrayList<>(securityMap.keySet())));
+        List<Integer> publicResources = hiResourceServiceDB.getHIResourceIdsByCreatedBy(null);
+        
+        List<Integer> parentIds =  new ArrayList<>(securityMap.keySet());
+        parentIds.addAll(publicResources);
+        folderIds.addAll(hiResourceServiceDB.getChildrenResourceByParentIds(parentIds));
         List<EfwdConnDTO> connectionsOfCurrentFolder = efwdConnectionService.findConnectionByResourceIds(new ArrayList<>(folderIds),Boolean.FALSE,Boolean.TRUE);
         if(!type.equalsIgnoreCase("all")) {
             connectionsOfCurrentFolder = connectionsOfCurrentFolder.stream().filter(item -> item.getType().equalsIgnoreCase(type)).collect(Collectors.toList());

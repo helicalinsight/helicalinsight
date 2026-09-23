@@ -48,7 +48,8 @@ def extract_sql(sql, dialect):
         return sql
 
     final_dialect = resolve_sqlglot_dialect(dialect)
-    candidates = [sql, quote_spaced_identifiers(sql)]
+    normalized = normalize_sql_identifier_escapes(sql)
+    candidates = [normalized, quote_spaced_identifiers(normalized)]
 
     for candidate in candidates:
         try:
@@ -70,6 +71,21 @@ def extract_sql(sql, dialect):
             break
 
     return sql
+
+
+def normalize_sql_identifier_escapes(sql: str) -> str:
+    """Strip JSON/backslash escapes before identifier quotes (``\\"`` → ``"``).
+
+    Double-encoded SQL (e.g. from JSON stringification) otherwise fails to parse
+    and Helical Adhoc blanks CASE bodies when those escapes survive into formData.
+    """
+    if not sql or "\\" not in sql:
+        return sql
+    return (
+        str(sql)
+        .replace('\\"', '"')
+        .replace("\\'", "'")
+    )
 
 
 def strip_sql_markdown(raw_sql: str) -> str:

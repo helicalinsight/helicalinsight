@@ -422,35 +422,173 @@ def jsonObj='''
 					"DistinctCount": "java.lang.Integer"
 				},
 				"calculationsMapping": {
-					"java.lang.Integer": {
-						"Count" : "Count",
-						"Sum" : "Sum",
-						"Average" : "Average",
-						"Lowest" : "Lowest",
-						"Highest" : "Highest",
-						"Standard Deviation" : "StandardDeviation",
-						"Variance" : "Variance",
-						"System" : "System",
-						"First" : "First",
-						"Distinct Count" : "DistinctCount"
-					},
-					"other": {
-						"Count" : "Count", 
-						"Distinct Count" : "DistinctCount"
-					},
-					"allDataTypes" :{
-						"Count" : "Count", 
-						"Sum" : "Sum",
-						"Average" : "Average",
-						"Lowest" : "Lowest",
-						"Highest" : "Highest",
-						"Standard Deviation" : "StandardDeviation",
-						"Variance" : "Variance",
-						"System" : "System",
-						"First" : "First",
-						"Distinct Count" : "DistinctCount"
-					}
-				},
+						"java.lang.Integer": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+						"java.lang.Byte": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+						"java.lang.Long": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+
+						"java.lang.Short": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+
+						"java.lang.Float": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+
+						"java.lang.Double": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+
+						"java.math.BigDecimal": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+						"java.math.BigInteger": {
+							"Count": "Count",
+							"Sum": "Sum",
+							"Average": "Average",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"Standard Deviation": "StandardDeviation",
+							"Variance": "Variance",
+							"System": "System",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"Nothing": "Nothing"
+						},
+
+						"java.lang.String": {
+							"Count": "Count",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						},
+
+						"java.util.Date": {
+							"Count": "Count",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						},
+
+						"java.sql.Date": {
+							"Count": "Count",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						},
+
+						"java.sql.Timestamp": {
+							"Count": "Count",
+							"Lowest": "Lowest",
+							"Highest": "Highest",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						},
+
+						"java.lang.Boolean": {
+							"Count": "Count",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						},
+
+						"other": {
+							"Count": "Count",
+							"First": "First",
+							"Distinct Count": "DistinctCount",
+							"System": "System",
+							"Nothing": "Nothing"
+						}
+						},
+
+
 				"builtInVariables": [
 					{
 						"name": "Page_Number",

@@ -16,6 +16,7 @@ const MessageList = (props = {}) => {
         activeReport,
         dispatch,
         reportId,
+        onShowThinkQuestion,
     } = props
 
     const {
@@ -153,6 +154,7 @@ const MessageList = (props = {}) => {
                                 onAbortChatLoad: abortLoadChat,
                                 skippedSequenceIds,
                                 abortedSequenceIds,
+                                onShowThinkQuestion,
                             }}
                             handleScroll={resetScrollShow}
                         />
