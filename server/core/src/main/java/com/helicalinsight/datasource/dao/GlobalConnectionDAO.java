@@ -20,6 +20,7 @@ public interface GlobalConnectionDAO {
     void editGlobalConnections(GlobalConnections globalConnections);
 
     boolean deleteGlobalConnections(int globalId);
+    boolean deleteGlobalConnections(int globalId, boolean force);
 
     GlobalConnections findGlobalConnectionById(int globalId);
 
