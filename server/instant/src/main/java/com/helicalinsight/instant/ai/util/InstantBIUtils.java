@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Arrays;
@@ -40,7 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InstantBIUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(InstantBIUtils.class);
-    private static final Map<String, CompletableFuture<HttpResponse<String>>> ACTIVE_HTTP_CALLS = new ConcurrentHashMap<>();
+    private static final Map<String, CompletableFuture<?>> ACTIVE_HTTP_CALLS = new ConcurrentHashMap<>();
 
     /**
      * Hop-by-hop / transport headers that must not be copied onto InstantBI or
@@ -50,14 +52,15 @@ public final class InstantBIUtils {
     private static final Set<String> SKIP_HEADER_NAMES = new HashSet<>(Arrays.asList(
             "host", "connection", "content-length", "content-type", "content-encoding",
             "transfer-encoding", "keep-alive", "proxy-authenticate", "proxy-authorization",
-            "te", "trailer", "upgrade", "expect", "accept-encoding"
+            "te", "trailer", "upgrade", "expect", "accept-encoding", "accept"
     ));
 
     private static final Set<String> SKIP_PARAM_NAMES = new HashSet<>(Arrays.asList(
             "input", "chatid", "chat_sequence_id", "subject", "formData", "model", "domain",
             "topN", "requestId", "htmlId", "dashboardid", "dashboard_sequence_id", "mode",
             "items", "body", "sessionCookie", "username", "userId", "orgId", "headers",
-            "requestParams"
+            "requestParams", "stream", "sql", "location", "metadataFileName",
+            "removeColsInFilter", "rm_cols_in_filter"
     ));
 
     private static final List<String> AUTH_PARAM_NAMES = Arrays.asList(
@@ -95,6 +98,36 @@ public final class InstantBIUtils {
             headers.add(HttpHeaders.CONTENT_TYPE, "text/html; charset=UTF-8");
         }
         ControllerUtils.handleSuccess(response, isAjax, responseFinal.toString());
+    }
+
+    /**
+     * Parse a request flag. Blank / unrecognized values keep {@code defaultValue}.
+     * Accepts true/false, 1/0, yes/no, on/off.
+     */
+    public static boolean parseRequestBoolean(@Nullable String value, boolean defaultValue) {
+        if (StringUtils.isBlank(value)) {
+            return defaultValue;
+        }
+        String text = value.trim().toLowerCase(Locale.ROOT);
+        if ("true".equals(text) || "1".equals(text) || "yes".equals(text) || "y".equals(text) || "on".equals(text)) {
+            return true;
+        }
+        if ("false".equals(text) || "0".equals(text) || "no".equals(text) || "n".equals(text) || "off".equals(text)) {
+            return false;
+        }
+        return defaultValue;
+    }
+
+    /**
+     * Parse an optional request flag. Blank means unset so InstantBI can use
+     * {@code application_config.yaml}.
+     */
+    @Nullable
+    public static Boolean parseOptionalRequestBoolean(@Nullable String value) {
+        if (StringUtils.isBlank(value)) {
+            return null;
+        }
+        return parseRequestBoolean(value, true);
     }
 
     public static JsonArray getHistory(JsonArray inputs, int chatSequenceId) {
@@ -166,6 +199,21 @@ public final class InstantBIUtils {
         return responseObject;
     }
 
+    @NotNull
+    public static JsonObject prepareSqlToReportModelResponse(String botResponse) {
+        JsonObject outputJson = GsonUtility.parseString(botResponse, JsonObject.class);
+        JsonObject responseObject = new JsonObject();
+        JsonObject reportModel = GsonUtility.optJsonObject(outputJson, "report_model");
+        if (reportModel != null) {
+            responseObject.add("report_model", reportModel);
+        }
+        String error = GsonUtility.optString(outputJson, "error");
+        if (StringUtils.isNotBlank(error)) {
+            responseObject.addProperty("error", error);
+        }
+        return responseObject;
+    }
+
     public static void addRoleProfile(User loggedInUser, JsonObject js) {
         List<Role> roles = loggedInUser.getRoles();
         JsonArray roleData = new JsonArray();
@@ -192,11 +240,41 @@ public final class InstantBIUtils {
 
     /**
      * InstantBI interactive-chat body: session, model, inputString, chatid, chat_seq_id.
+     * Optional {@code mode}: fast | think | auto.
      */
     @NotNull
     public static JsonObject buildInteractiveChatRequest(HttpServletRequest request, String input, String chatid,
             String chatSeqId, String subject) {
-        return buildConversationRequest(request, input, "chatid", chatid, "chat_seq_id", chatSeqId, subject);
+        return buildInteractiveChatRequest(request, input, chatid, chatSeqId, subject, (String) null, null);
+    }
+
+    @NotNull
+    public static JsonObject buildInteractiveChatRequest(HttpServletRequest request, String input, String chatid,
+            String chatSeqId, String subject, String mode) {
+        return buildInteractiveChatRequest(request, input, chatid, chatSeqId, subject, mode, null);
+    }
+
+    @NotNull
+    public static JsonObject buildInteractiveChatRequest(HttpServletRequest request, String input, String chatid,
+            String chatSeqId, String subject, Boolean removeColsInFilter) {
+        return buildInteractiveChatRequest(request, input, chatid, chatSeqId, subject, null, removeColsInFilter);
+    }
+
+    @NotNull
+    public static JsonObject buildInteractiveChatRequest(HttpServletRequest request, String input, String chatid,
+            String chatSeqId, String subject, String mode, Boolean removeColsInFilter) {
+        JsonObject js = buildConversationRequest(request, input, "chatid", chatid, "chat_seq_id", chatSeqId, subject);
+        if (StringUtils.isNotBlank(mode)) {
+            js.getAsJsonObject("input").addProperty("mode", mode.trim());
+        }
+        Boolean flag = removeColsInFilter;
+        if (flag == null && request != null) {
+            flag = parseOptionalRequestBoolean(request.getParameter("removeColsInFilter"));
+        }
+        if (flag != null) {
+            js.getAsJsonObject("input").addProperty("rm_cols_in_filter", flag);
+        }
+        return js;
     }
 
     /**
@@ -413,8 +491,17 @@ public final class InstantBIUtils {
         return message != null && message.toLowerCase().contains("cancel");
     }
 
-    public static void registerActiveHttpCall(String requestId, CompletableFuture<HttpResponse<String>> responseFuture) {
-        if (StringUtils.isNotBlank(requestId)) {
+    public static boolean isStreamResponseEnabled() {
+        try {
+            return GsonUtility.optBooleanValue(JsonUtils.newGetSettingsJson(), "streamResponse", false);
+        } catch (Exception exception) {
+            logger.debug("Could not read streamResponse setting; defaulting to false", exception);
+            return false;
+        }
+    }
+
+    public static void registerActiveHttpCall(String requestId, CompletableFuture<?> responseFuture) {
+        if (StringUtils.isNotBlank(requestId) && responseFuture != null) {
             ACTIVE_HTTP_CALLS.put(requestId, responseFuture);
         }
     }
@@ -429,9 +516,28 @@ public final class InstantBIUtils {
         if (StringUtils.isBlank(requestId)) {
             return;
         }
-        CompletableFuture<HttpResponse<String>> activeCall = ACTIVE_HTTP_CALLS.remove(requestId);
+        CompletableFuture<?> activeCall = ACTIVE_HTTP_CALLS.remove(requestId);
         if (activeCall != null) {
             activeCall.cancel(true);
+        }
+        postPythonAbort(requestId);
+    }
+
+    static void postPythonAbort(String requestId) {
+        if (StringUtils.isBlank(requestId)) {
+            return;
+        }
+        try {
+            JsonObject body = new JsonObject();
+            body.addProperty("requestId", requestId);
+            HttpRequest abortRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(getInstantBIServiceUrl() + "abort"))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+                    .build();
+            HttpClient.newHttpClient().sendAsync(abortRequest, HttpResponse.BodyHandlers.discarding());
+        } catch (Exception exception) {
+            logger.debug("Could not notify InstantBI abort for requestId={}", requestId, exception);
         }
     }
 

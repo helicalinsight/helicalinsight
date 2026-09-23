@@ -1,18 +1,30 @@
-import { Collapse } from 'antd';
+import { Collapse, Tooltip } from 'antd';
 import { useSelector } from 'react-redux';
 import { hcrCanvasPaneHelperMethods } from '../../hcrCanvasPaneHelperMethods';
 
 const { getHcrPropertyTooltipInfo } = hcrCanvasPaneHelperMethods;
 
 const CellProperties = (props = {}) => {
-    const { onCellPropertyChange = () => { }, data = {}, EditorPanels, tableStyles = [] } = props || {}
+    const { onCellPropertyChange = () => { }, data = {}, EditorPanels, tableStyles = [], isCrosstab } = props || {}
     const { selectedCells = [], cells = {} } = data
     const HcrPropertiesConfiguration = useSelector(
         (state) =>
             state.cannedReports.present?.hCROldConfigurations
                 ?.HcrPropertiesConfiguration || {},
     );
+    const designerProperties = useSelector(
+        (state) =>
+            state.cannedReports.present?.hCROldConfigurations
+                ?.HCR?.HCR?.designerProperties || {},
+    );
     const { tooltipInfo = {} } = HcrPropertiesConfiguration || {};
+    const { layout = {} } = designerProperties || {}
+    const layoutOptions = Object.keys((layout || {}))?.map((key) => {
+        return {
+            label: key,
+            value: key
+        }
+    })
 
     const {
         tooltip_alignmentHeight = {},
@@ -68,6 +80,15 @@ const CellProperties = (props = {}) => {
                 options: cellStyleOptions
             }
         ]
+        if (isCrosstab) {
+            selectFields.push({
+                label: <div className="property-label"><Tooltip title="Change will be reflected when you preview the report, in canvas it'll show as Vertical layout.">Layout</Tooltip></div>,
+                key: "layout",
+                tooltip: "",
+                value: cell.layout || "Vertical Layout",
+                options: layoutOptions
+            })
+        }
     }
 
     const checkIfValuePresent = (options, value) => {

@@ -81,7 +81,7 @@ class TestFormDataToSqlParts:
         assert parts["location"] == "0007"
         assert parts["metadataFileName"] == "pg.metadata"
         shelves = {c["alias"]: c["shelf"] for c in parts["columns"]}
-        assert shelves["Platform"] == "row"
+        assert "Platform" not in shelves
         assert shelves["Cost"] == "column"
         cost = next(c for c in parts["columns"] if c["alias"] == "Cost")
         assert cost["table"] == "travel_details"
@@ -303,3 +303,31 @@ class TestSqlPartsFromItem:
         assert by_column["travel_type"]["shelf"] == "row"
         assert by_column["travel_cost"]["shelf"] == "column"
         assert "aggregate.sum" in by_column["travel_cost"]["databaseFunction"]
+
+
+def test_form_data_to_sql_parts_passes_geographic_type():
+    parts = form_data_to_sql_parts(
+        {
+            "columns": [
+                {
+                    "alias": "city",
+                    "column": {"name": "sampletraveldata.public.travel_details.destination", "id": "1"},
+                    "geographicType": "city",
+                }
+            ]
+        }
+    )
+    assert parts["columns"][0]["geographicType"] == "city"
+
+
+def test_viz_model_to_viz_parts_passes_geographic_roles():
+    parts = viz_model_to_viz_parts(
+        {
+            "chart_name": "heatmap",
+            "viz_model": {
+                "chart": {"mark": "Maps", "viz": "Heatmap"},
+                "properties": {"geographicRoles": {"city": "city"}},
+            },
+        }
+    )
+    assert parts["geographicRoles"] == {"city": "city"}

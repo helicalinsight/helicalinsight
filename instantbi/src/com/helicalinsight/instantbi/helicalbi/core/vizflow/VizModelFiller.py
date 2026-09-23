@@ -77,6 +77,7 @@ class VizModelFiller:
                 md_file_name=str(state.get("md_file_name") or ""),
                 dialect=state.get("dialect") or None,
                 viz_update=viz_update,
+                rm_cols_in_filter=state.get("rm_cols_in_filter", True),
             )
 
             state["viz_model"] = viz_model.model_dump()

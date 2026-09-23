@@ -7,6 +7,7 @@ import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
 import com.helicalinsight.instant.ai.payload.IInstantBIPayload;
 import com.helicalinsight.instant.ai.service.IInstantBIService;
 import com.helicalinsight.instant.ai.service.InstantBIServiceFactory;
+import com.helicalinsight.instant.ai.util.InstantBIStreamSession;
 import com.helicalinsight.instant.ai.util.InstantBIUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 @Service(InstantBIServiceFactory.INTERACTIVE_CHAT_SERVICE)
 public class AiInteractiveChatServiceImpl implements IInstantBIService {
@@ -31,9 +33,17 @@ public class AiInteractiveChatServiceImpl implements IInstantBIService {
         String chatSeqId = payload.getChatSeqId();
         String subject = payload.getSubject();
         try {
-            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(request, () ->
-                    InstantBIUtils.buildInteractiveChatRequest(request, input, chatid, chatSeqId, subject),
-                    "/interactive");
+            Callable<JsonObject> bodyPreparer = () ->
+                    InstantBIUtils.buildInteractiveChatRequest(
+                            request, input, chatid, chatSeqId, subject, payload.getMode(),
+                            payload.getRemoveColsInFilter());
+            if (InstantBIUtils.isStreamResponseEnabled()) {
+                new InstantBIStreamSession(response, InstantBIUtils.resolveRequestId(request))
+                        .forwardFromPython("/interactive", bodyPreparer.call());
+                return;
+            }
+            String botResponse = InstantBIServiceFactory.getHttpService().executeCancellableCall(
+                    request, bodyPreparer, "/interactive");
             JsonObject responseObject = InstantBIUtils.prepareResponse(input, botResponse, null);
 
             JsonObject mainObject = new JsonObject();

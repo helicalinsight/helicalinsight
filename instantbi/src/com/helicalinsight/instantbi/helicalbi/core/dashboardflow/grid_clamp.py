@@ -71,7 +71,15 @@ _FALLBACK_SVG = (
     '<svg viewBox="0 0 120 8" xmlns="http://www.w3.org/2000/svg">'
     '<rect width="120" height="2" y="3" rx="1" fill="#1677ff"/></svg>'
 )
-_EXTRA_KINDS = {"summary", "separator", "filter", "kpi", "svg", "image"}
+_EXTRA_KINDS = {"summary", "text", "separator", "filter", "kpi", "svg", "image"}
+_DEFAULT_THEME = {"color": "#1677ff", "background": "#ffffff"}
+_DEFAULT_PARAMETERS = {
+    "enable": True,
+    "orientation": "right",
+    "enableApplyButton": True,
+    "floatingFilter": False,
+    "closeOnApply": False,
+}
 
 
 def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
@@ -81,6 +89,8 @@ def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
         "report": "viz",
         "insight": "summary",
         "overview": "summary",
+        "story": "text",
+        "storyline": "text",
         "slicer": "filter",
         "metric": "kpi",
         "key_metric": "kpi",
@@ -98,6 +108,91 @@ def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
     if value not in {"viz"} | _EXTRA_KINDS and value != "svg":
         return "viz" if aid in known else ""
     return value
+
+
+def _as_hex_color(value: Any, default: str) -> str:
+    text = str(value or "").strip()
+    if text.startswith("#") and len(text) in {4, 7, 9}:
+        return text
+    if isinstance(value, dict):
+        try:
+            r = int(value.get("r") or 0)
+            g = int(value.get("g") or 0)
+            b = int(value.get("b") or 0)
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except (TypeError, ValueError):
+            pass
+    return default
+
+
+def _tile_header(
+    raw: dict[str, Any],
+    *,
+    kind: str,
+    title: str,
+    theme_color: str,
+) -> dict[str, Any]:
+    """Tile chrome matching HI gridItemConfig.header (title + optional {{variables}})."""
+    header_raw = raw.get("header") if isinstance(raw.get("header"), dict) else {}
+    header_title = str(
+        header_raw.get("title")
+        or raw.get("header_title")
+        or title
+        or ""
+    )
+    default_bg = theme_color if kind in {"viz", "kpi", "filter"} else "#000000"
+    if kind in {"summary", "text"}:
+        default_bg = theme_color
+    return {
+        "enable": bool(header_raw.get("enable", True)),
+        "title": header_title,
+        "backgroundColor": _as_hex_color(
+            header_raw.get("backgroundColor") or header_raw.get("background"),
+            default_bg,
+        ),
+    }
+
+
+def _dashboard_header(payload: dict[str, Any], *, theme: dict[str, Any], title: str) -> dict[str, Any]:
+    header_raw = payload.get("header") if isinstance(payload.get("header"), dict) else {}
+    banner_title = str(header_raw.get("title") or title or "").strip()
+    return {
+        "enable": bool(header_raw.get("enable", True if banner_title else False)),
+        "title": banner_title,
+        "backgroundColor": _as_hex_color(
+            header_raw.get("backgroundColor") or header_raw.get("background"),
+            "#000000",
+        ),
+    }
+
+
+def _dashboard_parameters(payload: dict[str, Any]) -> dict[str, Any]:
+    raw = payload.get("parameters") if isinstance(payload.get("parameters"), dict) else {}
+    orientation = str(raw.get("orientation") or _DEFAULT_PARAMETERS["orientation"]).lower()
+    if orientation not in {"right", "left", "top"}:
+        orientation = "right"
+    return {
+        "enable": bool(raw.get("enable", _DEFAULT_PARAMETERS["enable"])),
+        "orientation": orientation,
+        "enableApplyButton": bool(
+            raw.get("enableApplyButton", _DEFAULT_PARAMETERS["enableApplyButton"])
+        ),
+        "floatingFilter": bool(raw.get("floatingFilter", _DEFAULT_PARAMETERS["floatingFilter"])),
+        "closeOnApply": bool(raw.get("closeOnApply", _DEFAULT_PARAMETERS["closeOnApply"])),
+    }
+
+
+def _default_values(raw: dict[str, Any]) -> list[Any]:
+    values = raw.get("default_values")
+    if values is None:
+        values = raw.get("defaultValues")
+    if values is None:
+        values = raw.get("values")
+    if isinstance(values, list):
+        return list(values)
+    if values in (None, ""):
+        return []
+    return [values]
 
 
 def _viz_rows(item: dict[str, Any]) -> list[str]:
@@ -203,26 +298,43 @@ def _title_from_item(item: dict[str, Any] | None, *, kind: str, raw: dict[str, A
     )
 
 
-def _dashboard_model(raw: dict[str, Any], *, kind: str, item: dict[str, Any] | None = None) -> dict[str, Any]:
+def _dashboard_model(
+    raw: dict[str, Any],
+    *,
+    kind: str,
+    item: dict[str, Any] | None = None,
+    theme_color: str = "#1677ff",
+) -> dict[str, Any]:
     html = str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000]
+    title = _title_from_item(item, kind=kind, raw=raw)
     model = {
         "kind": kind,
-        "title": _title_from_item(item, kind=kind, raw=raw),
+        "title": title,
         "layout": {
             "x": int(raw.get("x") or 0),
             "y": int(raw.get("y") or 0),
             "w": int(raw.get("w") or 0),
             "h": int(raw.get("h") or 0),
         },
+        "header": _tile_header(raw, kind=kind, title=title, theme_color=theme_color),
         "css": str(raw.get("css") or "")[:4000],
         "js": str(raw.get("js") or "")[:4000],
         "html": html,
     }
+    if kind == "viz":
+        model["export"] = bool(raw.get("export", True))
+        listeners = [str(listener) for listener in (raw.get("listeners") or []) if str(listener)]
+        if listeners:
+            model["listeners"] = listeners
     if kind == "filter":
         model["column"] = str(raw.get("column") or "")
         model["table"] = str(raw.get("table") or "")
         model["listeners"] = list(raw.get("listeners") or [])
         model["sourceItemId"] = str(raw.get("sourceItemId") or "")
+        model["defaultValues"] = _default_values(raw)
+    if kind in {"summary", "text"}:
+        # Story / insight body lives in html; keep kind as emitted (text alias preserved).
+        pass
     return model
 
 
@@ -238,8 +350,14 @@ def _output_item(base: dict[str, Any] | None, *, component_id: str, dashboard_mo
         if not isinstance(viz_model, dict):
             nested = source.get("viz") if isinstance(source.get("viz"), dict) else {}
             viz_model = nested.get("viz_model") if isinstance(nested.get("viz_model"), dict) else None
+        report = source.get("report_model") if isinstance(source.get("report_model"), dict) else {}
+        data_model = source.get("data_model")
+        if data_model is None and isinstance(report.get("data_model"), dict):
+            data_model = report.get("data_model")
+        if not isinstance(viz_model, dict) and isinstance(report.get("viz_model"), dict):
+            viz_model = report.get("viz_model")
         item["report_model"] = {
-            "data_model": source.get("data_model"),
+            "data_model": data_model,
             "viz_model": viz_model,
         }
         item["id"] = source.get("id") or source.get("chat_sequence_id")
@@ -253,7 +371,7 @@ def _extra_size(kind: str) -> tuple[int, int]:
         return _KPI_W, _KPI_H
     if kind == "filter":
         return _FILTER_W, _FILTER_H
-    if kind == "summary":
+    if kind in {"summary", "text"}:
         return GRID_COLUMNS, _SUMMARY_H
     if kind in {"svg", "image", "separator"}:
         return GRID_COLUMNS, _SUMMARY_H
@@ -270,6 +388,7 @@ def _push_extra(widget_rects: list[dict[str, Any]], used_ids: set[str], *, kind:
             "kind": kind,
             "component_id": aid,
             "title": str(fields.get("title") or ""),
+            "header_title": str(fields.get("header_title") or fields.get("title") or ""),
             "x": x,
             "y": y,
             "w": w,
@@ -281,6 +400,8 @@ def _push_extra(widget_rects: list[dict[str, Any]], used_ids: set[str], *, kind:
             "table": str(fields.get("table") or ""),
             "listeners": list(fields.get("listeners") or []),
             "sourceItemId": str(fields.get("sourceItemId") or ""),
+            "default_values": _default_values(fields),
+            "export": bool(fields.get("export", True)),
         }
     )
 
@@ -294,7 +415,7 @@ def _ensure_required_extras(
 ) -> None:
     present = {str(row.get("kind") or "") for row in widget_rects}
     listeners = list(known)
-    if "summary" not in present:
+    if "summary" not in present and "text" not in present:
         text = " ".join(str(item.get("summary") or "").strip() for item in items).strip()
         if not text:
             queries = [str(item.get("user_query") or "").strip() for item in items]
@@ -423,7 +544,7 @@ def default_layout(items: list[dict[str, Any]]) -> dict[str, Any]:
             y += h
 
     return {
-        "theme": {"color": "#1677ff", "background": "#ffffff"},
+        "theme": dict(_DEFAULT_THEME),
         "widgets": widgets + extra,
     }
 
@@ -500,6 +621,9 @@ def apply_decision(
                 {
                     "kind": "viz",
                     "component_id": aid,
+                    "title": str(raw.get("title") or ""),
+                    "header_title": str(raw.get("header_title") or raw.get("title") or ""),
+                    "header": raw.get("header") if isinstance(raw.get("header"), dict) else {},
                     "x": x,
                     "y": y,
                     "w": w,
@@ -507,6 +631,8 @@ def apply_decision(
                     "css": str(raw.get("css") or "")[:4000],
                     "js": str(raw.get("js") or "")[:4000],
                     "html": str(raw.get("html") or raw.get("svg") or "")[:4000],
+                    "export": bool(raw.get("export", True)),
+                    "listeners": list(raw.get("listeners") or []),
                 }
             )
             continue
@@ -533,10 +659,14 @@ def apply_decision(
                 "js": str(raw.get("js") or "")[:4000],
                 "html": str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000],
                 "title": str(raw.get("title") or ""),
+                "header_title": str(raw.get("header_title") or raw.get("title") or ""),
+                "header": raw.get("header") if isinstance(raw.get("header"), dict) else {},
                 "column": str(raw.get("column") or ""),
                 "table": str(raw.get("table") or ""),
                 "listeners": listeners,
                 "sourceItemId": str(raw.get("sourceItemId") or (next(iter(known), ""))),
+                "default_values": _default_values(raw),
+                "export": bool(raw.get("export", True)),
             }
         )
 
@@ -545,7 +675,7 @@ def apply_decision(
             continue
         match = next((row for row in fallback["widgets"] if row.get("component_id") == aid), None)
         if match:
-            widget_rects.append({**match, "css": "", "js": "", "html": ""})
+            widget_rects.append({**match, "css": "", "js": "", "html": "", "export": True, "listeners": []})
 
     _ensure_required_extras(widget_rects, items, used_ids=used_ids, known=known)
 
@@ -554,18 +684,40 @@ def apply_decision(
         "color": str(theme_raw.get("color") or fallback["theme"]["color"]),
         "background": str(theme_raw.get("background") or fallback["theme"]["background"]),
     }
+    theme_color = str(theme.get("color") or _DEFAULT_THEME["color"])
+
+    title = str(payload.get("title") or "").strip()
+    if not title:
+        title = next(
+            (str(item.get("user_query") or "").strip() for item in items if str(item.get("user_query") or "").strip()),
+            "Dashboard",
+        )
+    header = _dashboard_header(payload, theme=theme, title=title)
+    parameters = _dashboard_parameters(payload)
 
     clamped = resolve_overlaps(widget_rects)
     output_items: list[dict[str, Any]] = []
     layout: list[dict[str, Any]] = []
     filters: list[dict[str, Any]] = []
     decorations: list[dict[str, Any]] = []
+    variables: dict[str, list[Any]] = {}
+    if isinstance(payload.get("variables"), dict):
+        for key, value in payload["variables"].items():
+            name = str(key or "").strip()
+            if not name:
+                continue
+            variables[name] = list(value) if isinstance(value, list) else ([] if value in (None, "") else [value])
     summary = {"title": "", "text": "", "x": 0, "y": 0, "w": 12, "h": 0}
 
     for row in clamped:
         kind = str(row.get("kind") or "viz")
         aid = str(row.get("component_id") or "")
-        model = _dashboard_model(row, kind=kind, item=by_aid.get(aid) if kind == "viz" else None)
+        model = _dashboard_model(
+            row,
+            kind=kind,
+            item=by_aid.get(aid) if kind == "viz" else None,
+            theme_color=theme_color,
+        )
         if kind == "viz":
             output_items.append(_output_item(by_aid.get(aid), component_id=aid, dashboard_model=model))
             layout.append(
@@ -581,12 +733,17 @@ def apply_decision(
         else:
             output_items.append(_output_item(None, component_id=aid, dashboard_model=model))
             if kind == "filter":
+                column = str(row.get("column") or "")
+                default_values = list(model.get("defaultValues") or [])
+                if column and column not in variables:
+                    variables[column] = default_values
                 filters.append(
                     {
                         "column": row.get("column"),
                         "table": row.get("table"),
                         "sourceItemId": row.get("sourceItemId"),
                         "listeners": row.get("listeners") or [],
+                        "defaultValues": default_values,
                         "x": row["x"],
                         "y": row["y"],
                         "w": row["w"],
@@ -594,9 +751,9 @@ def apply_decision(
                         "component_id": aid,
                     }
                 )
-            elif kind == "summary":
+            elif kind in {"summary", "text"}:
                 summary = {
-                    "title": "",
+                    "title": str(row.get("title") or model.get("title") or ""),
                     "text": str(row.get("html") or ""),
                     "x": row["x"],
                     "y": row["y"],
@@ -619,6 +776,10 @@ def apply_decision(
                 )
 
     return {
+        "title": title,
+        "header": header,
+        "parameters": parameters,
+        "variables": variables,
         "theme": theme,
         "items": output_items,
         "summary": summary,

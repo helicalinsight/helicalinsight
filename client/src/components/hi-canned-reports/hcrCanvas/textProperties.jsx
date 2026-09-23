@@ -1,21 +1,19 @@
 import {
   Collapse,
   Divider,
-  Input,
   Tooltip
 } from "antd";
 import { useSelector } from "react-redux";
 import useHCRCascadeSelector from "../../../hooks/useHCRCascadeSelector";
 import { HCR_CROSSTAB_COLUMN_TOTAL_HEADER, HCR_CROSSTAB_ROW_TOTAL_HEADER } from "../hcr-constants";
+import ElementProperties from "./elementProperties";
 import FieldSelector from "./fieldSelector";
 import NodeAlignment from "./nodeAlignment";
 import NodeBorders from "./nodeBorder";
 import NodePadding from "./nodePadding";
 import NodeTextField from "./nodeTextField";
 import NodeTypography from "./nodeTypography";
-import ElementProperties from "./elementProperties";
-
-const { TextArea } = Input;
+import TextParagraph from "./textParagraph";
 
 export default function TextProperties({
   EditorPanels,
@@ -98,6 +96,7 @@ export default function TextProperties({
     printWithExp: nodeConfig.printWithExp,
     printRepeatedValues: nodeConfig.printRepeatedValues,
     properties: nodeConfig.properties || [],
+    paragraph: nodeConfig.paragraph || {},
   };
 
   let groupEvalOptions = []
@@ -259,6 +258,20 @@ export default function TextProperties({
             getTooltipInfo={getTooltipInfo}
             groupEvalOptions={groupEvalOptions}
             cascaderOptions={cascaderOptions}
+          />
+        </Collapse.Panel>
+      </Collapse>
+      <Collapse size={"small"} className="node-property-collapse">
+        <Collapse.Panel
+          header={<span className="node-property-title">Paragraph</span>}
+          key={"paragraph"}
+        >
+          <TextParagraph
+            onPropertyChange={onPropertyChange}
+            nodeValues={nodeValues}
+            SelectField={SelectField}
+            InputNumberFiled={InputNumberFiled}
+            getTooltipInfo={getTooltipInfo}
           />
         </Collapse.Panel>
       </Collapse>

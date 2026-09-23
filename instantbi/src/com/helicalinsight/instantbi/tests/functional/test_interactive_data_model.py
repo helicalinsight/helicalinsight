@@ -3,7 +3,7 @@ import base64
 
 import pytest
 
-from helicalbi.controller.interactive import _sql_to_data_model
+from helicalbi.interactive.fast_flow import sql_to_data_model as _sql_to_data_model
 from helicalbi.model.output.ChatResponse import ChatResponse
 from helicalbi.sql_to_formdata import FunctionCatalog
 from helicalbi.viz.viz_model_fill import _try_sql_to_form_data
@@ -50,8 +50,8 @@ class TestSqlToDataModel:
             metadata_file_name="pg_sample_travel_data.metadata",
         )
 
-        assert result["location"] == "test"
-        assert result["metadataFileName"] == "pg_sample_travel_data.metadata"
+        assert "location" not in result
+        assert "metadataFileName" not in result
         assert result["columns"] == []
         assert result["query"] == base64.b64encode(sql.encode("utf-8")).decode("utf-8")
         assert base64.b64decode(result["query"]).decode("utf-8") == sql
@@ -140,3 +140,5 @@ class TestSqlErrorDataModelColumns:
             {"alias": "Cancelled Meetings", "aggregate": True}
         ]
         assert "query" not in payload["report_model"]["data_model"]
+        assert "location" not in payload["report_model"]["data_model"]
+        assert "metadataFileName" not in payload["report_model"]["data_model"]

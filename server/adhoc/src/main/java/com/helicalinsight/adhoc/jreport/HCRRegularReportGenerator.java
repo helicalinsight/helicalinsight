@@ -220,6 +220,7 @@ public class HCRRegularReportGenerator implements IHCRGenerator {
                         );
                 
                 
+                formData.add("jrxmlData", hcrData);
                 final JRBaseFiller filler = context.getFiller();
                 atomicFiller.set(filler);
                 session.send(new StreamEvent(EventType.BEGIN.value(), "{\"status\":\"STARTED\"}"));

@@ -1,5 +1,5 @@
-import { LoadingOutlined, SendOutlined } from '@ant-design/icons';
-import { Tooltip } from 'antd';
+import { LoadingOutlined, SendOutlined, BulbOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { Select, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
 import { changeIBInputValue, updateInstantBILayout, updateRecommendationsVisibility } from '../../../../redux/actions/instant-bi.actions';
 import BeatLoader from './beat-loader';
@@ -11,11 +11,67 @@ import AiDisclaimer from './ai-disclaimer';
 import TutorialInfo from '../../../common/hi-tutorial';
 import { CustomIcon } from '../../../common/custom-icons/CustomIcon';
 
+const BrainIcon = (props = {}) => (
+    <svg
+        viewBox="0 0 24 24"
+        width="1em"
+        height="1em"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        {...props}
+    >
+        <path d="M9.5 4.5a3.5 3.5 0 0 0-3.4 4.2A3.5 3.5 0 0 0 4 12a3.5 3.5 0 0 0 2.2 3.2A3.5 3.5 0 0 0 9.5 19.5h1" />
+        <path d="M14.5 4.5a3.5 3.5 0 0 1 3.4 4.2A3.5 3.5 0 0 1 20 12a3.5 3.5 0 0 1-2.2 3.2A3.5 3.5 0 0 1 14.5 19.5h-1" />
+        <path d="M12 4.5v15" />
+        <path d="M9.5 9h5" />
+        <path d="M9.5 13h5" />
+    </svg>
+);
+
+const CHAT_MODE_OPTIONS = [
+    {
+        value: "auto",
+        title: "Auto",
+        icon: <ThunderboltOutlined />,
+    },
+    {
+        value: "fast",
+        title: "Fast",
+        icon: <BulbOutlined />,
+    },
+    {
+        value: "think",
+        title: "Think",
+        icon: <BrainIcon />,
+    },
+];
+
+const chatModeSelectOptions = CHAT_MODE_OPTIONS.map((option) => ({
+    value: option.value,
+    label: (
+        <span className="ib-chat-mode-option">
+            {option.icon}
+            <span className="ib-chat-mode-option__label">{option.title}</span>
+        </span>
+    ),
+}));
+
+const CHAT_MODES = CHAT_MODE_OPTIONS.map((option) => option.value);
+
+export const resolveChatMode = (mode) => {
+    const value = String(mode || "").toLowerCase();
+    return CHAT_MODES.includes(value) ? value : "auto";
+};
+
 const MessageInputBoxNew = (props = {}) => {
     const {
         onSend = () => { },
         botStatus,
-        botMessage = 'Bot is Typing',
+        botMessage = '',
         recommendation = '',
         activeReport: {
             recommendationsVisible = false,
@@ -38,6 +94,8 @@ const MessageInputBoxNew = (props = {}) => {
         isFullWidth,
         activeReportId,
         messages = [],
+        chatMode = "auto",
+        onChatModeChange = () => { },
     } = props || {}
     const [rows, setRows] = useState(1)
     const Notify = notify(dispatch);
@@ -62,7 +120,7 @@ const MessageInputBoxNew = (props = {}) => {
            });
            return;
          }
-        onSend(message)
+        onSend(message, resolveChatMode(chatMode))
         setInputValue('')
         if (recommendationsVisible) {
             dispatch(updateRecommendationsVisibility({ visible: false, reportId: activeReportId }))
@@ -168,7 +226,7 @@ const MessageInputBoxNew = (props = {}) => {
               {botStatus ?
                 <Tooltip title={"click to abort this request"}>
                     <div className='instant-bi-beat-loader' onClick={() => onAbortRequest()}>
-                        <span>{botMessage}</span>
+                        <span>{botMessage || "Let me find out what I can do…"}</span>
                         <BeatLoader />
                     </div>
                 </Tooltip> : null}
@@ -214,7 +272,32 @@ const MessageInputBoxNew = (props = {}) => {
                     </div>
 
                     <div className="action-buttons-row">
-                        {metadataContainer}
+                        <div className="ib-chat-mode-and-meta">
+                            {metadataContainer}
+                            <InstantBITooltip
+                                title={
+                                    CHAT_MODE_OPTIONS.find(
+                                        (option) => option.value === resolveChatMode(chatMode)
+                                    )?.title || "Chat mode"
+                                }
+                            >
+                                <span className="ib-chat-mode-select-wrap">
+                                    <Select
+                                        className="ib-chat-mode-select"
+                                        value={resolveChatMode(chatMode)}
+                                        onChange={(value) => onChatModeChange(value)}
+                                        disabled={botStatus}
+                                        options={chatModeSelectOptions}
+                                        dropdownClassName="ib-chat-mode-select-dropdown"
+                                        data-testid="ib-chat-mode-select"
+                                        aria-label="Chat mode"
+                                        dropdownMatchSelectWidth={false}
+                                        showArrow={false}
+                                        suffixIcon={null}
+                                    />
+                                </span>
+                            </InstantBITooltip>
+                        </div>
                         {sendButtonContainer}
                     </div>
 

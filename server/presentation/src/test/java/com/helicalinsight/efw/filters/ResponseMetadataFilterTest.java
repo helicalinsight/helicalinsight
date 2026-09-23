@@ -87,6 +87,23 @@ public class ResponseMetadataFilterTest {
     }
 
     @Test
+    public void doFilter_bypassesInstantBiChatWithoutWrappingResponse() throws ServletException, IOException {
+        ResponseMetadataFilter filter = new ResponseMetadataFilter();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain chain = mock(FilterChain.class);
+
+        when(request.getHeader("X-Requested-With")).thenReturn("XMLHttpRequest");
+        when(request.getServletPath()).thenReturn("/ai/interactive-chat");
+        when(request.getParameter("stream")).thenReturn(null);
+        when(request.getHeader("Accept")).thenReturn("application/json");
+
+        filter.doFilter(request, response, chain);
+
+        verify(chain).doFilter(eq(request), eq(response));
+    }
+
+    @Test
     public void doFilter_wrapsAjaxApiRequests() throws ServletException, IOException {
         ResponseMetadataFilter filter = new ResponseMetadataFilter();
         HttpServletRequest request = mock(HttpServletRequest.class);

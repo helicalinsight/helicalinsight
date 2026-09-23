@@ -13,6 +13,7 @@ public final class InstantBIServiceFactory {
     public static final String CHAT_CONTEXT_SERVICE = "aiChatContextService";
     public static final String LLM_USAGE_AUDIT_SERVICE = "aiLlmUsageAuditService";
     public static final String CONVERT_DASHBOARD_SERVICE = "aiConvertDashboardService";
+    public static final String SQL_TO_REPORT_MODEL_SERVICE = "aiSqlToReportModelService";
     public static final String UTILITY_CONFIG_SERVICE = "aiUtilityConfigService";
 
     private InstantBIServiceFactory() {
@@ -52,6 +53,10 @@ public final class InstantBIServiceFactory {
 
     public static IInstantBIService getConvertDashboardService() {
         return getService(CONVERT_DASHBOARD_SERVICE);
+    }
+
+    public static IInstantBIService getSqlToReportModelService() {
+        return getService(SQL_TO_REPORT_MODEL_SERVICE);
     }
 
     public static IInstantBIService getUtilityConfigService() {

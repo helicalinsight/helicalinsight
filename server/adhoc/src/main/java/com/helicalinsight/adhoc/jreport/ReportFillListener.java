@@ -73,6 +73,7 @@ public class ReportFillListener implements FillListener {
 				formData.addProperty("page", pageIndex);
 				JsonObject response = hcrHelper.provideResponseUsingPrint(formData, jasperPrint,currentCount);
 				response.addProperty("designCacheKey", GsonUtility.optStringValue(formData, "designCacheKey", ""));
+				response.add("jrxmlData", GsonUtility.optJsonObject(formData, "jrxmlData"));
 				sendEvent("page_"+pageIndex, response.toString());
 				isFirstEvent.set(false);
 				lastBatch.set(currentCount);

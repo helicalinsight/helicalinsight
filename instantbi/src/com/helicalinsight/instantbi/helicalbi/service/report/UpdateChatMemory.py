@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
@@ -55,11 +56,18 @@ def _as_list(value: Any) -> list:
     return []
 
 
-def _seq_key(value: Any) -> int:
+def _seq_key(value: Any):
+    """Sortable key for chat_sequence_id values like 1, '1_2', or '1-2'."""
+    text = str(value or "").strip()
+    if not text:
+        return (0,)
+    parts = re.findall(r"\d+", text)
+    if not parts:
+        return (0,)
     try:
-        return int(value)
+        return tuple(int(part) for part in parts)
     except (TypeError, ValueError):
-        return 0
+        return (0,)
 
 
 def _format_strings_from_entry(entry: dict) -> dict[str, str]:
@@ -161,6 +169,8 @@ def hydrate_chat_memory_from_report(
         topics = sql_section.get("required_topic") or []
         viz_model = ((chat_response.get("report_model") or {}).get("viz_model"))
         insight = ((chat_response.get("summary") or {}).get("insight") or "")
+        if not insight:
+            insight = str(entry.get("final_answer") or "").strip()
 
         if user_query:
             add_message(chat_id, user_query)
@@ -193,6 +203,45 @@ def hydrate_chat_memory_from_report(
                 format_strings=_format_strings_from_entry(entry),
             ),
         )
+
+        # Think-mode supporting questions: hydrate parent_1, parent_2, …
+        history = entry.get("question_history") or entry.get("questionHistory") or []
+        if isinstance(history, list):
+            for step in history:
+                if not isinstance(step, dict):
+                    continue
+                step_seq = str(step.get("chat_seq_id") or step.get("chatSeqId") or "").strip()
+                if not step_seq:
+                    index = step.get("index")
+                    if index is not None:
+                        step_seq = f"{seq_id}_{index}"
+                if not step_seq:
+                    continue
+                step_chat = step.get("chat_response") or step.get("fullChatResponse") or {}
+                if not isinstance(step_chat, dict):
+                    step_chat = {}
+                step_report = step.get("report_model") or step_chat.get("report_model") or {}
+                if isinstance(step_report, dict) and step_report and not step_chat.get("report_model"):
+                    step_chat = dict(step_chat)
+                    step_chat["report_model"] = step_report
+                step_payload = _chat_response_from_saved({**step_chat, "report_model": step_report})
+                step_sql = step_payload.get("sql") if isinstance(step_payload.get("sql"), dict) else {}
+                step_raw_sql = strip_sql_markdown(str(step_sql.get("raw_sql") or ""))
+                step_query = str(step.get("question") or step.get("sub_question") or user_query or "")
+                chat_graph_memory.add_node(
+                    chat_id,
+                    step_seq,
+                    _build_memory_payload(
+                        chat_response=step_payload,
+                        sql=step_raw_sql,
+                        dialect=str(step_sql.get("dialect") or dialect),
+                        user_query=step_query,
+                        user_name=username,
+                        domain=step_sql.get("required_domain") or domain,
+                        topics=step_sql.get("required_topic") or topics,
+                        format_strings=_format_strings_from_entry({**step_chat, "report_model": step_report}),
+                    ),
+                )
 
     logger.info(
         "Hydrated InstantBI chat memory chatid=%s turns=%s",

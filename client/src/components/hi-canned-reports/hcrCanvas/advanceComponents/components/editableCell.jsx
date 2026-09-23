@@ -28,7 +28,6 @@ const EditableCell = (props = {}) => {
     const cell = cells[cellId]
     const isSelected = selectedCells?.includes(cellId);
     const [visible, setVisible] = useState(false)
-    let widthFactor = 2, heightFactor = 1;
 
     const { columnId, bandType } = cell || {};
 

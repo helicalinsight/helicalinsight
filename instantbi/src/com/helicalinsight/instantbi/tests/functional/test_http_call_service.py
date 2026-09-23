@@ -72,7 +72,23 @@ class TestFetchServiceApi:
         assert posted_headers["Authorization"] == "Bearer jwt-token"
         assert posted_headers["type"] == "jwt"
         assert posted_headers["authToken"] == "Bearer jwt-token"
+        assert posted_headers["Accept"] == "application/json"
         assert "Host" not in posted_headers
+
+    def test_does_not_forward_event_stream_accept_to_services(self, session_cookie):
+        session = self._session_with_status(200, {"status": 1, "response": {}})
+        set_api_cache_identity(
+            "alice",
+            headers={"Accept": "text/event-stream", "Authorization": "Bearer jwt-token"},
+        )
+        with patch(
+            "helicalbi.api.HttpCallService.requests.Session", return_value=session
+        ):
+            fetch_service_api(session_cookie=session_cookie, service_json={"service": "getAgent"})
+
+        posted_headers = session.post.call_args.kwargs["headers"]
+        assert posted_headers["Accept"] == "application/json"
+        assert posted_headers["Authorization"] == "Bearer jwt-token"
 
     def test_jwt_without_session_cookie_still_posts_authorization(self):
         session = self._session_with_status(200, {"status": 1, "response": {}})

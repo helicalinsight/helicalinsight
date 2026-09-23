@@ -124,7 +124,13 @@ class SemanticTools:
 semantic_tools = SemanticTools()
 
 
-@tool
+# description= is required: Nuitka --python-flag=no_docstrings strips __doc__.
+@tool(
+    description=(
+        "RAG the semantic model to pick domain/topics and their definitions, metrics, "
+        "and query explanations. Falls back to metadata table RAG when the model is not sufficient."
+    )
+)
 def retrieve_semantic_model(
     question: str,
     state: Annotated[dict, InjectedState],

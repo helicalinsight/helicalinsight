@@ -128,6 +128,21 @@ def _logging() -> dict:
 def _flags() -> dict:
     return _raw.get("feature_flags", {})
 
+def _flag_bool(value, default: bool = True) -> bool:
+    """Parse a YAML / config flag. Unrecognized values keep ``default``."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y", "on"}:
+        return True
+    if text in {"false", "0", "no", "n", "off"}:
+        return False
+    return default
+
 def _api_cache() -> dict:
     return _raw.get("api_cache", {})
 
@@ -156,11 +171,15 @@ def __getattr__(name: str):  # noqa: N807
         "log_error_file":        lambda: str(_logging().get("error_file", "logs/instantbi_error.log")),
         "log_backup_days":       lambda: int(_logging().get("backup_days", 14)),
         "show_llm_activity":     lambda: bool(_logging().get("show_llm_activity", False)),
+        "show_llm_activity_details": lambda: bool(
+            _logging().get("show_llm_activity_details", False)
+        ),
         "show_endpoint_log":     lambda: bool(_logging().get("show_endpoint_log", False)),
         "show_api_call_log":     lambda: bool(_logging().get("show_api_call_log", False)),
         # feature flags
         "enable_llm_usage_audit": lambda: bool(_flags().get("enable_llm_usage_audit", True)),
         "hide_prompt_reason":    lambda: bool(_flags().get("hide_prompt_reason", False)),
+        "rm_cols_in_filter":     lambda: _flag_bool(_flags().get("rm_cols_in_filter"), True),
         # api cache
         "api_cache_enabled":     lambda: bool(_api_cache().get("enabled", True)),
         "api_cache_max_entries": lambda: max(1, int(_api_cache().get("max_entries", 100))),

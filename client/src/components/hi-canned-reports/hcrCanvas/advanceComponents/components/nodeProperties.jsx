@@ -10,7 +10,8 @@ const NodeProperties = (props = {}) => {
     const {
         EditorPanels,
         onNodeConfigChange = () => { },
-        nodeConfig = {}
+        nodeConfig = {},
+        groupOptions = []
     } = props || {}
     const category = nodeConfig?.category || ""
     if (!category) return null;
@@ -20,6 +21,7 @@ const NodeProperties = (props = {}) => {
                 EditorPanels={EditorPanels}
                 onNodeConfigChange={onNodeConfigChange}
                 nodeConfig={nodeConfig}
+                groupOptions={groupOptions}
             />
         ),
         line: (

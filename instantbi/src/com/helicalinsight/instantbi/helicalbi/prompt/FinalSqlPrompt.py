@@ -76,6 +76,45 @@ Use the below joins (do not invent new join other than this) ignore if empty
 If every column in the SELECT clause belongs to the same table, do not use a JOIN
 even if joins are provided above. Query that single table only.
 
+-----------------------------------------------------
+JOINs preferred over nested subqueries
+Prefer JOIN / INNER JOIN / CROSS JOIN of pre-aggregated derived tables.
+Do NOT write nested scalar subqueries in WHERE or HAVING for
+above-average, below-average, top-N-vs-average, or similar comparisons
+(e.g. avoid HAVING SUM(x) > (SELECT AVG(...) FROM (SELECT SUM(x) ...))).
+
+For "above/below average by group" style questions:
+1. Build one grouped derived table with the measures (reuse the provided
+   catalog joins inside it when multiple tables are required).
+2. Build a second derived table that computes AVG(...) of those grouped
+   measures (or other benchmark aggregates).
+3. JOIN them and filter with ON / WHERE using the joined average columns.
+
+Example shape (adapt names/joins to the provided schema):
+SELECT g."Dim", g."Measure", g."Other Measure"
+FROM (
+  SELECT "t"."dim" AS "Dim", SUM("t"."m") AS "Measure", COUNT("t"."id") AS "Other Measure"
+  FROM "t"
+  /* catalog joins here when needed */
+  GROUP BY "t"."dim"
+) g
+INNER JOIN (
+  SELECT AVG(s."Measure") AS "Avg Measure", AVG(s."Other Measure") AS "Avg Other Measure"
+  FROM (
+    SELECT "t"."dim" AS "Dim", SUM("t"."m") AS "Measure", COUNT("t"."id") AS "Other Measure"
+    FROM "t"
+    /* same catalog joins as above when needed */
+    GROUP BY "t"."dim"
+  ) s
+) a ON (
+  g."Measure" > a."Avg Measure"
+  AND g."Other Measure" > a."Avg Other Measure"
+)
+LIMIT {default_sql_limit}
+
+Use HAVING only for simple literals or expressions that do not nest SELECT.
+Do not invent physical join keys beyond the provided joins list; derived-table
+JOIN/ON conditions may compare aggregated measure columns as shown above.
 
 -----------------------------------------------------
 Filtered domain / topics for this query

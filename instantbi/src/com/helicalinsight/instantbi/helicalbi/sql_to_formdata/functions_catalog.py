@@ -192,6 +192,13 @@ class FunctionCatalog:
         table_aliases: dict[str, str] | None = None,
     ) -> dict[str, Any] | None:
         expr = _unwrap_paren(expr)
+        # CASE WHEN / IF-style branches are not catalog DBFs — keep as RAW SQL.
+        if isinstance(expr, exp.Case):
+            return None
+        # Catalog databaseFunctions cannot wrap measure aggregates
+        # (ROUND(COUNT…/COUNT…), CAST(SUM…), …). Force custom/RAW.
+        if _contains_aggregate(expr):
+            return None
         kwargs = {
             "dialect": dialect,
             "database_name": database_name,
@@ -697,7 +704,36 @@ def _render_dbf_value_expression(
     if _looks_like_number(text) or text.upper() in {"NULL", "TRUE", "FALSE"}:
         return text
 
+    # Arithmetic / nested SQL must stay unquoted (never become '100.0 * COUNT(...)').
+    if _looks_like_sql_expression(text):
+        return text
+
     return _quote_string_literal(text)
+
+
+def _looks_like_sql_expression(text: str) -> bool:
+    """True for SQL fragments that must not be wrapped as string literals."""
+    upper = text.upper()
+    if any(op in text for op in (" * ", " / ", " + ", " - ", "||")):
+        return True
+    if any(
+        tok in upper
+        for tok in (
+            "COUNT(",
+            "SUM(",
+            "AVG(",
+            "MIN(",
+            "MAX(",
+            "NULLIF(",
+            "CASE ",
+            "CAST(",
+            "COALESCE(",
+        )
+    ):
+        return True
+    if re.search(r"\d\s*[\*/\+\-]", text):
+        return True
+    return False
 
 
 def _is_quoted_literal(text: str) -> bool:
@@ -885,6 +921,14 @@ def _unwrap_paren(node: exp.Expression) -> exp.Expression:
     while isinstance(node, exp.Paren):
         node = node.this
     return node
+
+
+def _contains_aggregate(expr: exp.Expression) -> bool:
+    """True when ``expr`` nests a measure aggregate (COUNT/SUM/…)."""
+    for node in expr.walk():
+        if isinstance(node, exp.AggFunc):
+            return True
+    return False
 
 
 def _peel_signature_wrappers(

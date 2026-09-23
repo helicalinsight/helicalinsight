@@ -22,6 +22,27 @@
       "keywords": ["waiting", "wait time", "too long", "sla", "queue"]
     },
     {
+      "id": "compare",
+      "keywords": [
+        "compare",
+        "compared",
+        "versus",
+        " vs ",
+        "last quarter",
+        "first quarter",
+        "prior quarter",
+        "qoq",
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "wow",
+        "mom",
+        "year over year",
+        "yoy"
+      ]
+    },
+    {
       "id": "why",
       "keywords": [
         "why",
@@ -41,10 +62,6 @@
     {
       "id": "target",
       "keywords": ["target", "goal", "meeting", "quota", "benchmark"]
-    },
-    {
-      "id": "compare",
-      "keywords": ["compare", "versus", " vs ", "last quarter", "first quarter", "wow", "mom"]
     }
   ],
   "strategies": {
@@ -109,7 +126,7 @@
           "title": "Root-cause slice",
           "question_template": "What underlying drivers explain: {question}?",
           "viz_hint": "bar",
-          "purpose": "Progressive disclosure of the next analytical layer.",
+          "purpose": "Next layer using dimensions/metrics from the semantic model only.",
           "context_anchor": ""
         },
         {
@@ -125,37 +142,37 @@
     "mece_metric_structuring": {
       "id": "mece_metric_structuring",
       "title": "MECE Metric Structuring",
-      "consulting_purpose": "Validates data trust by covering the topic fully without overlapping variables.",
-      "example_domain": "SaaS Finance / Customer Lifetime Value",
-      "example_question": "What factors are squeezing our profit margins?",
+      "consulting_purpose": "Validates data trust by covering the topic fully without overlapping variables from the semantic model.",
+      "example_domain": "Travel / Sales Order",
+      "example_question": "Why did travel cost change last quarter vs first quarter?",
       "template_id": "analytical-grid",
-      "layout_guidance": "Organized blocks of independent business levers, plus week-over-week or month-over-month shift.",
-      "color_guidance": "Consistent categorical colors per independent lever.",
-      "design_application": "Top cards for mutually exclusive drivers (e.g. new vs expansion revenue vs COGS vs OpEx), then a period-shift chart.",
+      "layout_guidance": "Headline outcome comparison, then mutually exclusive dimension breakdowns from the semantic model, then period trend.",
+      "color_guidance": "Consistent categorical colors per semantic dimension value.",
+      "design_application": "Top: outcome metric for the compared periods. Middle: breakdown by real model dimensions (e.g. travel type, travel medium). Bottom: period trend. Never invent textbook levers like AOV or order volume unless they exist in the model.",
       "charts": [
         {
           "level": "top",
           "title": "Core outcome",
           "question_template": "What is the primary outcome KPI for: {question}?",
           "viz_hint": "kpi",
-          "purpose": "Anchor the MECE set on the outcome metric.",
-          "context_anchor": "WoW or MoM change"
+          "purpose": "Anchor on the outcome metric named in the question / semantic model, with period comparison when asked.",
+          "context_anchor": "vs compared period"
         },
         {
           "level": "middle",
-          "title": "Independent drivers",
-          "question_template": "What independent, non-overlapping drivers explain: {question}?",
+          "title": "Dimension breakdown",
+          "question_template": "Break down {question} by the most relevant non-overlapping dimensions from the semantic model.",
           "viz_hint": "bar",
-          "purpose": "MECE breakdown of performance levers.",
+          "purpose": "MECE slice using categorical dimensions present in the semantic model only.",
           "context_anchor": ""
         },
         {
           "level": "bottom",
           "title": "Period shift",
-          "question_template": "How did the drivers for {question} change week-over-week or month-over-month?",
+          "question_template": "How did the outcome for {question} move across the compared periods (monthly or quarterly)?",
           "viz_hint": "line",
-          "purpose": "Show short-term optimization movement.",
-          "context_anchor": "WoW / MoM"
+          "purpose": "Show period movement for the same outcome metric.",
+          "context_anchor": "across compared periods"
         }
       ]
     },
@@ -277,6 +294,19 @@
     "cases": [
       { "equals": "alert", "strategy": "semantic_color_coding" },
       { "equals": "wait", "strategy": "so_what_contextual_anchoring" },
+      {
+        "equals": "compare",
+        "then": {
+          "id": "compare_by_persona",
+          "match": "persona",
+          "cases": [
+            { "equals": "executive", "strategy": "inverted_pyramid" },
+            { "equals": "analyst", "strategy": "progressive_disclosure" },
+            { "equals": "tactical_manager", "strategy": "progressive_disclosure" },
+            { "default": true, "strategy": "mece_metric_structuring" }
+          ]
+        }
+      },
       {
         "equals": "why",
         "then": {

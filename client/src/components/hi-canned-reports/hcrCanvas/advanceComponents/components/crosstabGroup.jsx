@@ -25,12 +25,13 @@ const CrosstabGroup = (props = {}) => {
 
   const currentGroup = getCTSelectedGroup(data, selectedGroup[0])
 
-  const { label, className, expression, id: groupId, calculation, type } = currentGroup || {}
+  const { label, className, expression, id: groupId, calculation, type, totalPosition = "End" } = currentGroup || {}
 
   const [groupState, setGroupState] = useState({
     label: label,
     expression: expression,
     className: className,
+    totalPosition: totalPosition
   })
   const [disabled, setDisabled] = useState(false)
 
@@ -68,8 +69,9 @@ const CrosstabGroup = (props = {}) => {
       label: label,
       expression: expression,
       className: className,
+      totalPosition
     })
-  }, [label, className, expression])
+  }, [label, className, expression, totalPosition])
 
   return (
     <Collapse
@@ -105,6 +107,21 @@ const CrosstabGroup = (props = {}) => {
               value={groupState.className}
               options={categoryClassNames}
               appendValue={false}
+            />
+          </div>
+          <div>
+            <SelectField
+              label={<div className="property-label" >Total Position</div>}
+              value={groupState.totalPosition}
+              options={[
+                { label: "None", value: "NONE" },
+                { label: "Start", value: "START" },
+                { label: "End", value: "END" },
+              ]}
+              width={"100%"}
+              onChange={(value) => {
+                handleChange("totalPosition", value)
+              }}
             />
           </div>
         </div>

@@ -1,14 +1,51 @@
-"""Convert-dashboard LLM contract: widgets keyed by component_id."""
+"""Convert-dashboard LLM contract: widgets keyed by component_id.
+
+Wire shape mirrors Helical Insight efwdd designer parts (not full efwdd JSON):
+
+- dashboard shell: title, header banner, theme, parameters panel, variables, layout
+- per-item ``dashboard_model``: kind + grid rect + tile chrome (header) + extras
+- per-item ``report_model`` (viz tiles only): data_model + viz_model
+"""
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
 
 class DashboardTheme(BaseModel):
-    color: str = Field(default="#1677ff", description="Accent / header hex color.")
-    background: str = Field(default="#ffffff", description="Panel background hex color.")
+    color: str = Field(default="#1677ff", description="Accent / tile-header hex color.")
+    background: str = Field(default="#ffffff", description="Panel / page background hex color.")
+
+
+class DashboardHeader(BaseModel):
+    """Dashboard-level or tile-level chrome banner (HI gridSettingsData / gridItemConfig header)."""
+
+    enable: bool = Field(default=True, description="Whether the header bar is shown.")
+    title: str = Field(
+        default="",
+        description=(
+            "Header title. May include Mustache-style variable placeholders "
+            "such as {{travel_date}} or {{travel_type}} that resolve from dashboard variables."
+        ),
+    )
+    backgroundColor: str = Field(
+        default="#000000",
+        description="Header bar background hex color (dashboard banner defaults to black).",
+    )
+
+
+class DashboardParameters(BaseModel):
+    """Global filter / parameter drawer settings (HI designerSettings.parameters)."""
+
+    enable: bool = Field(default=True, description="Show the parameters / filter drawer.")
+    orientation: str = Field(
+        default="right",
+        description='Drawer side: "right", "left", or "top".',
+    )
+    enableApplyButton: bool = Field(default=True)
+    floatingFilter: bool = Field(default=False)
+    closeOnApply: bool = Field(default=False)
 
 
 class DashboardWidget(BaseModel):
@@ -21,8 +58,8 @@ class DashboardWidget(BaseModel):
     kind: str = Field(
         default="viz",
         description=(
-            "viz = chat chart; summary = insight banner; kpi = key metric card; "
-            "filter = slicer; svg or image = inline SVG decoration."
+            "viz = chat chart/report; summary|text = insight / story banner; "
+            "kpi = key metric card; filter = slicer; svg|image = inline SVG decoration."
         ),
     )
     title: str = Field(default="", description="Skeleton tile title shown in the designer.")
@@ -45,16 +82,38 @@ class DashboardWidget(BaseModel):
     table: str = Field(default="", description="Filter table when kind=filter.")
     listeners: list[str] = Field(
         default_factory=list,
-        description="component_ids of viz widgets that listen to this filter.",
+        description=(
+            "For filter tiles: component_ids of viz widgets that listen. "
+            "For viz tiles: variable / filter names this report reacts to "
+            "(inter-panel communication)."
+        ),
     )
-    text: str = Field(default="", description="Overview / insight text when kind=summary.")
+    text: str = Field(default="", description="Overview / insight text when kind=summary|text.")
+    header_title: str = Field(
+        default="",
+        description=(
+            "Optional tile header title override (supports {{variable}} placeholders). "
+            "When empty, frontend falls back to title."
+        ),
+    )
+    export: bool = Field(
+        default=True,
+        description="Whether the tile exposes export actions (viz tiles).",
+    )
+    default_values: list[Any] = Field(
+        default_factory=list,
+        description="Initial filter values when kind=filter (seeded into dashboard variables).",
+    )
 
 
 class DashboardPlan(BaseModel):
-    """First-pass plan: template, theme, and the summary component."""
+    """First-pass plan: template, theme, header, and the summary component."""
 
     templateId: str = Field(default="analytical-grid")
     theme: DashboardTheme = Field(default_factory=DashboardTheme)
+    title: str = Field(default="", description="Dashboard display name.")
+    header: DashboardHeader = Field(default_factory=DashboardHeader)
+    parameters: DashboardParameters = Field(default_factory=DashboardParameters)
     summary_title: str = Field(default="Summary")
     summary_text: str = Field(default="")
     layout_plan: str = Field(
@@ -76,6 +135,15 @@ class DashboardLayoutDecision(BaseModel):
         ),
     )
     theme: DashboardTheme = Field(default_factory=DashboardTheme)
+    title: str = Field(default="", description="Dashboard display name for the shell.")
+    header: DashboardHeader = Field(
+        default_factory=DashboardHeader,
+        description="Dashboard-level banner (title + backgroundColor).",
+    )
+    parameters: DashboardParameters = Field(
+        default_factory=DashboardParameters,
+        description="Global filter drawer settings.",
+    )
     widgets: list[DashboardWidget] = Field(
         default_factory=list,
         description=(

@@ -21,10 +21,12 @@ Collected findings:
 {collected_data}
 
 Rules:
-- Give a user-facing summary that ties the sub-findings together.
-- Cite the key numbers and entities from the findings.
+- Write a clear explanatory summary for a business user, not a raw inventory of every number.
+- Lead with the main takeaway, then briefly support it with the most important figures only.
+- Prefer insight and concentration patterns over listing every step end-to-end.
 - If some steps failed, say what could not be determined.
 - Do not mention SQL, schemas, agents, or internal steps unless needed to explain a failure.
+- Keep it readable: a few short sentences or at most two short paragraphs. No bullet lists.
 """ + format_instruction_string
 
 TOOL_AGENT_PROMPT = """You are an InstantBI dashboard agent. Your job is to build a clear
@@ -98,9 +100,14 @@ Context:
 Original question:
 {original_question}
 
-Semantic model overview (domains, topics, metrics). Ground every chart in this
-model. Do not invent tables, metrics, or drivers that are not implied here:
+Semantic model overview (domains and topics map):
 {semantic_overview}
+
+Selected topic grounding pack (topic descriptions, components, AI instructions)
+plus schema relation exploration (same-table columns and join neighbors).
+Prefer semantic topic components when present; also use same-table and
+join-related columns from the relation section for complementary breakdowns:
+{grounding_pack}
 
 Suggested strategy (starting pattern from the decision tree):
 {strategy_block}
@@ -109,17 +116,38 @@ Other catalog strategies (use only when the suggested skeleton cannot be
 grounded in the semantic model; stay on similar consulting lines):
 {strategy_catalog}
 
+{validation_feedback}
+
 Rules:
 - Prefer the suggested strategy's purpose, layout bands, and color rules.
-- Chart slots are reference only. Write original chart.question text from the
-  semantic model and the user question.
-- Never copy question_template, example_question, or fill "{{question}}" into a
-  canned sentence. Do not paste strategy JSON into the plan.
-- Each chart.question must be a focused sub-question InstantBI can answer from
-  this semantic model with one SQL/viz.
-- If a skeleton slot needs metrics the model does not have, replace it with the
-  closest equivalent on the same lines (same level/purpose: headline outcome,
-  independent drivers, period shift, exception list, etc.).
+- Chart slots are structural only (band + viz type). Write original
+  chart.question / title / purpose from the user question and the grounding
+  pack — never from generic consulting jargon.
+- Never copy question_template, example_question, slot titles like
+  "Independent drivers", or fill "{{question}}" into a canned sentence.
+  Do not paste strategy JSON into the plan.
+- Each chart.question must be a focused sub-question InstantBI can answer with
+  one SQL/viz. Name real measures and dimensions from the grounding pack
+  (e.g. Travel Cost, Failed Acquisition Cost, Client Name).
+- For "above/below average", exception lists, or multi-measure thresholds,
+  keep the question answerable with one SQL that JOINs pre-aggregated
+  derived tables — do not rely on nested HAVING (SELECT AVG...) subqueries.
+- Think across relations: after the core measure, add complementary charts that
+  break it down by other columns on the same table and by columns on join-
+  related tables listed in the schema relation exploration section.
+- Prefer existing calculated metrics in the pack over inventing formulas.
+- Set chart.topic to one selected topic; set chart.components and
+  chart.measure_hints to names that appear in that topic's component list
+  or in the schema relation exploration column lists.
+- Forbidden unless they appear in the grounding pack: inventing retail/SaaS
+  levers such as order volume, average order value (AOV), CAC, COGS, OpEx,
+  new vs expansion revenue, or similar textbook drivers.
+- Period comparisons (QoQ / first vs last quarter / vs prior period): one
+  headline comparison chart for the outcome metric, then breakdown charts by
+  the model's real categorical dimensions — not abstract "driver" math.
+- If a skeleton slot needs metrics the pack does not have, replace it with the
+  closest real metric/dimension from the pack that still serves that band
+  (headline outcome, dimension breakdown, period trend, exception list, etc.).
 - If the whole suggested strategy is a poor fit for this question and model,
   pick the closest catalog strategy instead. Set strategy_id and strategies to
   that id, and explain the substitution in rationale.
@@ -129,5 +157,5 @@ Rules:
 - Comparisons are usually one comparison chart, not a separate chart per period.
 - Fill context_anchor on KPI charts (target, vs last week, vs last quarter)
   only when the model can support that comparison.
-- Set domain and topics from the semantic overview when possible.
+- Set plan.domain and plan.topics from the selected grounding pack.
 """ + format_instruction_string

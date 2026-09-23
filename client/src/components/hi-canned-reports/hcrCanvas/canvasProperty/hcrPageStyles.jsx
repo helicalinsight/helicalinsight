@@ -23,7 +23,7 @@ export default function CanvasPageStyles({
   onChange = () => { },
   onSave = () => { },
   saveButtonDisabled,
-  addConditionalStyleField
+  displayStyleName = true
 }) {
   const activeTab =
     useSelector((state) =>
@@ -249,7 +249,7 @@ export default function CanvasPageStyles({
           dispatch(hcrActions.setUpdateHcrCanvasPageStyles(true));
         }}
       />}
-      <InputFiled
+      {displayStyleName && <InputFiled
         label={getLabel({ label: "Style Name", tooltip: tooltip_StyleName })}
         value={nodeValues.styleName}
         onChange={(value) => {
@@ -265,7 +265,7 @@ export default function CanvasPageStyles({
             })
           );
         }}
-      />
+      />}
       <NodeTypography
         getTooltipInfo={getLabel}
         InputNumberFiled={InputNumberFiled}
@@ -374,28 +374,6 @@ export default function CanvasPageStyles({
           label={"Color"}
         />
         <Divider className="group-divider" />
-        {fromAdvanceComponent && addConditionalStyleField ?
-          <>
-            <div className="property-group">Conditional Style</div>
-            <div>
-              <InputFiled
-                label={<div className="property-label">Expression</div>}
-                value={nodeValues.expression}
-                onChange={(value) => {
-                  onChange({ key: "expression", value })
-                }}
-              />
-            </div>
-            <NodeColorPicker
-              onPropertyChange={({ value }) => {
-                onChange({ key: "expressionBackColor", value })
-              }}
-              clrVal={nodeValues.expressionBackColor || "#BFE1FF"}
-              keyWord="color"
-              label={"Alt. Row Detail"}
-            />
-          </>
-          : null}
       </>
       {fromAdvanceComponent && (
         <Space>

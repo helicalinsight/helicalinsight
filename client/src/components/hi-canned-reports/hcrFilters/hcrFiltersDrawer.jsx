@@ -39,7 +39,8 @@ const HCRFiltersDrawer = ({
   resetStream = () => { },
   reportKey,
   subDataSets = [],
-  tableStyles = []
+  tableStyles = [],
+  maybeFetchJrxml=() => { }
 }) => {
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
@@ -165,7 +166,8 @@ const HCRFiltersDrawer = ({
           hcrExportProperties,
           tempUUIDsMap: queryTempuuidsMap.current,
           subDataSets,
-          tableStyles
+          tableStyles,
+          dispatch
         }),
         (res) => {
           if (streamEnabled) {
@@ -182,6 +184,7 @@ const HCRFiltersDrawer = ({
               }),
             );
             setIsPreviewLoading(false);
+            maybeFetchJrxml(res);
           }
         },
         (e) => {

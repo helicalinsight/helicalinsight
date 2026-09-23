@@ -32,7 +32,8 @@ class SchemaTools:
 schema_tools = SchemaTools()
 
 
-@tool
+# description= is required: Nuitka --python-flag=no_docstrings strips __doc__.
+@tool(description="Retrieve the most relevant tables and columns for a natural-language question.")
 def retrieve_schema(
     question: str,
     state: Annotated[dict, InjectedState],

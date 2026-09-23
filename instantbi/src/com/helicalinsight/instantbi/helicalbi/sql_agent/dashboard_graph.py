@@ -130,6 +130,8 @@ def run_dashboard_agent(
     persona: Optional[dict] = None,
     user_role: Optional[list] = None,
     user_profile: Optional[list] = None,
+    build_dashboard: bool = True,
+    on_progress=None,
 ) -> AgentState:
     """Load HI metadata, run the tool-calling dashboard agent, layout a dashboard."""
     profile = resolve_mode_profile(
@@ -150,6 +152,8 @@ def run_dashboard_agent(
         user_query=question,
         last_chats=last_chats,
     )
+    if callable(on_progress):
+        session["_on_progress"] = on_progress
     indexer = session.pop("indexer", None)
     semantic_indexer = session.pop("semantic_indexer", None)
     catalog_id = f"dashboard:{thread_id}"
@@ -178,7 +182,7 @@ def run_dashboard_agent(
         chat_seq_id=str(chat_seq_id or "1"),
         request_id=request_id,
         username=username,
-        build_dashboard=True,
+        build_dashboard=bool(build_dashboard),
         investigation_plan=plan,
         persona=persona or {},
         user_role=user_role or [],

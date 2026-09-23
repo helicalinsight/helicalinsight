@@ -1,4 +1,4 @@
-"""Aggregate → functions slice (extractColumnFunctions)."""
+"""GROUP BY → formData.functions.groupBy (extractColumnFunctions)."""
 
 from __future__ import annotations
 
@@ -10,29 +10,14 @@ def build_functions(
     parsed: ParsedQuery,
     columns: list[dict] | None = None,
 ) -> dict:
-    columns = columns or []
-    functions: dict = {}
+    """Wire ``functions`` with ``groupBy`` only.
 
-    group_by = build_groupby(parsed, columns)
+    Measure aggregation lives on each column (``aggregate`` / ``aggregateList``).
+    InstantBI and Instant-to-HR read those column fields; they do not use
+    ``functions.aggregate``.
+    """
+    functions: dict = {}
+    group_by = build_groupby(parsed, columns or [])
     if group_by:
         functions["groupBy"] = group_by
-
-    aggregates = []
-    for col in columns:
-        if not col.get("aggregate"):
-            continue
-        agg_list = col.get("aggregateList") or ["db.generic.aggregate.sum"]
-        entry = {
-            "column": col["column"],
-            "function": "_".join(agg_list),
-            "alias": col.get("alias"),
-        }
-        if col.get("custom"):
-            entry["custom"] = True
-        if col.get("applyBeforeAggregate"):
-            entry["applyBeforeAggregate"] = True
-        aggregates.append(entry)
-    if aggregates:
-        functions["aggregate"] = aggregates
-
     return functions

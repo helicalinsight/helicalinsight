@@ -158,15 +158,30 @@ def tables_from_cube_metadata(
                 samples = item.get("sample_values") or item.get("enum_values") or []
                 if not isinstance(samples, list):
                     samples = [samples]
+                sample_values = [str(v) for v in samples if v is not None]
+                data_type = str(item.get("data_type") or item.get("type") or "")
+                description = str(item.get("description") or "")
                 columns.append(
                     ColumnMeta(
                         name=str(col_name),
-                        data_type=str(item.get("data_type") or item.get("type") or ""),
-                        description=str(item.get("description") or ""),
+                        data_type=data_type,
+                        description=description,
                         is_primary_key=is_pk,
-                        sample_values=[str(v) for v in samples if v is not None],
+                        sample_values=sample_values,
                     )
                 )
+                # Aliases (e.g. "Travel Cost") are valid SQL identifiers in InstantBI.
+                alias = item.get("alias_name") or item.get("alias") or ""
+                if alias and _norm(alias) != _norm(col_name):
+                    columns.append(
+                        ColumnMeta(
+                            name=str(alias),
+                            data_type=data_type,
+                            description=description or f"Alias for {col_name}",
+                            is_primary_key=False,
+                            sample_values=sample_values,
+                        )
+                    )
         tables.append(
             TableMeta(
                 name=str(name),
@@ -180,29 +195,73 @@ def tables_from_cube_metadata(
     return tables
 
 
+def _endpoint(side: Any) -> tuple[Optional[str], Optional[str]]:
+    if not isinstance(side, dict):
+        return None, None
+    table = side.get("table") or side.get("tableName") or side.get("database_table")
+    column = side.get("column") or side.get("columnName") or side.get("column_name")
+    return (
+        str(table).strip() if table else None,
+        str(column).strip() if column else None,
+    )
+
+
+def _join_edges(item: dict) -> List[tuple[str, str, str, str]]:
+    """Return directed (from_table, from_col, to_table, to_col) edges for one join."""
+    left = item.get("left")
+    right = item.get("right")
+    if isinstance(left, dict) and isinstance(right, dict):
+        left_table, left_col = _endpoint(left)
+        right_table, right_col = _endpoint(right)
+        if left_table and left_col and right_table and right_col:
+            return [
+                (left_table, left_col, right_table, right_col),
+                (right_table, right_col, left_table, left_col),
+            ]
+
+    src_table = item.get("table") or item.get("from_table")
+    column = item.get("column") or item.get("from_column") or item.get("fk_column")
+    ref_table = item.get("ref_table") or item.get("to_table") or item.get("referenced_table")
+    ref_column = (
+        item.get("ref_column")
+        or item.get("to_column")
+        or item.get("referenced_column")
+    )
+    if src_table and column and ref_table and ref_column:
+        return [
+            (str(src_table), str(column), str(ref_table), str(ref_column)),
+            (str(ref_table), str(ref_column), str(src_table), str(column)),
+        ]
+    return []
+
+
 def _foreign_keys_for(table_name: str, relationships: Any) -> List[ForeignKeyMeta]:
+    """Parse InstantBI joins (left/right or flat) into outbound FKs for *table_name*."""
     if not relationships:
         return []
     rows = relationships
     if isinstance(relationships, dict):
-        rows = relationships.get(table_name) or relationships.get(_norm(table_name)) or []
+        # Prefer table-keyed map, but also accept {"joins": [...]} wrappers.
+        keyed = relationships.get(table_name) or relationships.get(_norm(table_name))
+        if keyed is None and "joins" in relationships:
+            rows = relationships.get("joins") or []
+        else:
+            rows = keyed or []
         if isinstance(rows, dict):
             rows = [rows]
     fks: List[ForeignKeyMeta] = []
+    seen = set()
+    target = _norm(table_name)
     for item in rows or []:
         if not isinstance(item, dict):
             continue
-        src_table = item.get("table") or item.get("from_table") or table_name
-        if _norm(src_table) != _norm(table_name):
-            continue
-        column = item.get("column") or item.get("from_column") or item.get("fk_column")
-        ref_table = item.get("ref_table") or item.get("to_table") or item.get("referenced_table")
-        ref_column = (
-            item.get("ref_column")
-            or item.get("to_column")
-            or item.get("referenced_column")
-        )
-        if column and ref_table and ref_column:
+        for src_table, column, ref_table, ref_column in _join_edges(item):
+            if _norm(src_table) != target:
+                continue
+            key = (_norm(column), _norm(ref_table), _norm(ref_column))
+            if key in seen:
+                continue
+            seen.add(key)
             fks.append(
                 ForeignKeyMeta(
                     column=str(column),

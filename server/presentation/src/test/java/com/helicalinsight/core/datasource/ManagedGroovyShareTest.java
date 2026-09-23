@@ -36,7 +36,6 @@ import com.helicalinsight.adhoc.FileSystemOperationsController;
 import com.helicalinsight.admin.controller.AdminController;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controller.DataSourceController;
-import com.helicalinsight.efw.controller.EfwServicesController;
 import com.helicalinsight.resourcesecurity.filter.ResourceAuthenticationAndAuthorizationFilter;
 import com.helicalinsight.test.utility.IntegrationTestUtility;
 import com.helicalinsight.test.utility.TestUtility;
@@ -91,24 +90,33 @@ public class ManagedGroovyShareTest {
 	}
 
 	@Autowired
-	private EfwServicesController efwServicesController;
-	
-	@Autowired
 	private IntegrationTestUtility testUtility;
 
 	@Autowired
 	private FileSystemOperationsController fileSystemOperationsController;
 
 	private static String firstJdbcId = "";
+	private static String secondJdbcId = "";
 
 	@Test
 	public void ds_a1_init() throws Exception {
 		testUtility.createFolder("GroovyManagedShareTest");
 		testUtility.createFolder("EfwdDataSource",Arrays.asList("GroovyManagedShareTest"));
+		
+		testUtility.createFolder("GroovyManagedPublic");
+		testUtility.makeResourcePublic("GroovyManagedPublic", "GroovyManagedPublic", true);
+		testUtility.createFolder("EfwdPvtDatasource", Arrays.asList("GroovyManagedPublic"));
+		testUtility.makeResourcePublic("GroovyManagedPublic/EfwdPvtDatasource", "GroovyManagedPublic/EfwdPvtDatasource", true);
+		
 		String formData = "{\"classifier\":\"efwd\",\"condition\":\"import groovy.sql.Sql;\\n      import net.sf.json.JSONObject;\\n      import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n      public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        if (userName.equals(\\\"hiadmin\\\")) {\\n          responseJson.put(\\\"globalId\\\", 1);\\n        }\\n      \\n        if (userName.equals(\\\"hiuser\\\")) {\\n          responseJson.put(\\\"globalId\\\", 3);\\n        }\\n      \\n        if (userName.equals(\\\"test\\\")) {\\n          responseJson.put(\\\"globalId\\\", 4);\\n        }\\n      \\n        responseJson.put(\\\"type\\\", \\\"global.jdbc\\\");\\n      \\n        //throw new RuntimeException(\\\"This is a test exception\\\" +responseJson);\\n        return responseJson;\\n      }\",\"dataSourceType\":\"Groovy Managed Jdbc DataSource\",\"name\":\"GroovyManagedDatasource\",\"type\":\"sql.jdbc.groovy.managed\",\"directory\":\"GroovyManagedShareTest/EfwdDataSource\"}";
 		String response = testUtility.createPlainDatasource(formData);
 		JsonObject node = GsonUtility.parseString(response, JsonObject.class);
 		firstJdbcId = GsonUtility.getByPath(node, "response.dataSourceId").getAsString();
+		
+		String formData2 = "{\"classifier\":\"efwd\",\"condition\":\"import groovy.sql.Sql;\\n      import net.sf.json.JSONObject;\\n      import com.helicalinsight.adhoc.metadata.GroovyUsersSession;\\n      public JSONObject evalCondition() {\\n        JSONObject responseJson = new JSONObject();\\n        String userName = GroovyUsersSession.getValue('${user}.name');\\n        userName = userName.replaceAll(\\\"'\\\", \\\"\\\");\\n        if (userName.equals(\\\"hiadmin\\\")) {\\n          responseJson.put(\\\"globalId\\\", 1);\\n        }\\n      \\n        if (userName.equals(\\\"hiuser\\\")) {\\n          responseJson.put(\\\"globalId\\\", 3);\\n        }\\n      \\n        if (userName.equals(\\\"test\\\")) {\\n          responseJson.put(\\\"globalId\\\", 4);\\n        }\\n      \\n        responseJson.put(\\\"type\\\", \\\"global.jdbc\\\");\\n      \\n        //throw new RuntimeException(\\\"This is a test exception\\\" +responseJson);\\n        return responseJson;\\n      }\",\"dataSourceType\":\"Groovy Managed Jdbc DataSource\",\"name\":\"GroovyManagedDatasource\",\"type\":\"sql.jdbc.groovy.managed\",\"directory\":\"GroovyManagedPublic/EfwdPvtDatasource\"}";
+		String response2 = testUtility.createPlainDatasource(formData2);
+		JsonObject node2 = GsonUtility.parseString(response2, JsonObject.class);
+		secondJdbcId = GsonUtility.getByPath(node2, "response.dataSourceId").getAsString();
 	}
 
 	@Test
@@ -146,14 +154,15 @@ public class ManagedGroovyShareTest {
 	        JSONArray array = responseNode.getJSONArray("dataSources");
 	        Assert.assertNotNull(array);
 	        Assert.assertTrue(array.size() >  0);
+	        Map<String,String> connectionPermissionMap = new HashMap<>();
 	        for(Object object : array) {
 	        	JSONObject connection = (JSONObject) object;
 	        	Assert.assertTrue(connection.containsKey("baseType"));
-	        	if(connection.getJSONObject("data").getString("id").equals(firstJdbcId)) {
-	        		Assert.assertEquals("5", connection.getString("permissionLevel"));
-	        		break;
-	        	}
-	        }  
+	        	connectionPermissionMap.put(connection.getJSONObject("data").getString("id"),connection.getString("permissionLevel"));
+	        }
+	        
+	        Assert.assertEquals(connectionPermissionMap.get(firstJdbcId), "5");
+	        Assert.assertEquals(connectionPermissionMap.get(secondJdbcId), "3");
 	}
 	
 	@Test

@@ -64,3 +64,21 @@ class TestBindRequestIdentity:
         assert headers["Authorization"] == "Bearer jwt-token"
         assert headers["type"] == "jwt"
         assert "Host" not in headers
+
+
+    def test_strips_event_stream_accept_from_downstream_headers(self):
+        set_api_cache_identity("", "")
+        bind_request_identity(
+            {
+                "sessionCookie": "sess",
+                "username": "alice",
+                "headers": {
+                    "Authorization": "Bearer jwt-token",
+                    "Accept": "text/event-stream",
+                },
+            }
+        )
+        headers = downstream_request_headers()
+        assert headers["Authorization"] == "Bearer jwt-token"
+        assert "Accept" not in headers
+        assert "accept" not in {key.lower() for key in headers}

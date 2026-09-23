@@ -23,7 +23,8 @@ class ControlTools:
 control_tools = ControlTools()
 
 
-@tool
+# description= is required: Nuitka --python-flag=no_docstrings strips __doc__.
+@tool(description="Stop gathering data and build the dashboard from collected charts.")
 def finish_dashboard(
     reason: str = "",
     *,

@@ -157,6 +157,25 @@ public class InstantBIUtilsTest {
     }
 
     @Test
+    public void prepareSqlToReportModelResponsePassesReportModel() {
+        String botResponse = "{\"report_model\":{\"data_model\":{\"columns\":[{\"alias\":\"region\"}],\"sql\":\"SELECT region FROM t\"},\"viz_model\":{\"chart\":{\"viz\":\"Bar\"}}}}";
+        JsonObject response = InstantBIUtils.prepareSqlToReportModelResponse(botResponse);
+        JsonObject reportModel = response.getAsJsonObject("report_model");
+        assertEquals("region", reportModel.getAsJsonObject("data_model")
+                .getAsJsonArray("columns").get(0).getAsJsonObject().get("alias").getAsString());
+        assertEquals("Bar", reportModel.getAsJsonObject("viz_model")
+                .getAsJsonObject("chart").get("viz").getAsString());
+        assertFalse(response.has("metadata"));
+        assertFalse(response.has("sql_parts"));
+    }
+
+    @Test
+    public void prepareSqlToReportModelResponseIncludesPythonError() {
+        JsonObject response = InstantBIUtils.prepareSqlToReportModelResponse("{\"error\":\"No SQL found\"}");
+        assertEquals("No SQL found", response.get("error").getAsString());
+    }
+
+    @Test
     public void addRoleProfileAddsRolesAndProfiles() {
         Role role = new Role();
         role.setId(1);
@@ -211,7 +230,80 @@ public class InstantBIUtilsTest {
             assertEquals("MyFolder", input.getAsJsonObject("model").get("dir").getAsString());
             assertEquals("Sales.agent", input.getAsJsonObject("model").get("file").getAsString());
             assertEquals("session-1", input.get("reportId").getAsString());
+            assertFalse(input.has("mode"));
+            assertFalse(input.has("rm_cols_in_filter"));
         }
+    }
+
+    @Test
+    public void buildInteractiveChatRequestIncludesModeWhenProvided() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getOrg_id()).thenReturn(5);
+        when(user.getRoles()).thenReturn(Collections.emptyList());
+        when(user.getProfile()).thenReturn(Collections.emptyList());
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject body = InstantBIUtils.buildInteractiveChatRequest(
+                    request,
+                    "Why is travel cost high?",
+                    "chat-1",
+                    "3",
+                    "{\"model\":{\"dir\":\"MyFolder\",\"file\":\"Sales.agent\"}}",
+                    "think");
+
+            JsonObject input = body.getAsJsonObject("input");
+            assertEquals("think", input.get("mode").getAsString());
+            assertEquals("chat-1", input.get("chatid").getAsString());
+        }
+    }
+
+    @Test
+    public void buildInteractiveChatRequestHonorsRemoveColsInFilterFalse() {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getRoles()).thenReturn(Collections.emptyList());
+        when(user.getProfile()).thenReturn(Collections.emptyList());
+        when(principal.getLoggedInUser()).thenReturn(user);
+
+        try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+
+            JsonObject body = InstantBIUtils.buildInteractiveChatRequest(
+                    request,
+                    "Show sales by region",
+                    "chat-1",
+                    "3",
+                    "{\"model\":{\"dir\":\"MyFolder\",\"file\":\"Sales.agent\"}}",
+                    false);
+
+            assertFalse(body.getAsJsonObject("input").get("rm_cols_in_filter").getAsBoolean());
+        }
+    }
+
+    @Test
+    public void parseRequestBooleanDefaultsTrueAndAcceptsFalseAliases() {
+        assertTrue(InstantBIUtils.parseRequestBoolean(null, true));
+        assertTrue(InstantBIUtils.parseRequestBoolean("", true));
+        assertTrue(InstantBIUtils.parseRequestBoolean("true", true));
+        assertFalse(InstantBIUtils.parseRequestBoolean("false", true));
+        assertFalse(InstantBIUtils.parseRequestBoolean("0", true));
+        assertFalse(InstantBIUtils.parseRequestBoolean("no", true));
+        assertFalse(InstantBIUtils.parseRequestBoolean("off", true));
+        assertTrue(InstantBIUtils.parseRequestBoolean("xyz", true));
     }
 
     @Test
@@ -359,6 +451,7 @@ public class InstantBIUtilsTest {
         JsonObject headers = new JsonObject();
         headers.addProperty("Authorization", "Bearer nested");
         headers.addProperty("Host", "should-skip");
+        headers.addProperty("Accept", "text/event-stream");
         JsonObject input = new JsonObject();
         input.add("headers", headers);
         JsonObject body = new JsonObject();
@@ -370,6 +463,7 @@ public class InstantBIUtilsTest {
 
         assertEquals("Bearer nested", request.headers().firstValue("Authorization").orElse(null));
         org.junit.Assert.assertFalse(request.headers().firstValue("Host").isPresent());
+        org.junit.Assert.assertFalse(request.headers().firstValue("Accept").isPresent());
     }
 
     @Test
@@ -453,6 +547,22 @@ public class InstantBIUtilsTest {
         try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
             jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(new JsonObject());
             assertEquals("http://pyflask:8000/", InstantBIUtils.getInstantBIServiceUrl());
+        }
+    }
+
+    @Test
+    public void isStreamResponseEnabledReadsSettingFlag() {
+        JsonObject enabled = new JsonObject();
+        enabled.addProperty("streamResponse", true);
+        JsonObject disabled = new JsonObject();
+        disabled.addProperty("streamResponse", false);
+        try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
+            jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(enabled);
+            assertTrue(InstantBIUtils.isStreamResponseEnabled());
+            jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(disabled);
+            assertFalse(InstantBIUtils.isStreamResponseEnabled());
+            jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(new JsonObject());
+            assertFalse(InstantBIUtils.isStreamResponseEnabled());
         }
     }
 

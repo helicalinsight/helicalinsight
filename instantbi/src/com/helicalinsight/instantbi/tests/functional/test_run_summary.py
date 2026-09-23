@@ -62,5 +62,7 @@ def test_asked_questions_fallback_to_collected_data():
 def test_append_question_and_attempt_count():
     assert append_question([], "  Hello ") == ["Hello"]
     assert append_question(["Hello"], "") == ["Hello"]
+    assert append_question(["Hello"], "Hello") == ["Hello"]
+    assert append_question(["Hello"], "HELLO") == ["Hello"]
     assert attempt_count_from_state({"tool_loop_count": 3}) == 3
     assert attempt_count_from_state({}) == 0

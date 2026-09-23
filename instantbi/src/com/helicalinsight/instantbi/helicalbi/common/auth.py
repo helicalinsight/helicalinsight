@@ -20,6 +20,7 @@ _SKIP_HEADER_NAMES = frozenset(
         "upgrade",
         "expect",
         "accept-encoding",
+        "accept",
     }
 )
 _AUTH_PARAM_NAMES = ("Authorization", "authToken", "type", "X-Auth-Token")

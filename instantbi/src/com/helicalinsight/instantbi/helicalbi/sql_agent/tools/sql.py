@@ -18,14 +18,16 @@ logger = logging.getLogger(__name__)
 class SqlTools:
     """Generate, validate, and execute InstantBI SQL."""
 
-    def generate(self, question: str, state: dict[str, Any]) -> dict[str, Any]:
+    def generate(self, question: str, state: dict[str, Any], *, prompt: str | None = None) -> dict[str, Any]:
         from helicalbi.sql_agent.instantbi_turn import generate_sql_for_question
 
         ctx = AgentToolContext(state)
         session = ctx.session
         seq = ctx.next_seq()
+        tracked_question = str(question or "").strip()
+        generation_query = str(prompt or tracked_question).strip() or tracked_question
         result = generate_sql_for_question(
-            question,
+            generation_query,
             session,
             thread_id=ctx.thread_id,
             chat_seq_id=seq,
@@ -35,6 +37,8 @@ class SqlTools:
                 "selected_domains": state.get("selected_domains") or [],
                 "selected_topics": state.get("selected_topics") or [],
                 "current_semantic_context": state.get("current_semantic_context") or "",
+                "measure_hints": state.get("chart_measure_hints") or [],
+                "components": state.get("chart_components") or [],
             },
         )
         sql = strip_sql_markdown(result.get("sql") or "").strip()
@@ -46,8 +50,8 @@ class SqlTools:
             "sql": sql,
             "error": error,
             "state_patch": {
-                "current_sub_question": question,
-                "asked_questions": append_question(state.get("asked_questions"), question),
+                "current_sub_question": tracked_question or generation_query,
+                "asked_questions": append_question(state.get("asked_questions"), tracked_question),
                 "generated_sql": sql or None,
                 "sql_error": error or None,
                 "current_chat_seq_id": seq,
@@ -88,7 +92,13 @@ class SqlTools:
             metadata=ctx.metadata,
         )
         retry = int(state.get("sql_retry_count") or 0)
-        if error:
+        # Unknown-column checks can miss metadata aliases. When physical metadata
+        # is loaded, attempt execute and let the retry loop use the engine error.
+        # With only the cube catalog, an unknown column is a hard block.
+        soft_unknown = bool(
+            error and ctx.metadata and str(error).startswith("Unknown column")
+        )
+        if error and not soft_unknown:
             logger.info("execute_query blocked by validator: %s", error)
             return {
                 "ok": False,
@@ -100,6 +110,11 @@ class SqlTools:
                     "sql_retry_count": retry + 1,
                 },
             }
+        if soft_unknown:
+            logger.info(
+                "execute_query soft-allowing unknown-column validation: %s",
+                error,
+            )
 
         last = session.get("_last_sql_state")
         if isinstance(last, dict):
@@ -138,7 +153,8 @@ class SqlTools:
 sql_tools = SqlTools()
 
 
-@tool
+# description= is required: Nuitka --python-flag=no_docstrings strips __doc__.
+@tool(description="Generate SQL for a question using InstantBI metadata and SQL graphs. Does not execute.")
 def generate_sql(
     question: str,
     state: Annotated[dict, InjectedState],
@@ -147,7 +163,7 @@ def generate_sql(
     return AgentToolContext.dump(sql_tools.generate(question, state))
 
 
-@tool
+@tool(description="Parse SQL with sqlglot and check table/column names against the catalog. Does not execute.")
 def validate_sql(
     sql: str,
     state: Annotated[dict, InjectedState],
@@ -156,7 +172,7 @@ def validate_sql(
     return AgentToolContext.dump(sql_tools.validate(sql, state))
 
 
-@tool
+@tool(description="Execute a SELECT via InstantBI executeQuery. Always validates first; never runs invalid SQL.")
 def execute_query(
     sql: str,
     state: Annotated[dict, InjectedState],

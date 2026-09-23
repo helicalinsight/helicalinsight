@@ -104,7 +104,26 @@ public class ResponseMetadataFilter implements Filter {
             return true;
         }
         String accept = request.getHeader("Accept");
-        return accept != null && accept.toLowerCase().contains(MediaType.TEXT_EVENT_STREAM_VALUE);
+        if (accept != null && accept.toLowerCase().contains(MediaType.TEXT_EVENT_STREAM_VALUE)) {
+            return true;
+        }
+        return isInstantBiStreamPath(request.getServletPath());
+    }
+
+    /**
+     * InstantBI chat/insight/dashboard can emit SSE. The caching wrapper would
+     * hold every event until the turn finished, so the browser only saw Working…
+     */
+    private boolean isInstantBiStreamPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        return path.equals("/ai/interactive-chat")
+                || path.startsWith("/ai/interactive-chat/")
+                || path.equals("/ai/data-insight")
+                || path.startsWith("/ai/data-insight/")
+                || path.equals("/ai/convert-dashboard")
+                || path.startsWith("/ai/convert-dashboard/");
     }
 
     private boolean isEnrichableContentType(String contentType) {

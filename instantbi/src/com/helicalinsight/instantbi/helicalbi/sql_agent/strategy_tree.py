@@ -188,8 +188,9 @@ def strategy_prompt_block(strategy: Mapping[str, Any]) -> str:
         if not isinstance(chart, Mapping):
             continue
         chart_lines.append(
-            f"{index}. [{chart.get('level') or 'middle'}] {chart.get('title') or ''} "
-            f"({chart.get('viz_hint') or 'bar'}) — {chart.get('purpose') or 'reference slot'}"
+            f"{index}. band={chart.get('level') or 'middle'} "
+            f"viz={chart.get('viz_hint') or 'bar'} — "
+            f"{chart.get('purpose') or 'reference slot'}"
         )
     return "\n".join(
         [
@@ -197,8 +198,8 @@ def strategy_prompt_block(strategy: Mapping[str, Any]) -> str:
             f"Title: {strategy.get('title') or ''}",
             f"Layout template name: {strategy.get('template_id') or ''}",
             f"Purpose: {strategy.get('consulting_purpose') or ''}",
-            "Chart slots (reference only — write original questions from the semantic "
-            "model; do not copy titles or canned question text):",
+            "Chart slots (band + viz only — write questions from the semantic model "
+            "dimensions/metrics; do not copy slot labels or invent textbook drivers):",
             *(chart_lines or ["(none)"]),
         ]
     )

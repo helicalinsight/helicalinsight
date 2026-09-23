@@ -27,11 +27,14 @@ def form_data_to_sql_parts(form_data: dict[str, Any] | None) -> dict[str, Any]:
             "table": table,
             "column": column,
             "databaseFunction": _column_database_function(col),
-            "shelf": "column" if col.get("aggregate") else "row",
+            "shelf": _column_shelf(col),
             "alias": str(col.get("alias") or column),
         }
         if col.get("order"):
             entry["order"] = str(col.get("order") or "asc").lower()
+        geo_type = str(col.get("geographicType") or "").strip()
+        if geo_type:
+            entry["geographicType"] = geo_type
         columns.append(entry)
 
     filters: list[dict[str, Any]] = []
@@ -100,7 +103,7 @@ def viz_model_to_viz_parts(
             color_field = color.strip()
 
     title = props.get("title") or viz.get("vf_title") or ""
-    return {
+    parts = {
         "chart_name": str(viz.get("chart_name") or ""),
         "mark": str(chart.get("mark") or ""),
         "viz": str(chart.get("viz") or ""),
@@ -109,6 +112,14 @@ def viz_model_to_viz_parts(
         "title": str(title or ""),
         "colorField": color_field,
     }
+    geo_roles = props.get("geographicRoles") or props.get("geographic_roles")
+    if isinstance(geo_roles, dict) and geo_roles:
+        parts["geographicRoles"] = {
+            str(k): str(v)
+            for k, v in geo_roles.items()
+            if str(k or "").strip() and str(v or "").strip()
+        }
+    return parts
 
 
 def _has_tables(metadata: dict[str, Any] | None) -> bool:
@@ -243,6 +254,20 @@ def _column_database_function(col: dict[str, Any]) -> str:
     return _database_function_key(col.get("databaseFunction"))
 
 
+def _is_distinct_only_aggregate(col: dict[str, Any]) -> bool:
+    keys = col.get("aggregateList")
+    if not isinstance(keys, list) or len(keys) != 1:
+        return False
+    return "aggregate.distinct" in str(keys[0] or "").lower()
+
+
+def _column_shelf(col: dict[str, Any]) -> str:
+    """Distinct-only stays on rows (unique category list); other aggregates → columns."""
+    if _is_distinct_only_aggregate(col):
+        return "row"
+    return "column" if col.get("aggregate") else "row"
+
+
 def _database_function_key(value: Any) -> str:
     if isinstance(value, str):
         return value.strip()
@@ -291,32 +316,64 @@ def _find_column_by_alias(metadata: dict[str, Any] | None, name: Any) -> dict[st
     return None
 
 
-def _column_entry(metadata: dict[str, Any] | None, resolved: dict[str, str], *, shelf: str, name: Any = "") -> dict[str, Any]:
+def _column_entry(
+    metadata: dict[str, Any] | None,
+    resolved: dict[str, str],
+    *,
+    shelf: str,
+    name: Any = "",
+    geographic_type: str = "",
+) -> dict[str, Any]:
     table = resolved["table"]
     column = resolved["column"]
     meta_column = ((metadata or {}).get("tables") or {}).get(table, {}).get("columns", {}).get(column) or {}
-    return {
+    entry = {
         "table": table,
         "column": column,
         "shelf": shelf,
         "databaseFunction": str(meta_column.get("defaultFunction") or ""),
         "alias": str(name or meta_column.get("alias") or column),
     }
+    geo = str(geographic_type or "").strip()
+    if geo:
+        entry["geographicType"] = geo
+    return entry
 
 
 def sql_parts_from_viz_model(viz: dict[str, Any] | None, metadata: dict[str, Any] | None) -> dict[str, Any]:
     viz = viz if isinstance(viz, dict) else {}
     model = viz.get("viz_model") if isinstance(viz.get("viz_model"), dict) else {}
     data = model.get("data") if isinstance(model.get("data"), dict) else {}
+    props = model.get("properties") if isinstance(model.get("properties"), dict) else {}
+    geo_roles = props.get("geographicRoles") or props.get("geographic_roles") or {}
+    if not isinstance(geo_roles, dict):
+        geo_roles = {}
+    role_index = {str(k).strip().lower(): str(v) for k, v in geo_roles.items() if k and v}
     columns: list[dict[str, Any]] = []
     for name in data.get("rows") or []:
         resolved = _find_column_by_alias(metadata, name)
         if resolved:
-            columns.append(_column_entry(metadata, resolved, shelf="row", name=name))
+            columns.append(
+                _column_entry(
+                    metadata,
+                    resolved,
+                    shelf="row",
+                    name=name,
+                    geographic_type=role_index.get(str(name or "").strip().lower(), ""),
+                )
+            )
     for name in data.get("columns") or []:
         resolved = _find_column_by_alias(metadata, name)
         if resolved:
-            columns.append(_column_entry(metadata, resolved, shelf="column", name=name))
+            columns.append(
+                _column_entry(
+                    metadata,
+                    resolved,
+                    shelf="column",
+                    name=name,
+                    geographic_type=role_index.get(str(name or "").strip().lower(), ""),
+                )
+            )
     filters: list[dict[str, Any]] = []
     for item in data.get("filters") or []:
         if not isinstance(item, dict):

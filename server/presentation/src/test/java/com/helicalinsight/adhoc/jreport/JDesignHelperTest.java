@@ -26,7 +26,7 @@ import net.sf.jasperreports.engine.design.JasperDesign;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class JDesignHelperTest {
-
+	
 	@Test
 	public void ut_a1_test_createDesigner() throws JRException {
 		JsonObject formData = new JsonObject();
@@ -98,7 +98,10 @@ public class JDesignHelperTest {
 		conditionalStyleJson.addProperty("backcolor", "#FFFF00");
 		conditionalStyleJson.addProperty("rotationType", "rotationType");
 		conditionalStyleJson.addProperty("expression", "expression");
-		eachStyleJson.add("conditionalStyle", conditionalStyleJson);
+		
+		JsonArray conditionalStyleArray = new JsonArray();
+		conditionalStyleArray.add(conditionalStyleJson);
+		eachStyleJson.add("conditionalStyle", conditionalStyleArray);
 		designerStyle.add(eachStyleJson);
 		designerPropertiesJson.add("designerStyle", designerStyle);
 		formData.add("designerProperties", designerPropertiesJson);
@@ -178,7 +181,11 @@ public class JDesignHelperTest {
 		conditionalStyleJson.addProperty("backcolor", "#FFFF00");
 		conditionalStyleJson.addProperty("rotationType", "rotationType");
 		conditionalStyleJson.addProperty("expression", "expression");
-		eachStyleJson.add("conditionalStyle", conditionalStyleJson);
+		
+		JsonArray conditionalStyleArray = new JsonArray();
+		conditionalStyleArray.add(conditionalStyleJson);
+		
+		eachStyleJson.add("conditionalStyle", conditionalStyleArray);
 		designerStyle.add(eachStyleJson);
 		designerPropertiesJson.add("designerStyle", designerStyle);
 		formData.add("designerProperties", designerPropertiesJson);

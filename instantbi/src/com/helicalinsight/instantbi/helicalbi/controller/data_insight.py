@@ -1,10 +1,11 @@
 import json
 import logging
 import traceback
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 from flask import request
 
+from helicalbi.controller.activity import ActivityReporter
 from helicalbi.controller.app_context import app
 from helicalbi.controller.helpers import (
     RequestAborted,
@@ -12,7 +13,6 @@ from helicalbi.controller.helpers import (
     domain_topics_from_chat_response,
     ensure_not_aborted,
     extract_token_usage_dict,
-    json_response,
     log_endpoint_input,
     resolve_audit_status_from_response,
     resolve_request_id,
@@ -20,18 +20,17 @@ from helicalbi.controller.helpers import (
 )
 from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
-from helicalbi.common.ChatManager import add_insight, get_last_insight
+from helicalbi.common.ChatManager import add_insight
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug
 from helicalbi.common import app_config
 from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
+from helicalbi.controller.sse import respond
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
 
 logger = logging.getLogger(__name__)
-
-
 
 
 def _resolve_memory_for_data_insight(
@@ -88,10 +87,8 @@ def _generate_data_insight_from_rows(
     thread_id: str,
     profile: Optional[Dict[str, Any]] = None,
     memory: Optional[Dict[str, Any]] = None,
-    last_chats:list[Any],
-
+    last_chats: list[Any],
 ) -> Tuple[str, Dict[str, Any]]:
-    #prev_responses = get_last_insight(thread_id) if thread_id else []
     row_count = len(sample_data)
     sql_limit = app_config.default_sql_limit
     if row_count > sql_limit:
@@ -132,227 +129,193 @@ def _generate_data_insight_from_rows(
     return insight, usage.model_dump(exclude_none=True)
 
 
+class DataInsightTurn:
+    """One data-insight request. ``run()`` returns JSON; ``stream()`` yields SSE."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self.payload = payload or {}
+        self.user_input = self.payload.get("input", self.payload)
+        (
+            self.session_cookie,
+            self.username,
+            self.user_id,
+            _org_id,
+        ) = bind_request_identity(self.payload, self.user_input)
+        self.profile = resolve_role_profile(self.payload, self.user_input)
+        self.thread_id = self.user_input.get("thread_id", self.user_input.get("chatid", ""))
+        self.chat_seq_id = self.user_input.get("chat_seq_id")
+        self.user_question = (
+            self.user_input.get("user_question")
+            or self.user_input.get("userQuestion")
+            or self.user_input.get("inputString")
+            or ""
+        )
+        self.md_location = self.user_input.get("md_location", self.user_input.get("mdLocation", ""))
+        self.md_file_name = self.user_input.get("md_file_name", self.user_input.get("mdFileName", ""))
+        self.model = self.user_input.get("model")
+        self.sql = resolve_sql_from_request(
+            self.user_input, self.thread_id, self.chat_seq_id, context="data-insight"
+        )
+        self.last_chats = self.user_input.get("last_chats", [])
+        self.memory = _resolve_memory_for_data_insight(
+            self.user_input, self.thread_id, self.chat_seq_id
+        )
+        self.request_id = resolve_request_id(self.payload, self.user_input)
+        self.reporter = ActivityReporter(self.user_question)
+        self.to_send: Dict[str, Any] = {}
+        self.request_status = "SUCCESS"
+        self.error_message: Optional[str] = None
+
+    def run(self) -> dict[str, Any]:
+        self._execute()
+        return self.to_send
+
+    def stream(self) -> Iterator[str]:
+        self.reporter.enable_streaming()
+        writer = self.reporter.writer
+        try:
+            yield writer.begin()
+            try:
+                for _ in self._iter_pipeline():
+                    yield from self.reporter.drain()
+                yield writer.complete(self.to_send)
+            except RequestAborted:
+                self._mark_aborted()
+                yield writer.error(self.to_send)
+            except Exception as error:
+                self._mark_error(error)
+                yield writer.error(self.to_send)
+        finally:
+            self._finish_request()
+
+    def _execute(self) -> None:
+        try:
+            for _ in self._iter_pipeline():
+                pass
+        except RequestAborted:
+            self._mark_aborted()
+        except Exception as error:
+            self._mark_error(error)
+        finally:
+            self._finish_request()
+
+    def _iter_pipeline(self) -> Iterator[None]:
+        logger.info("Data-insight endpoint invoked")
+        if self.request_id:
+            request_cancellation.register(self.request_id)
+        ensure_not_aborted(self.request_id)
+        self._resolve_metadata()
+        if not self.sql:
+            raise RuntimeError("No SQL found for data insight request.")
+        self.reporter.executing_sql()
+        yield
+        api_response = self._execute_query()
+        ensure_not_aborted(self.request_id)
+        self.reporter.received_data()
+        yield
+        self.reporter.generating_insight()
+        yield
+        self._build_insight(api_response)
+        self.reporter.insight_generated()
+        yield
+
+    def _resolve_metadata(self) -> None:
+        if self.model and not (self.md_location and self.md_file_name):
+            helper = app().ModelLayerHelper(
+                self.session_cookie, self.model["file"], self.model["dir"]
+            )
+            self.md_file_name = helper.get_metadata_layerfile()
+            self.md_location = helper.get_metadata_layerlocation()
+
+    def _execute_query(self) -> dict[str, Any]:
+        return app().execute_query(
+            session_cookie=self.session_cookie,
+            md_location=self.md_location,
+            md_file_name=self.md_file_name,
+            sql=self.sql,
+            request_id=self.request_id or str(self.thread_id),
+        )
+
+    def _build_insight(self, api_response: dict[str, Any]) -> None:
+        if api_response.get("status") != 1:
+            sql_error = api_response.get("response", "SQL execution failed.")
+            insight_msg, usage = app().invoke_llm(
+                llm,
+                error_prompt_formatted.format(
+                    response_string=sql_error,
+                    user_query=self.user_question,
+                    username=self.username,
+                ),
+            )
+            self.to_send["insight"] = insight_msg.content
+            self.to_send["sql_error"] = sql_error
+            self.to_send["error"] = sql_error
+            self.to_send["token_usage"] = usage.model_dump(exclude_none=True)
+            return
+
+        response_payload = api_response.get("response") or {}
+        data_rows: list[Any] = []
+        if isinstance(response_payload, dict):
+            data_rows = response_payload.get("data") or []
+        insight, token_usage = _generate_data_insight_from_rows(
+            username=self.username,
+            user_question=self.user_question,
+            sql=self.sql,
+            sample_data=data_rows,
+            thread_id=self.thread_id,
+            profile=self.profile,
+            memory=self.memory,
+            last_chats=self.last_chats,
+        )
+        self.to_send["insight"] = insight
+        self.to_send["token_usage"] = token_usage
+
+    def _mark_aborted(self) -> None:
+        logger.info("Data insight request aborted for requestId=%s", self.request_id)
+        self.request_status = "ABORTED"
+        self.error_message = "Request has been cancelled."
+        self.to_send["error"] = self.error_message
+        self.to_send["aborted"] = True
+        self.to_send["insight"] = ""
+
+    def _mark_error(self, error: Exception) -> None:
+        logger.exception(
+            "Error while generating data insight thread=%s chat_seq_id=%s",
+            self.thread_id,
+            self.chat_seq_id,
+        )
+        self.request_status = "ERROR"
+        self.error_message = str(error)
+        self.to_send["insight"] = ""
+        self.to_send["error"] = self.error_message
+        if is_debug():
+            self.to_send["stack"] = traceback.format_exc()
+
+    def _finish_request(self) -> None:
+        if self.request_id:
+            request_cancellation.clear(self.request_id)
+        self.request_status, self.error_message = resolve_audit_status_from_response(
+            self.to_send,
+            self.request_status,
+            self.error_message,
+        )
+        audit_llm_usage_async(
+            endpoint="/data-insight",
+            user_id=self.user_id,
+            session_cookie=self.session_cookie,
+            user_query=self.user_question,
+            token_usage=extract_token_usage_dict(self.to_send),
+            request_status=self.request_status,
+            error_message=self.error_message,
+            chat_id=str(self.thread_id) if self.thread_id else None,
+            chat_seq_id=str(self.chat_seq_id) if self.chat_seq_id is not None else None,
+        )
+
+
 def register(flask_app) -> None:
     @flask_app.route("/data-insight", methods=["POST"])
     def data_insight():
         """Execute SQL, sample result rows, and generate a Markdown insight."""
-        logger.info("Data-insight endpoint invoked")
         data = request.get_json()
         log_endpoint_input("/data-insight", data)
-        logger.debug("Data-insight parsed request JSON keys=%s", list((data or {}).keys()))
-
-        user_input = data.get("input", data)
-        logger.debug("Data-insight resolved user_input keys=%s", list((user_input or {}).keys()))
-
-        session_cookie, username, user_id, _org_id = bind_request_identity(data, user_input)
-        profile = resolve_role_profile(data, user_input)
-        logger.debug("Data-insight resolved session for user=%s", username)
-        logger.debug(
-            "Data-insight profile roles=%s profiles=%s",
-            len(profile.get("userRole") or []),
-            len(profile.get("userProfile") or []),
-        )
-        logger.debug("Data-insight username=%s", username)
-
-        thread_id = user_input.get("thread_id", user_input.get("chatid", ""))
-        logger.debug("Data-insight thread_id=%s", thread_id)
-
-        chat_seq_id = user_input.get("chat_seq_id")
-        logger.debug("Data-insight chat_seq_id=%s", chat_seq_id)
-
-        user_question = (
-            user_input.get("user_question")
-            or user_input.get("userQuestion")
-            or user_input.get("inputString")
-            or ""
-        )
-        logger.debug("Data-insight user_question length=%s", len(user_question))
-
-        md_location = user_input.get("md_location", user_input.get("mdLocation", ""))
-        logger.debug("Data-insight md_location=%s", md_location)
-
-        md_file_name = user_input.get("md_file_name", user_input.get("mdFileName", ""))
-        logger.debug("Data-insight md_file_name=%s", md_file_name)
-
-        model = user_input.get("model")
-        logger.debug("Data-insight model provided=%s", bool(model))
-
-        sql = resolve_sql_from_request(
-            user_input, thread_id, chat_seq_id, context="data-insight"
-        )
-        last_chats = user_input.get("last_chats", [])
-
-        memory = _resolve_memory_for_data_insight(user_input, thread_id, chat_seq_id)
-        logger.info("Data-insight resolved SQL present=%s length=%s", bool(sql), len(sql))
-        logger.debug(
-            "Data-insight memory domain=%s topics=%s",
-            memory.get("domain"),
-            memory.get("topics"),
-        )
-
-        request_id = resolve_request_id(data, user_input)
-        logger.debug("Data-insight request_id=%s", request_id)
-        if request_id:
-            request_cancellation.register(request_id)
-            logger.debug("Registered cancellation for data-insight requestId=%s", request_id)
-
-        to_send: Dict[str, Any] = {}
-        request_status = "SUCCESS"
-        error_message: Optional[str] = None
-        try:
-            logger.info(
-                "Data insight request for user=%s thread=%s chat_seq_id=%s",
-                username,
-                thread_id,
-                chat_seq_id,
-            )
-            ensure_not_aborted(request_id)
-            logger.debug("Data-insight abort check passed requestId=%s", request_id)
-
-            if model and not (md_location and md_file_name):
-                logger.debug("Resolving metadata from model for data-insight user=%s", username)
-                helper = app().ModelLayerHelper(session_cookie, model["file"], model["dir"])
-                logger.debug("Data-insight ModelLayerHelper created model=%s", model.get("file"))
-                md_file_name = helper.get_metadata_layerfile()
-                logger.debug("Data-insight resolved md_file_name from model=%s", md_file_name)
-                md_location = helper.get_metadata_layerlocation()
-                logger.debug("Data-insight resolved md_location from model=%s", md_location)
-
-            if not sql:
-                logger.error("Data-insight no SQL found thread=%s chat_seq_id=%s", thread_id, chat_seq_id)
-                raise RuntimeError("No SQL found for data insight request.")
-
-            logger.debug(
-                "Data-insight executing SQL thread=%s md_file=%s md_location=%s",
-                thread_id,
-                md_file_name,
-                md_location,
-            )
-            api_response = app().execute_query(
-                session_cookie=session_cookie,
-                md_location=md_location,
-                md_file_name=md_file_name,
-                sql=sql,
-                request_id=request_id or str(thread_id),
-            )
-            logger.debug(
-                "Data-insight execute_query completed status=%s",
-                api_response.get("status") if isinstance(api_response, dict) else None,
-            )
-            ensure_not_aborted(request_id)
-            logger.debug("Data-insight post-query abort check passed requestId=%s", request_id)
-
-            if api_response.get("status") != 1:
-                sql_error = api_response.get("response", "SQL execution failed.")
-                logger.warning(
-                    "Data-insight SQL execution failed thread=%s chat_seq_id=%s error=%s",
-                    thread_id,
-                    chat_seq_id,
-                    sql_error,
-                )
-                logger.debug("Data-insight invoking LLM for SQL error insight user=%s", username)
-                insight_msg, usage = app().invoke_llm(
-                    llm,
-                    error_prompt_formatted.format(
-                        response_string=sql_error,
-                        user_query=user_question,
-                        username=username,
-                    ),
-                )
-                logger.debug("Data-insight LLM error insight received length=%s", len(insight_msg.content or ""))
-                to_send["insight"] = insight_msg.content
-                logger.debug("Data-insight set insight from SQL error response")
-                to_send["sql_error"] = sql_error
-                to_send["error"] = sql_error
-                logger.debug("Data-insight set sql_error in response")
-                to_send["token_usage"] = usage.model_dump(exclude_none=True)
-                logger.info(
-                    "Data-insight returned SQL error insight for thread=%s tokens=%s",
-                    thread_id,
-                    to_send["token_usage"].get("total_tokens"),
-                )
-            else:
-                response_payload = api_response.get("response") or {}
-                logger.debug("Data-insight response payload type=%s", type(response_payload).__name__)
-                data_rows: list[Any] = []
-                if isinstance(response_payload, dict):
-                    data_rows = response_payload.get("data") or []
-                    logger.debug("Data-insight extracted data_rows count=%s", len(data_rows))
-                logger.info(
-                    "Data-insight SQL executed thread=%s rows=%s",
-                    thread_id,
-                    len(data_rows),
-                )
-
-                logger.debug("Data-insight invoking insight generation for user=%s", username)
-                insight, token_usage = _generate_data_insight_from_rows(
-                    username=username,
-                    user_question=user_question,
-                    sql=sql,
-                    sample_data=data_rows,
-                    thread_id=thread_id,
-                    profile=profile,
-                    memory=memory,
-                    last_chats=last_chats
-                )
-                logger.debug("Data-insight insight generated length=%s", len(insight or ""))
-                to_send["insight"] = insight
-                logger.debug("Data-insight set insight in response")
-                to_send["token_usage"] = token_usage
-                logger.info(
-                    "Data-insight request completed thread=%s chat_seq_id=%s tokens=%s",
-                    thread_id,
-                    chat_seq_id,
-                    token_usage.get("total_tokens"),
-                )
-
-        except RequestAborted:
-            logger.info("Data insight request aborted for requestId=%s", request_id)
-            request_status = "ABORTED"
-            error_message = "Request has been cancelled."
-            to_send["error"] = error_message
-            logger.debug("Data-insight set aborted error in response")
-            to_send["aborted"] = True
-            logger.debug("Data-insight set aborted=True in response")
-            to_send["insight"] = ""
-            logger.debug("Data-insight cleared insight after abort")
-        except Exception as e:
-            logger.exception("Error while generating data insight thread=%s chat_seq_id=%s", thread_id, chat_seq_id)
-            request_status = "ERROR"
-            error_message = str(e)
-            to_send["insight"] = ""
-            logger.debug("Data-insight cleared insight after exception")
-            to_send["error"] = error_message
-            logger.debug("Data-insight set error=%s in response", error_message)
-            if is_debug():
-                to_send["stack"] = traceback.format_exc()
-                logger.debug("Data-insight attached stack trace to response")
-        finally:
-            if request_id:
-                request_cancellation.clear(request_id)
-                logger.debug("Cleared cancellation for data-insight requestId=%s", request_id)
-            request_status, error_message = resolve_audit_status_from_response(
-                to_send,
-                request_status,
-                error_message,
-            )
-            audit_llm_usage_async(
-                endpoint="/data-insight",
-                user_id=user_id,
-                session_cookie=session_cookie,
-                user_query=user_question,
-                token_usage=extract_token_usage_dict(to_send),
-                request_status=request_status,
-                error_message=error_message,
-                chat_id=str(thread_id) if thread_id else None,
-                chat_seq_id=str(chat_seq_id) if chat_seq_id is not None else None,
-            )
-
-        logger.info(
-            "Data-insight returning response thread=%s has_insight=%s has_error=%s aborted=%s",
-            thread_id,
-            bool(to_send.get("insight")),
-            bool(to_send.get("error")),
-            to_send.get("aborted", False),
-        )
-        return json_response(to_send)
+        return respond(DataInsightTurn(data))
