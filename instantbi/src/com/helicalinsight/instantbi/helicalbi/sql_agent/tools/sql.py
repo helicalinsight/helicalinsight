@@ -8,8 +8,12 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
 
 from helicalbi.sql.SqlSanitizer import strip_sql_markdown
+from helicalbi.sql_agent.config import THINK_FLAT_SQL_GENERATION
 from helicalbi.sql_agent.nodes.run_summary import append_question
-from helicalbi.sql_agent.nodes.validator import validate_sql_against_catalog
+from helicalbi.sql_agent.nodes.validator import (
+    subquery_rejection,
+    validate_sql_against_catalog,
+)
 from helicalbi.sql_agent.tools.context import AgentToolContext
 
 logger = logging.getLogger(__name__)
@@ -26,6 +30,9 @@ class SqlTools:
         seq = ctx.next_seq()
         tracked_question = str(question or "").strip()
         generation_query = str(prompt or tracked_question).strip() or tracked_question
+        flat_sql = bool(state.get("flat_sql"))
+        if flat_sql and THINK_FLAT_SQL_GENERATION not in generation_query:
+            generation_query = f"{generation_query}\n\n{THINK_FLAT_SQL_GENERATION}"
         result = generate_sql_for_question(
             generation_query,
             session,
@@ -45,6 +52,8 @@ class SqlTools:
         session["_last_sql_state"] = result
         session["_last_sql_seq"] = seq
         error = ctx.sql_error(result)
+        if flat_sql and not error and sql:
+            error = subquery_rejection(sql, dialect=ctx.dialect)
         return {
             "ok": not error and bool(sql),
             "sql": sql,
@@ -69,6 +78,8 @@ class SqlTools:
             dialect=ctx.dialect,
             metadata=ctx.metadata,
         )
+        if error is None and state.get("flat_sql"):
+            error = subquery_rejection(cleaned, dialect=ctx.dialect)
         return {
             "ok": error is None,
             "error": error,
@@ -91,6 +102,8 @@ class SqlTools:
             dialect=ctx.dialect,
             metadata=ctx.metadata,
         )
+        if error is None and state.get("flat_sql"):
+            error = subquery_rejection(cleaned, dialect=ctx.dialect)
         retry = int(state.get("sql_retry_count") or 0)
         # Unknown-column checks can miss metadata aliases. When physical metadata
         # is loaded, attempt execute and let the retry loop use the engine error.

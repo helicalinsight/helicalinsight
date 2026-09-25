@@ -874,7 +874,7 @@ export const fetchFilterValues = (data,dispatch,getApi) => {
         let {name,formData} = metadata || {};
         name = name || filter.columnDatabase; 
         let tempFilter = { ...filter };
-        let { mapping, cascade, datePart,uid } = tempFilter;
+        let { mapping, cascade, datePart, uid, custom, column} = tempFilter;
         dispatch(loadFilterValues({ values: filter.values, uid, reportId, loading: true }));
         tempFilter.alias = "display";
         let query = new ReportQuery({...formData,useDBFuntion:databaseFunctions}, dispatch);
@@ -894,6 +894,16 @@ export const fetchFilterValues = (data,dispatch,getApi) => {
             orderBy: [orderBy.value],
             columnID
           };
+          if(custom){
+            if(!displayColumn.fullyQualifiedColumn){
+                displayColumn.column = column
+                displayColumn.custom = true
+            }
+            if(!valueColumn.fullyQualifiedColumn){
+                valueColumn.column = column
+                valueColumn.custom = true
+            }
+          }
           if (displayColumn.defaultFunction !== "none") {
             if (displayColumn.defaultFunction.includes("groupBy")) {
               displayColumn.groupBy = [mapping.displayColumn.defaultFunction];

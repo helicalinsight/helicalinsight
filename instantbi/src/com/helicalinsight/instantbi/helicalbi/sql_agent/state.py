@@ -62,6 +62,7 @@ class AgentState(TypedDict, total=False):
     user_role: List[Any]
     user_profile: List[Any]
     activity_trace: List[Dict[str, Any]]
+    flat_sql: bool
 
 
 def initial_agent_state(
@@ -90,6 +91,7 @@ def initial_agent_state(
     persona: Optional[Dict[str, Any]] = None,
     user_role: Optional[List[Any]] = None,
     user_profile: Optional[List[Any]] = None,
+    flat_sql: bool = False,
 ) -> AgentState:
     """Build a complete starting state for one agent run."""
     return {
@@ -145,4 +147,5 @@ def initial_agent_state(
         "user_role": list(user_role or []),
         "user_profile": list(user_profile or []),
         "activity_trace": [],
+        "flat_sql": bool(flat_sql),
     }

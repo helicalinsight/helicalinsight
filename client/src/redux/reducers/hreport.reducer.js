@@ -2140,6 +2140,25 @@ const hreportReducer = (state = intialState, action) => {
 			});
 		}
 
+		case actionTypes.UPDATE_CUSTOM_FIELD_DATA_TYPE: {
+			const { reportId, fieldId, type = {} } = action.payload || {}
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.map((report) => {
+					if (report.id === reportId || report.active) {
+						report.fields = report.fields.map((field) => {
+							if (field.id === fieldId) {
+								field.type = type
+							}
+							return field;
+						})
+					}
+					return report;
+				});
+			});
+		}
+
+
+
 
 		default:
 			return { ...state };

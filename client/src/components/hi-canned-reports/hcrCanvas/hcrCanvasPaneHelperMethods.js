@@ -725,7 +725,7 @@ export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = 
   const nodes = [], cells = [];
   const { CG, CT, CD } = getCTStylesReferences(styles);
   const cols = ["Detail", ...(columnGroups?.map((col) => col.name)?.reverse() || [])];
-  let rows = ["Detail", ...(rowGroups?.map((row) => row.name) || [])];
+  const rows = ["Detail", ...(rowGroups?.map((row) => row.name)?.reverse() || [])];
 
   function getMeasures(measures, cellId, fields) {
     return measures.map((measure) => {

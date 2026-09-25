@@ -16,10 +16,13 @@ const NUMERIC_CLASSNAMES = ["Double", "Float", "Integer", "Long", "Short", "Big 
     STRING_CLASSNAMES = ["Time", "Sql Date", "Util Date", "Timestamp", "String", "Boolean"],
     COLLECTION_CLASSNAMES = ["Collection"];
 
+const CROSSTAB_VERSION = "c_v2.1";
+
 export {
     HCR_NODE_RESIZE_HANDLES,
     HCR_TABLE_CELL_PROPERTIES,
     NUMERIC_CLASSNAMES,
     STRING_CLASSNAMES,
-    COLLECTION_CLASSNAMES
+    COLLECTION_CLASSNAMES,
+    CROSSTAB_VERSION
 }

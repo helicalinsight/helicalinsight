@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
@@ -27,6 +27,7 @@ class PlanContextState(TypedDict, total=False):
     strategy: Dict[str, Any]
     session: Dict[str, Any]
     max_charts: int
+    flat_sql: bool
     overview_chars: int
     max_domains: int
     max_topics: int
@@ -45,6 +46,16 @@ class PlanContextState(TypedDict, total=False):
     repair_count: int
     validation_feedback: str
     activity_trace: List[Dict[str, Any]]
+
+
+def _chart_limit(state: Mapping) -> int:
+    """Usual chart ceiling, plus think-mode room to split subquery questions."""
+    from helicalbi.sql_agent.config import THINK_EXTRA_QUESTIONS
+
+    base = max(1, int(state.get("max_charts") or 5))
+    if state.get("flat_sql"):
+        return base + max(0, int(THINK_EXTRA_QUESTIONS))
+    return base
 
 
 def _normalize(text: str) -> str:
@@ -366,6 +377,7 @@ def draft_chart_questions_node(state: PlanContextState) -> Dict[str, Any]:
         strategy=state.get("strategy"),
         selected_domains=list(state.get("selected_domains") or []),
         selected_topics=list(state.get("selected_topics") or []),
+        flat_sql=bool(state.get("flat_sql")),
     )
     plan_dict = plan.model_dump() if hasattr(plan, "model_dump") else dict(plan)
     # Prefer selector scope when LLM omits domain/topics.
@@ -540,7 +552,7 @@ def validate_questions_node(state: PlanContextState) -> Dict[str, Any]:
     plan = dict(state.get("plan") or {})
     charts = [c for c in (plan.get("charts") or []) if isinstance(c, dict)]
     charts = _dedupe_charts(charts)
-    max_charts = max(1, int(state.get("max_charts") or 5))
+    max_charts = _chart_limit(state)
     charts = charts[:max_charts]
     allowed = list(state.get("allowed_names") or [])
     allowed_lower = {a.lower() for a in allowed}
@@ -755,6 +767,7 @@ def run_plan_context_graph(
     strategy: Dict[str, Any],
     session: Dict[str, Any],
     max_charts: int = 5,
+    flat_sql: bool = False,
     overview_chars: int = 3500,
     max_domains: int = 2,
     max_topics: int = 4,
@@ -770,6 +783,7 @@ def run_plan_context_graph(
         "strategy": strategy or {},
         "session": session or {},
         "max_charts": max_charts,
+        "flat_sql": bool(flat_sql),
         "overview_chars": overview_chars,
         "max_domains": max_domains,
         "max_topics": max_topics,

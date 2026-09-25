@@ -89,6 +89,31 @@ def _tables_and_aliases(tree: exp.Expression) -> Tuple[List[str], Dict[str, str]
     return physical, aliases
 
 
+def sql_has_subquery(sql: str, dialect: Optional[str] = None) -> bool:
+    """True when the statement nests a SELECT (subquery, CTE, or derived table)."""
+    cleaned = strip_sql_markdown(sql or "").strip()
+    if not cleaned:
+        return False
+    try:
+        tree = _parse_sql(cleaned, dialect)
+    except sqlglot.errors.ParseError:
+        return False
+    if isinstance(tree, exp.With) or tree.find(exp.With):
+        return True
+    return tree.find(exp.Subquery) is not None or tree.find(exp.CTE) is not None
+
+
+def subquery_rejection(sql: str, dialect: Optional[str] = None) -> Optional[str]:
+    """Error text when think mode must refuse a nested query."""
+    if not sql_has_subquery(sql, dialect):
+        return None
+    return (
+        "Subqueries are not allowed in think mode. "
+        "Write one flat SELECT that joins base tables only. "
+        "If a comparison needs another aggregate, put that in a separate question."
+    )
+
+
 def _star_used(tree: exp.Expression) -> bool:
     for star in tree.find_all(exp.Star):
         parent = star.parent

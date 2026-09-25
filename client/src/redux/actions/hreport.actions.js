@@ -712,3 +712,10 @@ export const updateFilterAdvDbFns = (data) => {
 		payload: data
 	};
 };
+
+export const updateCustomFieldDataType = (data) => {
+	return {
+		type: actionTypes.UPDATE_CUSTOM_FIELD_DATA_TYPE,
+		payload: data
+	};
+};

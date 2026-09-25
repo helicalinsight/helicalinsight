@@ -101,6 +101,7 @@ def create_and_store_plan(
     user_profile: Optional[Sequence[Any]] = None,
     persona_hint: Optional[str] = None,
     strategy_hint: Optional[str] = None,
+    flat_sql: bool = False,
 ) -> dict[str, Any]:
     """Context prep + consulting plan, stored against dashboardid / sequence id."""
     mode_profile = resolve_mode_profile(agent_mode, config_max_charts=max_sub_questions)
@@ -124,6 +125,7 @@ def create_and_store_plan(
         strategy=strategy,
         session=session,
         max_charts=mode_profile.max_charts,
+        flat_sql=bool(flat_sql),
         overview_chars=mode_profile.overview_chars,
         max_domains=max_domains,
         max_topics=max_topics,

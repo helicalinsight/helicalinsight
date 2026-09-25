@@ -4,7 +4,12 @@ from __future__ import annotations
 import logging
 from typing import Any, Dict, List, Mapping, Optional
 
-from helicalbi.sql_agent.config import CONTEXT_PLAN_PROMPT
+from helicalbi.sql_agent.config import (
+    CONTEXT_PLAN_PROMPT,
+    SQL_SHAPE_DERIVED_TABLES,
+    THINK_EXTRA_QUESTIONS,
+    THINK_FLAT_SQL_PLAN_RULES,
+)
 from helicalbi.sql_agent.llm import invoke_agent_model
 from helicalbi.sql_agent.models import DashboardChartSpec, InvestigationPlan
 from helicalbi.sql_agent.modes import truncate_text
@@ -118,6 +123,7 @@ def build_investigation_plan(
     strategy: Optional[Mapping[str, Any]] = None,
     selected_domains: Optional[List[str]] = None,
     selected_topics: Optional[List[str]] = None,
+    flat_sql: bool = False,
 ) -> InvestigationPlan:
     """LLM plan guided by strategy + topic grounding pack."""
     chosen = _resolve_strategy(question, persona, strategy)
@@ -137,6 +143,11 @@ def build_investigation_plan(
     overview = truncate_text(semantic_overview or "", overview_chars)
     pack = truncate_text(grounding_pack or overview, overview_chars)
     feedback = str(validation_feedback or "").strip()
+    chart_limit = max(1, int(max_charts or 1))
+    sql_shape_rules = SQL_SHAPE_DERIVED_TABLES
+    if flat_sql:
+        chart_limit = chart_limit + max(0, int(THINK_EXTRA_QUESTIONS))
+        sql_shape_rules = THINK_FLAT_SQL_PLAN_RULES
     try:
         parsed = invoke_agent_model(
             CONTEXT_PLAN_PROMPT,
@@ -151,6 +162,8 @@ def build_investigation_plan(
                     f"Validation feedback from prior draft:\n{feedback}" if feedback else ""
                 ),
                 "max_charts": max_charts,
+                "chart_limit": chart_limit,
+                "sql_shape_rules": sql_shape_rules,
             },
             InvestigationPlan,
             state=state,
@@ -179,4 +192,4 @@ def build_investigation_plan(
     if not data.get("topics") and topics:
         data["topics"] = topics
     plan = InvestigationPlan.model_validate(data)
-    return _cap_charts(plan, max_charts)
+    return _cap_charts(plan, chart_limit)

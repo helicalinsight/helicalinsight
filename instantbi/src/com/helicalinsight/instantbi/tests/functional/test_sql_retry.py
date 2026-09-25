@@ -22,6 +22,18 @@ def test_rewrite_prompt_keeps_original_question_and_error():
     assert "SELECT missing_col FROM t" in prompt
     assert "Unknown column missing_col" in prompt
     assert "Previous SQL that failed" in prompt
+    assert "derived tables" in prompt
+
+
+def test_rewrite_prompt_forbids_subquery_in_think_mode():
+    prompt = rewrite_failed_sql_prompt(
+        "Travel cost above average",
+        "SELECT t.cost FROM t WHERE t.cost > (SELECT AVG(t.cost) FROM t)",
+        "Subqueries are not allowed in think mode.",
+        flat_sql=True,
+    )
+    assert "forbids subqueries" in prompt
+    assert "Do not use CTEs, derived tables" in prompt
 
 
 def test_sql_execution_failed_ignores_placeholder():

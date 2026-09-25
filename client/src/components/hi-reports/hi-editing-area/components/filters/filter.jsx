@@ -268,7 +268,7 @@ const Filter = (props) => {
       </Text>
     </Tag>
   );
-  let conditionList = allConditions[getFilterDataType(filter)];
+  let conditionList = allConditions?.[getFilterDataType(filter)] || [];
   let sortedConditionsList = Object.keys(conditionList)
     .map((key) => {
       return { key, display: conditionList[key] };

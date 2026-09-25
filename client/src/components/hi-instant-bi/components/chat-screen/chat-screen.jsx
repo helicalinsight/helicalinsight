@@ -233,7 +233,6 @@ const InstantBIChatScreen = (props = {}) => {
             patchThinkQuestionHistory(planMessageId, questionIndex, (item) => ({
                 ...item,
                 vizLoading: false,
-                vizError: 'No report model available for this step.',
             }));
             return;
         }

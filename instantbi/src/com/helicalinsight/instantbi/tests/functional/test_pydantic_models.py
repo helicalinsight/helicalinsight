@@ -372,6 +372,90 @@ class TestChatResponse:
         }
         assert "picked_by_table" not in response.sql.required_cube_info
 
+    def test_required_column_sends_column_names_not_database_functions(self):
+        response = ChatResponse.from_model_state(
+            {
+                "sqlModel": {
+                    "query_plan": {
+                        "columnName": [
+                            "travel_details.travel_medium",
+                            "EXTRACT(YEAR from travel_details.travel_date)",
+                            'YEAR("travel_details"."travel_date")',
+                            "travel_details.travel_id",
+                        ],
+                        "reason": "by year",
+                    }
+                }
+            }
+        )
+        assert response.sql.required_column == [
+            "travel_details.travel_medium",
+            "travel_details.travel_date",
+            "travel_details.travel_id",
+        ]
+
+    def test_filters_are_listed_in_columns_dimensions_and_metrics(self):
+        response = ChatResponse.from_model_state(
+            {
+                "sqlModel": {
+                    "cube_metadata": [
+                        {
+                            "database_table": "travel_details",
+                            "columns": [
+                                {
+                                    "column_name": "booking_platform",
+                                    "alias_name": "booking platform",
+                                }
+                            ],
+                            "measures": [
+                                {
+                                    "column_name": "travel_cost",
+                                    "alias_name": "Travel Cost",
+                                    "measure_name": "Travel Cost",
+                                }
+                            ],
+                        }
+                    ],
+                    "query_plan": {
+                        "columnName": ["travel_details.destination"],
+                        "selectColumnName": ["travel_details.destination"],
+                    },
+                    "required_cube_info": {
+                        "picked_dimensions": ["Destination"],
+                        "picked_metrics": [],
+                    },
+                },
+                "viz_form_data": {
+                    "columns": [],
+                    "filters": [
+                        {
+                            "column": {
+                                "name": "public.travel_details.booking_platform",
+                                "id": "1",
+                            },
+                            "alias": "booking platform",
+                        }
+                    ],
+                    "having": [
+                        {
+                            "column": "travel_details.travel_cost",
+                            "alias": "Travel Cost",
+                        }
+                    ],
+                },
+            }
+        )
+        assert response.sql.required_column == [
+            "travel_details.destination",
+            "travel_details.booking_platform",
+            "travel_details.travel_cost",
+        ]
+        assert response.sql.required_cube_info["picked_dimensions"] == [
+            "Destination",
+            "booking platform",
+        ]
+        assert response.sql.required_cube_info["picked_metrics"] == ["Travel Cost"]
+
     def test_includes_data_model_from_viz_form_data(self):
         form_data = {
             "location": "test",

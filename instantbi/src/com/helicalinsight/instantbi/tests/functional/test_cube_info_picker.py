@@ -163,7 +163,7 @@ class TestCubeInfoPicker:
         assert result["picked_dimensions"] == ["Destination"]
         assert result["picked_metrics"] == ["Travel Cost"]
 
-    def test_fallback_derives_from_select_columns_not_filter_columns(self):
+    def test_filter_columns_are_listed_with_select_dimensions(self):
         query_plan = {
             "columnName": [
                 "travel_details.destination",
@@ -173,7 +173,7 @@ class TestCubeInfoPicker:
             "reason": "booking platform is filter-only",
         }
         result = build_required_cube_info(_CUBE_METADATA, query_plan)
-        assert result["picked_dimensions"] == ["Destination"]
+        assert result["picked_dimensions"] == ["Destination", "booking platform"]
         assert result["picked_metrics"] == []
 
     def test_drops_planner_dimensions_not_in_select(self):

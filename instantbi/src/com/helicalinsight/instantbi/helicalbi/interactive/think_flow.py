@@ -585,6 +585,7 @@ def run_think_mode(
         user_profile=user_profile,
         persona_hint=persona_hint,
         strategy_hint=strategy_hint,
+        flat_sql=True,
     )
     _ensure_not_aborted(request_id)
 
@@ -637,6 +638,7 @@ def run_think_mode(
         user_profile=list(user_profile or []),
         build_dashboard=True,
         on_progress=on_progress,
+        flat_sql=True,
     )
     _ensure_not_aborted(request_id)
 

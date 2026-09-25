@@ -10,6 +10,7 @@ import HCRAdvancedTableComponent from "./advanceComponents/table/hcrAdvancedTabl
 import HCRChartsComponent from "./hcrCharts/hcrChartsComponent";
 import { ImageNode, LineNode, PageBreakNode, TextNode } from "./nodes";
 import HCRCrossTabComponentV2 from "./hcrCrossTab/hcrCrossTabComponentv2";
+import { CROSSTAB_VERSION } from "./advanceComponents/contants";
 
 const { Search } = Input;
 
@@ -90,6 +91,7 @@ const crossTabDatav2 = {
     fontFamily: 'questrialregular',
     borders: {},
     padding: {},
+    version: CROSSTAB_VERSION
 };
 
 const chartsData = {

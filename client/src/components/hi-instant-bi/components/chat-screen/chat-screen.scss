@@ -891,8 +891,7 @@
 
 .sql-view-container {
   position: relative;
-  height: 500px;
-  max-height: 500px;
+  max-height: min(60vh, 480px);
   overflow: auto;
   box-sizing: border-box;
 }
@@ -1388,6 +1387,21 @@
   }
 }
 
+.ant-tooltip.ib-think-step-question-tooltip {
+  max-width: 480px;
+
+  .ant-tooltip-inner {
+    max-width: 480px;
+    white-space: normal;
+  }
+
+  .instant-bi-tooltip-title {
+    display: block;
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
 .ib-think-step__toggle-label {
   flex: 1 1 auto;
   min-width: 0;
@@ -1529,8 +1543,7 @@
 }
 
 .ib-working-tab__body {
-  height: 500px;
-  max-height: 500px;
+  max-height: min(60vh, 480px);
   overflow: auto;
   padding-right: 4px;
   box-sizing: border-box;

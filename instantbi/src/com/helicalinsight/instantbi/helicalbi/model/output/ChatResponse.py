@@ -29,6 +29,7 @@ on the wire (``vf_template``, ``chart_name``, ``vf_title``, etc.).
 import base64
 import json
 import logging
+import re
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -135,6 +136,10 @@ class ChatResponse(BaseModel):
             required_details = sql_model.get("required_details") if isinstance(sql_model.get("required_details"), dict) else {}
 
         required_columns = _extract_required_columns(sql_model)
+        required_columns = _append_filter_columns(
+            required_columns,
+            state.get("viz_form_data"),
+        )
         sql_reason = (
             sql_model.get("sql_reason")
             or state.get("sql_reason")
@@ -214,6 +219,11 @@ class ChatResponse(BaseModel):
             for key, value in required_cube_info.items()
             if key != "picked_by_table"
         }
+        required_cube_info = _merge_filter_picks(
+            required_cube_info,
+            sql_model.get("cube_metadata") or state.get("cube_metadata"),
+            state.get("viz_form_data"),
+        )
 
         sql = SqlSection(
             raw_sql=_as_str(state.get("sql")),
@@ -430,14 +440,129 @@ def _as_list(value: Any) -> list:
     return [value]
 
 
+_DATE_PART_WORDS = frozenset({
+    "year", "quarter", "month", "week", "day", "hour", "minute", "second",
+    "distinct", "from", "as", "extract",
+})
+_QUOTED_TABLE_COLUMN = re.compile(r'"([^"]+)"\s*\.\s*"([^"]+)"')
+_BARE_TABLE_COLUMN = re.compile(
+    r"\b([A-Za-z_][\w]*)\s*\.\s*([A-Za-z_][\w]*)\b"
+)
+
+
+def _column_names_from_ref(value: Any) -> list[str]:
+    """Keep ``table.column``. Unwrap ``EXTRACT(...)`` / ``YEAR(...)`` to that column."""
+    text = str(value or "").strip()
+    if not text:
+        return []
+    if "(" not in text:
+        return [text]
+    without_literals = re.sub(r"'(?:[^']|'')*'", " ", text)
+    quoted = [
+        f"{table}.{column}"
+        for table, column in _QUOTED_TABLE_COLUMN.findall(without_literals)
+    ]
+    if quoted:
+        return quoted
+    bare = [
+        f"{table}.{column}"
+        for table, column in _BARE_TABLE_COLUMN.findall(without_literals)
+    ]
+    if bare:
+        return bare
+    idents = re.findall(r"\b([A-Za-z_][\w]*)\b", without_literals)
+    columns = [
+        name for name in idents[1:] if name.lower() not in _DATE_PART_WORDS
+    ]
+    return columns[:1]
+
+
+def _column_names_for_output(columns: list) -> list:
+    names: list[str] = []
+    seen: set[str] = set()
+    for item in columns:
+        for name in _column_names_from_ref(item):
+            if name in seen:
+                continue
+            seen.add(name)
+            names.append(name)
+    return names
+
+
+def _table_column_labels(value: Any) -> list[str]:
+    labels: list[str] = []
+    for name in _column_names_from_ref(value):
+        parts = [part.strip().strip('"') for part in str(name).split(".") if part.strip()]
+        if len(parts) >= 2:
+            labels.append(f"{parts[-2]}.{parts[-1]}")
+        elif parts:
+            labels.append(parts[-1])
+    return labels
+
+
+def _filter_column_refs(form_data: Any) -> list[str]:
+    if not isinstance(form_data, dict):
+        return []
+    refs: list[str] = []
+    for key in ("filters", "having"):
+        for item in form_data.get(key) or []:
+            if not isinstance(item, dict):
+                continue
+            sources: list[Any] = list(item.get("usedColumns") or [])
+            column = item.get("column")
+            if isinstance(column, dict):
+                sources.append(column.get("name") or "")
+            elif column:
+                sources.append(column)
+            if item.get("databaseFunction"):
+                sources.append(item.get("databaseFunction"))
+            for source in sources:
+                refs.extend(_table_column_labels(source))
+    return refs
+
+
+def _append_filter_columns(columns: list, form_data: Any) -> list:
+    extra = _filter_column_refs(form_data)
+    if not extra:
+        return columns
+    return _column_names_for_output(list(columns) + extra)
+
+
+def _merge_filter_picks(cube_info: dict, cube_metadata: Any, form_data: Any) -> dict:
+    refs = _filter_column_refs(form_data)
+    if not refs or not cube_metadata:
+        return cube_info
+    from helicalbi.core.sqlflow.util.CubeInfoPicker import (
+        _append_names,
+        _derive_picks_from_column_refs,
+    )
+
+    dimensions, metrics = _derive_picks_from_column_refs(cube_metadata, refs)
+    merged = dict(cube_info)
+    merged["picked_dimensions"] = _append_names(
+        list(merged.get("picked_dimensions") or []),
+        dimensions,
+    )
+    merged["picked_metrics"] = _append_names(
+        list(merged.get("picked_metrics") or []),
+        metrics,
+    )
+    return merged
+
+
 def _extract_required_columns(sql_model: dict) -> list:
-    """Pull the column list from the ``query_plan`` (stored as a JSON string)."""
+    """Pull column names from the ``query_plan`` (stored as a JSON string).
+
+    Database functions such as ``EXTRACT(YEAR FROM table.column)`` are reduced
+    to the column they wrap. The client column list does not include the function.
+    """
     query_plan = sql_model.get("query_plan")
+    raw: list = []
     if not query_plan:
         return []
     if isinstance(query_plan, dict):
-        return _as_list(query_plan.get("columnName"))
-    if isinstance(query_plan, str):
+        raw = _as_list(query_plan.get("columnName"))
+    elif isinstance(query_plan, str):
         try:
             parsed = json.loads(query_plan)
         except (json.JSONDecodeError, TypeError):
@@ -447,8 +572,8 @@ def _extract_required_columns(sql_model: dict) -> list:
             )
             return []
         if isinstance(parsed, dict):
-            return _as_list(parsed.get("columnName"))
-    return []
+            raw = _as_list(parsed.get("columnName"))
+    return _column_names_for_output(raw)
 
 
 def _extract_reason_from_query_plan(sql_model: dict) -> str:

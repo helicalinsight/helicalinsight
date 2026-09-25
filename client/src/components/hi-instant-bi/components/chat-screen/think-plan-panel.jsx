@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { Typography } from "antd";
 import { AppstoreOutlined, ClusterOutlined, HistoryOutlined } from "@ant-design/icons";
 import Markdown from "react-markdown";
@@ -31,6 +32,7 @@ const ThinkPlanPanel = ({
   plan = null,
   dashboardModel = null,
 }) => {
+  const streamResponse = useSelector((state) => Boolean(state.app.applicationSettingsData?.streamResponse));
   const items = useMemo(() => {
     if ((questionHistory || []).length) return questionHistory;
     return (askedQuestions || []).map((question, index) => ({
@@ -109,17 +111,19 @@ const ThinkPlanPanel = ({
       {items.length ? (
         <div className="ib-think-plan__toolbar">
           <div className={`ib-think-plan__toolbar-actions${planView ? " is-open" : ""}`}>
-            <InstantBITooltip title="Workings">
-              <button
-                type="button"
-                className={`ib-think-plan__icon-btn${planView === "workings" ? " is-active" : ""}`}
-                onClick={() => togglePlanView("workings")}
-                data-testid="ib-think-plan-workings"
-                aria-pressed={planView === "workings"}
-              >
-                <HistoryOutlined />
-              </button>
-            </InstantBITooltip>
+            {streamResponse ? (
+              <InstantBITooltip title="Workings">
+                <button
+                  type="button"
+                  className={`ib-think-plan__icon-btn${planView === "workings" ? " is-active" : ""}`}
+                  onClick={() => togglePlanView("workings")}
+                  data-testid="ib-think-plan-workings"
+                  aria-pressed={planView === "workings"}
+                >
+                  <HistoryOutlined />
+                </button>
+              </InstantBITooltip>
+            ) : null}
             <InstantBITooltip title="Dashboard Model">
               <button
                 type="button"
@@ -146,7 +150,7 @@ const ThinkPlanPanel = ({
         </div>
       ) : null}
 
-      {planView === "workings" ? (
+      {streamResponse && planView === "workings" ? (
         <div className="ib-think-plan__inspector" data-testid="ib-think-plan-inspector-workings">
           {Array.isArray(activityTrail) && activityTrail.length ? (
             <WorkBehindIcon
