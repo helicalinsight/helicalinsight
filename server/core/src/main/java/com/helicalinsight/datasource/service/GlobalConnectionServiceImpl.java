@@ -61,6 +61,12 @@ public class GlobalConnectionServiceImpl implements GlobalConnectionService {
     public boolean deleteGlobalConnections(int globalId) {
         return globalConnectionDAO.deleteGlobalConnections(globalId);
     }
+
+    @Override
+    @Transactional
+    public boolean deleteGlobalConnections(int globalId, boolean force) {
+        return globalConnectionDAO.deleteGlobalConnections(globalId, force);
+    }
     
 
     @Override

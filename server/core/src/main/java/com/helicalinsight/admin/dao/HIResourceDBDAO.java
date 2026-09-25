@@ -230,6 +230,7 @@ public interface HIResourceDBDAO {
     void editHIResourceHCR(HIResourceHCR hiResourceHCR);
     
     Boolean deleteDatasoureRelatedResources(Integer globalId);
+	Boolean deleteDatasoureRelatedResources(Integer globalId, boolean force);
 
 	ResourceEfwContents getHIResourceEFWContents(String fileName);
 

@@ -123,10 +123,14 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
 
     @Override
     public boolean hardDelete(GlobalConnections globalConnections) {
+        return hardDelete(globalConnections, false);
+    }
+
+    public boolean hardDelete(GlobalConnections globalConnections, boolean force) {
         Integer globalId = globalConnections.getGlobalId();
         try {
             recycleBinService.deleteRecycleBinByGlobalId(globalId);
-            Boolean deletedRelatedResources = dbDao.deleteDatasoureRelatedResources(globalId);
+            Boolean deletedRelatedResources = dbDao.deleteDatasoureRelatedResources(globalId, force);
             if (Boolean.TRUE.equals(deletedRelatedResources)) {
                 GlobalConnections globalConnection = findGlobalConnectionById(globalId);
                 String dsType = globalConnection.getDsType();
@@ -162,9 +166,14 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
 
     @Override
     public boolean deleteGlobalConnections(int globalId) {
+        return deleteGlobalConnections(globalId, false);
+    }
+
+    @Override
+    public boolean deleteGlobalConnections(int globalId, boolean force) {
         GlobalConnections globalConnection = findGlobalConnectionById(globalId);
-        if(globalConnection.isDeleted() != null && globalConnection.isDeleted()) return hardDelete(globalConnection);
-        else return  softDelete(globalConnection);
+        if(globalConnection.isDeleted() != null && globalConnection.isDeleted()) return hardDelete(globalConnection, force);
+        else return softDelete(globalConnection);
     }
 
     @Override
