@@ -209,9 +209,15 @@
 
 	
 	<dependency>
-			<groupId>org.mongodb</groupId>
-			<artifactId>mongo-java-driver</artifactId>
-		</dependency>		
+         <groupId>org.mongodb</groupId>
+         <artifactId>mongo-java-driver</artifactId>
+        </dependency>
+
+<dependency>
+    <groupId>org.mongodb</groupId>
+    <artifactId>mongodb-jdbc</artifactId>
+    <version>3.0.8</version>
+</dependency>		
 		
 		
 		<dependency>
@@ -1414,7 +1420,7 @@
 			<dependency>
 				<groupId>org.mongodb</groupId>
 				<artifactId>mongo-java-driver</artifactId>
-				<version>3.12.10</version>
+ 				<version>3.12.10</version>
 				<exclusions>
 					<exclusion>
 						<groupId>*</groupId>
