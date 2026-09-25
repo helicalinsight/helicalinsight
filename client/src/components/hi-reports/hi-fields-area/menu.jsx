@@ -1,29 +1,29 @@
 import { Menu } from "antd";
+import { cloneDeep, isEmpty } from "lodash";
+import React from "react";
+import { useDispatch } from "react-redux";
 import {
-  hideField,
-  removeFieldFromCanvas,
-  updateAggregations,
-  updateCanvasField,
-  createFilter,
-  editFieldFunctions,
-  toggleQueryEditor,
-  toggleFloating,
-  updateGeographicType,
   addConvertedDimensionToMarks,
   addConvertedDimensionToReference,
+  createFilter,
+  editFieldFunctions,
+  hideField,
+  removeFieldFromCanvas,
+  toggleFloating,
+  toggleQueryEditor,
+  updateAggregations,
+  updateCanvasField,
   updateColumn,
+  updateCustomFieldDataType,
   updateFormatProperty,
+  updateGeographicType,
   updateOrderBy
 } from "../../../redux/actions/hreport.actions";
-import { useDispatch } from "react-redux";
 import { createDbFunc, getCanvasFieldDataType, getFloatingType } from "../../../utils/filter-utils";
-import { getGeoJsonData } from "../utils/base";
-import { geographicalSubTypes, intialMarks, initialReferenceLineList, orderBySubMenuOptions } from "../utils/constants";
 import { getFieldDisplayName } from "../../../utils/utilities";
-import React from "react";
-import { getActualFieldDataType } from "../hi-viz-area/utils/grid-chart-utils";
-import { cloneDeep, isEmpty } from "lodash";
 import { getDefaultAFDataTypeValues } from "../hi-editing-area/utils/property-utils";
+import { getGeoJsonData } from "../utils/base";
+import { customFieldDataTypeList, geographicalSubTypes, initialReferenceLineList, intialMarks, orderBySubMenuOptions } from "../utils/constants";
 const { SubMenu } = Menu;
 
 
@@ -96,6 +96,14 @@ const FieldMenu = (props) => {
         await getGeoJsonData({ value: "world_countries.json", type: key }, dispatch)
       }
     }
+  }
+
+  const handleDataType = (fieldId, key) => {
+    let type = customFieldDataTypeList.find(({ backendDataType }) => backendDataType === key)
+    if (field?.type?.backendDataType === key) {
+      type = {}
+    }
+    dispatch(updateCustomFieldDataType({ reportId, fieldId, type }))
   }
 
   const updateAutoFormatting = (field, dataType) => {
@@ -193,47 +201,123 @@ const FieldMenu = (props) => {
     selectedKeys.push(orderBy[0])
   }
 
+  if (custom && !isEmpty(field?.type)) {
+    selectedKeys.push(field?.type?.backendDataType)
+  }
+
   const handleMenuClick = (e) => {
-    if (e.key === "1") {
-      editColumn()
-    } else if (e.key === "filter") {
-      handleUseAsFilter()
-      closeDropdown()
-    } else if (e.key === "hiddenIncludeInResultSet") {
-      updateField("hiddenIncludeInResultSet")
-      closeDropdown()
-    } else if (e.key === "hide-field") {
-      handleToggleHidden()
-      closeDropdown()
-    } else if (e.key === "5") {
-      handleShowFuncEditor()
-      closeDropdown()
-    } else if (e.key === "applyBeforeAggregate") {
-      updateField("applyBeforeAggregate")
-    } else if (e.key === "groupby") {
-      handleAggregates(field.id, "groupBy", functionsList.groupBy[0].key)
-    } else if (e.key === "remove-field") {
-      handleDelete()
-      closeDropdown()
-    } else if (e.keyPath.length === 2) {
-      e.keyPath[1] === "aggregate" && handleAggregates(field.id, "aggregate", e.key);
-      e.keyPath[1] === "geographic" && handleGeographicType(field.id, "geographic", e.key)
-      if (e.keyPath[1] === 'date_time_db_functions') {
-        handleDateFnsType(e.key);
-        return;
-      }
-      if (e.keyPath[1] === "order_by") {
-        handleOrderBy(e.key);
-        return;
-      }
-    } else if (e.key === "rename") {
-      handleRename(e.key)
-      return
-    }
-    else if (e.key === "discrete" || e.key === "continous") {
-      toggleFloatingType(e.key)
+    switch (e.key) {
+      case "1":
+        editColumn()
+        break
+
+      case "filter":
+        handleUseAsFilter()
+        closeDropdown()
+        break
+
+      case "hiddenIncludeInResultSet":
+        updateField("hiddenIncludeInResultSet")
+        closeDropdown()
+        break
+
+      case "hide-field":
+        handleToggleHidden()
+        closeDropdown()
+        break
+
+      case "5":
+        handleShowFuncEditor()
+        closeDropdown()
+        break
+
+      case "applyBeforeAggregate":
+        updateField("applyBeforeAggregate")
+        break
+
+      case "groupby":
+        handleAggregates(field.id, "groupBy", functionsList.groupBy[0].key)
+        break
+
+      case "remove-field":
+        handleDelete()
+        closeDropdown()
+        break
+
+      case "rename":
+        handleRename(e.key)
+        break
+
+      case "discrete":
+      case "continous":
+        toggleFloatingType(e.key)
+        break
+
+      default:
+        if (e.keyPath.length === 2) {
+          switch (e.keyPath[1]) {
+            case "aggregate":
+              handleAggregates(field.id, "aggregate", e.key)
+              break
+            case "geographic":
+              handleGeographicType(field.id, "geographic", e.key)
+              break
+            case "date_time_db_functions":
+              handleDateFnsType(e.key)
+              break
+            case "order_by":
+              handleOrderBy(e.key)
+              break
+            case "dataType":
+              handleDataType(field.id, e.key)
+              break;
+          }
+          break
+        }
     }
   }
+
+  // const handleMenuClick = (e) => {
+  //   if (e.key === "1") {
+  //     editColumn()
+  //   } else if (e.key === "filter") {
+  //     handleUseAsFilter()
+  //     closeDropdown()
+  //   } else if (e.key === "hiddenIncludeInResultSet") {
+  //     updateField("hiddenIncludeInResultSet")
+  //     closeDropdown()
+  //   } else if (e.key === "hide-field") {
+  //     handleToggleHidden()
+  //     closeDropdown()
+  //   } else if (e.key === "5") {
+  //     handleShowFuncEditor()
+  //     closeDropdown()
+  //   } else if (e.key === "applyBeforeAggregate") {
+  //     updateField("applyBeforeAggregate")
+  //   } else if (e.key === "groupby") {
+  //     handleAggregates(field.id, "groupBy", functionsList.groupBy[0].key)
+  //   } else if (e.key === "remove-field") {
+  //     handleDelete()
+  //     closeDropdown()
+  //   } else if (e.keyPath.length === 2) {
+  //     e.keyPath[1] === "aggregate" && handleAggregates(field.id, "aggregate", e.key);
+  //     e.keyPath[1] === "geographic" && handleGeographicType(field.id, "geographic", e.key)
+  //     if (e.keyPath[1] === 'date_time_db_functions') {
+  //       handleDateFnsType(e.key);
+  //       return;
+  //     }
+  //     if (e.keyPath[1] === "order_by") {
+  //       handleOrderBy(e.key);
+  //       return;
+  //     }
+  //   } else if (e.key === "rename") {
+  //     handleRename(e.key)
+  //     return
+  //   }
+  //   else if (e.key === "discrete" || e.key === "continous") {
+  //     toggleFloatingType(e.key)
+  //   }
+  // }
 
   const getNewMarks = (markPresent = false) => {
     if (!markPresent) {
@@ -294,15 +378,13 @@ const FieldMenu = (props) => {
             Edit
           </Menu.Item>
         )}
-        {!custom && (
-          <Menu.Item
-            key="filter"
-            className="group-end"
-            data-testid={`create-filter-${field.column}`}
-          >
-            Filter
-          </Menu.Item>
-        )}
+        <Menu.Item
+          key="filter"
+          className="group-end"
+          data-testid={`create-filter-${field.column}`}
+        >
+          Filter
+        </Menu.Item>
         <Menu.Item
           key="hiddenIncludeInResultSet"
           data-testid="hide-include-field"
@@ -379,23 +461,39 @@ const FieldMenu = (props) => {
             );
           })}
         </SubMenu>
+
+        {custom ?
+          <SubMenu key="dataType" title={"Data Type"} data-testid="data-type-menu-list">
+            {customFieldDataTypeList.map(({ backendDataType, dataType }) => {
+              return (
+                <Menu.Item
+                  className="aggregation-item"
+                  key={backendDataType}
+                >
+                  {dataType}
+                </Menu.Item>
+              );
+            })}
+          </SubMenu>
+          : null}
+
+        {/* date function render in case of date/dateTime data type */}
+
+        {dateFunctionsToRender?.length ?
+          <SubMenu key="date_time_db_functions" title={`Date Functions`} data-testid="date-time-fns-list">
+            {dateFunctionsToRender.map(({ label, key }) => {
+              return (
+                <Menu.Item
+                  className="aggregation-item"
+                  key={key}
+                >
+                  {label}
+                </Menu.Item>
+              );
+            })}
+          </SubMenu> : null}
+
       </React.Fragment> : null}
-
-      {/* date function render in case of date/dateTime data type */}
-
-      {dateFunctionsToRender?.length ?
-        <SubMenu key="date_time_db_functions" title={`Date Functions`} data-testid="date-time-fns-list">
-          {dateFunctionsToRender.map(({ label, key }) => {
-            return (
-              <Menu.Item
-                className="aggregation-item"
-                key={key}
-              >
-                {label}
-              </Menu.Item>
-            );
-          })}
-        </SubMenu> : null}
 
       <SubMenu key="order_by" title={"Order By"} data-testid="order-by-menu-list" className="group-start">
         {orderBySubMenuOptions.map(({ value, label }) => {

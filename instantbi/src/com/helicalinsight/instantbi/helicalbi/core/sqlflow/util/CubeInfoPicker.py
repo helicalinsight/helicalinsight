@@ -198,11 +198,50 @@ def _explicit_metric_names(plan: dict) -> List[str]:
 
 
 def _column_refs_for_derivation(plan: dict) -> List[Any]:
-    """Prefer SELECT-clause refs so filter/join-only columns stay out of Semantic."""
+    """SELECT-clause refs. Filter columns are added separately."""
     select_refs = plan.get("selectColumnName") or plan.get("select_column_name") or []
     if select_refs:
         return select_refs
     return plan.get("columnName") or []
+
+
+def _ref_key(ref: Any) -> str:
+    table_name, col_name = split_table_column_ref(ref)
+    table = unquote_identifier(str(table_name or "")).strip().lower()
+    column = unquote_identifier(str(col_name or "")).strip().lower()
+    if table and column:
+        return f"{table}.{column}"
+    return column
+
+
+def _filter_only_refs(plan: dict) -> List[Any]:
+    """Columns used outside SELECT (WHERE / HAVING), still listed on columnName."""
+    select_refs = plan.get("selectColumnName") or plan.get("select_column_name") or []
+    if not select_refs:
+        return []
+    selected = {_ref_key(ref) for ref in select_refs}
+    selected.discard("")
+    extras: List[Any] = []
+    seen: Set[str] = set()
+    for ref in plan.get("columnName") or []:
+        key = _ref_key(ref)
+        if not key or key in selected or key in seen:
+            continue
+        seen.add(key)
+        extras.append(ref)
+    return extras
+
+
+def _append_names(existing: List[str], extra: List[str]) -> List[str]:
+    seen = {name.lower() for name in existing}
+    merged = list(existing)
+    for name in extra:
+        text = str(name or "").strip()
+        if not text or text.lower() in seen:
+            continue
+        seen.add(text.lower())
+        merged.append(text)
+    return merged
 
 
 def _used_physical_names(column_refs: List[Any]) -> Set[str]:
@@ -288,8 +327,9 @@ def build_required_cube_info(
 
     Picks follow the columns used in SELECT (or ``columnName`` when SELECT is
     absent). Planner names that are not in those columns are dropped; used
-    columns the planner omitted are still included. Extra unused query-plan
-    fields stay out when the planner named a valid subset.
+    columns the planner omitted are still included. Columns that appear only
+    as filters (in ``columnName`` but not ``selectColumnName``) are added as
+    dimensions or metrics as well.
     """
     from helicalbi.sql.GetContextForSQL import collect_picked_column_items
 
@@ -341,6 +381,12 @@ def build_required_cube_info(
         known_measures,
         canonical,
     )
+    filter_dimensions, filter_metrics = _derive_picks_from_column_refs(
+        cube_metadata,
+        _filter_only_refs(plan),
+    )
+    picked_dimensions = _append_names(picked_dimensions, filter_dimensions)
+    picked_metrics = _append_names(picked_metrics, filter_metrics)
     plan_for_items = dict(plan)
     plan_for_items["pickedDimensions"] = picked_dimensions
     plan_for_items["pickedMetrics"] = picked_metrics

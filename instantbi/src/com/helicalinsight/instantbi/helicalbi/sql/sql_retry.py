@@ -12,7 +12,13 @@ ExecuteFn = Callable[[dict[str, Any]], dict[str, Any]]
 RegenerateFn = Callable[[dict[str, Any], str], dict[str, Any]]
 
 
-def rewrite_failed_sql_prompt(question: str, sql: str, error: str) -> str:
+def rewrite_failed_sql_prompt(
+    question: str,
+    sql: str,
+    error: str,
+    *,
+    flat_sql: bool = False,
+) -> str:
     """Feed prior SQL + engine error into the next generation attempt."""
     bits = [str(question or "").strip()]
     failed_sql = str(sql or "").strip()
@@ -26,10 +32,18 @@ def rewrite_failed_sql_prompt(question: str, sql: str, error: str) -> str:
         "from the schema. Prefer fixing the named columns rather than dropping "
         "the measure entirely."
     )
-    bits.append(
-        "Prefer JOIN of pre-aggregated derived tables over nested scalar "
-        "subqueries in WHERE/HAVING (especially above/below-average comparisons)."
-    )
+    if flat_sql:
+        bits.append(
+            "Think mode forbids subqueries. Rewrite as one flat SELECT that "
+            "joins base tables only. Do not use CTEs, derived tables, or any "
+            "nested SELECT. If the comparison needs another aggregate, drop "
+            "that part — it belongs in a separate question."
+        )
+    else:
+        bits.append(
+            "Prefer JOIN of pre-aggregated derived tables over nested scalar "
+            "subqueries in WHERE/HAVING (especially above/below-average comparisons)."
+        )
     return "\n\n".join(bit for bit in bits if bit)
 
 

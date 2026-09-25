@@ -89,7 +89,7 @@ const handleWhereCondition = (payload, self, operator = 'AND', config = {}) => {
         let filterValues = !Array.isArray(values) ? [values] : values
         let newFilter = {
             // column: newFilterCol || col,
-            column: (typeof payload[0] == "object" && payload[0]?.id && process.env.NODE_ENV !== "test" ) ? payload[0] :  newFilterCol || col,
+            column: config?.custom ? { column: col } : (typeof payload[0] == "object" && payload[0]?.id && process.env.NODE_ENV !== "test") ? payload[0] : newFilterCol || col,
             condition,
             values: filterValues,
             "backendDataType": config.dataType === 'boolean' ? 'java.lang.Boolean' : typeof filterValues[0] === 'string' ? "java.lang.String" : 'java.lang.Integer',

@@ -393,10 +393,11 @@ export const selectBuilder = (field, database, query) => {
 // query.select(selectBuilder(field, database), "booking_plotform")
 
 export const whereBuilder = ({ field, query, filterCondition, database }) => {
-	let { condition, values, customCondition, encloseInQuotes, databaseFunction, column, ignore, columnID } = field
+	let { condition, values, customCondition, encloseInQuotes, databaseFunction, column, ignore, columnID, custom } = field
 	column = column || field.fullyQualifiedColumn
 	database = database || field.columnDatabase;
 	let fieldName = `${database ? `${database}.` : ""}${column}`
+	if (custom) fieldName = column;
 	let label = getFieldDisplayName(field)
 	let config = { label, mode: "auto", alias: label, mapping: field.mapping }
 	if (Array.isArray(field.aggregate) && field.aggregate.length) {
@@ -409,6 +410,9 @@ export const whereBuilder = ({ field, query, filterCondition, database }) => {
 		// if (encloseInQuotes) {
 		// 	config.values = values.map(val => `'${val}'`)
 		// }
+	}
+	if(custom){
+		config.custom = true
 	}
 	if (ignore) {
 		config.ignore = true
@@ -1112,7 +1116,7 @@ export const openMetadata = async (formData, dispatch, getApi, responseOnly = fa
 			dateFunctions: dateFunctionsResponse || {},
 		}
 		if (responseOnly) return response;
-		
+
 		let prevMetadataFormData = null;
 		let hasRawSqlInUse = false;
 		dispatch((_, getState) => {
@@ -1123,7 +1127,7 @@ export const openMetadata = async (formData, dispatch, getApi, responseOnly = fa
 		dispatch(
 			loadMetadata(response)
 		);
-		
+
 		if (hasRawSqlInUse && prevMetadataFormData &&
 			(prevMetadataFormData.location !== formData.location ||
 				prevMetadataFormData.metadataFileName !== formData.metadataFileName)) {

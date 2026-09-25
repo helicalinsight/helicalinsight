@@ -13,6 +13,7 @@ export const getSharedChatTabsShell = ({
   workingActive = false,
   workingQuestion = "",
   workingFallback = "No workings recorded for this response.",
+  streamingEnabled = false,
 } = {}) => ({
   hasMessage,
   showMaximizeButton,
@@ -21,10 +22,10 @@ export const getSharedChatTabsShell = ({
   defaultTab: "preview",
   previewFirst: true,
   semanticLabel: "Semantic",
-  // Same icon row in create/edit for every mode (Preview / Semantic / SQL / Working).
-  showWorkingTab: !isOpenMode,
-  workingLines: isOpenMode ? [] : workingLines,
-  workingActive: Boolean(!isOpenMode && workingActive),
+  // Working is the streamed activity trail. Hide it when streaming is off.
+  showWorkingTab: !isOpenMode && Boolean(streamingEnabled),
+  workingLines: !isOpenMode && streamingEnabled ? workingLines : [],
+  workingActive: Boolean(!isOpenMode && streamingEnabled && workingActive),
   workingQuestion,
   workingFallback,
   showDataInsightButton,

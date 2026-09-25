@@ -4,6 +4,8 @@ from helicalbi.prompt.FormatInstruction import format_instruction_string
 
 DEFAULT_SCHEMA_TOP_K = 5
 DEFAULT_DASHBOARD_SUB_QUESTIONS = 5
+# Think mode may add this many extra questions when a single question would need a subquery.
+THINK_EXTRA_QUESTIONS = 4
 DEFAULT_MAX_TOOL_LOOPS = 32
 DEFAULT_RESULT_ROW_CAP = 50
 DEFAULT_EMBEDDING_DIM = 384
@@ -129,9 +131,7 @@ Rules:
 - Each chart.question must be a focused sub-question InstantBI can answer with
   one SQL/viz. Name real measures and dimensions from the grounding pack
   (e.g. Travel Cost, Failed Acquisition Cost, Client Name).
-- For "above/below average", exception lists, or multi-measure thresholds,
-  keep the question answerable with one SQL that JOINs pre-aggregated
-  derived tables — do not rely on nested HAVING (SELECT AVG...) subqueries.
+{sql_shape_rules}
 - Think across relations: after the core measure, add complementary charts that
   break it down by other columns on the same table and by columns on join-
   related tables listed in the schema relation exploration section.
@@ -153,9 +153,37 @@ Rules:
   that id, and explain the substitution in rationale.
 - Set template_id to the applied strategy's layout template name
   (e.g. analytical-grid). Do not include question templates in the plan.
-- Produce {max_charts} or fewer complementary charts.
+- Produce up to {chart_limit} complementary charts.
 - Comparisons are usually one comparison chart, not a separate chart per period.
 - Fill context_anchor on KPI charts (target, vs last week, vs last quarter)
   only when the model can support that comparison.
 - Set plan.domain and plan.topics from the selected grounding pack.
 """ + format_instruction_string
+
+# Dashboard plans may still use a JOIN of pre-aggregated derived tables.
+SQL_SHAPE_DERIVED_TABLES = """- For "above/below average", exception lists, or multi-measure thresholds,
+  keep the question answerable with one SQL that JOINs pre-aggregated
+  derived tables — do not rely on nested HAVING (SELECT AVG...) subqueries."""
+
+# Think mode: never plan a subquery. Split that work into more flat questions.
+THINK_FLAT_SQL_PLAN_RULES = """- Every chart.question must be answerable with one flat SELECT.
+  Do not plan a question that needs a subquery, CTE (WITH), derived table,
+  or nested SELECT — including a JOIN of pre-aggregated subqueries, a scalar
+  subquery in WHERE/HAVING/SELECT, or EXISTS / IN (SELECT ...).
+- If a comparison needs a separately computed value (group vs average, vs
+  prior period, percent of total, rank against another aggregate), add extra
+  questions instead of a subquery: one flat question for the grouped values
+  and another flat question for the benchmark or the other side.
+- Extra questions are only for that split. Stay near the strategy skeleton.
+  You may go beyond the usual chart count only to avoid a subquery, up to
+  the chart limit. Do not add filler questions to fill the allowance.
+- This overrides any later note that keeps a comparison in one chart when
+  that chart would need a subquery."""
+
+THINK_FLAT_SQL_GENERATION = (
+    "Think mode: write one flat SELECT only. "
+    "Do not use subqueries, CTEs (WITH), derived tables, or any nested SELECT. "
+    "JOIN only base tables from the provided joins. "
+    "If this question cannot be answered without a subquery, answer only the "
+    "part that is a single grouped or filtered SELECT."
+)

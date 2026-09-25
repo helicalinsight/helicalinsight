@@ -52,6 +52,7 @@ import {
 import { HCRFiltersDrawer } from "../components/hi-canned-reports/hcrFilters/hcrFiltersDrawer";
 import {
   createHTMLTable,
+  getCrosstabAlteredNodes,
   getDefaulPropertiesFromExportProperties,
   getHcrParameterFilters,
   getPreviewFormData,
@@ -1360,6 +1361,8 @@ const CannedReportsPage = (props) => {
             nodes = alteredNodes;
           }
 
+          nodes = getCrosstabAlteredNodes({ nodes, subDataSets, tableStyles });
+
           const stateArr = [
             { key: "dsPaneTypes", value: dsPanes },
             // {
@@ -1519,6 +1522,7 @@ const CannedReportsPage = (props) => {
               nodes = alteredNodes;
             }
 
+            nodes = getCrosstabAlteredNodes({ nodes, subDataSets, tableStyles });
 
             const stateArr = [
               { key: "dsPaneTypes", value: dsPanes },

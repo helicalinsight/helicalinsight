@@ -80,6 +80,7 @@ function makeReportModel({
     detailedColumns = [],
     filters = [],
     aggregate = [],
+    groupBy = [],
     location = '',
     metadataFileName = '',
     mark = '',
@@ -95,7 +96,7 @@ function makeReportModel({
         },
         data_model: {
             columns: detailedColumns,
-            functions: { aggregate },
+            functions: { aggregate, groupBy },
             location,
             metadataFileName,
             filters,
@@ -348,6 +349,70 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             reportId: REPORT_ID,
             floatingType: '',
         });
+    });
+
+    test('keeps a grouped year dimension discrete', async () => {
+        const reportModel = makeReportModel({
+            columns: ['Year'],
+            groupBy: [{ column: 'Year', custom: true }],
+            detailedColumns: [
+                makeDetailed('Year', 'col-date', {
+                    databaseFunction: 'YEAR("travel_details"."travel_date")',
+                }),
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(toggleFloating).toHaveBeenCalledWith({
+            id: 'gen-1',
+            reportId: REPORT_ID,
+            floatingType: 'discrete',
+        });
+    });
+
+    test('does not mark a year field discrete when it is not a group-by dimension', async () => {
+        const reportModel = makeReportModel({
+            columns: ['Year'],
+            detailedColumns: [
+                makeDetailed('Year', 'col-date', {
+                    databaseFunction: 'YEAR("travel_details"."travel_date")',
+                }),
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(toggleFloating).not.toHaveBeenCalledWith(
+            expect.objectContaining({ floatingType: 'discrete' })
+        );
+    });
+
+    test('does not mark an aggregated date part discrete', async () => {
+        const reportModel = makeReportModel({
+            columns: ['Year'],
+            detailedColumns: [
+                makeDetailed('Year', 'col-date', {
+                    databaseFunction: 'YEAR("travel_details"."travel_date")',
+                    aggregate: true,
+                    aggregateList: ['SUM'],
+                }),
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(toggleFloating).toHaveBeenCalledWith({
+            id: 'gen-1',
+            reportId: REPORT_ID,
+            floatingType: '',
+        });
+        expect(toggleFloating).not.toHaveBeenCalledWith(
+            expect.objectContaining({ floatingType: 'discrete' })
+        );
     });
 
     test('does not clear floatingType for non-aggregate dimensions', async () => {

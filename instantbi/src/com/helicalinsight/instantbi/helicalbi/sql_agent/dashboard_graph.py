@@ -132,6 +132,7 @@ def run_dashboard_agent(
     user_profile: Optional[list] = None,
     build_dashboard: bool = True,
     on_progress=None,
+    flat_sql: bool = False,
 ) -> AgentState:
     """Load HI metadata, run the tool-calling dashboard agent, layout a dashboard."""
     profile = resolve_mode_profile(
@@ -142,7 +143,9 @@ def run_dashboard_agent(
     plan_charts = [chart for chart in (plan.get("charts") or []) if isinstance(chart, dict)]
     max_charts = profile.max_charts
     if plan_charts:
-        max_charts = min(max_charts, max(1, len(plan_charts)))
+        planned = max(1, len(plan_charts))
+        # Think mode may add extra flat questions so a subquery is not required.
+        max_charts = planned if flat_sql else min(max_charts, planned)
     session = load_model_session(
         session_cookie=session_cookie,
         username=username,
@@ -187,6 +190,7 @@ def run_dashboard_agent(
         persona=persona or {},
         user_role=user_role or [],
         user_profile=user_profile or [],
+        flat_sql=bool(flat_sql),
     )
     plan_topics, plan_domains = _plan_scope(plan)
     if plan_topics:

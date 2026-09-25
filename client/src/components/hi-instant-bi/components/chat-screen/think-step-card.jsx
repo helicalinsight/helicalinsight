@@ -10,9 +10,50 @@ import ChatTabs from "./chat-tabs";
 import InstantChartView from "./chart-view";
 import { getSharedChatTabsShell } from "./chat-tabs-shared";
 import notify from "../../../hi-notifications/notify";
-import { buildSqlDetailsFallback, cleanText } from "./think-plan-helpers";
+import { IbResponseError } from "../ib-custom-chart";
+import { buildSqlDetailsFallback, cleanText, collapsedQuestionLead } from "./think-plan-helpers";
 
 const { Text } = Typography;
+
+const GENERIC_STEP_ERRORS = new Set([
+  "no report model available for this step.",
+  "report model is not available for this step yet.",
+  "unable to load visualization.",
+]);
+
+const errorText = (value) => {
+  if (value == null || value === false) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    return String(value.message || value.error || "").trim();
+  }
+  return String(value).trim();
+};
+
+const stepErrorDetails = (item = {}) => {
+  const chat = item.fullChatResponse || item.chat_response || {};
+  const sql = chat.sql && typeof chat.sql === "object" ? chat.sql : {};
+  const seen = new Set();
+  const lines = [];
+  [
+    item.sql_error,
+    item.sqlError,
+    chat.sql_error,
+    sql.error,
+    chat.error,
+    item.error,
+    item.execution_result,
+    item.vizError,
+    item.analysis,
+  ].forEach((value) => {
+    const text = errorText(value);
+    const key = text.toLowerCase();
+    if (!text || GENERIC_STEP_ERRORS.has(key) || seen.has(key)) return;
+    seen.add(key);
+    lines.push(text);
+  });
+  return lines.join("\n\n");
+};
 
 const ThinkStepCard = ({
   item,
@@ -62,6 +103,7 @@ const ThinkStepCard = ({
     || (planChatSequenceId ? `${planChatSequenceId}_${index}` : "");
   const [isMaximized, setIsMaximized] = useState(false);
   const [expanded, setExpanded] = useState(Boolean(isStreaming));
+  const collapsedQuestion = !expanded && question && question !== stepHeading ? question : "";
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
   const [dataInsightTrail, setDataInsightTrail] = useState([]);
   const [dataInsightContent, setDataInsightContent] = useState(
@@ -197,6 +239,7 @@ const ThinkStepCard = ({
       workingQuestion: question,
       workingFallback: "No workings recorded for this response.",
     }),
+    showWorkingTab: false,
     vizDetails,
     isConvertingChart: false,
     resolvedData,
@@ -225,13 +268,11 @@ const ThinkStepCard = ({
     previewActivityTrail: item.vizActivityTrail || (
       isLoadingViz ? ["Preparing visualization from report model…"] : []
     ),
-    previewPlaceholder: item.vizError ? (
-      <Text type="danger">{item.vizError}</Text>
+    previewPlaceholder: !isStreaming && (item.vizError || !hasReportModel) ? (
+      <IbResponseError details={stepErrorDetails(item)} />
     ) : hasReportModel ? (
       <Text type="secondary">Open Preview to load this chart.</Text>
-    ) : (
-      <Text type="secondary">Report model is not available for this step yet.</Text>
-    ),
+    ) : null,
     onPreviewActivate: () => {
       if (!question || isStreaming || isLoadingViz || hasViz || !hasReportModel) return;
       onShowQuestion?.(question, index, item);
@@ -253,7 +294,19 @@ const ThinkStepCard = ({
           aria-label={expanded ? "Collapse step" : "Expand step"}
           data-testid={`ib-think-step-toggle-${index}`}
         >
-          <span className="ib-think-step__toggle-label">{stepHeading}</span>
+          {collapsedQuestion ? (
+            <InstantBITooltip
+              title={`${collapsedQuestionLead(collapsedQuestion)} ${collapsedQuestion}`}
+              placement="topLeft"
+              mouseEnterDelay={0.15}
+              overlayClassName="ib-think-step-question-tooltip"
+              overlayStyle={{ maxWidth: 480 }}
+            >
+              <span className="ib-think-step__toggle-label">{stepHeading}</span>
+            </InstantBITooltip>
+          ) : (
+            <span className="ib-think-step__toggle-label">{stepHeading}</span>
+          )}
         </button>
         <InstantBITooltip
           title={expanded ? "Hide details" : "See details"}

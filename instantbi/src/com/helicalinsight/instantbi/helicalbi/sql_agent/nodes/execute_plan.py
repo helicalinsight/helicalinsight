@@ -117,9 +117,9 @@ def _append_failure(work: dict[str, Any], question: str, error: str, *, title: s
     return work
 
 
-def _rewrite_prompt(question: str, sql: str, error: str) -> str:
+def _rewrite_prompt(question: str, sql: str, error: str, *, flat_sql: bool = False) -> str:
     """Feed prior SQL + engine error into the next generation attempt."""
-    return rewrite_failed_sql_prompt(question, sql, error)
+    return rewrite_failed_sql_prompt(question, sql, error, flat_sql=flat_sql)
 
 
 def execute_plan_node(state: AgentState) -> Dict[str, Any]:
@@ -246,6 +246,7 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                         question,
                         work.get("generated_sql") or "",
                         executed["error"],
+                        flat_sql=bool(work.get("flat_sql")),
                     )
                     continue
 
@@ -264,7 +265,12 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     title or question[:40],
                     err,
                 )
-                prompt = _rewrite_prompt(question, sql, err)
+                prompt = _rewrite_prompt(
+                    question,
+                    sql,
+                    err,
+                    flat_sql=bool(work.get("flat_sql")),
+                )
 
             if not executed.get("ok"):
                 step_ok = False

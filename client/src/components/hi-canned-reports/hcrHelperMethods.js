@@ -35,7 +35,7 @@ import {
   hcrTableBandOrder,
   hcrTableBandsTypes
 } from "./hcr-constants";
-import { HCR_TABLE_CELL_PROPERTIES } from "./hcrCanvas/advanceComponents/contants";
+import { CROSSTAB_VERSION, HCR_CROSSTAB_RENDER_KEY, HCR_TABLE_CELL_PROPERTIES } from "./hcrCanvas/advanceComponents/contants";
 import {
   createCell,
   getAdvancedTableConfig,
@@ -48,7 +48,8 @@ import {
   makeCellId,
   hcrCanvasPaneHelperMethods,
   getCrosstabStyles,
-  getCrosstabConfigV2
+  getCrosstabConfigV2,
+  getCTMeasureCells
 } from "./hcrCanvas/hcrCanvasPaneHelperMethods";
 
 
@@ -5346,6 +5347,40 @@ export const getTableStylesFromReportState = (nodes) => {
     tableStyles,
     alteredNodes
   }
+}
+
+export const getCrosstabAlteredNodes = ({ nodes = [], tableStyles = [] }) => {
+  let copiedNodes = cloneDeep(nodes);
+  copiedNodes = copiedNodes.map((node) => {
+    if (node.category !== "crosstabv2") return node;
+    if (node.version === CROSSTAB_VERSION) return node;
+
+    const { id, config = {} } = node || {}
+    const { measures, columnGroups, rowGroups } = config
+    const styles = tableStyles.filter(style => style.crosstabId === id);
+    if (styles.length) {
+      const { cells: updatedCells } = getCTMeasureCells(measures, columnGroups, rowGroups, [], styles);
+      node.config = {
+        ...node.config,
+        measureCells: node.config.measureCells.map((cell) => {
+          const updatedCell = updatedCells.find(uCell => uCell.name === cell.name);
+          if (updatedCell) {
+            return {
+              ...cell,
+              styleNameReference: updatedCell.styleNameReference,
+              cellIndex: updatedCell.cellIndex
+            }
+          }
+          return cell
+        })
+      }
+      node.version = CROSSTAB_VERSION;
+    }
+    return node;
+  })
+
+
+  return copiedNodes;
 }
 
 export const getInitialSubDataSet = () => {

@@ -309,7 +309,7 @@ export const addFieldToReport = (payload, report, dispatch) => {
     let customFieldId = !custom_frontend_field ? uuidv4() : id
     // ----7216 ----
     let isMeasure = MEASURE_VALUE === column;
-    addedAs = custom_frontend_field ? addedAs : report.customColumnData && report.customColumnData.fieldType;
+    addedAs = custom_frontend_field ? addedAs : report.customColumnData ? report.customColumnData.fieldType : "column";
     floatingType = isMeasure ? "" : floatingType;
     // --- 7216 ----
     newCol = {
@@ -361,8 +361,8 @@ export const addFieldToReport = (payload, report, dispatch) => {
 }
 export const addFilterToReport = (payload, report, dispatch) => {
   let {
-    table, column, type, defaultFunction, columnName, from, aggregate, groupBy, databaseFunction, drillDownFilterValues,
-    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType, uid
+    table, column, type = {}, defaultFunction, columnName, from, aggregate, groupBy, databaseFunction, drillDownFilterValues,
+    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType, uid, custom
   } = payload;
   let {
     metadata,
@@ -401,6 +401,9 @@ export const addFilterToReport = (payload, report, dispatch) => {
   let filterLabel = getFieldDisplayName(payload);
   let { dataType, backendDataType } = type;
   let databaseFunctionName;
+  if (!dataType && custom) {
+    dataType = "text"
+  }
   if (
     databaseFunction &&
     Object.keys(databaseFunction).length &&
@@ -445,6 +448,9 @@ export const addFilterToReport = (payload, report, dispatch) => {
     dataId: uuidv4(),
     columnID
   };
+  if (custom) {
+    filter.custom = custom
+  }
   if (["date", "dateTime"].includes(dataType)) { // 6686
     filter.customDisplayDateFormats = []
     switch (dataType) {

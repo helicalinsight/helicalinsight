@@ -351,6 +351,11 @@ function createHReportBridge(props = {}) {
         }
         if (!field.aggregate) {
             dispatch(updateAggregations({ id: fieldId, key: [], group: "aggregate" }))
+            // Group-by fields are dimensions. Numeric parts such as YEAR() are
+            // cleared to continuous when the database function is saved.
+            if (field.groupBy) {
+                dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "discrete" }))
+            }
         }
         if (field.fetchAndHide) {
             dispatch(updateCanvasField({ id: fieldId, key: "hiddenIncludeInResultSet" }));

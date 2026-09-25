@@ -4,6 +4,7 @@ import {
 } from "@ant-design/icons"
 import { Modal, Popover, Row, Space, Typography } from 'antd'
 import React, { useEffect, useRef, useState } from 'react'
+import { useSelector } from 'react-redux'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import LoadingBar from '../../../common/components/hi-loading-bar'
@@ -73,6 +74,7 @@ export const DataInsightTokenUsage = ({ tokens = {} }) => {
 };
 
 const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
+  const streamResponse = useSelector((state) => Boolean(state.app.applicationSettingsData?.streamResponse));
   const {
     vf = "",
     data = [],
@@ -365,6 +367,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       workingActive: Boolean(chatItem.isStreaming),
       workingQuestion: chatItem.userInput || userInput || "",
       workingFallback: "No workings recorded for this response.",
+      streamingEnabled: streamResponse,
     }),
     similarChart,
     vizDetails,

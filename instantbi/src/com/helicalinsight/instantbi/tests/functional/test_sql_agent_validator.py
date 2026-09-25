@@ -4,7 +4,11 @@ import pytest
 
 from helicalbi.sql_agent.database.catalog import ColumnMeta, TableMeta
 from helicalbi.sql_agent.database.schema_indexer import SchemaIndexer
-from helicalbi.sql_agent.nodes.validator import validate_sql_against_catalog
+from helicalbi.sql_agent.nodes.validator import (
+    sql_has_subquery,
+    subquery_rejection,
+    validate_sql_against_catalog,
+)
 
 
 pytestmark = pytest.mark.functional
@@ -66,6 +70,30 @@ def test_validator_rejects_write_statements():
     )
     assert error
     assert "read-only" in error.lower()
+
+
+def test_think_mode_rejects_subqueries_and_keeps_flat_selects():
+    flat = 'SELECT employees.employee_name, SUM(employees.salary) FROM employees GROUP BY employees.employee_name'
+    nested = (
+        "SELECT employees.employee_name FROM employees "
+        "WHERE employees.salary > (SELECT AVG(employees.salary) FROM employees)"
+    )
+    derived = (
+        "SELECT g.employee_name FROM ("
+        "SELECT employees.employee_name FROM employees"
+        ") g"
+    )
+    cte = (
+        "WITH totals AS (SELECT employees.employee_id FROM employees) "
+        "SELECT totals.employee_id FROM totals"
+    )
+    assert sql_has_subquery(flat, "postgres") is False
+    assert subquery_rejection(flat, "postgres") is None
+    assert sql_has_subquery(nested, "postgres") is True
+    assert sql_has_subquery(derived, "postgres") is True
+    assert sql_has_subquery(cte, "postgres") is True
+    message = subquery_rejection(nested, "postgres") or ""
+    assert "Subqueries are not allowed" in message
 
 
 def test_validator_rejects_select_star():

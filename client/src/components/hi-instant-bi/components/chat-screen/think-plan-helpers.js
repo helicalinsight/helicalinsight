@@ -124,3 +124,22 @@ export const linkifyThinkCitations = (text = "") =>
   String(text || "").replace(/\[(\d+)\]/g, "[[$1]](#ib-think-step-$1)");
 
 export const CITATION_HREF_RE = /^#ib-think-step-(\d+)$/;
+
+/** Chat-style leads for a collapsed step tooltip, matched to the question word. */
+export const COLLAPSED_QUESTION_LEADS = [
+  { test: /^how\b/i, lead: "Let's drill through" },
+  { test: /^when\b/i, lead: "Let's check" },
+  { test: /^where\b/i, lead: "Let's explore" },
+  { test: /^what\b/i, lead: "Let's see the finding" },
+  { test: /^why\b/i, lead: "Let's explore" },
+  { test: /^which\b/i, lead: "Let's compare" },
+  { test: /^who\b/i, lead: "Let's find" },
+];
+
+export const DEFAULT_COLLAPSED_QUESTION_LEAD = "Let's take a closer look";
+
+export const collapsedQuestionLead = (question = "") => {
+  const text = String(question || "").trim();
+  const match = COLLAPSED_QUESTION_LEADS.find((item) => item.test.test(text));
+  return match?.lead || DEFAULT_COLLAPSED_QUESTION_LEAD;
+};

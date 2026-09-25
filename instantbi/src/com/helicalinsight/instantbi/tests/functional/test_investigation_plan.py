@@ -225,6 +225,12 @@ def test_plan_prompt_allows_similar_line_adaptation():
     assert "measure_hints" in CONTEXT_PLAN_PROMPT
     assert "Think across relations" in CONTEXT_PLAN_PROMPT
     assert "same-table" in CONTEXT_PLAN_PROMPT
+    assert "{sql_shape_rules}" in CONTEXT_PLAN_PROMPT
+    assert "{chart_limit}" in CONTEXT_PLAN_PROMPT
+    from helicalbi.sql_agent.config import THINK_FLAT_SQL_PLAN_RULES
+
+    assert "add extra" in THINK_FLAT_SQL_PLAN_RULES
+    assert "subquery" in THINK_FLAT_SQL_PLAN_RULES
 
 
 def test_strategy_prompt_omits_question_templates():
