@@ -92,8 +92,14 @@ export const getDatasourceGetContentsResponse = (formData) => {
           },
         },
         {
+          url: "jdbc:mongodb://{{hostName}}:{{port}}/{{database}}",
+          driver: "com.mongodb.jdbc.MongoDriver",
           available: "true",
-          driver: "com.helical.mongodb.MongoJdbcDriver",
+          parameters: {
+            port: "27017",
+            hostName: "localhost",
+            database: "database",
+          },
         },
         {
           url: "jdbc:hive2://{{hostName}}:{{port}}/{{database}}",
