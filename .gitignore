@@ -148,3 +148,26 @@ instantbi/**/.idea/workspace.xml
 /instantbi/**/.idea
 server/**/.flattened-pom.xml
 *.lock
+
+
+##############################
+## Java / Build Artifacts
+##############################
+server/**/.mtj.tmp/
+server/**/*.class
+server/**/*.jar
+server/**/*.war
+server/**/*.ear
+server/**/*.nar
+server/**/hs_err_pid*
+
+# Generated Java artifacts anywhere in the repository
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Docker-generated application artifacts
+docker/**/*.war
+docker/**/*.jar
