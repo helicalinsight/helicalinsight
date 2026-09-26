@@ -1,0 +1,622 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+<visible>true</visible>
+<scriptId>card_js_drilldown</scriptId>
+<scriptType>js</scriptType>
+<name>Drilldown</name>
+<group>Card</group>
+<renderOn>simpleModel</renderOn>
+<description>Helps to apply drill down for the card</description>
+<icon>/images/scriptIcons/DrillDown.png</icon>
+<snippet>
+
+<![CDATA[ 
+
+var id = hi_container.get("renderId");
+
+var containerId = '#chart'; 
+var cardId = '#HIWidget-chart';  
+var widgetId = '#widget-value';   
+
+if(id != ""){  
+	containerId = containerId+'-'+id;  
+	cardId = cardId+'-'+id;
+}   
+
+var ftnObj = {};
+
+ftnObj['addcursor'+id] = function(c){    
+				
+				jQuery(containerId).css('cursor', 'pointer');      
+			
+				
+				
+				};
+	
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['addcursor'+id]);
+			}  
+			else{     
+hi_container.extend("postExecution", ftnObj['addcursor'+id]); 
+} 
+
+
+var ftnObj2 = {};  
+
+ftnObj2['setOnClickEvent'+id]= function(){    
+
+$(containerId).on("click", function(){                         
+
+var report_URL = '${drilldownURL}';
+var paramList = ${paramList}; 
+
+						var filters = hi_container.get("requestData").filters;
+					// console.log(filters);
+					var ParamStr = '';
+					var filterVal = '';
+
+					for(var i = 0; i < paramList.length; i++){
+						filterVal = '[';
+						if (paramList[i]['parentColumn'].includes('Filter_')){
+						  var filterID = paramList[i]['parentColumn'].split('_')[1];// To get the filter id e.g. Filter_1 , id = 1
+						  var filterLen = filters[filterID].values.length;
+						  for(var validx=0;validx<filterLen;validx++)
+						  {
+								filterVal = filterVal + '"' + filters[filterID].values[validx]+'",';
+						  }
+						  filterVal = filterVal+"]"
+						}
+						else {
+							filterVal = filterVal + '"' + paramList[i]['parentColumn'] +'"]';
+						}
+						
+						ParamStr=ParamStr+'&'+paramList[i]['childColumn']+"="+filterVal;
+					}
+										
+					// console.log("2" + ParamStr);
+					
+					report_URL = report_URL+ParamStr;
+
+						
+
+						if('${new_tab}' == 'true'){
+							var ReportURL_open =report_URL.replace("mode=dashboard", "mode=open");
+							window.open(ReportURL_open);
+						}
+						if('${current_tab}' == 'true'){  
+						
+							window.open(report_URL,"_self");    
+						}    
+						
+ 
+});
+
+
+
+}; 
+
+if(!hi_container.isSet("postExecution")){
+hi_container.set("postExecution", ftnObj2['setOnClickEvent'+id]); 
+}
+else{
+hi_container.extend("postExecution", ftnObj2['setOnClickEvent'+id]);  
+}
+
+]]>
+
+</snippet>
+<parameters>
+
+ <parameter value="true" name="ipc" type= "String"/>
+        <parameter value="false" name="new_tab" type= "String"/>
+        <parameter value="false" name="current_tab" type= "String"/>
+        <parameter value="false" name="new_window" type= "String"/>
+        <parameter value="true" name="set_category" type= "String"/>
+        <parameter value="" name="category_name" type= "String"/>
+        <parameter value="" name="drilldownURL" type= "String"/>
+        <parameter value="" name="drilldownName" type= "String"/>
+        <parameter value="" name="params" type= "String"/>
+        <parameter value="[]" name="paramList" type= "String"/>
+        <parameter value="[]" name="childFilterList" type= "String"/>
+
+
+
+
+</parameters>
+<uiSnippet>
+<![CDATA[
+
+<style>
+.drilldown-item.list-group-item span{
+padding-right: 7px;
+}
+
+.drilldown-item.list-group-item{
+border: none;
+}
+
+.drilldown-item{
+cursor: pointer;
+}
+
+#report_url, #report_name{
+width: 100%;
+height: 30px;
+border-radius: 4px;
+line-height:22px;
+cursor: pointer;
+}
+
+#browse_button{
+background-color: #2c3e50;
+height: 30px;
+color: #ffffff;
+}
+
+.report_url_label, .report_name_label{
+line-height: 30px;
+padding-bottom: 0px;
+padding-right: 0px;
+}
+
+.addButton{
+position: absolute;
+left: 45%;
+padding-top: 2px;
+padding-bottom: 2px;
+}
+
+.param_dropdown{
+position: absolute;
+width: 87%;
+}
+
+.param_input{
+position: sticky;
+width: 90%;
+}
+
+.parameter-selection-panel{
+height: 180px;
+overflow-y: scroll;
+}
+.parameters_mapping{
+padding-top: 20px;
+}
+
+#widget-value{
+	cursor: pointer !important;   
+}	
+
+</style>
+<div class="row">
+				<div class="col-sm-12 col-md-12 drilldown-type-panel form-group">
+					<div class="Well">
+						
+						<ul class="list-group checked-list-box col-sm-6">
+							<li class="drilldown-item list-group-item" type="new_tab" id="new_tab">Open in New Tab</li>
+						</ul>
+						<ul class="list-group checked-list-box col-sm-6">
+							<li class="drilldown-item list-group-item" type="current_tab" id="current_tab">Open in current Tab</li>
+						</ul>
+					</div>
+				</div>
+				<hr>
+
+				
+<div class="col-sm-12 col-md-12 report-selector-panel form-group">
+<div class="col-sm-3 report_name_label">
+<label class="">Report Name</label>
+</div>
+<div class="col-sm-7">
+<input type="text" placeholder="Select Report Name" name="report_url" id="report_name" disabled>
+</div>
+<div class="col-sm-2">
+<button class="btn btn-default" value="Browse" id="browse_button">Browse</button>
+</div>
+
+
+ <div class="col-sm-12 col-md-12 parameter-selection-panel parameters_mapping">
+          <div class="col-sm-12 col-md-12 form-group">
+            <label>Parameter Mapping:</label>
+            <button class="btn btn-success addButton" onclick="createCustomParamDropdown('','')">Add</button>
+          </div>
+          <div class="col-sm-12 col-md-12" id="categorySelector">
+          </div>
+          <div class="col-sm-12 col-md-12" id="paramList">
+          </div>
+		</div>
+			</div>
+
+</div>
+</div>
+<script>
+adhocScripts.resetAll();
+				
+				
+
+				adhocScripts.setVariable("ipc",params.ipc);
+				adhocScripts.setVariable("new_tab",params.new_tab);
+				adhocScripts.setVariable("current_tab",params.current_tab);
+				adhocScripts.setVariable("new_window",params.new_window);
+				adhocScripts.setVariable("set_category",params.set_category);
+				adhocScripts.setVariable("category_name",params.category_name);
+				adhocScripts.setVariable("drilldownURL",params.drilldownURL);
+				adhocScripts.setVariable("drilldownName",params.drilldownName);
+				adhocScripts.setVariable("params",params.params);
+				adhocScripts.setVariable("paramList",params.paramList);
+				adhocScripts.setVariable("childFilterList",params.childFilterList);
+
+
+				var reportData;
+				var params = adhocScripts.getVariable('params').split(',');
+				var paramList = adhocScripts.getVariable('paramList');
+
+      	/*************************************Set Default Values*******************************************/
+				//Create params list-box
+				createParamDropdown();
+				//Set report Name in UI
+				$("#report_name").val(adhocScripts.getVariable('drilldownName'));
+				//Set Category Name in UI
+				$('#category_name').val(adhocScripts.getVariable('category_name'));
+				//Enable/Disable Select Category
+				if(adhocScripts.getVariable('set_category') == 'true'){
+					$('#category_name').removeAttr('disabled');
+				} else {
+					$('#category_name').attr('disabled', 'disabled');
+				}
+				
+				//Create cutrom parameter drop Dropdowns
+				createParamListDropdown();
+
+				/**************************************************************************************************/
+
+				/********************************DRILLDOWN TYPE SELECTOR START*************************************/
+
+				//Create DrillDown type checkbox and selector
+				$('.drilldown-item').each(function () {
+					// Settings
+					var $widget = $(this),
+						$checkbox = $('<input type="checkbox" class="hidden checkbox" />'),
+						settings = {
+							on: {
+								icon: 'glyphicon glyphicon-check'
+							},
+							off: {
+								icon: 'glyphicon glyphicon-unchecked'
+							}
+						};
+
+					$widget.css('cursor', 'pointer')
+					$widget.append($checkbox);
+
+					// Event Handlers
+					$widget.on('click', function () {
+						$checkbox.prop('checked', !$checkbox.is(':checked'));
+
+						//Set Drilldown type
+						adhocScripts.setVariable($($widget).attr('type'), ''+$checkbox.is(':checked')+'');
+						
+						// console.log('from widget onclick', $($widget).attr('type'), $checkbox.is(':checked'));
+						if($($widget).attr('type') == 'new_tab' && $checkbox.is(':checked') == true && adhocScripts.getVariable('current_tab') == 'true'){
+							adhocScripts.setVariable('current_tab', 'false');
+							// console.log('in function touncheckcurr tab', $("[type=current_tab]").html());
+							$("[type=current_tab]").prop("checked", false);
+						}		
+						
+
+						//Enable and disable select category
+						if($($widget).attr('type') == 'set_category'){
+							if(adhocScripts.getVariable('set_category') == 'true'){
+								$('#category_name').removeAttr('disabled');
+							} else {
+								$('#category_name').attr('disabled', 'disabled');
+							}
+						}
+
+						updateDisplay();
+					});
+
+
+					// Actions
+					function updateDisplay() {
+						var isChecked = $($checkbox).is(':checked');
+						// Set the button's state
+						$widget.data('state', (isChecked) ? "on" : "off");
+
+						// Set the button's icon
+						$widget.find('.state-icon')
+							.removeClass()
+							.addClass('state-icon ' + settings[$widget.data('state')].icon);
+					}
+
+					// Initialization
+					function init() {
+						if ($($widget).attr('type') == 'ipc' && adhocScripts.getVariable('ipc') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						if ($($widget).attr('type') == 'new_tab' && adhocScripts.getVariable('new_tab') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						if ($($widget).attr('type') == 'current_tab' && adhocScripts.getVariable('current_tab') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+							// console.log('for checkbox', $checkbox.is(':checked'))
+						}
+						if ($($widget).attr('type') == 'set_category' && adhocScripts.getVariable('set_category') == 'true') {
+							$checkbox.prop('checked', !$checkbox.is(':checked'));
+						}
+						
+						updateDisplay();
+						
+						// Inject the icon if applicable
+						if ($widget.find('.state-icon').length == 0) {
+							$widget.prepend('<span class="state-icon ' + settings[$widget.data('state')].icon + '"></span>');
+						}
+					}
+					init();
+
+				});
+
+
+
+				/*****************************************************************************************************/
+
+				/********************************************GET REPORT URL*******************************************/
+				$("#browse_button").on("click",function(){
+					HDIUI.filebrowser.fetchData().done(function(){
+						HDIUI.filebrowser.show({footer:'<button id="applyPath" style="background-color:#2c3e50;color:#ffffff;margin-left:45%;margin-top:10px"  class="btn btn-primary">Select</button>',hideFilters:true});
+						HDIUI.filebrowser.setFilter("report");
+						$(document.getElementById("hdi-filebrowser").querySelector("#hdi-file-explorer")).on('dblclick', function(e){
+
+						});
+
+						$(document.querySelector("#hdi-filebrowser")).css('z-index', '1060');
+
+						$("#applyPath").on("click", function() {
+							
+							var selectedActualPath=HDIUI.filebrowser.selectedPath;
+							var selectedLogicalPath=HDIUI.filebrowser.selectedPath;
+					
+							if(selectedActualPath == null || selectedLogicalPath == null){      
+								alert("Please select a report and then click on 'Select' button");  
+								return
+							}
+							
+							var selectedActualPath = HDIUI.filebrowser.selectedPath.actual;
+							var selectedLogicalPath = HDIUI.filebrowser.selectedPath.logical;
+
+							if(selectedActualPath.indexOf("\\")!=-1)
+							{
+								selectedActualPath = selectedActualPath.replace(/\\/g, "/");
+							}
+							selectedActualPathArr = selectedActualPath.split("/");
+							var file = selectedActualPathArr.pop();
+							var dir = selectedActualPathArr.join("/");
+							var encodedFormData = btoa('{"dir":'+'"'+dir+'"'+',"file":'+'"'+file+'"'+'}');
+
+							reportSelectedUrl=	window.DashboardGlobals.baseUrl+'services?type=adhoc&serviceType=report&service=getReportForEdit&formData='+encodedFormData;
+
+							if(file.split('.')[1]=="report")
+							{
+								var xhr = createCORSRequest('GET', reportSelectedUrl);
+								if (!xhr) {
+									//alert('CORS not supported');
+									return;
+								}
+								xhr.send();
+
+								xhr.onload = function() {
+									reportData = xhr.responseText;
+								};
+  
+								xhr.onloadend = function() {  
+									getParameters();
+								};
+
+								adhocScripts.setVariable('drilldownURL',  window.DashboardGlobals.baseUrl+"hi.html?dir="+dir+"&file="+file+"&mode=dashboard"); 
+								adhocScripts.setVariable('drilldownName', selectedLogicalPath);  
+
+								$("#report_name").val(selectedLogicalPath);
+								$("#report_name").tooltip({title: function(d){return $(this).val()}});
+								HDIUI.filebrowser.hide();
+							}
+
+							else{
+								alert("Please select a report");
+							}
+						});
+						
+						$("#close-file-browser").on("click", function() {
+						
+						});
+					});
+				});
+				/*********************************************************************************/
+
+				/************************************GET PARAMETERS*********************************************/
+				function getParameters()
+				{
+					params = [];
+          var childFilterList = [];
+					for(var i = $('#category_name>option').length; i >= 2; i--){
+						//remove extra parameters
+						$('#category_name>option:nth-child('+i+')').remove();
+					}
+
+					reportData = $.parseJSON(reportData);
+
+					if(reportData.response.state.filters.length!=0)
+					{
+						//rename the default drop down option once the report is selected
+						$('#category_name>option').text("Select category name");
+
+						for(var paramNo = 0; paramNo < reportData.response.state.filters.length; paramNo++)
+						{
+							params.push(reportData.response.state.filters[paramNo].label);
+
+              var obj = {};
+			  
+			  obj.filterName = reportData.response.state.filters[paramNo].label;
+              obj.filterValue = reportData.response.state.filters[paramNo].values
+
+              childFilterList.push(obj);
+
+						}
+            adhocScripts.setVariable('childFilterList', childFilterList);
+						createParamDropdown();
+					}
+					else{
+						adhocScripts.setVariable('category_name', '');
+						$('#category_name>option').text('No Parameters');
+					}
+				}
+				/*************************************************************************************************/
+				/*************************************************************************************************/
+				function createParamDropdown(){
+					if(params[0]== '')
+						params.shift();
+
+					for(var i = 0; i < params.length; i++){
+						var option_category	= document.createElement('option');
+						option_category.className = 'parameter_'+params[i];
+						option_category.innerHTML = params[i];
+
+						var option_value = option_category.cloneNode(true);
+
+						$('#category_name').append(option_category);
+						//$('#series_name').append(option_value);
+
+						adhocScripts.setVariable('params', params.join());
+					}
+				}
+				/*************************************************************************************************/
+
+				/**************************CATEGORY AND VALUE DROPDOWN VALUE CAPTURE******************************/
+				$('#category_name').on('change',function(){
+					adhocScripts.setVariable('category_name', $(this).val());
+				});
+	       /*************************************************************************************************/
+
+        /*********************Create Parameter Mapping Dropdowns***********************************/
+        function createCustomParamDropdown(parentValue, childValue){
+            var div = document.createElement('div');
+            div.classList = 'form-group each-param-set';
+
+            /*******************Parent Paremeter List************************/
+            var parentParamDiv = document.createElement('div');
+            parentParamDiv.classList = 'col-sm-5 col-md-5';
+
+            var parentParamSelector = document.createElement('input');
+            parentParamSelector.type = 'text';
+            parentParamSelector.classList = 'form-control param_input parentParamSelector';
+            parentParamSelector.value = parentValue;
+            parentParamSelector.onchange = function(){
+                                              setParamList();
+                                            }
+
+            parentParamDiv.appendChild(parentParamSelector);
+
+            div.appendChild(parentParamDiv);
+
+            /*******************Child Paremeter List************************/
+            var childParamDiv = document.createElement('div');
+            childParamDiv.classList = 'col-sm-5 col-md-5';
+
+            var childParamSelector = document.createElement('input');
+            childParamSelector.type = 'text';
+            childParamSelector.classList = 'form-control param_input childParamSelector';
+            childParamSelector.value = childValue;
+            childParamSelector.onchange = function(){
+                                            setParamList();
+                                          }
+
+            var childDatalist = document.createElement('select');
+            childDatalist.classList = 'form-control param_dropdown childParam';
+            childDatalist.onchange = function(){
+                                        $(this).next().val(this.value);
+                                      }
+
+            for(var j = 0; j < params.length; j++){
+              var childOptions = document.createElement('option');
+              childOptions.value = params[j];
+              childOptions.innerHTML = params[j];
+              if(j==0 && childValue == ''){
+                childParamSelector.value = params[j];
+              }
+              if(childOptions.value == childValue){
+                  childOptions.selected = true;
+              }
+              childDatalist.appendChild(childOptions);
+            }
+            childParamDiv.appendChild(childDatalist);
+            childParamDiv.appendChild(childParamSelector);
+
+            /*********************Delete Button************************/
+            var delButton = document.createElement('button');
+            delButton.id = 'delete';
+            delButton.classList = 'btn btn-danger';
+            delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+            delButton.onclick = function(){
+              $(this).parent().remove();
+              setParamList();
+            };
+
+            div.appendChild(childParamDiv);
+            div.appendChild(parentParamDiv);
+            div.appendChild(delButton);
+
+            document.getElementById('paramList').appendChild(div);
+        }
+        /*************************************************************************************************/
+
+        /**************************Set Param LIst******************************/
+        function setParamList(){
+            var parentParamList = $('#paramList .parentParamSelector');
+            var childParamList = $('#paramList .childParamSelector');
+
+            paramList = [];
+
+            for(var x = 0; x < $('.each-param-set').length; x++){
+              var obj = new Object();
+              obj.parentColumn = $(parentParamList[x]).val();
+              obj.childColumn = $(childParamList[x]).val();
+
+              paramList.push(obj);
+            }
+            adhocScripts.setVariable('paramList', paramList);
+        }
+				/*************************************************************************************************/
+
+        /**********************Create Param Dropdown from ParamList**************************************/
+        function createParamListDropdown(){
+          for(var y = 0; y < paramList.length; y++){
+            createCustomParamDropdown(paramList[y]['parentColumn'], paramList[y]['childColumn']);
+          }
+        }
+
+        /*************************************************************************************************/
+
+				/*************************************CORS REQUEST START******************************************/
+				function createCORSRequest(method, url) {
+					var xhr = new XMLHttpRequest();
+					if ("withCredentials" in xhr) {
+						//alert("Browser Chrome");
+						// XHR for Chrome/Firefox/Opera/Safari.
+						xhr.open(method, url, true);
+					} else if (typeof XDomainRequest != "undefined") {
+						//alert("Browser Internet Explorer");
+						// XDomainRequest for IE.
+						xhr = new XDomainRequest();
+						xhr.open(method, url);
+					} else {
+						// CORS not supported.
+						xhr = null;
+					}
+					return xhr;
+				}
+				/*************************************CORS REQUEST END********************************************/
+</script>
+]]>
+</uiSnippet>
+
+</customScript>

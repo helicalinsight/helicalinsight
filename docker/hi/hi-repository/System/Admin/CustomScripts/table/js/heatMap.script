@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_heatMap</scriptId>
+    <scriptType>js</scriptType>
+	<name>Heat-Map</name>
+    <group>Table</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Heat Map for Cross Tab</description>
+    <icon>/images/scriptIcons/HeatMap.png</icon>
+	<parameters>
+		 <parameter value="false" name="switch" type="Boolean"/>
+		 <parameter value="rgb(255, 255, 255)" name="startColor" type="String"/>
+		 <parameter value="rgb(255, 0, 0)" name="endColor" type="String"/>
+	</parameters>
+    <snippet>
+		<![CDATA[
+
+			var id = hi_container.get("renderId");
+			
+			if(id== ""){
+			var tableClass = '#main'+id+' .table';
+		}
+		else{
+			var tableClass = '#main-'+id+' .table';
+		}
+		
+		var ftnObj = {};
+		
+		ftnObj['heatmap'+id]= function(){
+					
+				var startColor="${startColor}";
+				startColor = startColor.split('(')[1].split(')')[0];
+				var endColor="${endColor}";
+				endColor = endColor.split('(')[1].split(')')[0];
+				var endColorArr=endColor.split(',');
+				var startColorArr=startColor.split(',');
+				
+				function Interpolate(start, end, steps, count) {
+					var s = start,
+					e = end,
+					final = s + (((e - s) / steps) * count);
+					return Math.floor(final);
+				};
+
+				function Color(_r, _g, _b) {
+					var r, g, b;
+					var setColors = function(_r, _g, _b) {
+						r = _r;
+						g = _g;
+						b = _b;
+					};
+
+					setColors(_r, _g, _b);
+					this.getColors = function() {
+						var colors = {
+								r: r,
+								g: g,
+								b: b
+							};
+						return colors;
+					};
+				};
+		
+				function checker(table){
+					var valArr = [];
+					var cellData;
+					var val;
+					[].forEach.call(table.rows, function(row, i){
+						if (i===0)
+							return;
+						[].forEach.call(row.cells, function(cell, i){
+							cellData = cell.innerHTML.replace(/,/g , "");
+							val = parseInt(cellData);
+							if(!isNaN(val))
+							  valArr.push(val);
+						  
+							valArr.sort(function(a, b){return a-b});
+						});	
+					});
+					
+					[].forEach.call(table.rows, function(row, i){
+						if (i===0)
+							return;
+						[].forEach.call(row.cells, function(cell, i){
+							red = new Color(parseInt(endColorArr[0]), parseInt(endColorArr[1]), parseInt(endColorArr[2])),
+							white = new Color(parseInt(startColorArr[0]),parseInt(startColorArr[1]),parseInt(startColorArr[2])),
+							start = white,
+							end = red;
+							
+							cellData = cell.innerHTML.replace(/,/g , "");
+							val = parseInt(cellData);
+							var count = 2+valArr.indexOf(val);
+							
+							var startColors = start.getColors(),
+								endColors = end.getColors();
+							var r = Interpolate(startColors.r, endColors.r, valArr.length, count);
+							var g = Interpolate(startColors.g, endColors.g, valArr.length, count);
+							var b = Interpolate(startColors.b, endColors.b, valArr.length, count);
+
+							if(!isNaN(val))
+								cell.style.backgroundColor = "rgb(" + r + "," + g + "," + b + ")";
+									
+						});	
+					});
+				}; 
+		  
+				var table = document.querySelectorAll(tableClass);
+				[].forEach.call(table, checker);
+					
+				}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['heatmap'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['heatmap'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<uiSnippet>
+		<![CDATA[
+			<style>
+				.removePadding{
+					padding-right: 0px;
+					padding-left: 0px;
+					line-height:30px;
+				}
+				
+			</style>
+			
+			<div class="row">
+				<div class="col-sm-12 col-md-12 col-xs-12">
+				<div class="col-sm-2 col-md-2 col-xs-5 removePadding">
+					<b>Start Color : </b>
+				</div>
+				<div class="col-sm-1 col-md-2 col-xs-3 removePadding">
+					<div id="startColor"></div>
+				</div>
+				<div class="col-sm-2 col-md-2 col-xs-5 removePadding">	
+					<b> End Color : </b>
+				</div>
+				<div class="col-sm-1 col-md-2 col-xs-3 removePadding" >
+					<div id="endColor"></div>
+				</div>
+			</div>
+			
+			<script>
+		   
+				adhocScripts.setVariable("startColor",params.startColor);
+				adhocScripts.setVariable("endColor",params.endColor);
+				
+				var s={};
+				var endclr={};
+				
+				function spectrumFtn() {
+					
+						HDIUI.renderColorPicker({
+							id:"startColor",
+							color:adhocScripts.getVariable("startColor"),
+							change:function(color){		
+								let rgbColor = color['color'];
+								adhocScripts.setVariable("startColor","rgba("+rgbColor.r+","+rgbColor.g+","+rgbColor.b+","+rgbColor.a+")");
+							}
+						});
+				
+						HDIUI.renderColorPicker({
+									id:"endColor",
+									color:adhocScripts.getVariable("endColor"),
+									change:function(color){								
+									let rgbColor = color['color'];
+									adhocScripts.setVariable("endColor","rgba("+rgbColor.r+","+rgbColor.g+","+rgbColor.b+","+rgbColor.a+")");
+								}
+						});		
+				}
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							HDIUI.removeColorPicker({
+								id:"startColor"
+								});
+							HDIUI.removeColorPicker({
+								id:"endColor"
+								});
+							
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>	
+		]]>
+	
+	</uiSnippet>
+
+</customScript>

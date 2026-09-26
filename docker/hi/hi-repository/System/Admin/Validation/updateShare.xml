@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+    <type type="text"/>
+    <dir type="directory"/>
+    <file type="fileName"/>
+
+    <!--<jsFunction name="validate" language="groovy"><![CDATA[
+    import net.sf.json.JSONObject;
+    import net.sf.json.JSONArray;
+
+    public class Validate {
+        public JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+
+
+			if(requestJson.has("revoke")){
+				JSONArray userArray = requestJson.getJSONObject("revoke").optJSONArray("user")
+				JSONArray roleArray = requestJson.getJSONObject("revoke").optJSONArray("role")
+				JSONArray organizationArray = requestJson.getJSONObject("revoke").optJSONArray("organization")
+					if(userArray==null && roleArray==null && organizationArray==null){
+				responseJson.accumulate("revoke.user", "Please select a user/role/organization for revoke");
+				return responseJson;
+				}
+				checkArrayPermission(userArray,responseJson,"user. ");
+				checkArrayPermission(roleArray,responseJson,"role. ");
+				checkArrayPermission(organizationArray,responseJson,"organization. ");
+
+			}
+			 if(requestJson.has("share")){
+				JSONArray userArray = requestJson.getJSONObject("share").optJSONArray("user")
+				JSONArray roleArray = requestJson.getJSONObject("share").optJSONArray("role")
+				JSONArray organizationArray = requestJson.getJSONObject("share").optJSONArray("organization")
+				
+				if(userArray==null && roleArray==null && organizationArray==null){
+				responseJson.accumulate("revoke.user", "Please select a user/role/organization for  share");
+				return responseJson;
+				}
+				checkArrayPermission(userArray,responseJson,"user. ");
+				checkArrayPermission(roleArray,responseJson,"role. ");
+				checkArrayPermission(organizationArray,responseJson,"organization.");
+				
+			}
+			if((!requestJson.has("share"))&&(!requestJson.has("revoke"))){
+				responseJson.accumulate("shareOrRevoke", "Please select the checkbox to share or revoke");
+
+            }
+            return responseJson;
+        }
+		
+		
+		def checkArrayPermission(array,responseJson,what){
+				array.each{
+                                if(it.permission==""){
+                                responseJson.accumulate("revoke.permission", "Please select a Permission for "+what);
+                                }
+                            }
+		}
+		
+		
+    }
+    ]]>
+    </jsFunction>-->
+
+
+</formData>

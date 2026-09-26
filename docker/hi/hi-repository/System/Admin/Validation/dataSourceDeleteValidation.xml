@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<dataSourceProvider  type="text" />
+	<id type="text" required="true"/>
+	<type type="text" required="true"/>
+</formData>

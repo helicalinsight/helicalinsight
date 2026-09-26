@@ -1,0 +1,1012 @@
+{
+	"type": "accordian",
+	"content": [
+		{
+			"name": "Appearence",
+			"type": "settingsGroup",
+			"open": true,
+			"content": [
+				{
+					"label": "File name",
+					"type": "textBox",
+					"value": "file",
+					"placeHolder": "Enter file name",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"file"
+					],
+					"bootstrap": [
+						8
+					],
+					"showContentTooltip": true,
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Select",
+					"type": "button",
+					"className": "imageSelectButton",
+					"showName": false,
+					"bootstrap": [
+						4
+					],
+					"callBack": "openFileBrowserToUpload"
+				},
+				{
+					"name": "X",
+					"title": "X",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"offset",
+						"x"
+					],
+					"desc": "offsetX",
+					"bounds": "free",
+					"event": "onBlur1"
+				},
+				{
+					"name": "Y",
+					"title": "Y",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"offset",
+						"y"
+					],
+					"desc": "offsetY",
+					"bounds": "free",
+					"event": "onBlur1"
+				},
+				{
+					"type": "seperator"
+				},
+				{
+					"name": "Height",
+					"title": "Height",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"size",
+						"height"
+					],
+					"desc": "height",
+					"bounds": "pageHeight",
+					"event": "onBlur1"
+				},
+				{
+					"name": "Width",
+					"title": "Width",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"size",
+						"width"
+					],
+					"desc": "width",
+					"bounds": "pageWidth",
+					"event": "onBlur1"
+				},
+				{
+					"name": "Alignment",
+					"type": "title"
+				},
+				{
+					"name": "Vertical",
+					"type": "iconsButtonGroup",
+					"controlled": true,
+					"bootstrap": "[6]",
+					"content": [
+						{
+							"name": "Top Align",
+							"title": "Top Align",
+							"iconClass": "topAlign",
+							"value": "Top",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"verticalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						},
+						{
+							"name": "Center Align",
+							"title": "Center Align",
+							"iconClass": "centerAlign",
+							"value": "Middle",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"verticalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						},
+						{
+							"name": "Bottom Align",
+							"title": "Bottom Align",
+							"value": "Bottom",
+							"iconClass": "bottomAlign",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"verticalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						}
+					]
+				},
+				{
+					"name": "Horizontal",
+					"type": "iconsButtonGroup",
+					"bootstrap": "[6]",
+					"controlled": true,
+					"content": [
+						{
+							"name": "left Align",
+							"title": "Left Align",
+							"iconClass": "leftAlignIcon",
+							"value": "Left",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"horizontalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						},
+						{
+							"name": "Center Align",
+							"title": "Center Align",
+							"iconClass": "centerAlignIcon",
+							"value": "Center",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"horizontalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						},
+						{
+							"name": "Right Align",
+							"title": "Right Align",
+							"value": "Right",
+							"iconClass": "rightAlignIcon",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"horizontalImageAlign"
+							],
+							"bootstrap": [
+								6,
+								6,
+								6,
+								6
+							],
+							"callBack": "handleShapePropertyChanges",
+							"fromStatic": false,
+							"type": "iconButton",
+							"className": "hcrIconButton"
+						}
+					]
+				},
+				{
+					"type": "title",
+					"name": "Color"
+				},
+				{
+					"name": "Mode",
+					"type": "DropDown",
+					"value": "mode",
+					"fromStatic": true,
+					"options": [],
+					"optionsStaticPath": [
+						"designerProperties",
+						"mode"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"mode"
+					],
+					"bootstrap": [
+						4
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Fore Color",
+					"type": "colorPicker",
+					"value": "imageForecolor",
+					"fromStatic": true,
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"imageForecolor"
+					],
+					"bootstrap": [
+						4
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Back Color",
+					"type": "colorPicker",
+					"value": "imageBackgroundcolor",
+					"fromStatic": true,
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"imageBackcolor"
+					],
+					"bootstrap": [
+						4
+					],
+					"callBack": "handleShapePropertyChanges"
+				}
+			]
+		},
+		{
+			"name": "Padding",
+			"tilte": "Padding",
+			"type": "settingsGroup",
+			"bootstrap": [
+				12,
+				12,
+				12,
+				12
+			],
+			"content": [
+				{
+					"name": "Top",
+					"title": "Top",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"padding",
+						"topPadding"
+					]
+				},
+				{
+					"name": "Left",
+					"title": "Left",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"padding",
+						"leftPadding"
+					]
+				},
+				{
+					"name": "Bottom",
+					"title": "Bottom",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"padding",
+						"bottomPadding"
+					]
+				},
+				{
+					"name": "Right",
+					"title": "Right",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						6,
+						6
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"padding",
+						"rightPadding"
+					]
+				}
+			]
+		},
+		{
+			"name": "Borders",
+			"type": "settingsGroup",
+			"value": "borders",
+			"open": false,
+			"bootstrap": [
+				12,
+				12,
+				12,
+				12
+			],
+			"content": [
+				{
+					"label": "ALL",
+					"display": false,
+					"type": "checkBox",
+					"value": "isCommonBorder",
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"isCommonBorder"
+					],
+					"bootstrap": [
+						12
+					],
+					"desc": "conditionalRender",
+					"renderingValues": [
+						true,
+						false
+					],
+					"renderingKeys": {
+						"true": "contentTrue",
+						"false": "contentFalse"
+					},
+					"contentTrue": [
+						{
+							"name": "Stroke",
+							"title": "Top",
+							"fromStatic": false,
+							"bootstrap": [
+								12,
+								12,
+								4,
+								4
+							],
+							"type": "numericDropdown",
+							"quotes": false,
+							"callBack": "handleShapePropertyChanges",
+							"path": [
+								"shapeIds",
+								"$activeShape",
+								"properties",
+								"border",
+								"line",
+								"topLine",
+								"lineWidth"
+							]
+						}
+					],
+					"contentFalse": [
+						{
+							"name": "content true",
+							"type": "title",
+							"bootstrap": [
+								12,
+								12,
+								12,
+								12
+							]
+						}
+					]
+				},
+				{
+					"name": "Top",
+					"type": "title",
+					"bootstrap": [
+						12,
+						12,
+						12,
+						12
+					]
+				},
+				{
+					"name": "Stroke",
+					"title": "Top",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"topLine",
+						"lineWidth"
+					]
+				},
+				{
+					"name": "Style",
+					"title": "Style",
+					"type": "DropDown",
+					"value": "lineStyle",
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"options": [],
+					"fromStatic": true,
+					"optionsStaticPath": [
+						"designerProperties",
+						"lineStyle"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"topLine",
+						"lineStyle"
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Color",
+					"title": "color",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "colorPicker",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"topLine",
+						"lineColor"
+					]
+				},
+				{
+					"type": "seperator"
+				},
+				{
+					"name": "Left",
+					"type": "title",
+					"bootstrap": [
+						12,
+						12,
+						12,
+						12
+					]
+				},
+				{
+					"name": "Stroke",
+					"title": "Stroke",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"leftLine",
+						"lineWidth"
+					]
+				},
+				{
+					"name": "Style",
+					"title": "Style",
+					"type": "DropDown",
+					"value": "lineStyle",
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"options": [],
+					"fromStatic": true,
+					"optionsStaticPath": [
+						"designerProperties",
+						"lineStyle"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"leftLine",
+						"lineStyle"
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Color",
+					"title": "Color",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "colorPicker",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"leftLine",
+						"lineColor"
+					]
+				},
+				{
+					"type": "seperator"
+				},
+				{
+					"name": "Bottom",
+					"type": "title",
+					"bootstrap": [
+						12,
+						12,
+						12,
+						12
+					]
+				},
+				{
+					"name": "Stroke",
+					"title": "Stroke",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"bottomLine",
+						"lineWidth"
+					]
+				},
+				{
+					"name": "Style",
+					"title": "Style",
+					"type": "DropDown",
+					"value": "lineStyle",
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"options": [],
+					"fromStatic": true,
+					"optionsStaticPath": [
+						"designerProperties",
+						"lineStyle"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"bottomLine",
+						"lineStyle"
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Color",
+					"title": "Color",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "colorPicker",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"bottomLine",
+						"lineColor"
+					]
+				},
+				{
+					"type": "seperator"
+				},
+				{
+					"name": "Right",
+					"type": "title",
+					"bootstrap": [
+						12,
+						12,
+						12,
+						12
+					]
+				},
+				{
+					"name": "Stroke",
+					"title": "Stroke",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "numericDropdown",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"rightLine",
+						"lineWidth"
+					]
+				},
+				{
+					"name": "Style",
+					"title": "Style",
+					"type": "DropDown",
+					"value": "lineStyle",
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"options": [],
+					"fromStatic": true,
+					"optionsStaticPath": [
+						"designerProperties",
+						"lineStyle"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"rightLine",
+						"lineStyle"
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "Color",
+					"title": "Color",
+					"fromStatic": false,
+					"bootstrap": [
+						12,
+						12,
+						4,
+						4
+					],
+					"type": "colorPicker",
+					"quotes": false,
+					"callBack": "handleShapePropertyChanges",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"border",
+						"line",
+						"rightLine",
+						"lineColor"
+					]
+				}
+			]
+		},
+		{
+			"name": "Image",
+			"type": "settingsGroup",
+			"open": true,
+			"content": [
+				{
+					"name": "Fill",
+					"type": "DropDown",
+					"value": "fill",
+					"fromStatic": true,
+					"options": [],
+					"optionsStaticPath": [
+						"designerProperties",
+						"fill"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"fill"
+					],
+					"info": [
+						"tooltip_fillImage"
+					],
+					"bootstrap": [
+						6
+					],
+					"callBack": "handleStateChange"
+				},
+				{
+					"name": "Scale Image",
+					"type": "DropDown",
+					"value": "scaleImage",
+					"fromStatic": true,
+					"options": [],
+					"optionsStaticPath": [
+						"designerProperties",
+						"scaleImage"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"scaleImage"
+					],
+					"info": [
+						"tooltip_scaleImage"
+					],
+					"bootstrap": [
+						6
+					],
+					"callBack": "handleShapePropertyChanges"
+				},
+				{
+					"name": "On Error Type",
+					"type": "DropDown",
+					"value": "onErrorType",
+					"fromStatic": true,
+					"options": [],
+					"optionsStaticPath": [
+						"designerProperties",
+						"onErrorType"
+					],
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"onErrorType"
+					],
+					"info": [
+						"tooltip_onErrorType"
+					],
+					"bootstrap": [
+						6
+					],
+					"callBack": "handleStateChange"
+				},
+				{
+					"name": "Style Name",
+					"type": "DropDown",
+					"value": "styleNameReference",
+					"placeHolder": "Enter style name",
+					"fromState": true,
+					"fromStatic": false,
+					"addNone": true,
+					"extractValues": true,
+					"keyName": "name",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"styleNameReference"
+					],
+					"bootstrap": [
+						6
+					],
+					"optionsStatePath": [
+						"designerStyles"
+					],
+					"desc": "addStyleRef",
+					"info": [
+						"tooltip_styleNameReference"
+					],
+					"callBack": "handleStateChange"
+				},
+				{
+					"label": "Is Lazy",
+					"type": "checkBox",
+					"value": "printRepeatedValues",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"isLazy"
+					],
+					"bootstrap": [
+						12
+					],
+					"info": [
+						"tooltip_isLazy"
+					],
+					"title": true,
+					"className": "titleName",
+					"callBack": "handleStateChange"
+				},
+				{
+					"label": "Is Using Cache",
+					"type": "checkBox",
+					"value": "printRepeatedValues",
+					"path": [
+						"shapeIds",
+						"$activeShape",
+						"properties",
+						"isUsingCache"
+					],
+					"bootstrap": [
+						12
+					],
+					"info": [
+						"tooltip_isUsingCache"
+					],
+					"title": true,
+					"className": "titleName",
+					"callBack": "handleStateChange"
+				}
+			]
+		}
+	]
+}

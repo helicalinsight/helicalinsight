@@ -62,6 +62,7 @@ ENV PATH=${JAVA_HOME}/bin:${PATH}
 COPY --from=builder /myjre ${JAVA_HOME}
 COPY --from=builder /opt/tomcat11 ${CATALINA_HOME}
 COPY docker/entrypoint.sh /entrypoint.sh
+COPY ["hi-repository", "/usr/local/Helical Insight/hi/hi-repository"]
 
 RUN chmod +x /entrypoint.sh \
     && rm -rf ${CATALINA_HOME}/webapps/examples \

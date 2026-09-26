@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData mandatory="true">
+	
+	 <!--<jsFunction name="validate" language="groovy"><![CDATA[
+	  
+        import net.sf.json.JSONObject
+	 def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+
+            if (!requestJson.has("queryType")) {
+                responseJson.put("executionType", "The required 'queryType' in the formData is missing")
+                return responseJson;
+            }
+            if (!requestJson.has("query")) {
+                responseJson.put("data", "The required 'query'  in the formData is missing")
+                return responseJson;
+            }
+			if (!requestJson.has("type")) {
+                responseJson.put("data", "The required 'type'  in the formData is missing")
+                return responseJson;
+            }
+			String type = requestJson.getString("type");
+			String query = requestJson.getString("query");
+			String queryType =requestJson.getString("queryType");
+
+			if(!(queryType.equalsIgnoreCase("sql") || queryType.equalsIgnoreCase("logical") || queryType.equalsIgnoreCase("physical"))){
+				 responseJson.put("data", "The Provided  "+queryType+ " is not a valid for value for 'queryType'.");
+                return responseJson;
+			}
+			
+			
+  
+            return responseJson;
+        }
+		   ]]>
+    </jsFunction>-->
+</formData>

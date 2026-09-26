@@ -1,0 +1,60 @@
+{
+	"image": {
+		"X": 0,
+		"Y": 0,
+		"dir" : "",
+		"file" : "",
+		"repeat": false,
+		"imageWidth": 10,
+		"imageHeight": 10,
+		"styleNameReference": "",
+		"mode": "Transparent",
+		"imageBackcolor": "#000000",
+		"imageForecolor": "#ffffff",
+		"printRepeatedValues": true,
+		"removeLineWhenBlank": false,
+		"key": "",
+		"rotationType": "None",
+		"evaluationTime": "Now",
+		"evaluationGroupName": "",
+		"isLazy": false,
+		"isUsingCache": false,
+		"fill": "Solid",
+		"scaleImage": "Clip",
+		"onErrorType": "Icon",
+		"horizontalImageAlign": "Center",
+		"verticalImageAlign": "Top",
+		"positionType": "FixRelativeTop",
+		"stretchType": "NoStretch",
+		"printInFirstWholeBand": false,
+		"printWhenExpression": "",
+		"hyperlinkTooltipExpression": "",
+		"printWhenDetailOverflows": false,
+		"hyperlinkParameterName": "",
+		"hyperlinkParameterExpression": "",
+		"border": {
+			"line": {
+				"leftLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"rightLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"bottomLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"topLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_backgroundCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Background</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Chart Background</description>
+	<icon>/images/scriptIcons/BackgroundColor.png</icon>
+    <snippet>
+		<![CDATA[
+			var id = hi_container.get("renderId");
+			var containerId = "#main";
+
+			if(id != "")
+				containerId="#main-"+id;
+			
+			var ftnObj = {};
+			
+			ftnObj['backgroundCustomization'+id] = function(){
+				$(containerId).css({'background': '${background}'});
+			};
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution",ftnObj['backgroundCustomization'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['backgroundCustomization'+id]);
+			}
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="#00abea" name="background" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div id="backgroundCustomization" class="form-horizontal">
+				<div class="form-group background_label">
+					<label class="col-sm-3 col-md-3 col-xs-6 control-label" for="background_input_color">Select</label>
+					<div class="col-sm-3 col-md-3 col-xs-6 background_input">
+						<div id="background_input_color"></div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+			/*	var script2 = document.createElement("script");
+
+			if(window.DashboardGlobals)
+			 script2.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+			else
+			 script2.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+			script2.async = false;
+			document.getElementsByTagName("head")[0].appendChild(script2);
+
+			script2.onload = function() {
+			 spectrumFtn();
+			 script2Loaded = true;
+			}
+				
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+
+				 link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";}
+				else
+				{
+				 
+				 link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);	*/
+				
+				//Set global variable from parameter
+				adhocScripts.setVariable("background",params.background);
+				
+				function setBackground(event){
+				//	adhocScripts.setVariable("background",event.value);
+				}
+
+			//	$('#background_input_color').val(adhocScripts.getVariable("background"));
+				
+				  function spectrumFtn()
+			{
+				
+					HDIUI.renderColorPicker({
+					id:"background_input_color",
+					color:adhocScripts.getVariable("background"),
+					change:function(color){
+						var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+						adhocScripts.setVariable("background",rgbaCode);					
+					}
+				});		
+				
+			
+		/*	  $("#background_input_color").spectrum({
+				//		//		showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+							
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+						
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+						
+						},
+						change: function(color) {
+				        	adhocScripts.setVariable("background",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});			*/
+                 }	
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							// $("#background_input_color").spectrum("hide");
+							HDIUI.removeColorPicker({
+								id:"background_input_color"
+								});
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

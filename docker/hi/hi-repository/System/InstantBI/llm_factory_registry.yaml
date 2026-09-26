@@ -1,0 +1,3 @@
+# Legacy registry — unused. Providers are declared in llm_config.yaml
+# (package + model + parameters) and loaded via helicalbi.core.llm_loader.
+factories: {}

@@ -1,0 +1,10 @@
+{
+    "id":  "setting",
+    "file":  "setting.xml",
+    "title":  "Setting",
+    "description":  "Primary application settings including imports, paths, and feature flags.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/setting.ui.layout",
+    "fallbackEditor":  "xml"
+}

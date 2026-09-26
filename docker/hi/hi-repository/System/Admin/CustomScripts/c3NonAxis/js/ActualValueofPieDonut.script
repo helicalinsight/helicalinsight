@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3NonAxis_js_ActualValueofPieDonut</scriptId>
+    <scriptType>js</scriptType>
+    <name>Actual Value</name>
+    <group>C3NonAxis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Displays the actual value of Pie and Donut chart</description>
+    <icon>/images/scriptIcons/Actual_value.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			
+			
+			ftnObj['setactualValue'+id]= function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				
+				if(${switch}==true){
+				viz_Options = actualValue(viz_Options);
+				}
+				c.set("viz_Options",viz_Options);
+			}
+			
+			ftnObj['extendactualValue'+id]= function(preExecution, c){
+				
+				var viz_Options = c.get("viz_Options");
+				
+				if(${switch}==true){
+				  viz_Options = actualValue(viz_Options);
+				}
+				
+				
+			}
+			
+			
+			
+			
+			
+			/*
+			function setactualValue(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = actualValue(viz_Options);
+				c.set("viz_Options",viz_Options);
+			}
+			function extendactualValue(preExecution, c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = actualValue(viz_Options);
+			}
+			*/
+			function actualValue(viz_Options){
+					if(viz_Options.chartOptions.pie){
+						  viz_Options.chartOptions.pie.label = {
+									format: function (value, ratio, id) {
+										return d3.format('.4s')(value);
+									}
+						 }
+					}
+					else{
+						viz_Options.chartOptions.pie = {
+							 label: {
+									format: function (value, ratio, id) {
+										return d3.format('.4s')(value);
+									}
+								}	
+						}
+						
+					} 
+					
+					if(viz_Options.chartOptions.donut){
+						  viz_Options.chartOptions.donut.label = {
+									format: function (value, ratio, id) {
+										return d3.format('.4s')(value);
+									}
+						 }
+					}
+					else{
+						viz_Options.chartOptions.donut = {
+							 label: {
+									format: function (value, ratio, id) {
+										return d3.format('.4s')(value);
+									}
+								}	
+						}
+						
+					} 
+						viz_Options.chartOptions["tooltip"] = {
+						 format: {
+    
+            value: function (value, ratio, id) {
+                var format = id === 'data1' ? d3.format('.4s') : d3.format('.4s');
+                return format(value);
+            }}
+					}
+						 return viz_Options;
+		   }
+		   if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setactualValue'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendactualValue'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="true" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+				<div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle" align="center">
+							<div class="col-sm-3">
+								<label><b>Display Actual Value</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Disable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Enable</label>
+							</div>
+						</div>
+					</div>
+				</div>
+			<script>
+				adhocScripts.resetAll();
+				//Set global variable from parameter
+				adhocScripts.setVariable("switch",params.switch);
+				
+				function switchToggle(event){
+					
+					if(adhocScripts.getVariable('switch') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch", 'true');
+					}
+					else{
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} else {
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

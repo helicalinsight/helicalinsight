@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+  <EmailSettings>
+    <!--Body type="htmlContent"/-->
+    <!--Formats required="true" type="simpleArray" arrayType="text"/-->
+    <!--Recipients type="simpleArray" arrayType="email" required="true"/-->
+    <Subject required="true"/>
+    <Zip type="boolean"/>
+  </EmailSettings>
+  <ScheduleOptions>
+    <DaysofWeek arayType="text" type="simpleArray"/>
+    <EndAfterExecutions maxLength="2" type="number"/>
+    <EndDate length="10" type="date.yyyy-mm-dd"/>
+    <Frequency maxLength="10" type="text"/>
+    <RepeatBy type="text"/>
+    <RepeatsEvery maxLength="2" type="number"/>
+    <ScheduledTime type="time24"/>
+    <StartDate type="dateFormat"/>
+    <endsRadio type="text"/>
+    <timeZone type="timeZone"/>
+  </ScheduleOptions>
+  <command type="text"/>
+  <isActive type="boolean"/>
+  <location required="true" type="directory"/>
+  <reportDirectory type="directory"/>
+  <reportFile type="fileName"/>
+  <reportName maxLength="60" required="true" type="fileName"/>
+   <!--<jsFunction name="validate" language="groovy"><![CDATA[
+        import net.sf.json.JSONObject;
+        import net.sf.json.JSONArray;
+        import org.apache.commons.codec.binary.Base64;
+
+        public class Validate {
+
+            def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+				def schOp=requestJson.ScheduleOptions
+				if(schOp.Frequency!="Monthly" && schOp.Frequency!="Daily" && schOp.Frequency!="Yearly" && schOp.RepeatsEvery>2 && schOp.DaysofWeek.size()>0){
+					responseJson.accumulate("RepeatsEvery", "The combination of repeat and Repeat On is not possible.");
+				}
+			
+			
+              
+                return responseJson;
+            }
+
+
+            
+        }
+        ]]>
+    </jsFunction>-->
+</formData>

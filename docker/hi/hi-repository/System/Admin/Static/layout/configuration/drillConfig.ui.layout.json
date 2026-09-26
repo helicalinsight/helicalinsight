@@ -1,0 +1,149 @@
+{
+    "id":  "drillConfig",
+    "title":  "Drill Configuration",
+    "description":  "Drill middleware enablement and connection settings.",
+    "file":  "drillConfig.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "General",
+                         "key":  "general",
+                         "fields":  [
+                                        {
+                                            "name":  "enabled",
+                                            "path":  "drill/enabled",
+                                            "label":  "Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Enable Drill middleware integration."
+                                        },
+                                        {
+                                            "name":  "storageImpl",
+                                            "path":  "drill/storageImpl",
+                                            "label":  "Storage Implementation",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Optional storage implementation class."
+                                        },
+                                        {
+                                            "name":  "url",
+                                            "path":  "drill/url",
+                                            "label":  "URL Template",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "Drill URL template, e.g. {{https}}://{{host}}:{{port}}"
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "URL Config",
+                         "key":  "urlConfig",
+                         "description":  "Drill host connection details",
+                         "fields":  [
+                                        {
+                                            "name":  "host",
+                                            "path":  "drill/urlConfig/host",
+                                            "label":  "Host",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Drill host name or IP."
+                                        },
+                                        {
+                                            "name":  "port",
+                                            "path":  "drill/urlConfig/port",
+                                            "label":  "Port",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "HTTP API port."
+                                        },
+                                        {
+                                            "name":  "dbPort",
+                                            "path":  "drill/urlConfig/dbPort",
+                                            "label":  "DB Port",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "JDBC / DB port."
+                                        },
+                                        {
+                                            "name":  "httpsState",
+                                            "path":  "drill/urlConfig/httpsState",
+                                            "label":  "HTTPS Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Use HTTPS for Drill API."
+                                        },
+                                        {
+                                            "name":  "username",
+                                            "path":  "drill/urlConfig/username",
+                                            "label":  "Username",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Drill username."
+                                        },
+                                        {
+                                            "name":  "password",
+                                            "path":  "drill/urlConfig/password",
+                                            "label":  "Password",
+                                            "type":  "password",
+                                            "span":  12,
+                                            "description":  "Drill password."
+                                        },
+                                        {
+                                            "name":  "distributedMode",
+                                            "path":  "drill/urlConfig/distributedMode",
+                                            "label":  "Distributed Mode",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Connect via ZooKeeper cluster mode."
+                                        },
+                                        {
+                                            "name":  "securityEnabled",
+                                            "path":  "drill/urlConfig/securityEnabled",
+                                            "label":  "Security Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Enable Drill authentication."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "SFTP Storage",
+                         "key":  "sftp",
+                         "fields":  [
+                                        {
+                                            "name":  "sftpHost",
+                                            "path":  "drill/fileSystemConfiguration/sftp/host",
+                                            "label":  "SFTP Host",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "SFTP host when Drill is on another server."
+                                        },
+                                        {
+                                            "name":  "sftpPort",
+                                            "path":  "drill/fileSystemConfiguration/sftp/port",
+                                            "label":  "SFTP Port",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "SFTP port."
+                                        },
+                                        {
+                                            "name":  "sftpUsername",
+                                            "path":  "drill/fileSystemConfiguration/sftp/username",
+                                            "label":  "SFTP Username",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "SFTP username."
+                                        },
+                                        {
+                                            "name":  "sftpPassword",
+                                            "path":  "drill/fileSystemConfiguration/sftp/password",
+                                            "label":  "SFTP Password",
+                                            "type":  "password",
+                                            "span":  12,
+                                            "description":  "SFTP password."
+                                        }
+                                    ]
+                     }
+                 ]
+}

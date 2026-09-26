@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>timeseries_js_setChartColor</scriptId>
+    <scriptType>js</scriptType>
+    <name>Set Chart Color</name>
+    <group>D3Timeseries</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Set chart Color</description>
+    <icon>/images/scriptIcons/SetChartColor.png</icon>
+    <snippet>
+		<![CDATA[
+			var id = hi_container.get("renderId");
+			
+				if(id== ""){
+					var chartId = '#chart'+id;
+					var containerId="#main"+id;
+				}
+				else{
+					var chartId = '#chart-'+id;
+					var containerId="#main-"+id;
+				}
+				
+			var ftnObj = {};
+			
+			ftnObj['setChartColor'+id]= function(){
+				
+				 [].slice.call(window.parent.document.querySelectorAll(chartId+" .charts-list li a[data-chart-type].active")).filter(function(val) {
+					if($(val).attr("data-chart-type") === "c3") {
+						Hdi.c3chart.data.colors(${colorObj});
+					} else if($(val).attr("data-chart-type") === "d3") {
+						Hdi.hiChart.dataColor(${colorObj});
+					}
+				})
+				
+			}
+		
+		
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['setChartColor'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['setChartColor'+id]);
+			}
+			
+			/*function setChartColor() {
+				[].slice.call(window.parent.document.querySelectorAll(".charts-list li a[data-chart-type].active")).filter(function(val) {
+					if($(val).attr("data-chart-type") === "c3") {
+						Hdi.c3chart.data.colors(${colorObj});
+					} else if($(val).attr("data-chart-type") === "d3") {
+						Hdi.hiChart.dataColor(${colorObj});
+					}
+				})
+			}*/
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="{}" name="colorObj" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+	
+			</style>
+			<div class="container-fluid">
+				<div class="form-horizontal">
+					<div class="form-group" id="colList"></div>
+				</div>
+			</div>
+			<script>
+
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("colorObj", params.colorObj);
+			
+			/*	var script = document.createElement("script");
+
+				if(window.DashboardGlobals)
+				
+					script.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				else
+					script.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+				script.async = false;
+				document.getElementsByTagName("head")[0].appendChild(script);
+
+				script.onload = function() {
+					spectrumFtn();
+					script2Loaded = true;
+				}
+				
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				else {
+					link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css";
+				document.getElementsByTagName("head")[0].appendChild(link);		*/
+				
+				var columnNames=[],values=[];
+    
+				/*for(var j=1;j<=Object.keys(window.frames[0].__hi_result.metadata[0]).length;j++)
+				{
+					if(window.frames[0].__hi_result.metadata[0][j].type == 'numeric'){
+						columnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+					}
+				}*/
+				
+				var metadata = window.frames[0].__hi_result.metadata[0];
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+
+				column.forEach(function(col, i){
+					if (col.aggregate && !(col.hidden === true)) {
+						values.push(metadata[(i + 1).toString()].name);
+					}
+				});
+				
+				columnNames = values;
+				
+				var currentColorObj;
+				if(window.frames[0].Hdi.hiChart) {
+					currentColorObj = adhocScripts.getVariable("colorObj");
+				} else {
+					currentColorObj = window.frames[0].Hdi.c3chart.data.colors();
+				}
+				
+				var newColorObj = {};
+				
+				for(var i = 0; i<columnNames.length; i++){
+					var colName = document.createElement('label');
+					colName.className = 'col-sm-3 col-md-3 col-xs-12 control-label colName '+columnNames[i].replace(/ /g,"_");
+					colName.htmlFor = columnNames[i].replace(/ /g,"_");
+					colName.innerHTML = columnNames[i];
+
+					var inputWrap = document.createElement('div');
+					inputWrap.className = "col-sm-2 col-md-2 col-xs-12";
+
+					var colColor = document.createElement('div');
+					// colColor.type = 'text';
+					// colColor.className = 'form-control colColor '+columnNames[i].replace(/ /g,"_")+'_color';
+					colColor.id = columnNames[i].replace(/ /g,"_");
+					// colColor.value = currentColorObj[columnNames[i]];
+					
+					inputWrap.appendChild(colColor);
+					
+					$('#colList').append(colName);
+					$('#colList').append(inputWrap);
+				}
+				
+					function spectrumFtn() {
+					for(var x=0; x<columnNames.length; x++){
+						let columnName = columnNames[x];
+						HDIUI.renderColorPicker({
+							id:columnName.replace(/ /g,"_"),
+							color:currentColorObj[columnName],
+							change:function(color){	
+								 var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								
+								newColorObj[columnName] = rgbaCode;
+								//newColorObj[columnName] = color['hexCode'];
+							}
+						});
+					}
+				}
+
+				/* function spectrumFtn() {					
+					for(var x=0; x<$('.colName').length; x++){
+					$(".colColor").spectrum({
+						showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+							
+						},
+						show: function () {
+						
+						},
+						beforeShow: function (color) {
+							
+						},
+						hide: function () {
+						
+						},
+						change: function(color) {
+						
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});
+					
+					}
+				} 	*/
+				
+				$(".modal-footer .btn-primary").on('click', function() {
+					adhocScripts.setVariable("colorObj", JSON.stringify(newColorObj));
+				});
+
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							for(var x=0; x<columnNames.length; x++){
+							HDIUI.removeColorPicker({
+								id:columnNames[x].replace(/ /g,"_")
+								});
+								}
+							});
+						
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

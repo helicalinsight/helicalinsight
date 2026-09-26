@@ -1,0 +1,10 @@
+{
+    "id":  "drillConfig",
+    "file":  "drillConfig.xml",
+    "title":  "Drill Config",
+    "description":  "Drill-down middleware configuration for report and dashboard navigation.",
+    "category":  "ignore",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/drillConfig.ui.layout",
+    "fallbackEditor":  "xml"
+}

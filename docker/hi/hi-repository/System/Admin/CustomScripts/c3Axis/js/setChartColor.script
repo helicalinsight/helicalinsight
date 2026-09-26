@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_setChartColor</scriptId>
+    <scriptType>js</scriptType>
+    <name>Set Chart Color</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Set chart Color</description>
+    <icon>/images/scriptIcons/SetChartColor.png</icon>
+    <snippet>
+		<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['setChartColor'+id] = function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+				c.set("viz_Options",viz_Options);
+			 };
+					
+			ftnObj['extendsetChartColor'+id] = function(preExecution, c){
+					
+					var viz_Options = c.get("viz_Options");
+					viz_Options = chartColor(viz_Options);
+				
+			};
+			
+			function chartColor(viz_Options){
+				
+				if(viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data.colors = ${colorObj};
+				}
+				else{
+					viz_Options.chartOptions["data"] = {
+						colors: ${colorObj}
+					}	
+				}
+				return viz_Options;
+				
+			}
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setChartColor'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendsetChartColor'+id]);
+			}
+
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="{}" name="colorObj" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div class="container-fluid">
+				<div class="form-horizontal">
+					<div class="form-group" id="colList"></div>
+				</div>
+			</div>
+			<script>
+
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("colorObj", params.colorObj);
+			
+				
+				var columnNames=[];
+    
+				
+				var metadata = window.frames[0].__hi_result.metadata[0];
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+				var values = [];
+				
+				
+				column.forEach(function(col, i){
+						
+					if ((col.aggregate && !(col.hidden === true))|| (col.custom === true && !(col.hidden === true))) {
+						
+						
+						values.push(metadata[(i + 1).toString()].name);
+					}
+				});
+				
+				columnNames = values;
+				
+				var currentColorObj;
+				if(window.frames[0].Hdi.hiChart) {
+					currentColorObj = adhocScripts.getVariable("colorObj");
+				} else {
+					currentColorObj = window.frames[0].Hdi.c3chart.data.colors();
+				}
+			
+				var newColorObj = {};
+				
+				for(var i = 0; i<columnNames.length; i++){
+					var colName = document.createElement('label');
+					colName.className = 'col-sm-3 col-md-3 col-xs-12 control-label colName '+columnNames[i].replace(/ /g,"_");
+					colName.htmlFor = columnNames[i].replace(/ /g,"_");
+					colName.innerHTML = columnNames[i];
+
+					var inputWrap = document.createElement('div');
+					inputWrap.className = "col-sm-2 col-md-2 col-xs-12";
+
+					var colColor = document.createElement('div');
+					colColor.id = columnNames[i].replace(/ /g,"_");
+					
+					inputWrap.appendChild(colColor);
+					
+					$('#colList').append(colName);
+					$('#colList').append(inputWrap);
+				}
+
+				function spectrumFtn() {
+					for(var x=0; x<columnNames.length; x++){
+						let columnName = columnNames[x];
+						HDIUI.renderColorPicker({
+							id:columnName.replace(/ /g,"_"),
+							color:currentColorObj[columnName],
+							change:function(color){								
+								newColorObj[columnName] = 'rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								
+								//color["color"]["r"] +","+ color["color"]["g"] +","+ color["color"]["b"] +","+ color["color"]["a"];
+								//'rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';	
+								//console.log(newColorObj[columnName]);
+								//console.log(color["color"]["r"] +","+ color["color"]["g"] +","+ color["color"]["b"] +","+ color["color"]["a"]);
+								/*$(color).each(function(key,value){
+									//console.log(value["color"]);
+									var values=value["color"];
+									$(values).each(function(key,value2){
+										
+									});
+									
+									
+								});*/
+								
+							}
+						});
+					}
+				}
+				
+				$(".modal-footer .btn-primary").on('click', function() {
+					adhocScripts.setVariable("colorObj", JSON.stringify(newColorObj));
+					
+				});
+
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							for(var x=0; x<columnNames.length; x++){
+								HDIUI.removeColorPicker({
+									id:columnNames[x].replace(/ /g,"_")
+								});
+							}
+						});
+						
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

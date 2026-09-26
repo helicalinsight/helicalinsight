@@ -1,0 +1,327 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_addY2Axis</scriptId>
+    <scriptType>js</scriptType>
+    <name>Add Y2 Axis</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Add Y2 axis for c3 axis charts</description>
+    <icon>/images/scriptIcons/Dual_Axis.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			var ftnObj = {};
+			
+			
+				
+			
+				ftnObj['setaddY2Axis'+id] = function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				
+				var fixedRanged_value= ${switch};
+				
+				if( fixedRanged_value==true){
+					viz_Options = addY2Axis(viz_Options);
+					
+					
+				}else{
+					
+					viz_Options = addY2Axis_AutoScale(viz_Options);
+					
+
+				}
+				
+				
+				
+				
+				
+				c.set("viz_Options",viz_Options);
+					} ;
+					
+				ftnObj['extendaddY2Axis'+id] = function(preExecution, c){
+				
+				var viz_Options = c.get("viz_Options");
+				
+				if( fixedRanged_value==true){
+				viz_Options = addY2Axis(viz_Options);
+				} else{
+					
+					viz_Options = addY2Axis_AutoScale(viz_Options);
+				}
+				
+			} ; 
+				    
+	
+			
+		    function addY2Axis(viz_Options){
+				
+				if(viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data.axes = {
+						'${dataValue}' : 'y2'
+					}	
+				}
+				else{
+						viz_Options.chartOptions["data"] = {
+						axes: {	
+							'${dataValue}' : 'y2'
+						}
+					}
+					
+				}
+				if(viz_Options.chartOptions.axis){
+					viz_Options.chartOptions.axis.y2 = {
+						show: true,
+						 max: ${Y2max},
+						 min: ${Y2min},
+						 padding: 0,	
+						 label: '${dataValue}',
+						  tick: {
+							     format: d3.format(",s")
+							  }
+					}	
+				}
+				else{
+					viz_Options.chartOptions["axis"] = {
+						y2: {
+							show: true,
+							max: ${Y2max},
+						    min: ${Y2min},
+						    padding: 0,	
+							label: '${dataValue}',
+							 tick: {
+							     format: d3.format(",s")
+							  }
+						}
+					}
+				
+				}
+				return viz_Options;
+			}
+			
+			
+			function addY2Axis_AutoScale(viz_Options){
+				
+				if(viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data.axes = {
+						'${dataValue}' : 'y2'
+					}	
+				}
+				else{
+						viz_Options.chartOptions["data"] = {
+						axes: {	
+							'${dataValue}' : 'y2'
+						}
+					}
+					
+				}
+				if(viz_Options.chartOptions.axis){
+					viz_Options.chartOptions.axis.y2 = {
+						show: true,
+						 padding: 0,	
+						 label: '${dataValue}',
+						  tick: {
+							     format: d3.format(",s")
+							  }
+					}	
+				}
+				else{
+					viz_Options.chartOptions["axis"] = {
+						y2: {
+							show: true,
+						    padding: 0,	
+							label: '${dataValue}',
+							 tick: {
+							     format: d3.format(",s")
+							  }
+						}
+					}
+				
+				}
+				return viz_Options;
+			}
+			
+	
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setaddY2Axis'+id]);
+			}
+			else{
+				hi_container.extend("preExecution",ftnObj['extendaddY2Axis'+id]);
+			}
+			
+		
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="" name="dataValue" type="String"/>
+		<parameter value="100" name="Y2max" type="String"/>
+		<parameter value="0" name="Y2min" type="String"/>
+		<parameter value="false" name="switch" type="Boolean"/>
+		
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.form-line{
+					margin-top: 20px;
+				}
+				.columnToBeShown{
+					padding-left: 17px;
+				}
+				.y2Axis,.form-group{
+					padding-bottom: 25px;
+				}
+			</style>
+		
+			<div class="container-fluid">	
+				<div class="row">
+								<div class="col-sm-12 col-md-12">
+								   <div class="columnToBeShown" style="font-weight:bold;">Select the value to be shown on Y2 Axis</div>
+								</div>
+							    <div id="conditionList"></div>			
+				</div>
+				 
+				 
+				 <div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle" align="center">
+							<div class="col-sm-3">
+								<label><b>Fixed Range</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Disable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Enable</label>
+							</div>
+						</div>
+					</div>
+				</div>
+				
+				<div class="hide-format-y2axis">
+				
+				<div class="y2Axis">
+					<h4 id="y2AxisRange" class="col-sm-12">
+						<strong>Y2 Axis Range</strong>
+					</h4>	
+				</div>
+				
+				<form class="form-inline">
+					<div class="form-group">
+						<label class="col-sm-5 col-md-5 col-xs-12 control-label" for="y2_axis_max_value">Maximum Value</label>
+							<div class="col-sm-3 col-md-3 col-xs-12">
+								<input class="form-control" id="y2_axis_max_value" type="number" onchange="Y2MaxValue(this)">
+							</div>
+					</div>
+					<div class="form-group">	
+						<label class="col-sm-5 col-md-5 col-xs-12 control-label" for="y2_axis_min_value">Minimum Value</label>
+							<div class="col-sm-3 col-md-3 col-xs-12">
+								<input class="form-control" id="y2_axis_min_value" type="number" onchange="Y2MinValue(this)">
+							</div>
+					</div>		
+				</form>	
+				</div>
+				
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("dataValue", params.dataValue);
+				adhocScripts.setVariable("Y2max",params.Y2max);
+				adhocScripts.setVariable("Y2min",params.Y2min);
+				
+				adhocScripts.setVariable("switch",params.switch);
+				
+				function switchToggle(event){
+					
+					if(adhocScripts.getVariable('switch') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch", 'true');
+						
+						
+						$(".hide-format-y2axis").show();
+					}
+					else{
+						$(".hide-format-y2axis").hide();
+						
+						
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+					$(".hide-format-y2axis").show();
+				} else {
+					$('#cmn-toggle-1').removeAttr('checked');
+					$(".hide-format-y2axis").hide();
+				}
+				
+
+				var columnNames=[];
+    
+				for(var j=1;j<=Object.keys(window.frames[0].__hi_result.metadata[0]).length;j++)
+				{
+					if(window.frames[0].__hi_result.metadata[0][j].type == 'numeric'){
+						columnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+					}
+				}
+				
+				var tgtPanel = 'conditionList';
+				
+				 var form = document.createElement('form');
+					 form.className = 'form-line col-sm-12';
+				
+				 var divConditionVal = document.createElement('div');
+					 divConditionVal.className = 'form-group col-sm-6 condition';
+					 divConditionVal.id = 'div_condition';
+					 
+				var inputVal = document.createElement('select');
+					inputVal.className = 'form-control';
+					inputVal.id = 'input_condition';
+					inputVal.onchange = setOnChange;
+					
+				for(var i = 0; i < columnNames.length; i++){
+						  var options = document.createElement('option');
+						  options.value = columnNames[i];
+						  options.text = columnNames[i];
+						  if(options.value == columnNames[0]){
+							options.selected = 'selected';
+						  }
+						  inputVal.appendChild(options);
+					}
+					
+					divConditionVal.appendChild(inputVal);
+					
+                    form.appendChild(divConditionVal);
+					document.getElementById(tgtPanel).appendChild(form);
+					
+					
+						 function setOnChange(d){
+							var val = d.target.value;
+							adhocScripts.setVariable("dataValue", val);
+						  }
+						  
+				 function Y2MaxValue (e) 
+				 {
+				  adhocScripts.setVariable("Y2max",e.value);
+				 }
+				 function Y2MinValue (e) 
+				 {
+				  adhocScripts.setVariable("Y2min",e.value);
+				 }
+				 
+				 $('#y2_axis_max_value').val(adhocScripts.getVariable('Y2max'));
+				$('#y2_axis_min_value').val(adhocScripts.getVariable('Y2min'));
+        
+
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

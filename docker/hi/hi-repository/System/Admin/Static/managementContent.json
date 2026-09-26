@@ -1,0 +1,9 @@
+{
+ "tutorialheading": "Distributed In-memory Computation Engine.",
+ "panelHeading" : "DICE",
+ "panelItems": ["In memory computation - It is a fast and general-purpose cluster computing system.",
+			  "Caching - Caching and persistence is an optimization technique in which saves the result of RDD evaluation. Using this we save the intermediate result so that we can use it further if required. It reduces the computation overhead.","Persist-When we use the cache we can store all the RDD in-memory. We can persist the RDD in memory and use it efficiently across parallel operations.","Levels of Persist 1.MEMORY_ONLY. 2.MEMORY_AND_DISK 3.MEMORY_ONLY_SER 4.MEMORY_AND_DISK_SER 5.DISK_ONLY"],
+ "overviewItems": ["To run applications distributed across a cluster, DICE requires a cluster manager.","DICE requires atleast Java 8+","The master URL passed to Spark can be in one of the following formats: spark://127.0.0.1:8899","Configuration tab: Helps you to add configuration. You may also override an existing configuration","Advanced tab- This tab helps you to start stop services related to Master, Worker, Application and JDBC driver"],
+"enableMessage" : "Enabling in memory computation may use excessive memory. Excessive  RAM is required. This may hamper the application drastically in case you have less memory space. Are you sure?",
+"disableMessage" : "Disabling in memory computation may affect some of the datasources and reports as some of the reports may use in memory computation. Are you sure.?"
+}

@@ -1,0 +1,146 @@
+{
+    "id":  "cache",
+    "title":  "Cache Configuration",
+    "description":  "Cache providers, strategy, TTL, and related behaviour.",
+    "file":  "cache.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "General",
+                         "key":  "general",
+                         "description":  "Enablement and strategy",
+                         "fields":  [
+                                        {
+                                            "name":  "enableCache",
+                                            "path":  "cache/enableCache",
+                                            "label":  "Enable Cache",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Turns application caching on or off."
+                                        },
+                                        {
+                                            "name":  "cacheStrategy",
+                                            "path":  "cache/cacheStrategy",
+                                            "label":  "Cache Strategy",
+                                            "type":  "select",
+                                            "span":  12,
+                                            "description":  "Allowed values: stream or default.",
+                                            "options":  [
+                                                            {
+                                                                "value":  "default",
+                                                                "label":  "default"
+                                                            },
+                                                            {
+                                                                "value":  "stream",
+                                                                "label":  "stream"
+                                                            }
+                                                        ]
+                                        },
+                                        {
+                                            "name":  "enableJsonCache",
+                                            "path":  "cache/enableJsonCache",
+                                            "label":  "Enable JSON Cache",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Cache JSON responses."
+                                        },
+                                        {
+                                            "name":  "enableThread",
+                                            "path":  "cache/enableThread",
+                                            "label":  "Enable Thread",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Use threaded cache operations."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Expiry",
+                         "key":  "ttl",
+                         "description":  "Cache lifetime",
+                         "fields":  [
+                                        {
+                                            "name":  "cacheExpireDuration",
+                                            "path":  "cache/cacheExpireDuration",
+                                            "label":  "Expire Duration",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "How long cache entries live.",
+                                            "min":  1
+                                        },
+                                        {
+                                            "name":  "durationUnit",
+                                            "path":  "cache/durationUnit",
+                                            "label":  "Duration Unit",
+                                            "type":  "select",
+                                            "span":  12,
+                                            "description":  "Unit for expire duration.",
+                                            "options":  [
+                                                            {
+                                                                "value":  "hours",
+                                                                "label":  "hours"
+                                                            },
+                                                            {
+                                                                "value":  "minutes",
+                                                                "label":  "minutes"
+                                                            },
+                                                            {
+                                                                "value":  "days",
+                                                                "label":  "days"
+                                                            }
+                                                        ]
+                                        },
+                                        {
+                                            "name":  "cacheExtension",
+                                            "path":  "cache/cacheExtension",
+                                            "label":  "Cache Extension",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "File extension used for cache artifacts."
+                                        },
+                                        {
+                                            "name":  "noOfWorkers",
+                                            "path":  "cache/noOfWorkers",
+                                            "label":  "Number of Workers",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Hint for worker threads writing cache chunks.",
+                                            "min":  1
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Advanced",
+                         "key":  "advanced",
+                         "description":  "Parallel generation and HCR print cache",
+                         "fields":  [
+                                        {
+                                            "name":  "enableParallelReportGeneration",
+                                            "path":  "cache/enableParallelReportGeneration",
+                                            "label":  "Parallel Report Generation",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Cache creation and report filling run simultaneously."
+                                        },
+                                        {
+                                            "name":  "hcrPrintEnabled",
+                                            "path":  "cache/hcr/print/enabled",
+                                            "label":  "HCR Print Cache Enabled",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Enable HCR print caching."
+                                        },
+                                        {
+                                            "name":  "maxPagesInMemory",
+                                            "path":  "cache/hcr/print/maxPagesInMemory",
+                                            "label":  "Max Pages In Memory",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "HCR print pages kept in memory.",
+                                            "min":  1
+                                        }
+                                    ]
+                     }
+                 ]
+}

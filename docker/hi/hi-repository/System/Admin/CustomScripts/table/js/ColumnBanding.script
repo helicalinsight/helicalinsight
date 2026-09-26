@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_ColumnBanding</scriptId>
+    <scriptType>js</scriptType>
+    <name>Column Banding</name>
+    <group>Table</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Adds column binding to table</description>
+    <icon>/images/scriptIcons/ColumnBinding.png</icon>
+    <snippet>
+		<![CDATA[
+		
+		var id = hi_container.get("renderId");
+			
+			if(id== ""){
+			var tbodyEven = '#chart'+id+' tbody tr td:nth-child(even)';
+			var theadEven = '#chart'+id+' thead tr th:nth-child(even)';
+			var tbodyOdd = '#chart'+id+' tbody tr td:nth-child(odd)';
+			var theadOdd = '#chart'+id+' thead tr th:nth-child(odd)';
+		}
+		else{
+			var tbodyEven = '#chart-'+id+' tbody tr td:nth-child(even)';
+			var theadEven = '#chart-'+id+' thead tr th:nth-child(even)';
+			var tbodyOdd = '#chart-'+id+' tbody tr td:nth-child(odd)';
+			var theadOdd = '#chart-'+id+' thead tr th:nth-child(odd)';
+		}
+		
+		var ftnObj = {};
+		
+		ftnObj['columnBanding'+id]= function(){
+					
+				$(tbodyEven).css({'background': '${evenValue}'});
+				$(tbodyOdd).css({'background': '${oddValue}'});
+				$(theadEven).css({'background': '${evenValue}'});
+				$(theadOdd).css({'background': '${oddValue}'});
+					
+				}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['columnBanding'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['columnBanding'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		 <parameter value="#ffffff" name="evenValue" type="String"/>
+		 <parameter value="#f0f0f0" name="oddValue" type="String"/>
+		 <parameter value="#ffffff" name="defaultEvenValue" type="String"/>
+		 <parameter value="#f0f0f0" name="defaultOddValue" type="String"/>
+		 <parameter value="#ffffff" name="customEvenValue" type="String"/>
+		 <parameter value="#f0f0f0" name="customOddValue" type="String"/>
+		 <parameter value="false" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				#color_selector{
+					padding: 10px 0;
+				}
+				
+				.form-group.removeMargin {
+					margin-bottom: 0 !important;
+				}
+				
+				.extendMargins {
+					margin: 5px -15px;
+				}
+			</style>
+			
+			<div id="toggle" class="row">
+				<div class="col-sm-3 col-md-3 col-sm-offset-2 col-md-offset-2">
+					<label class="switchLabel">Default</label>
+				</div>
+				<div class="col-sm-2 switch" id="switch">
+					<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(this)' />
+					<label for="cmn-toggle-1"></label>
+				</div>
+				<div class="col-sm-3 col-md-3">
+					<label class="switchLabel">Custom</label>
+				</div>
+			</div>
+			<hr class="extendMargins">
+			<div class="form-horizontal" id="color_selector">
+				<div class="form-group removeMargin">
+					<label class="oddLabel col-sm-3 com-md-3 col-xs-6 control-label" for="oddColor">Odd Color:</label>
+					<div class="col-sm-2 col-md-2 col-xs-6">
+						<div id="oddColor"></div>
+					</div>
+					
+					<label class="evenLabel col-sm-3 com-md-3 control-label" for="evenColor">Even Color:</label>
+					<div class="col-sm-2 col-md-2">
+						<div id="evenColor"></div>
+					</div>
+				</div>
+			</div>
+			<div id="otherPicker"></div>
+			<script>
+				adhocScripts.resetAll();
+				
+				//Set global variable from parameter
+				adhocScripts.setVariable("switch",params.switch);
+				
+				function setDefaults(){
+					$("<div id='overlay'/>").css({
+						position: "absolute",
+						width: "100%",
+						height: "100%",
+						left: 0,
+						top: 0,
+						zIndex: 1000000,  // to be on the safe side
+						background: "#CCC",
+						opacity: 0.6
+					}).appendTo($("#color_selector").css("position", "relative"));
+					
+					adhocScripts.setVariable("evenValue",params.defaultEvenValue);
+					adhocScripts.setVariable("oddValue",params.defaultOddValue);
+				
+				}
+				
+				//set function of toggle switch
+				function switchToggle(event){
+					if(adhocScripts.getVariable('switch') == 'false'){
+						adhocScripts.setVariable("switch", 'true');
+						$('#overlay').remove();
+						adhocScripts.setVariable("evenValue",params.customEvenValue);
+						adhocScripts.setVariable("oddValue",params.customOddValue);
+					}
+					else{
+						adhocScripts.setVariable("switch", 'false');
+						setDefaults();
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} 
+				else {
+					$('#cmn-toggle-1').removeAttr('checked');
+					setDefaults();
+				}
+				
+				adhocScripts.setVariable("evenValue",params.evenValue);
+				adhocScripts.setVariable("oddValue",params.oddValue);
+				adhocScripts.setVariable("customEvenValue",params.customEvenValue);
+				adhocScripts.setVariable("customOddValue",params.customOddValue);
+
+				
+			function spectrumFtn() {
+				
+						HDIUI.renderColorPicker({
+							id:"oddColor",
+							color:adhocScripts.getVariable("customOddValue"),
+							change:function(color){								
+								adhocScripts.setVariable("oddValue",color['hexCode']);
+								adhocScripts.setVariable("customOddValue",color['hexCode']);
+							}
+						});
+				
+						HDIUI.renderColorPicker({
+									id:"evenColor",
+									color:adhocScripts.getVariable("customEvenValue"),
+									change:function(color){								
+										adhocScripts.setVariable("evenValue",color['hexCode']);
+										adhocScripts.setVariable("customEvenValue",color['hexCode']);
+									}
+						});		
+				}
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							HDIUI.removeColorPicker({
+								id:"evenColor"
+								});
+							HDIUI.removeColorPicker({
+								id:"oddColor"
+								});
+						});
+					}
+				})(window);
+				spectrumFtn();
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

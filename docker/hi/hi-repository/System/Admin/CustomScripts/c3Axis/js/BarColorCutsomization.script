@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+   <visible>true</visible>
+    <scriptId>c3Axis_js_BarColorCutsomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Datapoint Color Customization</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Datapoint Color Customization</description>
+    <icon>/images/scriptIcons/BarCustomColor.png</icon>
+	<snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['barColorCustomization'+id] = function(d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = chartValueColorCustomization(viz_Options);
+				d.set("viz_Options",viz_Options);
+			
+           };
+					
+			ftnObj['extendbarColorCustomization'+id] = function(preExecution, d){
+					
+					var viz_Options = d.get("viz_Options");
+					viz_Options = chartValueColorCustomization(viz_Options);
+				
+			   } ; 
+		
+		
+				
+			function chartValueColorCustomization(viz_Options){
+				var conditionArr = ${conditionArr};
+				if(viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data.color =function (color, d) {
+					var colorArray = conditionArr;
+					colorArray.forEach(function(val, ind){
+						if(d.index === val.index && d.id === val.measure){
+							color = val.color;
+							return;
+						}
+					})
+					return color;
+				  } 
+				}
+				else{
+					viz_Options.chartOptions.data = {
+					color: function (color, d) {
+						var colorArray = conditionArr;
+						colorArray.forEach(function(val, ind){
+							if(d.index === val.index && d.id === val.measure){
+								color = val.color;
+								return;
+							}
+						})
+						return color;
+					  }
+					}					
+				}
+        return viz_Options;
+      }
+	  
+	  	if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['barColorCustomization'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendbarColorCustomization'+id]);
+			}
+
+	  
+		]]>
+	</snippet>
+	<parameters>
+        <parameter value="[]" name="conditionArr" type= "String" />
+    </parameters>
+    <uiSnippet>
+		<![CDATA[
+		<div id="addButtonPanel" class="col-sm-12">
+        <label for='addButton' class='col-sm-4' >Add New Condition</label>
+        <button id='addButton' class='col-sm-2 btn btn-primary' onclick='addConditionPanel({color: "#7cb82f", measure:"", value:"", index:0}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+
+			<script>
+				adhocScripts.resetAll();
+					var subtype = Base64.decode(window.frames[0].__hi_params.settings);
+				//console.log(subtype);
+				chartSubType = JSON.parse(subtype).type;
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+				var dataObject = window.frames[0].__hi_result.data;
+				
+				var metadataObject = window.frames[0].__hi_result.metadata[0];
+				//console.log("Meta Data Object ",metadataObject)
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+				
+				var numberOfColumns = Object.keys(dataObject[0]);
+				//console.log("No of Cols ",numberOfColumns)
+				var xAxisMeasure,categories,values=[];
+				
+				column.forEach(function(col, i){
+					//console.log("Cols ",col)
+					if (col.groupBy && !col.hasOwnProperty("hidden")) {
+						categories = metadataObject[(i + 1).toString()].name;
+						//console.log("CATEGORIES ",categories)
+					}
+					
+					if ((col.aggregate && !(col.hidden === true))|| (col.custom === true && !(col.hidden === true))) {
+						values.push(metadataObject[(i + 1).toString()].name);
+					}
+				});
+				
+				var ArrayData = []; 
+				
+				for (var i = 0; i < dataObject.length; i++) {
+						ArrayData.push(dataObject[i][categories]);
+				}
+				
+				var xAxisArrayValues = ArrayData.filter(function(item, i, ar){ return ar.indexOf(item) === i; });
+				var xAxisValues = xAxisArrayValues;
+				if (chartSubType === "HIGroupedBar"){
+					var val1 = [], val2 = [],valObj = {};
+					dataObject.forEach(function(item){
+						var temp = Object.keys(item);
+						var val= item[temp[0]];
+						if(!valObj.hasOwnProperty(val)){
+							valObj[val] = [];
+							valObj[val].push(item[temp[2]]);
+						}else {
+							valObj[val].push(item[temp[2]]);
+						}
+					});
+					xAxisValues = Object.keys(valObj);
+					valObj = [];
+					dataObject.forEach(function (item){
+						var temp = Object.keys(item);
+						var val= item[temp[1]];
+						if(!valObj.hasOwnProperty(val)){
+							valObj[val] = [];
+							valObj[val].push(item[temp[2]]);
+						}else {
+							valObj[val].push(item[temp[2]]);
+						}
+					});
+					chartMeasures = Object.keys(valObj);
+					//console.log("measureArray: ",measureArray[0]);
+				}else{
+					xAxisValues = xAxisArrayValues;
+					chartMeasures = values;
+				}
+						
+
+				var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+				var tgtPanel = 'conditionList';
+				
+				function createConditionList(conditionArr,tgtPanel){
+				  if(conditionArr.length == 0){
+					conditionArr.push({color: "#edc54a", measure:chartMeasures[0], value:xAxisValues[0], index:0});
+				  }
+				  adhocScripts.setVariable("conditionArr", conditionArr);	
+				  for(var i = 0 ; i < conditionArr.length; i++){
+					var div = createConditionPanel(conditionArr[i], i);
+					document.getElementById(tgtPanel).appendChild(div);
+					spectrumFtn('input_color_'+i, conditionArr[i]);
+				  }
+				}
+				createConditionList(conditionArr,tgtPanel);
+				
+
+				function addConditionPanel(object, tgtPanel){
+					//console.log('in addConditionPanel');
+					//console.log(chartMeasures);
+					//console.log(xAxisValues);
+					if(object.measure.length <= 0){
+						object.measure = chartMeasures[0];
+						
+					}
+					if(object.value.length <= 0){
+						object.value = xAxisValues[0];
+										
+					}
+					conditionArr.push(object);
+					adhocScripts.setVariable("conditionArr", conditionArr);	
+					var index = conditionArr.length-1;
+					if(conditionArr.length <= ((xAxisValues.length)*(chartMeasures.length))){
+						//console.log('in if')
+						var div = createConditionPanel(object, index);
+						//console.log(div);
+						document.getElementById(tgtPanel).appendChild(div);
+						spectrumFtn('input_color_'+index, conditionArr[index]);			  
+					}
+
+				}
+					
+				function createConditionPanel(object, index){
+				  var form = document.createElement('form');
+				  form.className = 'form-line col-sm-12';
+
+				  /*************** Set Condition *******************/
+				  var divConditionVal = document.createElement('div');
+				  divConditionVal.className = 'form-group col-sm-4 condition';
+					divConditionVal.id = 'div_value_'+index;
+
+				  var labelConditionVal = document.createElement('label');
+				  labelConditionVal.for = 'input_value_'+index;
+				  labelConditionVal.innerHTML = 'xAxis Value';
+
+				  var inputConditionVal = document.createElement('select');
+				  inputConditionVal.className = 'form-control';
+				  inputConditionVal.id = 'input_value_'+index;
+				  inputConditionVal.onchange = function(d){
+					setOnChangeValue(d);
+				  };
+
+				  for(var i = 0; i < xAxisValues.length; i++){
+					  var options = document.createElement('option');
+					  options.value = xAxisValues[i];
+					  options.text = xAxisValues[i];
+					  if(options.value == object.value)
+						options.selected = 'selected';
+					  inputConditionVal.appendChild(options);
+				  }
+
+				  divConditionVal.appendChild(labelConditionVal);
+				  divConditionVal.appendChild(inputConditionVal);
+
+				  form.appendChild(divConditionVal);
+
+				  /*************** Set Value 2 *******************/
+				  var divMeasureVal = document.createElement('div');
+				  divMeasureVal.className = 'form-group col-sm-4 condition';
+				  divMeasureVal.id = 'div_measure_'+index;
+
+				  var labelMeasureVal = document.createElement('label');
+				  labelMeasureVal.for = 'input_measure_'+index;
+				  labelMeasureVal.innerHTML = 'Legend Label';
+
+				  var inputMeasureVal = document.createElement('select');
+				  inputMeasureVal.className = 'form-control';
+				  inputMeasureVal.id = 'input_measure_'+index;
+				  inputMeasureVal.onchange = function(d){
+					setOnChange(d);
+				  };
+
+				  for(var i = 0; i < chartMeasures.length; i++){
+					  var options = document.createElement('option');
+					  options.value = chartMeasures[i];
+					  options.text = chartMeasures[i];
+					  if(options.value == object.measure)
+						options.selected = 'selected';
+					  inputMeasureVal.appendChild(options);
+				  }
+				  divMeasureVal.appendChild(labelMeasureVal);
+				  divMeasureVal.appendChild(inputMeasureVal);
+
+				  form.appendChild(divMeasureVal);
+				  /*************** Set Color *******************/
+				  var divColorVal = document.createElement('div');
+				  divColorVal.className = 'form-group col-sm-2 color';
+					divColorVal.id = 'div_color_'+index;
+
+				  var labelColorVal = document.createElement('label');
+				  labelColorVal.for = 'input_color_'+index;
+				  labelColorVal.innerHTML = 'Color';
+
+				  var inputColorVal = document.createElement('div');
+				  inputColorVal.id = 'input_color_'+index;
+				 
+				  divColorVal.appendChild(labelColorVal);
+				  divColorVal.appendChild(inputColorVal);
+
+				  form.appendChild(divColorVal);
+
+				  /*********************Delete Button************************/
+				  var delButton = document.createElement('button');
+				  delButton.id = 'delete_'+index;
+				  delButton.classList = 'btn btn-danger';
+				  delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+				  delButton.onclick = function(d){
+					var index = d.target.id.split('_')[1];
+					conditionArr.splice(index, 1);
+					adhocScripts.setVariable("conditionArr", conditionArr);
+					$(this).parent().remove();
+				  };
+				  delButton.style.marginTop = '25px';
+
+				  form.appendChild(delButton);
+
+				  return form;
+
+
+				  function setOnChange(d){
+					var len = d.target.id.split('_').length;
+					var x = d.target.id.split('_')[2];
+					var key = d.target.id.split('_')[1];
+					conditionArr[x][key] = d.target.value;
+					adhocScripts.setVariable("conditionArr", conditionArr);
+				  }
+				  
+				  
+				  function setOnChangeValue(d){
+					var len = d.target.id.split('_').length;
+					var x = d.target.id.split('_')[2];
+					var key = d.target.id.split('_')[1];
+
+					var val = d.target.value;
+					var ind = 0;
+					conditionArr[x][key] = d.target.value;
+					for(iter = 0; iter < xAxisValues.length; iter++){
+						if(xAxisValues[iter] === val){
+							ind = iter;
+							break;
+						}
+					}
+					conditionArr[x]["index"] = ind;
+					adhocScripts.setVariable("conditionArr", conditionArr);
+				  }
+				}
+
+				function spectrumFtn(id, Obj){
+					HDIUI.renderColorPicker({
+						id:id,
+						color:( Obj && Obj.color) ? Obj.color : '#edc54a',
+						change:function(color){	
+						//console.log(color);
+							//setColorValue({id:id,color:color['hexCode']});
+							var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+							setColorValue({id:id,color:rgbaCode});
+							//console.log(setColorValue());
+						}
+					});	
+				
+				}
+				
+				function setColorValue(paylod){			  
+					var len = paylod['id'].split('_').length;
+					var x = paylod['id'].split('_')[2];
+					var key = paylod['id'].split('_')[1];
+					var val = paylod['color'];
+				 
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);			  
+				  }
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

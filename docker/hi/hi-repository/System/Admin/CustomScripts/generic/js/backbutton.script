@@ -1,0 +1,510 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+<visible>true</visible>
+<scriptId>generic_js_backbutton</scriptId>
+<scriptType>js</scriptType>
+<name>Back Button</name>
+<group>Generic</group>
+<renderOn>simpleModel</renderOn>
+<description>Helps to go back to parent report when drill down is opened</description>
+<icon>/images/scriptIcons/Back_Button.png</icon>
+<snippet>
+
+<![CDATA[ 
+
+var id = hi_container.get("renderId");
+var containerId="#main";
+var chartId = "#chart";
+var headerId = "#header";
+var flag = "firstpage";
+
+if(id != ""){
+containerId="#main-"+id;
+
+chartId = "#chart-"+id;
+
+}
+
+
+
+var ftnObj = {};
+
+ftnObj['setBackButton'+id]= function(){
+<!-- $(headerId).remove(); -->
+
+
+if (flag == "firstpage"){
+	
+	$(containerId).prepend('<h1 style="position:absolute;cursor: pointer;z-index: 2;" id="backbutton_parent"><a class="backButton" href=${drilldownURL}>&#8617;</a> </h1>');
+	flag = "nextpage";
+	
+}
+
+};
+
+if(!hi_container.isSet("postExecution")){
+hi_container.set("postExecution", ftnObj['setBackButton'+id]);
+}
+else{
+hi_container.extend("postExecution", ftnObj['setBackButton'+id]);
+}
+
+]]>
+
+</snippet>
+<parameters>
+
+ <parameter value="url1" name="drilldownURL" type= "String"/>
+ <parameter value="select parent report" name="drilldownName" type= "String"/>
+
+
+
+</parameters>
+<uiSnippet>
+<![CDATA[
+
+<style>
+
+.drilldown-item.list-group-item span{
+padding-right: 7px;
+}
+
+.drilldown-item.list-group-item{
+border: none;
+}
+
+.drilldown-item{
+cursor: pointer;
+}
+
+#report_url, #report_name{
+width: 100%;
+height: 30px;
+border-radius: 4px;
+line-height:22px;
+cursor: pointer;
+}
+
+#browse_button{
+background-color: #2c3e50;
+height: 30px;
+color: #ffffff;
+}
+
+.report_url_label, .report_name_label{
+line-height: 30px;
+padding-bottom: 0px;
+padding-right: 0px;
+}
+
+.addButton{
+position: absolute;
+left: 45%;
+padding-top: 2px;
+padding-bottom: 2px;
+}
+
+.param_dropdown{
+position: absolute;
+width: 87%;
+}
+
+.param_input{
+position: sticky;
+width: 90%;
+}
+
+.parameter-selection-panel{
+height: 180px;
+overflow-y: scroll;
+}
+</style>
+
+
+
+<div class="col-sm-12 col-md-12 report-selector-panel form-group">
+<div class="col-sm-3 report_name_label">
+<label class="">Report Name</label>
+</div>
+<div class="col-sm-7">
+<input type="text" placeholder="Select Report Name" name="report_url" id="report_name" disabled>
+</div>
+<div class="col-sm-2">
+<button class="btn btn-default" value="Browse" id="browse_button">Browse</button>
+</div>
+</div>
+</div>
+<script>
+adhocScripts.resetAll();
+
+adhocScripts.setVariable("headerTextValue",params.headerTextValue);
+adhocScripts.setVariable("color",params.color);
+adhocScripts.setVariable("background",params.background);
+adhocScripts.setVariable("size",params.size);
+adhocScripts.setVariable("type",params.type);
+adhocScripts.setVariable("align",params.align);
+adhocScripts.setVariable("bold",params.bold);
+adhocScripts.setVariable("italic",params.italic);
+adhocScripts.setVariable("underline",params.underline);
+
+adhocScripts.setVariable("drilldownURL",params.drilldownURL);
+adhocScripts.setVariable("drilldownName",params.drilldownName);
+$("#report_name").val(params.drilldownName);
+
+/*	var script = document.createElement("script");
+
+
+
+
+if(window.DashboardGlobals)
+script.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+else
+script.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+script.async = false;
+document.getElementsByTagName("head")[0].appendChild(script);
+
+script.onload = function() {
+spectrumFtn();
+}
+
+var link = document.createElement("link");
+
+if(window.DashboardGlobals){
+link.href = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+}
+else {
+link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/CrossTab/js/spectrum.css";
+}
+link.rel = "stylesheet";
+link.type="text/css"
+document.getElementsByTagName("head")[0].appendChild(link);	*/
+
+var images = [{
+name: 'alignment',
+children: [{
+name: "left-align",
+value: "left"
+},{
+name: "center-align",
+value: "center"
+},{
+name: "right-align",
+value: "right"
+}]
+},{
+name: "decoration",
+children: [{
+name: "bold",
+value: "bold"
+},{
+name: "italic",
+value: "italic"
+},{
+name: "underline",
+value: "underline"
+}]
+}];
+
+for(var i = 0; i < images.length; i++){
+var typeDiv = document.createElement('div');
+typeDiv.className = "col-sm-6 col-md-6 extMarBtm7 "+images[i].name;
+typeDiv.id = images[i].name;
+
+for(var j = 0; j < images[i].children.length; j++){
+var imgDiv = document.createElement('div');
+imgDiv.className = "col-sm-4 col-md-4 "+images[i].children[j].name;
+imgDiv.align = "center";
+
+var image = document.createElement('img');
+image.src = window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/generic/images/'+images[i].children[j].name+'.png';
+image.id = images[i].children[j].name;
+image.alt = images[i].children[j].value;
+image.className = "image img-responsive";
+
+imgDiv.appendChild(image);
+typeDiv.appendChild(imgDiv);
+}
+
+$('#alignment_decoration_panel').append(typeDiv);
+$('#'+adhocScripts.getVariable('align')+'-align').addClass('selected-alignment');
+$('#headerText').css({'text-align' : adhocScripts.getVariable('align')});
+}
+
+//List of font types (family) to show.
+//Add new font types (family) to array to increase the list in the UI.
+var fontTypeList = ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Garamond", "Georgia", "Helvetica Neue", "Impact", "Lucida Bright", "Lucida Sans Unicode", "Platino", "Palatino Linotype", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana"];
+
+
+//Function to create a select menu for font size selection.
+//target : HTML id of the element inside which the select component will be appended.
+//id : ID to be assigned to the select component. 
+var createFontSizeSelector = function(target, id, variable){
+var selectMenu = document.createElement('input');
+selectMenu.type = "number";	
+selectMenu.id = id;
+selectMenu.onchange = function setBasicFontSize(event){
+adhocScripts.setVariable(variable, $(this).val());
+$('#headerText').css('font-size', $(this).val()+'px');
+};
+selectMenu.className = id+' sizeDropDown col-sm-3 col-md-3 col-xs-12 form-control';
+//for(var i = 8; i<= 15; i++){
+//	selectMenu.options[i-8] = new Option(i, i);
+//}
+var spanEl = document.createElement("span");
+$(spanEl).html("<code style='padding: 1px 4px;'>number</code>");
+$(target).append(selectMenu);
+$(target).append(spanEl);
+$('#'+id).val(adhocScripts.getVariable(variable));
+}
+
+//Function to create a select menu for font type (family) selection.
+//target : HTML id of the element inside which the select component will be appended.
+//id : ID to be assigned to the select component. 
+var createFontTypeSelector = function(target, id, variable){
+var selectMenu = document.createElement('select');
+selectMenu.id = id;
+selectMenu.onchange = function setBasicFontSize(event){
+adhocScripts.setVariable(variable, $(this).val());
+$('#headerText').css('font-family', $(this).val());
+};
+selectMenu.className = id+' fontDropDown col-sm-3 col-md-3 col-xs-12 form-control';
+for(var i = 0; i< fontTypeList.length; i++){
+selectMenu.options[i] = new Option(fontTypeList[i], fontTypeList[i]);
+}
+$(target).append(selectMenu);
+$('#'+id).val(adhocScripts.getVariable(variable));
+}
+
+//Create the font size and font type selectors for basic mode 
+createFontSizeSelector('#size_value', 'size_value_dropdown', 'size');
+createFontTypeSelector('#font_value', 'font_value_dropdown', 'type');
+
+//	$("#color_value").val(adhocScripts.getVariable("color"));
+//	$("#background_value").val(adhocScripts.getVariable("background"));
+$("#headerText").css({'background': adhocScripts.getVariable("background"),
+'color': adhocScripts.getVariable("color"),
+'font-size': adhocScripts.getVariable("size")+'px',
+'font-family': adhocScripts.getVariable("type")});
+$("#headerText").val(adhocScripts.getVariable('headerTextValue'));
+
+//Set Bold
+if(adhocScripts.getVariable("bold") == 'true'){
+$("#headerText").css({'font-weight': 'bold'});
+$('#bold').addClass('selected-decoration');
+}
+else{
+$("#headerText").css({'font-weight': 'normal'});
+}
+
+//Set Italic
+if(adhocScripts.getVariable("italic") == 'true'){
+$("#headerText").css({'font-style': 'italic'});
+$('#italic').addClass('selected-decoration');
+}
+else{
+$("#headerText").css({'font-style': 'normal'});
+}
+
+//Set UnderLine
+if(adhocScripts.getVariable("underline") == 'true'){
+$("#headerText").css({'text-decoration': 'underline'});
+$('#underline').addClass('selected-decoration');
+}
+else{
+$("#headerText").css({'text-decoration': 'none'});
+}
+
+function spectrumFtn() {
+generateColorSelector("background_value", "background");
+generateColorSelector("color_value", "color");
+}
+
+function generateColorSelector(id, variable){
+
+HDIUI.renderColorPicker({
+id:id,
+color:adhocScripts.getVariable(variable),
+change:function(color){	
+var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+adhocScripts.setVariable(variable, rgbaCode)
+if(variable == 'background')
+$("#headerText").css({'background': rgbaCode});
+else if(variable == 'color')
+$("#headerText").css({'color': rgbaCode});
+}
+});
+
+
+
+}
+
+$('.alignment .image').on("click", function(){
+$('.selected-alignment').removeClass('selected-alignment');
+$(this).addClass('selected-alignment');
+adhocScripts.setVariable('align', $(this)[0].alt);
+$('#headerText').css({'text-align' : $(this)[0].alt});
+});
+
+$('#bold').on("click", function(){
+if($(this).hasClass('selected-decoration')){
+$(this).removeClass('selected-decoration');
+$("#headerText").css({'font-weight': 'normal'});
+adhocScripts.setVariable('bold', 'false');
+} else {
+$(this).addClass('selected-decoration');
+$("#headerText").css({'font-weight': 'bold'});
+adhocScripts.setVariable('bold', 'true');
+}
+});
+
+$('#italic').on("click", function(){
+if($(this).hasClass('selected-decoration')){
+$(this).removeClass('selected-decoration');
+$("#headerText").css({'font-style': 'normal'});
+adhocScripts.setVariable('italic', 'false');
+} else {
+$(this).addClass('selected-decoration');
+$("#headerText").css({'font-style': 'italic'});
+adhocScripts.setVariable('italic', 'true');
+}
+});
+
+
+
+$('#report_name').bind('input', function() {
+adhocScripts.setVariable('drilldownName', $(this).val());
+});
+
+$('#browse_button').bind('input', function() {
+adhocScripts.setVariable('drilldownURL', $(this).val());
+});
+
+
+
+function removePicker(id) {
+HDIUI.removeColorPicker({
+id:id
+});
+
+}
+
+(function() {
+var okBtn = document.querySelector("[data-bb-handler='main']"),
+clsBtn = document.querySelector("[data-bb-handler='danger']"),
+xBtn = document.querySelector(".bootbox-close-button.close");
+
+if(okBtn && clsBtn && xBtn) {
+$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+// $("#background_value, #color_value").spectrum("hide");
+_.forEach(["background_value", "color_value"],function(item){
+removePicker(item);
+});
+
+});
+}
+})(window);
+
+spectrumFtn();
+
+
+$("#browse_button").on("click",function(){
+HDIUI.filebrowser.fetchData().done(function(){
+HDIUI.filebrowser.show({footer:'<button id="applyPath" style="background-color:#2c3e50;color:#ffffff;margin-left:45%;margin-top:10px" class="btn btn-primary">Select</button>',hideFilters:true});
+
+
+
+//HDIUI.filebrowser.setFilter('report');
+
+
+
+
+$(document.getElementById("hdi-filebrowser").querySelector("#hdi-file-explorer")).on('dblclick', function(e){
+	
+});
+
+$(document.querySelector("#hdi-filebrowser")).css('z-index', '1060');
+
+$("#applyPath").on("click", function() {
+	
+							var selectedActualPath=HDIUI.filebrowser.selectedPath;
+							var selectedLogicalPath=HDIUI.filebrowser.selectedPath;
+					
+							if(selectedActualPath == null || selectedLogicalPath == null){      
+								alert("Please select a report and then click on 'Select' button");  
+								return
+							}	
+	
+var selectedActualPath = HDIUI.filebrowser.selectedPath.actual;
+var selectedLogicalPath = HDIUI.filebrowser.selectedPath.logical;
+
+if(selectedActualPath.indexOf("\\")!=-1)
+{
+selectedActualPath = selectedActualPath.replace(/\\/g, "/");
+}
+selectedActualPathArr = selectedActualPath.split("/");
+var file = selectedActualPathArr.pop();
+var dir = selectedActualPathArr.join("/");
+var encodedFormData = btoa('{"dir":'+'"'+dir+'"'+',"file":'+'"'+file+'"'+'}');
+
+reportSelectedUrl=	window.DashboardGlobals.baseUrl+'services?service=getReportForEdit&formData='+encodedFormData;
+
+
+if(file.split('.')[1]=="efw" || file.split('.')[1]=="report")
+{
+var xhr = createCORSRequest('GET', reportSelectedUrl);
+if (!xhr) {
+//alert('CORS not supported');
+return;
+}
+xhr.send();
+
+xhr.onload = function() {
+reportData = xhr.responseText;
+};
+
+
+
+adhocScripts.setVariable('drilldownURL', window.DashboardGlobals.baseUrl+"/hi.html?dir="+dir+"&file="+file+"&mode=dashboard");
+adhocScripts.setVariable('drilldownName', selectedLogicalPath);
+
+
+$("#report_name").val(selectedLogicalPath);
+$("#report_name").tooltip({title: function(d){return $(this).val()}});
+HDIUI.filebrowser.hide();
+}
+
+else{
+alert("Please select a report");
+}
+});
+
+$("#close-file-browser").on("click", function() {
+
+});
+});
+});
+
+function createCORSRequest(method, url) {
+var xhr = new XMLHttpRequest();
+if ("withCredentials" in xhr) {
+//alert("Browser Chrome");
+// XHR for Chrome/Firefox/Opera/Safari.
+xhr.open(method, url, true);
+} else if (typeof XDomainRequest != "undefined") {
+//alert("Browser Internet Explorer");
+// XDomainRequest for IE.
+xhr = new XDomainRequest();
+xhr.open(method, url);
+} else {
+// CORS not supported.
+xhr = null;
+}
+return xhr;
+}
+
+</script>
+]]>
+</uiSnippet>
+
+</customScript>

@@ -106,6 +106,12 @@ For custom installations, edit:
 
 ## Configuration
 
+### MongoDB data source
+
+MongoDB is configured as a NoSQL data source in the application. Apache Drill's Mongo storage plugin must be enabled. In the data source editor, choose the MongoDB driver, enter a `mongodb://` or `mongodb+srv://` connection URI, select the database name, and enter the username and password in their separate fields. Keep credentials out of the URI; the password is stored through the existing encrypted data source configuration. Include URI options such as `authSource=admin` when required by the MongoDB account.
+
+Connection testing issues a MongoDB `ping`. Saved MongoDB sources are made available through the existing Apache Drill Mongo storage plugin for reporting and metadata workflows. This adds an external reporting data source; it does not migrate Helical Insight's internal Derby/PostgreSQL application storage to MongoDB.
+
 ### Maven profiles
 
 Profiles are defined in `presentation/pom.xml`:

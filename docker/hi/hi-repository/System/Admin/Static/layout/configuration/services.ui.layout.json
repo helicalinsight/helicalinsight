@@ -1,0 +1,25 @@
+{
+    "id":  "services",
+    "title":  "Services Registry",
+    "description":  "Top-level service registry description and feature flags.",
+    "file":  "services.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "General",
+                         "key":  "general",
+                         "fields":  [
+                                        {
+                                            "name":  "description",
+                                            "path":  "services/description",
+                                            "label":  "Description",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Human-readable description of configurable services.",
+                                            "rows":  3
+                                        }
+                                    ]
+                     }
+                 ]
+}

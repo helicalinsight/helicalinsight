@@ -1,0 +1,10 @@
+{
+    "id":  "adhocSqlSettings",
+    "file":  "adhocSqlSettings.xml",
+    "title":  "Adhoc SQL Settings",
+    "description":  "Controls ad-hoc SQL generation, formatting, and related SQL builder options.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/adhocSqlSettings.ui.layout",
+    "fallbackEditor":  "xml"
+}

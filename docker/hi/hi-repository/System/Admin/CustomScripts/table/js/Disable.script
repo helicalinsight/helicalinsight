@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_Disable</scriptId>
+    <scriptType>js</scriptType>
+	<name>Disable</name>
+    <group>Table</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Helps to diable sorting on columns</description>
+    <icon>/images/scriptIcons/disable.png</icon>
+	<snippet>
+		<![CDATA[
+		
+		    var id = hi_container.get("renderId");
+            var containerId = '#chart';
+            if(id)
+	        containerId = containerId+'-'+id;
+			var ftnObj = {};
+			var sort = ${switch};
+			var switch1 = ${switch1};
+				ftnObj['disablesort'+id] = function(c){
+				if(sort)
+				{
+				$(containerId+' .column-header-anchor').removeClass('sortable');
+				}
+				if(switch1)
+				{
+				jQuery(containerId).removeClass('table-hover');
+				}
+				} ;
+	
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['disablesort'+id]);
+				
+			}
+			else{
+			    hi_container.extend("postExecution", ftnObj['disablesort'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="false" name="switch" type="Boolean"/>
+		<parameter value="false" name="switch1" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+				<div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle1" align="center">
+							<div class="col-sm-3">
+								<label><b>Column Sorting</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Enable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch1">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Disable</label>
+							</div>
+						</div>
+					</div>
+					
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle2" align="center">
+							<div class="col-sm-3">
+								<label><b>On Hover</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Enable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch2">
+								<input id="cmn-toggle-2" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle1(event)' />
+								<label for="cmn-toggle-2"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Disable</label>
+							</div>
+						</div>
+					</div>
+				</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("switch",params.switch);
+				adhocScripts.setVariable("switch1",params.switch1);
+				
+				function switchToggle(event){
+					if(adhocScripts.getVariable('switch') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch", 'true');
+					}
+					else{
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+				
+				function switchToggle1(event){
+					if(adhocScripts.getVariable('switch1') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch1", 'true');
+					}
+					else{
+						adhocScripts.setVariable("switch1", 'false');
+					}
+				};
+				
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} else {
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+				
+				if(adhocScripts.getVariable('switch1') == 'true'){
+					$('#cmn-toggle-2').attr('checked', 'checked');
+				} else {
+					$('#cmn-toggle-2').removeAttr('checked');
+				}
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

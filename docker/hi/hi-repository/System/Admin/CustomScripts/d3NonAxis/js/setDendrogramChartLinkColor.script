@@ -1,0 +1,631 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3NonAxis_js_setDendrogramChartLinkColor</scriptId>
+    <scriptType>js</scriptType>
+    <name>Set Link Color</name>
+    <group>D3Dendrogram</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Set Link Color for Dendogram and Radial Dendogram</description>
+    <icon>/images/scriptIcons/Set_Link_Color_for_Dendogram_and_Radial_Dendogram.png</icon>
+    <snippet>
+		<![CDATA[
+		if(!hi_container.isSet("preExecution")){
+			hi_container.set("preExecution", setChartColor);
+		}
+		else{
+			hi_container.extend("preExecution", extendSetChartLinkColor);
+		}
+			function setChartColor(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+				c.set("viz_Options",viz_Options);
+			}
+			function extendSetChartLinkColor(preExecution,c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+			}
+			function chartColor(viz_Options){
+			 var parameters = ${conditionArr};
+			 var chartColor={};
+			 var nodeRadius=[];
+			 var linkWidth=[];
+			 var linkColor=[];
+			 var paramlength = parameters.length;
+			 for(i = 0; i < paramlength; i++){
+				  var tempObject={};
+					tempObject.sourceKey = parameters[i].sourceColumnNames;
+					if(parameters[i].sourceColumnValues === "root"){
+						parameters[i].sourceColumnValues = parameters[i].sourceColumnNames;
+					}	
+					tempObject.sourceValue = parameters[i].sourceColumnValues;
+					tempObject.destinationKey = parameters[i].destinationColumnNames;
+					tempObject.destinationValue = parameters[i].destinationColumnValues;
+					tempObject.edgeColor = parameters[i].edgeColor;
+				    linkColor.push(tempObject);
+			 }
+			 for(i = 0; i < paramlength; i++){
+				  var tempObject={};
+					if(parameters[i].sourceColumnValues === "root"){
+						parameters[i].sourceColumnValues = parameters[i].sourceColumnNames;
+					}
+					tempObject.sourceKey = parameters[i].sourceColumnNames;				  
+					tempObject.sourceValue = parameters[i].sourceColumnValues;
+					tempObject.destinationKey = parameters[i].destinationColumnNames;
+					tempObject.destinationValue = parameters[i].destinationColumnValues;
+					tempObject.edgeWidth = parameters[i].edgeWidth;
+				    linkWidth.push(tempObject);
+			 }
+	  function calculateClass(d) {
+			var classcalculator = "";
+			while (d.parent) {
+				classcalculator += "key-" + d.key + "value-" + d.keyvalue;
+				d = d.parent;
+			}
+			classcalculator += "key-" + d.key + "value-" + d.keyvalue;
+			return classcalculator;
+		}
+
+		function coloringNodes(d,value, color) {
+			var nodeStack = [];
+			var nodes = [];
+			var flag=0;
+			var nodeElement = d;
+			var svg = d3.select("svg");
+			while(d.parent){
+				if(d.keyvalue === value){
+					nodeStack.push(d);
+					flag = 1;
+					break;
+				}
+				nodeStack.push(d);
+				d = d.parent;
+			}
+			if(d.keyvalue === value){
+				nodeStack.push(d);
+				flag = 1;
+			}
+			if(flag ===1){
+				nodes = nodeStack;
+			}
+			
+			for (var i = 0; i < nodes.length-1; i++) {
+				svg.selectAll("path[data-path=\"source-" + nodes[i+1].keyvalue + "target-" + nodes[i].keyvalue + "sourceparentinfo-" + calculateClass(nodes[i]) + "\"]")
+					.style("stroke", color);
+			}
+	 }
+	function widthEdges(d,value,width) {
+			var nodeStack = [];
+			var nodes = [];
+			var flag=0;
+			var nodeElement = d;
+			var svg = d3.select("svg");
+			while(d.parent){
+				if(d.keyvalue === value){
+					nodeStack.push(d);
+					flag = 1;
+					break;
+				}
+				nodeStack.push(d);
+				d = d.parent;
+			}
+			if(d.keyvalue === value){
+				nodeStack.push(d);
+				flag = 1;
+			}
+			if(flag ===1){
+				nodes = nodeStack;
+			}
+			var str = '';
+			for (var i = 0; i < nodes.length-1; i++) {
+				svg.selectAll("path[data-path=\"source-" + nodes[i+1].keyvalue + "target-" + nodes[i].keyvalue + "sourceparentinfo-" + calculateClass(nodes[i]) + "\"]")
+					.style("stroke-width", width);
+			}
+		}
+			var linkObject = {
+						color:function(d){
+							var color = "#ccc";
+							linkColor.forEach(function(val, index){
+								var flag = 0;
+								if(val.destinationKey === val.sourceKey && val.destinationValue === val.sourceValue){
+									return color;
+								}
+								if(d.target.key === val.destinationKey && d.target.keyvalue == val.destinationValue) {
+									var node = d.target;
+									coloringNodes(d.target, val.sourceValue, val.edgeColor);
+									while(node.parent){
+										if(node.key === val.sourceKey && node.keyvalue === val.sourceValue){
+											color = val.edgeColor;
+											flag =1;
+											break;
+										}
+										node = node.parent;
+									}
+									if(node.keyvalue === val.sourceValue && node.key === val.sourceKey){
+										flag = 1;
+										color = val.edgeColor;
+										return;
+									}
+									return;
+								}
+								return;
+							})								
+							return color;
+						},
+						width:function(d){
+							var width = 1.5;
+							linkWidth.forEach(function(val, index){
+								var flag = 0;
+								if(val.destinationKey === val.sourceKey && val.destinationValue === val.sourceValue){
+									return color;
+								}
+								if(d.target.key === val.destinationKey && d.target.keyvalue == val.destinationValue) {
+									var node = d.target;
+									widthEdges(d.target, val.sourceValue, val.edgeWidth);
+									while(node.parent){
+										if(node.key === val.sourceKey && node.keyvalue === val.sourceValue){
+											width = val.edgeWidth;
+											flag =1;
+											break;
+										}
+										node = node.parent;
+									}
+									if(node.keyvalue === val.sourceValue && node.key === val.sourceKey){
+										flag = 1;
+										width = val.edgeWidth;
+										return;
+									}
+									return;
+								}
+								return;
+							})								
+							return width;
+						}
+					}	
+			if(viz_Options.chartOptions.dendrogram){
+				if(viz_Options.chartOptions.dendrogram.data){
+					viz_Options.chartOptions.dendrogram.data.link = linkObject;
+				}
+				else{
+					viz_Options.chartOptions.dendrogram.data={
+						link:linkObject
+					}
+				}
+			}
+			else{
+				viz_Options.chartOptions.dendrogram = {
+					data:{
+						link:linkObject,
+					}
+				}
+			}
+		if(viz_Options.chartOptions.radialdendrogram){
+				if(viz_Options.chartOptions.radialdendrogram.data){
+					viz_Options.chartOptions.radialdendrogram.data.link = linkObject;
+				}
+				else{
+					viz_Options.chartOptions.radialdendrogram.data={
+						link:linkObject
+					}
+				}
+			}
+			else{
+				viz_Options.chartOptions.radialdendrogram = {
+					data:{
+						link:linkObject
+					}
+				}
+			}			
+				return viz_Options;
+			}	
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="[]" name="conditionArr" type= "String" />
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		<style>
+
+		</style>
+		<div id="addButtonPanel" style="margin-left: 15px;">
+        <label for='addButton' class='col-sm-3' >Add new</label>
+        <button id='addButton' class='btn btn-primary addButton col-sm-2' onclick='addConditionPanel({sourceColumnNames: "",sourceColumnValues:"", destinationColumnNames:"",destinationColumnValues:"", edgeWidth:4.5, edgeColor: "rgba(124,184,47,1)"}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+
+			<script>
+			var abc = adhocScripts.getAllVariables();
+				adhocScripts.resetAll();
+				var dataObject = window.frames[0].__hi_result.data;
+				var metadataObject = window.frames[0].__hi_result.metadata[0];
+				var columns = Object.keys(dataObject[0]);
+				var DimensionName = [];
+				var MeasureName = [];
+				var selectedColumns = [];
+				for(iter = 1; iter <= columns.length; iter++){
+					selectedColumns.push(metadataObject[iter].name);
+				}
+				var newDataObject = {};
+				for(iter = 0; iter < selectedColumns.length; iter++){
+					var firstColumnValues = [];
+					var filteredArray = [];
+					firstColumnValues = dataObject.map(function(x){
+						return x[selectedColumns[iter]];
+					});	
+					filteredArray = firstColumnValues.filter(function(item, pos){
+						return firstColumnValues.indexOf(item)== pos; 
+					});
+					if(iter === 0){
+						//filteredArray.push(selectedColumns[0]);
+						filteredArray.push("root");
+					}
+					newDataObject[selectedColumns[iter]] = filteredArray;
+				}
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+			
+			/*	var script2 = document.createElement("script");
+
+				if(window.DashboardGlobals){
+					script2.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				}else{
+					script2.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				}
+
+				script2.async = false;
+
+				document.getElementsByTagName("head")[0].appendChild(script2);
+
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}else{
+				 link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);		*/
+
+
+
+
+        var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+        var tgtPanel = 'conditionList';
+
+
+     // 	script2.onload = function() {
+     //     createConditionList(conditionArr, tgtPanel);
+	//	}
+		 
+        function createConditionList(conditionArr){
+          if(conditionArr.length == 0){
+            //conditionArr.push({color: "#7cb82f", value: filteredArray[0]});
+          }
+			adhocScripts.setVariable("conditionArr", conditionArr);	
+          for(var i = 0 ; i < conditionArr.length; i++){
+            var div = createConditionPanel(conditionArr[i], i);
+            document.getElementById(tgtPanel).appendChild(div);
+            spectrumFtn('input_edgeColor_'+i, conditionArr[i]);
+          }
+        }
+		
+		createConditionList(conditionArr, tgtPanel);
+		
+		var columnNames = DimensionName.concat(MeasureName);
+        function addConditionPanel(object, tgtPanel){
+			if(object.sourceColumnNames.length == 0){
+				object.sourceColumnNames = selectedColumns[0];
+			}
+			if(object.sourceColumnValues.length === 0){
+				object.sourceColumnValues = newDataObject[selectedColumns[0]][0];
+			}
+			if(object.destinationColumnNames.length == 0){
+				object.destinationColumnNames = selectedColumns[1];
+			}
+			if(object.destinationColumnValues.length == 0){
+				object.destinationColumnValues = newDataObject[selectedColumns[1]][0];
+			}
+
+			conditionArr.push(object);
+            adhocScripts.setVariable("conditionArr", conditionArr);	
+		  var conditionArrLength = conditionArr.length;	
+	          var index = conditionArr.length-1;
+			  var div = createConditionPanel(object, index);
+			  document.getElementById(tgtPanel).appendChild(div); 
+			  spectrumFtn('input_edgeColor_'+index, object);
+        }
+
+        function createConditionPanel(object, index){
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12 dataSet';
+		  
+          var divVal1 = document.createElement('div');
+          divVal1.className = 'form-group col-sm-3 value_1';
+        	divVal1.id = 'div_sourceColumnNames_'+index;
+
+          var labelVal1 = document.createElement('label');
+          labelVal1.for = 'input_sourceColumnNames_'+index;
+          labelVal1.innerHTML = 'Source Name';
+
+		  var inputVal1 = document.createElement('select');
+		inputVal1.type = 'text';
+		inputVal1.className = 'form-control';
+		inputVal1.id = 'input_sourceColumnNames_'+index;
+		inputVal1.value = object.sourceColumnNames;
+	    inputVal1.onchange = setOnChangeName;
+		
+		for(var i = 0; i < selectedColumns.length; i++){
+              var options = document.createElement('option');
+              options.value = selectedColumns[i];
+              options.text = selectedColumns[i];
+			  if(options.value == object.sourceColumnNames || options.value == selectedColumns[0]){
+                options.selected = 'selected';
+			  }
+              inputVal1.appendChild(options);
+          }
+
+          divVal1.appendChild(labelVal1);
+          divVal1.appendChild(inputVal1);
+
+          form.appendChild(divVal1);
+
+		  var divVal2 = document.createElement('div');
+          divVal2.className = 'form-group col-sm-3 value_1';
+        	divVal2.id = 'div_sourceColumnValues_'+index;
+
+          var labelVal2 = document.createElement('label');
+          labelVal2.for = 'input_sourceColumnValues_'+index;
+          labelVal2.innerHTML = 'Source Value';
+
+		  var inputVal2 = document.createElement('select');
+		inputVal2.type = 'text';
+		inputVal2.className = 'form-control';
+		inputVal2.id = 'input_sourceColumnValues_'+index;
+		inputVal2.value = object.sourceColumnValues;
+	    inputVal2.onchange = setOnChange;
+		var sourceColumnValues = [];
+		
+		sourceColumnValues = newDataObject[object.sourceColumnNames];
+		for(var i = 0; i < sourceColumnValues.length; i++){
+			  var options = document.createElement('option');
+			  options.value = sourceColumnValues[i];
+			  options.text = sourceColumnValues[i];
+			  if(options.value == object.sourceColumnValues || options.value == sourceColumnValues[0]){
+				options.selected = 'selected';
+			  }
+			  inputVal2.appendChild(options);
+		  }
+			
+		function columnValuesOptions(key,index){
+			var values = "";
+			 if(key === "sourceColumnNames"){ 
+				values = "sourceColumnValues";			 
+			  }
+			  if(key === "destinationColumnNames"){
+				  values = "destinationColumnValues";
+			  }
+			var input = document.getElementById("input_"+values+"_"+index);
+			var length = input.options.length;
+			input.options.length = 0;
+			var selectedColumnValues = [];
+				input.disabled = '';
+				selectedColumnValues = newDataObject[object[key]];
+			 for(var i = 0; i < selectedColumnValues.length; i++){
+				  var options = document.createElement('option');
+				  options.value = selectedColumnValues[i];
+				  options.text = selectedColumnValues[i];
+				  if(options.value == object.sourcecolumnValues || options.value == selectedColumnValues[0]){
+					options.selected = 'selected';
+				  }
+				  input.appendChild(options);
+			  }
+			conditionArr[index][values] = selectedColumnValues[0];
+			  adhocScripts.setVariable("conditionArr", conditionArr);
+		}
+
+          divVal2.appendChild(labelVal2);
+          divVal2.appendChild(inputVal2);
+          form.appendChild(divVal2); 
+		  
+function setOnChangeName(d){
+	setOnChange(d);
+	var len = d.target.id.split('_').length;
+	var x = d.target.id.split('_')[2];
+	var key = d.target.id.split('_')[1];
+	columnValuesOptions(key,x);
+}
+		var divVal4 = document.createElement('div');
+          divVal4.className = 'form-group col-sm-3 value_1';
+        	divVal4.id = 'div_destinationColumnNames_'+index;
+
+          var labelVal4 = document.createElement('label');
+          labelVal4.for = 'input_destinationColumnNames_'+index;
+          labelVal4.innerHTML = 'Destination Name';
+
+		  var inputVal4 = document.createElement('select');
+		inputVal4.type = 'text';
+		inputVal4.className = 'form-control';
+		inputVal4.id = 'input_destinationColumnNames_'+index;
+		inputVal4.value = object.destinationColumnNames;
+	    inputVal4.onchange = setOnChangeName;
+		
+		for(var i = 0; i < selectedColumns.length; i++){
+              var options = document.createElement('option');
+              options.value = selectedColumns[i];
+              options.text = selectedColumns[i];
+			  if(options.value == object.destinationColumnNames || options.value == selectedColumns[0]){
+                options.selected = 'selected';
+			  }
+              inputVal4.appendChild(options);
+          }
+
+          divVal4.appendChild(labelVal4);
+          divVal4.appendChild(inputVal4);
+
+          form.appendChild(divVal4);
+		 
+		var divVal5 = document.createElement('div');
+          divVal5.className = 'form-group col-sm-3 value_1';
+        	divVal5.id = 'div_destinationColumnValues_'+index;
+
+          var labelVal5 = document.createElement('label');
+          labelVal5.for = 'input_destinationColumnValues_'+index;
+          labelVal5.innerHTML = 'Destination Value';
+
+		  var inputVal5 = document.createElement('select');
+		inputVal5.type = 'text';
+		inputVal5.className = 'form-control';
+		inputVal5.id = 'input_destinationColumnValues_'+index;
+		inputVal5.value = object.destinationColumnValues;
+	    inputVal5.onchange = setOnChange;
+		var destinationColumnValues = [];
+		
+		destinationColumnValues = newDataObject[object.destinationColumnNames];
+		for(var i = 0; i < destinationColumnValues.length; i++){
+			  var options = document.createElement('option');
+			  options.value = destinationColumnValues[i];
+			  options.text = destinationColumnValues[i];
+			  if(options.value == object.destinationColumnValues || options.value == destinationColumnValues[0]){
+				options.selected = 'selected';
+			  }
+			  inputVal5.appendChild(options);
+		  }		 
+          divVal5.appendChild(labelVal5);
+          divVal5.appendChild(inputVal5);
+          form.appendChild(divVal5); 
+		  
+		var divColorVal3 = document.createElement('div');
+            divColorVal3.className = 'form-group col-sm-2 color';
+        	divColorVal3.id = 'div_edgeWidth_'+index;
+
+          var labelColorVal3 = document.createElement('label');
+          labelColorVal3.for = 'input_edgeWidth_'+index;
+          labelColorVal3.innerHTML = 'Width';
+
+          var inputColorVal3 = document.createElement('input');
+          inputColorVal3.type = 'text';
+          inputColorVal3.className = 'form-control';
+          inputColorVal3.id = 'input_edgeWidth_'+index;
+          inputColorVal3.onchange = setOnChange;
+          inputColorVal3.value = object.edgeWidth;
+
+          divColorVal3.appendChild(labelColorVal3);
+          divColorVal3.appendChild(inputColorVal3);
+
+          form.appendChild(divColorVal3);
+
+          var divColorVal = document.createElement('div');
+            divColorVal.className = 'form-group col-sm-2 color';
+        	divColorVal.id = 'div_edgeColor_'+index;
+
+          var labelColorVal = document.createElement('label');
+          // labelColorVal.for = 'input_edgeColor_'+index;
+          labelColorVal.innerHTML = 'edge Color';
+
+          var inputColorVal = document.createElement('div');
+          //inputColorVal.type = 'text';
+          //inputColorVal.className = 'form-control';
+          inputColorVal.id = 'input_edgeColor_'+index;
+          //inputColorVal.onchange = setOnChange;
+          //inputColorVal.value = object.edgeColor;
+
+          divColorVal.appendChild(labelColorVal);
+          divColorVal.appendChild(inputColorVal);
+
+          form.appendChild(divColorVal);
+          
+          var delButton = document.createElement('button');
+          delButton.id = 'delete_'+index;
+          delButton.classList = 'btn btn-danger col-sm-1';
+          delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+          delButton.onclick = function(d){
+            var index = d.target.id.split('_')[1];
+            conditionArr.splice(index, 1);
+            adhocScripts.setVariable("conditionArr", conditionArr);
+            $(this).parent().remove();
+          };
+          delButton.style.marginTop = '25px';
+
+          form.appendChild(delButton);
+
+          return form;
+
+          function setOnChange(d){
+            var len = d.target.id.split('_').length;
+            var x = d.target.id.split('_')[2];
+            var key = d.target.id.split('_')[1];
+			var val = d.target.value;
+            conditionArr[x][key] = val;
+            adhocScripts.setVariable("conditionArr", conditionArr);
+          }
+        }
+		
+		function setColorValue(paylod){			  
+            var len = paylod['id'].split('_').length;
+            var x = paylod['id'].split('_')[2];
+            var key = paylod['id'].split('_')[1];
+            var val = paylod['edgeColor'];
+
+			conditionArr[x][key] = val;
+			adhocScripts.setVariable("conditionArr", conditionArr);			  
+		  }
+
+				function spectrumFtn(id,Obj){
+					//console.log(Obj);
+						
+					HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.edgeColor) ? Obj.edgeColor : 'rgba(255,255,255,1)' ,
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								setColorValue({id:id,edgeColor:rgbaCode});
+							}
+						});		
+						
+					/*$("#"+id).spectrum({
+				//		showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+
+						},
+						change: function(color) {
+							adhocScripts.setVariable("background",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});	*/
+				}
+				$(".modal-footer .btn-primary").on('click', function() {
+					
+				});
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

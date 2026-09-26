@@ -1,0 +1,137 @@
+{
+    "id":  "threadPoolConfig",
+    "title":  "Thread Pool",
+    "description":  "Worker pool sizes, timeouts, and monitoring.",
+    "file":  "threadPoolConfig.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "Pool Size",
+                         "key":  "sizes",
+                         "fields":  [
+                                        {
+                                            "name":  "corePoolSize",
+                                            "path":  "threadPoolConfig/corePoolSize",
+                                            "label":  "Core Pool Size",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Initial core threads.",
+                                            "min":  1
+                                        },
+                                        {
+                                            "name":  "maxPoolSize",
+                                            "path":  "threadPoolConfig/maxPoolSize",
+                                            "label":  "Max Pool Size",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Maximum worker threads.",
+                                            "min":  1
+                                        },
+                                        {
+                                            "name":  "queueCapacity",
+                                            "path":  "threadPoolConfig/queueCapacity",
+                                            "label":  "Queue Capacity",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Max queued tasks before rejection.",
+                                            "min":  0
+                                        },
+                                        {
+                                            "name":  "threadPoolPrefix",
+                                            "path":  "threadPoolConfig/threadPoolPrefix",
+                                            "label":  "Thread Name Prefix",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Prefix for worker thread names."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Timeouts",
+                         "key":  "timeouts",
+                         "fields":  [
+                                        {
+                                            "name":  "threadPoolTimeout",
+                                            "path":  "threadPoolConfig/threadPoolTimeout",
+                                            "label":  "Pool Timeout (ms)",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Idle wait before cleanup."
+                                        },
+                                        {
+                                            "name":  "taskTimeout",
+                                            "path":  "threadPoolConfig/taskTimeout",
+                                            "label":  "Task Timeout",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Max task execution time."
+                                        },
+                                        {
+                                            "name":  "taskTimeoutUnit",
+                                            "path":  "threadPoolConfig/taskTimeoutUnit",
+                                            "label":  "Task Timeout Unit",
+                                            "type":  "select",
+                                            "span":  12,
+                                            "description":  "Unit for task timeout.",
+                                            "options":  [
+                                                            {
+                                                                "value":  "MILLISECONDS",
+                                                                "label":  "MILLISECONDS"
+                                                            },
+                                                            {
+                                                                "value":  "SECONDS",
+                                                                "label":  "SECONDS"
+                                                            }
+                                                        ]
+                                        },
+                                        {
+                                            "name":  "maxWaitingTime",
+                                            "path":  "threadPoolConfig/maxWaitingTime",
+                                            "label":  "Max Waiting Time (ms)",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Wait before retry/reject under load."
+                                        }
+                                    ]
+                     },
+                     {
+                         "title":  "Monitoring",
+                         "key":  "monitor",
+                         "fields":  [
+                                        {
+                                            "name":  "threadPoolMonitorPeriod",
+                                            "path":  "threadPoolConfig/threadPoolMonitorPeriod",
+                                            "label":  "Monitor Period (sec)",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "How often pool health is checked."
+                                        },
+                                        {
+                                            "name":  "waitForTasksToCompleteOnShutdown",
+                                            "path":  "threadPoolConfig/waitForTasksToCompleteOnShutdown",
+                                            "label":  "Wait On Shutdown",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Wait for tasks before shutdown."
+                                        },
+                                        {
+                                            "name":  "allowCoreThreadTimeOut",
+                                            "path":  "threadPoolConfig/allowCoreThreadTimeOut",
+                                            "label":  "Allow Core Timeout",
+                                            "type":  "boolean",
+                                            "span":  12,
+                                            "description":  "Core threads may time out when idle."
+                                        },
+                                        {
+                                            "name":  "threadPoolMaxMemory",
+                                            "path":  "threadPoolConfig/threadPoolMaxMemory",
+                                            "label":  "Max Memory (MB)",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Memory threshold for pool ops."
+                                        }
+                                    ]
+                     }
+                 ]
+}

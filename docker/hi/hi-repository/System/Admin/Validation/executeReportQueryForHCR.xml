@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData mandatory="true">
+    <!--<jsFunction name="validate" language="groovy"><![CDATA[
+        import net.sf.json.JSONArray
+        import net.sf.json.JSONObject
+
+        def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+
+            if (requestJson.has("mapJson")) {
+            JSONObject mapJSON = requestJson.getJSONObject("mapJson");
+            if (!(mapJSON.has("dir") || mapJSON.has("temp_uuid"))) {
+                responseJson.put("dir", "The required dir/temp-uuid in the formData is missing");
+
+            }
+            if (mapJSON.has("efwd")) {
+                JSONObject efwdJson = mapJSON.getJSONObject("efwd");
+                String efwdFileName = efwdJson.optString("file", null);
+                if (efwdFileName == null)
+                    responseJson.put("efwd", "The required file in the efwd in formData is missing");
+                else if (efwdFileName.isEmpty())
+                    responseJson.put("efwd", "The required file in the efwd in formData cannot be empty");
+
+            } 
+        } else {
+            responseJson.put("mapJson", "The required mapJson in the formData is missing");
+
+        }
+        return responseJson;
+
+        }
+        ]]>
+    </jsFunction>-->
+</formData>

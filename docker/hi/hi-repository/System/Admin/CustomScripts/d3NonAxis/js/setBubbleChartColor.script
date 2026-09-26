@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3NonAxis_js_setBubbleChartColor</scriptId>
+    <scriptType>js</scriptType>
+    <name>Set Bubble Chart Color</name>
+    <group>D3Bubble</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Set Bubble chart Color</description>
+    <icon>/images/scriptIcons/Set_Bubbllechart_color.png</icon>
+    <snippet>
+		<![CDATA[
+		if(hi_container.isSet("preExecution")){
+			hi_container.extend("preExecution", extendSetChartColor);	
+		}
+		else{
+			hi_container.set("preExecution", setNodeColor);
+		}
+		function setNodeColor(c){
+			var viz_Options = c.get("viz_Options");
+			viz_Options = chartNodeColor(viz_Options);
+			c.set("viz_Options",viz_Options);
+		}
+		function extendSetChartColor(preExecution,c){
+			var viz_Options = c.get("viz_Options");
+			viz_Options = chartNodeColor(viz_Options);
+		}
+		function chartNodeColor(viz_Options){
+			 var parameters = ${conditionArr};
+			 var chartColor={};
+			 var nodeRadius=[];
+			 var paramlength = parameters.length;
+			  for(i = 0; i < paramlength; i++){
+				  if(parameters[i].columnValues.length > 0){					  
+					chartColor[parameters[i].columnValues] = parameters[i].nodeColor;
+				  }
+				  else{
+					  chartColor[parameters[i].columnNames] = parameters[i].nodeColor;
+				  }
+			 }
+			viz_Options.chartOptions.bubbleChart={
+				data:{
+					colors:chartColor
+				}
+			}
+			return viz_Options;
+		}	
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="[]" name="conditionArr" type= "String" />
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+		<style>
+		</style>
+		<div id="addButtonPanel" style="margin-left: 15px;">
+        <label for='addButton' class='col-sm-3' >Add new</label>
+        <button id='addButton' class='btn btn-primary addButton col-sm-2' onclick='addConditionPanel({nodeColor: "rgba(124,184,47,1)", columnNames: "",columnValues:""}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+			<script>
+			var abc = adhocScripts.getAllVariables();
+				adhocScripts.resetAll();
+				var dataObject = window.frames[0].__hi_result.data;
+				var metadataObject = window.frames[0].__hi_result.metadata[0];
+				var columns = Object.keys(dataObject[0]);
+				var DimensionName = [];
+				var MeasureName = [];
+				
+				for(iter = 1; iter <= columns.length; iter++){
+					if(metadataObject[iter].type === 'text' || metadataObject[iter].type === 'dateTime'){
+						DimensionName.push(metadataObject[iter].name);
+					}
+					if(metadataObject[iter].type === 'numeric'){
+						MeasureName.push(metadataObject[iter].name);
+					}
+				}
+				var newDataObject = {};
+				for(iter = 0; iter < DimensionName.length; iter++){
+					var firstColumnValues = [];
+					var filteredArray = [];
+					firstColumnValues = dataObject.map(function(x){
+						return x[DimensionName[iter]];
+					});	
+					filteredArray = firstColumnValues.filter(function(item, pos){
+						return firstColumnValues.indexOf(item)== pos; 
+					});
+					newDataObject[DimensionName[iter]] = filteredArray;
+				}
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+
+			
+			var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+			var tgtPanel = 'conditionList';
+
+
+        function createConditionList(conditionArr){
+            if(conditionArr.length == 0){
+				//conditionArr.push({color: "#7cb82f", value: filteredArray[0]});
+            }
+		    adhocScripts.setVariable("conditionArr", conditionArr);	
+			for(var i = 0 ; i < conditionArr.length; i++){
+				var div = createConditionPanel(conditionArr[i], i);
+				document.getElementById(tgtPanel).appendChild(div);
+				spectrumFtn('input_nodeColor_'+i, conditionArr[i]);
+			}
+        }
+		
+		createConditionList(conditionArr, tgtPanel);
+		
+		var columnNames = DimensionName.concat(MeasureName);
+        function addConditionPanel(object, tgtPanel){
+			if(object.columnNames.length == 0){
+				object.columnNames = columnNames[0];
+			}
+			if(object.columnValues.length == 0){
+				object.columnValues = newDataObject[columnNames[0]][0];
+			}
+			conditionArr.push(object);
+            adhocScripts.setVariable("conditionArr", conditionArr);	
+		  var conditionArrLength = conditionArr.length;	
+	          var index = conditionArr.length-1;
+			  var div = createConditionPanel(object, index);
+			  document.getElementById(tgtPanel).appendChild(div);
+			  spectrumFtn('input_nodeColor_'+index, object);  
+			  spectrumFtn('input_edgeColor_'+index, object);
+        }
+
+        function createConditionPanel(object, index){
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12 dataSet';
+		  
+          var divVal1 = document.createElement('div');
+          divVal1.className = 'form-group col-sm-4 value_1';
+        	divVal1.id = 'div_columnNames_'+index;
+
+          var labelVal1 = document.createElement('label');
+          labelVal1.for = 'input_columnNames_'+index;
+          labelVal1.innerHTML = 'Column Names';
+
+		var inputVal1 = document.createElement('select');
+		inputVal1.type = 'text';
+		inputVal1.className = 'form-control';
+		inputVal1.id = 'input_columnNames_'+index;
+		inputVal1.value = object.columnNames;
+	    inputVal1.onchange = setOnChangeName;
+		
+		for(var i = 0; i < columnNames.length; i++){
+              var options = document.createElement('option');
+              options.value = columnNames[i];
+              options.text = columnNames[i];
+			  if(options.value == object.columnNames || options.value == columnNames[0]){
+                options.selected = 'selected';
+			  }
+              inputVal1.appendChild(options);
+          }
+
+          divVal1.appendChild(labelVal1);
+          divVal1.appendChild(inputVal1);
+
+          form.appendChild(divVal1);
+
+		  var divVal2 = document.createElement('div');
+          divVal2.className = 'form-group col-sm-3 value_1';
+        	divVal2.id = 'div_columnValues_'+index;
+
+          var labelVal2 = document.createElement('label');
+          labelVal2.for = 'input_columnValues_'+index;
+          labelVal2.innerHTML = 'Column Values';
+
+		var inputVal2 = document.createElement('select');
+		inputVal2.type = 'text';
+		inputVal2.className = 'form-control';
+		inputVal2.id = 'input_columnValues_'+index;
+		inputVal2.value = object.columnValues;
+	    inputVal2.onchange = setOnChange;
+			
+			if(MeasureName.indexOf(object.columnNames) > -1){
+				inputVal2.disabled = 'disabled';
+			}
+			
+			else{
+				var selectedColumnValues = [];
+				selectedColumnValues = newDataObject[object.columnNames];
+				for(var i = 0; i < selectedColumnValues.length; i++){
+				  var options = document.createElement('option');
+				  options.value = selectedColumnValues[i]; 
+				  options.text = selectedColumnValues[i];
+				  if(options.value == object.columnValues || options.value == selectedColumnValues[0]){
+					options.selected = 'selected';
+				  }
+				  inputVal2.appendChild(options);
+			    }
+			}
+			
+			function columnValuesOptions(key,index){
+				var input = document.getElementById("input_columnValues_"+index);
+				var length = input.options.length;
+				input.options.length = 0;
+				var selectedColumnValues = [];
+
+				if(MeasureName.indexOf(object.columnNames) > -1){
+					input.disabled = 'disabled';
+					conditionArr[index]["columnValues"] = '';
+				}
+				else{
+					input.disabled = '';
+					selectedColumnValues = newDataObject[object.columnNames];
+				    for(var i = 0; i < selectedColumnValues.length; i++){
+					  var options = document.createElement('option');
+					  options.value = selectedColumnValues[i];
+					  options.text = selectedColumnValues[i];
+					  if(options.value == object.columnValues || options.value == selectedColumnValues[0]){
+						options.selected = 'selected';
+					  }
+					  input.appendChild(options);
+				    }
+				  conditionArr[index]["columnValues"] = selectedColumnValues[0];
+				  adhocScripts.setVariable("conditionArr", conditionArr);
+				}
+			}
+
+            divVal2.appendChild(labelVal2);
+            divVal2.appendChild(inputVal2);
+            form.appendChild(divVal2); 
+		  
+			function setOnChangeName(d){
+				setOnChange(d);
+				var len = d.target.id.split('_').length;
+				var x = d.target.id.split('_')[2];
+				var key = d.target.id.split('_')[1];
+				columnValuesOptions(key,x);
+			}
+
+            var divColorVal = document.createElement('div');
+            divColorVal.className = 'form-group col-sm-2 color';
+        	divColorVal.id = 'div_nodeColor_'+index;
+
+            var labelColorVal = document.createElement('label');
+            labelColorVal.innerHTML = 'Node Color';
+
+            var inputColorVal = document.createElement('div');
+       
+            inputColorVal.id = 'input_nodeColor_'+index;
+            divColorVal.appendChild(labelColorVal);
+			divColorVal.appendChild(inputColorVal);
+
+			form.appendChild(divColorVal);
+			  
+			var delButton = document.createElement('button');
+			delButton.id = 'delete_'+index;
+			delButton.classList = 'btn btn-danger col-sm-1';
+			delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+			delButton.onclick = function(d){
+				var index = d.target.id.split('_')[1];
+				conditionArr.splice(index, 1);
+				adhocScripts.setVariable("conditionArr", conditionArr);
+				$(this).parent().remove();
+			    };
+			delButton.style.marginTop = '25px';
+			form.appendChild(delButton);
+			return form;
+
+
+
+				function setOnChange(d){
+					var len = d.target.id.split('_').length;
+					var x = d.target.id.split('_')[2];
+					var key = d.target.id.split('_')[1];
+					var val = d.target.value;
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);
+				  }
+				}
+		
+				function setColorValue(paylod){			  
+					var len = paylod['id'].split('_').length;
+					var x = paylod['id'].split('_')[2];
+					var key = paylod['id'].split('_')[1];
+					var val = paylod['nodeColor'];
+
+					conditionArr[x][key] = val;
+					adhocScripts.setVariable("conditionArr", conditionArr);
+				}
+
+				function spectrumFtn(id,Obj){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.nodeColor) ? Obj.nodeColor : 'rgba(255,255,255,1)',
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								setColorValue({id:id,nodeColor:rgbaCode});
+							}
+						});	
+					
+				}
+				$(".modal-footer .btn-primary").on('click', function() {
+					
+				});
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

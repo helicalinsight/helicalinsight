@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<formData>
+	<formats arrayType="text" required="true" type="simpleArray"/>
+	<recipients arrayType="email" required="true"/>
+	<reportSourceType required="true" type="reportType"/>
+	<subject required="true"/>
+	<!--body type="htmlContent"/-->
+	<reportName maxLength="250" required="true" type="filename"/>
+</formData>

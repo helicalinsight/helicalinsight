@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_tickCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Axis Tick</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Axis Tick Customization</description>
+    <icon>/images/scriptIcons/AxisTick.png</icon>
+    <snippet>
+		<![CDATA[
+		
+				var id = hi_container.get("renderId");
+			
+				if(id== ""){
+					var chartId = '#chart'+id;
+					var containerId="#main"+id;
+					
+					var xtick= chartId+" .c3-axis-x .tick";
+					var xtext= chartId+" .c3-axis-x .tick text tspan";
+					
+					var ytick= chartId+" .c3-axis-y .tick";
+					var ytext= chartId+" .c3-axis-y .tick text tspan";
+					
+					var y2tick= chartId+" .c3-axis-y2 .tick";
+					var y2text= chartId+" .c3-axis-y2 .tick text tspan";
+				}
+				else{
+					var chartId = '#chart-'+id;
+					var containerId="#main-"+id;
+					
+					var xtick= chartId+" .c3-axis-x .tick";
+					var xtext= chartId+" .c3-axis-x .tick text tspan";
+					
+					var ytick= chartId+" .c3-axis-y .tick";
+					var ytext= chartId+" .c3-axis-y .tick text tspan";
+					
+					var y2tick= chartId+" .c3-axis-y2 .tick";
+					var y2text= chartId+" .c3-axis-y2 .tick text tspan";
+					
+				}
+				var ftnObj = {};
+				
+				ftnObj['axisTickCustomization'+id]= function(c){
+					
+						$(xtick).css({'display': '${x-axis-tick-display}',
+													'font-size':'${XfntSize}px'});
+
+						$(xtext).css({ 'fill': '${xAxisTickColor}',
+										'font-family':'${XfntFmly}'});
+										
+										
+						$(ytick).css({'display': '${y-axis-tick-display}',
+													'font-size':'${YfntSize}px'});
+
+						$(ytext).css({ 'fill': '${yAxisTickColor}',
+										'font-family':'${YfntFmly}'});
+
+						$(y2tick).css({'display': '${y2-axis-tick-display}',
+													'font-size':'${Y2fntSize}px'});
+
+						$(y2text).css({ 'fill': '${y2AxisTickColor}',
+										'font-family':'${Y2fntFmly}'});
+					
+				}
+		
+		
+		
+				if(!hi_container.isSet("postExecution")){
+					hi_container.set("postExecution", ftnObj['axisTickCustomization'+id]);
+				}
+				else{
+					hi_container.extend("postExecution", ftnObj['axisTickCustomization'+id]);
+				}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="block" name="x-axis-tick-display" type="String"/>
+		<parameter value="#000000" name="xAxisTickColor" type="String"/>
+		<parameter value="12" name="XfntSize" type="String"/>
+		<parameter value="12" name="YfntSize" type="String"/>
+		<parameter value="12" name="Y2fntSize" type="String"/>
+		<parameter value="Arial" name="XfntFmly" type="String" />
+		<parameter value="Arial" name="YfntFmly" type="String" />
+		<parameter value="Arial" name="Y2fntFmly" type="String" />
+		<parameter value="true" name="xSwitch" type="String"/>
+		<parameter value="block" name="y-axis-tick-display" type="String"/>
+		<parameter value="block" name="y2-axis-tick-display" type="String"/>
+		<parameter value="#000000" name="yAxisTickColor" type="String"/>
+		<parameter value="#000000" name="y2AxisTickColor" type="String"/>
+		<parameter value="true" name="ySwitch" type="String"/>
+		<parameter value="true" name="y2Switch" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.toggle_label{
+					text-align: center;
+				}
+				
+				.extendMarginTop {
+					margin-top: 15px;
+				}
+
+				.extendMarginBot {
+					margin-bottom: 15px;
+				}
+			</style>
+			<div class="container-fluid">
+				<div class="xAxis">
+					<h4 id="xAxisLabel" class="col-sm-12">
+						<strong>X-Axis</strong>
+					</h4>
+					<div class="clearfix"></div>
+					<div id="xToggle" class="xToggle row extendMarginBot">
+						<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-1 toggle_label toggle_label_hide">
+							<label>Hide Tick</label>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-4 switch xSwitch" id="xSwitch">
+							<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='xSwitchToggle(event)' />
+							<label for="cmn-toggle-1"></label>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+							<label>Show Tick</label>
+						</div>
+					</div>
+					
+					<div class="form-horizontal">
+						<div id="xCustomization" class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="x_axis_font_size">Font Size</label>
+							<div class="col-sm-2 col-md-3 col-xs-12">
+								<input class="form-control" id="x_axis_font_size" type="number" onchange="XfontSize(this)">
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label XFontFamily" for="Xfntfmly">Font Family</label>
+							<div class="col-sm-4 col-md-4 col-xs-12">
+						 		<select class="form-control" id="Xfntfmly" onchange="XfonFamily(this);"> 
+									<option value="Arial">Arial</option>
+					  				<option value="Arial Black">Arial Black</option>
+					  				<option value="Comic Sans MS">Comic Sans MS</option>
+					  				<option value="Courier New">Courier New</option>
+					  				<option value="Garamond">Garamond</option>
+					  				<option value="Georgia">Georgia</option>
+					  				<option value="Helvetica Neue">Helvetica Neue</option>
+					  				<option value="Impact">Impact</option>
+					  				<option value="Lucida Bright">Lucida Bright</option>
+					  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+					  				<option value="Platino">Platino</option>
+					  				<option value="Palatino Linotype">Palatino Linotype</option>
+					  				<option value="Tahoma">Tahoma</option>
+					  				<option value="Times New Roman">Times New Roman</option>
+					  				<option value="Trebuchet MS">Trebuchet MS</option>
+					  				<option value="Verdana">Verdana</option>
+						 		</select>
+							</div>
+							<div class="clearfix"></div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label xFontColor extendMarginTop" for="x_axis_tick_color">Font Color</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 extendMarginTop">
+								<div id="x_axis_tick_color"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<hr>
+				<div class="yAxis">
+					<h4 id="yAxisLabel" class="col-sm-12"><strong>Y-Axis</strong></h4>
+			
+					<div id="yToggle" class="xToggle row extendMarginBot" >
+						<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-1 toggle_label toggle_label_hide">
+							<label>Hide Tick</label>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-4 switch ySwitch" id="ySwitch">
+							<input id="cmn-toggle-2" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='ySwitchToggle(event)' />
+							<label for="cmn-toggle-2"></label>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+							<label>Show Tick</label>
+						</div>
+					</div>
+					<div class="clearfix"></div>
+					<div class="form-horizontal">
+						<div id="yCustomization" class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label yFontFamily" for="y_axis_font_size">Font Size</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 yFontColor">
+								<input class="form-control" id="y_axis_font_size" type="number" min="0" max="21" onchange="YfontSize(this)">
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="Yfntfmly">Font Family</label>
+							<div class="col-sm-4 col-md-4 col-xs-12">
+								<select class="form-control" id="Yfntfmly" onchange="YfonFamily(this);"> 
+									<option value="Arial">Arial</option>
+					  				<option value="Arial Black">Arial Black</option>
+					  				<option value="Comic Sans MS">Comic Sans MS</option>
+					  				<option value="Courier New">Courier New</option>
+					  				<option value="Garamond">Garamond</option>
+					  				<option value="Georgia">Georgia</option>
+					  				<option value="Helvetica Neue">Helvetica Neue</option>
+					  				<option value="Impact">Impact</option>
+					  				<option value="Lucida Bright">Lucida Bright</option>
+					  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+					  				<option value="Platino">Platino</option>
+					  				<option value="Palatino Linotype">Palatino Linotype</option>
+					  				<option value="Tahoma">Tahoma</option>
+					  				<option value="Times New Roman">Times New Roman</option>
+					  				<option value="Trebuchet MS">Trebuchet MS</option>
+					  				<option value="Verdana">Verdana</option>
+								 </select>								
+							</div>
+							<div class="clearfix"></div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label extendMarginTop" for="y_axis_tick_color">Font Color</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 extendMarginTop">
+								<div id="y_axis_tick_color"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<hr>
+				<div class="y2Axis">
+					<h4 id="y2AxisLabel" class="col-sm-12"><strong>Y2-Axis</strong></h4>
+			
+					<div id="y2Toggle" class="xToggle row extendMarginBot" >
+						<div class="col-sm-3 col-md-3 col-xs-4 col-sm-offset-1 toggle_label toggle_label_hide">
+							<label>Hide Tick</label>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-4 switch y2Switch" id="y2Switch">
+							<input id="cmn-toggle-3" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='y2SwitchToggle(event)' />
+							<label for="cmn-toggle-3"></label>
+						</div>
+						<div class="col-sm-3 col-md-3 col-xs-4 toggle_label toggle_label_show">
+							<label>Show Tick</label>
+						</div>
+					</div>
+					<div class="clearfix"></div>
+					<div class="form-horizontal">
+						<div id="y2Customization" class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label y2FontFamily" for="y2_axis_font_size">Font Size</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 y2FontColor">
+								<input class="form-control" id="y2_axis_font_size" type="number" onchange="Y2fontSize(this)">
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="Y2fntfmly">Font Family</label>
+							<div class="col-sm-4 col-md-4 col-xs-12">
+								<select class="form-control" id="Y2fntfmly" onchange="Y2fonFamily(this);"> 
+									<option value="Arial">Arial</option>
+					  				<option value="Arial Black">Arial Black</option>
+					  				<option value="Comic Sans MS">Comic Sans MS</option>
+					  				<option value="Courier New">Courier New</option>
+					  				<option value="Garamond">Garamond</option>
+					  				<option value="Georgia">Georgia</option>
+					  				<option value="Helvetica Neue">Helvetica Neue</option>
+					  				<option value="Impact">Impact</option>
+					  				<option value="Lucida Bright">Lucida Bright</option>
+					  				<option value="Lucida Sans Unicode">Lucida Sans Unicode</option>
+					  				<option value="Platino">Platino</option>
+					  				<option value="Palatino Linotype">Palatino Linotype</option>
+					  				<option value="Tahoma">Tahoma</option>
+					  				<option value="Times New Roman">Times New Roman</option>
+					  				<option value="Trebuchet MS">Trebuchet MS</option>
+					  				<option value="Verdana">Verdana</option>
+								 </select>								
+							</div>
+							<div class="clearfix"></div>
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label extendMarginTop" for="y2_axis_tick_color">Font Color</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 extendMarginTop">
+								<div id="y2_axis_tick_color"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				//Set global variable from parameter
+				adhocScripts.setVariable("xSwitch",params.xSwitch);
+				adhocScripts.setVariable("xAxisTickColor",params.xAxisTickColor);
+				adhocScripts.setVariable("ySwitch",params.ySwitch);
+				adhocScripts.setVariable("y2Switch",params.y2Switch);
+				adhocScripts.setVariable("yAxisTickColor",params.yAxisTickColor);
+				adhocScripts.setVariable("y2AxisTickColor",params.y2AxisTickColor);
+				adhocScripts.setVariable("XfntSize",params.XfntSize);
+                adhocScripts.setVariable("YfntSize",params.YfntSize);
+                adhocScripts.setVariable("Y2fntSize",params.Y2fntSize);
+                adhocScripts.setVariable("XfntFmly",params.XfntFmly);
+                adhocScripts.setVariable("YfntFmly",params.YfntFmly);
+                adhocScripts.setVariable("Y2fntFmly",params.Y2fntFmly);
+				
+				
+				function setYAxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor",event.value);
+				}
+				function setY2AxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor",event.value);
+				}
+				function setXAxisColor(event){
+				//	adhocScripts.setVariable("yAxisTickColor",event.value);
+				}
+
+				function spectrumFtn(){
+					HDIUI.renderColorPicker({
+						id:"y2_axis_tick_color",
+						color:adhocScripts.getVariable("y2AxisTickColor"),
+						change:function(color){								
+							adhocScripts.setVariable("y2AxisTickColor",color['hexCode']);
+						}
+					});
+			
+					HDIUI.renderColorPicker({
+						id:"y_axis_tick_color",
+						color:adhocScripts.getVariable("yAxisTickColor"),
+						change:function(color){								
+							adhocScripts.setVariable("yAxisTickColor",color['hexCode']);
+						}
+					});
+					HDIUI.renderColorPicker({
+						id:"x_axis_tick_color",
+						color:adhocScripts.getVariable("xAxisTickColor"),
+						change:function(color){								
+							adhocScripts.setVariable("xAxisTickColor",color['hexCode']);
+						}
+					});
+				}	
+
+				if(adhocScripts.getVariable('xSwitch') == 'true'){
+					$('#xCustomization').css({"display" : "block"});
+					$('#xCustomizationdivide').css({"display" : "block"});					
+					adhocScripts.setVariable("x-axis-tick-display", 'block');
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				}else{
+					$('#xCustomization').css({"display" : "none"});
+					$('#xCustomizationdivide').css({"display" : "none"});
+					adhocScripts.setVariable("x-axis-tick-display", 'none');
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+				
+				if(adhocScripts.getVariable('ySwitch') == 'true'){
+					$('#yCustomization').css({"display" : "block"});
+					$('#yCustomizationdivide').css({"display" : "block"});
+					adhocScripts.setVariable("y-axis-tick-display", 'block');
+					$('#cmn-toggle-2').attr('checked', 'checked');
+				}else{
+					$('#yCustomization').css({"display" : "none"});
+					$('#yCustomizationdivide').css({"display" : "none"});
+					adhocScripts.setVariable("y-axis-tick-display", 'none');
+					$('#cmn-toggle-2').removeAttr('checked');
+				}
+				
+				if(adhocScripts.getVariable('y2Switch') == 'true'){
+					$('#y2Customization').css({"display" : "block"});
+					$('#y2Customizationdivide').css({"display" : "block"});
+					adhocScripts.setVariable("y2-axis-tick-display", 'block');
+					$('#cmn-toggle-3').attr('checked', 'checked');
+				}else{
+					$('#y2Customization').css({"display" : "none"});
+					$('#y2Customizationdivide').css({"display" : "none"});
+					adhocScripts.setVariable("y2-axis-tick-display", 'none');
+					$('#cmn-toggle-3').removeAttr('checked');
+				}
+				
+				function xSwitchToggle(event){
+					if(adhocScripts.getVariable('xSwitch') == 'false'){
+						$('#xCustomization').css({"display" : "block"});
+						$('#xCustomizationdivide').css({"display" : "block"});
+						adhocScripts.setVariable("x-axis-tick-display", 'block');
+						adhocScripts.setVariable("xSwitch", 'true');
+					}
+					else{
+						$('#xCustomization').css({"display" : "none"});
+						$('#xCustomizationdivide').css({"display" : "none"});
+						adhocScripts.setVariable("x-axis-tick-display", 'none');
+						adhocScripts.setVariable("xSwitch", 'false');
+					}
+				}
+				
+				function ySwitchToggle(event){
+					if(adhocScripts.getVariable('ySwitch') == 'false'){
+						$('#yCustomization').css({"display" : "block"});
+						$('#yCustomizationdivide').css({"display" : "block"});
+						adhocScripts.setVariable("y-axis-tick-display", 'block');
+						adhocScripts.setVariable("ySwitch", 'true');
+					}
+					else{
+						$('#yCustomization').css({"display" : "none"});
+						$('#yCustomizationdivide').css({"display" : "none"});
+						adhocScripts.setVariable("y-axis-tick-display", 'none');
+						adhocScripts.setVariable("ySwitch", 'false');
+					}
+				}
+				
+				function y2SwitchToggle(event){
+					if(adhocScripts.getVariable('y2Switch') == 'false'){
+						$('#y2Customization').css({"display" : "block"});
+						$('#y2Customizationdivide').css({"display" : "block"});
+						adhocScripts.setVariable("y2-axis-tick-display", 'block');
+						adhocScripts.setVariable("y2Switch", 'true');
+					}
+					else{
+						$('#y2Customization').css({"display" : "none"});
+						$('#y2Customizationdivide').css({"display" : "none"});
+						adhocScripts.setVariable("y2-axis-tick-display", 'none');
+						adhocScripts.setVariable("y2Switch", 'false');
+					}
+				}
+				
+				
+				function XfontSize (e){
+					adhocScripts.setVariable("XfntSize",e.value);
+				}
+				 
+				function YfontSize (e){
+					adhocScripts.setVariable("YfntSize",e.value);
+				}
+				
+				function Y2fontSize (e){
+					adhocScripts.setVariable("Y2fntSize",e.value);
+				}
+				 
+				function XfonFamily (e){
+					adhocScripts.setVariable("XfntFmly",e.value);
+				}
+				 
+				function YfonFamily (e){
+					adhocScripts.setVariable("YfntFmly",e.value);
+				}
+				
+				function Y2fonFamily (e){
+					adhocScripts.setVariable("Y2fntFmly",e.value);
+				}
+				
+				$('#x_axis_font_size').val(adhocScripts.getVariable('XfntSize'));
+				$('#y_axis_font_size').val(adhocScripts.getVariable('YfntSize'));
+				$('#y2_axis_font_size').val(adhocScripts.getVariable('Y2fntSize'));
+				$('#Xfntfmly').val(adhocScripts.getVariable('XfntFmly'));
+				$('#Yfntfmly').val(adhocScripts.getVariable('YfntFmly'));
+				$('#Y2fntfmly').val(adhocScripts.getVariable('Y2fntFmly'));
+
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							HDIUI.removeColorPicker({
+								id:"y_axis_tick_color"
+								});
+							HDIUI.removeColorPicker({
+								id:"x_axis_tick_color"
+								});
+							HDIUI.removeColorPicker({
+								id:"y2_axis_tick_color"
+								});
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+				
+				
+				$("#y_axis_font_size").on("keydown keyup", function(e){
+					
+					if($(this).val() > 21 && e.keyCode !== 46 && e.keyCode !== 8)
+					{
+						e.preventDefault();
+						$(this).val(21);
+					}
+				    if($(this).val() < 0  && e.keyCode !== 46 && e.keyCode !== 8)
+					{
+						e.preventDefault();
+						$(this).val(0);
+					}
+					$(this).val() === '' ? $(this).val(0) : $(this).val();
+					
+				}); 
+				
+				
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_tooltipCustomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Tooltip</name>
+    <group>C3Axis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Customize the tooltip</description>
+    <icon>/images/scriptIcons/Tooltip.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+			
+			if(id== ""){
+				
+				var containerId="#main"+id;
+				var chartId="#chart"+id;
+			}
+			else{
+				
+				var containerId="#main-"+id;
+				var chartId="#chart-"+id;
+			}
+			
+			var ftnObj = {};
+			
+			ftnObj['tooltipCustomization'+id]= function(c){
+				
+				if(${visibility}){
+					$(chartId+' .c3-tooltip-container').css({'visibility' : 'true'});
+				}
+				else{
+					$(chartId+' .c3-tooltip-container').css({'visibility' : 'hidden'});
+					Hdi.hiChart.tooltip.hide();
+				}
+				
+				$(chartId+' #tooltip-style'+id).remove();
+				
+				var style = document.createElement('style');
+				style.id = "tooltip-style"+id;
+				
+				var css = 	''+chartId+' .c3-tooltip-container th,'+chartId+' .HI-Core-tooltip th{							'+
+							'  color: ${tooltipHeadingColor};					'+
+							'  background: ${tooltipHeadingBackground};			'+
+							'  font-size:  ${tooltipHeadingFontSize}px;			'+
+							'  font-family: ${tooltipHeadingFontType},"Helvetica Neue",Helvetica,Arial,sans-serif;'+
+							'}													'+
+							'													'+
+							''+chartId+' .c3-tooltip-container td,'+chartId+' .HI-Core-tooltip td{							'+
+							'  color: ${tooltipContentsColor};					'+
+							'  background: ${tooltipContentsBackground};		'+
+							'  font-size: ${tooltipContentsFontSize}px;			'+	
+							'  font-family: ${tooltipContentsFontType},"Helvetica Neue",Helvetica,Arial,sans-serif;'+
+							'}													';
+
+							if (style.styleSheet) {
+					style.styleSheet.cssText = css;
+				} else {
+					style.appendChild(document.createTextNode(css));
+				}
+				
+				document.getElementsByTagName("head")[0].appendChild(style);
+					
+					
+				}
+				
+				if(!hi_container.isSet("postExecution")){
+					
+					hi_container.set("postExecution", ftnObj['tooltipCustomization'+id]);
+				}
+					
+				else{
+					
+					hi_container.extend("postExecution", ftnObj['tooltipCustomization'+id]);
+				}
+				
+			/*
+			function tooltipCustomization(){
+				if(${visibility}){
+					$('.c3-tooltip-container',"#"+id).css({'visibility' : 'true'});
+				}
+				else{
+					$('.c3-tooltip-container',"#"+id).css({'visibility' : 'hidden'});
+					Hdi.hiChart.tooltip.hide();
+				}
+				
+				$('#tooltip-style',"#"+id).remove();
+				
+				var style = document.createElement('style');
+				style.id = "tooltip-style";
+				
+				var css = 	'.c3-tooltip-container th, .HI-Core-tooltip th{							'+
+							'  color: ${tooltipHeadingColor};					'+
+							'  background: ${tooltipHeadingBackground};			'+
+							'  font-size:  ${tooltipHeadingFontSize}px;			'+
+							'  font-family: ${tooltipHeadingFontType},"Helvetica Neue",Helvetica,Arial,sans-serif;'+
+							'}													'+
+							'													'+
+							'.c3-tooltip-container td, .HI-Core-tooltip td{							'+
+							'  color: ${tooltipContentsColor};					'+
+							'  background: ${tooltipContentsBackground};		'+
+							'  font-size: ${tooltipContentsFontSize}px;			'+	
+							'  font-family: ${tooltipContentsFontType},"Helvetica Neue",Helvetica,Arial,sans-serif;'+
+							'}													';
+
+							if (style.styleSheet) {
+					style.styleSheet.cssText = css;
+				} else {
+					style.appendChild(document.createTextNode(css));
+				}
+				
+				document.getElementsByTagName("head")[0].appendChild(style);
+				
+			}
+			*/
+			
+		]]>
+	</snippet>
+	<parameters>
+			<parameter value="true" name="tooltipSwitch" type="String"/>
+			<parameter value="true" name="visibility" type="Boolean"/>
+			<parameter value="#ffffff" name="tooltipHeadingColor" type="String"/>
+			<parameter value="#CCCCCC" name="tooltipHeadingBackground" type="String"/>
+			<parameter value="Arial" name="tooltipHeadingFontType" type="String"/>
+			<parameter value="11" name="tooltipHeadingFontSize" type="String"/>
+			<parameter value="#ffffff" name="tooltipContentsBackground" type="String"/>
+			<parameter value="#000000" name="tooltipContentsColor" type="String"/>
+			<parameter value="Arial" name="tooltipContentsFontType" type="String"/>
+			<parameter value="11" name="tooltipContentsFontSize" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.toggle_label{
+					text-align: center;
+				}
+				
+				.divider { 
+					background-color: #ccc; 
+					height: 1px; 
+					margin-top: 10px; 
+					margin-bottom: 15px; 
+				}
+				
+				.addPad {
+					position: relative;
+					padding: 0 15px;
+				}
+				
+				.extendMargins {
+					margin: 5px -15px;
+				}
+				
+				.addMarginBottom {
+					margin-bottom: 5px;
+				}
+				
+				.headingPanelMargin {
+					margin-bottom: 20px;
+				}
+				
+				.headerMargin {
+					margin-bottom: 12px;
+				}
+			</style>
+			<div class="row">
+				<div class="tooltip_enable_disable">
+					<div class="col-sm-3 col-md-3 col-sm-offset-2 col-md-offset-2 toggle_label toggle_label_hide">
+						<label>Hide Tooltip</label>
+					</div>
+					<div class="col-sm-2 col-md-2 switch tooltipSwitch" id="tooltipSwitch">
+						<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+						<label for="cmn-toggle-1"></label>
+					</div>
+					<div class="col-sm-3 col-md-3 toggle_label toggle_label_show">
+						<label>Show Tooltip</label>
+					</div>
+				</div>
+			</div>
+			<hr class="extendMargins">
+			<div class="customizationPanel" id="customizationPanel" >
+				<div class="row headingPanelMargin" id="heading_pannel">
+					<h4 class="heading_label addPad headerMargin">
+						Tip Heading
+					</h4>
+					<div align="center" id="heading_values_panel">
+						<div class="col-sm-2 col-md-2 col-xs-12 col-sm-offset-1 col-md-offset-1 heading_size">
+							<div class="heading_size_label addMarginBottom">
+								Size
+							</div>
+							<div class="heading_size_value" id="heading_size_value">
+							</div>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-12 heading_font">
+							<div class="heading_font_label addMarginBottom">
+								Font
+							</div>
+							<div class="heading_font_value" id="heading_font_value">
+							</div>
+						</div>
+						<div class="col-sm-2 col-md-2 col-xs-12 heading_color">
+							<div class="heading_color_label addMarginBottom">
+								Color
+							</div>
+							<div class="heading_color_value addMarginBottom">
+								<div id="heading_color_value"></div>
+							</div>
+						</div>
+						<div class="col-sm-2 col-md-2 col-xs-12 heading_background">
+							<div class="heading_background_label addMarginBottom">
+								Background
+							</div>
+							<div class="heading_background_value addMarginBottom">
+								<div id="heading_background_value"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row" id="contents_pannel">
+					<h4 class="contents_label addPad headerMargin">
+						Tip Contents
+					</h4>
+					<div align="center" id="contents_values_panel">
+						<div class="col-sm-2 col-md-2 col-xs-12 col-sm-offset-1 col-md-offset-1 contents_size">
+							<div class="contents_size_label addMarginBottom">
+								Size
+							</div>
+							<div class="contents_size_value" id="contents_size_value">
+							</div>
+						</div>
+						<div class="col-sm-4 col-md-4 col-xs-12 contents_font">
+							<div class="contents_font_label addMarginBottom">
+								Font
+							</div>
+							<div class="contents_font_value" id="contents_font_value">
+							</div>
+						</div>
+						<div class="col-sm-2 col-md-2 col-xs-12 contents_color">
+							<div class="contents_color_label addMarginBottom">
+								Color
+							</div>
+							<div class="contents_color_value">
+								<div id="contents_color_value"></div>
+							</div>
+						</div>
+						<div class="col-sm-2 col-md-2 col-xs-12 contents_background">
+							<div class="contents_background_label addMarginBottom">
+								Background
+							</div>
+							<div class="contents_background_value">
+								<div id="contents_background_value"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+
+				adhocScripts.setVariable("tooltipSwitch", params.tooltipSwitch);
+				adhocScripts.setVariable("visibility", params.visibility);
+				
+				adhocScripts.setVariable("tooltipHeadingFontType", params.tooltipHeadingFontType);
+				adhocScripts.setVariable("tooltipHeadingFontSize", params.tooltipHeadingFontSize);
+				adhocScripts.setVariable("tooltipHeadingColor", params.tooltipHeadingColor);
+				adhocScripts.setVariable("tooltipHeadingBackground", params.tooltipHeadingBackground);
+				adhocScripts.setVariable("tooltipContentsFontType", params.tooltipContentsFontType);
+				adhocScripts.setVariable("tooltipContentsFontSize", params.tooltipContentsFontSize);
+				adhocScripts.setVariable("tooltipContentsColor", params.tooltipContentsColor);
+				adhocScripts.setVariable("tooltipContentsBackground", params.tooltipContentsBackground);
+				
+				
+			/*	var script = document.createElement("script");
+
+				if(window.DashboardGlobals)
+					script.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				else
+					script.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+				script.async = false;
+				document.getElementsByTagName("head")[0].appendChild(script);
+
+				script.onload = function() {
+					spectrumFtn();
+				}
+				
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				else {
+					link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/CrossTab/js/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css"
+				document.getElementsByTagName("head")[0].appendChild(link);   */
+				
+				//set function of toggle switch
+				function switchToggle(event){
+					if(adhocScripts.getVariable('tooltipSwitch') == 'false'){
+						adhocScripts.setVariable("tooltipSwitch", 'true');
+						adhocScripts.setVariable("visibility", 'true');
+						$('.divider').show();
+						$('.customizationPanel').show();
+					}
+					else{
+						adhocScripts.setVariable("tooltipSwitch", 'false');
+						adhocScripts.setVariable("visibility", 'false');
+						$('.divider').hide();
+						$('.customizationPanel').hide();
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('tooltipSwitch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+					$('.divider').show();
+					$('.customizationPanel').show();
+					adhocScripts.setVariable("visibility", 'true');
+				} 
+				else {
+					$('#cmn-toggle-1').removeAttr('checked');
+					$('.divider').hide();
+					$('.customizationPanel').hide();
+					adhocScripts.setVariable("visibility", 'false');
+				}
+				
+				//List of font types (family) to show.
+				//Add new font types (family) to array to increase the list in the UI.
+				//var fontTypeList = ['Arial', 'Verdana', 'Impact', 'Comic Sans MS'];
+				var fontTypeList = ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Garamond", "Georgia", "Helvetica Neue", "Impact", "Lucida Bright", "Lucida Sans Unicode", "Platino", "Palatino Linotype", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana"];
+
+				//Function to create a select menu for font size selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontSizeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('input');
+												selectMenu.type = "number";
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, event.srcElement.value);
+																	};
+												selectMenu.className = id+' form-control';
+												//for(var i = 10; i<= 15; i++){
+													//selectMenu.options[i-10] = new Option(i, i);
+												//}
+												var spanEl = document.createElement("span");
+												$(spanEl).html("<code style='padding: 1px 4px;'>number</code>");
+												$(target).append(selectMenu);
+												$(target).append(spanEl);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+				
+				//Function to create a select menu for font type (family) selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontTypeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('select');
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, event.srcElement.value);
+																	};
+												selectMenu.className = id+' form-control';
+												for(var i = 0; i< fontTypeList.length; i++){
+													selectMenu.options[i] = new Option(fontTypeList[i], fontTypeList[i]);
+												}
+												$(target).append(selectMenu);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+				
+				//Create the font size and font type selectors for basic mode 
+				createFontSizeSelector('#heading_size_value', 'heading_size_value_dropdown', 'tooltipHeadingFontSize');
+				createFontTypeSelector('#heading_font_value', 'heading_font_value_dropdown', 'tooltipHeadingFontType');
+				createFontSizeSelector('#contents_size_value', 'contents_size_value_dropdown', 'tooltipContentsFontSize');
+				createFontTypeSelector('#contents_font_value', 'contents_font_value_dropdown', 'tooltipContentsFontType');
+				
+			/*	$("#heading_color_value").val(adhocScripts.getVariable("tooltipHeadingColor"));
+				$("#heading_background_value").val(adhocScripts.getVariable("tooltipHeadingBackground"));
+				$("#contents_color_value").val(adhocScripts.getVariable("tooltipContentsColor"));
+				$("#contents_background_value").val(adhocScripts.getVariable("tooltipContentsBackground"));		*/
+				
+				function spectrumFtn() {
+					generateColorSelector("contents_background_value", "tooltipContentsBackground");
+					generateColorSelector("contents_color_value", "tooltipContentsColor");
+					generateColorSelector("heading_background_value", "tooltipHeadingBackground");
+					generateColorSelector("heading_color_value", "tooltipHeadingColor");	
+				}
+				
+				function generateColorSelector(id, variable){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:adhocScripts.getVariable(variable),
+							change:function(color){			
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								adhocScripts.setVariable(variable,rgbaCode);
+								//adhocScripts.setVariable(variable, color['hexCode']);
+
+							}
+						});
+					
+					
+				/*	$(id).spectrum({
+						showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+							
+						},
+						show: function () {
+						
+						},
+						beforeShow: function (color) {
+							
+						},
+						hide: function () {
+						
+						},
+						change: function(color) {
+							adhocScripts.setVariable(variable, color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});		*/
+				}
+				
+				function removePicker(id) {
+							HDIUI.removeColorPicker({
+								id:id
+								});
+					
+				}
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							// $("#contents_background_value, #contents_color_value, #heading_background_value, #heading_color_value").spectrum("hide");
+							
+							$(clsBtn).add(okBtn).add(xBtn).on("click", function() {							
+							_.forEach(["contents_background_value", "contents_color_value", "heading_background_value", "heading_color_value"],function(item){
+								removePicker(item);
+							});
+						});
+							
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>
