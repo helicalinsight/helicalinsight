@@ -890,7 +890,8 @@ const DataSourceCreateAndEdit = (props) => {
                   </Form.Item>
                 </Col>
               )}
-            {getSelectedDriverURL(selectedDriverInfo) && (
+            {selectedDriverInfo.driver !== "com.helicalinsight.nosql.mongo" &&
+              getSelectedDriverURL(selectedDriverInfo) && (
               <>
                 <Col span={12}>
                   <Form.Item

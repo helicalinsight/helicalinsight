@@ -248,6 +248,7 @@ const appInitialState = {
   routes: defaultRoutes,
   activeRoute: "",
   isApplicationSettingsServiceCheck: false,
+  applicationSettingsError: null,
   nxtRoute: "",
   toggleSidebar: false,
   showNavbar: true,

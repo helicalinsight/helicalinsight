@@ -176,11 +176,12 @@ const DataSourceDefaultFiles = (props) => {
   };
 
   let shouldRenderFields = editable ? Object.values(editData).length : true; // this is a flag for :: if it is for edit then we should render if edit data is fetched - in this case we are rendering input fields
+  const isMongo = selectedDriverInfo?.driver === "com.helicalinsight.nosql.mongo";
 
   return (
     <>
       <Row gutter={16}>
-        {selectedDriverInfo.parameters &&
+        {!isMongo && selectedDriverInfo.parameters &&
           selectedDriverInfo.parameters.hostName && (
             <Col span={12}>
               <Form.Item
@@ -207,7 +208,7 @@ const DataSourceDefaultFiles = (props) => {
             </Col>
           )}
 
-        {selectedDriverInfo.parameters && selectedDriverInfo.parameters.port && (
+        {!isMongo && selectedDriverInfo.parameters && selectedDriverInfo.parameters.port && (
           <Col span={12}>
             <Form.Item
               data-testid="datasource-port"
@@ -235,7 +236,21 @@ const DataSourceDefaultFiles = (props) => {
       </Row>
 
       <Row gutter={16}>
-        {!checkIfGroovyManaged(clickedActiveDatabaseData) && getSelectedDriverURL(selectedDriverInfo)  === undefined && (
+        {isMongo && (
+          <Col span={12}>
+            <Form.Item
+              name="inputUrl"
+              label="MongoDB Connection URI"
+              initialValue={editable ? editData.jdbcUrl : ""}
+              rules={[{ required: true, message: "Please enter a MongoDB connection URI" }]}
+              extra="Use mongodb:// or mongodb+srv://. Enter credentials in the username and password fields."
+            >
+              <Input placeholder="mongodb+srv://cluster.example.mongodb.net/database?authSource=admin" />
+            </Form.Item>
+          </Col>
+        )}
+
+        {!isMongo && !checkIfGroovyManaged(clickedActiveDatabaseData) && getSelectedDriverURL(selectedDriverInfo)  === undefined && (
           <Col span={12}>
             <Form.Item
               name="inputUrl"

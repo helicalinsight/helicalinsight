@@ -106,7 +106,7 @@ export const getCreateEditFD = (...args) => {
       }
     }
 
-    let jdbcUrl = defaultUrl;
+    let jdbcUrl = driver === "com.helicalinsight.nosql.mongo" ? inputUrl : defaultUrl;
 
     if (checkIfGroovyManaged(clickedActiveDatabaseData)) {
       formData = {

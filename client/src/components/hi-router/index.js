@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector, useStore } from "react-redux";
-import { Empty, Layout, Modal } from "antd";
+import { Button, Empty, Layout, Modal, Result } from "antd";
 import {
   Switch,
   Route,
@@ -64,9 +64,13 @@ export const HIRoutes = () => {
   const isAuthenticated = useSelector((state) => state.app.isAuthenticated);
   const activeRoute = useSelector((state) => state.app.activeRoute);
   const accessDeniedInfo = useSelector((state) => state.app.accessDeniedInfo);
+  const applicationSettingsError = useSelector(
+    (state) => state.app.applicationSettingsError
+  );
   const location = useLocation();
   const { pathname } = location;
   const store = useStore();
+  const dispatch = useDispatch();
 
   const routesMap = useMemo(
     () => ({
@@ -135,6 +139,31 @@ export const HIRoutes = () => {
     if (typeof hasUnsavedData === "boolean") return hasUnsavedData;
     return false;
   };
+
+  if (applicationSettingsError) {
+    return (
+      <Result
+        status="error"
+        title="Helical Insight backend is unavailable"
+        subTitle={applicationSettingsError}
+        extra={
+          <Button
+            type="primary"
+            onClick={() =>
+              dispatch(
+                appActions.updateAppDetails({
+                  applicationSettingsError: null,
+                  isApplicationSettingsServiceCheck: false,
+                })
+              )
+            }
+          >
+            Retry
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     isApplicationSettingsServiceCheck &&

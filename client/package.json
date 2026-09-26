@@ -1,10 +1,9 @@
 {
   "name": "HelicalInsight",
-  "version": "0.1.0",
+  "version": "0.1.0", 
   "private": true,
   "proxy": "http://localhost:8080",
   "dependencies": {
-    "--legacy-peer-deps": "^0.0.1-security.6",
     "@ant-design/flowchart": "^1.2.2",
     "@ant-design/icons": "^5.1.4",
     "@ant-design/maps": "^1.0.6",
@@ -147,7 +146,7 @@
     "xml-js": "1.6.11"
   },
   "scripts": {
-    "start": "node --max_old_space_size=5096 scripts/start",
+    "start": "node --max_old_space_size=5096 --openssl-legacy-provider scripts/start",
     "build": "node --max_old_space_size=5096 scripts/build",
     "build18": "node --max_old_space_size=5096 --openssl-legacy-provider scripts/build",
     "test": "node  --max_old_space_size=8096 scripts/test.js --watchAll=false --silent --maxWorkers=50%",

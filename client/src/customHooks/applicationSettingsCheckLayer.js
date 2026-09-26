@@ -149,16 +149,23 @@ export const applicationSettingsHandler = ({
             dispatch(updateRoute(nxtActiveRoute));
           }
           dispatch(
-            updateAppDetails({
-              isApplicationSettingsServiceCheck: true,
-              isUrlAuthenticating: false,
-            })
+          updateAppDetails({
+            isApplicationSettingsServiceCheck: true,
+            isUrlAuthenticating: false,
+            applicationSettingsError: null,
+          })
           );
         }
         dispatch(storeApplicationSettings(data));
       },
-      (err) => {
-        console.log("applicationSettings service failed");
+      () => {
+        dispatch(
+          updateAppDetails({
+            isApplicationSettingsServiceCheck: true,
+            isUrlAuthenticating: false,
+            applicationSettingsError: "Unable to load application settings. Check that the Helical Insight backend is running, then retry.",
+          })
+        );
       }
     );
 };
