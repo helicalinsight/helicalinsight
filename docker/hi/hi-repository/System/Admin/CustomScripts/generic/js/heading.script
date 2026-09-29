@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>generic_js_heading</scriptId>
+    <scriptType>js</scriptType>
+	<name>Report Heading</name>
+    <group>Generic</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Add report heading to your report</description>
+    <icon>/images/scriptIcons/ReportHeading.png</icon>
+	<snippet>
+		<![CDATA[ 
+		
+			var id = hi_container.get("renderId");
+			
+			var containerId="#main";
+			var chartId = '#chart';
+			var headerId = "#header";
+			var headingId = "#heading";
+			var subHeadingId = "#subHeading";
+			var footerId = "#footer";
+			
+			if(id != ''){
+				containerId = containerId+'-'+id;
+				chartId = chartId+'-'+id;
+				headerId = headerId+'-'+id;
+				headingId = headingId+'-'+id;
+				subHeadingId = subHeadingId+'-'+id;
+				footerId = footerId+'-'+id;
+			}
+						
+			var ftnObj = {};
+			
+			ftnObj['setHeading'+id]= function(){
+				$(headingId).remove();
+				if($('#backbutton_parent').length){
+					
+					$(containerId+ ' #backbutton_parent').after('<div id="'+headingId.substr(1)+'" class="col-sm-12">${headingTextValue}</div>')
+				}
+				else{
+				
+					if($(headerId).length)
+					$('<div id="'+headingId.substr(1)+'" class="col-sm-12">${headingTextValue}</div>').insertAfter($(headerId));
+				else
+					$(containerId).prepend('<div id="'+headingId.substr(1)+'" class="col-sm-12">${headingTextValue}</div>');
+					
+				}
+				
+				$(chartId).addClass('col-sm-12');
+				$(chartId).addClass('nopad');
+				
+			
+				$(headingId).css({	"color":"${color}", 
+									"background-color":"${background}",
+									"text-align":"${align}",
+									"font-family":"${type}",
+									"font-size": "${size}px"});
+									
+				var containerBorder = $(containerId).css('border');
+				containerBorder = parseInt(containerBorder.split(' ')[0].slice(0, -2));
+				var chartBorder = $(chartId).css('border');
+				chartBorder = parseInt(chartBorder.split(' ')[0].slice(0, -2));
+				var calculatedChartHeight = $(containerId).height() - ($(headerId).height() + $(footerId).height() + $(headingId).height() + (2*chartBorder) + (2*containerBorder));
+				
+				//$(chartId).height(calculatedChartHeight);
+				$(containerId).width($(containerId).width() - ((2*chartBorder) + (2*containerBorder)));	
+				$(headerId).css('width', 'auto !important');	
+									
+				if(${bold})
+					$(headingId).css({"font-weight": "bold"});
+				else
+					$(headingId).css({"font-weight": "normal"});
+				
+				if(${italic})
+					$(headingId).css({"font-style": "italic"});
+				else
+					$(+headingId).css({"font-style": "normal"});
+				
+				if(${underline})
+					$(headingId).css({"text-decoration": "underline"});
+				else
+					$(headingId).css({"text-decoration": "none"});
+				
+
+				//trigger Window Resize to resize charts
+				if(window.navigator.userAgent.indexOf('PhantomJS') === -1) {
+					if(window.navigator.userAgent.indexOf('Trident') !== -1 ){
+						var resizeEvent = window.document.createEvent('UIEvents');
+						resizeEvent.initUIEvent('resize', true, false, window, 0);
+						window.dispatchEvent(resizeEvent);
+					}
+					else{
+						window.dispatchEvent(new Event('resize'));
+					}
+					
+				}
+				else{
+						var resizeEvent = window.document.createEvent('UIEvents');
+						resizeEvent.initUIEvent('resize', true, false, window, 0);
+						window.dispatchEvent(resizeEvent);
+				}
+				
+			};
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['setHeading'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['setHeading'+id]);
+			}
+			 
+		]]>
+	</snippet>
+    <parameters>
+        <parameter value="Report Heading" name="headingTextValue" type= "String"/>
+        <parameter value="rgba(0,0,0,1)" name="color" type= "String"/>
+        <parameter value="rgba(255,255,255,0)" name="background" type= "String"/>
+        <parameter value="25" name="size" type= "String"/>
+        <parameter value="Arial" name="type" type= "String"/>
+        <parameter value="center" name="align" type= "String"/>
+        <parameter value="true" name="bold" type= "Boolean"/>
+        <parameter value="false" name="italic" type= "Boolean"/>
+        <parameter value="false" name="underline" type= "Boolean"/>
+		
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+				.image{
+					border-radius: 4px;
+					cursor: pointer;
+				}
+				
+				.selected-decoration, .selected-alignment{
+					border: 1px solid #ccc;
+				}
+				
+				.extendMargins10 {
+					margin: 10px 0;
+				}
+
+				.extMarTop7 {
+					margin-top: 7px !important;
+				}
+
+				.extMarBtm7 {
+					margin-bottom: 7px !important;
+				}
+
+				#headingText{
+					height: inherit;
+				}
+			</style>
+			
+			<div class="container-fluid">
+				<div class="alignment_decoration_panel" id="alignment_decoration_panel"></div>
+				<div class="customization_panel extendMargins10" id="customization_panel">
+					<div class="clearfix"></div>
+					<div class="form-horizontal extendMargins10">
+						<div class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="size_value">Font Size</label>
+							<div class="col-sm-3 col-md-3 col-xs-12 size_value" id="size_value">
+							</div>
+
+							<!-- Font Style -->
+							<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="font_value">Font Style</label>
+							<div class="col-sm-4 col-md-4 col-xs-12 font_value" id="font_value">
+							</div>
+						</div>
+					</div>
+					<div class="form-horizontal">
+						<div class="form-group">
+							<label class="col-sm-2 col-md-2 col-xs-6 control-label" for="color_value">Color
+							</label>
+							<div class="col-sm-3 col-md-3 col-xs-6">
+								<div id="color_value"></div>
+							</div>
+							<label class="col-sm-2 col-md-2 col-xs-6 control-label" for="background_value">
+								Background
+							</label>
+							<div class="col-sm-3 col-md-3 col-xs-6">
+								<div id="background_value"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="heading_text_panel" id="heading_text_panel">
+					<label class="report_heading_label control-label extMarBtm7">
+						Report Heading Text
+					</label>
+					<div style="positio: relative;">
+						<input class="form-control" type="text" name="headingText" id="headingText"/>
+					</div>
+				</div>
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("headingTextValue",params.headingTextValue);
+				adhocScripts.setVariable("color",params.color);
+				adhocScripts.setVariable("background",params.background);
+				adhocScripts.setVariable("size",params.size);
+				adhocScripts.setVariable("type",params.type);
+				adhocScripts.setVariable("align",params.align);
+				adhocScripts.setVariable("bold",params.bold);
+				adhocScripts.setVariable("italic",params.italic);
+				adhocScripts.setVariable("underline",params.underline);
+			
+				var images = [{
+								name: 'alignment',
+								children: [{
+									name: "left-align",
+									value: "left"
+								},{
+									name: "center-align",
+									value: "center"
+								},{
+									name: "right-align",
+									value: "right"
+								}]
+							},{
+								name: "decoration",
+								children: [{
+									name: "bold",
+									value: "bold"
+								},{
+									name: "italic",
+									value: "italic"
+								},{
+									name: "underline",
+									value: "underline"
+								}]
+							}];
+							
+				for(var i = 0; i < images.length; i++){
+					var typeDiv = document.createElement('div');
+					typeDiv.className = "col-sm-6 col-md-6 "+images[i].name;
+					typeDiv.id = images[i].name;
+					
+					for(var j = 0; j < images[i].children.length; j++){
+						var imgDiv = document.createElement('div');
+						imgDiv.className = "col-sm-4 col-md-4 img-div "+images[i].children[j].name;
+						imgDiv.align = "center";
+					
+						var image = document.createElement('img');
+						image.src = window.DashboardGlobals.baseUrl+'/getExternalResource.html?path=System/Admin/CustomScripts/generic/images/'+images[i].children[j].name+'.png';
+						image.id = images[i].children[j].name;
+						image.alt = images[i].children[j].value;
+						image.className = "image img-responsive";
+					
+						imgDiv.appendChild(image);
+						typeDiv.appendChild(imgDiv);
+					}
+					
+					$('#alignment_decoration_panel').append(typeDiv);
+					$('#'+adhocScripts.getVariable('align')+'-align').addClass('selected-alignment');
+					$('#headingText').css({'text-align' : adhocScripts.getVariable('align')});
+				}
+				
+				//List of font types (family) to show.
+				//Add new font types (family) to array to increase the list in the UI.
+				var fontTypeList = ["Arial", "Arial Black", "Comic Sans MS", "Courier New", "Garamond", "Georgia", "Helvetica Neue", "Impact", "Lucida Bright", "Lucida Sans Unicode", "Platino", "Palatino Linotype", "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana"];
+
+				//Function to create a select menu for font size selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontSizeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('input');
+												selectMenu.type = "number";										 
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, $(this).val());
+																		$('#headingText').css({'font-size' : $(this).val()+'px'});
+																	};
+												selectMenu.className = id+' sizeDropDown form-control';
+												//for(var i = 15; i<= 35; i++){
+													//selectMenu.options[i-15] = new Option(i, i);
+												//}
+												var spanEl = document.createElement("span");
+												$(spanEl).html("<code style='padding: 1px 4px;'>number</code>");
+												$(target).append(selectMenu);
+												$(target).append(spanEl);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+				
+				//Function to create a select menu for font type (family) selection.
+				//target : HTML id of the element inside which the select component will be appended.
+				//id : ID to be assigned to the select component. 
+				var createFontTypeSelector = function(target, id, variable){
+												var selectMenu = document.createElement('select');
+												selectMenu.id = id;
+												selectMenu.onchange = function setBasicFontSize(event){
+																		adhocScripts.setVariable(variable, $(this).val());
+																		$('#headingText').css({'font-family' : "'"+$(this).val()+"'"});
+																	};
+												selectMenu.className = id+' fontDropDown form-control';
+												for(var i = 0; i< fontTypeList.length; i++){
+													selectMenu.options[i] = new Option(fontTypeList[i], fontTypeList[i]);
+												}
+												$(target).append(selectMenu);
+												$('#'+id).val(adhocScripts.getVariable(variable));
+											}
+											
+				//Create the font size and font type selectors for basic mode 
+				createFontSizeSelector('#size_value', 'size_value_dropdown', 'size');
+				createFontTypeSelector('#font_value', 'font_value_dropdown', 'type');
+				
+				$("#headingText").css({'background': adhocScripts.getVariable("background"),
+										'color': adhocScripts.getVariable("color"),
+										'font-size': adhocScripts.getVariable("size")+'px',
+										'font-family': adhocScripts.getVariable("font")});
+				$("#headingText").val(adhocScripts.getVariable('headingTextValue'));
+				//Set Bold
+				if(adhocScripts.getVariable("bold") == 'true'){
+					$("#headingText").css({'font-weight': 'bold'});
+					$('#bold').addClass('selected-decoration');
+				}
+				else{
+					$("#headingText").css({'font-weight': 'normal'});
+				}
+				//Set Italic
+				if(adhocScripts.getVariable("italic")  == 'true'){
+					$("#headingText").css({'font-style': 'italic'});
+					$('#italic').addClass('selected-decoration');
+				}
+				else{
+					$("#headingText").css({'font-style': 'normal'});
+				}
+				//Set UnderLine
+				if(adhocScripts.getVariable("underline") == 'true'){
+					$("#headingText").css({'text-decoration': 'underline'});
+					$('#underline').addClass('selected-decoration');
+				}
+				else{
+					$("#headingText").css({'text-decoration': 'none'});
+				}
+			
+
+			
+				function spectrumFtn() {
+					generateColorSelector("background_value", "background");
+					generateColorSelector("color_value", "color");
+				}
+				
+				function generateColorSelector(id, variable){
+					
+					HDIUI.renderColorPicker({
+							id:id,
+							color:adhocScripts.getVariable(variable),
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								adhocScripts.setVariable(variable, rgbaCode)
+								if(variable == 'background')
+									$("#headingText").css({'background': rgbaCode});
+								else if(variable == 'color')
+									$("#headingText").css({'color': rgbaCode});
+							}
+						});
+				}
+				
+				$('.alignment .image').on("click", function(){
+					$('.selected-alignment').removeClass('selected-alignment');
+					$(this).addClass('selected-alignment');
+					adhocScripts.setVariable('align', $(this)[0].alt);
+					$('#headingText').css({'text-align' : $(this)[0].alt});
+				});
+				
+				$('#bold').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#headingText").css({'font-weight': 'normal'});
+						adhocScripts.setVariable('bold', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#headingText").css({'font-weight': 'bold'});
+						adhocScripts.setVariable('bold', 'true');
+					}
+				});
+				
+				$('#italic').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#headingText").css({'font-style': 'normal'});
+						adhocScripts.setVariable('italic', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#headingText").css({'font-style': 'italic'});
+						adhocScripts.setVariable('italic', 'true');
+					}
+				});
+				
+				$('#underline').on("click", function(){
+					if($(this).hasClass('selected-decoration')){
+						$(this).removeClass('selected-decoration');
+						$("#headingText").css({'text-decoration': 'none'});
+						adhocScripts.setVariable('underline', 'false');
+					} else {
+						$(this).addClass('selected-decoration');
+						$("#headingText").css({'text-decoration': 'underline'});
+						adhocScripts.setVariable('underline', 'true');
+					}
+				});
+				
+				$('#headingText').bind('input', function() {
+					adhocScripts.setVariable('headingTextValue', $(this).val());
+				});
+				
+				function removePicker(id) {
+							HDIUI.removeColorPicker({
+								id:id
+								});
+					
+				}
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+							_.forEach(["background_value", "color_value"],function(item){
+								removePicker(item);
+							});
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

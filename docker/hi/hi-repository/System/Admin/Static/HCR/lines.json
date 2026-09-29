@@ -1,0 +1,24 @@
+{
+	"lines": {
+		"X": 12,
+		"Y": 2,
+		"fill": true,
+		"lineWidth": 1,
+		"lineHeight": 2,
+		"mode": "Opaque",
+		"penLineWidth": 2,
+		"lineStyle": "Solid",
+		"lineBackcolor": "#000000",
+		"lineForecolor": "#000000",
+		"linePositionType": "Float",
+		"lineDirection": "TopDown",
+		"stretchType": "NoStretch",
+		"positionType": "FixRelativeTop",
+		"printRepeatedValues": true,
+		"removeLineWhenBlank": false,
+		"printInFirstWholeBand": false,
+		"printWhenDetailOverflows": false,
+		"fill": false,
+		"repeat": false
+	}
+}

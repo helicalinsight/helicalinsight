@@ -1,0 +1,97 @@
+{
+  "id": "instantbi-provider",
+  "title": "Add / Edit Provider",
+  "description": "Persist a provider block to llm_config.yaml",
+  "providerLabels": {
+    "openai": "OpenAI",
+    "anthropic": "Anthropic",
+    "claude": "Claude",
+    "gemini": "Gemini",
+    "google": "Google",
+    "google-genai": "Gemini",
+    "groq": "Groq",
+    "ollama": "Ollama",
+    "mistral": "Mistral",
+    "mistralai": "Mistral AI",
+    "deepseek": "DeepSeek",
+    "fireworks": "Fireworks",
+    "together": "Together",
+    "vertexai": "Vertex AI"
+  },
+  "providerPackages": {
+    "openai": "langchain-openai",
+    "anthropic": "langchain-anthropic",
+    "claude": "langchain-anthropic",
+    "gemini": "langchain-google-genai",
+    "google": "langchain-google-genai",
+    "google-genai": "langchain-google-genai",
+    "vertexai": "langchain-google-vertexai",
+    "groq": "langchain-groq",
+    "ollama": "langchain-ollama",
+    "mistral": "langchain-mistralai",
+    "mistralai": "langchain-mistralai",
+    "deepseek": "langchain-deepseek",
+    "fireworks": "langchain-fireworks",
+    "together": "langchain-together"
+  },
+  "sections": [
+    {
+      "key": "identity",
+      "title": "Provider",
+      "fields": [
+        {
+          "name": "provider",
+          "label": "Provider id",
+          "type": "select",
+          "span": 12,
+          "required": true,
+          "editable": true,
+          "showSearch": true,
+          "allowClear": true,
+          "placeholder": "openai",
+          "description": "Provider identifier. New ids are allowed. Unknown logos use the default icon until an SVG is added.",
+          "options": [
+            { "label": "OpenAI", "value": "openai" },
+            { "label": "Anthropic", "value": "anthropic" },
+            { "label": "Claude", "value": "claude" },
+            { "label": "Gemini", "value": "google-genai" },
+            { "label": "Vertex AI", "value": "vertexai" },
+            { "label": "Groq", "value": "groq" },
+            { "label": "Ollama", "value": "ollama" },
+            { "label": "Mistral AI", "value": "mistralai" },
+            { "label": "DeepSeek", "value": "deepseek" },
+            { "label": "Fireworks", "value": "fireworks" },
+            { "label": "Together", "value": "together" }
+          ]
+        },
+        {
+          "name": "model",
+          "label": "Model",
+          "type": "select",
+          "span": 12,
+          "required": true,
+          "showSearch": true,
+          "allowClear": true,
+          "optionFilterProp": "label",
+          "options": [],
+          "placeholder": "Search and select a model",
+          "description": "Search by model name. Only catalog models for the selected provider are listed."
+        },
+        {
+          "name": "usage_path",
+          "label": "Usage path",
+          "type": "text",
+          "span": 12,
+          "placeholder": "usage_metadata"
+        },
+        {
+          "name": "set_as_default",
+          "label": "Set as default provider",
+          "type": "boolean",
+          "control": "tick",
+          "span": 24
+        }
+      ]
+    }
+  ]
+}

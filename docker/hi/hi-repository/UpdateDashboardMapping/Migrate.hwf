@@ -1,0 +1,146 @@
+<HWF mandatory="true" type="com.helical.HWFEngine">
+	<input mandatory="true">
+		<functionName default="migrateDashboard" type="helical.String">functionName</functionName>
+		<emailFunction default="sendMail" type="helical.String">emailFunctionName</emailFunction>
+		<default default="defaultFunction" type="helical.String">default</default>
+	</input>
+	
+	<flow>
+		<execution alias="migrate" id="1" type="job.executeGroovy">
+			<input>
+				<ref>functionName</ref>
+			</input>
+			<code>
+				<![CDATA[ 
+				import net.sf.json.JSONObject;
+				import net.sf.json.JSONArray;
+				import com.helicalinsight.admin.service.HIResourceEfwddResourceService;
+				import com.helicalinsight.admin.service.HIResourceServiceDB;
+				import com.helicalinsight.admin.model.HIResourceEfwddResource;
+				import com.helicalinsight.admin.model.HIResourceEFWDD;
+				import com.helicalinsight.admin.model.HIResource;
+				import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+				import com.helicalinsight.adhoc.utils.*;
+				import com.helicalinsight.admin.dao.*;
+				import org.hibernate.*;
+				
+				import java.sql.Connection;
+				import java.sql.DriverManager;
+				import java.sql.ResultSet;
+				import java.sql.Statement;
+				import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
+			
+				import org.springframework.transaction.annotation.Transactional;
+			
+			
+			
+				public JSONObject migrateDashboard(JSONObject requestJson, JSONObject responseJson) {
+					
+								
+		HIResourceServiceDB serviceDB = ApplicationContextAccessor.getBean(HIResourceServiceDB.class);
+        HIResourceEfwddResourceService pathService = ApplicationContextAccessor.getBean(HIResourceEfwddResourceService.class);
+      
+      
+        
+	
+	  List<String> efwddIds = getAllEfwdd();
+	  List<String> invalidDashboardids=new ArrayList<>();
+	  
+
+	for(String efwdId:efwddIds){
+		 HIResource designerResource=null;
+		try{
+		designerResource = serviceDB.getResourceByIdIgnoreFilter(Integer.valueOf(efwdId));
+		 }catch(Exception e){
+		 responseJson.accumulate("error", e.getMessage() + " "+ e.getCause()+" for id "+efwdId); 
+		 continue;
+		 }
+		 HIResourceEFWDD designerDD = designerResource.getHiResourceEFWDD();
+			JSONObject dashb  = new JSONObject();
+			dashb.put("processedDashboard",designerResource.getResourceId());
+			if(null!=designerDD){
+				String state = designerDD.getState();
+		
+				List<String> pathList = DashboardUtils.getAllPathInState(state);
+				
+				List<Integer> idList = DashboardUtils.getIdFromDb(pathList, serviceDB);
+				//dashb.put("currentPaths",pathList);
+				//dashb.put("respectiveIds",idList);
+				List<HIResourceEfwddResource> existingDashboards=pathService.getById(designerResource.getResourceId());
+				
+					 if(idList!=null && idList.size()>0&& !idList.contains(null)&&(existingDashboards==null || existingDashboards.size()==0)) {
+						for (Integer id : idList) {
+							HIResourceEfwddResource resourceEfwddResource = new HIResourceEfwddResource();
+							resourceEfwddResource.setDashboardId(designerResource.getResourceId());
+							resourceEfwddResource.setResourceId(id);
+							pathService.create(resourceEfwddResource);
+							dashb.accumulate("entryCreated",designerResource.getResourceId()+" "+designerResource.getResourceURL()+" for resource id "+ id);
+						}
+  
+					}else{
+						if(pathList.size()==0){
+							dashb.put("emptyDashaboard",designerResource.getResourceId()+" "+designerResource.getResourceURL());
+						}else if(idList.size()>0&&idList.contains(null)){
+						invalidDashboardids.add(designerResource.getResourceId()+" "+designerResource.getResourceURL());
+						}else if(existingDashboards!=null&&existingDashboards.size()>=0){
+							responseJson.accumulate("skippingAsEntryExists",designerResource.getResourceId()+" "+designerResource.getResourceURL());
+							
+						
+						}
+					}
+		
+		
+		}
+		responseJson.accumulate("processed",dashb);
+	
+	}
+	
+	
+					responseJson.put("message","sucessfully executed");
+					responseJson.put("invalidDashboards",invalidDashboardids);
+					return responseJson;
+				}
+				
+				
+				
+				
+				
+				
+				
+				public List<String> 	getAllEfwdd(){
+					
+					
+					
+					  SessionFactory sessionFactory = ApplicationContextAccessor.getBean(SessionFactory.class);
+			
+		  String queryString = "SELECT resource_id FROM hi_resource_efwdd";  // Replace with your actual query
+            
+          	Session session = sessionFactory.openSession();
+
+            // Create a query
+            Query query = session.createSQLQuery(queryString);
+
+            // Execute the query and get results
+            List<String> results = (List<String>)query.list();
+        session.close();
+	
+		return results;			
+					
+				}
+				
+				
+				
+				
+				]]>
+			</code>
+			<output>processingDetails</output>
+			
+		</execution>
+		
+	
+	</flow>
+
+	<output mandatory="false" viewPage="" showStack="true" showFlow="true">
+		<processingDetails type="com.helicalinsight.print">response</processingDetails>
+	</output>
+</HWF>

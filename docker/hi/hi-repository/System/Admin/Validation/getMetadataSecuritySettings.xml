@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData mandatory="true">
+    <!--<jsFunction name="validate" language="groovy"><![CDATA[
+		import net.sf.json.JSONObject;
+
+		def JSONObject validate(JSONObject requestJson, JSONObject responseJson) {
+			if (requestJson.isEmpty() || !requestJson.has("action")) {
+				responseJson.put("action", "The required key 'action' is missing in formData")
+				return responseJson;
+			}
+			if (requestJson.isEmpty() || !requestJson.getString("action").equalsIgnoreCase("getSettings")) {
+				responseJson.put("action", "The parameter 'action' value is unknown")
+				return responseJson;
+			}
+            return responseJson;
+		}
+	 ]]>
+    </jsFunction>-->
+</formData>

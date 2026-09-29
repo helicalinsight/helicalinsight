@@ -1,0 +1,35 @@
+{
+    "id":  "urlContexts",
+    "title":  "URL Contexts",
+    "description":  "Sample URL context permissions (first entries).",
+    "file":  "urlContexts.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "Common Contexts",
+                         "key":  "contexts",
+                         "description":  "Permission levels 0-5; higher is more privileged.",
+                         "fields":  [
+                                        {
+                                            "name":  "hiPermission",
+                                            "path":  "contexts/context/@permission",
+                                            "label":  "First Context Permission",
+                                            "type":  "number",
+                                            "span":  12,
+                                            "description":  "Permission on the first context entry (often /hi). Prefer Raw for full list.",
+                                            "min":  0,
+                                            "max":  5
+                                        },
+                                        {
+                                            "name":  "hiName",
+                                            "path":  "contexts/context/@name",
+                                            "label":  "First Context Name",
+                                            "type":  "text",
+                                            "span":  12,
+                                            "description":  "Name/path of the first context entry."
+                                        }
+                                    ]
+                     }
+                 ]
+}

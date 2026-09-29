@@ -426,13 +426,19 @@ export const getDatasourceGetContentsResponse = (formData) => {
         {
           driver: "com.helical.mongodb.MongoJdbcDriver",
           databaseDialect: "himongo",
-          name: "Helical Mongodb",
-          categoryName: "RDBMS",
-          categoryType: "rdbms",
+          name: "MongoDB",
+          categoryName: "NoSQL",
+          categoryType: "nosql",
           type: "global.jdbc",
           dataSourceProvider: "tomcat",
           classifier: "global",
           imgUrl: "../images/data_sources/defaut_datasource.png",
+          url: "jdbc:mongodb://{{hostName}}:{{port}}/{{database}}",
+          parameters: {
+            port: "27017",
+            hostName: "localhost",
+            database: "database",
+          },
         },
         {
           driver: "org.sqlite.JDBC",

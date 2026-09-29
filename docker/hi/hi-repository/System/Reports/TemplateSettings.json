@@ -1,0 +1,35 @@
+{
+    "layout": ["portrait", "landscape"],
+    "paperSize": ["Tabloid" ,"Legal" ,"Statement" ,"Executive" ,"A3" ,"A4" ,"A5" ,"B4 (JIS)" ,"B5 (JIS)" ,"Envelope #9" ,"Envelope #10" ,"C size sheet" ,"D size sheet" ,"E size sheet" ,"Envelope DL" ,"Envelope C5" ,"Envelope C4" ,"Envelope B5" ,"Envelope Monarch" ,"Japanese Postcard" ,"Super B" ,"A2" ,"A6" ,"Japanese Envelope Kaku #2" ,"Japanese Envelope Chou #3" ,"Japanese Envelope Chou #4" ,"Japan Envelope You #4" ,"ASMEFSheet" ,"Architecture ASheet" ,"Architecture BSheet" ,"Architecture CSheet" ,"Architecture DSheet" ,"Architecture E1Sheet" ,"Architecture ESheet" ,"Business Card 2x 3 5" ,"Business Card 55x 85mm" ,"Business Card 55x 91mm" ,"English 14x 17" ,"English Photo L" ,"Japan Chou 40 Envelope" ,"Metric Photo L" ,"North America 3x 5" ,"North America 5x 8" ,"Photo 10x 12" ,"Photo 4x 4" ,"Photo 5x 5" ,"Photo 89x 89mm" ,"Credit Card" ,"ISOA0" ,"ISOA1" ,"North America 4x 6" ,"North America 5x 7" ,"North America 8x 10"],
+    "scaling": [ "custom" ,"default"],
+    "scalingRange": [ "10" ,"200"],
+    "footer": {
+        "text": "Report Footer Text",
+        "fontSize": "12px",
+        "fontColor": "#0f0f0f",
+        "fontStyle": ["normal","bold","bolder","lighter","number","initial","inherit"],
+        "textAlign": ["right", "left", "center"],
+		"height":1
+    },
+    "header": {
+        "text": "Report Header Text",
+        "fontSize": "12px",
+        "fontColor": "#0f0f0f",
+        "fontStyle": ["normal","bold","bolder","lighter","number","initial","inherit"],
+        "textAlign": ["right", "left", "center"],
+		"height":1
+    },
+    "margin": {
+		"margins":["none","minimum","default","custom"],
+		"marginTop":3,
+		"marginLeft":3,
+		"marginRight":3,
+		"marginBottom":3
+	},
+	"color":["color","blackAndWhite"],
+	"pages":["All","Custom"],
+	"paperWidth":786,
+	"paperHeight":1048,
+	"viewPortWidth":1366,
+	"viewPortHeight":786	
+}

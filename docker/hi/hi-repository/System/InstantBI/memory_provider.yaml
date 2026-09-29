@@ -1,0 +1,19 @@
+memory:
+  provider: memory   # memory | sqlite | postgres
+
+  fallback: memory
+
+  sqlite:
+    db_path: "/app/data/langgraph.db"
+
+  postgres:
+    host: localhost
+    port: 5432
+    database: langgraph
+    user: postgres
+    password: secret
+    schema: public
+
+  runtime:
+    thread_id: "default-thread"
+    checkpoint_ns: "langgraph"

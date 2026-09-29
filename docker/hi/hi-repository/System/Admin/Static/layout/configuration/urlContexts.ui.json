@@ -1,0 +1,10 @@
+{
+    "id":  "urlContexts",
+    "file":  "urlContexts.xml",
+    "title":  "URL Contexts",
+    "description":  "URL context and endpoint routing configuration.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/urlContexts.ui.layout",
+    "fallbackEditor":  "xml"
+}

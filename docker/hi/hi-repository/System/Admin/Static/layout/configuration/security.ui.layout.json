@@ -1,0 +1,24 @@
+{
+    "id":  "security",
+    "title":  "SQL Security Properties",
+    "description":  "Adhoc column security rule mapping.",
+    "file":  "security.properties",
+    "format":  "properties",
+    "fallbackEditor":  "properties",
+    "sections":  [
+                     {
+                         "title":  "Rules",
+                         "key":  "rules",
+                         "fields":  [
+                                        {
+                                            "name":  "nameRule",
+                                            "path":  "$.@name",
+                                            "label":  "JSON Path $.@name",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "Security rule applied to name fields. Example: sql-detect or default."
+                                        }
+                                    ]
+                     }
+                 ]
+}

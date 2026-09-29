@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EFWD mandatory="true">
+<DataMaps>
+
+		<DataMap id="1" connection="1" type="metadata.dbmetadata">
+            <Name>getCatalog</Name>
+            <catalog>TABLE_CAT</catalog>
+            <Query>
+               
+                <![CDATA[
+				
+				
+						 {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+          <Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		<DataMap id="2" connection="1" type="metadata.dbmetadata">
+            <Name>getSchema</Name>
+			 <schema>TABLE_SCHEM</schema>
+            <Query>
+               
+                <![CDATA[
+				
+				 {"catalog":${catalogs},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+           
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default="''"/>
+			 <Parameter name="schemas" type="String" default="''"/>
+        </Parameters>
+        </DataMap>
+		 
+		<DataMap id="3" connection="1" type="metadata.dbmetadata" >
+           <Name>getTable</Name>
+		   <schemas>TABLE_SCHEME</schemas>
+            <Query>
+                <![CDATA[
+                        
+                       {"catalog":${catalog},"schema":${schemas},"table":["TABLE","VIEW"],"tablePattern":""}
+						
+						
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalog" type="String" default="''" openQuote="'" closeQuote="'"/>
+            <Parameter name="schemas" type="String" default="''" openQuote="'" closeQuote="'"/>
+        </Parameters>
+        </DataMap>
+		
+		<DataMap id="4" connection="1" type="metadata.dbmetadata" >
+           <Name>getColumn</Name>
+            <Query>
+                <![CDATA[
+                       {"catalog":[${catalogs}],"schema":[${schemas}],"table":[${tables}],"columnPattern":""}
+                ]]>
+            </Query>
+			<Parameters>
+            <Parameter name="catalogs" type="String" default=""/>
+            <Parameter name="schemas" type="Collection" default="''"/>
+            <Parameter name="tables" type="Collection" default="Null"/>
+        </Parameters>
+        </DataMap>
+	
+		
+</DataMaps> 
+  
+    
+  
+</EFWD>

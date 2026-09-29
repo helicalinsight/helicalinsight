@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<script>
+		<snippet required="true" type="cdata"/>
+		<group type="text"/>
+		<description type="text"/>
+		<icon type="text"/>
+	</script>
+	<location type="directory"/>
+</formData>

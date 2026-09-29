@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_TableColorCustomization</scriptId>
+    <scriptType>js</scriptType>
+	<name>Table Color Customization</name>
+    <group>Table</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Search Bar to show on top of the table</description>
+    <icon>/images/scriptIcons/TableColorCustomization.png</icon>
+	<parameters>
+		<parameter value="#ffffff" name="defaultHeader" type="String"/>
+		<parameter value="#000000" name="defaultHFont" type="String"/>
+		<parameter value="#ffffff" name="defaultBody" type="String"/>
+		<parameter value="#000000" name="defaultBFont" type="String"/>
+		<parameter value="" name="defaultTabFormat" type="String"/>
+
+		<parameter value="#00ff00" name="theadColor" type="String" />
+		<parameter value="#ffffff" name="theadFntColor" type="String" />
+		<parameter value="#0000ff" name="tbodyColor" type="String" />
+		<parameter value="#ffffff" name="tbodyFntColor" type="String" />
+
+		<parameter value="#ffffff" name="customHeader" type="String"/>
+		<parameter value="#f0f0f0" name="customHFont" type="String"/>
+		<parameter value="#ffffff" name="customBody" type="String"/>
+		<parameter value="#f0f0f0" name="customBFont" type="String"/>
+		<parameter value="" name="customTabFormat" type="String"/>
+		<parameter value="false" name="flag" type="Boolean"/>
+	</parameters>
+    <snippet>
+		<![CDATA[
+
+			var id = hi_container.get("renderId");
+			
+			var containerId = '#main';
+			
+			if(id)
+				containerId = containerId+'-'+id;
+				
+			var table = containerId+' .table';
+			var tbody = containerId+' .table tbody';
+			var thead = containerId+' .table thead';
+			var td = containerId+' .table tbody td';
+			var th = containerId+' .table thead tr th>a>span.text';
+			var thPrint = containerId+' .table thead tr th';
+			
+			var ftnObj = {};
+			
+			ftnObj['tableColor'+id]= function(){
+				$(table).removeClass('table-striped');
+				
+				$(thead).css("background-color","${theadColor}");
+				$(td).css("background-color", "${tbodyColor}");
+				$(td).css("color","${tbodyFntColor}");
+				$(th).css("color","${theadFntColor}");
+				$(thPrint).css("color","${theadFntColor}");
+			}
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['tableColor'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['tableColor'+id]);
+			}
+			
+		]]>
+	</snippet>
+	 <uiSnippet>
+		<![CDATA[
+		    <style>
+				.extendMargins {
+					margin: 5px -15px;
+				}
+
+				.extendMargins15 {
+					margin: 15px 0 0;
+				}
+
+				.image {
+					cursor: pointer;
+				}
+				
+				.selected {
+                	border-color: #1369ad;
+				    padding: 6px 12px;
+				    border-radius: 4px;
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075);
+				    -webkit-transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    transition: border-color ease-in-out .15s,box-shadow ease-in-out .15s;
+				    -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(102,175,233,.6);
+				    box-shadow: inset 0 1px 1px rgba(0,0,0,.075), 0 0 8px rgba(2, 17, 95, 0.6);
+                }
+			</style>
+
+		    <div id="toggle" class="row">
+				<div class="col-sm-3 col-md-3 col-sm-offset-2 col-md-offset-2 col-xs-12">
+					<label>Basic</label>
+				</div>
+				<div class="col-sm-2 switch" id="switch">
+					<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle()' />
+					<label for="cmn-toggle-1"></label>
+				</div>
+				<div class="col-sm-3 col-md-3 col-xs-12">
+					<label>Advanced</label>
+				</div>
+			</div>
+			<hr class="extendMargins">
+		    <div class="row extendMargins15" id="basic">
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle1.jpg" name="#ffffff_#000000_#eef5e9_#70ad47" onclick="setTableFormat(this)"/>
+				</div>
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle2.jpg" name="#ffffff_#000000_#eef5e9_#ffc000" onclick="setTableFormat(this)"/>
+				</div>
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle3.jpg" name="#ffffff_#000000_#eef5e9_#4472c4" onclick="setTableFormat(this)"/>
+				</div>
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle4.jpg" name="#ffffff_#5b9bd5_#000000_#ffffff" onclick="setTableFormat(this)"/>
+				</div>
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle5.jpg" name="#ffffff_#ed7d31_#000000_#ffffff" onclick="setTableFormat(this)"/>
+				</div>
+				<div class="col-sm-2 col-xs-6">
+					<img class="image img-responsive" src="../getExternalResource.html?path=System/Admin/CustomScripts/table/js/TableStyle6.jpg" name="#ffffff_#a5a5a5_#000000_#ffffff" onclick="setTableFormat(this)"/>
+				</div>
+		  	</div>
+		    <div class="extendMargins15" id="advanced">
+				<div class="form-horizontal">
+					<div class="form-group">
+						<label for="headColor" class="col-sm-2 control-label"><strong>Heading</strong></label>
+						<div class="col-sm-3">
+							<div id="headColor"></div>
+						</div>
+						<label for="thFontColor" class="col-sm-3 control-label"><strong>Heading Font Color</strong></label>
+						<div class="col-sm-3">	
+							<div id="thFontColor"></div>
+						</div>
+					</div>
+				</div>
+				<div class="form-horizontal">
+					<div class="form-group">
+						<label for="bodyColor" class="col-sm-2 control-label"><strong>Body</strong></label>
+						<div  class="col-sm-3">	
+							<div id="bodyColor"></div>
+						</div>
+						<label for="tbFontColor" class="col-sm-3 control-label"><strong>Body Font Color</strong></label>
+						<div class="col-sm-3">
+							<div id="tbFontColor"></div>
+						</div>
+				 	</div>
+		  		</div>
+			</div>
+
+			<script>
+		    	adhocScripts.resetAll();
+			
+				// Globals set
+				adhocScripts.setVariable("flag", params.flag);
+				
+				function setDefaults(){
+					$("<div id='overlay'/>").css({
+						position: "absolute",
+						width: "100%",
+						height: "100%",
+						left: 0,
+						top: 0,
+						zIndex: 1000000,  // to be on the safe side
+						background: "#CCC",
+						opacity: 0.6
+					}).appendTo($("#color_selector").css("position", "relative"));
+					
+					adhocScripts.setVariable("theadColor",params.defaultHeader);
+					adhocScripts.setVariable("theadFntColor",params.defaultHFont);
+					adhocScripts.setVariable("tbodyColor",params.defaultBody);
+					adhocScripts.setVariable("tbodyFntColor",params.defaultBFont);
+					adhocScripts.setVariable("customTabFormat",params.customTabFormat);
+				}
+
+				function setTableFormat(e) {
+					//console.log(e);
+					$(".image").css({"border": "none", "padding": "0"});
+					var colorStr=e.name;
+					$("img[name='"+colorStr+"']").css({"border":"2px solid #66afe9", "padding":"5px"});
+					var colorArr = colorStr.split("_");
+					adhocScripts.setVariable("theadFntColor",colorArr[0]);
+					adhocScripts.setVariable("theadColor",colorArr[1]);
+					adhocScripts.setVariable("tbodyColor",colorArr[3]);
+					adhocScripts.setVariable("tbodyFntColor",colorArr[2]);
+					
+					adhocScripts.setVariable("customTabFormat", colorStr);
+				}
+
+				if(adhocScripts.getVariable('flag') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+					 $("#basic").hide();
+					 $("#advanced").show();
+				} 
+				else {
+					$('#cmn-toggle-1').removeAttr('checked');
+					$("#advanced").hide();
+					$("#basic").show();	 
+				}
+
+				//set function of toggle switch
+				function switchToggle(event) {
+					if(adhocScripts.getVariable("flag") === 'false') {
+					    adhocScripts.setVariable("flag",'true');
+					} else {
+					    adhocScripts.setVariable("flag",'false');
+					    setDefaults();
+					}
+						
+					if(adhocScripts.getVariable("flag") == 'false') {
+				        $("#advanced").hide();
+						$("#basic").show();
+                    } else if(adhocScripts.getVariable("flag") == 'true'){				  
+				        $("#basic").hide();
+						$("#advanced").show();
+						adhocScripts.setVariable("theadColor", params.customHeader);
+						adhocScripts.setVariable("theadFntColor", params.customHFont);
+						adhocScripts.setVariable("tbodyColor", params.customBody);
+						adhocScripts.setVariable("tbodyFntColor", params.customBFont);
+						adhocScripts.setVariable("customTabFormat", params.customTabFormat);
+					}
+				}
+
+				adhocScripts.setVariable("customHeader", params.customHeader);
+				adhocScripts.setVariable("customHFont", params.customHFont);
+				adhocScripts.setVariable("customBody", params.customBody);
+				adhocScripts.setVariable("customBFont", params.customBFont);
+				adhocScripts.setVariable("customTabFormat", params.customTabFormat);
+
+				adhocScripts.setVariable("theadColor", params.theadColor);
+				adhocScripts.setVariable("theadFntColor", params.theadFntColor);
+				adhocScripts.setVariable("tbodyColor", params.tbodyColor);
+				adhocScripts.setVariable("tbodyFntColor", params.tbodyFntColor);
+				adhocScripts.setVariable("customTabFormat", params.customTabFormat);
+
+				adhocScripts.setVariable("flag",params.flag);
+	
+				function colorPicker(id, setVar1, setVar2) {
+					
+						HDIUI.renderColorPicker({
+							id:id,
+							color:adhocScripts.getVariable(setVar2),
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								adhocScripts.setVariable(setVar1, rgbaCode);
+								adhocScripts.setVariable(setVar2, rgbaCode);
+
+							}
+						});
+				}		
+			  				
+				if(adhocScripts.getVariable("customTabFormat")) {
+					var $elem = $("#basic img");
+					var arr = Array.prototype.slice.call($elem);
+					var comp = adhocScripts.getVariable("customTabFormat");
+					arr.map(function(val, ind, self) {
+						if(val.name === comp) {
+							$("img[name='"+comp+"']").addClass("selected");
+						}
+					});
+				}
+				
+				function removePicker(id) {
+							HDIUI.removeColorPicker({
+								id:id
+								});
+					
+				}
+
+				
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {							
+							_.forEach(["headColor", "thFontColor", "bodyColor", "tbFontColor"],function(item){
+								removePicker(item);
+							});
+						});
+					}
+				})(window);
+					
+				colorPicker("headColor", "theadColor", "customHeader");
+				colorPicker("thFontColor", "theadFntColor", "customHFont");
+				colorPicker("bodyColor", "tbodyColor", "customBody");
+				colorPicker("tbFontColor", "tbodyFntColor", "customBFont");
+
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

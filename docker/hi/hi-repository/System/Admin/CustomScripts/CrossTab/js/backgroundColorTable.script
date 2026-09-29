@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>CrossTab_js_backgroundColorTable</scriptId>
+    <scriptType>js</scriptType>
+	<name>Background</name>
+    <group>CrossTab</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Background color for Table</description>
+    <icon>/images/scriptIcons/BackgroundColor.png</icon>
+	<snippet>
+		<![CDATA[ 
+			var id = hi_container.get("renderId");
+			var containerId = "#main";
+
+			if(id != "")
+				containerId="#main-"+id;
+			
+			var ftnObj = {};
+			
+			ftnObj['backgroundCustomization'+id] = function(){
+				$(containerId).css({'background': '${background}'});
+			};
+			
+			
+				
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution",ftnObj['backgroundCustomization'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['backgroundCustomization'+id]);
+			}
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="rgba(255,255,255,0)" name="background" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div class="form-horizontal">
+				<div class="form-group colorSelectorRow">
+					<label for="colorPicker" class="col-sm-3 col-md-3 col-xs-6 control-label">Select Color:</label>
+					<div class="col-sm-3 col-md-3 col-xs-6">
+						<div id="colorPicker"></div>
+					</div>
+				</div>
+			</div>
+
+		<script>
+		    adhocScripts.resetAll();
+			
+			adhocScripts.setVariable('background', params.background);
+		
+			HDIUI.renderColorPicker({
+				id:"colorPicker",
+				color:adhocScripts.getVariable("background"),
+				change:function(color){	
+					var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+					adhocScripts.setVariable("background",rgbaCode);					
+				}
+			});			
+				
+		</script>	
+		]]>
+	</uiSnippet>
+
+</customScript>

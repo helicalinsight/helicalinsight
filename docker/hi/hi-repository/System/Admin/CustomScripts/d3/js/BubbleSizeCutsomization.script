@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+   <visible>true</visible>
+    <scriptId>d3_js_BubbleSizeCutsomization</scriptId>
+    <scriptType>js</scriptType>
+    <name>Scatter Chart custom Size</name>
+    <group>C3Circle</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Bubble Chart Size Customization</description>
+    <icon>/images/scriptIcons/Scatter_to_BubbleChart.png</icon>
+	<snippet>
+		<![CDATA[
+		
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", setchartValueColorCustomization);
+			}
+			else{
+				hi_container.extend("preExecution", extendchartValueColorCustomization);
+			}
+
+			function setchartValueColorCustomization(d){
+				var reportData = d.get('reportData');
+				var viz_Options = d.get("viz_Options");
+				viz_Options = chartValueColorCustomization(viz_Options,reportData);
+				d.set("viz_Options",viz_Options);
+			}
+
+			function extendchartValueColorCustomization(preExecution, d){
+				var reportData = d.get('reportData');
+				var viz_Options = d.get("viz_Options");
+				viz_Options = chartValueColorCustomization(viz_Options,reportData);
+			}
+			function colorToHex(color) {
+				if (color.substr(0, 1) === '#') {
+					return color;
+				}
+				var digits = /(.*?)rgb\((\d+), (\d+), (\d+)\)/.exec(color);
+				
+				var red = parseInt(digits[2]);
+				var green = parseInt(digits[3]);
+				var blue = parseInt(digits[4]);
+				
+				var rgb = blue | (green << 8) | (red << 16);
+				return digits[1] + '#' + rgb.toString(16);
+			};
+			function chartValueColorCustomization(viz_Options,reportData){				
+				var conditionArr = ${conditionArr};
+				if(conditionArr.length > 0){
+				for(iter = 0; iter < conditionArr.length; iter++){
+					var tempMaxVal = conditionArr[iter].maxVal;
+					var tempMinVal = conditionArr[iter].minVal;
+					var tempvar = Math.abs(tempMaxVal)+Math.abs(tempMinVal);
+					if(tempMinVal < 0){
+						var valuesArray = conditionArr[iter].value;
+						for(iter2 = 0; iter2 < valuesArray.length; iter2++){
+							if(valuesArray[iter2] < 0){
+								valuesArray[iter2] = tempvar-Math.abs(valuesArray[iter2]);
+							}
+							else{
+								valuesArray[iter2] = tempvar+valuesArray[iter2];
+							}
+						}
+						/*conditionArr[iter].maxVal = Math.max(...valuesArray);
+						conditionArr[iter].minVal = Math.min(...valuesArray);*/
+						conditionArr[iter].maxVal = Math.max.apply(null, valuesArray);
+						conditionArr[iter].minVal = Math.min.apply(null, valuesArray);
+					}
+				}
+
+	viz_Options.chartOptions.onrendered=function (that) {
+		
+		var columns = reportData.columns;
+		var svgDefs = that.svg.select("defs");
+		function ColorLuminance(hex, lum) {
+			hex = String(hex).replace(/[^0-9a-f]/gi, '');
+			if (hex.length < 6) {
+				hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+			}
+			lum = lum || 0;
+
+			// convert to decimal and change luminosity
+			var rgb = "#", c, i;
+			for (i = 0; i < 3; i++) {
+				c = parseInt(hex.substr(i*2,2), 16);
+				c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+				rgb += ("00"+c).substr(c.length);
+			}
+			return rgb;
+		};
+		
+		for(var columnsIter = 0; columnsIter < columns.length; columnsIter++){	
+			if(columns[columnsIter].type.dataType === 'numeric'){
+				var columnAlias = columns[columnsIter].autogen_alias;
+				var columnClass = columnAlias.split('_').join('-');
+				var circleParent = that.svg.select('.c3-chart-lines').select('.c3-target-'+columnClass).select('.c3-circles').selectAll('circle');
+				
+				var hexColor = colorToHex(circleParent.style('fill'));
+				var lightercolor = ColorLuminance(hexColor, 0.85);	
+				var radialGradient = svgDefs.append("radialGradient")
+					.attr("cx", '30%')
+					.attr("cy",'35%')
+					.attr("r", '50%')
+					.attr("id", "radial-gradient-"+columnClass);
+				radialGradient.append("stop")
+					.attr("offset", "0%")
+					.attr("stop-color", lightercolor).attr("stop-opacity", "65%");
+
+				radialGradient.append("stop")
+					.attr("offset", "100%")
+					.attr("stop-color", hexColor);
+				circleParent.style("filter", "url(#drop-shadow)").style("fill", "url(#radial-gradient-"+columnClass+")");
+			}
+		}
+		var dropShadowFilter = svgDefs.append('svg:filter')
+		//	  .attr('x','-50%')
+		//	  .attr('y','-50%')
+			  .attr('width',"200%")
+			  .attr('height',"200%")
+			  .attr('id', 'drop-shadow');
+			dropShadowFilter.append('svg:feOffset')
+			  .attr('in', 'SourceAlpha')
+			  .attr('dx', 4)
+			  .attr('dy', 4)
+			  .attr('result', 'the-shadow');
+			dropShadowFilter.append('svg:feColorMatrix')
+			  .attr('in', 'the-shadow') 
+			  .attr('type', 'hueRotate')
+			  .attr('values', '0.2 0 0 0 0 0 0.2 0 0 0 0 0 0.2 0 0 0 0 0 1 0')	
+			  .attr('result', 'color-out'); 
+		dropShadowFilter.append('svg:feGaussianBlur')
+			  .attr('in', 'color-out') 
+			  .attr('stdDeviation',2)
+			  .attr('result', 'blur-out'); 
+			dropShadowFilter.append('svg:feBlend')
+			  .attr('in', 'SourceGraphic')
+			  .attr('in2', 'blur-out')
+			  .attr('mode', 'normal');
+	};
+	viz_Options.chartOptions.point={
+					r:function abc(d){
+						
+						if(window.innerWidth > 0 && window.innerWidth < 480){
+							var radius = 8;
+						}
+						else if(window.innerWidth > 480 && window.innerWidth < 768){
+							var radius = 15;
+						}
+						else if(window.innerWidth > 768 && window.innerWidth < 1024){
+							var radius = 20;
+						}
+						else if(window.innerWidth > 1024 && window.innerWidth < 1200){
+							var radius = 25;
+						}
+						else if(window.innerWidth > 1200){
+							var radius = 30;
+						}
+						
+						var flag = 0;
+						conditionArr.forEach(function(val, index){
+							if(d.id === val.measure){
+								var tempRadius = (val.value[d.index]/val.maxVal);
+								radius = radius*tempRadius;
+								flag = 1;
+								return;
+							}
+						});
+						return flag?radius:2.5;
+					}
+				};
+				return viz_Options;
+			}
+			return viz_Options;
+		  }
+			
+		]]>
+	</snippet>
+	<parameters>
+        <parameter value="[]" name="conditionArr" type= "String" />
+    </parameters>
+    <uiSnippet>
+		<![CDATA[
+		<div id="addButtonPanel" class="col-sm-12">
+        <label for='addButton' class='col-sm-4' >Add new Measure</label>
+        <button id='addButton' class='col-sm-2 btn btn-primary' onclick='addConditionPanel({measure:"", value:"", index:0, maxVal:"", minVal:""}, "conditionList")'>Add</button>
+      </div>
+			<div id="conditionList"></div>
+
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("conditionArr", params.conditionArr);
+				var dataObject = window.frames[0].__hi_result.data;
+				
+				var metadataObject = window.frames[0].__hi_result.metadata[0];
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+				
+				var xAxisMeasure,categories,values=[];
+				column.forEach(function(col, i){
+					if (col.groupBy && !col.hasOwnProperty("hidden")) {
+						categories = metadataObject[(i + 1).toString()].name;
+					}
+					
+					if (col.aggregate && !(col.hidden === true)) {
+						values.push(metadataObject[(i + 1).toString()].name);
+					}
+				});
+				var ArrayData = []; 
+				
+				for (var i = 0; i < dataObject.length; i++) {
+						ArrayData.push(dataObject[i][categories]);
+				}
+				var xAxisArrayValues = ArrayData.filter(function(item, i, ar){ return ar.indexOf(item) === i; });
+				//var xAxisValues = xAxisArrayValues;
+				var chartMeasures = values;	
+
+        var conditionArr = JSON.parse(JSON.stringify(adhocScripts.getVariable("conditionArr")));
+        var tgtPanel = 'conditionList';
+
+		createConditionList(conditionArr);
+		
+        function createConditionList(conditionArr){
+          if(conditionArr.length == 0){
+				//console.log("length is zero");
+				var tempVal = dataObject.map(function(x){
+					return x[chartMeasures[0]];
+				});
+				var maxValue = Math.max.apply(null, tempVal);
+				var minValue = Math.min.apply(null, tempVal);
+				conditionArr.push({measure:chartMeasures[0], value:tempVal, index:0,maxVal:maxValue,minVal:minValue});
+          }
+		  adhocScripts.setVariable("conditionArr", conditionArr);	
+			for(var i = 0 ; i < conditionArr.length; i++){
+				var div = createConditionPanel(conditionArr[i], i);
+				document.getElementById(tgtPanel).appendChild(div);
+            }
+        }
+
+        function addConditionPanel(object, tgtPanel){
+			
+			if(object.measure.length <= 0){
+				//console.log("length is less than equal to  zero");
+				object.measure = chartMeasures[0];
+				object.value = dataObject.map(function(x){
+					return x[chartMeasures[0]];
+				});
+				object.maxVal = Math.max.apply(null, object.value);
+				object.minVal = Math.min.apply(null, object.value);
+			}
+            
+		    var index = conditionArr.length-1;
+			if(conditionArr.length < (chartMeasures.length)){
+				conditionArr.push(object);
+				adhocScripts.setVariable("conditionArr", conditionArr);	
+            
+				var div = createConditionPanel(object, index);
+			    document.getElementById(tgtPanel).appendChild(div);
+			}
+        }
+		
+		
+			
+        function createConditionPanel(object, index){
+          var form = document.createElement('form');
+          form.className = 'form-line col-sm-12';
+
+          /*************** Set Value 2 *******************/
+          var divMeasureVal = document.createElement('div');
+          divMeasureVal.className = 'form-group col-sm-4 condition';
+          divMeasureVal.id = 'div_measure_'+index;
+
+          var labelMeasureVal = document.createElement('label');
+          labelMeasureVal.for = 'input_measure_'+index;
+          labelMeasureVal.innerHTML = 'Aggregate Column';
+
+          var inputMeasureVal = document.createElement('select');
+          inputMeasureVal.className = 'form-control';
+          inputMeasureVal.id = 'input_measure_'+index;
+          inputMeasureVal.onchange = function(d){
+            setOnChange(d);
+          };
+
+          for(var i = 0; i < chartMeasures.length; i++){
+              var options = document.createElement('option');
+              options.value = chartMeasures[i];
+              options.text = chartMeasures[i];
+              if(options.value == object.measure)
+                options.selected = 'selected';
+              inputMeasureVal.appendChild(options);
+          }
+		  divMeasureVal.appendChild(labelMeasureVal);
+          divMeasureVal.appendChild(inputMeasureVal);
+
+          form.appendChild(divMeasureVal);
+
+          /*********************Delete Button************************/
+          var delButton = document.createElement('button');
+          delButton.id = 'delete_'+index;
+          delButton.classList = 'btn btn-danger';
+          delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+          delButton.onclick = function(d){
+            var index = d.target.id.split('_')[1];
+            conditionArr.splice(index, 1);
+            adhocScripts.setVariable("conditionArr", conditionArr);
+            $(this).parent().remove();
+          };
+          delButton.style.marginTop = '25px';
+
+          form.appendChild(delButton);
+
+          return form;
+
+          function setOnChange(d){
+				var len = d.target.id.split('_').length;
+				var x = d.target.id.split('_')[2];
+				var key = d.target.id.split('_')[1];
+				conditionArr[x][key] = d.target.value;
+				conditionArr[x]['value'] = dataObject.map(function(x){
+					return x[d.target.value];
+				});
+				//var max = conditionArr[x]['value'];
+				conditionArr[x]['maxVal'] = Math.max.apply(null, conditionArr[x]['value']);
+				conditionArr[x]['minVal'] = Math.min.apply(null, conditionArr[x]['value']);
+				
+				/*conditionArr[x]['maxVal'] = Math.max(...conditionArr[x]['value']);
+				conditionArr[x]['minVal'] = Math.min(...conditionArr[x]['value']);*/
+				adhocScripts.setVariable("conditionArr", conditionArr);
+          }
+        }
+				
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

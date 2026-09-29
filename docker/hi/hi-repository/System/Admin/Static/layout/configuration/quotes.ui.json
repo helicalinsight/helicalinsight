@@ -1,0 +1,10 @@
+{
+    "id":  "quotes",
+    "file":  "quotes.xml",
+    "title":  "Quotes",
+    "description":  "Identifier and literal quoting rules for SQL dialects.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/quotes.ui.layout",
+    "fallbackEditor":  "xml"
+}

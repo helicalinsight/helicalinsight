@@ -1,0 +1,226 @@
+{
+  "id": "configuration",
+  "title": "Configuration",
+  "description": "Browse and edit System configuration files (Admin and Mail) grouped by category",
+  "layoutDirectory": "Static/layout/configuration",
+  "hideCategories": ["ignore"],
+  "showUncategorized": false,
+  "categories": [
+    {
+      "key": "sql",
+      "title": "SQL",
+      "icon": "sql",
+      "description": "SQL dialects, functions, quotes, defaults, and query expression settings used by ad-hoc and report SQL generation.",
+      "files": [
+        {
+          "name": "adhocSqlSettings.xml",
+          "title": "Adhoc SQL Settings",
+          "description": "Controls ad-hoc SQL generation, formatting, and related SQL builder options."
+        },
+        {
+          "name": "dataTypesMapping.properties",
+          "title": "Data Types Mapping",
+          "description": "Maps JDBC and vendor data types to Helical Insight types."
+        },
+        {
+          "name": "defaultFunctions.properties",
+          "title": "Default Functions",
+          "description": "Default SQL function names used when building expressions."
+        },
+        {
+          "name": "defaults.properties",
+          "title": "SQL Defaults",
+          "description": "General SQL and application default property values."
+        },
+        {
+          "name": "quotes.xml",
+          "title": "SQL Quotes",
+          "description": "Identifier and literal quoting rules for SQL dialects."
+        },
+        {
+          "name": "sqlDialects.properties",
+          "title": "SQL Dialects",
+          "description": "Database dialect class mappings used for SQL translation."
+        },
+        {
+          "name": "sqlFunctionsXmlMapping.properties",
+          "title": "SQL Functions Mapping",
+          "description": "Maps dialect keys to SQL function XML definition files."
+        },
+        {
+          "name": "sqlQuery.properties",
+          "title": "SQL Query Templates",
+          "description": "Reusable SQL query templates and fragments."
+        },
+        {
+          "name": "sqlQueryExpression.groovy",
+          "title": "SQL Query Expression",
+          "description": "Groovy helpers for building and transforming SQL query expressions."
+        }
+      ]
+    },
+    {
+      "key": "sql security",
+      "title": "SQL Security",
+      "icon": "security",
+      "description": "SQL security policies and whitelist keywords that restrict or sanitize executable SQL.",
+      "files": [
+        {
+          "name": "security.properties",
+          "title": "SQL Security Properties",
+          "description": "SQL security settings that control query restrictions and policies."
+        },
+        {
+          "name": "whitelist-keywords.xml",
+          "title": "Whitelist Keywords",
+          "description": "Allowed SQL keywords used by SQL security validation."
+        }
+      ]
+    },
+    {
+      "key": "caching",
+      "title": "Caching",
+      "icon": "caching",
+      "description": "Cache providers, TTL, and related caching behaviour for application data.",
+      "files": [
+        {
+          "name": "cache.xml",
+          "title": "Cache Configuration",
+          "description": "Defines cache providers, regions, and time-to-live behaviour."
+        }
+      ]
+    },
+    {
+      "key": "datasource",
+      "title": "Datasource",
+      "icon": "datasource",
+      "description": "Database drivers, CSV datasource options, and default driver validation queries.",
+      "files": [
+        {
+          "name": "csvDataSource.properties",
+          "title": "CSV Data Source",
+          "description": "CSV and flat-file datasource defaults and parsing options."
+        },
+        {
+          "name": "databaseDrivers.properties",
+          "title": "Database Drivers",
+          "description": "Maps database types to JDBC driver classes and connection helpers."
+        },
+        {
+          "name": "driverDefaultQuery.properties",
+          "title": "Driver Default Query",
+          "description": "Default validation and probe queries executed per database driver."
+        }
+      ]
+    },
+    {
+      "key": "validation",
+      "title": "Validation",
+      "icon": "validation",
+      "description": "Regular expressions and validation rules used across form and request validation.",
+      "files": [
+        {
+          "name": "regex.properties",
+          "title": "Validation Regex",
+          "description": "Regular expression patterns used by validation and sanitization."
+        }
+      ]
+    },
+    {
+      "key": "mail",
+      "title": "Mail",
+      "icon": "mail",
+      "description": "SMTP and email delivery settings from System/Mail.",
+      "path": "Mail",
+      "files": [
+        {
+          "name": "mailConfiguration.properties",
+          "path": "Mail",
+          "title": "Mail Configuration",
+          "description": "SMTP host, authentication, TLS, and connection pool settings for outbound email."
+        }
+      ]
+    },
+    {
+      "key": "system",
+      "title": "System",
+      "icon": "system",
+      "description": "Core system services, settings, resource phases, threading, URL contexts, and release notes.",
+      "files": [
+        {
+          "name": "hiResourcePhases.xml",
+          "title": "Resource Phases",
+          "description": "Defines resource processing phases for the Helical Insight resource pipeline."
+        },
+        {
+          "name": "releaseNote.properties",
+          "title": "Release Notes",
+          "description": "Release note metadata shown in the product."
+        },
+        {
+          "name": "services.xml",
+          "title": "Services Registry",
+          "description": "Service registry mapping service paths to component implementations."
+        },
+        {
+          "name": "setting.xml",
+          "title": "Application Settings",
+          "description": "Primary application settings including paths, base URL, and feature flags."
+        },
+        {
+          "name": "threadPoolConfig.xml",
+          "title": "Thread Pool",
+          "description": "Thread pool sizes and executor configuration for background work."
+        },
+        {
+          "name": "urlContexts.xml",
+          "title": "URL Contexts",
+          "description": "URL context and endpoint routing configuration."
+        },
+        {
+          "name": "validation.xml",
+          "title": "Validation Wiring",
+          "description": "Validation service wiring and validation configuration entry points."
+        }
+      ]
+    },
+    {
+      "key": "ignore",
+      "title": "Ignore",
+      "description": "Internal wiring files that are not meant to be edited from the Configurations UI.",
+      "visible": false,
+      "files": [
+        {
+          "name": "components.xml",
+          "title": "Components",
+          "description": "Registers application service components."
+        },
+        {
+          "name": "globalConnections.xml",
+          "title": "Global Connections",
+          "description": "Global connection definitions."
+        },
+        {
+          "name": "hcrConfigProperties.properties",
+          "title": "HCR Config Properties",
+          "description": "Helical Custom Report configuration properties."
+        },
+        {
+          "name": "map.properties",
+          "title": "Map Properties",
+          "description": "Internal mapping properties."
+        },
+        {
+          "name": "drillConfig.xml",
+          "title": "Drill Configuration",
+          "description": "Drill-down middleware configuration for report and dashboard navigation."
+        },
+        {
+          "name": "instantbiSettings.json",
+          "title": "InstantBI Settings",
+          "description": "InstantBI settings are edited from the InstantBI Config tab."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+	"dateTime":[
+		{ value: "TODATE",label:"Date", part: "date",key:"sql.typeConversion.todate","returns": "date","parameters":[{name:"column"}] }, 
+		{ value: "DAY",label:"Days",part: "day" ,key:"sql.dateTime.day","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value: "MONTH",label:"Months",part: "month" ,key:"sql.dateTime.month","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"QUARTER",label:"Quarters",part: "quarter",key:"sql.dateTime.quarter","returns": "numeric","parameters":[{name:"datetime"}]  }, 
+		{ value:"YEAR",label:"Years", part: "year",key:"sql.dateTime.year","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"TOTIME",label:"Time", part: "time",key:"sql.typeConversion.totime","returns": "time","parameters":[{name:"column"}] }, 
+		{ value:"HOUR",label:"Hours",part: "hour",key:"sql.dateTime.hour","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"MINUTE",label:"Minutes",part: "minute" ,key:"sql.dateTime.minute","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"SECOND",label:"Seconds",part: "second" ,key:"sql.dateTime.second","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"INIAVIDUAL",label:"Individual",part: "individual",key:"individual","parameters":[{name:"datetime"}]  }
+	],
+	"date":[
+		{ value: "TODATE",label:"Date", part: "date",key:"sql.typeConversion.todate","returns": "date","parameters":[{name:"column"}] },
+		{ value: "DAY",label:"Days",part: "day" ,key:"sql.dateTime.day","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value: "MONTH",label:"Months",part: "month" ,key:"sql.dateTime.month","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value: "QUARTER",label:"Quarters",part: "quarter",key:"sql.dateTime.quarter","returns": "numeric","parameters":[{name:"datetime"}]  }, 
+		{ value: "YEAR",label:"Years", part: "year",key:"sql.dateTime.year","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value: "INIAVIDUAL",label:"Individual",part: "individual",key:"individual","parameters":[{name:"datetime"}] }
+	],
+	"time":[
+		{ value:"TOTIME",label:"Time", part: "time",key:"sql.typeConversion.totime","returns": "time","parameters":[{name:"column"}] }, 
+		{ value:"HOUR",label:"Hours",part: "hour",key:"sql.dateTime.hour","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"MINUTE",label:"Minutes",part: "minute" ,key:"sql.dateTime.minute","returns": "numeric","parameters":[{name:"datetime"}] }, 
+		{ value:"SECOND",label:"Seconds",part: "second" ,key:"sql.dateTime.second","returns": "numeric","parameters":[{name:"datetime"}] },
+		{ value:"INIAVIDUAL",label:"Individual",part: "individual",key:"individual","parameters":[{name:"datetime"}] }
+	]
+}
+

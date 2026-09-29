@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3NonAxis_js_setChartColor</scriptId>
+    <scriptType>js</scriptType>
+    <name>Set Chart Color</name>
+    <group>C3NonAxis</group>
+    <renderOn>simpleModel</renderOn>
+    <description>Set chart Color</description>
+    <icon>/images/scriptIcons/SetChartColor.png</icon>
+    <snippet>
+		<![CDATA[
+		
+			var id = hi_container.get("renderId");
+		
+			if(id== ""){
+				var chartId = '#chart'+id;
+				var containerId = '#main'+id;
+			}
+			else{
+				var chartId = '#chart-'+id;
+				var containerId = '#main-'+id;
+			}
+			
+			var ftnObj = {};
+			
+			
+			ftnObj['setChartColor'+id]= function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+				c.set("viz_Options",viz_Options);
+				
+			}
+			ftnObj['extendChartColor'+id]= function(preExecution, c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+				
+				
+			}
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['setChartColor'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendChartColor'+id]);
+			}
+			/*
+			
+			function setChartColor(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+				c.set("viz_Options",viz_Options);
+			}
+			function extendChartColor(preExecution, c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = chartColor(viz_Options);
+			}
+			*/
+			function chartColor(viz_Options){
+				var colorObject = ${colorObj};
+				//console.log(colorObject);
+				var finalObject={};
+				colorObject.forEach(function(val, index){
+					finalObject[val.data] = val.color;
+				})
+				//console.log(finalObject);
+				if(viz_Options.chartOptions.data){
+					viz_Options.chartOptions.data.colors = finalObject;
+				}
+				else{
+					viz_Options.chartOptions.data = {
+						colors: finalObject,
+					}	
+				}
+				//console.log(viz_Options);
+				return viz_Options;
+			}
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="[]" name="colorObj" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<style>
+	
+			</style>
+			<div id="addButtonPanel" class = 'col-sm-12'>
+				<label for='addButton' class='col-sm-4' >Add New Condition</label>
+				<button id='addButton' class='btn btn-primary addButton col-sm-2' onclick='addConditionPanel({color: "rgba(124,184,47,1)", data: ""}, "conditionList")'>Add</button>
+			</div>
+			<div id="conditionList"></div>
+			
+			<script>
+				adhocScripts.resetAll();
+				adhocScripts.setVariable("colorObj", params.colorObj);
+			
+
+			/*	var script = document.createElement("script");
+
+				if(window.DashboardGlobals)
+				
+					script.src = window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+				else
+					script.src = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/JS/spectrum.js";
+
+				script.async = false;
+				document.getElementsByTagName("head")[0].appendChild(script);
+				
+				script.onload = function() {
+					spectrumFtn();
+					createConditionList(colorObj, tgtPanel);
+					script2Loaded = true;
+				}
+				
+				 
+				var link = document.createElement("link");
+
+				if(window.DashboardGlobals){
+					link.href =  window.DashboardGlobals.baseUrl+"/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				else {
+					link.href = "/getExternalResource.html?path=System/Admin/CustomScripts/Files/CSS/spectrum.css";
+				}
+				link.rel = "stylesheet";
+				link.type="text/css";
+				document.getElementsByTagName("head")[0].appendChild(link);			*/
+				
+				var colorObj = JSON.parse(JSON.stringify(adhocScripts.getVariable("colorObj")));
+				var tgtPanel = 'conditionList';
+				
+				var dataObject = window.frames[0].__hi_result.data;
+				var metadataObject = window.frames[0].__hi_result.metadata[0];
+				
+				var column = JSON.parse(window.Base64.decode(window.frames[0].__hi_params.columns));
+				
+				var numberOfColumns = Object.keys(dataObject[0]);
+				
+				var xAxisMeasure,categories,values=[],ArrayData = [];
+				
+				//console.log("columns", column);
+				
+				column.forEach(function(col, i){
+					if (col.groupBy && !col.hasOwnProperty("hidden")) {
+						categories = metadataObject[(i + 1).toString()].name;
+					}
+					
+					if (col.aggregate && !(col.hidden === true)) {
+						values.push(metadataObject[(i + 1).toString()].name);
+					}
+				});
+				
+				
+				
+				for (var i = 0; i < dataObject.length; i++) {
+						ArrayData.push(dataObject[i][categories]);
+				}
+				
+				//console.log("ArrayData: ", ArrayData);
+				
+				var xAxisArrayValues = ArrayData.filter(function(item, i, ar){ return ar.indexOf(item) === i; });
+				
+				
+				var xAxisValues = xAxisArrayValues;
+				
+				
+				chartMeasures = values;
+				
+				/*var columnNames=[];
+				
+				
+				//var metadataLength = Object.keys(window.frames[0].__hi_result.metadata[0]).length;
+				
+				
+				/*
+				for(var j=metadataLength;j>=1;j--)
+				{
+					if(window.frames[0].__hi_result.metadata[0][j].type == 'text'){
+						columnNames.push(window.frames[0].__hi_result.metadata[0][j].name);
+						break;
+					}
+				}
+				
+				
+				var data = window.frames[0].__hi_result.data;
+				var dropdownValues = [];
+				
+				
+				for(index = 0; index < data.length; index++){
+					dropdownValues.push(data[index][columnNames[0]])
+				}
+				*/
+				
+				var dropdownValues = [];
+				dropdownValues = xAxisArrayValues;
+				
+				var currentColorObj;
+				if(window.frames[0].Hdi.hiChart) {
+					currentColorObj = adhocScripts.getVariable("colorObj");
+				} else {
+					currentColorObj = window.frames[0].Hdi.c3chart.data.colors();
+				}
+
+				function createConditionList(colorObj){
+				  if(colorObj.length == 0){
+					colorObj.push({color: "#7cb82f", data: dropdownValues[0]});
+				  }
+				  adhocScripts.setVariable("colorObj", colorObj);
+				  for(var i = 0 ; i < colorObj.length; i++){
+					var div = createConditionPanel(colorObj[i], i);
+					document.getElementById(tgtPanel).appendChild(div);
+					spectrumFtn('input_color_'+i, colorObj[i]);
+				  }
+				}
+				
+				createConditionList(colorObj, tgtPanel);
+				
+				function addConditionPanel(object, tgtPanel){
+					if(object.data.length == 0){
+						object.data = dropdownValues[0];
+					}
+				
+					/*var x = d.target.id.split('_')[2];
+					var key = d.target.id.split('_')[1];
+					
+					conditionArr[x][key] = d.target.value;*/
+					colorObj.push(object);
+					adhocScripts.setVariable("colorObj", colorObj);					
+				  var colorObjLength = colorObj.length;	
+				  if(colorObjLength <= dropdownValues.length){
+					  var index = colorObj.length-1;
+					  var div = createConditionPanel(object, index);
+					  document.getElementById(tgtPanel).appendChild(div);
+					  spectrumFtn('input_color_'+index, object);  
+				  }
+				}
+				
+				function createConditionPanel(object, index){
+				  var form = document.createElement('form');
+				  form.className = 'form-line col-sm-12 dataSet';
+				  
+				  var divVal1 = document.createElement('div');
+					divVal1.className = 'form-group col-sm-4 value_1';
+					divVal1.id = 'div_data_'+index;
+
+				  var labelVal1 = document.createElement('label');
+				  labelVal1.for = 'input_data_'+index;
+				  labelVal1.innerHTML = 'Data';
+
+				  var inputVal1 = document.createElement('select');
+				inputVal1.type = 'text';
+				inputVal1.className = 'form-control';
+				inputVal1.id = 'input_data_'+index;
+				inputVal1.value = object.data;
+				inputVal1.onchange = setOnChange;
+				
+				for(var i = 0; i < dropdownValues.length; i++){
+				  var options = document.createElement('option');
+				  options.value = dropdownValues[i];
+				  options.text = dropdownValues[i];
+				  if(options.value == object.data || options.value == dropdownValues[0]){
+					options.selected = 'selected';
+				  }
+				  inputVal1.appendChild(options);
+			  }
+
+			  divVal1.appendChild(labelVal1);
+			  divVal1.appendChild(inputVal1);
+
+			  form.appendChild(divVal1);
+
+			  var divColorVal = document.createElement('div');
+			    divColorVal.className = 'form-group col-sm-2 color';
+				divColorVal.id = 'div_color_'+index;
+
+			  var labelColorVal = document.createElement('label');
+			 // labelColorVal.for = 'input_color_'+index;
+			  labelColorVal.innerHTML = 'Color';
+
+			  var inputColorVal = document.createElement('div');
+			 // inputColorVal.type = 'text';
+			 // inputColorVal.className = 'form-control';
+			  inputColorVal.id = 'input_color_'+index;
+			//  inputColorVal.onchange = setOnChange;
+			//  inputColorVal.value = object.color;
+
+			  divColorVal.appendChild(labelColorVal);
+			  divColorVal.appendChild(inputColorVal);
+
+			  form.appendChild(divColorVal);
+
+			  
+			  var delButton = document.createElement('button');
+			  delButton.id = 'delete_'+index;
+			  delButton.classList = 'btn btn-danger ';
+			  delButton.innerHTML = '<span class="glyphicon glyphicon-trash"></span>';
+			  delButton.onclick = function(d){
+				var index = d.target.id.split('_')[1];
+				colorObj.splice(index, 1);
+				adhocScripts.setVariable("colorObj", colorObj);
+				$(this).parent().remove();
+			  };
+			  delButton.style.marginTop = '25px';
+
+			  form.appendChild(delButton);
+
+			  return form;
+
+
+
+			  function setOnChange(d){
+				var len = d.target.id.split('_').length;
+				var x = d.target.id.split('_')[2];
+				var key = d.target.id.split('_')[1];
+				var val = d.target.value;
+				
+				colorObj[x][key] = val;
+				adhocScripts.setVariable("colorObj",colorObj);
+			  }
+			}
+			
+				function setColorValue(paylod){			  
+            var len = paylod['id'].split('_').length;
+            var x = paylod['id'].split('_')[2];
+            var key = paylod['id'].split('_')[1];
+            var val = paylod['color'];
+          
+			colorObj[x][key] = val;
+			adhocScripts.setVariable("colorObj",colorObj);		  
+		  }
+				
+				var newColorObj = {};
+				
+				/*for(var i = 0; i<columnNames.length; i++){
+					var colName = document.createElement('label');
+					colName.className = 'col-sm-3 col-md-3 col-xs-12 control-label colName '+columnNames[i].replace(/ /g,"_");
+					colName.htmlFor = columnNames[i].replace(/ /g,"_");
+					colName.innerHTML = columnNames[i];
+
+					var inputWrap = document.createElement('div');
+					inputWrap.className = "col-sm-2 col-md-2 col-xs-12";
+
+					var colColor = document.createElement('input');
+					colColor.type = 'text';
+					colColor.className = 'form-control colColor '+columnNames[i].replace(/ /g,"_")+'_color';
+					colColor.id = columnNames[i].replace(/ /g,"_");
+					colColor.value = currentColorObj[columnNames[i]];
+					
+					inputWrap.appendChild(colColor);
+					
+					$('#colList').appendChild(colName);
+					$('#colList').appendChild(inputWrap);
+				}*/
+
+		function spectrumFtn(id,Obj){
+			
+					HDIUI.renderColorPicker({
+							id:id,
+							color:( Obj && Obj.color) ? Obj.color : 'rgba(255,255,255,1)' ,
+							change:function(color){	
+								var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+								setColorValue({id:id,color:rgbaCode});
+								//setColorValue({id:id,color:color['hexCode']});
+							}
+						});		
+			
+			
+			/*		$("#"+id).spectrum({
+				//		showInput: true,
+						className: "full-spectrum",
+						showInitial: true,
+						showPalette: true,
+						showSelectionPalette: true,
+						showPaletteOnly: true,
+						togglePaletteOnly: true,
+						togglePaletteMoreText: 'more',
+						togglePaletteLessText: 'less',
+						hideAfterPaletteSelect:true,
+						maxSelectionSize: 10,
+						preferredFormat: "hex",
+						localStorageKey: "spectrum.HIColorPallete",
+						move: function (color) {
+
+						},
+						show: function () {
+						},
+						beforeShow: function (color) {
+
+						//console.log(color.toRgb());
+						},
+						hide: function () {
+
+						},
+						change: function(color) {
+							adhocScripts.setVariable("background",color.toHexString());
+						},
+						palette: [
+							["#cfedfb", "#f0e3ef", "#ffe2d2", "#ffebb6", "#d2eceb", "#faf0b5", "#fbe2ed", "#e5efc7", "#e0e2e4"],
+							["#9bdaf3", "#ddcce2", "#fec9b8", "#f9d291", "#a9dddd", "#f7df8c", "#f7c8de", "#cee4a3", "#caccce"],
+							["#68c7ec", "#cab5d5", "#f7a897", "#f3b86d", "#80ced0", "#f4d161", "#f6a8ca", "#b0d775", "#b3b5b7"],
+							["#34b3e4", "#b79ec7", "#f38a78", "#ec9f48", "#57bfc1", "#f0c23b", "#f289b7", "#92c749", "#9d9fa1"],
+							["#00a0dc", "#a487ba", "#ef6c5a", "#e68523", "#00aeb3", "#edb220", "#ee62a2", "#7cb82f", "#86888a"]
+						]
+					});		*/
+				}
+				
+				spectrumFtn();
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

@@ -1,0 +1,10 @@
+{
+    "id":  "threadPoolConfig",
+    "file":  "threadPoolConfig.xml",
+    "title":  "Thread Pool Config",
+    "description":  "Thread pool sizes and executor configuration for background work.",
+    "category":  "system",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/threadPoolConfig.ui.layout",
+    "fallbackEditor":  "xml"
+}

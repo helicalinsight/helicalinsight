@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<sql-keywords allowed="true">
+	SQL_TSI_YEAR,SQL_TSI_DAY,SQL_TSI_MONTH,SQL_TSI_HOUR,SQL_TSI_MINUTE,SQL_TSI_SECOND,TRUE,FALSE,Quarter,Week,microsecond,HOUR,MINUTE,SECOND,DAY,MONTH,YEAR,YEAR_MONTH,HOUR_MICROSECOND,DAY_SECOND,yyyy,yy,qq,q,mm,m,dayofyear,dy,y,ww,wk,dw,w,hh,mi,n,ss,s,ms,Weekday,Millisecond,DAY_OF_MONTH, DAY_OF_WEEK,DOW,DAY_OF_YEAR,DOY,YEAR_OF_WEEK,YOW,MINUTE_SECOND,HOUR_MICROSECOND,DAY_SECOND,year to day,year to second,hour to second,HOUR TO HOUR,minute TO minute,second TO second,FF,IW
+</sql-keywords>

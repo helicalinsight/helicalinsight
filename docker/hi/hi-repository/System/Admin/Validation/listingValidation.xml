@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<classifier  type="text" required="true"/>
+	<location type="directory" requiredIf="classifier" condition="=" value="efwd"/>
+	<dataSourceId type="text" />
+</formData>

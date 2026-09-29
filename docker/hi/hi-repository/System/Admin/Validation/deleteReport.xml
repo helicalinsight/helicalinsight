@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<formData>
+	<location required="true" type="directory"/>
+	<reportFileName required="true" type="file"/>
+	<provideJoins type="boolean"/>
+</formData>

@@ -1,0 +1,186 @@
+{
+  "oracle": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "mysql": {
+    "rollup": true,
+    "syntax": "with"
+  },
+  "mariadb": {
+    "rollup": true,
+    "syntax": "with"
+  },
+  "sqlserver": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "sqlserver2012": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "postgresql": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2390": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "db2400": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "derby": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "calcite": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "drill": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "dremio": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "teradata": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "presto": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "trino": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "redshift": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "vertica": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "athena": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "duckdb": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "yugabyte": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "snowflake": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "spark": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "databricks": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "bigquery": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "sybase": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "informix": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "sap": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "h2": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+  "hsqldb": {
+    "rollup": true,
+    "syntax": "ansi"
+  },
+
+  "sqlite": {
+    "rollup": false
+  },
+  "msaccess": {
+    "rollup": false
+  },
+  "himongo": {
+    "rollup": false
+  },
+  "mongo": {
+    "rollup": false
+  },
+  "mongoCData": {
+    "rollup": false
+  },
+  "dynamo": {
+    "rollup": false
+  },
+  "elasticsearchsql": {
+    "rollup": false
+  },
+  "flatfile": {
+    "rollup": false
+  },
+  "hihttp": {
+    "rollup": false
+  },
+  "clickhouse": {
+    "rollup": false
+  },
+  "firebird": {
+    "rollup": false
+  },
+  "firebirddb": {
+    "rollup": false
+  },
+  "interbase": {
+    "rollup": false
+  },
+  "progress": {
+    "rollup": false
+  },
+  "ingres": {
+    "rollup": false
+  },
+  "sybaseanywhere": {
+    "rollup": false
+  },
+  "sapdb": {
+    "rollup": false
+  },
+  "mckoi": {
+    "rollup": false
+  },
+  "pointbase": {
+    "rollup": false
+  },
+  "frontbase": {
+    "rollup": false
+  },
+  "mimersql": {
+    "rollup": false
+  }
+}

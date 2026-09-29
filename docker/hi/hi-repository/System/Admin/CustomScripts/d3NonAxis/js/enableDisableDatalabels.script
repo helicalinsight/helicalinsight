@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3NonAxis_js_enableDisableDatalabels</scriptId>
+    <scriptType>js</scriptType>
+	<name>Enable/Disable Data Labels</name>
+    <group>D3Dendrogram</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Enable/Disable Data Labels</description>
+	<icon>/images/scriptIcons/Enable_Disable.png</icon>
+	<snippet>
+		<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['enableLabels'+id] = function(c){
+				
+				var viz_Options = c.get("viz_Options");
+				viz_Options = enableLabels(viz_Options);
+				c.set("viz_Options",viz_Options);
+			 };
+					
+			ftnObj['extendenableLabels'+id] = function(preExecution, c){
+					
+					var viz_Options = c.get("viz_Options");
+					viz_Options = enableLabels(viz_Options);
+				
+			};
+			
+			function enableLabels(viz_Options){
+				
+				var swithch='${switch}';
+				//console.log(swithch);
+				if(swithch == "true")
+				{
+					 viz_Options.chartOptions["dendrogram"] = {
+						 data: {
+							labels : true	
+						 }
+					}
+					
+				}
+				
+				if(swithch == "true")
+				{
+					 viz_Options.chartOptions["dendrogram"] = {
+						 data: {
+							labels : true	
+						 }
+					}
+					
+				}
+				
+				if(swithch == "true")
+				{
+					viz_Options.chartOptions["radialdendrogram"] = {
+						 data: {
+							labels : true	
+						 }
+					}
+					
+				}
+				
+				if(swithch == "true")
+				{
+					viz_Options.chartOptions["sunburst"] = {
+						 data: {
+							labels : false	
+						 }
+					}
+					
+				}
+				
+				/*if(viz_Options.chartOptions.dendrogram){
+					viz_Options.chartOptions.dendrogram.data.labels = true;
+					}
+				else{
+					 viz_Options.chartOptions["dendrogram"] = {
+						 data: {
+							labels : true	
+						 }
+					}
+				}
+				
+				if(viz_Options.chartOptions.radialdendrogram){
+					viz_Options.chartOptions.radialdendrogram.data.labels = true;
+					}
+				else{
+					 viz_Options.chartOptions["radialdendrogram"] = {
+						 data: {
+							labels : true	
+						 }
+					}
+				}
+				
+				if(viz_Options.chartOptions.sunburst){
+					viz_Options.chartOptions.sunburst.data.labels = false;
+					}
+				else{
+					 viz_Options.chartOptions["sunburst"] = {
+						 data: {
+							labels : false	
+						 }
+					}
+				}
+				*/
+				return viz_Options;
+			}
+			
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['enableLabels'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extendenableLabels'+id]);
+			}
+			
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="false" name="switch" type="Boolean"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+				<div class="row">
+					<div class="col-sm-12 form-horizontal">
+						<div id="toggle" align="center">
+							<div class="col-sm-3">
+								<label><b>Enable/Disable Labels</b></label>
+							</div>
+							<div class="col-sm-3  toggle_label_hide">
+								<label>Disable</label>
+							</div>
+							<div class="col-sm-2 switch" id="switch">
+								<input id="cmn-toggle-1" class="cmn-toggle cmn-toggle-round" type="checkbox" onclick='switchToggle(event)' />
+								<label for="cmn-toggle-1"></label>
+							</div>
+							<div class="col-sm-3 toggle_label_show">
+								<label>Enable</label>
+							</div>
+						</div>
+					</div>
+				</div>
+			<script>
+				adhocScripts.resetAll();
+				//Set global variable from parameter
+				adhocScripts.setVariable("switch",params.switch);
+				
+				function switchToggle(event){
+					//console.log(adhocScripts.getVariable('switch'))
+					if(adhocScripts.getVariable('switch') == 'false'){
+						window.frames[0].hi_container.unSet("preExecution");
+						adhocScripts.setVariable("switch", 'true');
+					}
+					else{
+						adhocScripts.setVariable("switch", 'false');
+					}
+				};
+				
+				//Check or uncheck toggle button based on global variable
+				if(adhocScripts.getVariable('switch') == 'true'){
+					$('#cmn-toggle-1').attr('checked', 'checked');
+				} else {
+					$('#cmn-toggle-1').removeAttr('checked');
+				}
+				
+			</script>	
+		]]>
+	</uiSnippet>
+</customScript>

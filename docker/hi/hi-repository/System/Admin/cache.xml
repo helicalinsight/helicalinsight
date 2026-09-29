@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cache>
+    <enableCache>true</enableCache>
+    
+    <!-- If cache strategy is stream, change resultset configuration  in setting.xml-->
+    <!--  Allowed values [stream, default]  -->
+    <cacheStrategy>default</cacheStrategy>
+    
+   <!-- 
+    Number of worker threads used to write chunks.
+    This is a hint value; at runtime, the actual number of threads 
+    will be the minimum of available processors and noOfWorkers.
+	-->
+    <noOfWorkers>2</noOfWorkers>
+    <enableJsonCache>true</enableJsonCache>
+    
+    <!-- Enables parallel processing: cache creation and report filling occur simultaneously -->
+    <enableParallelReportGeneration>false</enableParallelReportGeneration>
+    
+    <enableThread>true</enableThread>
+    <cacheExtension>cache</cacheExtension>
+    <cacheExpireDuration>24</cacheExpireDuration>
+    <durationUnit>hours</durationUnit>
+    <refreshUrl>
+        <url>/getEFWSolution.html</url>
+        <url>/adhocReport.html</url>
+        <url>/adhoc/report-create.html</url>
+        <url>/adhoc/report-edit.html</url>
+        <url>/hi.html</url>
+    </refreshUrl>
+    <serviceOrVisualize type="adhoc" serviceType="report" visualizeUrl="visualizeAdhoc"/>
+    <cacheManager>
+        <url bean="efwdCacheManager" pattern="/executeDatasource"/>
+        <url bean="efwvfCacheManager" pattern="/visualizeData"/>
+        <url bean="adhocCacheManager" pattern="/services"/>
+        <url bean="adhocCacheManager" pattern="/services"/>
+        <url bean="downloadCacheManager" pattern="/downloadReport"/>
+        <url bean="visualizeAdhocCacheManager" pattern="/visualizeAdhoc"/>
+        <url bean="HCRQueryProcessCacheManager" pattern="/hcr"/>
+		<url bean="HCRQueryProcessCacheManagerForResultSet" pattern="/hcrResultSet"/>
+        <url bean="HCRPrintCacheManager" pattern="/hcrPrint"/>
+    </cacheManager>
+    <downloadManager>
+        <contentType bean="CSVResultSetFormatDownload" type="csv"/>
+        <contentType bean="XLSResultsetFormatDownload" type="xls"/>
+        <contentType bean="XLSResultsetFormatDownload" type="xlsx"/>
+        <contentType bean="HCRFileDownload" type="hcr"/>
+    </downloadManager>
+	<applicationCacheImplType>
+		<db bean="applicationDatabaseCache"/>
+		<file bean="applicationFileCache"/>
+		<distributed bean="applicationDistributedCache"/>
+		<inmemory bean="applicationMemoryCache"/>
+	</applicationCacheImplType>
+	
+	<hcr>
+		<print>
+			<enabled>true</enabled> 
+			<maxPagesInMemory>20</maxPagesInMemory>
+			<swap>
+				<blockSize>4096</blockSize>
+				<minGrowCount>100</minGrowCount>
+			</swap>
+		</print>
+	</hcr>
+	
+	<!--  Design Cache -->
+	 <cacheStore>
+    	 <url bean="inMemoryApplicationCacheStore" pattern = "default" />
+    	 <url bean="inMemoryApplicationCacheStore" pattern = "in-memory" />
+    </cacheStore>
+</cache>

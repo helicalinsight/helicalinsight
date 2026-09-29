@@ -1,0 +1,7 @@
+{"inMemoryContent": {
+ "warningItems": ["Middleware - It is capable of handling several petabytes of data at a time, distributed across a cluster of thousands of cooperating physical or virtual servers. It provides distributed task dispatching, scheduling, and basic I/O functionalities, exposed through an application programming interface.",
+			  "Cache - Caching or persistence are optimisation techniques for (iterative and interactive) Spark computations. They help saving interim partial results so they can be reused in subsequent stages. These interim results as RDDs are thus kept in memory (default) or more solid storages like disk and/or replicated.",
+			  "Cache Vs Persist - The difference between cache and persist operations is purely syntactic. cache is a synonym of persist or persist(MEMORY_ONLY), i.e. cache is merely persist with the default storage level MEMORY_ONLY.",
+			  "Warning: Enabling Middleware or Cache/Persist requires a significant Memory. Please Make sure that you have good RAM/Memory"]
+}
+}

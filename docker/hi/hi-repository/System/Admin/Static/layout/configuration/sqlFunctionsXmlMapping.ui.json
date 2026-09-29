@@ -1,0 +1,10 @@
+{
+    "id":  "sqlFunctionsXmlMapping",
+    "file":  "sqlFunctionsXmlMapping.properties",
+    "title":  "SQL Functions XML Mapping",
+    "description":  "Maps dialect keys to SQL function XML definition files.",
+    "category":  "sql",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/sqlFunctionsXmlMapping.ui.layout",
+    "fallbackEditor":  "properties"
+}

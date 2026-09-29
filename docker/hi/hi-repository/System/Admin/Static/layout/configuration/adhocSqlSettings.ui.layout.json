@@ -1,0 +1,33 @@
+{
+    "id":  "adhocSqlSettings",
+    "title":  "Adhoc SQL Settings",
+    "description":  "Default JDBC dialect and driver for ad-hoc SQL.",
+    "file":  "adhocSqlSettings.xml",
+    "format":  "xml",
+    "fallbackEditor":  "xml",
+    "sections":  [
+                     {
+                         "title":  "Defaults",
+                         "key":  "defaults",
+                         "description":  "Keep driver class and dialect in sync.",
+                         "fields":  [
+                                        {
+                                            "name":  "defaultJdbcDialect",
+                                            "path":  "sqlSettings/defaultJdbcDialect",
+                                            "label":  "Default JDBC Dialect",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "Hibernate dialect class used for ad-hoc SQL."
+                                        },
+                                        {
+                                            "name":  "defaultDriverClassName",
+                                            "path":  "sqlSettings/defaultDriverClassName",
+                                            "label":  "Default Driver Class",
+                                            "type":  "text",
+                                            "span":  24,
+                                            "description":  "JDBC driver class name. Must stay in sync with the dialect."
+                                        }
+                                    ]
+                     }
+                 ]
+}

@@ -1,0 +1,22 @@
+ <HIResourcePhases>
+		<metadata>
+			<process>
+				<phase id="1" name="INITIATED" description="" />
+				<phase id="2" name="FETCHED" description="" />
+				<phase id="3" name="LOADED_IN_MEMORY" description="" />
+				<phase id="4" name="LOADED" description="" />
+				<phase id="5" name="COMPLETED" description="" />
+				<phase id="6" name="ERROR" description="" />
+			</process>
+		</metadata>
+		<cube>
+			<process>
+				<phase id="7" name="INITIATED" description="" />
+				<phase id="8" name="FETCHED" description="" />
+				<phase id="9" name="LOADED_IN_MEMORY" description="" />
+				<phase id="10" name="LOADED" description="" />
+				<phase id="11" name="COMPLETED" description="" />
+				<phase id="12" name="ERROR" description="" />
+			</process>
+		</cube>
+    </HIResourcePhases>

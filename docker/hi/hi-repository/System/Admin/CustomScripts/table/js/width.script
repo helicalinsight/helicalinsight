@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_width</scriptId>
+    <scriptType>js</scriptType>
+	<name>Adjust Column Width</name>
+    <group>Table</group>
+	<renderOn>simpleModel</renderOn>
+    <description>widthfor Table</description>
+    <icon>/images/scriptIcons/Adjust_Columns.png</icon>
+	<parameters>
+		<parameter value="[]" name="columnNames" type="String"/>
+	</parameters>
+	<snippet>
+		<![CDATA[ 
+		
+			var id = hi_container.get("renderId");
+			
+			if(id== ""){
+				var table = '#main'+id+' .table';
+			}
+			else{
+				var table = '#main-'+id+' .table';
+			}
+			
+			var ftnObj = {};
+			
+			ftnObj['tableColWidth'+id]=function(){
+				var widthObj = ${widthObj};
+				var tableWidth = 0;
+				$.each($(table).find('th'), function(i, item){
+					var width = parseInt(widthObj[$(item).attr('data-column-id')]);
+					$(item).css("width", width);
+					tableWidth += width;
+				});
+				$(table).css("width", tableWidth);
+			};
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['tableColWidth'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['tableColWidth'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="{}" name="widthObj" type="String"/>
+	</parameters>
+    <uiSnippet>
+	<![CDATA[
+			<div class="col-sm-12" id="columnNamePanel">
+			</div>
+			<script>
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable('widthObj', params.widthObj);
+				
+				var widthObj = adhocScripts.getVariable('widthObj');
+				var columns = window.frames[0].__hi_result.metadata[0];
+
+				if($.isEmptyObject(widthObj)){
+					var table = window.frames[0].$('.table');
+				
+					var th = $(table).find('th');
+					
+					$.each(th, function(i, item){
+						widthObj[$(item).attr("data-column-id")] = $(item).width()+18;
+					});
+				}
+				
+				
+				$.each(columns, function(i, item){
+					$('#columnNamePanel').append('<div class="form-horizontal">'+
+													'<div class="form-group">'+
+														'<label for="size" class="col-sm-6 col-md-6 col-xs-6 control-label">'+item.name+'</label>'+
+														'<div class="col-sm-6 col-md-6 col-xs-6">'+
+															'<input data-gs-col="'+item.name+'" type="number" class="form-control" id="size" name="size" onchange="changeWidth(this)" value="'+widthObj[item.name]+'"/>'+
+														'</div>'+
+													'</div>'+
+												'</div>');
+				});
+				
+				function changeWidth(input){
+					widthObj[$(input).attr('data-gs-col')] = $(input).val();
+				}
+												
+			</script>	
+		]]>
+	</uiSnippet>
+
+</customScript>

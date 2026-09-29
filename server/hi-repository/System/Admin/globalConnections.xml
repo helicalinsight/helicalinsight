@@ -8,7 +8,7 @@
         <username>hiuser</username>
         <password>hiuser</password>
         <driverClassName>org.apache.derby.iapi.jdbc.AutoloadedDriver</driverClassName>
-         <url>jdbc:derby:${INSTALL_PATH}${FILE_SEPARATOR}db${FILE_SEPARATOR}SampleTravelData</url>
+         <url>jdbc:derby:/usr/local/Helical Insight/hi/db/SampleTravelData</url>
         <testWhileIdle>false</testWhileIdle>
         <testOnBorrow>true</testOnBorrow>
         <testOnReturn>false</testOnReturn>

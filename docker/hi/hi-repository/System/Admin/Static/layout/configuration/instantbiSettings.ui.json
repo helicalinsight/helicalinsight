@@ -1,0 +1,10 @@
+{
+  "id": "instantbiSettings",
+  "file": "instantbiSettings.json",
+  "title": "InstantBI Settings",
+  "description": "Configure InstantBI LLM providers, models, logging, and application settings at runtime.",
+  "category": "instantbi",
+  "editor": "instantbi",
+  "manifest": "Static/instantbi/instantbi-settings.ui",
+  "fallbackEditor": "json"
+}

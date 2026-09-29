@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>c3Axis_js_Axis-Rotate</scriptId>
+    <scriptType>js</scriptType>
+	<name>Axis Rotate</name>
+    <group>C3Axis</group>
+    <description>Charts Axis Rotation</description>
+	<icon>/images/scriptIcons/AxisLabel.png</icon>
+	<snippet>
+		<![CDATA[
+			var id = hi_container.get("renderId");
+
+			if(id == '')
+				id = 0;
+
+			var ftnObj = {};
+
+			ftnObj['set_axisRotation-'+id] = function(c){
+				var viz_Options = c.get("viz_Options");
+				viz_Options = rotateAxis(viz_Options);
+				c.set("viz_Options",viz_Options);
+			} ;
+
+			ftnObj['extend_axisRotation-'+id] = function(preExecution, d){
+				var viz_Options = d.get("viz_Options");
+				viz_Options = rotateAxis(viz_Options);
+			} ;
+
+			function rotateAxis(viz_Options) {
+				var axisRotateConfigObj = ${axisRotateConfig};
+
+				if(!viz_Options.chartOptions.axis)
+					viz_Options.chartOptions.axis = {};
+
+				viz_Options.chartOptions.axis.rotated = axisRotateConfigObj.isRotate;
+				return viz_Options;
+			}
+
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution", ftnObj['set_axisRotation-'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['extend_axisRotation-'+id]);
+			}
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="{isRotate: true}" name="axisRotateConfig" type="String"/>
+	</parameters>
+    <uiSnippet>
+		<![CDATA[
+			
+		]]>
+	</uiSnippet>
+</customScript>

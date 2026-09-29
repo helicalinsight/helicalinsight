@@ -3,11 +3,11 @@
 
     <!-- Configurable property to point to the solution resources. Can be changed to point new resources even during the life time of the running application
     -->
-    <efwSolution>${INSTALL_PATH}${FILE_SEPARATOR}hi-repository</efwSolution>
-    <BaseUrl>http://localhost:${portnumber}/${contextname}/hi.html</BaseUrl>
+    <efwSolution>/usr/local/Helical Insight/hi/hi-repository</efwSolution>
+    <BaseUrl>http://localhost:8080/hi-ee/hi.html</BaseUrl>
 
     <!--change the defaultBaseurl to false when the BaseUrl is different then the server address -->
-    <defaultBaseurl>true</defaultBaseurl>
+    <defaultBaseurl>false</defaultBaseurl>
     <autoSyncCutPasteDesigner>true</autoSyncCutPasteDesigner>
     <serviceSpeedLimitAlert>15000</serviceSpeedLimitAlert>
     <!-- If the resource owner is not available during import, the resources will be assigned to this user. -->

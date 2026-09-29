@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>table_js_tooltip</scriptId>
+    <scriptType>js</scriptType>
+	<name>Tooltip</name>
+    <group>Table</group>
+	<renderOn>simpleModel</renderOn>
+    <description>Show Tooltip on the table cells</description>
+    <icon>/images/scriptIcons/Tooltip.png</icon>
+	<parameters>
+		 <parameter value="false" name="switch" type="Boolean"/>
+	</parameters>
+    <snippet>
+		<![CDATA[ 
+			var id = hi_container.get("renderId");
+			
+			var containerId = '#main';
+			
+			if(id != '')
+				containerId = containerId+'-'+id;
+			
+			var thTable = '.table thead th>a>span';
+			var tdTable = '.table tbody tr td';
+		
+			var ftnObj = {};
+			
+			ftnObj['tooltipCustomization'+id] = function(){
+				$(containerId+" "+thTable+","+containerId+" "+tdTable).tooltip('destroy')
+			    if($('#tooltip-style'+id).length > 0)
+					$('#tooltip-style'+id).remove();
+				
+				$(containerId).on('mousemove', thTable ,function(f){
+					$(f.target).tooltip({
+						container: containerId,
+						title: f.target.innerText, 
+						placement: 'bottom'
+					}).triggerHandler('mouseover');
+				});
+				
+				$(containerId).on('mousemove', tdTable ,function(f){
+					$(f.target).tooltip({
+						container: containerId,
+						title: f.target.innerText, 
+						placement: 'bottom'
+					}).triggerHandler('mouseover');
+				});
+				
+				$(containerId).prepend('<style id="tooltip-style'+id+'">'+
+							'	'+containerId+' .tooltip.bottom .tooltip-inner{'+
+							'		color: ${fontColor};'+
+							'		text-align:center;'+
+							'		background-color: ${bgColor};'+
+							'		font-size: ${fontSize}px;'+
+							'		max-width: 200px;'+
+							'		overflow: hidden;'+
+							'		word-break: break-all;'+
+							'	}'+
+							'</style>' 
+				);	
+			};
+			
+			if(!hi_container.isSet("postExecution")){
+				hi_container.set("postExecution", ftnObj['tooltipCustomization'+id]);
+			}
+			else{
+				hi_container.extend("postExecution", ftnObj['tooltipCustomization'+id]);
+			}
+			
+		]]>
+	</snippet>
+	<parameters>
+		<parameter value="rgba(255,255,255,1)" name="fontColor" type="String"/>
+		<parameter value="rgba(0,0,0,1)" name="bgColor" type="String"/>
+		<parameter value="11" name="fontSize" type="String"/>
+	</parameters>
+	<uiSnippet>
+		<![CDATA[
+			<style>
+				#bgColor {
+					padding-left: 0 !important;
+				}
+			</style>
+		
+			<div class="form-horizontal">
+				<div class="form-group" id="font-customization">
+					<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="fontSizeSelector">
+						Font Size:
+					</label>
+					<div class="col-sm-2 col-md-2 col-xs-12" id="fontSize">
+						<input type="number" id="fontSizeSelector" class="form-control" onchange="setFontSize(this)">
+						<span><code style='padding: 1px 4px;'>number</code></span>
+					</div>
+					<label class="col-sm-2 col-md-2 col-xs-12 control-label" for="fontColor">
+						Font Color:
+					</label>
+					<div class="col-sm-2 col-md-2 col-xs-12" id="fontColor">
+						<div id="fontColorSelector"></div>
+					</div>
+					
+					<label class="col-sm-2 col-md-2 col-xs-12 control-label" id="bgColor">
+						Background Color:
+					</label>
+					<div class="col-sm-2 col-md-2 col-xs-12" id="bgColor">
+						<div id="bgColorSelector"></div>
+					</div>
+				</div>
+			
+			<script>
+				var aa = window.captureEvents(Event.CLICK);
+				adhocScripts.resetAll();
+				
+				adhocScripts.setVariable("fontColor",params.fontColor);
+				adhocScripts.setVariable("bgColor",params.bgColor);
+				adhocScripts.setVariable("fontSize",params.fontSize);
+			
+				$("#fontSizeSelector").val(adhocScripts.getVariable("fontSize"));
+			
+				function setFontSize(event){
+					adhocScripts.setVariable("fontSize", event.value);
+				}
+				
+				HDIUI.renderColorPicker({
+					id:"fontColorSelector",
+					color:adhocScripts.getVariable("fontColor"),
+					change:function(color){		
+						var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+						adhocScripts.setVariable("fontColor",rgbaCode);
+					}
+				});
+			
+				HDIUI.renderColorPicker({
+					id:"bgColorSelector",
+					color:adhocScripts.getVariable("bgColor"),
+					change:function(color){	
+						 var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';
+						 adhocScripts.setVariable("bgColor",rgbaCode);
+					}
+				});			
+			</script>
+		]]>
+	</uiSnippet>
+</customScript>

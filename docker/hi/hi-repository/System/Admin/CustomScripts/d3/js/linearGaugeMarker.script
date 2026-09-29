@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customScript>
+    <visible>true</visible>
+    <scriptId>d3_js_linearGaugeMarker</scriptId>
+    <scriptType>js</scriptType>
+	<name>Marker Configuration</name>
+    <group>D3Gauge</group>
+	<renderOn>simpleModel</renderOn>
+    <description>linear gauge marker config</description>
+    <icon>/images/scriptIcons/MarkerConfig.png</icon>
+	<snippet>
+	<![CDATA[
+			
+			var id = hi_container.get("renderId");
+			
+			var ftnObj = {};
+			
+			ftnObj['markerConfig'+id]= function(d){
+				
+				 var viz_Options = d.get("viz_Options");
+				viz_Options = configureMarker(viz_Options);  
+				d.set("viz_Options",viz_Options);
+				
+			}
+			
+			ftnObj['markerConfigExtend'+id]= function(preExecution, d){
+				
+				var viz_Options = d.get("viz_Options");
+				viz_Options = configureMarker(viz_Options);
+				
+			}
+			
+			function configureMarker(viz_Options){
+				viz_Options.chartOptions.linearGaugeMarker={
+					markerColor:'${markerColor}',
+					markerWidth:'${markerwidth}',
+				 }
+				 return viz_Options;
+			}	
+
+			if(!hi_container.isSet("preExecution")){
+				hi_container.set("preExecution",ftnObj['markerConfig'+id]);
+			}
+			else{
+				hi_container.extend("preExecution", ftnObj['markerConfigExtend'+id]);
+			}
+			
+]]>
+</snippet>
+<parameters>
+	<parameter value="rgba(255,0,0,1)" name="markerColor" type="String"/>
+	<parameter value="5" name="markerwidth" type="Number"/>
+</parameters>
+    <uiSnippet>
+		<![CDATA[
+			<div class="form-horizontal">
+				<div class="form-group colorSelectorRow">
+					<label for="colorPicker" class="col-sm-2 col-md-3 col-xs-6 control-label">Select Color:</label>
+					<div class="col-md-4">
+						<div id="colorPicker"></div>
+					</div>
+				</div>
+				<div class="form-group colorSelectorRow">
+					<label for="colorPicker" class="col-sm-2 col-md-3 col-xs-6 control-label">Marker width:</label>
+					<div class="col-md-4">
+						<input type="text" class="form-control" id="markerWidth" name="markerWidth" style="width: 50%">
+					</div>
+				</div>
+			</div>
+		<script>
+		    adhocScripts.resetAll();
+			adhocScripts.setVariable("markerColor",params.markerColor);
+			
+			function spectrumFtn() {
+				
+					HDIUI.renderColorPicker({
+					id:"colorPicker",
+					color:adhocScripts.getVariable("markerColor"),
+					change:function(color){								
+						var rgbaCode='rgba('+color["color"]["r"] +','+ color["color"]["g"] +','+ color["color"]["b"] +','+ color["color"]["a"]+')';					
+						adhocScripts.setVariable("markerColor",rgbaCode);					
+					}
+				});		
+			}
+			
+			$('#markerWidth').bind('input', function() {
+					adhocScripts.setVariable('markerwidth', $(this).val());
+			});
+			
+			$('#markerWidth').val(params.markerwidth);
+				(function() {
+					var okBtn = document.querySelector("[data-bb-handler='main']"),
+						clsBtn = document.querySelector("[data-bb-handler='danger']"),
+						xBtn = document.querySelector(".bootbox-close-button.close");
+						
+					if(okBtn && clsBtn && xBtn) {
+						$(clsBtn).add(okBtn).add(xBtn).on("click", function() {
+						    HDIUI.removeColorPicker({
+								id:"colorPicker"
+								});
+						
+						});
+					}
+				})(window);
+				
+				spectrumFtn();
+				
+			</script>			
+		]]>
+	</uiSnippet>
+</customScript>

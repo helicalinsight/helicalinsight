@@ -1,0 +1,691 @@
+{
+	"report": {
+		"summaryWithPageHeaderAndFooter": false,
+		"showParametersInPreview": true,
+		"parametersInPreview": {
+			"position": "Right"
+		},
+		"titleNewPage": false,
+		"floatColumnFooter": false,
+		"summaryNewPage": false,
+		"ignorePagination": false,
+		"reportName": "",
+		"formatFactoryClass": "",
+		"columnCount": 1,
+		"columnSpacing": 0,
+		"columnWidth": 0,
+		"printOrder": "Vertical",
+		"groupPropertiesEditName": "",
+		"groupPropertiesEditConstant": {
+			"reprintHeaderOnEachPage": false,
+			"startNewColumn": false,
+			"startNewPage": false,
+			"resetPageNumber": false,
+			"reprintHeaderOnEachColumn": false,
+			"keepTogether": false,
+			"minHeightToStartNewPage": 0,
+			"minDetailsToStartFromTop": 0,
+			"preventOrphanFooter": false
+		},
+		"groupPropertiesEdit": {
+			"reprintHeaderOnEachPage": false,
+			"startNewColumn": false,
+			"startNewPage": false,
+			"resetPageNumber": false,
+			"reprintHeaderOnEachColumn": false,
+			"keepTogether": false,
+			"minHeightToStartNewPage": 0,
+			"minDetailsToStartFromTop": 0,
+			"preventOrphanFooter": false
+		},
+		"groupProperties": [
+
+		],
+		"designerStylesNameForEdit": "",
+		"designerStyles": [
+
+		],
+		"designerStylesEdit": {
+			"name": "",
+			"textBackcolor": "#ffffff",
+			"textForecolor": "#000000",
+			"imageBackcolor": "#000000",
+			"imageForecolor": "#ffffff",
+			"fontName": "Aharoni",
+			"textFontSize": 12,
+			"bold": false,
+			"italic": false,
+			"strikeThrough": false,
+			"underline": false,
+			"rotationType": "",
+			"horizontalTextAlign": "Center",
+			"verticalTextAlign": "Top",
+			"horizontalImageAlign": "Center",
+			"verticalImageAlign": "Top",
+			"pattern": "",
+			"markUp": "none",
+			"blankWhenNull": false,
+			"mode": "Transparent",
+			"isDefault": false,
+			"border": {
+				"padding": {
+					"bottomPadding": 1,
+					"topPadding": 1,
+					"leftPadding": 1,
+					"rightPadding": 1,
+					"padding": 1
+				},
+				"line": {
+					"leftLine": {
+						"lineWidth": 0,
+						"lineColor": "#000000",
+						"lineStyle": "Solid"
+					},
+					"rightLine": {
+						"lineWidth": 0,
+						"lineColor": "#000000",
+						"lineStyle": "Solid"
+					},
+					"bottomLine": {
+						"lineWidth": 0,
+						"lineColor": "#000000",
+						"lineStyle": "Solid"
+					},
+					"topLine": {
+						"lineWidth": 0,
+						"lineColor": "#000000",
+						"lineStyle": "Solid"
+					}
+				}
+			},
+			"lineStyle": {
+				"lineForecolor": "#000000",
+				"penLineWidth": 1,
+				"lineStyle": "Solid"
+			}
+		},
+		"variablesForEdit": {
+			"name": "",
+			"className": "",
+			"calculation": "",
+			"resetType": "",
+			"incrementGroup": "",
+			"resetGroup": "",
+			"expression": "",
+			"incrementType": "",
+			"incrementFactoryClassName": "",
+			"initialValueExpression": ""
+		}
+	},
+	"designerStyles": {
+		"name": null
+	},
+	"textField": {
+		"x": 0,
+		"y": 0,
+		"fontName": "Serif",
+		"configFontName": "Aharoni",
+		"newChkbx": false,
+		"pattern": "",
+		"fontWeight": "",
+		"textForecolor": "#000000",
+		"textBackcolor": "#ffffff",
+		"bold": false,
+		"italic": false,
+		"underline": false,
+		"strikeThrough": false,
+		"textFieldExpression": "\"Text Field\"",
+		"textWidth": 50,
+		"textHeight": 50,
+		"rotationType": "None",
+		"markUp": "none",
+		"mode": "Transparent",
+		"stretchType": "NoStretch",
+		"positionType": "FixRelativeTop",
+		"printRepeatedValues": true,
+		"repeat": false,
+		"removeLineWhenBlank": false,
+		"textFontSize": 14,
+		"horizontalTextAlign": "Center",
+		"verticalTextAlign": "Top",
+		"isCommonBorder": false,
+		"key": "",
+		"styleNameReference": "",
+		"printWhenExpression": "",
+		"propertyExpression": "",
+		"evaluationTime": "Now",
+		"evaluationGroupName": "",
+		"stretchWithOverFlow": false,
+		"blankWhenNull": false,
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+		"patternExpression": "",
+		"paragraph": {
+			"lineSpacing": null,
+			"firstLineIndent": null,
+			"leftIndent": null,
+			"lineSpacingSize": null,
+			"rightIndent": null,
+			"spacingAfter": null,
+			"spacingBefore": null,
+			"tabStopWidth": null,
+			"tabStopAlignment": null,
+			"tabStopPosition": null
+		},
+		"border": {
+			"padding": {
+				"bottomPadding": 1,
+				"topPadding": 1,
+				"leftPadding": 1,
+				"rightPadding": 1,
+				"padding": 1
+			},
+			"line": {
+				"leftLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"rightLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"bottomLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"topLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				}
+			}
+		}
+	},
+	"field": {
+		"x": 0,
+		"y": 0,
+		"fontName": "Serif",
+		"pattern": "",
+		"fontWeight": "",
+		"textForecolor": "#000000",
+		"textBackcolor": "#ffffff",
+		"bold": false,
+		"italic": false,
+		"underline": false,
+		"strikeThrough": false,
+		"textFieldExpression": "\"Text Field\"",
+		"textWidth": 50,
+		"textHeight": 50,
+		"mode": "Transparent",
+		"printRepeatedValues": true,
+		"positionType": "FixRelativeTop",
+		"textFontSize": 14,
+		"horizontalTextAlign": "Center",
+		"verticalTextAlign": "Top",
+		"repeat": true,
+		"repeatType": "byRecord",
+		"isCommonBorder": false,
+		"key": "",
+		"styleNameReference": "",
+		"printWhenExpression": "",
+		"propertyExpression": "",
+		"evaluationTime": "Now",
+		"evaluationGroupName": "",
+		"stretchWithOverFlow": false,
+		"blankWhenNull": false,
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+		"patternExpression": "",
+		"paragraph": {
+			"lineSpacing": null,
+			"firstLineIndent": null,
+			"leftIndent": null,
+			"lineSpacingSize": null,
+			"rightIndent": null,
+			"spacingAfter": null,
+			"spacingBefore": null,
+			"tabStopWidth": null,
+			"tabStopAlignment": null,
+			"tabStopPosition": null
+		},
+		"border": {
+			"padding": {
+				"bottomPadding": 1,
+				"topPadding": 1,
+				"leftPadding": 1,
+				"rightPadding": 1,
+				"padding": 1
+			},
+			"line": {
+				"leftLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"rightLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"bottomLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"topLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				}
+			}
+		}
+	},
+	"basicLine": {
+		"X": 12,
+		"Y": 2,
+		"fill": true,
+		"lineWidth": 1,
+		"lineHeight": 2,
+		"mode": "Opaque",
+		"penLineWidth": 2,
+		"lineStyle": "Solid",
+		"lineBackcolor": "#000000",
+		"lineForecolor": "#000000",
+		"linePositionType": "Float",
+		"lineDirection": "TopDown",
+		"stretchType": "NoStretch",
+		"positionType": "FixRelativeTop",
+		"printRepeatedValues": true,
+		"removeLineWhenBlank": false,
+		"printInFirstWholeBand": false,
+		"printWhenDetailOverflows": false,
+		"styleNameReference": "",
+		"fill": false,
+		"mode": "Opaque",
+		"repeat": false
+	},
+	"image": {
+		"X": 0,
+		"Y": 0,
+		"dir": "",
+		"file": "",
+		"repeat": false,
+		"imageWidth": 10,
+		"imageHeight": 10,
+		"styleNameReference": "",
+		"mode": "Transparent",
+		"imageBackcolor": "#000000",
+		"imageForecolor": "#ffffff",
+		"printRepeatedValues": true,
+		"removeLineWhenBlank": false,
+		"key": "",
+		"rotationType": "None",
+		"evaluationTime": "Now",
+		"evaluationGroupName": "",
+		"isLazy": false,
+		"isUsingCache": false,
+		"fill": "Solid",
+		"scaleImage": "Clip",
+		"onErrorType": "Icon",
+		"horizontalImageAlign": "Center",
+		"verticalImageAlign": "Top",
+		"positionType": "FixRelativeTop",
+		"stretchType": "NoStretch",
+		"printInFirstWholeBand": false,
+		"printWhenExpression": "",
+		"hyperlinkTooltipExpression": "",
+		"printWhenDetailOverflows": false,
+		"hyperlinkParameterName": "",
+		"hyperlinkParameterExpression": "",
+		"border": {
+			"padding": {
+				"bottomPadding": 0,
+				"topPadding": 0,
+				"leftPadding": 0,
+				"rightPadding": 0,
+				"padding": 0
+			},
+			"line": {
+				"leftLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"rightLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"bottomLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				},
+				"topLine": {
+					"lineWidth": 0,
+					"lineColor": "#000000",
+					"lineStyle": "SOLID"
+				}
+			}
+		}
+	},
+	"table": {
+		"dataSetRun": {
+			"dataSetName": "MainDataset",
+			"dataSetExpression": "$P{REPORT_DATA}"
+		},
+		"tableWidth": 500,
+		"tableHeight": 250,
+		"printWhenDetailOverflows": false,
+		"printInFirstWholeBand": false,
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 500,
+			"width": 900,
+			"stretchType": "NoStretch",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff",
+			"positionType": "FixRelativeTop"
+		},
+		"columns": [
+			{
+				"width": 300,
+				"tableHeader": {
+
+				},
+				"columnHeaderOfTable": {
+
+				},
+				"columnData": {
+
+				},
+				"columnFooterOfTable": {
+
+				},
+				"tableFooter": {
+
+				}
+			}
+		]
+	},
+	"crosstab": {
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"backColor": "#ffffff",
+			"foreColor": "#000000",
+			"height": 950,
+			"mode": "Transparent",
+			"stretchType": "NoStretch",
+			"width": 2400,
+			"runDirection": "LTR",
+			"repeatColumnHeaders": false,
+			"repeatRowHeaders": false,
+			"printRepeatedValues": false,
+			"columnBreakOffset": 0,
+			"horizontalPosition": "LEFT",
+			"ignoreWidth": false,
+			"positionType": "FixRelativeToTop"
+		},
+		"columnGroups": [
+			{
+				"bucket": {
+					"className": "java.lang.String",
+					"expression": ""
+				},
+				"crosstabColumnHeader": {
+					"styleNameReference": "TABLE_TH",
+					"textField": {
+						"textHeight": 60,
+						"textWidth": 200
+					}
+				},
+				"crosstabTotalColumnHeader": {
+					"styleNameReference": "TABLE_CT",
+					"textField": {
+						"textHeight": 60,
+						"textWidth": 200
+					}
+				},
+				"height": 80,
+				"totalPosition": "END"
+			}
+		],
+		"rowGroups": [
+			{
+				"bucket": {
+					"className": "java.lang.String",
+					"expression": ""
+				},
+				"crosstabRowHeader": {
+					"styleNameReference": "TABLE_TH",
+					"textField": {
+						"textHeight": 60,
+						"textWidth": 200
+					}
+				},
+				"crosstabTotalRowHeader": {
+					"styleNameReference": "TABLE_CT",
+					"textField": {
+						"textHeight": 60,
+						"textWidth": 200,
+						"textForecolor": "#000000"
+					}
+				},
+				"name": "travel_medium",
+				"totalPosition": "END",
+				"width": 350
+			}
+		],
+		"measures": [
+			{
+				"calculation": "Sum",
+				"className": "java.lang.Integer"
+			}
+		],
+		"datasetRun": {
+			"datasetExpression": "$P{MAIN_DATA}",
+			"datasetName": "MainDataset"
+		},
+		"crosstabCells": [
+			{
+				"height": 80,
+				"styleNameReference": "TABLE_TD",
+				"textField": {
+					"textHeight": 60,
+					"textWidth": 200
+				},
+				"width": 350
+			}
+		]
+	},
+	"chart": {
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 700,
+			"width": 1200,
+			"stretchType": "NoStretch",
+			"positionType": "FixRelativeToTop",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff"
+		},
+		"chart": {
+			"renderType": "image",
+			"theme": "default",
+			"evaluationTime": "Report",
+			"chartTitle": {
+				"expression": "\"A Sample title\"",
+				"color": "#000000",
+				"font": {
+					"size": 16,
+					"isBold": true,
+					"isItalic": false,
+					"isUnderline": true,
+					"isStrikeThrough": false
+				},
+				"position": "Top"
+			},
+			"chartSubtitle": {
+				"expression": "\"A Sample subtitle\"",
+				"color": "#000000",
+				"font": {
+					"size": 10,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			},
+			"chartLegend": {
+				"showLegend": true,
+				"position": "Bottom",
+				"foreColor": "#000000",
+				"backColor": "#FCFCFC",
+				"font": {
+					"size": 18,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			}
+		},
+		"chartPlot": {
+			"plot": {
+				"backColor": "#FFFFFF",
+				"backgroundAlpha": "1.0",
+				"foregroundAlpha": "1.0",
+				"orientation": "Vertical",
+				"seriesColors": [
+					{
+						"seriesOrder": "0",
+						"color": "#1f77b4"
+					},
+					{
+						"seriesOrder": "1",
+						"color": "#ff7f0e"
+					},
+					{
+						"seriesOrder": "2",
+						"color": "#2ca02c"
+					},
+					{
+						"seriesOrder": "3",
+						"color": "#d62728"
+					},
+					{
+						"seriesOrder": "4",
+						"color": "#9467bd"
+					},
+					{
+						"seriesOrder": "5",
+						"color": "#8c564b"
+					},
+					{
+						"seriesOrder": "6",
+						"color": "#e377c2"
+					},
+					{
+						"seriesOrder": "7",
+						"color": "#7f7f7f"
+					},
+					{
+						"seriesOrder": "8",
+						"color": "#bcbd22"
+					},
+					{
+						"seriesOrder": "9",
+						"color": "#17becf"
+					}
+				]
+			},
+			"itemLabel": {
+				"color": "#000000",
+				"backgroundColor": "#FFFFFF",
+				"font": {
+					"fontName": "SansSerif",
+					"size": 10,
+					"isBold": false,
+					"isItalic": false,
+					"isUnderline": false,
+					"isStrikeThrough": false
+				}
+			}
+		}
+	},
+	"subReport" : {
+		"runToBottom": true,
+		"usingCache": true,
+		"datasourceExpression": "new net.sf.jasperreports.engine.JREmptyDataSource()",
+		"overFlowType": "STRETCH",
+		"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"height": 700,
+			"width": 1200,
+			"stretchType": "NoStretch",
+			"positionType": "FixRelativeToTop",
+			"mode": "Transparent",
+			"foreColor": "#000000",
+			"backColor": "#ffffff"
+		}
+	},
+	"customVisualization" : {
+			"type": "chart",
+			"componentElementProperties": {
+			"X": 0,
+			"Y": 0,
+			"backColor": "#ffffff",
+			"foreColor": "#000000",
+			"height": 950,
+			"mode": "Transparent",
+			"stretchType": "NoStretch",
+			"width": 2400,
+			"runDirection": "LTR",
+			"repeatColumnHeaders": false,
+			"repeatRowHeaders": false,
+			"printRepeatedValues": false,
+			"columnBreakOffset": 0,
+			"horizontalPosition": "LEFT",
+			"ignoreWidth": false,
+			"positionType": "FixRelativeToTop"
+		},
+		"itemData": {
+						"dataSetRun": {
+							"dataSetName": "MainDataset",
+							"dataSetExpression": "$P{MAIN_DATASET}",
+							"items": {
+								"dim_id": "",
+								"date_key": ""
+							}
+						},
+						"data": []
+					},
+					"itemProperties": {
+						"type": "interval",
+						"width": 640,
+						"height": 480,
+						"depth": 0,
+						"padding": 0,
+						"xAxis": "",
+						"yAxis": "",
+						"color": "",
+						"shape": "rect",
+						"interaction": [
+							{
+								"type": "elementHighlight",
+								"background": true,
+								"region": true
+							}
+						]
+					}
+
+	}
+}

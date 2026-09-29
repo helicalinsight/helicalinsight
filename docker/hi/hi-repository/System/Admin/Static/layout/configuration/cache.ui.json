@@ -1,0 +1,10 @@
+{
+    "id":  "cache",
+    "file":  "cache.xml",
+    "title":  "Cache",
+    "description":  "Defines cache providers, regions, and time-to-live behaviour.",
+    "category":  "caching",
+    "editor":  "layout",
+    "layout":  "Static/layout/configuration/cache.ui.layout",
+    "fallbackEditor":  "xml"
+}
