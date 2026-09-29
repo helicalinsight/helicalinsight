@@ -1,5 +1,6 @@
 package com.helicalinsight.datasource.managed;
 
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Driver;
@@ -35,7 +36,19 @@ public class ConnectionProviderUtility {
     public static Connection getConnection(String jdbcUrl, String userName, String password) {
         Connection connection;
         try {
-            connection = DriverManager.getConnection(jdbcUrl, userName, password);
+            if (isMongoJdbcUrl(jdbcUrl)) {
+                Properties info = new Properties();
+                if (userName != null) {
+                    info.setProperty("user", userName);
+                }
+                if (password != null) {
+                    info.setProperty("password", password);
+                }
+                setMongoDatabaseProperty(info, jdbcUrl);
+                connection = DriverManager.getConnection(jdbcUrl, info);
+            } else {
+                connection = DriverManager.getConnection(jdbcUrl, userName, password);
+            }
             if (connection != null) {
                 if ("com.facebook.presto.jdbc.PrestoConnection".equalsIgnoreCase(connection.getClass().getName())) {
                     DatabaseMetaData dbMetadata = connection.getMetaData();
@@ -66,12 +79,33 @@ public class ConnectionProviderUtility {
         	}
 
         	// Required for HttpDriver
-        	info.put("executionType", "test");
+            if (isMongoJdbcUrl(jdbcUrl)) {
+                setMongoDatabaseProperty(info, jdbcUrl);
+            } else {
+                info.put("executionType", "test");
+            }
             connection = DriverManager.getConnection(jdbcUrl, info);
         } catch (SQLException ex) {
             throw new JdbcConnectionException("Could not obtain JDBC Connection.", ex);
         }
         return connection;
+    }
+
+    static void setMongoDatabaseProperty(Properties info, String jdbcUrl) {
+        if (!isMongoJdbcUrl(jdbcUrl) || info.containsKey("database")) {
+            return;
+        }
+        try {
+            String path = URI.create(jdbcUrl.substring("jdbc:".length())).getPath();
+            if (path != null && path.length() > 1) {
+                info.setProperty("database", path.substring(1));
+            }
+        } catch (IllegalArgumentException ignored) {
+        }
+    }
+
+    private static boolean isMongoJdbcUrl(String jdbcUrl) {
+        return jdbcUrl != null && jdbcUrl.regionMatches(true, 0, "jdbc:mongodb://", 0, "jdbc:mongodb://".length());
     }
 
 
