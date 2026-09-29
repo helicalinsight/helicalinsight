@@ -11,6 +11,7 @@
 		<proguard-maven-plugin.version>2.0.14</proguard-maven-plugin.version>
 		<proguard.version>5.3.2</proguard.version>
 		<mysql-connector-java.version>5.1.6</mysql-connector-java.version>
+		<mongodb-jdbc.version>4.0.0</mongodb-jdbc.version>
 		<hiRepositoryPath>${maven.multiModuleProjectDirectory}/hi-repository</hiRepositoryPath>
 		<dbBasePath>${maven.multiModuleProjectDirectory}/db</dbBasePath>
 		<logLocation>${hiRepositoryPath}/System/Logs</logLocation>
@@ -235,6 +236,11 @@
 
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
+		<dependency>
+			<groupId>org.mongodb</groupId>
+			<artifactId>mongodb-jdbc</artifactId>
+			<version>${mongodb-jdbc.version}</version>
+		</dependency>
 
 
 		<!--Add your dependencies here-->

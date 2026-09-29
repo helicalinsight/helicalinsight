@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
 
 import javax.sql.DataSource;
 
@@ -61,7 +62,7 @@ class TomcatConfigurer {
         poolProperties.setJdbcInterceptors(tomcatPoolProperties.getJdbcInterceptors());
         poolProperties.setDriverClassName(com.helicalinsight.efw.utility.DriverClassCompat.normalize(
                 tomcatPoolProperties.getDriverClassName()));
-        String connectionProperties = tomcatPoolProperties.getConnectionProperties();
+        String connectionProperties = getConnectionProperties(tomcatPoolProperties);
         if ( StringUtils.isNotBlank(connectionProperties)) {
         	poolProperties.setConnectionProperties(connectionProperties);
         }
@@ -88,5 +89,23 @@ class TomcatConfigurer {
 
         this.dataSourcePool.register(hashMapKey, dataSource, json);
         return dataSource;
+    }
+
+    static String getConnectionProperties(TomcatPoolProperties properties) {
+        String connectionProperties = properties.getConnectionProperties();
+        if (!"com.mongodb.jdbc.MongoDriver".equalsIgnoreCase(properties.getDriverClassName())) {
+            return connectionProperties;
+        }
+
+        String databaseName = properties.getDatabaseName();
+        if (StringUtils.isBlank(databaseName)
+            || (connectionProperties != null
+            && connectionProperties.toLowerCase(Locale.ROOT).contains("database="))) {
+            return connectionProperties;
+        }
+
+        return StringUtils.isBlank(connectionProperties)
+                ? "database=" + databaseName
+                : connectionProperties + ";database=" + databaseName;
     }
 }
