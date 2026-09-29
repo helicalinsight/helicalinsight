@@ -41,7 +41,7 @@
 
 		<!-- All properties are placed here to manage the versions -->
 
-		<jdk.version>25</jdk.version>
+		<jdk.version>21</jdk.version>
 		<spring.version>6.2.19</spring.version>
 		<spring-security-web.version>6.5.10</spring-security-web.version>
 		<spring.security.cas.version>6.5.10</spring.security.cas.version>
@@ -1646,21 +1646,26 @@
 		<pluginManagement>
 			<plugins>
 				<plugin>
-					<groupId>org.apache.maven.plugins</groupId>
-					<artifactId>maven-compiler-plugin</artifactId>
-					<version>${maven-compiler-plugin.version}</version>
-					<configuration>
-						<source>${jdk.version}</source>
-						<target>${jdk.version}</target>
-						<annotationProcessorPaths>
-							<path>
-								<groupId>org.projectlombok</groupId>
-								<artifactId>lombok</artifactId>
-								<version>1.18.40</version>
-							</path>
-						</annotationProcessorPaths>
-					</configuration>
-				</plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <version>${maven-compiler-plugin.version}</version>
+    <configuration>
+        <source>${jdk.version}</source>
+        <target>${jdk.version}</target>
+
+        <compilerArgs>
+            <arg>--enable-preview</arg>
+        </compilerArgs>
+
+        <annotationProcessorPaths>
+            <path>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>1.18.40</version>
+            </path>
+        </annotationProcessorPaths>
+    </configuration>
+</plugin>
 
 
 				<plugin>
