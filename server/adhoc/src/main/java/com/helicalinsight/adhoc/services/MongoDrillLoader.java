@@ -221,7 +221,7 @@ class MongoModel {
         MongoClientOptions.Builder builder = MongoClientOptions.builder();
         MongoClient mongo = null;
         try {
-            if ((username == null) || (password == null) || (authMechanism == null)) {
+            if (StringUtils.isBlank(username) || StringUtils.isBlank(password)) {
                 mongo = new MongoClient(host);
                 this.mongoDb = mongo.getDB(database);
             } else {
