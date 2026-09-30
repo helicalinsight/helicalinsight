@@ -66,7 +66,7 @@ public class MongoConnectionFactory extends DatabaseConnectionFactory {
 			if (connectionDetails.has("driverName")) {
 				driverClassName = connectionDetails.get("driverName").getAsString();
 			}
-
+            // Handle MongoDB JDBC driver connection configuration
 			if ("mongodb.jdbc.MongoDriver".equalsIgnoreCase(driverClassName)) {
 				DriverConnection driverConnection = new DriverConnection();
 				driverConnection.setConnection(null);
