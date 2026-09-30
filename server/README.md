@@ -116,6 +116,17 @@ Profiles are defined in `presentation/pom.xml`:
 | `production` | `-Denv=production` | Derby |
 | `docker` | `-Denv=docker` | PostgreSQL (container hostname `postgres`) |
 
+### MongoDB data source
+
+The built-in MongoDB connector uses the Mongo storage plugin in Apache Drill. Enable and configure Drill first in `hi-repository/System/Admin/DbConfig/drill.efwd`; the MongoDB option is only listed in the data source UI while Drill is enabled.
+
+1. In Helical Insight, create a data source and choose **No SQL & Big Data > Mongodb**.
+2. Set the connection URL, for example `mongodb://localhost:27017/reports`. Use the database name as the final URL path, or fill in the database field.
+3. For an authenticated deployment, enter the MongoDB username and password. The database is used as the default authentication source; add `authSource=<database>` to the URL when the account is authenticated against a different database. URI options such as `tls=true` may also be added to the URL.
+4. Test the connection, then save it. Helical Insight registers the MongoDB connection with Drill, which provides collection metadata and query access.
+
+The connector supports MongoDB through Drill; it is not a direct MongoDB JDBC driver. The Drill service must be reachable by Helical Insight, and MongoDB must be reachable from the Drill service.
+
 ### Default application users
 
 On first startup against an empty database, the application creates:
