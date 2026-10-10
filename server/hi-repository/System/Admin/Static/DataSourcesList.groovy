@@ -34,6 +34,29 @@ def staticDataSources = '''[ {
 
 ]''';
 
+//This MongoDB connector talks to Mongo directly through the native MongoDB Java driver
+//(MongoNativeLoader) and, unlike the "Mongodb" tile above, does not require Apache Drill
+//to be enabled. It is always shown under "No SQL & Big Data".
+def staticMongoNativeDataSources = '''[ {
+"name": "Mongodb",
+"classifier": "global",
+"categoryName": "No SQL & Big Data",
+"categoryType": "nosql_bigdata",
+"type": "global.jdbc",
+"driver": "com.helicalinsight.nosql.mongo.native",
+"url": "mongodb://{{hostName}}:{{port}}/{{database}}",
+"parameters": {
+"port": "27017",
+"hostName": "localhost",
+"database": "database",
+"collection":"collection"
+},
+
+"dataSourceProvider": "noSql"
+}
+
+]''';
+
 
 def supportedArray = ["Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
                       "Postgresql", "IBM Db2", "Access", "Sqlite", "Teradata", "Mariadb", "Hive", "Informix", "Presto", "Derby", "Dremio",
@@ -67,12 +90,15 @@ JSONArray jsonArray = JSONArray.fromObject(supportedDs);
 
 def jsonSlurper = new JsonSlurper()
 def staticMongoArray = jsonSlurper.parseText(staticDataSources)
+def staticMongoNativeArray = jsonSlurper.parseText(staticMongoNativeDataSources)
 def staticArray=[];
 def virtualDsFlagObject = jsonSlurper.parseText(virtualStaticDs)
 boolean virtualDsFlag = JsonUtils.getSettingsJson().getBoolean("hideVirtualDatasourceInAllCategory");
 if (!virtualDsFlag) {
     staticArray[0] += virtualDsFlagObject
 }
+//MongoDB (native driver) is always available, independent of the Apache Drill toggle below.
+staticArray += staticMongoNativeArray;
 
 JSONObject dataSourcesList = SettingXmlUtility.getFilteredDataSourcesJson();
 
