@@ -1,9 +1,12 @@
 package com.helicalinsight.efw.utility;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonObject;
+import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.resourcedb.processor.DBProcessor;
 
 import java.io.UnsupportedEncodingException;
@@ -27,7 +30,7 @@ public class ReportsUtility {
      * @return string based on the request parameter
      */
     public static String getReportName(String requestParameter) {
-        if (requestParameter == null) {
+        if (StringUtils.isBlank(requestParameter)) {
             logger.debug("Parameter reportName is not provided. Using epoch time for reportName");
             requestParameter = "" + System.currentTimeMillis();
         } else {
@@ -35,6 +38,34 @@ public class ReportsUtility {
             requestParameter = requestParameter + "_" + System.currentTimeMillis();
         }
         return DBProcessor.checkAndReplaceSpecialChars(requestParameter);
+    }
+
+    /**
+     * Prefer hi_requestedReport, then reportName; blank → epoch.
+     * Used as cache report key for materialize.
+     */
+    public static String resolveCacheReportKey(JsonObject form) {
+        String name = GsonUtility.optString(form, "hi_requestedReport");
+        if (name != null && !name.isEmpty()) {
+            return name;
+        }
+        name = GsonUtility.optString(form, "reportName");
+        if (name != null && !name.isEmpty()) {
+            return name;
+        }
+        return getReportName(null);
+    }
+
+    public static String resolveAttachmentBase(String reportName) {
+        if (StringUtils.isBlank(reportName)) {
+            return getReportName(null);
+        }
+        return getReportName(reportName);
+    }
+
+    public static String resolveAttachmentBase(JsonObject form) {
+        String name = GsonUtility.optString(form, "reportName");
+        return resolveAttachmentBase(StringUtils.isBlank(name) ? null : name);
     }
 
     /**

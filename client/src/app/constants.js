@@ -194,7 +194,8 @@ export const serviceUrls = {
       },
       saveReport: "/saveReport.html",
       fsop: "/fileSystemOperations",
-      importFile: "/importFile.html",
+      importFile: "/importFile",
+      uploadChunk: "/uploadChunk",
       downloadEnableSavedReport: "/downloadEnableSavedReport.html",
       scheduling: {
         get: "/getScheduleData.html",

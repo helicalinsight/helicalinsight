@@ -133,7 +133,9 @@ public class EfwddWriterHandler extends AbstractResourceWriterHandler {
 		}
 		dependencies.append(depFolderUrl);
 		efwddResource.setCreatedBy(hResource.getCreatedBy());
+		markDeleted(efwddResource, hResource, options);
 		dataWriter.write(this.addOwner(efwddResource,efwddResource.getCreatedBy()), dir, resource,"");
+		recycleBinHandler.writeResource(hResource, resource, dir, manifest);
 		manifestUtils.insertPath(resource.getPath(), manifest);
 		manifestUtils.insertDependency(resource.getPath(), dependencies.toString(), manifest);
 	}

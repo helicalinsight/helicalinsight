@@ -242,6 +242,10 @@ Return ONLY polish fields for VizProperties:
 1. color — one solid hex when a single brand/domain color fits (e.g. "#2F6FED"), else omit/empty.
 2. background — chart background when thematically useful (hex or simple CSS), else omit.
 3. title / labelX / labelY — only improve when clearly more business-friendly; otherwise omit.
+4. Dual-axis series colors — do NOT invent a palette. Leave chart.measures[].color empty unless:
+   - that column already has a color in properties, or
+   - the user recommended a color for that measure.
+   When the user names colors, return measure_colors as {{field: hex}} for those measures only.
 
 Do NOT return colorGradient, theme, or formatter.
 Do NOT invent columns. Do NOT return rows/columns/filters/chart. Do NOT return JavaScript chart code.

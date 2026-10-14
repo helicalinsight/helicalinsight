@@ -2,6 +2,8 @@
 
 This document describes how `docker/Dockerfile` builds the Helical Insight runtime image (`hiee/helicalinsight:nitrogen-j25t11`). It is the image Compose uses for the `hiee` service. The same Dockerfile is copied into the Docker ZIP by `cicd/jenkins/HI7DockerGenerator/pipeline.groovy`.
 
+For an **airgap** image (Ubuntu Tomcat + full JDK + Chrome baked in, no runtime downloads), see [airgap.md](airgap.md) and `Dockerfile.airgap`.
+
 ## Prerequisites
 
 - Docker

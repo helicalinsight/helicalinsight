@@ -314,6 +314,176 @@ class TestDataInsightTurn:
         assert complete["data"] == buffered
         assert buffered["insight"] == "## Insight"
 
+    def test_summarizes_step_insights_without_sql(self):
+        payload = {
+            "input": {
+                "user_question": "Which employee should I pick?",
+                "sessionCookie": "cookie",
+                "username": "alice",
+                "thread_id": "t1",
+                "chat_seq_id": "1",
+                "insights": [
+                    {
+                        "role": "original",
+                        "index": 0,
+                        "question": "Which employee should I pick?",
+                        "insight": "Low-cost attendees are Employee 2 and 26.",
+                    },
+                    {
+                        "role": "supporting",
+                        "index": 1,
+                        "question": "What is total travel cost by employee?",
+                        "insight": "Employee 2 spent 9850.",
+                    },
+                    {
+                        "role": "supporting",
+                        "index": 2,
+                        "question": "Meeting cancellations by employee",
+                        "insight": "Cancellations cluster on a few people.",
+                    },
+                ],
+            }
+        }
+        llm_response = MagicMock()
+        llm_response.content = "Pick Employee 2 [1]. Cancellations are rare [2]."
+        usage = MagicMock()
+        usage.model_dump.return_value = {"total_tokens": 8}
+
+        app_mock = MagicMock()
+        app_mock.invoke_llm.return_value = (llm_response, usage)
+
+        with patch(
+            "helicalbi.controller.data_insight.app", return_value=app_mock
+        ), patch(
+            "helicalbi.controller.data_insight.audit_llm_usage_async"
+        ), patch(
+            "helicalbi.controller.data_insight.bind_request_identity",
+            return_value=("cookie", "alice", 1, 1),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_role_profile",
+            return_value={},
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_sql_from_request",
+            side_effect=AssertionError("SQL should not be resolved for insight summaries"),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_request_id",
+            return_value=None,
+        ), patch(
+            "helicalbi.controller.data_insight.add_insight"
+        ):
+            buffered = DataInsightTurn(payload).run()
+            events = _parse_events(list(DataInsightTurn(payload).stream()))
+
+        app_mock.execute_query.assert_not_called()
+        prompt = app_mock.invoke_llm.call_args.args[1]
+        assert "Which employee should I pick?" in prompt
+        assert "Low-cost attendees are Employee 2 and 26." in prompt
+        assert "[1] What is total travel cost by employee?" in prompt
+        assert "[2] Meeting cancellations by employee" in prompt
+        messages = [item["data"]["message"] for item in events if item["event"] == "progress"]
+        assert messages == [
+            "Writing an insight from your data…",
+            "Insight is ready.",
+        ]
+        assert buffered["insight"] == "Pick Employee 2 [1]. Cancellations are rare [2]."
+
+    def test_think_mode_loops_memory_questions_then_summarizes(self):
+        from helicalbi.common.ChatGraphMemory import chat_graph_memory
+
+        chat_graph_memory.clear("t-think")
+        chat_graph_memory.add_node(
+            "t-think",
+            "1",
+            {"sql": "", "user_query": "Which employee should I pick?"},
+        )
+        chat_graph_memory.add_node(
+            "t-think",
+            "1-1",
+            {
+                "sql": "SELECT cost FROM travel",
+                "dialect": "postgres",
+                "user_query": "What is total travel cost by employee?",
+                "domain": ["Travel"],
+                "topics": ["Cost"],
+            },
+        )
+        chat_graph_memory.add_node(
+            "t-think",
+            "1-2",
+            {
+                "sql": "SELECT cancelled FROM meetings",
+                "dialect": "postgres",
+                "user_query": "Meeting cancellations by employee",
+                "domain": ["Travel"],
+                "topics": ["Meetings"],
+            },
+        )
+        payload = {
+            "input": {
+                "inputString": "Which employee should I pick?",
+                "sessionCookie": "cookie",
+                "username": "alice",
+                "thread_id": "t-think",
+                "chatid": "t-think",
+                "chat_seq_id": "1",
+                "md_location": "/meta",
+                "md_file_name": "metadata.json",
+            }
+        }
+
+        def invoke_side_effect(_llm, prompt):
+            text = str(prompt)
+            response = MagicMock()
+            usage = MagicMock()
+            usage.model_dump.return_value = {"total_tokens": 4}
+            if "Supporting questions and their insights" in text:
+                response.content = "Pick Employee 2 [1]. Cancellations are rare [2]."
+            elif "What is total travel cost by employee?" in text:
+                response.content = "Employee 2 spent 9850."
+            else:
+                response.content = "Cancellations cluster on a few people."
+            return response, usage
+
+        app_mock = MagicMock()
+        app_mock.execute_query.side_effect = [
+            {"status": 1, "response": {"data": [{"cost": 9850}], "metadata": []}},
+            {"status": 1, "response": {"data": [{"cancelled": 3}], "metadata": []}},
+        ]
+        app_mock.invoke_llm.side_effect = invoke_side_effect
+
+        try:
+            with patch(
+                "helicalbi.controller.data_insight.app", return_value=app_mock
+            ), patch(
+                "helicalbi.controller.data_insight.audit_llm_usage_async"
+            ), patch(
+                "helicalbi.controller.data_insight.bind_request_identity",
+                return_value=("cookie", "alice", 1, 1),
+            ), patch(
+                "helicalbi.controller.data_insight.resolve_role_profile",
+                return_value={},
+            ), patch(
+                "helicalbi.controller.data_insight.resolve_request_id",
+                return_value=None,
+            ), patch(
+                "helicalbi.controller.data_insight.add_insight"
+            ):
+                buffered = DataInsightTurn(payload).run()
+        finally:
+            chat_graph_memory.clear("t-think")
+
+        sqls = [call.kwargs["sql"] for call in app_mock.execute_query.call_args_list]
+        assert len(sqls) == 2
+        assert "travel" in sqls[0].lower()
+        assert "meetings" in sqls[1].lower()
+        assert app_mock.invoke_llm.call_count == 3
+        summary_prompt = app_mock.invoke_llm.call_args.args[1]
+        assert "Which employee should I pick?" in summary_prompt
+        assert "[1] What is total travel cost by employee?" in summary_prompt
+        assert "Employee 2 spent 9850." in summary_prompt
+        assert "[2] Meeting cancellations by employee" in summary_prompt
+        assert buffered["insight"] == "Pick Employee 2 [1]. Cancellations are rare [2]."
+
 
 class TestConvertDashboardTurn:
     def test_stream_maps_graph_nodes_to_activity(self):
@@ -328,14 +498,14 @@ class TestConvertDashboardTurn:
         graph = MagicMock()
         graph.invoke.return_value = {
             "items": [{"id": "seq-1"}],
-            "theme": {"color": "#000"},
+            "dashboard_config": {"theme": "default"},
             "templateId": "t",
             "layout": [],
         }
 
         def stream_updates(state, stream_mode="updates"):
             yield {"CollectContext": {"items": [{"id": "seq-1"}]}}
-            yield {"PlanSummary": {"theme": {"color": "#000"}}}
+            yield {"PlanSummary": {"dashboard_config": {"theme": "default"}}}
             yield {"SelectFilters": {}}
             yield {"MakeLayout": {"layout": [], "templateId": "t"}}
 

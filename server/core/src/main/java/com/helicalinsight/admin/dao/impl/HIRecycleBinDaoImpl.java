@@ -1107,6 +1107,26 @@ public class HIRecycleBinDaoImpl implements HIRecycleBinDao {
 	}
 
 	@Override
+	public Optional<HIRecycleBin> findHIRecycleBinByOrgId(int orgId) {
+		HIRecycleBin bin = null;
+		try {
+			Session session = factory.getCurrentSession();
+			String hql = "FROM HIRecycleBin bin where bin.hiRecycleBinOrganization.organization.id =:orgId";
+			SelectionQuery<HIRecycleBin> query = session.createSelectionQuery(hql, HIRecycleBin.class);
+			query.setParameter("orgId", orgId);
+			query.setCacheable(true);
+			query.setReadOnly(true);
+			bin = query.uniqueResult();
+		}
+		catch (Exception e) {
+			if(log.isErrorEnabled()) {
+				e.printStackTrace();
+			}
+		}
+		return Optional.ofNullable(bin);
+	}
+
+	@Override
 	public void deleteHIRecycleByEfwdId(Integer connectionId) {
 		if (connectionId == null) {
 			return;

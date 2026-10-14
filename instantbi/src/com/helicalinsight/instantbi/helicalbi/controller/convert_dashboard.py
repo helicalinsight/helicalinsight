@@ -120,13 +120,9 @@ class ConvertDashboardTurn:
                 "chatid": self.thread_id,
                 "title": result.get("title")
                 or str(self.user_input.get("inputString") or self.user_input.get("query") or ""),
-                "header": result.get("header") or {},
-                "parameters": result.get("parameters") or {},
-                "variables": result.get("variables") or {},
                 "items": result.get("items") or self.items,
-                "theme": result.get("theme") or {},
+                "dashboard_config": result.get("dashboard_config") or {},
                 "templateId": result.get("templateId") or "",
-                "layout": result.get("layout") or [],
                 "token_usage": result.get("token_usage") or {},
             }
         )

@@ -214,17 +214,25 @@ def hydrate_chat_memory_from_report(
                 if not step_seq:
                     index = step.get("index")
                     if index is not None:
-                        step_seq = f"{seq_id}_{index}"
+                        step_seq = f"{seq_id}-{index}"
                 if not step_seq:
                     continue
-                step_chat = step.get("chat_response") or step.get("fullChatResponse") or {}
+                step_chat = (
+                    step.get("chat_response")
+                    or step.get("fullChatResponse")
+                    or step.get("chatResponse")
+                    or {}
+                )
                 if not isinstance(step_chat, dict):
                     step_chat = {}
                 step_report = step.get("report_model") or step_chat.get("report_model") or {}
                 if isinstance(step_report, dict) and step_report and not step_chat.get("report_model"):
                     step_chat = dict(step_chat)
                     step_chat["report_model"] = step_report
-                step_payload = _chat_response_from_saved({**step_chat, "report_model": step_report})
+                merged_step = {**step_chat, "report_model": step_report}
+                if "sql" not in merged_step and isinstance(step.get("sql"), dict):
+                    merged_step["sql"] = step.get("sql")
+                step_payload = _chat_response_from_saved(merged_step)
                 step_sql = step_payload.get("sql") if isinstance(step_payload.get("sql"), dict) else {}
                 step_raw_sql = strip_sql_markdown(str(step_sql.get("raw_sql") or ""))
                 step_query = str(step.get("question") or step.get("sub_question") or user_query or "")
@@ -239,7 +247,7 @@ def hydrate_chat_memory_from_report(
                         user_name=username,
                         domain=step_sql.get("required_domain") or domain,
                         topics=step_sql.get("required_topic") or topics,
-                        format_strings=_format_strings_from_entry({**step_chat, "report_model": step_report}),
+                        format_strings=_format_strings_from_entry(merged_step),
                     ),
                 )
 

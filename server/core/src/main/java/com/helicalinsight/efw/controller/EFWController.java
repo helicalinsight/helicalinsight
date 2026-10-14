@@ -848,6 +848,12 @@ public class EFWController {
             userData.addProperty("showExperimentalFeatures",settingsJson.get("showExperimentalFeatures").getAsBoolean());
         }
         userData.addProperty("streamResponse", GsonUtility.optBooleanValue(settingsJson, "streamResponse", false));
+        userData.addProperty("eventBatchSize", JsonUtils.getResponseEventBatchSize());
+        userData.addProperty("resumableDownload", JsonUtils.isResumableDownloadEnabled());
+        userData.addProperty("downloadChunkSize", JsonUtils.getDownloadChunkSize());
+        userData.addProperty("resumableUpload", JsonUtils.isResumableUploadEnabled());
+        userData.addProperty("uploadChunkSize", JsonUtils.getUploadChunkSize());
+        userData.addProperty("enforceDatasourceExportImport", JsonUtils.isEnforceDatasourceExportImport());
 		 if(settingsJson.has("hideDefaultLoginButtons")){
             userData.addProperty("hideDefaultLoginButtons",settingsJson.get("hideDefaultLoginButtons").getAsBoolean());
         }

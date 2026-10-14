@@ -67,6 +67,19 @@ def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_re
     )
 
 
+def _default_rm_cols_in_filter() -> bool:
+    """``feature_flags.rm_cols_in_filter`` from the shipped application yaml.
+
+    Omitted key uses the same fallback as ``app_config`` (True).
+    """
+    from helicalbi.common.app_config import _flag_bool
+    from helicalbi.core.ConfigLoader import ConfigLoader
+
+    config = ConfigLoader.load_raw_config("application_config.yaml") or {}
+    flags = config.get("feature_flags") or {}
+    return _flag_bool(flags.get("rm_cols_in_filter"), True)
+
+
 def parse_sse_events(raw):
     """Parse Flask SSE bytes into ``{event, data}`` dicts."""
     text = raw.decode("utf-8") if isinstance(raw, (bytes, bytearray)) else raw
@@ -338,6 +351,7 @@ class TestInteractive:
         helper_mock.get_metadata_layerlocation.return_value = "/meta"
 
         payload = self._build_payload(session_auth)
+        expected_default = _default_rm_cols_in_filter()
         with ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(app_module, helper_mock):
                 stack.enter_context(ctx)
@@ -349,7 +363,7 @@ class TestInteractive:
             )
             resp = flask_client.post("/interactive", json=payload)
         assert resp.status_code == 200
-        assert form_default.call_args.kwargs["rm_cols_in_filter"] is False
+        assert form_default.call_args.kwargs["rm_cols_in_filter"] is expected_default
 
         with ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(app_module, helper_mock):
@@ -1595,14 +1609,12 @@ class TestConvertDashboard:
                         "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
                         "data_model": None,
                     },
-                    "dashboard_model": {
-                        "kind": "viz",
-                        "title": "Cost",
-                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                    },
+                    "kind": "viz",
+                    "title": "Cost",
+                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
                 }
             ],
-            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "dashboard_config": {"theme": "default"},
             "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
         }
         graph_mock = MagicMock()
@@ -1634,7 +1646,8 @@ class TestConvertDashboard:
         assert "metadata" not in body
         assert "gridItemsData" not in body
         assert "sql_parts" not in (body["items"][0] or {})
-        assert body["items"][0]["dashboard_model"]["layout"]["w"] == 6
+        assert body["items"][0]["layout"]["w"] == 6
+        assert "dashboard_model" not in body["items"][0]
         assert "viz" not in body["items"][0]
         invoked = graph_mock.invoke.call_args[0][0]["items"][0]
         assert "sql_parts" not in invoked
@@ -1652,14 +1665,12 @@ class TestConvertDashboard:
                         "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
                         "data_model": None,
                     },
-                    "dashboard_model": {
-                        "kind": "viz",
-                        "title": "Cost",
-                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                    },
+                    "kind": "viz",
+                    "title": "Cost",
+                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
                 }
             ],
-            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "dashboard_config": {"theme": "default"},
             "templateId": "t1",
             "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
         }
@@ -1668,7 +1679,7 @@ class TestConvertDashboard:
 
         def stream_updates(state, stream_mode="updates"):
             yield {"CollectContext": {"items": graph_result["items"]}}
-            yield {"PlanSummary": {"theme": graph_result["theme"]}}
+            yield {"PlanSummary": {"dashboard_config": graph_result["dashboard_config"]}}
             yield {"SelectFilters": {}}
             yield {
                 "MakeLayout": {
@@ -1844,7 +1855,7 @@ class TestAgentDashboard:
                 "dashboardid": "dash-agent-1",
                 "items": [{"component_id": "ab12CD34"}],
                 "layout": [{"itemId": "ab12CD34", "x": 0, "y": 0, "w": 6, "h": 4}],
-                "theme": {"color": "#1677ff"},
+                "dashboard_config": {"theme": "default"},
                 "templateId": "analytical-grid",
             },
             "token_usage": {"total_tokens": 9},

@@ -251,6 +251,60 @@ def test_strategy_prompt_omits_question_templates():
     assert "viz=" in block
 
 
+def test_think_plan_frames_questions_with_create_agent(monkeypatch):
+    parsed = InvestigationPlan(
+        persona=PERSONA_TACTICAL,
+        tier="tactical",
+        strategies=[STRATEGY_MECE],
+        strategy_id=STRATEGY_MECE,
+        domain="Should Not Stick",
+        topics=["Other Topic"],
+        charts=[
+            DashboardChartSpec(
+                title="Travel Cost by Year",
+                question="What is travel cost by year?",
+                viz_hint="line",
+                topic="Trip Economics",
+            )
+        ],
+    )
+    captured: dict = {}
+
+    class _Agent:
+        def invoke(self, payload):
+            captured["messages"] = payload["messages"]
+            return {"structured_response": parsed, "messages": []}
+
+    def fake_create_agent(model, tools=None, **kwargs):
+        captured["tools"] = tools
+        captured["system"] = kwargs.get("system_prompt")
+        captured["response_format"] = kwargs.get("response_format")
+        return _Agent()
+
+    monkeypatch.setattr("langchain.agents.create_agent", fake_create_agent)
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.investigation_planner.invoke_agent_model",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("dashboard planner should not run")),
+    )
+    persona = resolve_persona(["Marketing Manager"])
+    plan = build_investigation_plan(
+        "How has travel spend moved?",
+        persona=persona,
+        selected_domains=["Travel"],
+        selected_topics=["Trip Economics"],
+        grounding_pack="TOPIC Trip Economics\n  components: Travel Cost, Year",
+        flat_sql=True,
+        max_charts=4,
+    )
+    assert captured["tools"] is None
+    assert captured["response_format"] is InvestigationPlan
+    assert "already finalized" in captured["system"]
+    assert "Trip Economics" in captured["messages"][0].content
+    assert plan.domain == "Travel"
+    assert plan.topics == ["Trip Economics"]
+    assert plan.charts[0].question == "What is travel cost by year?"
+
+
 def test_build_investigation_plan_falls_back_when_llm_fails(monkeypatch):
     def boom(*args, **kwargs):
         raise RuntimeError("llm down")

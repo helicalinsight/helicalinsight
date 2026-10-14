@@ -155,6 +155,12 @@ public class HIRecycleBinServiceImpl implements HIRecycleBinService {
 
 	@Transactional
 	@Override
+	public HIRecycleBin findHIRecycleBinByOrgId(int orgId) {
+		return hiRecycleBinDao.findHIRecycleBinByOrgId(orgId).orElse(null);
+	}
+
+	@Transactional
+	@Override
 	public void deleteHIRecycleByEfwdId(Integer connectionId) {
 		hiRecycleBinDao.deleteHIRecycleByEfwdId(connectionId);
 	}

@@ -100,12 +100,19 @@ public class ScheduleHandler extends ResourceIOHandler {
 	@Override
 	public void importResource(HIResource resource, String fileName, String onConflict) {
 		
+		String resourceUrl = resource != null ? resource.getResourceURL() : null;
 		String resourcePath = context.getResourcesDirectory();
 		fileName = Integer.valueOf(context.getManifest().getVersion()) > 0 ? context.removeDestination(resource.getResourceURL()) : StringUtils.substringAfterLast(fileName, "/");
 		
 		File file = new File(String.join(File.separator, resourcePath, fileName + ResourceSuffix.SCHEDULE));
 		if (!file.exists()) {
+			if (context != null && resourceUrl != null) {
+				context.addLog(resourceUrl, "[schedules] No schedule sidecar found; skipped.");
+			}
 			return;
+		}
+		if (context != null && resourceUrl != null) {
+			context.addLog(resourceUrl, "[schedules] Importing schedules…");
 		}
 		
 		List<Schedules> dbSchedules = scheduleService.findSchedulesByResourceId(resource.getResourceId());
@@ -117,6 +124,9 @@ public class ScheduleHandler extends ResourceIOHandler {
 		}
 		
 		if(schedules.isEmpty()) {
+			if (context != null && resourceUrl != null) {
+				context.addLog(resourceUrl, "[schedules] Schedule sidecar empty; skipped.");
+			}
 			return ;
 		}
 		
@@ -179,6 +189,9 @@ public class ScheduleHandler extends ResourceIOHandler {
 				shareHandler.setContext(context);
 				shareHandler.importResource(efwsrResource,context.getRequest(),context.getManifest());
 			}
+		}
+		if (context != null && resourceUrl != null) {
+			context.addLog(resourceUrl, "[schedules] Imported " + schedules.size() + " schedule(s).");
 		}
 	}
 }

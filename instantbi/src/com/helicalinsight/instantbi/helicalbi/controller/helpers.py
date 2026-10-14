@@ -31,6 +31,17 @@ def clean_sql(raw_sql: str, dialect: str = "") -> str:
     return strip_sql_markdown(extract_sql(raw_sql, dialect) or "")
 
 
+def chat_seq_aliases(chat_seq_id: Any) -> list[str]:
+    text = str(chat_seq_id or "").strip()
+    if not text:
+        return []
+    aliases = [text]
+    swapped = text.replace("_", "-") if "_" in text else text.replace("-", "_")
+    if swapped and swapped not in aliases:
+        aliases.append(swapped)
+    return aliases
+
+
 def resolve_sql_from_request(
     user_input: dict,
     thread_id: str,
@@ -40,27 +51,32 @@ def resolve_sql_from_request(
 ) -> str:
     """Resolve SQL from memory, request input, or saved chat item (data-insight parity)."""
     if thread_id and chat_seq_id is not None:
-        if chat_graph_memory.has_node(thread_id, chat_seq_id):
-            memory_node = chat_graph_memory.get_node(thread_id, chat_seq_id)
-            if memory_node:
-                sql = clean_sql(
-                    memory_node.get("sql", ""),
-                    memory_node.get("dialect", ""),
-                )
-                if sql:
-                    logger.info(
-                        "Resolved SQL for %s from memory chatid=%s chat_seq_id=%s",
-                        context,
-                        thread_id,
-                        chat_seq_id,
-                    )
-                    return sql
-                logger.debug(
-                    "Memory node found but SQL empty for %s chatid=%s chat_seq_id=%s",
+        memory_node = None
+        matched_seq = None
+        for seq_alias in chat_seq_aliases(chat_seq_id):
+            if chat_graph_memory.has_node(thread_id, seq_alias):
+                memory_node = chat_graph_memory.get_node(thread_id, seq_alias)
+                matched_seq = seq_alias
+                break
+        if memory_node:
+            sql = clean_sql(
+                memory_node.get("sql", ""),
+                memory_node.get("dialect", ""),
+            )
+            if sql:
+                logger.info(
+                    "Resolved SQL for %s from memory chatid=%s chat_seq_id=%s",
                     context,
                     thread_id,
-                    chat_seq_id,
+                    matched_seq,
                 )
+                return sql
+            logger.debug(
+                "Memory node found but SQL empty for %s chatid=%s chat_seq_id=%s",
+                context,
+                thread_id,
+                matched_seq,
+            )
         else:
             logger.debug(
                 "No memory node for %s chatid=%s chat_seq_id=%s",

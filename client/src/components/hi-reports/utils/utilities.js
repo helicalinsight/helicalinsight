@@ -16,6 +16,7 @@ import { handleChangePane } from "../hi-editing-area/hi-editing-area";
 import { getDefaultAFDataTypeValues } from "../hi-editing-area/utils/property-utils";
 import { measureDataUpdateFn } from "./base";
 import { initialReferenceLineList, intialMarks, markTypes, postExecutionVars, postFetchVars, preExecutionVars, preFetchVars } from "./constants";
+import { parseDbFuncString } from "../hi-fields-area/utils/parse-db-func";
 
 export const getTableTree = (metadata, metadataSearchText) => {
   return produce(metadata, (draft) => {
@@ -204,8 +205,8 @@ export const getMilliseconds = (timeInString = "00:00:00") => {
 
 export const addFieldToReport = (payload, report, dispatch) => {
   const Notify = notify(dispatch);
-  let { marksList, fields, options, metadata, referenceLineList = [] } = report
-  let { column, table, type, defaultFunction, id, addedAs, genre, columnName, mark, drillThroughId, filterId, dataSource, hiddenIncludeInResultSet = false, hidden = false, custom_frontend_field = false } = payload;
+  let { marksList, fields, options, metadata, referenceLineList = [], databaseFunctions } = report
+  let { column, table, type = {}, defaultFunction, id, addedAs, genre, columnName, mark, drillThroughId, filterId, dataSource, hiddenIncludeInResultSet = false, hidden = false, custom_frontend_field = false } = payload;
   let columnID = column?.id || ""
   if (typeof column === 'string' && typeof table === 'string') {
     table = metadata.tables[table]
@@ -312,6 +313,17 @@ export const addFieldToReport = (payload, report, dispatch) => {
     addedAs = custom_frontend_field ? addedAs : report.customColumnData ? report.customColumnData.fieldType : "column";
     floatingType = isMeasure ? "" : floatingType;
     // --- 7216 ----
+
+    const customDataType = type?.dataType || "";
+    const customFieldType = type?.backendDataType
+      ? { backendDataType: type.backendDataType, dataType: customDataType }
+      : undefined;
+    if (customDataType === "numeric" && !isMeasure) {
+      floatingType = "";
+    }
+    // const functionsDefinition = `RAW(${column})`
+    // let { databaseFunction = {} } = parseDbFuncString({ databaseFunctions, fields, editingField: { functionsDefinition } }) || {}
+
     newCol = {
       label: "Custom Column",
       custom: true,
@@ -322,9 +334,13 @@ export const addFieldToReport = (payload, report, dispatch) => {
       addedAs,
       floatingType,
       functionsDefinition: "",
+      // databaseFunction,
       orderByColumn: false,
       showOrderByColumn: false,
-      databaseName: dataSource?.databaseName
+      databaseName: dataSource?.databaseName,
+      ...(customFieldType ? { type: customFieldType } : {}),
+      ...(["text", "date", "dateTime", "boolean"].includes(customDataType) ? { groupBy: ["db.generic.groupBy.group"] } : {}),
+      ...(customDataType === "numeric" ? { aggregate: ["db.generic.aggregate.sum"] } : {}),
     };
     if (custom_frontend_field) { // 7216
       newCol.custom_frontend_field = custom_frontend_field;
@@ -362,7 +378,7 @@ export const addFieldToReport = (payload, report, dispatch) => {
 export const addFilterToReport = (payload, report, dispatch) => {
   let {
     table, column, type = {}, defaultFunction, columnName, from, aggregate, groupBy, databaseFunction, drillDownFilterValues,
-    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType, uid, custom
+    orderBy = [], values, condition, drillownFilter, drillDownId, columnDatabase, columnID, floatingType, uid, custom, functionsDefinition = "", active = true
   } = payload;
   let {
     metadata,
@@ -378,7 +394,7 @@ export const addFilterToReport = (payload, report, dispatch) => {
       table = metadata.tables[table]
       column = table?.columns[column]
     }
-    type = type || column.type
+    type = (type && Object.keys(type).length ? type : column?.type) || {}
     defaultFunction = defaultFunction || column.defaultFunction
     let backendDataType = Object.keys(type)[0]
     let dataType = type[backendDataType]
@@ -392,13 +408,14 @@ export const addFilterToReport = (payload, report, dispatch) => {
       return report;
     }
     let [tableName, columnName] = column.split(".") || [];
-    if (!report?.metadata?.tables[tableName]?.columns[columnName]) {
+    if (!report?.metadata?.tables[tableName]?.columns[columnName] && !custom) {
       return report;
     }
   }
   let { prependTableNameToAlias } = report.options;
   report.activeTool = "2";
   let filterLabel = getFieldDisplayName(payload);
+  const fieldOriginalName = getFieldDisplayName(payload);
   let { dataType, backendDataType } = type;
   let databaseFunctionName;
   if (!dataType && custom) {
@@ -410,7 +427,7 @@ export const addFilterToReport = (payload, report, dispatch) => {
     databaseFunction.returns
   ) {
     dataType = databaseFunction.returns;
-    databaseFunctionName = getDatePart(databaseFunction.key);
+    databaseFunctionName = getDatePart(databaseFunction.key, databaseFunction.returns);
   }
   if (from === "metadata") {
     filterLabel = prependTableNameToAlias
@@ -503,12 +520,14 @@ export const addFilterToReport = (payload, report, dispatch) => {
     databaseFunctions,
     tables: metadata.tables,
     orderBy,
-    isCube
+    isCube,
+    functionsDefinition,
+    fieldOriginalName
   });
   let cascade = getInitialCascade(filter);
   filter = { ...filter, mapping, cascade };
   filter = addDateValues({ filter });
-  filter.active = true;
+  filter.active = active;
   if (drillownFilter) {
     filter = { ...filter, drillownFilter, drillDownFilterValues, filterLabel };
     let { drillDownList } = report;

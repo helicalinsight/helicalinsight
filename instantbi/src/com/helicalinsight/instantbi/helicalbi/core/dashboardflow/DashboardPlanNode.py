@@ -10,6 +10,7 @@ from langchain_core.prompts import PromptTemplate
 from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.DashboardLayoutState import DashboardLayoutState
+from helicalbi.model.output.dashboard.DashboardConfig import default_dashboard_config
 from helicalbi.model.output.dashboard.DashboardLayout import DashboardPlan
 from helicalbi.prompt.DashboardLayoutPrompt import dashboard_plan_prompt_string
 from helicalbi.prompt.FormatInstruction import format_instruction_string
@@ -32,7 +33,7 @@ class DashboardPlanNode:
         if state.get("error") or not (state.get("items") or []):
             return state
         title, text = _fallback_summary(state)
-        fallback_theme = {"color": "#1677ff", "background": "#ffffff"}
+        fallback_config = default_dashboard_config().model_dump()
         try:
             parser = PydanticOutputParser(pydantic_object=DashboardPlan)
             prompt = PromptTemplate(
@@ -57,24 +58,13 @@ class DashboardPlanNode:
                 state=state,
             )
             dumped = plan.model_dump() if hasattr(plan, "model_dump") else dict(plan)
-            theme = dumped.get("theme") or fallback_theme
+            config = dumped.get("dashboard_config") or fallback_config
             planned_template = str(state.get("templateId") or "").strip()
             state["templateId"] = planned_template or dumped.get("templateId") or "analytical-grid"
-            state["theme"] = theme if isinstance(theme, dict) else fallback_theme
+            state["dashboard_config"] = config if isinstance(config, dict) else fallback_config
             state["title"] = str(
                 dumped.get("title") or state.get("user_query") or state.get("title") or ""
             ).strip()
-            header = dumped.get("header") if isinstance(dumped.get("header"), dict) else {}
-            if not str(header.get("title") or "").strip() and state["title"]:
-                header = {
-                    **header,
-                    "enable": True,
-                    "title": state["title"],
-                    "backgroundColor": str(header.get("backgroundColor") or "#000000"),
-                }
-            state["header"] = header
-            parameters = dumped.get("parameters")
-            state["parameters"] = parameters if isinstance(parameters, dict) else {}
             state["layout_plan"] = str(dumped.get("layout_plan") or "")
             state["summary"] = {
                 "title": str(dumped.get("summary_title") or title),
@@ -83,14 +73,8 @@ class DashboardPlanNode:
         except Exception:
             logger.exception("Dashboard plan LLM failed; using chat summaries")
             state["templateId"] = state.get("templateId") or "analytical-grid"
-            state["theme"] = state.get("theme") or fallback_theme
+            state["dashboard_config"] = state.get("dashboard_config") or fallback_config
             state["title"] = str(state.get("user_query") or state.get("title") or "").strip()
-            state["header"] = {
-                "enable": bool(state["title"]),
-                "title": state["title"],
-                "backgroundColor": "#000000",
-            }
-            state["parameters"] = state.get("parameters") or {}
             state["layout_plan"] = "Place a summary banner at the top, then filters and KPIs, then charts."
             state["summary"] = {"title": title, "text": text}
         return state

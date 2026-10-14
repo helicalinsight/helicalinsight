@@ -468,6 +468,11 @@ public class EfwServicesController {
             } catch (InstantiationError ie) {
                 logger.error("Thread interrrupted");
             }
+            try {
+                Object ticketService = ApplicationContextAccessor.getBean("transferTicketService");
+                ticketService.getClass().getMethod("abortByRequestId", String.class).invoke(ticketService, requestId);
+            } catch (Exception ignore) {
+            }
             jsonObject.addProperty("message", "Request cancelled successfully");
             outerJSON.add("response", jsonObject);
 

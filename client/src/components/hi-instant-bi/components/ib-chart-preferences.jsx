@@ -101,43 +101,6 @@ const getChartIcon = (type = "") => {
   return CHART_ICONS[key] || <BarChartOutlined />;
 };
 
-const parseSimilarItem = (item) => {
-  if (typeof item === "string" && item.trim()) {
-    const raw = item.trim();
-    const name = stripVf(raw);
-    return {
-      id: /^vf\./i.test(raw) ? raw.toLowerCase() : `vf.${chartKey(name)}`,
-      name,
-    };
-  }
-  if (item && typeof item === "object" && !Array.isArray(item)) {
-    const [key, value] = Object.entries(item)[0] || [];
-    if (!key && !value) return null;
-    const name = stripVf(value || key);
-    return {
-      id: String(key || `vf.${chartKey(name)}`)
-        .trim()
-        .toLowerCase(),
-      name,
-    };
-  }
-  return null;
-};
-
-const parseSimilarCharts = (list = []) => {
-  if (!Array.isArray(list)) return [];
-  const seen = new Set();
-  return list.reduce((acc, item) => {
-    const parsed = parseSimilarItem(item);
-    if (!parsed?.name) return acc;
-    const key = chartKey(parsed.name);
-    if (seen.has(key)) return acc;
-    seen.add(key);
-    acc.push(parsed);
-    return acc;
-  }, []);
-};
-
 const ChartIconButton = ({
   name,
   active = false,
@@ -167,12 +130,9 @@ const ChartIconButton = ({
 
 const IbChartPreferences = ({
   chartName = "",
-  similarChart = [],
   editable = true,
-  converting = false,
   vfCode = "",
   openVfEditor = false,
-  onSelectSimilarChart,
   onApplyVf,
   onVfEditorOpened,
 }) => {
@@ -185,30 +145,12 @@ const IbChartPreferences = ({
   const carouselRef = useRef(null);
   const chartList = useSelector((s) => s.instantBI.chartList || []);
 
-  const similarItems = useMemo(
-    () => parseSimilarCharts(similarChart),
-    [similarChart]
-  );
   const currentKey = chartKey(chartName);
-
-  const chartOptions = useMemo(
-    () =>
-      similarItems.map(({ name }) => ({
-        name,
-        active: chartKey(name) === currentKey,
-      })),
-    [similarItems, currentKey]
-  );
 
   const moreCharts = useMemo(() => {
     const excluded = new Set(
       [currentKey, currentKey && `vf.${currentKey}`].filter(Boolean)
     );
-    similarItems.forEach(({ id, name }) => {
-      excluded.add(chartKey(name));
-      excluded.add(String(id || "").toLowerCase());
-      excluded.add(`vf.${chartKey(name)}`);
-    });
 
     const seen = new Set();
     return (chartList || [])
@@ -223,7 +165,7 @@ const IbChartPreferences = ({
         return true;
       })
       .map(stripVf);
-  }, [chartList, similarItems, currentKey]);
+  }, [chartList, currentKey]);
 
   useEffect(() => {
     if (vfExpanded) setDraftVf(vfCode || "");
@@ -274,7 +216,7 @@ const IbChartPreferences = ({
     setVfSlide((s) => (s === 1 ? 2 : 1));
   };
 
-  if (!editable || !similarItems.length) return null;
+  if (!editable) return null;
 
   return (
     <div className="ib-chart-preferences" data-testid="ib-chart-preferences">
@@ -324,54 +266,33 @@ const IbChartPreferences = ({
           />
         ) : (
           <div className="ib-chart-preferences__body">
-            {!!chartOptions.length && (
-              <div className="ib-chart-preferences__row">
-                <div className="ib-chart-preferences__similar-header">
-                  <Text type="secondary" className="ib-chart-preferences__label">
-                    Similar charts
-                  </Text>
-                  <div
-                    className={`ib-chart-preferences__vf-hotspot${
-                      vfHover ? " is-hover" : ""
-                    }`}
-                    onMouseEnter={() => setVfHover(true)}
-                    onMouseLeave={() => setVfHover(false)}
+            <div className="ib-chart-preferences__similar-header">
+              <div
+                className={`ib-chart-preferences__vf-hotspot${
+                  vfHover ? " is-hover" : ""
+                }`}
+                onMouseEnter={() => setVfHover(true)}
+                onMouseLeave={() => setVfHover(false)}
+              >
+                <InstantBITooltip
+                  title="Update your selected chart."
+                  open={vfHover ? undefined : false}
+                  placement="left"
+                >
+                  <button
+                    type="button"
+                    className="ib-chart-preferences__vf-fab"
+                    onClick={toggleVf}
+                    data-testid="ib-chart-preferences-vf-toggle"
+                    aria-label="Update your selected chart"
                   >
-                    <InstantBITooltip
-                      title="Update your selected chart."
-                      open={vfHover ? undefined : false}
-                      placement="left"
-                    >
-                      <button
-                        type="button"
-                        className="ib-chart-preferences__vf-fab"
-                        onClick={toggleVf}
-                        data-testid="ib-chart-preferences-vf-toggle"
-                        aria-label="Update your selected chart"
-                      >
-                        <span className="ib-chart-preferences__icon">
-                          <CodeOutlined />
-                        </span>
-                      </button>
-                    </InstantBITooltip>
-                  </div>
-                </div>
-                <div className="ib-chart-preferences__icon-grid">
-                  {chartOptions.map(({ name, active }) => (
-                    <ChartIconButton
-                      key={chartKey(name)}
-                      name={name}
-                      active={active}
-                      disabled={converting && !active}
-                      testId={`ib-similar-chart-${name}`}
-                      onClick={(type) =>
-                        !converting && onSelectSimilarChart?.(type)
-                      }
-                    />
-                  ))}
-                </div>
+                    <span className="ib-chart-preferences__icon">
+                      <CodeOutlined />
+                    </span>
+                  </button>
+                </InstantBITooltip>
               </div>
-            )}
+            </div>
             {!!moreCharts.length && (
               <div className="ib-chart-preferences__row">
                 <button

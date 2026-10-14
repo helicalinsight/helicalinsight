@@ -564,8 +564,7 @@ def _flatten_predicates(
     if isinstance(node, exp.And):
         left = _flatten_predicates(node.left, parsed, for_having=for_having, join_op="AND")
         right = _flatten_predicates(node.right, parsed, for_having=for_having, join_op="AND")
-        collapsed = _try_collapse_range(left, right, "IN_RANGE")
-        return collapsed if collapsed is not None else left + right
+        return _collapse_and_ranges(left + right)
 
     if isinstance(node, exp.Or):
         left = _flatten_predicates(node.left, parsed, for_having=for_having, join_op="OR")
@@ -580,12 +579,90 @@ def _flatten_predicates(
     return [_parse_predicate(node, parsed, for_having=for_having, join_op=join_op)]
 
 
+_LOWER_BOUNDS = ("IS_GREATER_THAN", "IS_GREATER_THAN_OR_EQUAL_TO")
+_UPPER_BOUNDS = ("IS_LESS_THAN", "IS_LESS_THAN_OR_EQUAL_TO")
+
+
+def _bound_is_sql_expression(item: FilterItem) -> bool:
+    """True when a bound is SQL (DATE_TRUNC / CURRENT_DATE), not a literal."""
+    for value in item.values or []:
+        text = str(value or "").strip()
+        if not text:
+            continue
+        upper = text.upper()
+        if "(" in text and ")" in text:
+            return True
+        if any(
+            token in upper
+            for token in (
+                "CURRENT_DATE",
+                "CURRENT_TIMESTAMP",
+                "NOW()",
+                "INTERVAL ",
+                "DATE_TRUNC",
+                "DATETRUNC",
+            )
+        ):
+            return True
+    return False
+
+
+def _range_column_key(item: FilterItem) -> str | None:
+    """Identity for bounds that can share one range filter."""
+    if item.aggregate or not item.column:
+        return None
+    if item.ui_condition not in _LOWER_BOUNDS and item.ui_condition not in _UPPER_BOUNDS:
+        return None
+    function_sql = str(item.database_function_sql or "").strip().lower()
+    return f"{item.column.short.lower()}|{function_sql}"
+
+
+def _collapse_and_ranges(items: list[FilterItem]) -> list[FilterItem]:
+    """Pair one lower and one upper bound on the same column into ``IN_RANGE``.
+
+    Covers closed (``>=`` and ``<=``) and half-open year windows (``>=`` and ``<``),
+    including when another AND predicate sits beside the pair. OR-joined bounds
+    stay separate.
+    """
+    grouped: dict[str, list[int]] = {}
+    for index, item in enumerate(items):
+        key = _range_column_key(item)
+        if key is None:
+            continue
+        grouped.setdefault(key, []).append(index)
+
+    drop: set[int] = set()
+    for indexes in grouped.values():
+        if any(items[index].operator == "OR" for index in indexes):
+            continue
+        lows = [index for index in indexes if items[index].ui_condition in _LOWER_BOUNDS]
+        highs = [index for index in indexes if items[index].ui_condition in _UPPER_BOUNDS]
+        if len(lows) != 1 or len(highs) != 1:
+            continue
+        low_item = items[lows[0]]
+        high_item = items[highs[0]]
+        if not low_item.values or not high_item.values:
+            continue
+        # DATE_TRUNC / CURRENT_DATE bounds must stay separate CUSTOM filters.
+        # IN_RANGE is for literal windows (col >= '2026-01-01' AND col < '2027-01-01').
+        if _bound_is_sql_expression(low_item) or _bound_is_sql_expression(high_item):
+            continue
+        keep = min(lows[0], highs[0])
+        kept = items[keep]
+        kept.ui_condition = "IN_RANGE"
+        kept.values = [low_item.values[0], high_item.values[0]]
+        drop.add(max(lows[0], highs[0]))
+    if not drop:
+        return items
+    return [item for index, item in enumerate(items) if index not in drop]
+
+
 def _try_collapse_range(
     left: list[FilterItem],
     right: list[FilterItem],
     kind: str,
 ) -> list[FilterItem] | None:
-    """Collapse ``>= AND <=`` → IN_RANGE and ``< OR >`` → NOT_IN_RANGE."""
+    """Collapse ``< OR >`` → NOT_IN_RANGE."""
     if len(left) != 1 or len(right) != 1:
         return None
     a, b = left[0], right[0]
@@ -594,15 +671,6 @@ def _try_collapse_range(
     if a.column.short.lower() != b.column.short.lower():
         return None
     ops = {a.ui_condition, b.ui_condition}
-    if kind == "IN_RANGE" and ops == {
-        "IS_GREATER_THAN_OR_EQUAL_TO",
-        "IS_LESS_THAN_OR_EQUAL_TO",
-    }:
-        low = a.values[0] if a.ui_condition == "IS_GREATER_THAN_OR_EQUAL_TO" else b.values[0]
-        high = a.values[0] if a.ui_condition == "IS_LESS_THAN_OR_EQUAL_TO" else b.values[0]
-        a.ui_condition = "IN_RANGE"
-        a.values = [low, high]
-        return [a]
     if kind == "NOT_IN_RANGE" and ops == {"IS_LESS_THAN", "IS_GREATER_THAN"}:
         low = a.values[0] if a.ui_condition == "IS_LESS_THAN" else b.values[0]
         high = a.values[0] if a.ui_condition == "IS_GREATER_THAN" else b.values[0]

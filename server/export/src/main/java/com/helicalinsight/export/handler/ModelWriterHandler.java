@@ -64,7 +64,9 @@ public class ModelWriterHandler extends AbstractResourceWriterHandler {
 		}
 		String csv = mdata.getResourceURL().concat(",").concat(depFolderUrl);
 		hiModel.setCreatedBy(hResource.getCreatedBy());
+		markDeleted(hiModel, hResource, options);
 		dataWriter.write(this.addOwner(hiModel, hiModel.getCreatedBy()), dir, model, "");
+		recycleBinHandler.writeResource(hResource, model, dir, manifest);
 		manifestUtils.insertPath(model.getPath(), manifest);
 		manifestUtils.insertDependency(model.getPath(), csv, manifest);
 		share(model, manifest, options, dir);

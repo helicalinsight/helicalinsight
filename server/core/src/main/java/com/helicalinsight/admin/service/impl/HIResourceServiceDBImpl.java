@@ -22,6 +22,7 @@ import jakarta.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -682,6 +683,20 @@ public class HIResourceServiceDBImpl implements HIResourceServiceDB {
         Map<Integer, Integer> securityMap = hiResourceDBDAO.getSecurityMap();
         HIResourceOfActiveUser securityUtil = new HIResourceOfActiveUser(securityMap, allResourceList,null, permissionLevelHolder.executeAccessLevel());
         return securityUtil;
+    }
+    
+    @Override
+    @Transactional
+    public HIResourceOfActiveUser findAllResourcesUnscoped() {
+    	ResourcePermissionLevelsHolder permissionLevelHolder = ApplicationContextAccessor
+    			.getBean(ResourcePermissionLevelsHolder.class);
+    	List<HIResource> allResourceList = hiResourceDBDAO.getAllResourceList(false);
+    	int ownerAccessLevel = permissionLevelHolder.ownerAccessLevel();
+    	Map<Integer, Integer> securityMap = new HashMap<>();
+    	for (HIResource resource : allResourceList) {
+    		securityMap.put(resource.getResourceId(), ownerAccessLevel);
+    	}
+    	return new HIResourceOfActiveUser(securityMap, allResourceList);
     }
     
     @Override

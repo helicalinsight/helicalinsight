@@ -10,6 +10,7 @@ from helicalbi.controller.app_context import app
 from helicalbi.controller.helpers import (
     RequestAborted,
     as_list,
+    clean_sql,
     domain_topics_from_chat_response,
     ensure_not_aborted,
     extract_token_usage_dict,
@@ -17,6 +18,7 @@ from helicalbi.controller.helpers import (
     resolve_audit_status_from_response,
     resolve_request_id,
     resolve_sql_from_request,
+    chat_seq_aliases,
 )
 from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
 from helicalbi.common.ChatGraphMemory import chat_graph_memory
@@ -27,10 +29,127 @@ from helicalbi.common import app_config
 from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
 from helicalbi.controller.sse import respond
-from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
+from helicalbi.prompt.DataInsightPrompt import (
+    data_insight_prompt_formatted,
+    data_insight_summary_prompt_formatted,
+)
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_step_insights(user_input: dict[str, Any]) -> list[dict[str, Any]]:
+    """Read supporting-question insights posted for a think-plan summary."""
+    raw = user_input.get("insights")
+    if raw is None:
+        params = user_input.get("requestParams") or {}
+        if isinstance(params, dict):
+            raw = params.get("insights")
+    if isinstance(raw, str) and raw.strip():
+        try:
+            raw = json.loads(raw)
+        except json.JSONDecodeError:
+            logger.warning("Ignoring unparseable data-insight insights payload")
+            return []
+    if not isinstance(raw, list):
+        return []
+    parsed: list[dict[str, Any]] = []
+    for item in raw:
+        if isinstance(item, dict):
+            insight = str(item.get("insight") or "").strip()
+            if not insight:
+                continue
+            index = item.get("index")
+            try:
+                index = int(index)
+            except (TypeError, ValueError):
+                index = None
+            parsed.append({
+                "role": str(item.get("role") or "").strip().lower(),
+                "index": index,
+                "question": str(item.get("question") or item.get("title") or "").strip(),
+                "insight": insight,
+            })
+        elif str(item or "").strip():
+            parsed.append({
+                "role": "",
+                "index": None,
+                "question": "",
+                "insight": str(item).strip(),
+            })
+    return parsed
+
+
+def _format_numbered_insights(insights: list[dict[str, Any]]) -> str:
+    lines: list[str] = []
+    supporting = [
+        item for item in insights
+        if item.get("role") != "original"
+    ]
+    for offset, item in enumerate(supporting, start=1):
+        index = item.get("index") if item.get("index") else offset
+        question = item.get("question") or f"Question {index}"
+        lines.append(f"[{index}] {question}\nInsight: {item.get('insight')}")
+    return "\n\n".join(lines).strip()
+
+
+def _original_insight_text(insights: list[dict[str, Any]]) -> str:
+    for item in insights:
+        if item.get("role") == "original":
+            return item.get("insight") or ""
+    return ""
+
+
+def _memory_node(thread_id: str, chat_seq_id: Any) -> dict[str, Any]:
+    if not thread_id or chat_seq_id is None:
+        return {}
+    for seq_alias in chat_seq_aliases(chat_seq_id):
+        if chat_graph_memory.has_node(thread_id, seq_alias):
+            return chat_graph_memory.get_node(thread_id, seq_alias) or {}
+    return {}
+
+
+def _think_child_seq_ids(thread_id: str, parent_seq: Any) -> list[str]:
+    """Supporting think-step seq ids stored as ``{parent}-1`` / ``{parent}_1``."""
+    parent = str(parent_seq or "").strip()
+    if not thread_id or not parent:
+        return []
+    prefixes = (f"{parent}-", f"{parent}_")
+    children: list[str] = []
+    seen: set[str] = set()
+    for seq in chat_graph_memory.list_seq_ids(thread_id):
+        text = str(seq)
+        if not text.startswith(prefixes):
+            continue
+        tail = text[len(parent) + 1 :]
+        if "-" in tail or "_" in tail:
+            continue
+        dedupe = text.replace("_", "-")
+        if dedupe in seen:
+            continue
+        seen.add(dedupe)
+        children.append(text)
+
+    def sort_key(seq: str) -> int:
+        tail = str(seq)[len(parent) + 1 :]
+        try:
+            return int(tail)
+        except ValueError:
+            return 10**9
+
+    return sorted(children, key=sort_key)
+
+
+def _step_index_from_seq(parent_seq: Any, child_seq: Any, fallback: int) -> int:
+    parent = str(parent_seq or "").strip()
+    text = str(child_seq or "").strip()
+    if parent and text.startswith(parent) and len(text) > len(parent) + 1:
+        tail = text[len(parent) + 1 :]
+        try:
+            return int(tail)
+        except ValueError:
+            pass
+    return fallback
 
 
 def _resolve_memory_for_data_insight(
@@ -44,22 +163,27 @@ def _resolve_memory_for_data_insight(
         "topics": [],
     }
 
-    if thread_id and chat_seq_id is not None and chat_graph_memory.has_node(thread_id, chat_seq_id):
-        memory_node = chat_graph_memory.get_node(thread_id, chat_seq_id) or {}
-        memory["domain"] = as_list(memory_node.get("domain"))
-        memory["topics"] = as_list(memory_node.get("topics"))
-        if memory["domain"] or memory["topics"]:
-            logger.info(
-                "Resolved domain/topic for data-insight from memory chatid=%s chat_seq_id=%s",
+    if thread_id and chat_seq_id is not None:
+        memory_node = None
+        for seq_alias in chat_seq_aliases(chat_seq_id):
+            if chat_graph_memory.has_node(thread_id, seq_alias):
+                memory_node = chat_graph_memory.get_node(thread_id, seq_alias) or {}
+                break
+        if memory_node:
+            memory["domain"] = as_list(memory_node.get("domain"))
+            memory["topics"] = as_list(memory_node.get("topics"))
+            if memory["domain"] or memory["topics"]:
+                logger.info(
+                    "Resolved domain/topic for data-insight from memory chatid=%s chat_seq_id=%s",
+                    thread_id,
+                    chat_seq_id,
+                )
+                return memory
+            logger.debug(
+                "Memory node found but domain/topic empty for chatid=%s chat_seq_id=%s",
                 thread_id,
                 chat_seq_id,
             )
-            return memory
-        logger.debug(
-            "Memory node found but domain/topic empty for chatid=%s chat_seq_id=%s",
-            thread_id,
-            chat_seq_id,
-        )
 
     chat_response_item = user_input.get("chat_response_item") or {}
     if chat_response_item:
@@ -153,8 +277,13 @@ class DataInsightTurn:
         self.md_location = self.user_input.get("md_location", self.user_input.get("mdLocation", ""))
         self.md_file_name = self.user_input.get("md_file_name", self.user_input.get("mdFileName", ""))
         self.model = self.user_input.get("model")
-        self.sql = resolve_sql_from_request(
-            self.user_input, self.thread_id, self.chat_seq_id, context="data-insight"
+        self.insights = _parse_step_insights(self.user_input)
+        self.sql = (
+            ""
+            if self.insights
+            else resolve_sql_from_request(
+                self.user_input, self.thread_id, self.chat_seq_id, context="data-insight"
+            )
         )
         self.last_chats = self.user_input.get("last_chats", [])
         self.memory = _resolve_memory_for_data_insight(
@@ -205,6 +334,22 @@ class DataInsightTurn:
             request_cancellation.register(self.request_id)
         ensure_not_aborted(self.request_id)
         self._resolve_metadata()
+        if self.insights:
+            self.reporter.generating_insight()
+            yield
+            self._build_summary_from_insights()
+            self.reporter.insight_generated()
+            yield
+            return
+        think_steps = _think_child_seq_ids(self.thread_id, self.chat_seq_id)
+        if think_steps:
+            yield from self._iter_think_from_memory(think_steps)
+            return
+        if not self.sql:
+            raise RuntimeError("No SQL found for data insight request.")
+        yield from self._iter_single_insight()
+
+    def _iter_single_insight(self) -> Iterator[None]:
         if not self.sql:
             raise RuntimeError("No SQL found for data insight request.")
         self.reporter.executing_sql()
@@ -216,6 +361,60 @@ class DataInsightTurn:
         self.reporter.generating_insight()
         yield
         self._build_insight(api_response)
+        self.reporter.insight_generated()
+        yield
+
+    def _iter_think_from_memory(self, think_steps: list[str]) -> Iterator[None]:
+        original_question = self.user_question
+        stacked: list[dict[str, Any]] = []
+        parent_node = _memory_node(self.thread_id, self.chat_seq_id)
+        parent_sql = clean_sql(
+            parent_node.get("sql", ""),
+            parent_node.get("dialect", ""),
+        ) or self.sql
+        if parent_sql:
+            self.sql = parent_sql
+            self.user_question = original_question or str(parent_node.get("user_query") or "")
+            self.memory = {
+                "domain": as_list(parent_node.get("domain")),
+                "topics": as_list(parent_node.get("topics")),
+            }
+            yield from self._iter_single_insight()
+            stacked.append({
+                "role": "original",
+                "index": 0,
+                "question": self.user_question,
+                "insight": str(self.to_send.get("insight") or "").strip(),
+            })
+
+        for offset, seq in enumerate(think_steps, start=1):
+            ensure_not_aborted(self.request_id)
+            node = _memory_node(self.thread_id, seq)
+            sql = clean_sql(node.get("sql", ""), node.get("dialect", ""))
+            if not sql:
+                logger.debug("Skipping think step with no SQL chat_seq_id=%s", seq)
+                continue
+            self.sql = sql
+            self.user_question = str(node.get("user_query") or original_question or "")
+            self.memory = {
+                "domain": as_list(node.get("domain")),
+                "topics": as_list(node.get("topics")),
+            }
+            yield from self._iter_single_insight()
+            stacked.append({
+                "role": "supporting",
+                "index": _step_index_from_seq(self.chat_seq_id, seq, offset),
+                "question": self.user_question,
+                "insight": str(self.to_send.get("insight") or "").strip(),
+            })
+
+        self.user_question = original_question
+        self.insights = [item for item in stacked if item.get("insight")]
+        if not _format_numbered_insights(self.insights):
+            raise RuntimeError("No SQL found for data insight request.")
+        self.reporter.generating_insight()
+        yield
+        self._build_summary_from_insights()
         self.reporter.insight_generated()
         yield
 
@@ -269,6 +468,25 @@ class DataInsightTurn:
         )
         self.to_send["insight"] = insight
         self.to_send["token_usage"] = token_usage
+
+    def _build_summary_from_insights(self) -> None:
+        numbered = _format_numbered_insights(self.insights)
+        if not numbered:
+            raise RuntimeError("No supporting insights available to summarize.")
+        insight_msg, usage = app().invoke_llm(
+            llm,
+            data_insight_summary_prompt_formatted.format(
+                username=self.username,
+                user_question=self.user_question,
+                original_insight=_original_insight_text(self.insights) or "(none)",
+                numbered_insights=numbered,
+            ),
+        )
+        insight = insight_msg.content
+        if self.thread_id:
+            add_insight(self.thread_id, insight)
+        self.to_send["insight"] = insight
+        self.to_send["token_usage"] = usage.model_dump(exclude_none=True)
 
     def _mark_aborted(self) -> None:
         logger.info("Data insight request aborted for requestId=%s", self.request_id)

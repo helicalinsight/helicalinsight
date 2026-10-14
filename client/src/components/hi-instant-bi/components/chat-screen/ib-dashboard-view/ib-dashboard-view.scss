@@ -1,0 +1,42 @@
+.ib-dashboard-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.ib-dashboard-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ib-dashboard-view__designer {
+  width: 100%;
+  min-height: 320px;
+}
+
+.ib-dashboard-view__explore-btn {
+  position: absolute;
+  bottom: -16px;
+  right: 0;
+  z-index: 9;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #8c8c8c;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+
+  &:hover,
+  &.is-active {
+    color: #1890ff;
+    background: #f5f5f5;
+  }
+}

@@ -14,7 +14,11 @@ from helicalbi.sql_agent.nodes.investigation_planner import (
     build_investigation_plan,
     fallback_investigation_plan,
 )
-from helicalbi.sql_agent.strategy_tree import charts_from_strategy, get_strategy
+from helicalbi.sql_agent.strategy_tree import (
+    charts_from_strategy,
+    get_strategy,
+    select_analytical_operations,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +44,8 @@ class PlanContextState(TypedDict, total=False):
     selected_tables: List[str]
     grounding_pack: str
     allowed_names: List[str]
+    analytical_operations: List[Dict[str, Any]]
+    selected_operations: List[str]
     plan: Dict[str, Any]
     validation_ok: bool
     validation_errors: List[str]
@@ -48,14 +54,13 @@ class PlanContextState(TypedDict, total=False):
     activity_trace: List[Dict[str, Any]]
 
 
-def _chart_limit(state: Mapping) -> int:
-    """Usual chart ceiling, plus think-mode room to split subquery questions."""
-    from helicalbi.sql_agent.config import THINK_EXTRA_QUESTIONS
-
-    base = max(1, int(state.get("max_charts") or 5))
+def _chart_limit(state: Mapping) -> Optional[int]:
+    """Chart ceiling when explicitly configured; None in think mode (LLM decides)."""
     if state.get("flat_sql"):
-        return base + max(0, int(THINK_EXTRA_QUESTIONS))
-    return base
+        return None
+    if state.get("max_charts") is not None:
+        return max(1, int(state["max_charts"]))
+    return None
 
 
 def _normalize(text: str) -> str:
@@ -360,6 +365,31 @@ def enrich_topic_context_node(state: PlanContextState) -> Dict[str, Any]:
     }
 
 
+def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]:
+    """Select analytical operations from analytical_strategy.json to guide deep-dive question framing."""
+    question = str(state.get("question") or "")
+    operations = select_analytical_operations(question, max_operations=5)
+    op_names = [str(op.get("operation") or "").strip() for op in operations if op.get("operation")]
+    reason = (
+        f"Selected {len(op_names)} analytical operation(s) from catalog: "
+        f"{', '.join(op_names)} to guide question framing."
+    )
+    logger.info("Plan graph selected analytical operations=%s", op_names)
+    return {
+        "analytical_operations": operations,
+        "selected_operations": op_names,
+        "activity_trace": append_trace(
+            state.get("activity_trace"),
+            trace_entry(
+                "select_analytical_operations",
+                stage="plan_graph",
+                result={"operations": op_names},
+                reason=reason,
+            ),
+        ),
+    }
+
+
 def draft_chart_questions_node(state: PlanContextState) -> Dict[str, Any]:
     work_state: Dict[str, Any] = {
         "token_usage": dict(state.get("token_usage") or {}),
@@ -378,6 +408,7 @@ def draft_chart_questions_node(state: PlanContextState) -> Dict[str, Any]:
         selected_domains=list(state.get("selected_domains") or []),
         selected_topics=list(state.get("selected_topics") or []),
         flat_sql=bool(state.get("flat_sql")),
+        analytical_operations=list(state.get("analytical_operations") or []),
     )
     plan_dict = plan.model_dump() if hasattr(plan, "model_dump") else dict(plan)
     # Prefer selector scope when LLM omits domain/topics.
@@ -390,6 +421,8 @@ def draft_chart_questions_node(state: PlanContextState) -> Dict[str, Any]:
         {
             "index": index,
             "question": str(chart.get("question") or "").strip(),
+            "analytical_strategy": str(chart.get("analytical_strategy") or chart.get("operation") or "").strip(),
+            "operation": str(chart.get("operation") or chart.get("analytical_strategy") or "").strip(),
             "purpose": str(chart.get("purpose") or "").strip(),
             "why": str(chart.get("purpose") or "").strip()
             or "Supporting investigation question toward the user ask.",
@@ -398,6 +431,15 @@ def draft_chart_questions_node(state: PlanContextState) -> Dict[str, Any]:
         for index, chart in enumerate(charts, start=1)
         if str(chart.get("question") or "").strip()
     ]
+    if not plan_dict.get("query_analytical_strategies") and charts:
+        plan_dict["query_analytical_strategies"] = [
+            {
+                "question": str(chart.get("question") or "").strip(),
+                "analytical_strategy": str(chart.get("analytical_strategy") or chart.get("operation") or "").strip(),
+            }
+            for chart in charts
+            if str(chart.get("question") or "").strip()
+        ]
     strategy = state.get("strategy") or {}
     repair = bool(str(state.get("validation_feedback") or "").strip())
     reason = (
@@ -553,7 +595,8 @@ def validate_questions_node(state: PlanContextState) -> Dict[str, Any]:
     charts = [c for c in (plan.get("charts") or []) if isinstance(c, dict)]
     charts = _dedupe_charts(charts)
     max_charts = _chart_limit(state)
-    charts = charts[:max_charts]
+    if max_charts is not None:
+        charts = charts[:max_charts]
     allowed = list(state.get("allowed_names") or [])
     allowed_lower = {a.lower() for a in allowed}
     errors: List[str] = []
@@ -734,13 +777,15 @@ def build_plan_context_graph():
     workflow.add_node("load_semantic_context", load_semantic_context_node)
     workflow.add_node("select_domain_topics", select_domain_topics_node)
     workflow.add_node("enrich_topic_context", enrich_topic_context_node)
+    workflow.add_node("select_analytical_operations", select_analytical_operations_node)
     workflow.add_node("draft_chart_questions", draft_chart_questions_node)
     workflow.add_node("validate_questions", validate_questions_node)
 
     workflow.add_edge(START, "load_semantic_context")
     workflow.add_edge("load_semantic_context", "select_domain_topics")
     workflow.add_edge("select_domain_topics", "enrich_topic_context")
-    workflow.add_edge("enrich_topic_context", "draft_chart_questions")
+    workflow.add_edge("enrich_topic_context", "select_analytical_operations")
+    workflow.add_edge("select_analytical_operations", "draft_chart_questions")
     workflow.add_edge("draft_chart_questions", "validate_questions")
     workflow.add_conditional_edges(
         "validate_questions",
@@ -794,6 +839,8 @@ def run_plan_context_graph(
         "validation_ok": False,
         "activity_trace": [],
         "selected_tables": [],
+        "analytical_operations": [],
+        "selected_operations": [],
     }
     result = graph.invoke(initial)
     plan = result.get("plan") or {}
@@ -804,9 +851,11 @@ def run_plan_context_graph(
         "selected_domains": list(result.get("selected_domains") or []),
         "selected_topics": list(result.get("selected_topics") or []),
         "selected_tables": list(result.get("selected_tables") or []),
+        "selected_operations": list(result.get("selected_operations") or []),
         "grounding_pack": str(result.get("grounding_pack") or ""),
         "allowed_names": list(result.get("allowed_names") or []),
         "token_usage": result.get("token_usage") or {},
         "validation_errors": list(result.get("validation_errors") or []),
         "activity_trace": list(result.get("activity_trace") or []),
     }
+

@@ -778,6 +778,44 @@ class TestNumericFilterConditions:
             isCustomValue=True,
         )
 
+    def test_half_open_date_window_beside_another_filter_is_in_range(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.travel_type AS "Travel Type"
+            FROM travel_details
+            WHERE travel_details.travel_type = 'International'
+              AND travel_details.travel_date >= '2026-01-01'
+              AND travel_details.travel_date < '2027-01-01'
+            """
+        )
+        filters = form_data["filters"]
+        assert len(filters) == 2
+        assert filters[0]["condition"] == "EQUALS"
+        assert filters[0]["values"] == ["International"]
+        date_filter = filters[1]
+        assert date_filter["condition"] == "IN_RANGE"
+        assert date_filter["values"] == ["2026-01-01", "2027-01-01"]
+        assert "customCondition" not in date_filter
+        assert date_filter["column"]["id"] == "2859"
+        assert form_data["customFilterExpression"] == " ${0} AND ${1} "
+
+    def test_half_open_date_window_beside_another_filter_is_in_range(self):
+        form = _form_data(
+            """
+            SELECT travel_details.travel_type AS "Travel Type"
+            FROM travel_details
+            WHERE travel_details.travel_type = 'International'
+              AND travel_details.travel_date >= '2026-01-01'
+              AND travel_details.travel_date < '2027-01-01'
+            """
+        )
+        filters = form["filters"]
+        assert [item["condition"] for item in filters] == ["EQUALS", "IN_RANGE"]
+        assert filters[1]["values"] == ["2026-01-01", "2027-01-01"]
+        assert filters[1]["column"]["id"] == "2859"
+        assert "customCondition" not in filters[1]
+        assert form["customFilterExpression"] == " ${0} AND ${1} "
+
     def test_not_in_range(self):
         assert self._filter(
             "(travel_details.travel_cost < 100 OR travel_details.travel_cost > 200)"

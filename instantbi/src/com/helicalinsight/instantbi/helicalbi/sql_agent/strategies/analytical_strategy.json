@@ -1,0 +1,142 @@
+[
+  {
+    "operation": "trend",
+    "description": "Compare a measure across time to identify trajectory, velocity, and pattern changes."
+  },
+  {
+    "operation": "period_comparison",
+    "description": "Compare the current period with a previous period (e.g., MoM, QoQ, YoY, or custom date ranges)."
+  },
+  {
+    "operation": "segment",
+    "description": "Break a measure down by a valid dimension to evaluate categorical splits."
+  },
+  {
+    "operation": "decompose",
+    "description": "Break a measure into its registered components or additive sub-metrics."
+  },
+  {
+    "operation": "contribution",
+    "description": "Identify dimensions or entities contributing most to a measure change or total volume."
+  },
+  {
+    "operation": "distribution",
+    "description": "Analyze the distribution and spread of a measure across dimension members or numeric value bins."
+  },
+  {
+    "operation": "reason_analysis",
+    "description": "Analyze registered reason codes or explanatory categorical dimensions to explain outcomes."
+  },
+  {
+    "operation": "mix_analysis",
+    "description": "Determine whether changes in dimensional composition or volume mix contributed to an aggregate measure change."
+  },
+  {
+    "operation": "outlier_detection",
+    "description": "Identify dimension members with unusually high or low values relative to the cohort norm."
+  },
+  {
+    "operation": "ranking",
+    "description": "Order entities from highest to lowest to isolate top performers and underperforming laggards."
+  },
+  {
+    "operation": "pareto_analysis",
+    "description": "Apply the 80/20 rule to determine the vital few dimension members driving the majority of a measure."
+  },
+  {
+    "operation": "concentration_risk",
+    "description": "Measure portfolio or revenue exposure and dependency on top accounts, suppliers, or product lines."
+  },
+  {
+    "operation": "benchmark_comparison",
+    "description": "Compare actual performance against targets, SLAs, budgets, peer groups, or baseline standards."
+  },
+  {
+    "operation": "variance_waterfall",
+    "description": "Track sequential positive and negative incremental steps bridging an initial state to a final total or budget."
+  },
+  {
+    "operation": "gap_analysis",
+    "description": "Quantify shortfalls or surpluses between actual performance and defined goals or expectations."
+  },
+  {
+    "operation": "cumulative_aggregation",
+    "description": "Calculate running totals, cumulative progress, or Year-to-Date (YTD) and Month-to-Date (MTD) accumulations."
+  },
+  {
+    "operation": "cohort_analysis",
+    "description": "Track and compare the lifecycle behavior, retention, and performance of cohorts grouped by a shared inception event."
+  },
+  {
+    "operation": "funnel_conversion",
+    "description": "Analyze stage-by-stage conversion, velocity, and drop-off rates across sequential workflows or journeys."
+  },
+  {
+    "operation": "churn_retention",
+    "description": "Measure customer, subscriber, or asset attrition rates and repeat longevity across successive time windows."
+  },
+  {
+    "operation": "correlation_analysis",
+    "description": "Evaluate directional co-movement and statistical association between two or more continuous measures."
+  },
+  {
+    "operation": "elasticity_sensitivity",
+    "description": "Determine the responsiveness of an outcome metric relative to percentage shifts in a key input driver (e.g., price elasticity)."
+  },
+  {
+    "operation": "ratio_rate_analysis",
+    "description": "Compute normalized unit economics, efficiency ratios, margins, and rates (e.g., cost per acquisition, margin %, ROI)."
+  },
+  {
+    "operation": "utilization_capacity",
+    "description": "Evaluate actual asset, inventory, or operational throughput against theoretical maximum capacity limits."
+  },
+  {
+    "operation": "cross_tabulation",
+    "description": "Analyze the intersection and matrix distribution of two categorical dimensions across a shared metric."
+  },
+  {
+    "operation": "seasonality_cycle",
+    "description": "Identify recurring cyclical patterns across calendar cycles (e.g., day of week, hour of day, holiday surges)."
+  },
+  {
+    "operation": "velocity_acceleration",
+    "description": "Measure the rate of change and speed of a metric over time to identify accelerating growth or decelerating momentum."
+  },
+  {
+    "operation": "frequency_recency",
+    "description": "Group and evaluate entities by how recently and how frequently transactions or interactions occur."
+  },
+  {
+    "operation": "percentile_tiering",
+    "description": "Classify entities into quartiles, deciles, or custom tiers based on their relative metric standing across the population."
+  },
+  {
+    "operation": "threshold_alerting",
+    "description": "Isolate records and dimensions that breach upper or lower control limits, SLAs, or risk thresholds."
+  },
+  {
+    "operation": "anomaly_detection",
+    "description": "Surface abrupt, unexpected spikes or drops that deviate significantly from expected seasonal or trend patterns."
+  },
+  {
+    "operation": "root_cause_drilldown",
+    "description": "Systematically traverse hierarchical dimensional levels to isolate underlying drivers of high-level variance."
+  },
+  {
+    "operation": "basket_affinity",
+    "description": "Examine co-occurrence frequencies and item combinations that frequently appear together in single transactions."
+  },
+  {
+    "operation": "aging_backlog",
+    "description": "Categorize open tickets, uncollected receivables, or unsold inventory by duration or elapsed time in the queue."
+  },
+  {
+    "operation": "forecasting_run_rate",
+    "description": "Extrapolate expected future period totals based on current velocity, recent run rates, and historical pace."
+  },
+  {
+    "operation": "what_if_scenario",
+    "description": "Model the projected impact on high-level outcomes when adjusting hypothetical values for underlying operational levers."
+  }
+]

@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+import random
+from typing import Any, Dict, List, Sequence
 
 from helicalbi.sql_agent.activity_details import append_trace, trace_entry
 from helicalbi.sql_agent.state import AgentState
@@ -122,6 +123,53 @@ def _rewrite_prompt(question: str, sql: str, error: str, *, flat_sql: bool = Fal
     return rewrite_failed_sql_prompt(question, sql, error, flat_sql=flat_sql)
 
 
+_STEP_STARTED = (
+    "Looking into",
+    "Checking",
+    "Reviewing",
+    "Working through",
+    "Digging into",
+    "Exploring",
+    "Gathering",
+    "Examining",
+    "Going through",
+    "Sorting out",
+    "Tracing",
+    "Pulling together",
+)
+_STEP_DONE = (
+    "is ready",
+    "is in",
+    "is set",
+    "is together",
+    "is complete",
+    "came through",
+    "looks good",
+    "is lined up",
+    "is wrapped up",
+    "is on hand",
+)
+_STEP_FAILED = (
+    "could not be finished",
+    "did not come through",
+    "could not be gathered",
+    "did not line up",
+    "ran into a problem",
+    "stopped short",
+    "could not be sorted out",
+    "did not come together",
+)
+
+
+def _step_status_line(phrases: Sequence[str], label: str, *, lead: bool) -> str:
+    """Pick one phrase at random and place it beside the step title."""
+    phrase = random.choice(phrases)
+    text = (label or "this step").strip()
+    if lead:
+        return f"{phrase} {text}."
+    return f"{text} {phrase}."
+
+
 def execute_plan_node(state: AgentState) -> Dict[str, Any]:
     """Run each planned chart: generate_sql → execute_query → build_report.
 
@@ -189,7 +237,7 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
         _progress(
             "think_step",
             "started",
-            f"Analyzing question {chart_index}: {label}",
+            _step_status_line(_STEP_STARTED, label, lead=True),
         )
         step_ok = True
 
@@ -338,11 +386,13 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     )
                     continue
 
-                # Overlay LLM narrative onto the built step (do not append a second step).
+                # Overlay: summary.insight stays on SqlSuccessPrompt (no result rows).
+                # STEP_INSIGHT still writes analysis so the Conclusion can use findings.
                 from helicalbi.sql_agent.tools.analysis import (
                     _llm_step_insight,
                     _sample_rows_from_raw,
                     _MAX_SAMPLE_ROWS,
+                    apply_sql_success_insight,
                 )
 
                 sql_session = (
@@ -374,31 +424,31 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     sample_data=sample_data,
                     state=work,
                 )
-                narrative_answer = str(llm_insight.answer or "").strip() if llm_insight else ""
                 narrative_analysis = str(llm_insight.analysis or "").strip() if llm_insight else ""
                 collected = list(work.get("collected_data") or [])
                 if collected:
                     last = dict(collected[-1])
                     last["title"] = title
                     last["include_in_dashboard"] = False
-                    if narrative_answer:
-                        last["answer"] = narrative_answer
+                    last = apply_sql_success_insight(
+                        last,
+                        work,
+                        question=question,
+                        sql=str(work.get("generated_sql") or ""),
+                        last_sql=last_sql if isinstance(last_sql, dict) else None,
+                    )
                     if narrative_analysis:
                         last["analysis"] = narrative_analysis
-                    elif narrative_answer:
-                        last["analysis"] = narrative_answer
                     chat_response = dict(last.get("chat_response") or {})
-                    summary = dict(chat_response.get("summary") or {})
-                    if narrative_answer:
-                        summary["insight"] = narrative_answer
-                    if narrative_analysis:
-                        summary["analysis"] = narrative_analysis
-                    chat_response["summary"] = summary
-                    last["chat_response"] = chat_response
                     if not last.get("report_model") and chat_response.get("report_model"):
                         last["report_model"] = chat_response.get("report_model")
                     collected[-1] = last
                     work["collected_data"] = collected
+                insight_text = ""
+                if collected:
+                    last_step = collected[-1]
+                    summary = ((last_step.get("chat_response") or {}).get("summary") or {})
+                    insight_text = str(summary.get("insight") or "").strip()
                 loops += 1
                 chart_traces.append(
                     {
@@ -408,7 +458,7 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                         "status": "ok",
                         "sql_attempts": sql_attempts,
                         "kind": "text_insight",
-                        "result": (narrative_analysis or narrative_answer)[:500],
+                        "result": (insight_text or narrative_analysis)[:500],
                         "reason": (
                             str(chart.get("purpose") or "").strip()
                             or "Built report_model for Preview; narrative for final answer."
@@ -467,10 +517,10 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
             _progress(
                 "think_step",
                 "done" if step_ok else "failed",
-                (
-                    f"Completed question {chart_index}: {label}"
-                    if step_ok
-                    else f"Could not complete question {chart_index}: {label}"
+                _step_status_line(
+                    _STEP_DONE if step_ok else _STEP_FAILED,
+                    label,
+                    lead=False,
                 ),
             )
 

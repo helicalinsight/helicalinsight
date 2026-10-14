@@ -629,7 +629,7 @@ describe('CT Column Groups Utilities', () => {
             expect(cells[0].height).toBe(25);
         });
 
-        it('builds cols from columnGroups reversed and prefixed with Detail, and rows from rowGroups prefixed with Detail', () => {
+        it('builds cols from columnGroups reversed and prefixed with Detail, and rows from rowGroups reversed and prefixed with Detail', () => {
             const columnGroups = [{ name: 'colA' }, { name: 'colB' }];
             const rowGroups = [{ name: 'rowX' }, { name: 'rowY' }];
 
@@ -640,12 +640,12 @@ describe('CT Column Groups Utilities', () => {
                 'Detail/Detail',
                 'colB/Detail',
                 'colA/Detail',
-                'Detail/rowX',
-                'colB/rowX',
-                'colA/rowX',
                 'Detail/rowY',
                 'colB/rowY',
-                'colA/rowY'
+                'colA/rowY',
+                'Detail/rowX',
+                'colB/rowX',
+                'colA/rowX'
             ]);
         });
 
@@ -705,7 +705,7 @@ describe('CT Column Groups Utilities', () => {
 
             const { cells } = getCTMeasureCells([], columnGroups, rowGroups, [], styles);
 
-            const middleCell = cells.find((cell) => cell.name === 'colB/rowX');
+            const middleCell = cells.find((cell) => cell.name === 'colB/rowY');
             expect(middleCell.styleNameReference).toBe('cg-id');
         });
 
@@ -720,9 +720,9 @@ describe('CT Column Groups Utilities', () => {
 
             const { cells } = getCTMeasureCells([], columnGroups, rowGroups, [], styles);
 
-            const lastRowCell = cells.find((cell) => cell.name === 'Detail/rowY');
+            const lastRowCell = cells.find((cell) => cell.name === 'Detail/rowX');
             const lastColCell = cells.find((cell) => cell.name === 'colA/Detail');
-            const lastRowAndColCell = cells.find((cell) => cell.name === 'colA/rowY');
+            const lastRowAndColCell = cells.find((cell) => cell.name === 'colA/rowX');
 
             expect(lastRowCell.styleNameReference).toBe('ct-id');
             expect(lastColCell.styleNameReference).toBe('ct-id');

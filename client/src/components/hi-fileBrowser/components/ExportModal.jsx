@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { Checkbox, Divider, Modal, Row, Col, Tooltip, message } from "antd";
+import { useRef, useState } from "react";
+import { Checkbox, Divider, Modal, Row, Col, Tooltip } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import { fileBrowserActions } from "../../../redux/actions";
 import requests from "../../../base/requests";
 import notify from "../../hi-notifications/notify";
+import DownloadProgressModal from "../../common/download-progress-modal";
 
-const plainOptions = ["File and Folder (default)", "Share Details", "Datasources", "Schedules"];
+const BASE_OPTIONS = ["File and Folder (default)", "Share Details", "Datasources", "Schedules", "Recycle Bin"];
+const EXPORT_EVERYTHING_OPTION = "Export everything";
 
 const getPath = (recordData) => {
   const modifiedPath = recordData.path.split("/");
@@ -24,22 +26,32 @@ const ExportModal = (props) => {
   const Notify = notify(dispatch);
   const exportModalData = useSelector((store) => store.fileBrowser.exportModalData);
   const applicationSettingsData = useSelector((state) => state.app.applicationSettingsData);
+  const enforceDatasource = Boolean(applicationSettingsData?.enforceDatasourceExportImport);
+  const isSuperAdmin = !applicationSettingsData?.userData?.user?.organization;
+  const showExportEverything = Boolean(props.allRepos && isSuperAdmin);
+  const plainOptions = showExportEverything
+    ? [...BASE_OPTIONS, EXPORT_EVERYTHING_OPTION]
+    : BASE_OPTIONS;
+  const initialCheckedList = enforceDatasource ? [...defaultVal, "Datasources"] : defaultVal;
   const [checkAll, setCheckAll] = useState(false);
-  const [checkedList, setCheckedList] = useState(defaultVal); // File and Folder is by default enabled
+  const [checkedList, setCheckedList] = useState(enforceDatasource ? defaultVal.concat(["Datasources"]) : defaultVal); // File and Folder is by default enabled
   const [indeterminate, setIndeterminate] = useState(true);
-  const [percent, setPercent] = useState(0);
+  const [downloadingInfo, setDownloadingInfo] = useState(null);
+  const hiAxiosRef = useRef(null);
   const fbRequests = requests.filebrowser(dispatch, applicationSettingsData.settings);
   const { recordData } = exportModalData;
 
   const onChange = (list) => {
-    setCheckedList(list);
-    setIndeterminate(!!list.length && list.length < plainOptions.length);
-    setCheckAll(list.length === plainOptions.length);
+    const updatedList = enforceDatasource && !list.includes("Datasources") ? [...list, "Datasources"] : list;
+    setCheckedList(updatedList);
+    setIndeterminate(!!updatedList.length && updatedList.length < plainOptions.length);
+    setCheckAll(updatedList.length === plainOptions.length);
   };
 
   const onCheckAllChange = (e) => {
-    setCheckedList(e.target.checked ? plainOptions : []);
-    setIndeterminate(false);
+    const nextList = e.target.checked ? plainOptions : enforceDatasource ? ["Datasources"] : [];
+    setCheckedList(nextList);
+    setIndeterminate(enforceDatasource && !e.target.checked);
     setCheckAll(e.target.checked);
   };
 
@@ -59,94 +71,30 @@ const ExportModal = (props) => {
           share: checkedList.includes("Share Details"),
           dataSource: checkedList.includes("Datasources"),
           schedules: checkedList.includes("Schedules"),
+          recycleBin: checkedList.includes("Recycle Bin"),
+          exportEverything: showExportEverything && checkedList.includes(EXPORT_EVERYTHING_OPTION),
         },
       };
 
-      fbRequests.postExportData(
-        formData,
-        (progressEvent) => {
-          downLoadProgress(progressEvent);
-        },
-        (res) => {
-          handleDownLoad(res, recordData);
-        }
-      );
-    }
-  };
-
-  const downLoadProgress = (progressEvent) => {
-    const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-    setPercent(percentCompleted);
-  };
-
-  const handleDownLoad = (res, record) => {
-    let fileInfo = res.headers["content-disposition"] || "";
-    let fileInfoName = fileInfo.split("=") || [];
-    let fileName = fileInfoName[1] || "";
-    fileName = fileName.substr(1, fileName.length - 2) || "Untitled1";
-    try {
-      let encoding = new TextDecoder("utf-8");
-      let arr = new Uint8Array(res.data);
-      let resString = encoding.decode(arr);
-      let data = JSON.parse(resString);
-      Notify.error({ type: "Backend", message: data.response.message });
-    } catch (e) {
-      if (e.name === "SyntaxError") {
-        message.loading({ content: ` ${fileName} is downloading`, key: "loading" });
-
-        const reader = new FileReader();
-        reader.onload = function () {
-          const a = document.createElement("a");
-          a.href = reader.result;
-          a.setAttribute("download", fileName);
-          a.style.display = "none";
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(reader.result);
-          a.remove();
-        };
-        reader.readAsDataURL(new File([res.data], { type: ".zip" }));
-
-        // const blob = new Blob([res.data], { type: ".zip" });
-        // const href = URL.createObjectURL(blob);
-        // const a = Object.assign(document.createElement("a"), {
-        //   href,
-        //   style: "display:none",
-        //   download: `${fileName}`,
-        // });
-
-        // document.body.appendChild(a);
-        // a.click();
-        // URL.revokeObjectURL(href);
-        // a.remove();
-        Notify.success({
-          message: `${fileName} downloaded successfully`,
-          // key: "hagsa",
-          // duration: 3,
-          type: "Network Call"
-        });
-        Notify.success({
-          message: `Exported successfully`,
-          type: "Network Call"
-        });
-      }
+      hiAxiosRef.current = fbRequests.postExportData(formData, setDownloadingInfo);
     }
   };
 
   const handleOk = () => {
     dispatch(fileBrowserActions.setExportModalData({ visible: false }));
-    setCheckedList(defaultVal);
+    setCheckedList(initialCheckedList);
     setIndeterminate(true);
     handleExport();
   };
 
   const handleCancel = () => {
-    setCheckedList(defaultVal);
+    setCheckedList(initialCheckedList);
     setIndeterminate(true);
     dispatch(fileBrowserActions.setExportModalData({ visible: false, recordData: {} }));
   };
 
   return (
+    <>
     <Modal
       title={`Export`}
       visible={exportModalData.visible}
@@ -184,7 +132,7 @@ const ExportModal = (props) => {
             </div>
             <div>
               <Tooltip title="Datasources related metadata">
-                <Checkbox value="Datasources">Datasources</Checkbox>
+                <Checkbox value="Datasources" disabled={enforceDatasource}>Datasources</Checkbox>
               </Tooltip>
             </div>
             <div>
@@ -192,10 +140,30 @@ const ExportModal = (props) => {
                 <Checkbox value="Schedules">Schedules</Checkbox>
               </Tooltip>
             </div>
+            <div>
+              <Tooltip title="Soft-deleted resources and related Recycle Bin entries">
+                <Checkbox value="Recycle Bin">Recycle Bin</Checkbox>
+              </Tooltip>
+            </div>
+            {showExportEverything && (
+              <div>
+                <Tooltip title="Export all associated content irrespective of current-user permissions (super admin only)">
+                  <Checkbox value={EXPORT_EVERYTHING_OPTION}>Export everything</Checkbox>
+                </Tooltip>
+              </div>
+            )}
           </Checkbox.Group>
         </Col>
       </Row>
     </Modal>
+    <DownloadProgressModal
+      downloadingInfo={downloadingInfo}
+      onCancel={() => {
+        hiAxiosRef.current?.abort?.();
+        setDownloadingInfo(null);
+      }}
+    />
+    </>
   );
 };
 

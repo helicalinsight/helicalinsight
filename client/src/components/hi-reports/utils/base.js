@@ -207,6 +207,7 @@ const checkIfReportsPresent = (dispatch, mode) => {
 	let reports = [];
 	dispatch((_, getState) => {
 		reports = getState().hreport.present.reports;
+		reports = reports.filter((report) => !report.isInstantReport);
 	})
 	return reports.some((report) => ["create", "edit"].includes(report.mode));
 }
@@ -411,7 +412,7 @@ export const whereBuilder = ({ field, query, filterCondition, database }) => {
 		// 	config.values = values.map(val => `'${val}'`)
 		// }
 	}
-	if(custom){
+	if (custom) {
 		config.custom = true
 	}
 	if (ignore) {
@@ -598,7 +599,7 @@ export const generateReport = (activeReport, dispatch, getApi, callback) => {
 			dispatch(setAbortRequest(false))
 		}
 		if (!generateQuery && !getFormData) {
-			dispatch(setHReportLoading({ id, loading: true }))
+			dispatch(setHReportLoading({ reportId: id, loading: true }))
 			dispatch(setHReportEditLoading(false))
 			if ((mode !== "edit" && mode !== "create") || (activeReport?.drillThrough && activeReport?.drillThroughId)) {
 				dispatch(loadReportData({ ...activeReport, undoRedoAction: true, reportData: { loading: true } }))
@@ -607,7 +608,7 @@ export const generateReport = (activeReport, dispatch, getApi, callback) => {
 		}
 		if (mode === "filter") {
 			dispatch(loadReportData({ ...activeReport, loadState: true }))
-			dispatch(setHReportLoading({ id, loading: true }))
+			dispatch(setHReportLoading({ reportId: id, loading: true }))
 			return null
 		}
 		selectedType = selectedType || "Table"
@@ -1078,13 +1079,13 @@ export const fetchDateFuncs = async (formData, dispatch, getApi) => {
 }
 
 
-const isRawDbFunction = (databaseFunction) => {
+export const isRawDbFunction = (databaseFunction) => {
 	if (!databaseFunction || typeof databaseFunction !== "object") return false;
 	const key = databaseFunction.key || databaseFunction.functionName || databaseFunction.value || "";
 	return String(key).split(".").pop().toUpperCase() === "RAW";
 }
 
-const reportHasRawSql = (report) => {
+export const reportHasRawSql = (report) => {
 	if (!report) return false;
 	if ((report.fields || []).some((field) => isRawDbFunction(field.databaseFunction))) return true;
 	return (report.filters || []).some((filter) =>
@@ -1117,25 +1118,25 @@ export const openMetadata = async (formData, dispatch, getApi, responseOnly = fa
 		}
 		if (responseOnly) return response;
 
-		let prevMetadataFormData = null;
-		let hasRawSqlInUse = false;
-		dispatch((_, getState) => {
-			const activeReport = getState()?.hreport?.present?.reports?.find((report) => report.active);
-			prevMetadataFormData = activeReport?.metadata?.formData || null;
-			hasRawSqlInUse = reportHasRawSql(activeReport);
-		});
+		// let prevMetadataFormData = null;
+		// let hasRawSqlInUse = false;
+		// dispatch((_, getState) => {
+		// 	const activeReport = getState()?.hreport?.present?.reports?.find((report) => report.active);
+		// 	prevMetadataFormData = activeReport?.metadata?.formData || null;
+		// 	hasRawSqlInUse = reportHasRawSql(activeReport);
+		// });
 		dispatch(
 			loadMetadata(response)
 		);
 
-		if (hasRawSqlInUse && prevMetadataFormData &&
-			(prevMetadataFormData.location !== formData.location ||
-				prevMetadataFormData.metadataFileName !== formData.metadataFileName)) {
-			notify(dispatch).info({
-				type: "Frontend",
-				message: "Metadata has been changed — RAW SQL expressions used in fields will be passed as-is without parsing.",
-			});
-		}
+		// if (hasRawSqlInUse && prevMetadataFormData &&
+		// 	(prevMetadataFormData.location !== formData.location ||
+		// 		prevMetadataFormData.metadataFileName !== formData.metadataFileName)) {
+		// 	notify(dispatch).info({
+		// 		type: "Frontend",
+		// 		message: "Metadata has been changed — RAW SQL expressions used in fields will be passed as-is without parsing.",
+		// 	});
+		// }
 
 		// dispatch(setMetadataLoading({ loading: false }))
 		dispatch(setHreportSidebarLoading({ loading: false, undoRedoAction: true }))

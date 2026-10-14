@@ -52,6 +52,15 @@ public class InstantBIController {
                 .execute(new RecommendAnalystPayload(model, domain), request, response);
     }
 
+    /**
+     * Interactive chat. Optional {@code removeColsInFilter} drops SELECT columns
+     * that also appear in WHERE/HAVING. Omit it so InstantBI uses
+     * {@code feature_flags.rm_cols_in_filter} in application_config.yaml.
+     * Accepted values: true/false, 1/0, yes/no, y/n, on/off.
+     * Forwarded as {@code input.rm_cols_in_filter}. A direct InstantBI call can
+     * also send query {@code ?rm_cols_in_filter=} or JSON {@code rm_cols_in_filter}
+     * (query wins over the body).
+     */
     @RequestMapping("/interactive-chat")
     public void aiChatInteractive(
             @RequestParam("input") String input,

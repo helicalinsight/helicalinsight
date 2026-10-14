@@ -1,7 +1,5 @@
 package com.helicalinsight.instant.ai.service.impl;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceInstantReport;
@@ -84,6 +82,10 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
 
                 InstantBIUtils.addSessionContext(request, userInput);
                 userInput.addProperty("chat_seq_id", chatSeqId);
+                String insights = request.getParameter("insights");
+                if (StringUtils.isNotBlank(insights)) {
+                    userInput.addProperty("insights", insights);
+                }
 
                 js.add("input", userInput);
                 return js;
@@ -128,21 +130,15 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
 
         userInput.add("model", stateJson.get("subject").getAsJsonObject().get("model"));
         userInput.addProperty("inputString", formDataJson.get("input").getAsString());
-        userInput.addProperty("chatid", GsonUtility.optString(stateJson, "activeChatId"));
-
-        JsonArray chatResponses = stateJson.get("chat_responses").getAsJsonArray();
-        JsonObject chatResponseToSend = null;
-
-        for (JsonElement element : chatResponses) {
-            JsonObject chatResponse = element.getAsJsonObject();
-            int sequenceId = chatResponse.get("chat_sequence_id").getAsInt();
-            if (sequenceId == Integer.valueOf(chatSeqId)) {
-                chatResponseToSend = chatResponse;
-                break;
-            }
+        String chatId = GsonUtility.optString(stateJson, "activeChatId");
+        if (StringUtils.isBlank(chatId)) {
+            chatId = GsonUtility.optString(stateJson, "activeChatID");
         }
+        userInput.addProperty("chatid", chatId);
 
+        JsonObject chatResponseToSend = InstantBIUtils.findSavedChatResponseItem(stateJson, chatSeqId);
         userInput.add("chat_response_item", chatResponseToSend);
-        userInput.add("last_chats", InstantBIUtils.getHistory(stateJson.get("inputs").getAsJsonArray(), Integer.valueOf(chatSeqId)));
+        userInput.add("last_chats", InstantBIUtils.getHistory(
+                GsonUtility.optJsonArray(stateJson, "inputs"), chatSeqId));
     }
 }

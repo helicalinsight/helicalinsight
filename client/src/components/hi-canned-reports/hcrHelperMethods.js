@@ -1803,6 +1803,7 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
   const layoutProperties = getLayoutProperty(dispatch) || {}
 
   function getUpdateSize(node, style = {}) {
+    if (isEmpty(node)) return node;
     const clonedNode = cloneDeep(node)
     const { padding = {} } = style || {}
     const { Top = 0, Bottom = 0, Right = 0, Left = 0 } = padding || {};
@@ -1820,7 +1821,6 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
       const { nodeIds: totalCellNodesIds = [], styleNameReference: tStyleId } = totalCell || {};
       let header = nodes[headerCellNodeIds?.[0]] || {};
       let totalHeader = nodes[totalCellNodesIds?.[0]] || {};
-
       let { styleName: hStyleNameReference = null, ...restHStyle } = styles.find(({ id }) => id === hStyleId) || {};
       let { styleName: tStyleNameReference = null, ...restTStyle } = styles.find(({ id }) => id === tStyleId) || {};
 

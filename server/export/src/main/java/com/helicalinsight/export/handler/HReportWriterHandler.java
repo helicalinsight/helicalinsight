@@ -63,7 +63,9 @@ public class HReportWriterHandler extends AbstractResourceWriterHandler {
 		}
 		String csv = mdata.getResourceURL().concat(",").concat(depFolderUrl);
 		hReport.setCreatedBy(hResource.getCreatedBy());
+		markDeleted(hReport, hResource, options);
 		dataWriter.write(this.addOwner(hReport,hReport.getCreatedBy()), dir, report,"");
+		recycleBinHandler.writeResource(hResource, report, dir, manifest);
 		manifestUtils.insertPath(report.getPath(), manifest);
 		manifestUtils.insertDependency(report.getPath(), csv, manifest);
 		share(report, manifest, options, dir);

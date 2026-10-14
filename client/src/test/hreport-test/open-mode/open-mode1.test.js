@@ -1,12 +1,26 @@
 import "regenerator-runtime/runtime";
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, fireEvent,act,waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux'; 
-import reducers from '../../../redux';
-import {HelicalReports} from "../../../pages/helical-reports-page"
-import { DndProvider } from 'react-dnd'; 
+import { Provider } from 'react-redux';
+import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { hiMockAxios } from '../../../app/mock-axios';
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+const reducers = require('../../../redux').default;
+const { HelicalReports } = require("../../../pages/helical-reports-page");
+const { hiMockAxios } = require('../../../app/mock-axios');
 const crypto = require('crypto');
 const flushPromises = () => new Promise(setImmediate);
 

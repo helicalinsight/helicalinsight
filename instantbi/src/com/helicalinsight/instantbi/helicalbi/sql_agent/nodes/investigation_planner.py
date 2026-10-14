@@ -2,23 +2,29 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Dict, List, Mapping, Optional
+
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.prompts import PromptTemplate
 
 from helicalbi.sql_agent.config import (
     CONTEXT_PLAN_PROMPT,
     SQL_SHAPE_DERIVED_TABLES,
-    THINK_EXTRA_QUESTIONS,
     THINK_FLAT_SQL_PLAN_RULES,
 )
+from helicalbi.sql_agent.prompt import _THINK_QUESTION_SYSTEM
 from helicalbi.sql_agent.llm import invoke_agent_model
 from helicalbi.sql_agent.models import DashboardChartSpec, InvestigationPlan
 from helicalbi.sql_agent.modes import truncate_text
 from helicalbi.sql_agent.personas import DEFAULT_PERSONA, PERSONA_TIERS, persona_prompt_block
 from helicalbi.sql_agent.strategy_tree import (
+    analytical_operations_prompt_block,
     attach_strategy,
     charts_from_strategy,
     get_strategy,
     list_strategies,
+    select_analytical_operations,
     select_strategy,
     strategy_catalog_prompt_block,
     strategy_prompt_block,
@@ -103,11 +109,73 @@ def fallback_investigation_plan(
     )
 
 
+
+def _frame_think_questions(
+    *,
+    inputs: dict[str, Any],
+    state: Optional[Dict[str, Any]],
+) -> InvestigationPlan:
+    """Think-only planner. Context is fixed; the agent only frames questions."""
+    from langchain.agents import create_agent
+
+    from helicalbi.common.LlmInvokeHelper import (
+        get_token_usage_factory,
+        merge_time_consumed,
+        merge_token_usage,
+    )
+    from helicalbi.common.configuration import llm as default_llm
+    from helicalbi.model.TimeConsumed import TimeConsumed
+
+    user_prompt = PromptTemplate(
+        template=CONTEXT_PLAN_PROMPT,
+        input_variables=list(inputs.keys()),
+        partial_variables={
+            "format_instructions": (
+                "Return the investigation plan fields. Domain and topics are already chosen."
+            ),
+        },
+    )
+    agent = create_agent(
+        default_llm,
+        tools=None,
+        system_prompt=_THINK_QUESTION_SYSTEM,
+        response_format=InvestigationPlan,
+        name="think_question_framer",
+    )
+    started = time.perf_counter()
+    result = agent.invoke({"messages": [HumanMessage(content=user_prompt.format(**inputs))]})
+    elapsed = time.perf_counter() - started
+    structured = result.get("structured_response") if isinstance(result, dict) else None
+    if isinstance(structured, InvestigationPlan):
+        parsed = structured
+    elif isinstance(structured, dict):
+        parsed = InvestigationPlan.model_validate(structured)
+    else:
+        raise ValueError("Think question agent returned no investigation plan")
+    if state is not None:
+        for message in reversed(list(result.get("messages") or [])):
+            if isinstance(message, AIMessage):
+                usage = get_token_usage_factory(None).from_ai_message(message)
+                merge_token_usage(state, usage)
+                merge_time_consumed(state, TimeConsumed(llm_seconds=round(elapsed, 3)))
+                break
+    return parsed
+
+
 def _cap_charts(plan: InvestigationPlan, max_charts: int) -> InvestigationPlan:
     limit = max(1, int(max_charts or 1))
     if len(plan.charts) <= limit:
         return plan
-    return plan.model_copy(update={"charts": plan.charts[:limit]})
+    capped_charts = plan.charts[:limit]
+    queries = [
+        {
+            "question": str(chart.question or "").strip(),
+            "analytical_strategy": str(chart.analytical_strategy or chart.operation or "").strip(),
+        }
+        for chart in capped_charts
+        if str(chart.question or "").strip()
+    ]
+    return plan.model_copy(update={"charts": capped_charts, "query_analytical_strategies": queries})
 
 
 def build_investigation_plan(
@@ -124,6 +192,7 @@ def build_investigation_plan(
     selected_domains: Optional[List[str]] = None,
     selected_topics: Optional[List[str]] = None,
     flat_sql: bool = False,
+    analytical_operations: Optional[List[Dict[str, Any]]] = None,
 ) -> InvestigationPlan:
     """LLM plan guided by strategy + topic grounding pack."""
     chosen = _resolve_strategy(question, persona, strategy)
@@ -132,6 +201,11 @@ def build_investigation_plan(
     work_persona = attach_strategy(persona, chosen)
     domains = [str(d).strip() for d in (selected_domains or []) if str(d).strip()]
     topics = [str(t).strip() for t in (selected_topics or []) if str(t).strip()]
+    ops = (
+        list(analytical_operations)
+        if analytical_operations is not None
+        else select_analytical_operations(question)
+    )
     fallback = fallback_investigation_plan(
         question,
         persona=work_persona,
@@ -143,31 +217,42 @@ def build_investigation_plan(
     overview = truncate_text(semantic_overview or "", overview_chars)
     pack = truncate_text(grounding_pack or overview, overview_chars)
     feedback = str(validation_feedback or "").strip()
-    chart_limit = max(1, int(max_charts or 1))
+    chart_limit = max(1, int(max_charts or 1)) if max_charts is not None else None
     sql_shape_rules = SQL_SHAPE_DERIVED_TABLES
     if flat_sql:
-        chart_limit = chart_limit + max(0, int(THINK_EXTRA_QUESTIONS))
+        chart_limit = None
         sql_shape_rules = THINK_FLAT_SQL_PLAN_RULES
+    prompt_inputs = {
+        "persona_block": persona_prompt_block(work_persona),
+        "strategy_block": strategy_prompt_block(chosen),
+        "strategy_catalog": strategy_catalog_prompt_block(exclude_id=str(chosen.get("id") or "")),
+        "analytical_operations_block": analytical_operations_prompt_block(ops),
+        "original_question": question,
+        "semantic_overview": overview,
+        "grounding_pack": pack or "(no topic grounding pack; use semantic overview)",
+        "validation_feedback": (
+            f"Validation feedback from prior draft:\n{feedback}" if feedback else ""
+        ),
+        "max_charts": max_charts,
+        "chart_limit": "",
+        "sql_shape_rules": sql_shape_rules,
+    }
+    if domains or topics:
+        prompt_inputs["validation_feedback"] = (
+            "Finalized context (do not change): "
+            f"domain={domains[:1]}; topics={topics}.\n"
+            + str(prompt_inputs["validation_feedback"] or "")
+        ).strip()
     try:
-        parsed = invoke_agent_model(
-            CONTEXT_PLAN_PROMPT,
-            {
-                "persona_block": persona_prompt_block(work_persona),
-                "strategy_block": strategy_prompt_block(chosen),
-                "strategy_catalog": strategy_catalog_prompt_block(exclude_id=str(chosen.get("id") or "")),
-                "original_question": question,
-                "semantic_overview": overview,
-                "grounding_pack": pack or "(no topic grounding pack; use semantic overview)",
-                "validation_feedback": (
-                    f"Validation feedback from prior draft:\n{feedback}" if feedback else ""
-                ),
-                "max_charts": max_charts,
-                "chart_limit": chart_limit,
-                "sql_shape_rules": sql_shape_rules,
-            },
-            InvestigationPlan,
-            state=state,
-        )
+        if flat_sql:
+            parsed = _frame_think_questions(inputs=prompt_inputs, state=state)
+        else:
+            parsed = invoke_agent_model(
+                CONTEXT_PLAN_PROMPT,
+                prompt_inputs,
+                InvestigationPlan,
+                state=state,
+            )
     except Exception:
         logger.exception("Investigation planner LLM failed; using fallback plan")
         return fallback
@@ -187,9 +272,18 @@ def build_investigation_plan(
     )
     data["original_question"] = question
     data["charts"] = charts
-    if not str(data.get("domain") or "").strip() and domains:
+    if domains and (flat_sql or not str(data.get("domain") or "").strip()):
         data["domain"] = domains[0]
-    if not data.get("topics") and topics:
+    if topics and (flat_sql or not data.get("topics")):
         data["topics"] = topics
+    if ops and not data.get("analytical_operations"):
+        data["analytical_operations"] = [
+            str(op.get("operation") or "").strip()
+            for op in ops
+            if str(op.get("operation") or "").strip()
+        ]
     plan = InvestigationPlan.model_validate(data)
-    return _cap_charts(plan, chart_limit)
+    if chart_limit is not None and not flat_sql:
+        return _cap_charts(plan, chart_limit)
+    return plan
+

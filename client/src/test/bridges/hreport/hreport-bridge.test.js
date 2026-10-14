@@ -17,6 +17,7 @@ import {
     updateCustomChart,
     updateSelectedType,
     updateSubVizType,
+    toggleCombineCharts,
     setHReportLoading,
     updateAggregations,
     toggleFloating,
@@ -762,6 +763,116 @@ describe('createHReportBridge - viz types and marks', () => {
         expect(measureCall[0].geographicType).toBeUndefined();
     });
 
+    test('plots two measures on a grid-chart dual axis with mark and color', async () => {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    { alias: 'region', column: { id: 'col-region', name: 'region' } },
+                    { alias: 'sales', column: { id: 'col-sales', name: 'sales' } },
+                    { alias: 'cost', column: { id: 'col-cost', name: 'cost' } },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            columns: ['region'],
+            rows: ['sales', 'cost'],
+            mark: 'Grid Chart',
+            viz: 'Bar',
+            detailedColumns: [
+                makeDetailed('region', 'col-region'),
+                makeDetailed('sales', 'col-sales', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+                makeDetailed('cost', 'col-cost', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+            ],
+        });
+        reportModel.viz_model.chart.dualaxis = true;
+        reportModel.viz_model.chart.measures = [
+            { field: 'sales', viz: 'Bar', color: '#5B8FF9' },
+            { field: 'cost', viz: 'Arc', color: '#E8684A' },
+        ];
+        const eventUpdater = jest.fn();
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+            eventUpdater,
+        });
+
+        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'GridChart' });
+        expect(toggleCombineCharts).toHaveBeenCalledWith({ reportId: REPORT_ID });
+        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
+            value: 'sales',
+            name: 'bar',
+            seriesColor: '#5B8FF9',
+        }));
+        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
+            value: 'cost',
+            name: 'line',
+            seriesColor: '#E8684A',
+        }));
+        expect(addFieldToCanvas).toHaveBeenCalledWith(expect.objectContaining({
+            defaultFunction: 'db.generic.aggregate.sum',
+            column: expect.objectContaining({ id: 'col-sales' }),
+        }));
+        expect(eventUpdater).toHaveBeenCalledWith(expect.objectContaining({
+            event: 'change_viz',
+            data: expect.objectContaining({ selectedType: 'GridChart', dualaxis: true }),
+        }));
+    });
+
+    test('assigns palette series colors from the bridge when measure color is empty', async () => {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    { alias: 'region', column: { id: 'col-region', name: 'region' } },
+                    { alias: 'sales', column: { id: 'col-sales', name: 'sales' } },
+                    { alias: 'cost', column: { id: 'col-cost', name: 'cost' } },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            columns: ['region'],
+            rows: ['sales', 'cost'],
+            mark: 'Grid Chart',
+            viz: 'Bar',
+            detailedColumns: [
+                makeDetailed('region', 'col-region'),
+                makeDetailed('sales', 'col-sales', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+                makeDetailed('cost', 'col-cost', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+            ],
+        });
+        reportModel.viz_model.chart.dualaxis = true;
+        reportModel.viz_model.chart.measures = [
+            { field: 'sales', viz: 'Bar', color: '  ' },
+            { field: 'cost', viz: 'Line' },
+        ];
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
+            value: 'sales',
+            name: 'bar',
+            seriesColor: '#5B8FF9',
+        }));
+        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
+            value: 'cost',
+            name: 'line',
+            seriesColor: '#5AD8A6',
+        }));
+    });
+
     test('calls eventUpdater on viz change', async () => {
         const eventUpdater = jest.fn();
         const reportModel = makeReportModel({
@@ -775,7 +886,7 @@ describe('createHReportBridge - viz types and marks', () => {
         expect(eventUpdater).toHaveBeenCalledWith({
             hreportId: REPORT_ID,
             event: 'change_viz',
-            data: { selectedType: 'Card', subVizType: 'bar' },
+            data: { selectedType: 'Card', subVizType: 'bar', dualaxis: false },
         });
     });
 

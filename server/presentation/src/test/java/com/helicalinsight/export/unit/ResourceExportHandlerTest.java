@@ -38,6 +38,8 @@ import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
 import com.helicalinsight.test.utility.SkipTest;
 
 import jakarta.servlet.http.HttpServletResponse;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @Category(SkipTest.class)
@@ -268,4 +270,169 @@ public class ResourceExportHandlerTest extends ExportUnitTestBase {
 			Assert.assertArrayEquals(expected, handler.export(request, response));
 		}
 	}
+
+	@Test
+public void ut_a7_exportEverything_usesUnscopedForSuperAdmin() throws Exception {
+	HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+	ExportResourceManager manager = mock(ExportResourceManager.class);
+	ResourceExportHandler handler = createHandler(serviceDb, manager);
+
+	ResourceOptions options = new ResourceOptions();
+	options.setExportEverything(true);
+	ResourceExportRequest request = new ResourceExportRequest();
+	request.setDir("");
+	request.setFile("");
+	request.setOptions(options);
+
+	HttpServletResponse response = mock(HttpServletResponse.class);
+	HIResourceOfActiveUser activeUser = mock(HIResourceOfActiveUser.class);
+	List<HIResourceDTO> dtoList = new ArrayList<>();
+	byte[] expected = new byte[] { 9, 9 };
+
+	when(serviceDb.findAllResourcesUnscoped()).thenReturn(activeUser);
+	when(activeUser.getResourceDTOList()).thenReturn(dtoList);
+	when(manager.write(dtoList, "", options, response)).thenReturn(expected);
+
+	try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+		auth.when(AuthenticationUtils::getLoggedInUserOrganizationId).thenReturn(null);
+		auth.when(() -> AuthenticationUtils.isSuperAdmin(null)).thenReturn(true);
+
+		Assert.assertArrayEquals(expected, handler.export(request, response));
+	}
+
+	verify(serviceDb).findAllResourcesUnscoped();
+	verify(serviceDb, never()).findAllResources();
+}
+
+@Test
+public void ut_a8_exportEverything_rejectsNonSuperAdmin() throws Exception {
+	HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+	ExportResourceManager manager = mock(ExportResourceManager.class);
+	ResourceExportHandler handler = createHandler(serviceDb, manager);
+
+	ResourceOptions options = new ResourceOptions();
+	options.setExportEverything(true);
+	ResourceExportRequest request = new ResourceExportRequest();
+	request.setDir("");
+	request.setFile("");
+	request.setOptions(options);
+
+	try (MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class)) {
+		auth.when(AuthenticationUtils::getLoggedInUserOrganizationId).thenReturn(1);
+		auth.when(() -> AuthenticationUtils.isSuperAdmin(1)).thenReturn(false);
+
+		try {
+			handler.export(request, mock(HttpServletResponse.class));
+			Assert.fail("Expected ResourceExportException");
+		} catch (ResourceExportException ex) {
+			Assert.assertTrue(ex.getMessage().contains("super admin"));
+		}
+	}
+
+	verify(serviceDb, never()).findAllResourcesUnscoped();
+	verify(serviceDb, never()).findAllResources();
+}
+
+@Test
+public void ut_a9_exportEverything_false_usesScopedFindAll() throws Exception {
+	HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+	ExportResourceManager manager = mock(ExportResourceManager.class);
+	ResourceExportHandler handler = createHandler(serviceDb, manager);
+
+	ResourceOptions options = new ResourceOptions();
+	options.setExportEverything(false);
+	ResourceExportRequest request = new ResourceExportRequest();
+	request.setDir("");
+	request.setFile("");
+	request.setOptions(options);
+
+	HttpServletResponse response = mock(HttpServletResponse.class);
+	HIResourceOfActiveUser activeUser = mock(HIResourceOfActiveUser.class);
+	List<HIResourceDTO> dtoList = new ArrayList<>();
+	byte[] expected = new byte[] { 1 };
+
+	when(serviceDb.findAllResources()).thenReturn(activeUser);
+	when(activeUser.getResourceDTOList()).thenReturn(dtoList);
+	when(manager.write(dtoList, "", options, response)).thenReturn(expected);
+
+	Assert.assertArrayEquals(expected, handler.export(request, response));
+	verify(serviceDb).findAllResources();
+	verify(serviceDb, never()).findAllResourcesUnscoped();
+}
+
+@Test
+public void ut_a10_exportEverything_nullOptions_usesScopedFindAll() throws Exception {
+	HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+	ExportResourceManager manager = mock(ExportResourceManager.class);
+	ResourceExportHandler handler = createHandler(serviceDb, manager);
+
+	ResourceExportRequest request = new ResourceExportRequest();
+	request.setDir("");
+	request.setFile("");
+	request.setOptions(null);
+
+	HttpServletResponse response = mock(HttpServletResponse.class);
+	HIResourceOfActiveUser activeUser = mock(HIResourceOfActiveUser.class);
+	List<HIResourceDTO> dtoList = new ArrayList<>();
+	byte[] expected = new byte[] { 2 };
+
+	when(serviceDb.findAllResources()).thenReturn(activeUser);
+	when(activeUser.getResourceDTOList()).thenReturn(dtoList);
+	when(manager.write(dtoList, "", null, response)).thenReturn(expected);
+
+	Assert.assertArrayEquals(expected, handler.export(request, response));
+	verify(serviceDb).findAllResources();
+	verify(serviceDb, never()).findAllResourcesUnscoped();
+}
+
+@Test
+public void ut_a11_exportEverything_ignoredForPathExport() throws Exception {
+	HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+	ExportResourceManager manager = mock(ExportResourceManager.class);
+	ResourceExportHandler handler = createHandler(serviceDb, manager);
+
+	ResourceOptions options = new ResourceOptions();
+	options.setExportEverything(true);
+	ResourceExportRequest request = new ResourceExportRequest();
+	request.setDir("Reports");
+	request.setFile("");
+	request.setOptions(options);
+
+	HttpServletResponse response = mock(HttpServletResponse.class);
+	HIResource resource = new HIResource();
+	resource.setResourceId(1);
+	resource.setFolder(false);
+	resource.setResourceURL("Reports");
+	resource.setCreatedBy(1);
+	resource.setDeleted(false);
+	resource.setTitle("Reports");
+	resource.setLastUpdatedTime(new Date());
+	configureFileResource(resource);
+
+	byte[] expected = new byte[] { 4, 5 };
+	when(serviceDb.getResourceByUrl("Reports")).thenReturn(resource);
+	when(serviceDb.getSecurityMap()).thenReturn(new HashMap<>());
+	when(manager.write(any(), eq("Reports"), eq(options), eq(response))).thenReturn(expected);
+
+	ResourcePermissionLevelsHolder permissionHolder = mock(ResourcePermissionLevelsHolder.class);
+	ResourceTypeServiceDB resourceTypeService = mock(ResourceTypeServiceDB.class);
+	when(permissionHolder.readAccessLevel()).thenReturn(2);
+	when(resourceTypeService.getAllResourceTypes()).thenReturn(fileResourceTypes());
+
+	try (MockedStatic<ApplicationContextAccessor> contextAccessor = mockStatic(ApplicationContextAccessor.class);
+			MockedStatic<AuthenticationUtils> authUtils = mockStatic(AuthenticationUtils.class)) {
+		contextAccessor.when(() -> ApplicationContextAccessor.getBean(ResourcePermissionLevelsHolder.class))
+				.thenReturn(permissionHolder);
+		contextAccessor.when(() -> ApplicationContextAccessor.getBean(ResourceTypeServiceDB.class))
+				.thenReturn(resourceTypeService);
+		authUtils.when(AuthenticationUtils::getUserId).thenReturn("1");
+		authUtils.when(AuthenticationUtils::getLoggedInUserOrganizationId).thenReturn(null);
+		authUtils.when(() -> AuthenticationUtils.isSuperAdmin(null)).thenReturn(true);
+
+		Assert.assertArrayEquals(expected, handler.export(request, response));
+	}
+
+	verify(serviceDb, never()).findAllResourcesUnscoped();
+	verify(serviceDb, never()).findAllResources();
+}
 }

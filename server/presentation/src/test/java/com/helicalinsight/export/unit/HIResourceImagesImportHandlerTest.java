@@ -4,10 +4,13 @@ package com.helicalinsight.export.unit;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.lang.reflect.Field;
 import java.util.Date;
 import java.util.HashMap;
@@ -34,6 +37,8 @@ import com.helicalinsight.export.handler.importres.AbstractResourceImportHandler
 import com.helicalinsight.export.handler.importres.HIResourceImagesImportHandler;
 import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.service.ShareHandler;
+import com.helicalinsight.export.utils.ManifestUtils;
+import com.helicalinsight.export.utils.ResourceFileUtils;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 import com.helicalinsight.resourcesecurity.jaxb.Security;
 
@@ -51,10 +56,15 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		HIResource resource = mock(HIResource.class);
 		HIResource fileResource = mock(HIResource.class);
 		HIResourceImages images = mock(HIResourceImages.class);
+		HIResourceImages sidecarImages = mock(HIResourceImages.class);
 		ResourceDataReader fileReader = mock(ResourceDataReader.class);
 		ShareHandler shareHandler = mock(ShareHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
+		Manifest manifest = mock(Manifest.class);
 
-		inject(handler, context, serviceDb, fileReader, shareHandler);
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+		stubSidecarPath(context, manifestUtils, manifest, fileReader, fileUtils, fileResource, images, sidecarImages);
 
 		when(context.getRequest()).thenReturn(request);
 		when(context.getNewOldImageIds()).thenReturn(new HashMap<>());
@@ -62,8 +72,6 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(request.getOptions()).thenReturn(options);
 		when(options.getSchedules()).thenReturn(false);
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
-		when(fileReader.read(context, "parent/image.hiimg", HIResource.class)).thenReturn(fileResource);
-		when(fileResource.getHiResourceImages()).thenReturn(images);
 		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
 
 		HIResource result = handler.importResource("parent/image.hiimg");
@@ -81,13 +89,17 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		HIResource resource = mock(HIResource.class);
 		HIResource fileResource = mock(HIResource.class);
 		HIResourceImages importedImages = mock(HIResourceImages.class);
+		HIResourceImages sidecarImages = mock(HIResourceImages.class);
 		HIResourceImages dbImages = mock(HIResourceImages.class);
 		ResourceDataReader fileReader = mock(ResourceDataReader.class);
 		ShareHandler shareHandler = mock(ShareHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
 		Manifest manifest = mock(Manifest.class);
 		Map<Integer, String> imageIdMap = new HashMap<>();
 
-		inject(handler, context, serviceDb, fileReader, shareHandler);
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+		stubSidecarPath(context, manifestUtils, manifest, fileReader, fileUtils, fileResource, importedImages, sidecarImages);
 
 		when(context.getRequest()).thenReturn(request);
 		when(context.getManifest()).thenReturn(manifest);
@@ -98,12 +110,12 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(options.getShare()).thenReturn(false);
 		when(options.getSchedules()).thenReturn(false);
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
-		when(fileReader.read(context, "parent/image.hiimg", HIResource.class)).thenReturn(fileResource);
-		when(fileResource.getHiResourceImages()).thenReturn(importedImages);
 		when(fileResource.getResourceId()).thenReturn(100);
 		when(resource.getHiResourceImages()).thenReturn(dbImages);
 		when(resource.getResourceId()).thenReturn(200);
 		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
+		when(sidecarImages.getContentType()).thenReturn("image/jpeg");
+		when(sidecarImages.getContent()).thenReturn(new byte[] { 9 });
 
 		try (MockedStatic<ApplicationContextAccessor> appMock = ExportTestSecuritySupport.mockApplicationContextForSecurity();
 				MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
@@ -113,6 +125,8 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 			HIResource result = handler.importResource("parent/image.hiimg");
 			Assert.assertEquals(resource, result);
 			Assert.assertTrue(imageIdMap.containsKey(100));
+			verify(importedImages).setContentType("image/jpeg");
+			verify(importedImages).setContent(new byte[] { 9 });
 		}
 	}
 
@@ -127,12 +141,16 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		HIResource resource = mock(HIResource.class);
 		HIResource fileResource = mock(HIResource.class);
 		HIResourceImages images = mock(HIResourceImages.class);
+		HIResourceImages sidecarImages = mock(HIResourceImages.class);
 		ResourceDataReader fileReader = mock(ResourceDataReader.class);
 		ShareHandler shareHandler = mock(ShareHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
 		Manifest manifest = mock(Manifest.class);
 		Map<Integer, String> imageIdMap = new HashMap<>();
 
-		inject(handler, context, serviceDb, fileReader, shareHandler);
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+		stubSidecarPath(context, manifestUtils, manifest, fileReader, fileUtils, fileResource, images, sidecarImages);
 
 		when(context.getRequest()).thenReturn(request);
 		when(context.getManifest()).thenReturn(manifest);
@@ -144,8 +162,6 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(options.getShare()).thenReturn(true);
 		when(options.getSchedules()).thenReturn(false);
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(null);
-		when(fileReader.read(context, "parent/image.hiimg", HIResource.class)).thenReturn(fileResource);
-		when(fileResource.getHiResourceImages()).thenReturn(images);
 		when(fileResource.getResourceId()).thenReturn(100);
 		when(fileResource.getCreatedBy()).thenReturn(3);
 		when(serviceDb.addHIResource(resource)).thenReturn(300);
@@ -179,12 +195,16 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		HIResource resource = mock(HIResource.class);
 		HIResource fileResource = mock(HIResource.class);
 		HIResourceImages images = mock(HIResourceImages.class);
+		HIResourceImages sidecarImages = mock(HIResourceImages.class);
 		ResourceDataReader fileReader = mock(ResourceDataReader.class);
 		ShareHandler shareHandler = mock(ShareHandler.class);
 		ResourceIOHandler scheduleHandler = mock(ResourceIOHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
 		Manifest manifest = mock(Manifest.class);
 
-		inject(handler, context, serviceDb, fileReader, shareHandler);
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+		stubSidecarPath(context, manifestUtils, manifest, fileReader, fileUtils, fileResource, images, sidecarImages);
 
 		when(context.getRequest()).thenReturn(request);
 		when(context.getManifest()).thenReturn(manifest);
@@ -193,8 +213,6 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(request.getOptions()).thenReturn(options);
 		when(options.getSchedules()).thenReturn(true);
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
-		when(fileReader.read(context, "parent/image.hiimg", HIResource.class)).thenReturn(fileResource);
-		when(fileResource.getHiResourceImages()).thenReturn(images);
 		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
 
 		try (MockedStatic<ApplicationContextAccessor> appMock = ExportTestSecuritySupport.mockApplicationContextForSecurity()) {
@@ -204,13 +222,70 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		}
 	}
 
+	@Test
+	public void ut_a5_testImportResourceLegacyEmbedded()
+			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		HIResourceImagesImportHandler handler = new HIResourceImagesImportHandler();
+		ImportManagerContext context = mock(ImportManagerContext.class);
+		ImportRequest request = mock(ImportRequest.class);
+		ResourceOptions options = mock(ResourceOptions.class);
+		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+		HIResource resource = mock(HIResource.class);
+		HIResource fileResource = mock(HIResource.class);
+		HIResourceImages embeddedImages = mock(HIResourceImages.class);
+		ResourceDataReader fileReader = mock(ResourceDataReader.class);
+		ShareHandler shareHandler = mock(ShareHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
+		Manifest manifest = mock(Manifest.class);
+		byte[] largeContent = new byte[1024 * 64];
+
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+
+		when(context.removeDestination("parent/image.hiimg")).thenReturn("parent/image.hiimg");
+		when(context.getManifest()).thenReturn(manifest);
+		when(context.getResourcesDirectory()).thenReturn("/tmp/resources/");
+		when(manifest.getVersion()).thenReturn("1");
+		when(manifestUtils.getImageFile("parent/image.hiimg", manifest)).thenReturn(null);
+		when(fileUtils.readFile(any(File.class), eq(HIResource.class))).thenReturn(fileResource);
+		when(fileResource.getHiResourceImages()).thenReturn(embeddedImages);
+		when(embeddedImages.getContent()).thenReturn(largeContent);
+
+		when(context.getRequest()).thenReturn(request);
+		when(context.getNewOldImageIds()).thenReturn(new HashMap<>());
+		when(request.getOnConflict()).thenReturn("skip");
+		when(request.getOptions()).thenReturn(options);
+		when(options.getSchedules()).thenReturn(false);
+		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
+		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
+
+		HIResource result = handler.importResource("parent/image.hiimg");
+		Assert.assertEquals(resource, result);
+		verify(fileUtils).readFile(any(File.class), eq(HIResource.class));
+	}
+
+	private void stubSidecarPath(ImportManagerContext context, ManifestUtils manifestUtils, Manifest manifest,
+			ResourceDataReader fileReader, ResourceFileUtils fileUtils, HIResource fileResource,
+			HIResourceImages metadataImages, HIResourceImages sidecarImages) {
+		when(context.removeDestination("parent/image.hiimg")).thenReturn("parent/image.hiimg");
+		when(context.getManifest()).thenReturn(manifest);
+		when(context.getResourcesDirectory()).thenReturn("/tmp/resources/");
+		when(manifestUtils.getImageFile("parent/image.hiimg", manifest)).thenReturn("parent/image.hiimg_image");
+		when(fileReader.read(context, "parent/image.hiimg", HIResource.class)).thenReturn(fileResource);
+		when(fileResource.getHiResourceImages()).thenReturn(metadataImages);
+		when(fileUtils.readFile(any(File.class), eq(HIResourceImages.class))).thenReturn(sidecarImages);
+	}
+
 	private void inject(HIResourceImagesImportHandler handler, ImportManagerContext context,
-			HIResourceServiceDB serviceDb, ResourceDataReader fileReader, ShareHandler shareHandler)
+			HIResourceServiceDB serviceDb, ResourceDataReader fileReader, ShareHandler shareHandler,
+			ManifestUtils manifestUtils, ResourceFileUtils fileUtils)
 			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		setField(handler, "context", context);
 		setField(handler, "serviceDb", serviceDb);
 		setField(handler, "fileReader", fileReader);
 		setField(handler, "shareHandler", shareHandler);
+		setField(handler, "manifestUtils", manifestUtils);
+		setField(handler, "fileUtils", fileUtils);
 	}
 
 	protected void setField(Object target, String name, Object value)

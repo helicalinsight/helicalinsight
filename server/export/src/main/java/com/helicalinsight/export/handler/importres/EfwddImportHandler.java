@@ -3,6 +3,8 @@ import com.google.gson.JsonObject;
 import com.helicalinsight.adhoc.utils.DashboardUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +15,6 @@ import org.springframework.stereotype.Component;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMapping;
 import com.helicalinsight.admin.model.HIResourceEFWDD;
-import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.ApplicationSettings;
 import com.helicalinsight.efw.utility.JsonUtils;
@@ -43,6 +44,7 @@ import java.util.*;
 @Component("efwddImportHandler")
 @Scope("prototype")
 public class EfwddImportHandler extends AbstractResourceImportHandler {
+	private static final Logger logger = LoggerFactory.getLogger(EfwddImportHandler.class);
 	/**
      * Imports an EFWDD resource.
      *
@@ -99,6 +101,7 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
 			efwdd.setCreatedBy(importedBy);
 		}
 		Map<String, Object>  s = updateState(efwdd.getState());
+		efwdd.setState((String) s.get("state"));
 		updateReportPaths(s,efwdd, resource);
 		resource.setTitle(efwdd.getFileName());
 		resource.setHiResourceEFWDD(efwdd);
@@ -123,13 +126,17 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
                 resourceUrl, actualPath, title, parent.getResourceId(), efwdd.getCreatedBy() == null);
 		
         Map<String, Object> s = updateState(efwdd.getState());
+		logger.debug("EFWDD updateState done {}", resourceUrl);
         efwdd.setState((String) s.get("state"));
 		efwdd.setLastUpdatedTime(context.getDate());
 		efwdd.setCreatedDate(context.getDate());
 		efwdd.setCreatedBy(resource.getCreatedBy());
 		resource.setHiResourceEFWDD(efwdd);
+		logger.debug("EFWDD addHIResource start {}", resourceUrl);
         serviceDb.addHIResource(resource);
+		logger.debug("EFWDD addHIResource done id={}", resource.getResourceId());
         updateReportPaths(s, efwdd, resource);
+		logger.debug("EFWDD updateReportPaths done {}", resourceUrl);
 		return resource;
 	}
 
@@ -146,24 +153,34 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
 		JsonObject settingJson = applicationSettings.getSettingJson();
 		Boolean autoSyncCutPasteDesigner = settingJson.get("autoSyncCutPasteDesigner").getAsBoolean();
 
+		Map<String, Integer> resolvedIdCache = new HashMap<>();
 
 		if(!context.destinationExists()) {
             map.put("state", state);
             if (autoSyncCutPasteDesigner) {
                 List<String> pathList = DashboardUtils.getAllPathInState(state);
-                idList = DashboardUtils.getIdFromDb(pathList, serviceDb);
+				logger.debug("EFWDD resolve {} path refs (unique cache)", pathList.size());
+                for (String path : pathList) {
+					idList.add(resolveResourceId(path, resolvedIdCache));
+				}
 		}
             map.put("idList", idList);
             return map;
         }
         List<String> pathList = DashboardUtils.getAllPathInState(state);
         List<String> newPath = new ArrayList<>();
+		logger.debug("EFWDD rewrite {} path refs for destination", pathList.size());
         for (String path : pathList) {
-				HIResource resource =  serviceDb.getResourceByUrl(context.addDestination(path),Deleted.FALSE);
+				String lookupUrl = context.addDestination(path);
+				HIResource resource = context.getResourceUrlMap().get(lookupUrl);
+				if (resource == null) {
+					resource = serviceDb.getResourceByUrl(lookupUrl, Deleted.FALSE);
+				}
 				if(resource != null ) {
                 newPath.add(resource.getResourceURL());
                 idList.add(resource.getResourceId());
 
+				resolvedIdCache.put(lookupUrl, resource.getResourceId());
             } else {
                 idList.add(null);
                 newPath.add(null);
@@ -176,6 +193,28 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
         map.put("state", newState);
         return map;
 	}
+
+	/**
+	 * Prefer already-imported resources from the import context map to avoid hundreds of
+	 * getResourceByUrl calls (and EAGER graph reloads) during a zip-wide transaction.
+	 */
+	private Integer resolveResourceId(String path, Map<String, Integer> cache) {
+		if (cache.containsKey(path)) {
+			return cache.get(path);
+		}
+		HIResource fromMap = context.getResourceUrlMap().get(path);
+		Integer id = null;
+		if (fromMap != null) {
+			id = fromMap.getResourceId();
+		} else {
+			HIResource fromDb = serviceDb.getResourceByUrl(path, false);
+			if (fromDb != null) {
+				id = fromDb.getResourceId();
+			}
+		}
+		cache.put(path, id);
+		return id;
+	}
     
 	private void updateReportPaths(Map<String, Object> s , HIResourceEFWDD efwdd, HIResource resource) {
 		
@@ -183,17 +222,41 @@ public class EfwddImportHandler extends AbstractResourceImportHandler {
 		
 		@SuppressWarnings("unchecked")
 		List<Integer> idList = (List<Integer>) s.get("idList");
-		if (idList != null && idList.size() > 0) {
-			List<HIResourceMapping> mappingList = new ArrayList<>();
-			for (Integer id : idList) {
+		if (idList == null || idList.isEmpty()) {
+			return;
+		}
+
+		Map<Integer, HIResource> importedById = new HashMap<>();
+		for (HIResource imported : context.getResourceUrlMap().values()) {
+			if (imported != null && imported.getResourceId() != null) {
+				importedById.putIfAbsent(imported.getResourceId(), imported);
+			}
+		}
+
+		Set<Integer> uniqueIds = new LinkedHashSet<>();
+		for (Integer id : idList) {
+			if (id != null) {
+				uniqueIds.add(id);
+			}
+		}
+
+		List<HIResourceMapping> mappingList = new ArrayList<>();
+		for (Integer id : uniqueIds) {
+			HIResource hReportResource = importedById.get(id);
+			if (hReportResource == null) {
+				hReportResource = serviceDb.getResourceByIdIgnoreFilter(id);
+			}
+			if (hReportResource != null ) {
 				HIResourceMapping resourceEfwddResource = new HIResourceMapping();
 				resourceEfwddResource.setParentResource(resource);
-				HIResource hReportResource = serviceDb.getResourceByIdIgnoreFilter(id);
-				if ( hReportResource != null && !hReportResource.isDeleted()) {
-					resourceEfwddResource.setChildResource(hReportResource);
-					mappingList.add(resourceEfwddResource);
-				}
+				// Use id-only reference so detached map entries from session.clear() still persist cleanly
+				HIResource childRef = new HIResource();
+				childRef.setResourceId(hReportResource.getResourceId());
+				resourceEfwddResource.setChildResource(childRef);
+				mappingList.add(resourceEfwddResource);
 			}
+		}
+		if (!mappingList.isEmpty()) {
 			pathService.saveBatch(mappingList);
 		}
 	}

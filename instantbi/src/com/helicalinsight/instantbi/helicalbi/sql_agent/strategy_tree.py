@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
@@ -10,6 +11,10 @@ from typing import Any, Dict, Mapping, Optional
 logger = logging.getLogger(__name__)
 
 CATALOG_PATH = Path(__file__).resolve().parent / "strategies" / "dashboard_strategies.json"
+ANALYTICAL_CATALOG_PATH = (
+    Path(__file__).resolve().parent / "strategies" / "analytical_strategy.json"
+)
+
 
 STRATEGY_INVERTED_PYRAMID = "inverted_pyramid"
 STRATEGY_PROGRESSIVE_DISCLOSURE = "progressive_disclosure"
@@ -272,15 +277,108 @@ def charts_from_strategy(
         if not isinstance(spec, Mapping):
             continue
         title = str(spec.get("title") or "Chart")
+        op = str(spec.get("operation") or spec.get("analytical_strategy") or "")
         charts.append(
             {
                 "level": str(spec.get("level") or "middle"),
                 "title": title,
                 "question": f"{q} — {title}" if title else q,
                 "viz_hint": str(spec.get("viz_hint") or "bar"),
+                "operation": op,
+                "analytical_strategy": op,
                 "purpose": str(spec.get("purpose") or ""),
                 "context_anchor": str(spec.get("context_anchor") or ""),
                 "include_in_dashboard": True,
             }
         )
     return charts
+
+
+@lru_cache(maxsize=2)
+def load_analytical_operations(path: Optional[str] = None) -> list[dict[str, Any]]:
+    """Cached list of analytical operations from analytical_strategy.json."""
+    catalog_path = Path(path) if path else ANALYTICAL_CATALOG_PATH
+    with catalog_path.open(encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, list):
+        raise ValueError(f"Invalid analytical operations catalog: {catalog_path}")
+    return [dict(item) for item in data if isinstance(item, dict)]
+
+
+def select_analytical_operations(
+    question: str,
+    *,
+    max_operations: int = 5,
+    catalog: Optional[list[dict[str, Any]]] = None,
+) -> list[dict[str, Any]]:
+    """Select the most relevant analytical operations from analytical_strategy.json for the question."""
+    operations = catalog or load_analytical_operations()
+    if not operations:
+        return []
+
+    text = f" {str(question or '').strip().lower()} "
+    tokens = set(re.findall(r"[a-z0-9]+", text))
+
+    op_keywords: dict[str, list[str]] = {
+        "trend": ["trend", "trajectory", "over time", "monthly", "yearly", "quarterly", "daily", "historic", "timeline"],
+        "period_comparison": ["compare", "comparison", "vs", "versus", "prior", "last year", "last month", "mom", "yoy", "qoq", "change"],
+        "segment": ["breakdown", "segment", "by", "categor", "split", "group", "region", "department"],
+        "decompose": ["decompose", "components", "break down", "additive", "parts", "formula"],
+        "contribution": ["contribut", "driver", "driven", "impact", "factor", "responsible", "why", "drop", "spike", "increase", "decrease"],
+        "distribution": ["distribut", "spread", "histogram", "range", "dispersion", "variance", "frequency"],
+        "reason_analysis": ["reason", "cause", "explanation", "cancellation", "failure", "defect"],
+        "mix_analysis": ["mix", "composition", "share shift", "portfolio mix", "volume mix"],
+        "outlier_detection": ["outlier", "anomaly", "abnormal", "spike", "deviation", "unusual", "exception"],
+        "ranking": ["rank", "top", "bottom", "highest", "lowest", "best", "worst", "leading"],
+        "pareto_analysis": ["pareto", "80/20", "vital few", "majority"],
+        "concentration_risk": ["concentration", "risk", "exposure", "dependency", "heavily dependent"],
+        "benchmark_comparison": ["benchmark", "target", "sla", "budget", "goal", "standard", "baseline"],
+        "variance_waterfall": ["waterfall", "variance", "bridge", "walk"],
+        "gap_analysis": ["gap", "shortfall", "surplus", "deficit", "miss"],
+        "correlation": ["correlat", "relationship", "association", "linked to"],
+        "cohort_analysis": ["cohort", "vintage", "retention over time"],
+        "funnel_dropoff": ["funnel", "conversion", "dropoff", "attrition", "stage", "pipeline"],
+        "churn_analysis": ["churn", "attrition", "retention", "cancel", "lost client", "lost customer"],
+    }
+
+    baseline_ops = {"trend", "period_comparison", "segment", "contribution", "distribution"}
+
+    scored: list[tuple[dict[str, Any], float]] = []
+    for op in operations:
+        name = str(op.get("operation") or "").strip().lower()
+        desc = str(op.get("description") or "").strip().lower()
+        score = 0.0
+
+        if name in text:
+            score += 5.0
+
+        keywords = op_keywords.get(name, [])
+        for kw in keywords:
+            if kw in text:
+                score += 3.0
+
+        for token in tokens:
+            if len(token) >= 4 and token in desc:
+                score += 0.5
+
+        if name in baseline_ops:
+            score += 0.2
+
+        scored.append((op, score))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    limit = max(1, int(max_operations or 5))
+    return [op for op, _ in scored[:limit]]
+
+
+def analytical_operations_prompt_block(operations: list[dict[str, Any]]) -> str:
+    """Format selected analytical operations for LLM prompt injection."""
+    if not operations:
+        return ""
+    lines = ["Available Analytical Operations to Apply (assign an operation to each question):"]
+    for op in operations:
+        name = str(op.get("operation") or "").strip()
+        desc = str(op.get("description") or "").strip()
+        lines.append(f"- {name}: {desc}")
+    return "\n".join(lines)
+

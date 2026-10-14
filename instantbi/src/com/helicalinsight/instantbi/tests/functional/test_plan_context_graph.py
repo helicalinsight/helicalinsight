@@ -400,3 +400,61 @@ def test_validate_rejects_ungrounded_then_fallback_uses_allowed_names():
         assert any(name in question for name in allowed) or chart.get("measure_hints")
         for hint in chart.get("measure_hints") or []:
             assert hint.lower() in allowed
+
+
+def test_select_analytical_operations_node_populates_operations():
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+    from helicalbi.sql_agent.strategy_tree import select_analytical_operations
+
+    ops = select_analytical_operations("Why did travel spend drop last quarter compared to first quarter?")
+    assert ops
+    op_names = [op["operation"] for op in ops]
+    assert any(name in op_names for name in ("period_comparison", "trend", "contribution", "mix_analysis"))
+
+    state = {
+        "question": "Why did travel spend drop last quarter compared to first quarter?",
+        "activity_trace": [],
+    }
+    result = select_analytical_operations_node(state)
+    assert result["analytical_operations"]
+    assert result["selected_operations"]
+    trace = result["activity_trace"]
+    assert len(trace) == 1
+    assert trace[0]["node"] == "select_analytical_operations"
+    assert trace[0]["stage"] == "plan_graph"
+    assert "operations" in trace[0]["result"]
+
+
+def test_plan_json_contains_query_analytical_strategies():
+    from helicalbi.sql_agent.models import DashboardChartSpec, InvestigationPlan
+    from helicalbi.sql_agent.investigation import plan_to_public_dict
+
+    chart1 = DashboardChartSpec(
+        title="Revenue Trend",
+        question="What is the monthly revenue trend?",
+        viz_hint="line",
+    )
+    chart2 = DashboardChartSpec(
+        title="Revenue by Region",
+        question="What is revenue breakdown by region?",
+        viz_hint="bar",
+    )
+    plan = InvestigationPlan(
+        persona="executive",
+        tier="strategic",
+        strategy_id="inverted_pyramid",
+        original_question="How is revenue trending and performing across regions?",
+        charts=[chart1, chart2],
+    )
+    plan_dict = plan_to_public_dict(plan)
+    assert "query_analytical_strategies" in plan_dict
+    assert len(plan_dict["query_analytical_strategies"]) == 2
+    assert plan_dict["query_analytical_strategies"][0]["analytical_strategy"] == "trend"
+    assert plan_dict["query_analytical_strategies"][1]["analytical_strategy"] == "segment"
+    assert plan_dict["charts"][0]["analytical_strategy"] == "trend"
+    assert plan_dict["charts"][1]["analytical_strategy"] == "segment"
+    assert plan_dict["charts"][0]["operation"] == "trend"
+    assert plan_dict["charts"][1]["operation"] == "segment"
+
+
+

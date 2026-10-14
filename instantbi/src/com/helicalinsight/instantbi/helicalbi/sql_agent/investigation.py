@@ -64,6 +64,8 @@ _PUBLIC_PLAN_KEYS = (
     "original_question",
     "rationale",
     "charts",
+    "analytical_operations",
+    "query_analytical_strategies",
 )
 
 
@@ -73,6 +75,8 @@ def plan_to_public_dict(plan: Any) -> dict[str, Any]:
     public.setdefault("template_id", "")
     public.setdefault("strategy_id", "")
     public.setdefault("charts", [])
+    public.setdefault("analytical_operations", [])
+    public.setdefault("query_analytical_strategies", [])
     return public
 
 
@@ -124,7 +128,7 @@ def create_and_store_plan(
         persona=persona,
         strategy=strategy,
         session=session,
-        max_charts=mode_profile.max_charts,
+        max_charts=None if flat_sql else mode_profile.max_charts,
         flat_sql=bool(flat_sql),
         overview_chars=mode_profile.overview_chars,
         max_domains=max_domains,

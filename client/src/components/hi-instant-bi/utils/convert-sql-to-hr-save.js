@@ -33,7 +33,7 @@ const CHART_NAME_TO_MARK_VIZ = {
 };
 
 
-const noopDispatch = () => {};
+const noopDispatch = () => { };
 
 const GROUP_BY_FUNCTION = "db.generic.groupBy.group";
 const VIZ_DIMENSION_ON_COLUMNS = new Set(["arc", "pie", "doughnut"]);
@@ -541,8 +541,8 @@ const slimDashboardMetadata = (config) => {
   return next;
 };
 
-export const persistConvertDashboardSeed = (dashboardConfig) => {
-  const payload = { extension: "convert-dashboard", dashboardConfig, ts: Date.now() };
+export const persistConvertDashboardSeed = (dashboardConfig, extras = {}, reports, gridItemsFiltersInfo) => {
+  const payload = { extension: "convert-dashboard", dashboardConfig, ...extras, ts: Date.now(), hreportConfig: reports, gridItemsFiltersInfo };
   try {
     localStorage.setItem(CONVERT_DASHBOARD_STORAGE_KEY, JSON.stringify(payload));
     return true;
@@ -553,6 +553,9 @@ export const persistConvertDashboardSeed = (dashboardConfig) => {
         JSON.stringify({
           extension: "convert-dashboard",
           dashboardConfig: slimDashboardMetadata(dashboardConfig),
+          hreportConfig: reports,
+          gridItemsFiltersInfo,
+          ...extras,
           ts: Date.now(),
         })
       );

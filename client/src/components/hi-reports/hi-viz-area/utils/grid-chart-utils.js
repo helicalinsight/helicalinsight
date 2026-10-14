@@ -629,7 +629,7 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                     let { name: yAxisName = '' } = ctx?.axes()?.y?.config() ?? {};
                     actualText = dataObj?.[labelField]
                     let isRadialChart = ['doughnut', 'arc'].includes(subVizType)
-                    if ((yAxisName !== axisName) && !isRadialChart) return text;
+                    if ((yAxisName !== axisName && !isMeasureInColumn) && !isRadialChart) return text;
                     if (isRadialPropertyEnabled && isRadialChart) {
                         let name = data?.find((d) => d?.text === text)?.angle ?? '';
                         const total = data?.reduce((acc, next) => {
@@ -667,13 +667,14 @@ export const getGridChartTextLayerConfig = (props = {}) => {
             x: {
                 value: (...args) => {
                     const [val, i, data, context] = args || [];
+                    const { offsetX = 0 } = labels || {}
                     let groupedAxesMapData = getGropedChartAxesData(subVizType, context);
                     if (labels?.position === 'top' && !isDimensionInColumn) {
                         let factor = 24
                         if (labels?.rotateLabels) {
                             factor -= 12;
                         }
-                        return val?.x + factor;
+                        return val?.x + factor + offsetX;
                     }
                     if (isDimensionInColumn && isDimensionInRow && isMeasureInRows) {
                         if (getTransformType(barType) === "group" && !checkIsDateType(schema)) {
@@ -684,16 +685,16 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                                     "x",
                                     groupedAxesMapData.subVizType,
                                     labels?.rotateLabels
-                                );
+                                ) + offsetX;
                             }
                             const finalValue = calculateGroupedAxesValues(
                                 groupedAxesMapData['data'][rowId],
                                 "x",
                                 groupedAxesMapData.subVizType
                             );
-                            return finalValue;
+                            return finalValue + offsetX;
                         }
-                        return val.x
+                        return val.x + offsetX
                     }
                     if ((isDimensionInRow || isMeasureInColumn) && getTransformType(barType) !== "group" && !checkIsDateType(schema)) {
                         const value = calculateAxesValues(
@@ -709,7 +710,7 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                         );
                         const mountedEl = context.mount()
                         new Promise((res) => res(mountedEl)).then((parentEl) => removeOverlapping({ el: parentEl, index: i, axis: "x" }))
-                        return value;
+                        return value + offsetX;
                     }
                     if (getTransformType(barType) === "group" && !checkIsDateType(schema)) {
                         let { rowId } = data[i];
@@ -719,29 +720,30 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                                 "x",
                                 groupedAxesMapData.subVizType,
                                 labels?.rotateLabels
-                            );
+                            ) + offsetX;
                         }
                         const finalValue = calculateGroupedAxesValues(
                             groupedAxesMapData['data'][rowId],
                             "x",
                             groupedAxesMapData.subVizType
                         );
-                        return finalValue;
+                        return finalValue + offsetX;
                     }
                     const mountedEl = context.mount()
                     new Promise((res) => res(mountedEl)).then((parentEl) => removeOverlapping({ el: parentEl, index: i, axis: "x" }))
-                    return val.x;
+                    return val.x + offsetX;
                 },
             },
             y: {
                 value: (val, i, data, context) => {
+                    const { offsetY = 0 } = labels || {}
                     let groupedAxesMapData = getGropedChartAxesData(subVizType, context)
                     if (labels?.position === 'top') {
                         let factor = -4
                         if (labels?.rotateLabels) {
                             factor -= 28;
                         }
-                        return val?.y + factor;
+                        return val?.y + factor + offsetY;
                     }
                     const mountedEl = context.mount()
                     if ((!isDimensionInRow || isMeasureInRows) && !checkIsDateType(schema)) {
@@ -760,9 +762,9 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                         if (labels?.rotateLabels && subVizType === "bar") {
                             const barY = (data[i]?.y)
                             let axes = context?.axes();
-                            return axes['y']?.getScaleValue(barY / 2)
+                            return axes['y']?.getScaleValue(barY / 2) + offsetY
                         }
-                        return value;
+                        return value + offsetY;
                     }
                     if (getTransformType(barType) === "group" && isDimensionInRow && !checkIsDateType(schema)) {
                         let { rowId } = data[i];
@@ -772,7 +774,7 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                                 "y",
                                 groupedAxesMapData.subVizType,
                                 labels?.rotateLabels
-                            );
+                            ) + offsetY;
                         }
                         const finalValue = calculateGroupedAxesValues(
                             groupedAxesMapData['data'][rowId],
@@ -780,10 +782,10 @@ export const getGridChartTextLayerConfig = (props = {}) => {
                             groupedAxesMapData.subVizType,
                             labels?.rotateLabels
                         );
-                        return finalValue;
+                        return finalValue + offsetY;
                     }
                     new Promise((res) => res(mountedEl)).then((parentEl) => removeOverlapping({ el: parentEl, index: i, axis: "y" }))
-                    return val.y;
+                    return val.y + offsetY;
                 },
             },
             angle: {

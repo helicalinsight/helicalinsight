@@ -4,6 +4,7 @@ import logging
 from typing import Any, Dict, List
 
 from helicalbi.core.dashboardflow.collect_items import assign_component_ids, normalize_item
+from helicalbi.model.output.dashboard.Kind import Kind
 from helicalbi.sql_agent.state import AgentState
 from helicalbi.sql_agent.strategy_tree import resolve_plan_runtime
 
@@ -58,37 +59,108 @@ def _items_from_collected(state: AgentState) -> List[dict[str, Any]]:
 
 def _keep_laid_out_item(item: dict[str, Any]) -> bool:
     """Drop empty KPI/svg tiles the layout LLM invents without a real report."""
-    model = item.get("dashboard_model") if isinstance(item.get("dashboard_model"), dict) else {}
-    kind = str(model.get("kind") or "").strip().lower()
+    model = item.get("dashboard_model") if isinstance(item.get("dashboard_model"), dict) else item
+    kind = str(model.get("kind") or item.get("compType") or "").strip().lower()
+    if kind == Kind.APPLY_RESET:
+        return True
+    wire = Kind.wire(kind)
     report = item.get("report_model") if isinstance(item.get("report_model"), dict) else {}
     has_viz = isinstance(report.get("viz_model"), dict) and bool(report.get("viz_model"))
     if not kind:
         return has_viz or isinstance(item.get("viz_model"), dict)
-    if kind == "viz":
+    if wire == Kind.INSTANT:
         return has_viz or bool(item.get("viz_model"))
-    if kind in {"summary", "text"}:
+    if wire == Kind.TEXT:
         return bool(str(model.get("html") or model.get("title") or "").strip())
-    if kind == "filter":
+    if wire == Kind.INSTANT_FILTER:
         return bool(str(model.get("column") or model.get("title") or "").strip())
-    if kind in {"kpi", "svg"}:
+    if wire in {Kind.KPI, Kind.SVG}:
         return has_viz
     return True
 
 
-def _filter_invented_tiles(dashboard: dict[str, Any]) -> dict[str, Any]:
-    items = [item for item in (dashboard.get("items") or []) if isinstance(item, dict) and _keep_laid_out_item(item)]
-    kept_ids = {str(item.get("component_id") or "") for item in items}
-    kept_seq = {str(item.get("id") or item.get("chat_sequence_id") or "") for item in items}
-    layout = []
-    for slot in dashboard.get("layout") or []:
-        if not isinstance(slot, dict):
+def _layout_box(item: dict[str, Any]) -> dict[str, Any] | None:
+    model = item.get("dashboard_model") if isinstance(item.get("dashboard_model"), dict) else item
+    layout = model.get("layout") if isinstance(model.get("layout"), dict) else None
+    return layout
+
+
+def _viz_fingerprint(item: dict[str, Any]) -> tuple[Any, ...] | None:
+    """Same displayed chart: title, mark, and shelves. Empty when this is not a chart tile."""
+    model = item.get("dashboard_model") if isinstance(item.get("dashboard_model"), dict) else item
+    if Kind.wire(str(model.get("kind") or "")) != Kind.INSTANT:
+        return None
+    report = item.get("report_model") if isinstance(item.get("report_model"), dict) else {}
+    viz = report.get("viz_model") if isinstance(report.get("viz_model"), dict) else {}
+    data = viz.get("data") if isinstance(viz.get("data"), dict) else {}
+    chart = viz.get("chart") if isinstance(viz.get("chart"), dict) else {}
+
+    def names(values: Any) -> tuple[str, ...]:
+        return tuple(sorted(str(value).strip().lower() for value in (values or []) if str(value).strip()))
+
+    title = str(model.get("title") or "").strip().lower()
+    rows = names(data.get("rows"))
+    columns = names(data.get("columns"))
+    mark = str(chart.get("viz") or chart.get("mark") or "").strip().lower()
+    if not title and not rows and not columns:
+        return None
+    return (title, mark, rows, columns)
+
+
+def _drop_duplicate_charts(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Keep the first chart when two tiles repeat the same question and viz."""
+    ordered = sorted(
+        enumerate(items),
+        key=lambda pair: (
+            int((_layout_box(pair[1]) or {}).get("y") or 0),
+            int((_layout_box(pair[1]) or {}).get("x") or 0),
+            pair[0],
+        ),
+    )
+    seen: set[tuple[Any, ...]] = set()
+    drop: set[int] = set()
+    for index, item in ordered:
+        key = _viz_fingerprint(item)
+        if key is None:
             continue
-        component_id = str(slot.get("component_id") or "")
-        item_id = str(slot.get("itemId") or "")
-        if component_id in kept_ids or item_id in kept_ids or item_id in kept_seq:
-            layout.append(slot)
-    dashboard["items"] = items
-    dashboard["layout"] = layout
+        if key in seen:
+            drop.add(index)
+            continue
+        seen.add(key)
+    return [item for index, item in enumerate(items) if index not in drop]
+
+
+def _compact_empty_rows(items: list[dict[str, Any]]) -> None:
+    """Slide tiles up through rows that no remaining tile occupies."""
+    boxes = [box for item in items if (box := _layout_box(item)) is not None]
+    if not boxes:
+        return
+    occupied: set[int] = set()
+    bottom = 0
+    for box in boxes:
+        top = int(box.get("y") or 0)
+        height = max(1, int(box.get("h") or 1))
+        bottom = max(bottom, top + height)
+        occupied.update(range(top, top + height))
+    shift = 0
+    row_shift: dict[int, int] = {}
+    for row in range(bottom):
+        if row not in occupied:
+            shift += 1
+        row_shift[row] = shift
+    for box in boxes:
+        top = int(box.get("y") or 0)
+        box["y"] = top - row_shift.get(top, 0)
+
+
+def _filter_invented_tiles(dashboard: dict[str, Any]) -> dict[str, Any]:
+    kept = [
+        item for item in (dashboard.get("items") or []) if isinstance(item, dict) and _keep_laid_out_item(item)
+    ]
+    kept = _drop_duplicate_charts(kept)
+    _compact_empty_rows(kept)
+    dashboard["items"] = kept
+    dashboard.pop("layout", None)
     return dashboard
 
 
@@ -102,9 +174,8 @@ def dashboard_node(state: AgentState) -> Dict[str, Any]:
                 "dashboardid": thread_id,
                 "chatid": thread_id,
                 "items": [],
-                "theme": {},
+                "dashboard_config": {},
                 "templateId": "",
-                "layout": [],
             }
         }
     items = _items_from_collected(state)
@@ -115,9 +186,8 @@ def dashboard_node(state: AgentState) -> Dict[str, Any]:
                 "dashboardid": thread_id,
                 "chatid": thread_id,
                 "items": [],
-                "theme": {},
+                "dashboard_config": {},
                 "templateId": "",
-                "layout": [],
                 "error": "No visualizations were produced for the dashboard.",
             }
         }
@@ -147,13 +217,9 @@ def dashboard_node(state: AgentState) -> Dict[str, Any]:
         "dashboardid": thread_id,
         "chatid": thread_id,
         "title": result.get("title") or state.get("original_question") or "",
-        "header": result.get("header") or {},
-        "parameters": result.get("parameters") or {},
-        "variables": result.get("variables") or {},
         "items": result.get("items") or items,
-        "theme": result.get("theme") or {},
+        "dashboard_config": result.get("dashboard_config") or {},
         "templateId": result.get("templateId") or runtime["template_id"] or "",
-        "layout": result.get("layout") or [],
         "token_usage": result.get("token_usage") or {},
     }
     if result.get("error"):

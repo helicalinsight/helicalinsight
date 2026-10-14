@@ -104,6 +104,24 @@ public class ManifestUtils {
 		String value = (Integer.valueOf(manifest.getVersion()) > 0 ? resource.getPath() : resource.getName() ) + ResourceSuffix.SCHEDULE;
 		manifest.getSchedules().put(resource.getPath(), value);
 	}
+
+	public void insertImageFile(HIResourceDTO resource, Manifest manifest) {
+		String value = (Integer.valueOf(manifest.getVersion()) > 0 ? resource.getPath() : resource.getName()) + ResourceSuffix.IMAGE;
+		manifest.getImageFiles().put(resource.getPath(), value);
+	}
+
+	public void insertRecycleBin(String key, Manifest manifest) {
+		if (manifest.getRecycleBins() != null && !manifest.getRecycleBins().containsKey(key)) {
+			manifest.getRecycleBins().put(key, key + ResourceSuffix.RECYCLE_BIN);
+		}
+	}
+
+	public String getRecycleBin(String key, Manifest manifest) {
+		if (manifest.getRecycleBins() == null) {
+			return null;
+		}
+		return manifest.getRecycleBins().get(key);
+	}
 	
 
 	public List<String> getDependency(String key, Manifest manifest) {
@@ -128,6 +146,20 @@ public class ManifestUtils {
      */
 	public String getDatasource(String key, Manifest manifest) {
 			return manifest.getDataSources().get(key);
+	}
+
+	/**
+	 * Returns the image sidecar file path for a given resource key from the manifest.
+	 *
+	 * @param key      resource path key.
+	 * @param manifest manifest object.
+	 * @return The image sidecar relative path, or {@code null} if absent (legacy package).
+	 */
+	public String getImageFile(String key, Manifest manifest) {
+		if (manifest.getImageFiles() == null) {
+			return null;
+		}
+		return manifest.getImageFiles().get(key);
 	}
 	/**
      * Checks if a dependency exists for a given key in the manifest object.
@@ -173,6 +205,15 @@ public class ManifestUtils {
 				ResourceOptions mOptions = manifest.getOptions();
 				if (mOptions != null) {
 					return mOptions.getDataSource().equals(rOptions.getDataSource());
+				}
+			} else
+				return false;
+
+		case "recyclebin":
+			if (rOptions.getRecycleBin() != null && rOptions.getRecycleBin()) {
+				ResourceOptions mOptions = manifest.getOptions();
+				if (mOptions != null) {
+					return rOptions.getRecycleBin().equals(mOptions.getRecycleBin());
 				}
 			} else
 				return false;

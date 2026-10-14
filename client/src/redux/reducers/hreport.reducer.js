@@ -133,6 +133,9 @@ const hreportReducer = (state = intialState, action) => {
 			return produce(state, (draft) => {
 				let report = getIntialReportState({ active: true });
 				report.id = reportId;
+				if (action?.payload?.isInstantReport) {
+					report.isInstantReport = true;
+				}
 				draft.reports = [report];
 				draft.baseStateReports = cloneDeep([report]);
 				draft.activeReportId = report.id;
@@ -149,6 +152,9 @@ const hreportReducer = (state = intialState, action) => {
 				let report = getIntialReportState({ active: true });
 				if (action?.payload?.reportId) {
 					report.id = action.payload.reportId
+				}
+				if (action?.payload?.isInstantReport) {
+					report.isInstantReport = true;
 				}
 				draft.reports = draft.reports.map((item) => {
 					item.active = false;
@@ -459,7 +465,7 @@ const hreportReducer = (state = intialState, action) => {
 			});
 		}
 		case actionTypes.UPDATE_CUSTOM_COLUMN: {
-			let { id, alias, column } = action.payload;
+			let { id, alias, column, type } = action.payload;
 			return produce(state, (draft) => {
 				draft.reports = draft.reports.map((report) => {
 					if (report.active) {
@@ -467,6 +473,12 @@ const hreportReducer = (state = intialState, action) => {
 							if (field.id === id) {
 								field.alias = alias;
 								field.column = column;
+								if (type && type.backendDataType) {
+									field.type = type;
+									if (["text", "date", "dateTime", "boolean"].includes(type.dataType)) {
+										field.groupBy = ["db.generic.groupBy.group"]
+									}
+								}
 							}
 							return field;
 						});
@@ -598,6 +610,17 @@ const hreportReducer = (state = intialState, action) => {
 						});
 						report.activeFunc = false;
 						report.editingField = null;
+					}
+					return report;
+				});
+			});
+		}
+		case actionTypes.UPDATE_EDITING_FIELD: {
+			let { editingField } = action.payload || {};
+			return produce(state, (draft) => {
+				draft.reports = draft.reports.map((report) => {
+					if (report.active && report.editingField) {
+						report.editingField = { ...report.editingField, ...editingField };
 					}
 					return report;
 				});
@@ -1293,8 +1316,8 @@ const hreportReducer = (state = intialState, action) => {
 
 					if (['dashboard', 'filter'].includes(mode)) {
 
-						const isCreateOrEditMode = draft.reports.some((report) => ["create", "edit"].includes(report.mode)); //8373 fix
-						if (isCreateOrEditMode) return draft;
+						// const isCreateOrEditMode = draft.reports.some((report) => ["create", "edit"].includes(report.mode)); //8373 fix
+						// if (isCreateOrEditMode) return draft;
 
 						let report = getIntialReportState({ active: false });
 						let res = _.omit(action.payload, 'loadState');
@@ -1313,6 +1336,14 @@ const hreportReducer = (state = intialState, action) => {
 							draft.baseStateReports.push(cloneDeep(report));
 						}
 						draft.activeReportId = null;
+					} else if (["instant-bi-create", "instant-bi-open"].includes(mode)) {
+						draft.reports = draft.reports.map((report) => {
+							if (report.id === id) {
+								delete action.payload.loadState;
+								report = { ...report, ...action.payload, cellMenuData: null };
+							}
+							return report;
+						});
 					} else {
 						if (!draft.reports.length) {
 							let report = getIntialReportState({ active: true });
@@ -2120,6 +2151,15 @@ const hreportReducer = (state = intialState, action) => {
 				draft.reports[0].active = true;
 				draft.activeReportId = report.id;
 				draft.baseStateReports = [report];
+			});
+		}
+
+		case actionTypes.LOAD_REPORTS_FROM_LOCALSTORAGE: {
+			const { reports = [] } = action.payload
+			return produce(state, (draft) => {
+				draft.reports = reports.map((report) => ({ ...report, hreportLoading: false }));
+				draft.activeReportId = draft.reports.find((report) => report.active)?.id || draft.reports[0]?.id;
+				draft.baseStateReports = draft.reports;
 			});
 		}
 

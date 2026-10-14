@@ -14,6 +14,7 @@ from helicalbi.interactive.modes import (
     is_auto_mode,
     resolve_interactive_mode_from_input,
 )
+from helicalbi.sql_agent.prompt import AUTO_MODE_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -41,22 +42,6 @@ _THINK_MARKERS = (
     "overview of",
     "briefing",
 )
-
-AUTO_MODE_PROMPT = """You route Instant BI questions to Fast or Think.
-
-Fast: one metric, list, filter, or a single chart.
-Examples: "total travel cost", "bookings by month", "top 5 customers".
-
-Think: investigation across several angles — why/how, comparison, root cause,
-drivers, recommendations, or an executive briefing.
-Examples: "why did cost rise", "compare regions and explain drivers",
-"analyze travel spend and recommend actions".
-
-Question:
-{question}
-
-{format_instructions}
-"""
 
 
 class InteractiveModeChoice(BaseModel):

@@ -16,7 +16,10 @@ import { uriConfig } from "../../../base/requests/dashboard.requests";
 import { appActions, fileBrowserActions } from "../../../redux/actions";
 import { appendDesignerConstants, appendDesignerObjectConstants, checkForDefaultValuesInDashboard, checkForDefaultValuesInDashboardForSave, designerSettingsConstants, designerStateComponenetsInitialPositionConstants, gridItemConfigConstants, gridSettingsConstants, removeDesignerConstants, removeDesignerObjectConstants, removeLayoutConstants } from "./config-dashboard-gridSettings";
 import { replacePathsInJson } from "./recursive-functions";
-import { cloneDeep } from "lodash";
+import { cloneDeep, isEmpty } from "lodash";
+import { openMetadata } from "../../hi-reports/utils/base";
+import createIBDashboardBridge, { DASHBOARD_CREATE_TILE } from "../../bridges/dashboard/dashboard-bridge";
+import { getFieldDisplayName } from "../../../utils/utilities";
 
 
 const { updateRoute, setAccessDeniedInfo } = appActions;
@@ -40,7 +43,7 @@ export const editTheDashboard = ({
       file: fileName,
     },
     uriConfig.editDashboard,
-    (res) => {
+    async (res) => {
       let report_paths = res?.report_paths || [];
       res.state = replacePathsInJson(res.state, report_paths)
       let components = res?.state?.components;
@@ -48,8 +51,86 @@ export const editTheDashboard = ({
       if (typeof setFileInfo === "function") {
         setFileInfo({ fileTitle: res.reportName });
       }
+
       if (Array.isArray(components)) {
+        let reportMetadata = null;
         components = components.map(ele => ({ ...ele, initialPosition: appendDesignerObjectConstants({ apiObj: ele.initialPosition, constantObj: designerStateComponenetsInitialPositionConstants }), gridItemConfig: appendDesignerConstants({ constantData: gridItemConfigConstants, apiData: ele.gridItemConfig }) }));
+
+        if (res.state.instantSubject && !isEmpty(res.state.instantSubject)) {
+          const subject = res.state.instantSubject;
+          if (subject.metadataFileName && subject.location) {
+            try {
+              const response = await openMetadata(
+                { location: subject.location, metadataFileName: subject.metadataFileName },
+                dispatch,
+                () => { },
+                true
+              );
+              if (response && !response.error) {
+                reportMetadata = response;
+              }
+            } catch (error) {
+              reportMetadata = null;
+            }
+          }
+          if (reportMetadata) {
+            const updateFilterComp = (report) => {
+              if (report?.filters?.length) {
+                const filterComponents = components.filter((comp) => ["filter", "filter-component"].includes(comp.compType) && ["instant", "instant.filter"].includes(comp?.reportInfo?.kind))
+                if (filterComponents.length) {
+                  filterComponents.forEach((filterComp) => {
+                    if (filterComp.parameter && report.id === filterComp?.reportInfo?.hreportId) {
+                      const { dashboardFilter = {} } = filterComp.parameter || {}
+                      const reportFilter = report.filters.find((fltr) => getFieldDisplayName(fltr) === dashboardFilter.columnName)
+                      if (reportFilter) {
+                        components = components.map((comp) => {
+                          if (comp.id === filterComp.id) {
+                            return {
+                              ...comp,
+                              parameter: {
+                                ...comp.parameter,
+                                dashboardFilter: {
+                                  ...comp.parameter?.dashboardFilter,
+                                  uid: reportFilter.uid
+                                }
+                              }
+                            }
+                          }
+                          return comp;
+                        })
+                      }
+                    }
+                  })
+                }
+
+                components = components.map((comp) => {
+                  if (comp.reportId === report.id) {
+                    return {
+                      ...comp,
+                      filters: report.filters.map((filter) => ({
+                        uid: filter.uid,
+                        label: filter.label,
+                        values: filter.values,
+                        alias: filter.alias,
+                        autogen_alias: filter.autogen_alias,
+                      }))
+                    }
+                  }
+                  return comp
+                })
+              }
+            }
+
+            const bridge = createIBDashboardBridge({
+              dispatch,
+              gridItemsData: components.filter((comp) => comp.compType === DASHBOARD_CREATE_TILE),
+              reportMetadata,
+              onItemUpdate: updateFilterComp,
+            });
+            await bridge.init();
+          }
+        }
+
         const layout = removeLayoutConstants(res.state.componentSettings?.layout);
         const gridSettingsData = appendDesignerConstants({ constantData: gridSettingsConstants, apiData: res.state.componentSettings?.gridSettingsData })
         dashboardVariables = res.state.variables;
@@ -64,20 +145,26 @@ export const editTheDashboard = ({
             parameters: { ...dashboardVariables, ...parameters },
           });
         }
+        const dashboardConfig = {
+          gridSettings: gridSettingsData,
+          gridItemsData: components,
+          layout,
+          dashboardUUID: fileName,
+          dashboardVariables: { ...dashboardVariables, ...parameters },
+          components: dashboardData,
+          designerMode,
+          parameterDrawerStatus,
+          gridIndex,
+          designerSettings,
+          savedReportName: res.reportName,
+        };
+
+        if (res.state.instantSubject && !isEmpty(res.state.instantSubject)) {
+          dashboardConfig.instantSubject = res.state.instantSubject
+        }
+
         dispatch(
-          storeDashboardConfig({
-            gridSettings: gridSettingsData,
-            gridItemsData: components,
-            layout,
-            dashboardUUID: fileName,
-            dashboardVariables: { ...dashboardVariables, ...parameters },
-            components: dashboardData,
-            designerMode,
-            parameterDrawerStatus,
-            gridIndex,
-            designerSettings,
-            savedReportName: res.reportName,
-          })
+          storeDashboardConfig(dashboardConfig)
         );
       }
       // const { gridItemsData, layout } = convertGridItemsData(components);
@@ -154,6 +241,7 @@ export const saveTheDashboard = ({
   dashboardVariables,
   uuid,
   parameterDrawerStatus,
+  instantSubject = null
 }) => {
   dispatch(isSavingDesigner(true));
   gridSettingsData = removeDesignerConstants({ constantData: gridSettingsConstants, apiData: gridSettingsData });
@@ -183,6 +271,9 @@ export const saveTheDashboard = ({
     // need to add version here for saving a new dashboard/ an existing dashboard , for every new/old dashbaord version will be saved if you save the dashboard.  
     version
   };
+  if (instantSubject) {
+    dashboardState.instantSubject = instantSubject;
+  }
 
   requests.dashboard(dispatch).postDashboardRequest(
     {

@@ -6,10 +6,10 @@ import { isEqual } from "lodash-es";
 import { DashboardDisplay } from "../hi-dashboard-display";
 
 const areEqual = (prevProps, nextProps) => {
-  if(nextProps.reportInfo?.mode === "filter"){
-    if(!isEqual(prevProps.dashboardVariables,nextProps.dashboardVariables)){
+  if (nextProps.reportInfo?.mode === "filter") {
+    if (!isEqual(prevProps.dashboardVariables, nextProps.dashboardVariables)) {
       return false
-    }else{
+    } else {
       return true
     }
   }
@@ -81,7 +81,7 @@ const HIDashboardWrapper = React.memo((props) => {
       case "hr":
         return (
           <DashboardDisplay
-          data-testid = "hi-dashboard-wrapper"
+            data-testid="hi-dashboard-wrapper"
             parameter={parameter}
             listeners={listeners}
             reportInfo={reportInfo}

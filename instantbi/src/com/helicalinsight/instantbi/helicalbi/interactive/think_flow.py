@@ -16,62 +16,11 @@ from helicalbi.interactive.modes import INTERACTIVE_MODE_THINK, apply_requested_
 from helicalbi.model.output.ChatResponse import ChatResponse
 from helicalbi.sql_agent.activity_details import build_llm_activity_details
 from helicalbi.sql_agent.config import DEFAULT_DASHBOARD_SUB_QUESTIONS
+from helicalbi.sql_agent.prompt import THINK_FINAL_ANSWER_PROMPT
 
 logger = logging.getLogger(__name__)
 
 ProgressCallback = Callable[[str, str, str], None]
-
-THINK_FINAL_ANSWER_PROMPT = """You are InstantBI writing the Conclusion for a business user.
-An investigation ran numbered supporting questions and collected text findings (no charts).
-Write a strategic answer to the user question, grounded only in those findings.
-
-Goal:
-- Answer like an advisor: what matters most, why, and what to do next.
-- Do NOT write a generic multi-paragraph report summary that restates every finding.
-- Prefer a decisive recommendation or prioritization when the findings support one.
-
-Voice and structure (vary the shape — do NOT always use the same 3 equal paragraphs):
-- Open with the strategic answer in 1–2 sentences (what to prioritize, avoid, or decide).
-- Then surface key points: use markdown **bold** on the few decisive numbers, names, or ratios.
-- Prefer 2–4 short markdown bullets for drivers, criteria, or ranked implications when that
-  makes the answer clearer than prose. Bullets should be punchy, not mini-paragraphs.
-- Close with one concrete next action or implication when the findings support it.
-- Choose the structure that fits the question (e.g. ranking, criteria list, risk callout,
-  cost-driver focus). Avoid repeating the same prose pattern every time.
-- Keep it concise: roughly 80–180 words. Skip filler and inventory of every supporting question.
-- Use everyday business language. Do not mention SQL, schemas, agents, or charts.
-- Do not use headings or labels like "Insight:", "Summary:", or "Conclusion:".
-- If something could not be determined from the findings, say that briefly once.
-
-Formatting:
-- Markdown only: **bold** for key figures/entities, and optional `-` bullets.
-- No tables, code blocks, or numbered multi-section outlines.
-
-Accuracy:
-- Use only numbers and entities present in the findings; never invent values.
-- If findings conflict or look inconsistent, prefer the clearest supported claim and note uncertainty.
-
-Citations (required):
-- After key claims, add inline markers like [1] or [2] that match the supporting
-  Question numbers from the numbered list below.
-- Set cited_question_indexes to those same 1-based indexes (only the ones you used).
-- Cite the questions whose answers actually support each claim; do not invent indexes.
-- Prefer markers next to decisive figures or recommendations, not on every sentence.
-
-User question:
-{original_question}
-
-Supporting questions:
-{numbered_questions}
-
-Findings:
-{findings}
-
-Plan rationale (optional):
-{rationale}
-
-{format_instructions}
-"""
 
 
 class ThinkCitedAnswer(BaseModel):
@@ -325,9 +274,6 @@ def _step_analysis(step: Mapping[str, Any] | None) -> str:
     analysis = str(step.get("analysis") or "").strip()
     if analysis and not analysis.lstrip().startswith(("[", "{")):
         return analysis
-    answer = str(step.get("answer") or "").strip()
-    if answer and not answer.lstrip().startswith(("[", "{")):
-        return answer
     chat_response = step.get("chat_response") if isinstance(step.get("chat_response"), dict) else {}
     summary = chat_response.get("summary") if isinstance(chat_response.get("summary"), dict) else {}
     insight = str(summary.get("insight") or "").strip()
@@ -339,7 +285,6 @@ def _step_analysis(step: Mapping[str, Any] | None) -> str:
     raw = (
         str(step.get("execution_result") or "").strip()
         or str(step.get("analysis") or "").strip()
-        or str(step.get("answer") or "").strip()
     )
     described = describe_query_findings(
         raw,
@@ -347,16 +292,6 @@ def _step_analysis(step: Mapping[str, Any] | None) -> str:
         title=str(step.get("title") or "").strip(),
     )
     return described["analysis"]
-
-
-def _step_answer(step: Mapping[str, Any] | None) -> str:
-    if not isinstance(step, Mapping):
-        return ""
-    answer = str(step.get("answer") or "").strip()
-    if answer and not answer.lstrip().startswith(("[", "{")):
-        return answer
-    analysis = _step_analysis(step)
-    return analysis
 
 
 def _text_only_plan(plan: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -470,12 +405,10 @@ def _question_history(
                 "components": components,
                 "measure_hints": components,
                 "dimensions": dimensions,
-                "answer": _step_answer(step),
                 "analysis": _step_analysis(step),
                 "chat_seq_id": str((step or {}).get("chat_seq_id") or "").strip(),
                 "chat_response": public_chat,
                 "report_model": report_model or {},
-                "fullChatResponse": public_chat,
             }
         )
     return history

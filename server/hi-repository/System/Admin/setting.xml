@@ -5,13 +5,25 @@
     -->
     <efwSolution>${INSTALL_PATH}${FILE_SEPARATOR}hi-repository</efwSolution>
     <BaseUrl>http://localhost:${portnumber}/${contextname}/hi.html</BaseUrl>
-
-    <!--change the defaultBaseurl to false when the BaseUrl is different then the server address -->
+	
+	<!-- 
+	    defaultBaseurl: When enabled, the application derives the base URL
+	    from the current request URL. When disabled, the configured context path
+	    is used as the base URL.
+	-->
     <defaultBaseurl>true</defaultBaseurl>
+    
     <autoSyncCutPasteDesigner>true</autoSyncCutPasteDesigner>
     <serviceSpeedLimitAlert>15000</serviceSpeedLimitAlert>
     <!-- If the resource owner is not available during import, the resources will be assigned to this user. -->
     <defaultOwnerId>1</defaultOwnerId>
+    
+    <!--  If the datasource is not available in exported content, default managed connection will be assigned to the metadata -->
+    <defaultDatasourceId>1</defaultDatasourceId>
+    
+    <!-- When enabled, users cannot disable the datasource option during import or export. -->
+    <enforceDatasourceExportImport>false</enforceDatasourceExportImport>
+	    
     <!-- Dialects to convert null string values into empty strings-->
     <Dialects>
     	<Dialect>org.hibernate.dialect.OracleDialect</Dialect>
@@ -20,7 +32,7 @@
     <!-- The framework related files with extensions and configurable rules -->
     <Extentions>
         <!-- Only efw, efwsr, efwfav, efwresult, metadata, report, efwdd files are shown in the file browser -->
-        <efw rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWRule" visible="false">efw</efw>
+        <efw rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWRule" visible="true">efw</efw>
         <!-- Existing rdf files wont work. Using same extension as key -->
         <efwsr rule="com.helicalinsight.efw.resourceloader.rules.impl.EFWSRRule" visible="true">efwsr</efwsr>
         <efwd>efwd</efwd>
@@ -71,6 +83,16 @@
     <enableSavedResult>false</enableSavedResult>
     <showExperimentalFeatures>false</showExperimentalFeatures>
     <streamResponse>false</streamResponse>
+    <!-- Resumable Range downloads (prepare ticket → /fileDownload). Default false if omitted. -->
+    <resumableDownload>false</resumableDownload>
+    
+    <!-- Resumable Range uploads (prepare ticket → /uploadChunk). Default false if omitted. -->
+    <resumableUpload>false</resumableUpload>
+
+    <!-- Bytes per Range request for resumable downloads. Default 1048576 (1MB) if omitted. -->
+    <downloadChunkSize>1048576</downloadChunkSize>
+     <!-- Bytes per Range request for resumable uploads. Default 1048576 (1MB) if omitted. -->
+    <uploadChunkSize>1048576</uploadChunkSize>
     <waitUntilFirstPageLoad>false</waitUntilFirstPageLoad>
     <!-- 
 	  Controls how many events are grouped together before being sent to the client.

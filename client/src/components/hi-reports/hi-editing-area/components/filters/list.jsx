@@ -116,14 +116,14 @@ const List = props => {
                     ...newMapping,
                     valueDBFunction: databaseFunction,
                     valueDBFuntionInfo: dbFunc,
-                    valueDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${valueColumn.alias})`
+                    // valueDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${valueColumn.alias})`
                 }
                 tempFilter.databaseFunction = dbFunc
             } else if (columnType == 'display') {
                 mappingObj = {
                     ...mapping,
                     DisplayDBFunction: databaseFunction,
-                    displayDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${displayColumn.alias})`
+                    // displayDBfunctionsDefinition: value === "none" ? "" : `${databaseFunction.value}(${displayColumn.alias})`
                 }
             }
             tempFilter.mapping = mappingObj

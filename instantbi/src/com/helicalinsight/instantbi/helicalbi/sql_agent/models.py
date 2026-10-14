@@ -1,6 +1,6 @@
-from typing import List
+from typing import Any, Dict, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class SynthesizerOutput(BaseModel):
@@ -38,6 +38,45 @@ class DashboardChartSpec(BaseModel):
         default_factory=list,
         description="Preferred measure or calculated-metric names from the grounding pack.",
     )
+    operation: str = Field(
+        default="",
+        description="Analytical operation from analytical_strategy (e.g. trend, period_comparison, segment, contribution, mix_analysis, outlier_detection).",
+    )
+    analytical_strategy: str = Field(
+        default="",
+        description="Analytical strategy under which this query was framed (e.g. trend, period_comparison, segment, contribution, mix_analysis).",
+    )
+
+    @model_validator(mode="after")
+    def sync_analytical_strategy(self) -> "DashboardChartSpec":
+        op = str(self.operation or self.analytical_strategy or "").strip()
+        if not op:
+            text = f" {self.question} {self.title} {self.context_anchor} ".lower()
+            if any(k in text for k in ("trend", "over time", "monthly", "yearly", "quarterly", "daily", "timeline")) or self.viz_hint == "line":
+                op = "trend"
+            elif any(k in text for k in ("compare", "versus", " vs ", "prior", "last year", "last quarter", "mom", "yoy", "qoq")):
+                op = "period_comparison"
+            elif any(k in text for k in ("target", "benchmark", "budget", "actual vs", "baseline", "sla")):
+                op = "benchmark_comparison"
+            elif any(k in text for k in ("why", "driver", "contribut", "impact", "factor")):
+                op = "contribution"
+            elif any(k in text for k in ("outlier", "anomaly", "abnormal", "spike")):
+                op = "outlier_detection"
+            elif any(k in text for k in ("rank", "top", "bottom", "highest", "lowest", "laggard")):
+                op = "ranking"
+            elif any(k in text for k in ("mix", "composition")):
+                op = "mix_analysis"
+            elif any(k in text for k in ("distribut", "spread", "histogram")):
+                op = "distribution"
+            elif any(k in text for k in ("reason", "cancellation", "failure", "defect")):
+                op = "reason_analysis"
+            elif self.viz_hint == "kpi":
+                op = "period_comparison" if self.context_anchor else "trend"
+            else:
+                op = "segment"
+        self.operation = op
+        self.analytical_strategy = op
+        return self
 
 
 class InvestigationPlan(BaseModel):
@@ -55,6 +94,14 @@ class InvestigationPlan(BaseModel):
     strategy_id: str = Field(
         default="",
         description="Decision-tree selected strategy id (inverted_pyramid, progressive_disclosure, ...).",
+    )
+    analytical_operations: List[str] = Field(
+        default_factory=list,
+        description="Analytical operations selected from analytical_strategy for this plan.",
+    )
+    query_analytical_strategies: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="Explicit mapping of which query is framed under what analytical strategy.",
     )
     domain: str = Field(default="", description="Business domain inferred from the semantic model.")
     topics: List[str] = Field(default_factory=list, description="Semantic-model topics this plan covers.")
@@ -74,3 +121,26 @@ class InvestigationPlan(BaseModel):
         default="",
         description="Semantic color rules (neutral vs amber/red alerts), if any.",
     )
+
+    @model_validator(mode="after")
+    def sync_plan_analytical_strategies(self) -> "InvestigationPlan":
+        if not self.query_analytical_strategies and self.charts:
+            self.query_analytical_strategies = [
+                {
+                    "question": str(chart.question or "").strip(),
+                    "analytical_strategy": str(chart.analytical_strategy or chart.operation or "").strip(),
+                }
+                for chart in self.charts
+                if str(chart.question or "").strip()
+            ]
+        if not self.analytical_operations and self.charts:
+            seen: set[str] = set()
+            ops: list[str] = []
+            for chart in self.charts:
+                strategy = str(chart.analytical_strategy or chart.operation or "").strip()
+                if strategy and strategy not in seen:
+                    seen.add(strategy)
+                    ops.append(strategy)
+            self.analytical_operations = ops
+        return self
+

@@ -289,7 +289,7 @@ def test_dashboard_agent_uses_tool_calls(monkeypatch):
         assert len(payload["items"]) == 1
         return {
             "items": payload["items"],
-            "theme": {"color": "#1677ff"},
+            "dashboard_config": {"theme": "default"},
             "templateId": "analytical-grid",
             "layout": [{"itemId": payload["items"][0]["component_id"], "x": 0, "y": 0, "w": 6, "h": 4}],
         }
@@ -415,7 +415,8 @@ def test_execute_plan_runs_charts_in_order(monkeypatch):
             items.append(
                 {
                     **item,
-                    "dashboard_model": {"kind": "viz", "title": item.get("user_query") or ""},
+                    "kind": "viz",
+                    "title": item.get("user_query") or "",
                     "report_model": {
                         "data_model": item.get("data_model") or {},
                         "viz_model": item.get("viz_model") or {"chart": {"viz": "Bar"}},
@@ -423,16 +424,18 @@ def test_execute_plan_runs_charts_in_order(monkeypatch):
                 }
             )
         extras = [
-            {"component_id": "kpiFake", "dashboard_model": {"kind": "kpi", "title": "Empty KPI", "html": ""}},
+            {"component_id": "kpiFake", "kind": "kpi", "title": "Empty KPI", "html": ""},
             {
                 "component_id": "sum1",
-                "dashboard_model": {"kind": "summary", "title": "Overview", "html": "Travel spend overview"},
+                "kind": "summary",
+                "title": "Overview",
+                "html": "Travel spend overview",
             },
-            {"component_id": "svgFake", "dashboard_model": {"kind": "svg", "title": "Divider", "html": "<svg></svg>"}},
+            {"component_id": "svgFake", "kind": "svg", "title": "Divider", "html": "<svg></svg>"},
         ]
         return {
             "items": extras + items,
-            "theme": {"color": "#1677ff"},
+            "dashboard_config": {"theme": "default"},
             "templateId": "analytical-grid",
             "layout": [
                 {"itemId": "kpiFake", "component_id": "kpiFake"},
@@ -482,7 +485,8 @@ def test_execute_plan_runs_charts_in_order(monkeypatch):
     assert seqs == ["1-1", "1-2"]
     assert result["attempt_count"] < 24
     assert result["final_answer"] == "Spend rose on expensive routes."
-    kinds = [item["dashboard_model"]["kind"] for item in result["dashboard"]["items"]]
+    kinds = [item["kind"] for item in result["dashboard"]["items"]]
+    assert all("dashboard_model" not in item for item in result["dashboard"]["items"])
     assert "kpi" not in kinds
     assert "svg" not in kinds
     assert "summary" in kinds
@@ -525,7 +529,7 @@ def test_execute_plan_continues_after_failed_chart(monkeypatch):
         "helicalbi.sql_agent.nodes.dashboard.invoke_dashboard_layout",
         lambda payload: {
             "items": payload["items"],
-            "theme": {},
+            "dashboard_config": {},
             "templateId": "analytical-grid",
             "layout": [],
         },
@@ -578,7 +582,7 @@ def test_dashboard_node_skips_empty_viz_model(monkeypatch):
         "helicalbi.sql_agent.nodes.dashboard.invoke_dashboard_layout",
         lambda payload: {
             "items": payload["items"],
-            "theme": {},
+            "dashboard_config": {},
             "templateId": "analytical-grid",
             "layout": [],
         },
@@ -609,3 +613,69 @@ def test_dashboard_node_skips_empty_viz_model(monkeypatch):
     )
     assert result["dashboard"]["items"] == []
     assert "No visualizations" in result["dashboard"]["error"]
+
+
+def test_execute_plan_workings_lines_pick_from_phrase_lists(monkeypatch):
+    from helicalbi.sql_agent.nodes.execute_plan import (
+        _STEP_DONE,
+        _STEP_STARTED,
+        execute_plan_node,
+    )
+
+    messages = []
+    picks = iter(["Checking", "is ready"])
+
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.execute_plan.semantic_tools.retrieve",
+        lambda *args, **kwargs: {"ok": True, "state_patch": {}},
+    )
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.execute_plan.sql_tools.generate",
+        lambda *args, **kwargs: {"ok": True, "sql": "SELECT 1", "state_patch": {}},
+    )
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.execute_plan.sql_tools.execute",
+        lambda *args, **kwargs: {"ok": True, "state_patch": {}},
+    )
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.execute_plan.report_tools.build",
+        lambda *args, **kwargs: {"ok": True, "state_patch": {}},
+    )
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.execute_plan.random.choice",
+        lambda phrases: next(picks),
+    )
+
+    execute_plan_node(
+        {
+            "original_question": "Where is travel cost concentrated?",
+            "max_sub_questions": 1,
+            "investigation_plan": {
+                "charts": [
+                    {
+                        "title": "Travel cost by region",
+                        "question": "How does travel cost split by region?",
+                    }
+                ]
+            },
+            "session_context": {
+                "_on_progress": lambda stage, status, message: messages.append(
+                    (stage, status, message)
+                )
+            },
+            "collected_data": [],
+        }
+    )
+
+    assert "Checking" in _STEP_STARTED
+    assert "is ready" in _STEP_DONE
+    assert messages[0] == (
+        "think_step",
+        "started",
+        "Checking Travel cost by region.",
+    )
+    assert messages[-1] == (
+        "think_step",
+        "done",
+        "Travel cost by region is ready.",
+    )

@@ -1,68 +1,62 @@
 package com.helicalinsight.export;
 
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
+import java.io.File;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
-import com.helicalinsight.cache.CacheHelper;
 import com.helicalinsight.cache.CacheUtils;
-import com.helicalinsight.cache.manager.CacheManager;
-import com.helicalinsight.cache.model.Cache;
-
-
+import com.helicalinsight.export.components.DownloadCacheManager;
 
 public class PrepareFormDataForAdhocDownloadTest {
 
 	@Test
-	public void ut_a1_testPrepareFormData() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+	public void ut_a1_testPrepareFormData() throws Exception {
 		PrepareFormDataForAdhocDownload adhocDownload = new PrepareFormDataForAdhocDownload();
-		CacheManager cacheManager = mock(CacheManager.class);
+		DownloadCacheManager cacheManager = mock(DownloadCacheManager.class);
 		JsonObject adhocFormData = new JsonObject();
-		JsonObject object = new JsonObject();
-		object.addProperty("fileToDownload", "file");
-		Cache cache = mock(Cache.class);
-		CacheHelper cacheHelper = mock(CacheHelper.class);
-				
-		Field field = PrepareFormDataForAdhocDownload.class.getDeclaredField("cacheHelper");
-		field.setAccessible(true);
-		field.set(adhocDownload, cacheHelper);
-		when(cacheManager.getRequestData()).thenReturn(object.toString());
-		when(cacheHelper.prepareCacheFromRequest(cacheManager)).thenReturn(cache);
-		try(MockedStatic<CacheUtils> mockedStatic = mockStatic(CacheUtils.class)){
-			mockedStatic.when(()-> CacheUtils.getCacheManager(anyString())).thenReturn(cacheManager);
-			
+		File materialized = new File("file");
+
+		when(cacheManager.materializeToFile(eq("reportName"), eq(false))).thenReturn(materialized);
+
+		try (MockedStatic<CacheUtils> mockedStatic = mockStatic(CacheUtils.class)) {
+			mockedStatic.when(() -> CacheUtils.getCacheManager(anyString())).thenReturn(cacheManager);
+
 			String prepareFormData = adhocDownload.prepareFormData(adhocFormData, "format", "reportName");
-			Assert.assertEquals("file", prepareFormData);
+			Assert.assertEquals(materialized.getAbsolutePath(), prepareFormData);
+			Assert.assertEquals("format", adhocFormData.get("type").getAsString());
+			Assert.assertEquals("reportName", adhocFormData.get("reportName").getAsString());
+			verify(cacheManager).setRequestData(adhocFormData.toString());
 		}
 	}
+
 	@Test
-	public void ut_a2_testPrepareFormData() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+	public void ut_a2_testPrepareFormData() throws Exception {
 		PrepareFormDataForAdhocDownload adhocDownload = new PrepareFormDataForAdhocDownload();
-		CacheManager cacheManager = mock(CacheManager.class);
+		DownloadCacheManager cacheManager = mock(DownloadCacheManager.class);
 		JsonObject adhocFormData = new JsonObject();
-		JsonObject object = new JsonObject();
-		object.addProperty("fileToDownload", "file");
-		Cache cache = mock(Cache.class);
-		CacheHelper cacheHelper = mock(CacheHelper.class);
-				
-		Field field = PrepareFormDataForAdhocDownload.class.getDeclaredField("cacheHelper");
-		field.setAccessible(true);
-		field.set(adhocDownload, cacheHelper);
-		when(cacheManager.getRequestData()).thenReturn(object.toString());
-		when(cacheHelper.prepareCacheFromRequest(cacheManager)).thenReturn(cache);
-		try(MockedStatic<CacheUtils> mockedStatic = mockStatic(CacheUtils.class)){
-			mockedStatic.when(()-> CacheUtils.getCacheManager(anyString())).thenReturn(cacheManager);
-			
+		File materialized = new File("file");
+
+		when(cacheManager.materializeToFile(eq("reportName"), anyBoolean())).thenReturn(materialized);
+
+		try (MockedStatic<CacheUtils> mockedStatic = mockStatic(CacheUtils.class)) {
+			mockedStatic.when(() -> CacheUtils.getCacheManager(anyString())).thenReturn(cacheManager);
+
 			String prepareFormData = adhocDownload.prepareFormData(adhocFormData, null, "reportName");
-			Assert.assertEquals("file", prepareFormData);
+			Assert.assertEquals(materialized.getAbsolutePath(), prepareFormData);
+			Assert.assertFalse(adhocFormData.has("type"));
+			Assert.assertEquals("reportName", adhocFormData.get("reportName").getAsString());
+			verify(cacheManager).setRequestData(adhocFormData.toString());
 		}
 	}
 }

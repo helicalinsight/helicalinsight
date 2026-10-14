@@ -3,6 +3,8 @@ package com.helicalinsight.export.dto;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.helicalinsight.admin.dto.Notification;
+
 public class ImportResponse{
 
 
@@ -14,11 +16,13 @@ public class ImportResponse{
 	private List<String> updates;
 	private List<String> skips ;
 	private List<String> inserts;
+	private Notification notification;
 	
 	public ImportResponse() {
 		this.updates = new ArrayList<>();
 		this.skips = new ArrayList<>();
 		this.inserts = new ArrayList<>();
+		this.notification = new Notification();
 	}
 
 
@@ -79,12 +83,20 @@ public class ImportResponse{
 		this.inserts = inserts;
 	}
 
+	public Notification getNotification() {
+		return notification;
+	}
+
+	public void setNotification(Notification notification) {
+		this.notification = notification;
+	}
+
 
 	@Override
 	public String toString() {
 		return "{\"message\":\"" + message + "\", \"insertCount\":\"" + insertCount + "\", \"updateCount\":\""
 				+ updateCount + "\", \"skipCount\":\"" + skipCount + "\", \"updates\":\"" + updates + "\", \"skips\":\""
-				+ skips + "\", \"inserts\":\"" + inserts + "\"}";
+				+ skips + "\", \"inserts\":\"" + inserts + "\", \"notification\":" + notification + "}";
 	}
 
 	

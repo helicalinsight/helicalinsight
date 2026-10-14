@@ -140,7 +140,11 @@ public class ResourceFileUtils {
      */
 	public <T> T  readFile(String filePath , Class<T> clazz) {
 		ObjectNode node = readFile(new File(filePath), ObjectNode.class);
-		
+
+		if (node == null) {
+			throw new ResourceImportException("Error occurred while reading " + filePath);
+		}
+
 		if(importRequest != null) {
 			if(Boolean.TRUE.equals(importRequest.getOptions().getShare() &&
 					node.has("createdBy")) && node.get("createdBy").isObject()) {

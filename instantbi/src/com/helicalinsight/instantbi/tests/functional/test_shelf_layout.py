@@ -8,7 +8,6 @@ from helicalbi.viz.viz_model_fill import (
     _pick_chart_type,
     build_viz_model,
     is_viz_update_intent,
-    similar_charts_for_data,
 )
 
 pytestmark = pytest.mark.functional
@@ -34,6 +33,72 @@ def test_one_dimension_two_measures_picks_bar():
     assert picked == "bar"
 
 
+def test_two_measures_build_grid_chart_dual_axis():
+    model, chart, _ = build_viz_model(
+        data_types=_md(("region", "text"), ("sales", "numeric"), ("cost", "numeric")),
+        user_query="sales and cost by region",
+    )
+    assert chart == "bar"
+    assert model.chart.dualaxis is True
+    assert model.chart.mark == "Grid Chart"
+    assert model.chart.viz == "Bar"
+    series = {item["field"]: item for item in model.chart.model_dump()["measures"]}
+    assert series["sales"]["viz"] == "Bar"
+    assert series["cost"]["viz"] == "Line"
+    assert not series["sales"]["color"]
+    assert not series["cost"]["color"]
+
+
+def test_line_with_two_measures_uses_bar_on_the_second_axis():
+    model, chart, _ = build_viz_model(
+        data_types=_md(("region", "text"), ("sales", "numeric"), ("cost", "numeric")),
+        user_query="show a line chart of sales and cost by region",
+    )
+    assert chart == "line"
+    assert model.chart.dualaxis is True
+    assert model.chart.mark == "Grid Chart"
+    series = {item["field"]: item for item in model.chart.model_dump()["measures"]}
+    assert series["sales"]["viz"] == "Line"
+    assert series["cost"]["viz"] == "Bar"
+
+
+def test_two_measures_use_cube_column_color_and_leave_others_empty():
+    model, _, _ = build_viz_model(
+        data_types=_md(("region", "text"), ("sales", "numeric"), ("cost", "numeric")),
+        user_query="sales and cost by region",
+        cube_metadata=[
+            {
+                "database_table": "travel",
+                "measures": [
+                    {
+                        "alias_name": "sales",
+                        "measure_name": "sales",
+                        "color": "#112233",
+                    },
+                    {
+                        "alias_name": "cost",
+                        "measure_name": "cost",
+                        "properties": {"color": "#AABBCC"},
+                    },
+                ],
+            }
+        ],
+    )
+    series = {item["field"]: item for item in model.chart.model_dump()["measures"]}
+    assert series["sales"]["color"] == "#112233"
+    assert series["cost"]["color"] == "#AABBCC"
+
+
+def test_pie_with_two_measures_stays_single_axis():
+    model, chart, _ = build_viz_model(
+        data_types=_md(("region", "text"), ("sales", "numeric"), ("cost", "numeric")),
+        user_query="show a pie chart of sales and cost",
+    )
+    assert chart == "pie"
+    assert model.chart.dualaxis is False
+    assert model.chart.measures == []
+
+
 def test_two_dimensions_two_measures_picks_grid_table():
     picked = _pick_chart_type(
         _md(
@@ -50,43 +115,6 @@ def test_single_measure_picks_kpi_not_pie():
     assert _pick_chart_type(_md(("amount", "numeric"))) == "kpi"
 
 
-def test_similar_charts_follow_result_shape():
-    names = similar_charts_for_data(
-        _md(("category", "text"), ("amount", "numeric")),
-        current="bar",
-    )
-    assert "bar" not in names
-    assert "table" not in names
-    assert "grid_table" not in names
-    assert "line" in names
-    assert "pie" in names or "donut" in names
-    assert "heatmap" not in names
-
-
-def test_similar_charts_exclude_heatmap_without_geo():
-    names = similar_charts_for_data(
-        _md(("region", "text"), ("product", "text"), ("sales", "numeric")),
-        current="grid_table",
-    )
-    assert "heatmap" not in names
-
-
-def test_similar_charts_include_grid_table_for_multi_dim_aggregate():
-    names = similar_charts_for_data(
-        _md(("region", "text"), ("product", "text"), ("sales", "numeric")),
-        current="relation",
-    )
-    assert "grid_table" in names
-
-
-def test_similar_charts_omit_grid_table_for_single_dimension():
-    names = similar_charts_for_data(
-        _md(("booking_platform", "text")),
-        current="wordcloud",
-    )
-    assert "grid_table" not in names
-    assert "table" not in names
-
 def test_lat_lon_viz_model_stays_chart_until_map_requested():
     model, chart, ctx = build_viz_model(
         data_types=_md(("latitude", "numeric"), ("longitude", "numeric")),
@@ -101,7 +129,12 @@ def test_lat_lon_viz_model_stays_chart_until_map_requested():
         user_query="plot locations on a map",
     )
     assert chart == "heatmap"
-    assert model.chart.model_dump() == {"viz": "Heatmap", "mark": "Maps"}
+    assert model.chart.model_dump() == {
+        "viz": "Heatmap",
+        "mark": "Maps",
+        "dualaxis": False,
+        "measures": [],
+    }
     assert model.properties.model_dump().get("geographicRoles") == {
         "latitude": "lat",
         "longitude": "long",
@@ -118,6 +151,7 @@ def test_city_sales_viz_model_uses_map_only_when_asked():
         user_query="sales by city",
     )
     assert chart == "bar"
+    assert model.chart.dualaxis is False
     assert model.chart.mark != "Maps"
     assert "geographic_roles" not in ctx
 
@@ -126,7 +160,12 @@ def test_city_sales_viz_model_uses_map_only_when_asked():
         user_query="sales by city on a map",
     )
     assert chart == "heatmap"
-    assert model.chart.model_dump() == {"viz": "Heatmap", "mark": "Maps"}
+    assert model.chart.model_dump() == {
+        "viz": "Heatmap",
+        "mark": "Maps",
+        "dualaxis": False,
+        "measures": [],
+    }
     assert model.properties.model_dump().get("geographicRoles", {}).get("city") == "city"
     assert ctx.get("geographic_roles", {}).get("city") == "city"
 

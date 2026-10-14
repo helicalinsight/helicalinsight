@@ -8,14 +8,14 @@
 #        ./hi/hi-repository/System/InstantBI → /app/helicalbi/config
 #        ./hi/hi-repository/System/Logs → /app/logs
 #      pip-installs on start (Nuitka ./app if present, else python app.py)
-#   3. Open https://localhost
+#   3. Open https://localhost/hi-ee
 #
 # Login: hiadmin / hiadmin
 # Git checkout: run scripts/setup-dev so that mount path exists.
 
 services:
   postgres:
-    image: postgres:15.8-alpine3.20
+    image: ${POSTGRES_IMAGE:-postgres:15.8-alpine3.20}
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-hiuser}
@@ -33,7 +33,7 @@ services:
       - hinet
 
   hiee:
-    image: hiee/helicalinsight:nitrogen-j25t11
+    image: ${HIEE_IMAGE:-hiee/helicalinsight:nitrogen-j25t11}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -66,7 +66,7 @@ services:
       - hinet
 
   nginx:
-    image: nginx:alpine
+    image: ${NGINX_IMAGE:-nginx:alpine}
     restart: unless-stopped
     ports:
       - "${HTTPS_PORT:-443}:443"
@@ -86,7 +86,7 @@ services:
       - hinet
 
   instantbi:
-    image: python:3.13-slim
+    image: ${INSTANTBI_IMAGE:-python:3.13-slim}
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/')\""]

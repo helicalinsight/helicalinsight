@@ -48,7 +48,7 @@ const DashboardJsonEditor = (props = {}) => {
             notifyFrontend(
                 dispatch,
                 "success",
-                "Canned Report Spec updated successfully",
+                "Dashboard Designer Spec updated successfully.",
             );
         } catch (error) {
             notifyFrontend(dispatch, "error", `Invalid SPEC: ${error.message}`);

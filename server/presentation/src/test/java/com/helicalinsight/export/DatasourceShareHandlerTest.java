@@ -1,6 +1,7 @@
 package com.helicalinsight.export;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -25,6 +26,7 @@ import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.model.GlobalConnectionSecurity;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
+import com.helicalinsight.export.handler.ImportManagerContext;
 import com.helicalinsight.export.service.DatasourceShareHandler;
 import com.helicalinsight.export.utils.ResourceShareUtils;
 
@@ -59,8 +61,9 @@ public class DatasourceShareHandlerTest {
 		when(role.getId()).thenReturn(1);
 		when(org.getId()).thenReturn(1);
 		when(mapper.map(any(HIEfwdConnSecurity.class))).thenReturn(securityDTO);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
-		when(shareUtils.getOrInsertOrganiation(any(OrganizationDTO.class))).thenReturn(org);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(shareUtils.getOrInsertOrganiation(any(OrganizationDTO.class), nullable(ImportManagerContext.class)))
+				.thenReturn(org);
 		when(shareUtils.getOrInsertRole(any(RoleDTO.class))).thenReturn(role);
 		datasourceShareHandler.importEFWDConnectionPermissions(0, securitiesDtos);
 	}
@@ -90,12 +93,13 @@ public class DatasourceShareHandlerTest {
 			IllegalArgumentException, InvocationTargetException, NoSuchFieldException {
 		DatasourceShareHandler datasourceShareHandler = new DatasourceShareHandler();
 		Method method = DatasourceShareHandler.class.getDeclaredMethod("createNewSecurity",
-				GlobalConnectionSecurity.class);
+				GlobalConnectionSecurity.class, ImportManagerContext.class);
 		method.setAccessible(true);
 		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		GlobalConnectionSecurity security = mock(GlobalConnectionSecurity.class);
 		GlobalConnectionService globalConnectionService = mock(GlobalConnectionService.class);
 		User user = mock(User.class);
+		UserDTO userDTO = mock(UserDTO.class);
 		ResourceDTOMapper mapper = mock(ResourceDTOMapper.class);
 		
 		Field field2 = DatasourceShareHandler.class.getDeclaredField("shareUtils");
@@ -111,11 +115,13 @@ public class DatasourceShareHandlerTest {
 	    field3.set(datasourceShareHandler, mapper);
 		
 		when(security.getUserId()).thenReturn(user);
+		when(mapper.map(any(User.class))).thenReturn(userDTO);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
 		User owner = mock(User.class);
 		when(security.getCreatedBy()).thenReturn(owner);
-		when(shareUtils.resolveUser(owner)).thenReturn(owner);
+		when(shareUtils.resolveUser(any(), nullable(ImportManagerContext.class))).thenReturn(owner);
 		
-		method.invoke(datasourceShareHandler, security);
+		method.invoke(datasourceShareHandler, security, null);
 	}
 
 	@Test
@@ -123,7 +129,7 @@ public class DatasourceShareHandlerTest {
 			IllegalArgumentException, InvocationTargetException, NoSuchFieldException {
 		DatasourceShareHandler datasourceShareHandler = new DatasourceShareHandler();
 		Method method = DatasourceShareHandler.class.getDeclaredMethod("createNewSecurity",
-				GlobalConnectionSecurity.class);
+				GlobalConnectionSecurity.class, ImportManagerContext.class);
 		method.setAccessible(true);
 		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		GlobalConnectionSecurity security = mock(GlobalConnectionSecurity.class);
@@ -149,8 +155,8 @@ public class DatasourceShareHandlerTest {
 		when(shareUtils.getOrInsertRole(roleDto)).thenReturn(role);
 		User owner = mock(User.class);
 		when(security.getCreatedBy()).thenReturn(owner);
-		when(shareUtils.resolveUser(owner)).thenReturn(owner);
-		method.invoke(datasourceShareHandler, security);
+		when(shareUtils.resolveUser(any(), nullable(ImportManagerContext.class))).thenReturn(owner);
+		method.invoke(datasourceShareHandler, security, null);
 	}
 
 	@Test
@@ -158,13 +164,14 @@ public class DatasourceShareHandlerTest {
 			IllegalArgumentException, InvocationTargetException, NoSuchFieldException {
 		DatasourceShareHandler datasourceShareHandler = new DatasourceShareHandler();
 		Method method = DatasourceShareHandler.class.getDeclaredMethod("createNewSecurity",
-				GlobalConnectionSecurity.class);
+				GlobalConnectionSecurity.class, ImportManagerContext.class);
 		method.setAccessible(true);
 		ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
 		GlobalConnectionSecurity security = mock(GlobalConnectionSecurity.class);
 		GlobalConnectionService globalConnectionService = mock(GlobalConnectionService.class);
 		User user = mock(User.class);
 		Organization org = mock(Organization.class);
+		OrganizationDTO orgDTO = mock(OrganizationDTO.class);
 		ResourceDTOMapper mapper = mock(ResourceDTOMapper.class);
 
 		Field field2 = DatasourceShareHandler.class.getDeclaredField("shareUtils");
@@ -181,11 +188,14 @@ public class DatasourceShareHandlerTest {
 
 		when(security.getUserId()).thenReturn(user);
 		when(security.getOrgId()).thenReturn(org);
+		when(mapper.map(any(Organization.class))).thenReturn(orgDTO);
+		when(shareUtils.getOrInsertOrganiation(any(OrganizationDTO.class), nullable(ImportManagerContext.class)))
+				.thenReturn(org);
 		User owner = mock(User.class);
 		when(security.getCreatedBy()).thenReturn(owner);
-		when(shareUtils.resolveUser(owner)).thenReturn(owner);
+		when(shareUtils.resolveUser(any(), nullable(ImportManagerContext.class))).thenReturn(owner);
 
-		method.invoke(datasourceShareHandler, security);
+		method.invoke(datasourceShareHandler, security, null);
 	}
 	@Test
 	public void ut_a6_testCompare() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {

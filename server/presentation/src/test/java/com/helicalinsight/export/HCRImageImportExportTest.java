@@ -1,10 +1,12 @@
 package com.helicalinsight.export;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -37,6 +39,8 @@ import com.helicalinsight.test.utility.TestUtility;
 
 import jakarta.servlet.ServletContext;
 import jakarta.transaction.Transactional;
+import net.lingala.zip4j.core.ZipFile;
+import net.lingala.zip4j.model.FileHeader;
 
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -145,6 +149,27 @@ public class HCRImageImportExportTest {
 	public void hcrImage_a4_exportFolder() throws Exception {
 		String request = "{\"dir\": \"HCRImageImportExportTest\",\"file\" : \"\",\"options\": {\"share\": true,\"users\": false,\"dataSource\": true,\"schedules\": true}}";
 		fileName = integrationTestUtility.exportResource(request, TESTURL);
+		assertImageSidecarInExport(String.join(File.separator, TESTURL, fileName));
+	}
+
+	private void assertImageSidecarInExport(String zipPath) throws Exception {
+		ZipFile zipFile = new ZipFile(zipPath);
+		@SuppressWarnings("unchecked")
+		List<FileHeader> headers = zipFile.getFileHeaders();
+		boolean foundSidecar = false;
+		boolean foundPrimary = false;
+		for (FileHeader header : headers) {
+			String name = header.getFileName().replace('\\', '/');
+			if (name.contains(".image_image")) {
+				foundSidecar = true;
+			}
+			if (name.contains("/resources/") && name.endsWith(".image")) {
+				foundPrimary = true;
+			}
+		}
+		// Zip payloads are encrypted before packaging; assert layout by entry names only.
+		assertTrue("Export zip should contain an *_image sidecar", foundSidecar);
+		assertTrue("Export zip should contain a primary .image metadata file", foundPrimary);
 	}
 	
 	@Test

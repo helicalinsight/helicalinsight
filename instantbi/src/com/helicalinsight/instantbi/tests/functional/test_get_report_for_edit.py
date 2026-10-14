@@ -34,7 +34,6 @@ _SAMPLE_REPORT = {
                             "vf_template": "",
                             "chart_name": "heatmap",
                             "vf_title": "Total Travel Cost per Client per Month",
-                            "similar_chart": ["relation"],
                         },
                         "sql": {
                             "raw_sql": (
@@ -142,6 +141,69 @@ class TestHydrateChatMemoryFromReport:
         sql = resolve_sql_from_request({}, chat_id, 1, context="data-insight")
         assert sql.startswith("SELECT")
         assert "```" not in sql
+
+    def test_hydrates_think_mode_supporting_questions_for_data_insight(self, reset_memory):
+        from helicalbi.controller.helpers import resolve_sql_from_request
+
+        report = {
+            "state": {
+                "activeChatId": "think-chat-1",
+                "inputs": [{"chat_sequence_id": 1, "input": "Analyze travel cost"}],
+                "chat_responses": [
+                    {
+                        "chat_sequence_id": 1,
+                        "is_think_plan": True,
+                        "summary": {"insight": "Travel cost rose."},
+                        "question_history": [
+                            {
+                                "index": 1,
+                                "question": "What is total travel cost?",
+                                "chat_seq_id": "1_1",
+                                "chat_response": {
+                                    "sql": {
+                                        "raw_sql": "SELECT SUM(travel_cost) AS total FROM travel_details",
+                                        "dialect": "postgresql",
+                                        "required_domain": ["Travel"],
+                                        "required_topic": ["Cost"],
+                                    },
+                                    "summary": {"insight": "Total travel cost is 120000."},
+                                    "report_model": {"data_model": {"sql": "SELECT 1"}},
+                                },
+                            },
+                            {
+                                "index": 2,
+                                "question": "Cost by month?",
+                                "chat_response": {
+                                    "sql": {
+                                        "raw_sql": "SELECT month, SUM(travel_cost) FROM travel_details GROUP BY month",
+                                        "dialect": "postgresql",
+                                    },
+                                    "summary": {"insight": "Cost peaked in March."},
+                                },
+                            },
+                        ],
+                    }
+                ],
+            }
+        }
+
+        result = hydrate_chat_memory_from_report(report, username="tester")
+        assert result == {"chatid": "think-chat-1", "turns": 1}
+
+        node = chat_graph_memory.get_node("think-chat-1", "1_1")
+        assert node is not None
+        assert node["user_query"] == "What is total travel cost?"
+        assert node["sql"].startswith("SELECT SUM(travel_cost)")
+        assert node["domain"] == ["Travel"]
+        assert node["topics"] == ["Cost"]
+
+        derived_seq_node = chat_graph_memory.get_node("think-chat-1", "1-2")
+        assert derived_seq_node is not None
+        assert "GROUP BY month" in derived_seq_node["sql"]
+
+        sql = resolve_sql_from_request({}, "think-chat-1", "1_1", context="data-insight")
+        assert "travel_cost" in sql
+        assert sql.upper().startswith("SELECT")
 
     def test_skips_when_chat_id_missing(self, reset_memory):
         result = hydrate_chat_memory_from_report({"state": {"chat_responses": []}})

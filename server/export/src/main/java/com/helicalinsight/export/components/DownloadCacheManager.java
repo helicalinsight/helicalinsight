@@ -6,8 +6,10 @@ import jakarta.servlet.http.HttpSession;
 import com.google.gson.JsonObject;
 import com.helicalinsight.adhoc.AdhocCacheManager;
 import com.helicalinsight.adhoc.jreport.IHCRGenerator;
+import com.helicalinsight.cache.CacheHelper;
 import com.helicalinsight.cache.CacheUtils;
 import com.helicalinsight.cache.manager.CacheManager;
+import com.helicalinsight.cache.model.Cache;
 import com.helicalinsight.cache.manager.EfwvfCacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManager;
 import com.helicalinsight.cache.manager.HCRQueryProcessCacheManagerForResultSet;
@@ -65,10 +67,10 @@ public class DownloadCacheManager extends com.helicalinsight.cache.manager.Cache
     @Autowired
     private EfwvfCacheManager efwvfManager;
 
-    private CacheManager cacheManager;
-    
-    
+    @Autowired
+    private CacheHelper cacheHelper;
 
+    private CacheManager cacheManager;
     /**
      * Initializes the content of the `DownloadCacheManager`. Reads settings from the cache XML.
      */
@@ -231,7 +233,7 @@ public class DownloadCacheManager extends com.helicalinsight.cache.manager.Cache
             }
 
             if (request == null && response == null) {
-                //Object object, File fileToDownload, String tempDir
+                // Materialize-only (resumable / scheduler): write Temp file, no HTTP body.
                 return saveToTemp(object);
             }
             OutputStream outputStream = response.getOutputStream();
@@ -311,29 +313,51 @@ public class DownloadCacheManager extends com.helicalinsight.cache.manager.Cache
      * @return {@code true} if the object is successfully saved to the temporary directory, otherwise {@code false}.
      */
     public boolean saveToTemp(Object object) {
-        String attachmentName = ReportsUtility.getReportName(GsonUtility.optString(this.requestParameterJson,"reportName"));
-        String tempDir = TempDirectoryCleaner.getTempDirectory() + File.separator +
-                attachmentName + getFileExtension();
+        String path = materializeBinary(object, resolveBaseAttachmentName());
+        if (path == null) {
+            return false;
+        }
+        this.requestParameterJson.addProperty("fileToDownload", path);
+        return true;
+    }
+
+    /**
+     * Single writer for CSV StringBuilder / XLS workbook / HCR uuid file paths.
+     * @return absolute temp path, or null on failure
+     */
+    private String materializeBinary(Object object, String attachmentName) {
+        if (object instanceof JsonObject) {
+            JsonObject hcrObject = (JsonObject) object;
+            if (hcrObject.has("jrxmlData")) {
+                String uuid = hcrObject.getAsJsonObject("jrxmlData").get("uuid").getAsString();
+                String path = TempDirectoryCleaner.getTempDirectory() + File.separator
+                        + uuid + getFileExtension();
+                return new File(path).isFile() ? path : null;
+            }
+            return null;
+        }
+        String tempDir = TempDirectoryCleaner.getTempDirectory() + File.separator
+                + attachmentName + getFileExtension();
         File fileToDownload = new File(tempDir);
         if (object instanceof StringBuilder) {
-            StringBuilder responseObject = (StringBuilder) object;
-            ApplicationUtilities.createAFile(fileToDownload, responseObject.toString());
-        } else if (object instanceof XSSFWorkbook) {
+            ApplicationUtilities.createAFile(fileToDownload, ((StringBuilder) object).toString());
+            return tempDir;
+        }
+        if (object instanceof XSSFWorkbook) {
             try {
-                XSSFWorkbook workbook = (XSSFWorkbook) object;
                 FileOutputStream fileOutputStream = new FileOutputStream(tempDir);
-                workbook.write(fileOutputStream);
+                ((XSSFWorkbook) object).write(fileOutputStream);
                 ApplicationUtilities.closeResource(fileOutputStream);
+                return tempDir;
             } catch (ClassCastException exception) {
                 logger.error("Casting exception occurred {}", exception);
-                return false;
+                return null;
             } catch (IOException e) {
                 logger.error("I/O exception occurred {}", e);
-                return false;
+                return null;
             }
         }
-        this.requestParameterJson.addProperty("fileToDownload", tempDir);
-        return true;
+        return null;
     }
 
     public String getContentTypeString() {
@@ -407,7 +431,9 @@ public class DownloadCacheManager extends com.helicalinsight.cache.manager.Cache
         String adhocTrue = GsonUtility.optString(requestParameterJson,"isAdhoc");
         String beanName = settingsDownloadMap.get(downloadType);
         iDownload = (IDownload) ApplicationContextAccessor.getBean(beanName);
-        isAdhoc = "true".equalsIgnoreCase(adhocTrue);
+        // Prefer boolean-aware parse (client sends isAdhoc: true); keep string "true" parity
+        isAdhoc = GsonUtility.optBooleanValue(requestParameterJson, "isAdhoc", false)
+                || "true".equalsIgnoreCase(adhocTrue);
         cacheManager = this.getCacheManager();
         cacheManager.setRequestData(data);
     }
@@ -417,6 +443,62 @@ public class DownloadCacheManager extends com.helicalinsight.cache.manager.Cache
     public String getFileExtension() {
         return this.fileExtension;
     }
+
+    /**
+     * Materialize download to System/Temp using the <strong>same cache pipeline</strong>
+     * as CacheFilter / PrepareFormDataForAdhocDownload ({@link CacheHelper#processCache}).
+     * Does not write HttpServletResponse — file bytes are later streamed by /fileDownload.
+     */
+    public File materializeToFile() throws Exception {
+        return materializeToFile(resolveBaseAttachmentName(), false);
+    }
+
+    /**
+     * @param reportName cache report key (same as CacheFilter session requestedReport)
+     * @param refresh    force cache rebuild when true
+     */
+    public File materializeToFile(String reportName, boolean refresh) throws Exception {
+        Cache requestCache = cacheHelper.prepareCacheFromRequest(this);
+        boolean ok = Boolean.TRUE.equals(
+                cacheHelper.processCache(null, null, reportName, refresh, requestCache, this));
+        if (!ok) {
+            // Query could not be formed for cache key — fall back to direct DB materialize
+            Object rawObject = getDataFromDatabase(
+                    getQuery(getConnectionType(getConnectionId())));
+            if (!serveCachedContent(null, null, rawObject)) {
+                throw new IllegalStateException("Failed to materialize download content");
+            }
+        }
+        return requireMaterializedFile();
+    }
+
+    private File requireMaterializedFile() {
+        String path = GsonUtility.optString(this.requestParameterJson, "fileToDownload");
+        if (path == null || path.isEmpty()) {
+            throw new IllegalStateException("Download file path missing after materialize");
+        }
+        File file = new File(path);
+        if (!file.isFile()) {
+            throw new IllegalStateException("Download file was not created: " + path);
+        }
+        return file;
+    }
+
+    public String resolveAttachmentName() {
+        return resolveBaseAttachmentName() + getFileExtension();
+    }
+
+    public String resolveContentType() {
+        return this.contentType != null ? this.contentType : "application/octet-stream";
+    }
+
+    private String resolveBaseAttachmentName() {
+        if (isHCR) {
+            return ReportsUtility.getReportName(hcrReportName);
+        }
+        return ReportsUtility.resolveAttachmentBase(this.requestParameterJson);
+    }
+
     /**
      * Writes the content of a file from a FileInputStream to an OutputStream in chunks of 4096 bytes.
      *

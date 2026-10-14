@@ -59,6 +59,20 @@ jest.mock('../../../components/hi-instant-bi/components/instant-bi-response-meta
         }),
 }));
 
+jest.mock('../../../components/hi-instant-bi/components/chat-screen/chat-typing-text', () => ({
+    __esModule: true,
+    default: ({ lines = [], fallback = '' }) => {
+        const text = (Array.isArray(lines) && lines.length ? lines : [fallback])
+            .filter(Boolean)
+            .join('\n');
+        return require('react').createElement(
+            'div',
+            { 'data-testid': 'ib-typing-narrative' },
+            text
+        );
+    },
+}));
+
 jest.mock('../../../redux/actions/hreport.actions', () => ({
     changeReport: jest.fn((payload) => ({ type: 'CHANGE_REPORT', payload })),
 }));
@@ -108,7 +122,6 @@ function baseProps(overrides = {}) {
         handleDataInsight: jest.fn(),
         isOpenMode: false,
         vizDetails: { chart_name: 'Revenue Chart', plot_config: { legend: true } },
-        isConvertingChart: false,
         resolvedData: [],
         resolvedVf: null,
         id: 'chat-1',
@@ -321,13 +334,6 @@ describe('ChatTabs - Preview tab', () => {
         expect(container).toBeTruthy();
     });
 
-    test('shows the converting overlay while a conversion is running', () => {
-        renderChatTabs(baseProps({ isConvertingChart: true }));
-
-        expect(screen.getByTestId('ib-convert-chart-loading')).toBeTruthy();
-        expect(screen.getByText('Converting chart…')).toBeTruthy();
-    });
-
     test('hides filters and editing controls in open mode', () => {
         const { container } = renderChatTabs(baseProps({ isOpenMode: true }));
 
@@ -407,6 +413,7 @@ describe('ChatTabs - data insight section', () => {
 
         expect(screen.getByTestId('data-insight-section')).toBeTruthy();
         expect(screen.getByTestId('ib-data-insight-loading-bar')).toBeTruthy();
+        expect(screen.getByTestId('ib-typing-narrative')).toBeTruthy();
         expect(screen.getByText('Preparing your explanation…')).toBeTruthy();
 
         fireEvent.click(screen.getByTestId('loading-bar'));

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 
@@ -11,6 +13,32 @@ from helicalbi.prompt.SqlSuccessPrompty import success_prompt_formatted
 from helicalbi.sql.sql_retry import sql_execution_failed
 
 logger = logging.getLogger(__name__)
+
+
+def generate_sql_success_insight(
+    user_query: str,
+    sql: str,
+    metadata: dict | None = None,
+    *,
+    state: dict | None = None,
+    _invoke_llm=None,
+) -> str:
+    """SqlSuccessPrompt insight from question + SQL + metadata. Does not use result rows."""
+    formatted = success_prompt_formatted.format(
+        user_query=user_query or "",
+        sql_query=sql or "",
+        metadata=json.dumps(metadata or {}, default=str),
+    )
+    invoke = _invoke_llm
+    try:
+        if invoke is None:
+            insight, _ = invoke_llm(llm, formatted, state=state)
+        else:
+            insight, _ = invoke(formatted, state=state)
+        return str(getattr(insight, "content", insight) or "").strip()
+    except Exception:
+        logger.exception("SqlSuccess insight generation failed")
+        return ""
 
 
 class SqlExecutor:
@@ -40,17 +68,16 @@ class SqlExecutor:
             "domain": state.get("domain", []),
             "topics": state.get("topics", []),
         }
-        insight, _ = invoke_llm(
-            llm,
-            success_prompt_formatted.format(
-                user_query=user_query,
-                sql_query=sql,
-                metadata=json.dumps(metadata_to_send, default=str),
-            ),
+        insight_text = generate_sql_success_insight(
+            user_query,
+            sql,
+            metadata_to_send,
             state=state,
         )
-        state["output"] = insight.content
-        add_insight(state["thread_id"], insight.content)
+        if not insight_text:
+            return state
+        state["output"] = insight_text
+        add_insight(state["thread_id"], insight_text)
         return state
 
     def process_flow(self, state: ModelState):
