@@ -1,10 +1,15 @@
+"""Flask /interactive routes and SSE-aware fast-mode turn.
+
+JSON non-stream fast path uses :func:`helicalbi.interactive.fast_flow.run_fast_mode`.
+SSE / ``InteractiveTurn`` reuses the same session, state, cube-merge, and payload
+helpers from ``helicalbi.interactive.fast`` so the two paths stay DRY.
+"""
 import logging
 import time
 import traceback
 from typing import Any, Iterator
 
 from flask import request
-from langchain_core.messages import HumanMessage
 
 from GraphBuilderManger import (
     cube_info_sql_generator_graph,
@@ -13,20 +18,15 @@ from GraphBuilderManger import (
     sql_graph,
 )
 from helicalbi.audit.llm_usage_audit import audit_llm_usage_async
-from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.common.ChatManager import add_message, get_last_n
-from helicalbi.common.CubeInfoModel import is_cube_info_model, prepare_cube_info_model_data
-from helicalbi.common.JsonToPara import has_table_column_info, prevalidate_cube_metadata
-from helicalbi.common.LlmInvokeHelper import set_total_time_consumed
 from helicalbi.common.RequestCancellation import request_cancellation
 from helicalbi.common.app_config import is_debug
-from helicalbi.common.auth import bind_request_identity, resolve_role_profile
+from helicalbi.common.auth import bind_request_identity
 from helicalbi.controller.activity import ActivityReporter
 from helicalbi.controller.app_context import app
 from helicalbi.controller.graph_walk import GraphWalk, is_compiled_graph, iter_sql_generation
 from helicalbi.controller.helpers import (
     RequestAborted,
-    build_chat_memory_payload,
     ensure_not_aborted,
     extract_token_usage_dict,
     graph_invoke_config,
@@ -35,7 +35,6 @@ from helicalbi.controller.helpers import (
     resolve_audit_status_from_response,
     resolve_request_id,
     resolve_rm_cols_in_filter,
-    turn_state_defaults,
 )
 from helicalbi.controller.sse import SseEventWriter, respond, wants_stream
 from helicalbi.core.flows.CubeInfoFlow import CubeInfoFlow
@@ -43,15 +42,31 @@ from helicalbi.core.flows.CubeInfoSqlGenerator import CubeInfoSqlGenerator
 from helicalbi.core.flows.SqlExecutor import SqlExecutor
 from helicalbi.core.flows.SqlGenerator import SqlGenerator
 from helicalbi.interactive.auto_mode import bind_routed_interactive_mode
+from helicalbi.interactive.constants import (
+    AUDIT_ENDPOINT,
+    AUTO_LABEL_FAST,
+    AUTO_LABEL_THINK,
+    MSG_AUTO_CHOSEN,
+    MSG_AUTO_STARTED,
+    MSG_REQUEST_CANCELLED,
+    REQUEST_STATUS_ABORTED,
+    REQUEST_STATUS_ERROR,
+    REQUEST_STATUS_SUCCESS,
+    STAGE_AUTO,
+    STATUS_DONE,
+    STATUS_STARTED,
+)
+from helicalbi.interactive.fast.cube_merge import CubeInfoResultMerger
+from helicalbi.interactive.fast.payload import FastResultPayloadBuilder
+from helicalbi.interactive.fast.session import FastModelSessionLoader
+from helicalbi.interactive.fast.state_builder import FastTurnStateBuilder
 from helicalbi.interactive.modes import (
-    INTERACTIVE_MODE_FAST,
     apply_requested_mode,
     is_auto_mode,
     is_think_mode,
     resolve_interactive_mode_from_input,
 )
 from helicalbi.model.output.ChatResponse import ChatResponse
-from helicalbi.sql.SqlSanitizer import as_sql_markdown, format_sql
 from helicalbi.sql.sql_retry import execute_sql_with_retries
 
 logger = logging.getLogger(__name__)
@@ -65,7 +80,7 @@ def _sql_to_data_model(*args, **kwargs):
 
 
 class InteractiveTurn:
-    """One interactive-chat request. ``run()`` returns JSON; ``stream()`` yields SSE."""
+    """One fast interactive-chat request. ``run()`` returns JSON; ``stream()`` yields SSE."""
 
     def __init__(self, payload: dict[str, Any]) -> None:
         self.payload = payload or {}
@@ -88,12 +103,17 @@ class InteractiveTurn:
         self.walk = GraphWalk(self.reporter, self.request_id)
         self.result: Any = {}
         self.to_send: dict[str, Any] = {}
-        self.request_status = "SUCCESS"
+        self.request_status = REQUEST_STATUS_SUCCESS
         self.error_message: str | None = None
         self.request_started = time.perf_counter()
         self.md_location = ""
         self.med_file_name = ""
         self.metadata_fun_ref: dict[str, Any] = {}
+        self._sessions = FastModelSessionLoader()
+        self._states = FastTurnStateBuilder()
+        self._merger = CubeInfoResultMerger()
+        self._payloads = FastResultPayloadBuilder()
+        self._model_session = None
 
     def run(self) -> dict[str, Any]:
         self._execute()
@@ -166,39 +186,19 @@ class InteractiveTurn:
         self._build_success_payload()
 
     def _prepare_state(self) -> None:
-        helper = app().ModelLayerHelper(
-            self.session_cookie, self.model_file_name, self.location
+        """Load model session and build the initial LangGraph state bag."""
+        session = self._sessions.load(
+            session_cookie=self.session_cookie,
+            model_file_name=self.model_file_name,
+            location=self.location,
         )
-        model_data = helper.get_model_semantic_layer()
-        self.med_file_name = helper.get_metadata_layerfile()
-        self.md_location = helper.get_metadata_layerlocation()
-        actual_md = helper.get_metadata()
-        self.actual_md = actual_md
-        self.use_cube_info_flow = is_cube_info_model(model_data)
-        cube_info_prepared: dict[str, Any] = {}
-        if self.use_cube_info_flow:
-            cube_info_prepared = prepare_cube_info_model_data(model_data, actual_md)
-            cube_metadata = cube_info_prepared["cube_metadata"]
-            logger.info(
-                "Interactive chat using cube_info model flow file=%s location=%s tables=%s",
-                self.model_file_name,
-                self.location,
-                len(cube_metadata),
-            )
-        else:
-            original_cube_metadata = model_data.get("cube_metadata")
-            cube_metadata = prevalidate_cube_metadata(original_cube_metadata, actual_md)
-            if not has_table_column_info(original_cube_metadata) and cube_metadata:
-                logger.info(
-                    "Interactive chat using metadata API fallback for cube schema file=%s location=%s tables=%s",
-                    self.med_file_name,
-                    self.md_location,
-                    len(cube_metadata),
-                )
-        joins = actual_md.get("joins") or []
-        self.metadata_fun_ref = app().get_db_function_of_metadata(
-            self.session_cookie, self.med_file_name, self.md_location
-        )
+        self._model_session = session
+        self.med_file_name = session.med_file_name
+        self.md_location = session.md_location
+        self.actual_md = session.actual_md
+        self.use_cube_info_flow = session.use_cube_info_flow
+        self.cube_info_prepared = session.cube_info_prepared
+        self.metadata_fun_ref = session.metadata_fun_ref
 
         last_chats = get_last_n(self.thread_id)
         if not last_chats:
@@ -210,39 +210,15 @@ class InteractiveTurn:
             self.chat_seq_id,
             len(last_chats),
         )
-        cube = cube_info_prepared if self.use_cube_info_flow else {}
-        self.state: dict[str, Any] = {
-            **turn_state_defaults(),
-            "query": self.user_query,
-            "table_columns": [],
-            "messages": [HumanMessage(content=self.user_query, username=self.username)],
-            "session_cookie": self.session_cookie,
-            "last_chats": last_chats,
-            "user_name": self.username,
-            "thread_id": self.thread_id,
-            "reduced_para": "",
-            "cube_metadata": cube_metadata,
-            "business_metrics": cube.get("business_metrics", []),
-            "topic_mappings": cube.get("topic_mappings", []),
-            "synonyms": cube.get("synonyms", []),
-            "domain_context": cube.get("domain_context", ""),
-            "format_strings": cube.get("format_strings", {}),
-            "column_format_strings": cube.get("column_format_strings", ""),
-            "ai_instructions": cube.get("ai_instructions", {}),
-            "column_ai_instructions": cube.get("column_ai_instructions", ""),
-            "sort_orders": cube.get("sort_orders", []),
-            "column_sort_orders": cube.get("column_sort_orders", ""),
-            "use_cube_info_sql_flow": self.use_cube_info_flow,
-            "relationship_of_table": joins,
-            "dbname": actual_md["databaseName"],
-            "md_location": self.md_location,
-            "md_file_name": self.med_file_name,
-            "model_file_name": self.model_file_name,
-            "model_location": self.location,
-            "dialect": self.metadata_fun_ref["reference"],
-            "rm_cols_in_filter": self.rm_cols_in_filter,
-        }
-        self.cube_info_prepared = cube_info_prepared
+        self.state = self._states.build(
+            session=session,
+            user_query=self.user_query,
+            username=self.username,
+            session_cookie=self.session_cookie,
+            thread_id=self.thread_id,
+            last_chats=last_chats,
+            rm_cols_in_filter=self.rm_cols_in_filter,
+        )
         self.config = graph_invoke_config(self.thread_id, self.chat_seq_id)
         logger.info(
             "Interactive request received user=%s thread=%s chat_seq_id=%s requestId=%s",
@@ -253,6 +229,7 @@ class InteractiveTurn:
         )
 
     def _run_intent(self) -> Iterator[None]:
+        """Run CubeInfoFlow / main graph for domain, topics, and intent rephrase."""
         if self.use_cube_info_flow:
             logger.debug("Invoking cube_info flow for thread=%s", self.thread_id)
             self.result = CubeInfoFlow().process_flow(self.state)
@@ -260,42 +237,7 @@ class InteractiveTurn:
             yield
             prepared = self.cube_info_prepared
             if prepared:
-                logger.info("cube info prepared")
-                self.result["domain"] = prepared.get("domain") or self.result.get("domain") or []
-                self.result["topics"] = prepared.get("topics") or self.result.get("topics") or []
-                self.result["domain_context"] = (
-                    prepared.get("domain_context") or self.result.get("domain_context") or ""
-                )
-                self.result["topic_mappings"] = (
-                    prepared.get("topic_mappings") or self.result.get("topic_mappings") or []
-                )
-                self.result["synonyms"] = prepared.get("synonyms") or self.result.get("synonyms") or []
-                self.result["business_metrics"] = (
-                    prepared.get("business_metrics") or self.result.get("business_metrics") or []
-                )
-                self.result["format_strings"] = (
-                    prepared.get("format_strings") or self.result.get("format_strings") or {}
-                )
-                self.result["column_format_strings"] = (
-                    prepared.get("column_format_strings")
-                    or self.result.get("column_format_strings")
-                    or ""
-                )
-                self.result["ai_instructions"] = (
-                    prepared.get("ai_instructions") or self.result.get("ai_instructions") or {}
-                )
-                self.result["column_ai_instructions"] = (
-                    prepared.get("column_ai_instructions")
-                    or self.result.get("column_ai_instructions")
-                    or ""
-                )
-                self.result["sort_orders"] = (
-                    prepared.get("sort_orders") or self.result.get("sort_orders") or []
-                )
-                self.result["column_sort_orders"] = (
-                    prepared.get("column_sort_orders") or self.result.get("column_sort_orders") or ""
-                )
-                self.result["got_domain"] = True
+                self.result = self._merger.merge(self.result, prepared)
                 yield from self.walk.apply(app().main_graph, self.result, self.config)
                 self.result = self.walk.state
             return
@@ -358,86 +300,27 @@ class InteractiveTurn:
         self.result["last_chats"] = []
 
     def _build_success_payload(self) -> None:
-        if (
-            "sql_result" in self.result
-            and isinstance(self.result["sql_result"], dict)
-            and "data" in self.result["sql_result"]
-        ):
-            self.result["data"] = self.result["sql_result"]["data"]
-
-        sql = self.result.get("sql", "")
-        raw_sql = sql
-        formatted_sql = format_sql(sql, dialect=self.result.get("dialect"), pretty=True)
-
-        self.result["user_input"] = self.payload
-        if sql:
-            self.result["sql"] = as_sql_markdown(formatted_sql)
-
-        if not isinstance(self.result.get("viz_form_data"), dict):
-            try:
-                from helicalbi.viz.viz_model_fill import _try_sql_to_form_data
-
-                form_data = _try_sql_to_form_data(
-                    formatted_sql or raw_sql,
-                    session_cookie=self.session_cookie,
-                    md_location=self.md_location,
-                    md_file_name=self.med_file_name,
-                    dialect=self.result.get("dialect") or self.metadata_fun_ref.get("reference"),
-                    metadata=self.actual_md,
-                    catalog=self.metadata_fun_ref,
-                    rm_cols_in_filter=self.rm_cols_in_filter,
-                )
-                if form_data is None:
-                    form_data = _sql_to_data_model(
-                        formatted_sql or raw_sql,
-                        location=self.md_location,
-                        metadata_dir=self.md_location,
-                        metadata_file_name=self.med_file_name,
-                    )
-                if form_data is not None:
-                    self.result["viz_form_data"] = form_data
-            except Exception:
-                logger.exception(
-                    "Interactive data_model failed; data_model omitted "
-                    "thread=%s chat_seq_id=%s",
-                    self.thread_id,
-                    self.chat_seq_id,
-                )
-
-        set_total_time_consumed(self.result, time.perf_counter() - self.request_started)
-        chat_response = ChatResponse.from_model_state(self.result)
-        chat_response_dict = chat_response.to_dict()
-        self.to_send["mode"] = INTERACTIVE_MODE_FAST
-        self.to_send["chat_response"] = chat_response.to_interactive_client_dict()
-        if chat_response_dict.get("error"):
-            self.to_send["error"] = chat_response_dict["error"]
-
-        chat_graph_memory.add_node(
-            self.thread_id,
-            self.chat_seq_id,
-            build_chat_memory_payload(
-                chat_response=chat_response_dict,
-                sql=raw_sql,
-                dialect=self.metadata_fun_ref.get("reference", ""),
-                user_query=self.user_query,
-                user_name=self.username,
-                domain=self.result.get("domain") or [],
-                topics=self.result.get("topics") or [],
-                state=self.result if isinstance(self.result, dict) else None,
-            ),
-        )
-        logger.info(
-            "Interactive request completed user=%s thread=%s chat_seq_id=%s has_sql=%s",
-            self.username,
-            self.thread_id,
-            self.chat_seq_id,
-            bool(raw_sql),
+        """Shape the wire response and persist chat-graph memory (shared with run_fast_mode)."""
+        session = self._model_session
+        if session is None:
+            raise RuntimeError("InteractiveTurn._prepare_state must run before payload build")
+        self.to_send, self.result = self._payloads.build(
+            self.result if isinstance(self.result, dict) else {},
+            session=session,
+            data=self.payload,
+            user_query=self.user_query,
+            username=self.username,
+            session_cookie=self.session_cookie,
+            thread_id=self.thread_id,
+            chat_seq_id=self.chat_seq_id,
+            request_started=self.request_started,
+            rm_cols_in_filter=self.rm_cols_in_filter,
         )
 
     def _mark_aborted(self) -> None:
         logger.info("Interactive request aborted for requestId=%s", self.request_id)
-        self.request_status = "ABORTED"
-        self.error_message = "Request has been cancelled."
+        self.request_status = REQUEST_STATUS_ABORTED
+        self.error_message = MSG_REQUEST_CANCELLED
         self.to_send["messages"] = []
         self.to_send["error"] = self.error_message
         self.to_send["aborted"] = True
@@ -449,7 +332,7 @@ class InteractiveTurn:
 
     def _mark_error(self, error: Exception) -> None:
         logger.exception("Error while processing interactive request")
-        self.request_status = "ERROR"
+        self.request_status = REQUEST_STATUS_ERROR
         self.error_message = str(error)
         self.to_send["messages"] = []
         self.result = self.result if isinstance(self.result, dict) else {}
@@ -472,7 +355,7 @@ class InteractiveTurn:
             self.error_message,
         )
         audit_llm_usage_async(
-            endpoint="/interactive",
+            endpoint=AUDIT_ENDPOINT,
             user_id=self.user_id,
             session_cookie=self.session_cookie,
             user_query=self.user_query,
@@ -501,17 +384,13 @@ class RoutedInteractiveTurn:
             (self.payload.get("input") or {}), self.payload
         )
         if is_auto_mode(requested):
-            yield writer.progress(
-                "auto",
-                "started",
-                "Checking how complex this question is…",
-            )
+            yield writer.progress(STAGE_AUTO, STATUS_STARTED, MSG_AUTO_STARTED)
             _requested, routed = bind_routed_interactive_mode(self.payload)
-            chosen = "Think" if is_think_mode(routed) else "Fast"
+            chosen = AUTO_LABEL_THINK if is_think_mode(routed) else AUTO_LABEL_FAST
             yield writer.progress(
-                "auto",
-                "done",
-                f"This looks like a {chosen} question. Using {chosen} mode.",
+                STAGE_AUTO,
+                STATUS_DONE,
+                MSG_AUTO_CHOSEN.format(chosen=chosen),
             )
         else:
             _requested, routed = bind_routed_interactive_mode(self.payload)

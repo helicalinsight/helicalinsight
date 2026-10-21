@@ -11,8 +11,8 @@ import LoadingBar from '../../../common/components/hi-loading-bar'
 import HIIcon from '../../../common/icons/hi-icons'
 import notify from '../../../hi-notifications/notify'
 import InstantBITooltip from '../../instant-bi-tooltip-title'
-import { cleanSQL, getInstantBIAgentSubject } from '../../utils/common-utils'
-import { convertInstantBIChart, loadInstantBIDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import { cleanSQL, getInstantBIAgentSubject, resolveInstantBiSql } from '../../utils/common-utils'
+import { loadInstantBIDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
 import IBSpace from '../ib-space/ib-space'
 import InstantChartView from "./chart-view"
 import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
@@ -107,8 +107,6 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
   const [hasPreviewError, setHasPreviewError] = useState(false);
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
   const [dataInsightTrail, setDataInsightTrail] = useState([]);
-  const [isConvertingChart, setIsConvertingChart] = useState(false);
-  const [vfEditorLaunch, setVfEditorLaunch] = useState(null); // { code } | null
   const messageRef = useRef(null);
   const dataInsightApiRef = useRef(null);
   const dataInsightAbortedRef = useRef(false);
@@ -137,7 +135,12 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     metadata: loadedMetadata = [],
   } = effectiveLoadedChatResponse || {};
   const resolvedVf = loadedViz?.vf_template ? atob(loadedViz.vf_template) : vf;
-  const resolvedSql = loadedSqlDetails?.raw_sql || sql?.raw_sql || sql || "";
+  const cleanedSql = resolveInstantBiSql({
+    loadedRawSql: loadedSqlDetails?.raw_sql,
+    messageSql: sql,
+    fullChatResponse,
+  });
+  const resolvedSql = cleanedSql ? `\`\`\`sql\n${cleanedSql}\n\`\`\`` : "";
   const resolvedText = loadedSummary?.insight || chatItem?.text || "";
   const resolvedData = effectiveLoadedChatResponse
     ? (Array.isArray(loadedData) ? loadedData : [])
@@ -149,7 +152,6 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
   const sqlDetails = resolvedFullChatResponse?.sql || {}
   const vizDetails = resolvedFullChatResponse?.viz || {}
   const chartSettings = vizDetails?.settings || {}
-  const similarChart = vizDetails?.similar_chart || []
   const tokenUsage = resolvedFullChatResponse?.token_usage || {}
   const dataInsightContent =
     resolvedFullChatResponse?.data_insight?.insight || messageDataInsight || "";
@@ -166,7 +168,6 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
   const hasPreviewContent =
     Boolean(resolvedVf?.trim()) ||
     (Array.isArray(resolvedData) && resolvedData.length > 0);
-  const canEditPreferences = !isOpenMode && !chatItem?.error && !isFailedSequence && !isPendingScrollLoad && !isLoadingChat;
   const showMaximizeButton = activeTab === "preview" && !chatItem?.error && !isFailedSequence && !hasPreviewError && !isLoadingChat;
   const showDataInsightButton = activeTab === "preview" && !chatItem?.error && !hasPreviewError && !isFailedSequence && !isAbortedSequence && !isPendingScrollLoad && !isLoadingChat && !isLoadingDataInsight;
 
@@ -227,54 +228,6 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     dataInsightApiRef.current?.abort();
     dataInsightApiRef.current = null;
     setIsLoadingDataInsight(false);
-  };
-
-  const handleSelectSimilarChart = (chartType) => {
-    if (
-      !chartType ||
-      !dispatch ||
-      !reportId ||
-      !chatSequenceId ||
-      !activeChatID ||
-      isConvertingChart
-    ) {
-      return;
-    }
-    const currentName = vizDetails?.chart_name || "";
-    if (
-      String(currentName).toLowerCase().replace(/\s+/g, "_") ===
-      String(chartType).toLowerCase().replace(/\s+/g, "_")
-    ) {
-      return;
-    }
-
-    const vfTemplate =
-      vizDetails?.vf_template ||
-      loadedViz?.vf_template ||
-      (resolvedVf ? btoa(resolvedVf) : "");
-
-    if (!vfTemplate) {
-      Notify.error({
-        type: "Frontend",
-        message: "Required convert chart data is missing.",
-      });
-      return;
-    }
-
-    setIsConvertingChart(true);
-    convertInstantBIChart({
-      dispatch,
-      reportId,
-      chatSequenceId,
-      chatId: activeChatID,
-      vfTemplate,
-      selectedChart: chartType,
-      Notify,
-      onComplete: ({ openVfEditor, vfCode } = {}) => {
-        setIsConvertingChart(false);
-        if (openVfEditor) setVfEditorLaunch({ code: vfCode || "" });
-      },
-    });
   };
 
   const handleDataInsight = () => {
@@ -369,13 +322,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
       workingFallback: "No workings recorded for this response.",
       streamingEnabled: streamResponse,
     }),
-    similarChart,
     vizDetails,
-    canEditPreferences,
-    isConvertingChart,
-    vfEditorLaunch,
     resolvedVf,
-    handleSelectSimilarChart,
     reportId,
     chatSequenceId,
     resolvedData,
@@ -443,12 +391,14 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                 planMessageId={chatItem.id}
                 planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
                 isOpenMode={isOpenMode}
+                isEditMode={isEditMode}
                 isStreaming
                 dispatch={dispatch}
                 activeReport={activeReport}
                 llmActivityDetails={chatItem.llmActivityDetails || null}
                 plan={chatItem.plan || null}
                 dashboardModel={chatItem.dashboardModel || null}
+                dataInsight={chatItem.dataInsight || chatItem.fullChatResponse?.data_insight?.insight || ""}
                 onShowQuestion={(question, index, stepItem) =>
                   onShowThinkQuestion?.(question, index, chatItem, stepItem)
                 }
@@ -465,11 +415,13 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                 planMessageId={chatItem.id}
                 planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
                 isOpenMode={isOpenMode}
+                isEditMode={isEditMode}
                 dispatch={dispatch}
                 activeReport={activeReport}
                 llmActivityDetails={chatItem.llmActivityDetails || null}
                 plan={chatItem.plan || null}
                 dashboardModel={chatItem.dashboardModel || null}
+                dataInsight={chatItem.dataInsight || chatItem.fullChatResponse?.data_insight?.insight || ""}
                 onShowQuestion={(question, index, stepItem) =>
                   onShowThinkQuestion?.(question, index, chatItem, stepItem)
                 }

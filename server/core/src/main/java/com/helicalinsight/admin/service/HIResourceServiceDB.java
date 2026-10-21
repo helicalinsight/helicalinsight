@@ -217,6 +217,7 @@ public interface HIResourceServiceDB {
     HIResourceOfActiveUser getAllResources();
     HIResourceOfActiveUser getResourceOfActiveUser();
     HIResourceOfActiveUser getAllResourcesWithExtensions(List<String> extension);
+    HIResourceOfActiveUser findAllResourcesUnscoped();
     HIResourceEFWSR getHIResourceEFWSRByResourcesId(Integer resourceId);
     List<HIResourceEFWSR> getAllHIResourceEFWSRByResourcesIds(List<Integer> resourceIds);
 

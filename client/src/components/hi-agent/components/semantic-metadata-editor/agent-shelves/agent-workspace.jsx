@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Row, Empty, Typography } from "antd";
 import { PushpinFilled, PushpinOutlined } from "@ant-design/icons";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { useDispatch, useSelector } from "react-redux";
 import { Cube } from "../../../../hi-cube/cube";
+import { useCubeEditorBindings } from "../../../../hi-cube/cubeEditorContext";
 import { useWindowSize } from "../../../../../customHooks/useWindowSize";
 import { updateAgentGridItemsLayout } from "../../../../../redux/actions/agent.actions";
 import { AgentMetadataShelf } from "../../agent-metadata-shelf";
@@ -12,8 +13,11 @@ import {
   ToolShelf,
   TOOL_BUSINESS_VIEW,
   TOOL_AGENT_JSON,
+  TOOL_DIAGNOSTICS,
 } from "./tool-shelf";
 import { AgentJsonPanel } from "./agent-json-panel";
+import { DiagnosticCapabilitiesPanel } from "./diagnostic-capabilities-panel";
+import { setCubeFieldsData } from "../../../../../redux/actions/cube.actions";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import "./agent-shelves.scss";
@@ -92,10 +96,108 @@ export function AgentWorkspace({
   hasUnsavedJsonChanges = false,
 }) {
   const dispatch = useDispatch();
+  const { cubeState: scopedCubeState, dispatch: editorDispatch } =
+    useCubeEditorBindings();
   const layouts = useSelector((state) => state.agent.gridItemsLayout);
   const metadataDetails = useSelector(
     (state) => state.agent.metadataDetails || {},
   );
+  const reduxCubeFieldsData = useSelector(
+    (state) => state.cube?.cubeFieldsData || {},
+  );
+  const cubeFieldsData =
+    scopedCubeState?.cubeFieldsData || reduxCubeFieldsData;
+
+  const [capabilitiesDraft, setCapabilitiesDraft] = useState(
+    () => cubeFieldsData?.diagnosticCapabilities || [],
+  );
+  const capabilitiesDraftRef = useRef(capabilitiesDraft);
+  capabilitiesDraftRef.current = capabilitiesDraft;
+  // Cube field updates clone diagnosticCapabilities. A clone of the list from
+  // before this edit must not replace the capability the user just added.
+  const echoGuardRef = useRef(null);
+  const modelSignature = [
+    (cubeFieldsData?.children || []).map((child) => child?.key).join("\0"),
+    (cubeFieldsData?.businessViewEntries || [])
+      .map((entry) => entry?.key)
+      .join("\0"),
+  ].join("\n");
+  const modelSignatureRef = useRef(modelSignature);
+
+  useEffect(() => {
+    const incoming = Array.isArray(cubeFieldsData?.diagnosticCapabilities)
+      ? cubeFieldsData.diagnosticCapabilities
+      : [];
+    const modelReplaced = modelSignature !== modelSignatureRef.current;
+    modelSignatureRef.current = modelSignature;
+    // Opening another model assigns new field keys. Take its capability list,
+    // including an empty one, instead of keeping the previous model.
+    if (modelReplaced) {
+      echoGuardRef.current = null;
+      capabilitiesDraftRef.current = incoming;
+      setCapabilitiesDraft(incoming);
+      return;
+    }
+    if (!Array.isArray(cubeFieldsData?.diagnosticCapabilities)) {
+      return;
+    }
+    const sameList = (left, right) =>
+      JSON.stringify(left || []) === JSON.stringify(right || []);
+    const guarded = echoGuardRef.current;
+    if (
+      guarded &&
+      sameList(incoming, guarded) &&
+      !sameList(incoming, capabilitiesDraftRef.current)
+    ) {
+      return;
+    }
+    echoGuardRef.current = null;
+    setCapabilitiesDraft(incoming);
+  }, [cubeFieldsData, modelSignature]);
+
+  const customOperationsRef = useRef(
+    Array.isArray(cubeFieldsData?.customAnalyticalOperations)
+      ? cubeFieldsData.customAnalyticalOperations
+      : [],
+  );
+  useEffect(() => {
+    if (Array.isArray(cubeFieldsData?.customAnalyticalOperations)) {
+      customOperationsRef.current = cubeFieldsData.customAnalyticalOperations;
+    }
+  }, [cubeFieldsData?.customAnalyticalOperations]);
+  const handleCapabilitiesChange = (next) => {
+    const capabilities = Array.isArray(next) ? next : [];
+    echoGuardRef.current = Array.isArray(cubeFieldsData?.diagnosticCapabilities)
+      ? cubeFieldsData.diagnosticCapabilities
+      : [];
+    capabilitiesDraftRef.current = capabilities;
+    setCapabilitiesDraft(capabilities);
+    // Replace the editor cube record so save reads the same list the pane shows.
+    editorDispatch?.(
+      setCubeFieldsData({
+        mode: "edit",
+        value: {
+          ...cubeFieldsData,
+          diagnosticCapabilities: capabilities,
+          customAnalyticalOperations: customOperationsRef.current,
+        },
+      }),
+    );
+  };
+  const handleCustomOperationsChange = (next) => {
+    const operations = Array.isArray(next) ? next : [];
+    customOperationsRef.current = operations;
+    editorDispatch?.(
+      setCubeFieldsData({
+        mode: "edit",
+        value: {
+          ...cubeFieldsData,
+          diagnosticCapabilities: capabilitiesDraftRef.current,
+          customAnalyticalOperations: operations,
+        },
+      }),
+    );
+  };
   const isMetadataLoaded = Boolean(
     metadataDetails.path && metadataDetails.fileName,
   );
@@ -245,11 +347,14 @@ export function AgentWorkspace({
                   onSelect={setActiveTool}
                   disabledTools={{
                     [TOOL_BUSINESS_VIEW]: !isMetadataLoaded,
+                    [TOOL_DIAGNOSTICS]: !isMetadataLoaded,
                     [TOOL_AGENT_JSON]: !isMetadataLoaded,
                   }}
                   disabledToolTips={{
                     [TOOL_BUSINESS_VIEW]:
                       "Connect a metadata file to enable Business View",
+                    [TOOL_DIAGNOSTICS]:
+                      "Connect a metadata file before configuring Diagnostic Capabilities",
                     [TOOL_AGENT_JSON]:
                       "Connect a metadata file before opening Spec",
                   }}
@@ -275,18 +380,54 @@ export function AgentWorkspace({
                     }
                   />
                 </div>
-              ) : activeTool === TOOL_AGENT_JSON ? (
-                <AgentJsonPanel
-                  value={jsonText}
-                  onChange={onJsonChange}
-                  onSave={onSaveJson}
-                  onCopy={onCopyJson}
-                  hasUnsavedChanges={hasUnsavedJsonChanges}
-                />
               ) : (
-                <div className="agent-workspace-business-view">
-                  <Cube showBusinessFields />
-                </div>
+                <>
+                  <div
+                    className="agent-workspace-diagnostics-view"
+                    style={{
+                      display: activeTool === TOOL_DIAGNOSTICS ? "flex" : "none",
+                      flexDirection: "column",
+                      height: "100%",
+                      minHeight: 0,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <DiagnosticCapabilitiesPanel
+                      active={activeTool === TOOL_DIAGNOSTICS}
+                      cubeFieldsData={{
+                        ...cubeFieldsData,
+                        diagnosticCapabilities: capabilitiesDraft,
+                      }}
+                      onCapabilitiesChange={handleCapabilitiesChange}
+                      onCustomOperationsChange={handleCustomOperationsChange}
+                      onNavigateToBusinessView={() => setActiveTool(TOOL_BUSINESS_VIEW)}
+                    />
+                  </div>
+                  <div
+                    className="agent-workspace-json-view"
+                    style={{
+                      display: activeTool === TOOL_AGENT_JSON ? "block" : "none",
+                      height: "100%",
+                    }}
+                  >
+                    <AgentJsonPanel
+                      value={jsonText}
+                      onChange={onJsonChange}
+                      onSave={onSaveJson}
+                      onCopy={onCopyJson}
+                      hasUnsavedChanges={hasUnsavedJsonChanges}
+                    />
+                  </div>
+                  <div
+                    className="agent-workspace-business-view"
+                    style={{
+                      display: activeTool === TOOL_BUSINESS_VIEW ? "block" : "none",
+                      height: "100%",
+                    }}
+                  >
+                    <Cube showBusinessFields />
+                  </div>
+                </>
               )}
             </div>
           </div>

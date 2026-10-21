@@ -78,6 +78,7 @@ const actionCreators = {
     updateCustomChart: jest.fn((payload) => ({ type: 'UPDATE_CUSTOM_CHART', payload })),
     updateSelectedType: jest.fn((payload) => ({ type: 'UPDATE_SELECTED_TYPE', payload })),
     updateSubVizType: jest.fn((payload) => ({ type: 'UPDATE_SUB_VIZ_TYPE', payload })),
+    toggleCombineCharts: jest.fn((payload) => ({ type: 'TOGGLE_COMBINE_CHARTS', payload })),
     setHReportLoading: jest.fn((payload) => ({ type: 'SET_HREPORT_LOADING', payload })),
     updateAggregations: jest.fn((payload) => ({ type: 'UPDATE_AGGREGATIONS', payload })),
     toggleFloating: jest.fn((payload) => ({ type: 'TOGGLE_FLOATING', payload })),

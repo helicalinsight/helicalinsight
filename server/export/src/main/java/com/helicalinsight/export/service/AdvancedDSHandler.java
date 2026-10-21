@@ -107,6 +107,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					if (securityList != null && !securityList.isEmpty()) {
 						wrapper.getSecurities().put(sqlJdbc.getHiEfwdConnection().getId(), securityList);
 					}
+					if (sqlJdbc.getHiEfwdConnection() != null) {
+						recycleBinHandler.writeEfwdConnection(sqlJdbc.getHiEfwdConnection().getId(), dir, manifest);
+					}
 				}
 			}
 			if (groovyConnections != null && !groovyConnections.isEmpty()) {
@@ -116,6 +119,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					List<HIEfwdConnSecurityDTO> securityList = shareHandler.getAdvancedConnectionShare(groovy.getHiEfwdConnection().getId());
 					if (securityList != null && !securityList.isEmpty()) {
 						wrapper.getSecurities().put(groovy.getHiEfwdConnection().getId(), securityList);
+					}
+					if (groovy.getHiEfwdConnection() != null) {
+						recycleBinHandler.writeEfwdConnection(groovy.getHiEfwdConnection().getId(), dir, manifest);
 					}
 				}
 			}
@@ -164,6 +170,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 				if (securityList != null && !securityList.isEmpty()) {
 					wrapper.getSecurities().put(sqlJdbc.getHiEfwdConnection().getId(), securityList);
 				}
+				if (sqlJdbc.getHiEfwdConnection() != null) {
+					recycleBinHandler.writeEfwdConnection(sqlJdbc.getHiEfwdConnection().getId(), dir, manifest);
+				}
 			}
 		}
 		if (groovyConnections != null && !groovyConnections.isEmpty()) {
@@ -173,6 +182,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 				List<HIEfwdConnSecurityDTO> securityList = shareHandler.getAdvancedConnectionShare(groovy.getHiEfwdConnection().getId());
 				if (securityList != null && !securityList.isEmpty()) {
 					wrapper.getSecurities().put(groovy.getHiEfwdConnection().getId(), securityList);
+				}
+				if (groovy.getHiEfwdConnection() != null) {
+					recycleBinHandler.writeEfwdConnection(groovy.getHiEfwdConnection().getId(), dir, manifest);
 				}
 			}
 		}
@@ -222,6 +234,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 
 				HIEfwdConnection existingConnection = connectionService.findConnectionByLookup(lookup);
 
+				boolean applied = false;
 				if (existingConnection == null) {
 					efwdConnection.setDeleted(false);
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
@@ -231,12 +244,13 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setCreatedDate(new Date());
 					efwd.setLastUpdatedTime(new Date());
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = shareUtils.resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj, context);
 					efwd.setCreatedBy(createdBy);
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else if (Conflict.UPDATE.equalsIgnoreCase(onConflict)) {
 					context.recover(existingConnection);
 					connectionService.edit(existingConnection);
@@ -258,11 +272,11 @@ public class AdvancedDSHandler extends DatasourceHandler {
 						connectionService.save(conn);
 					}
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else {
 					// just skip
 				}
-				context.setProcessed(efwdConnection.getType(), oldId);
-				context.putEfwdConnection(oldId, efwdConnection);
+				registerEfwdConnection(oldId, efwdConnection, applied);
 			}
 
 			for (JsonNode groovyNode : groovyArray) {
@@ -287,6 +301,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 
 				HIEfwdConnection existingConnection = connectionService.findConnectionByLookup(lookup);
 
+				boolean applied = false;
 				if (existingConnection == null) {
 					efwdConnection.setDeleted(false);
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
@@ -297,7 +312,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = shareUtils.resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj, context);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
@@ -305,6 +320,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					groovy.setHiEfwdConnection(efwdConnection);
 					connectionService.save(groovy);
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else if (Conflict.UPDATE.equalsIgnoreCase(onConflict)) {
 					context.recover(existingConnection);
 					connectionService.edit(existingConnection);
@@ -328,9 +344,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 						connectionService.editEFWDConnection(groovy);
 					}
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				}
-				context.setProcessed(efwdConnection.getType(), oldId);
-				context.putEfwdConnection(oldId, efwdConnection);
+				registerEfwdConnection(oldId, efwdConnection, applied);
 			}
 		}
 
@@ -388,6 +404,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 
 				HIEfwdConnection existingConnection = connectionService.findConnectionByLookup(lookup);
 
+				boolean applied = false;
 				if (existingConnection == null) {
 					efwdConnection.setDeleted(false);
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
@@ -398,13 +415,14 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = shareUtils.resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj, context);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
 					connectionService.saveEFWDConnection(efwdConnection);
 					connectionService.save(conn);
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else if (Conflict.UPDATE.equalsIgnoreCase(onConflict)) {
 					context.recover(existingConnection);
 					connectionService.edit(existingConnection);
@@ -426,13 +444,13 @@ public class AdvancedDSHandler extends DatasourceHandler {
 						connectionService.save(conn);
 					}
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else {
 					// just skip
 				}
 				String mappingString = "" + oldId + ":" + efwdConnection.getId();
 				oldMappingNewMapping.add(mappingString);
-				context.setProcessed(efwdConnection.getType(), oldId);
-				context.putEfwdConnection(oldId, efwdConnection);
+				registerEfwdConnection(oldId, efwdConnection, applied);
 			}
 
 			for (JsonNode groovyNode : groovyArray) {
@@ -460,6 +478,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 
 				HIEfwdConnection existingConnection = connectionService.findConnectionByLookup(lookup);
 
+				boolean applied = false;
 				if (existingConnection == null) {
 					efwdConnection.setDeleted(false);
 					HIEFWD efwd =  efwdConnection.getHiResourceEFWD();
@@ -470,7 +489,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					efwd.setLastUpdatedTime(new Date());
 					
 					Object createdByObj =  efwd.getCreatedBy();
-					User createdBy = shareUtils.resolveUser(createdByObj);
+					User createdBy = shareUtils.resolveUser(createdByObj, context);
 					efwd.setCreatedBy(createdBy);
 					
 					connectionService.saveHIResourceEFWD(efwd, parentResource.getResourceURL());
@@ -478,6 +497,7 @@ public class AdvancedDSHandler extends DatasourceHandler {
 					groovy.setHiEfwdConnection(efwdConnection);
 					connectionService.save(groovy);
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				} else if (Conflict.UPDATE.equalsIgnoreCase(onConflict)) {
 					context.recover(existingConnection);
 					connectionService.edit(existingConnection);
@@ -501,9 +521,9 @@ public class AdvancedDSHandler extends DatasourceHandler {
 						connectionService.editEFWDConnection(groovy);
 					}
 					handleSecurity(securities, efwdConnection.getId(), oldId);
+					applied = true;
 				}
-				context.setProcessed(efwdConnection.getType(), oldId);
-				context.putEfwdConnection(oldId, efwdConnection);
+				registerEfwdConnection(oldId, efwdConnection, applied);
 				String mappingString = "" + oldId + ":" + efwdConnection.getId();
 				oldMappingNewMapping.add(mappingString);
 
@@ -568,8 +588,16 @@ public class AdvancedDSHandler extends DatasourceHandler {
 		if (securities != null && !securities.isEmpty()) {
 			List<HIEfwdConnSecurityDTO> securityArray = securities.get(oldId);
 			if (securityArray != null && !securityArray.isEmpty()) {
-				shareHandler.importEFWDConnectionPermissions(id, securityArray);
+				shareHandler.importEFWDConnectionPermissions(id, securityArray, context);
 			}
+		}
+	}
+
+	private void registerEfwdConnection(Integer oldId, HIEfwdConnection efwdConnection, boolean applied) {
+		context.setProcessed(efwdConnection.getType(), oldId);
+		context.putEfwdConnection(oldId, efwdConnection);
+		if (applied) {
+			recycleBinHandler.importEfwdConnection(oldId, efwdConnection, context);
 		}
 	}
 

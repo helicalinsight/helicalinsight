@@ -34,6 +34,8 @@ import com.helicalinsight.admin.model.HIResourceMetadata;
 import com.helicalinsight.admin.model.HIResourceMetadataDTO;
 import com.helicalinsight.admin.model.MetadataDatabases;
 import com.helicalinsight.datasource.model.GlobalConnections;
+import com.helicalinsight.export.dto.ImportRequest;
+import com.helicalinsight.export.dto.ResourceOptions;
 import com.helicalinsight.export.handler.ImportManagerContext;
 import com.helicalinsight.export.handler.importres.AbstractResourceImportHandler;
 import com.helicalinsight.export.handler.importres.MetadataUpdateHandler;
@@ -61,6 +63,13 @@ public class MetadataUpdateHandlerTest {
 		GlobalConnections global = mock(GlobalConnections.class);
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		
+		ResourceOptions options = new ResourceOptions();
+		options.setDataSource(true);
+		options.setSchedules(true);
+		options.setShare(true);
+		
+		ImportRequest request = new ImportRequest();
+		request.setOptions(options);
 		Field field  = AbstractResourceImportHandler.class.getDeclaredField("mdServiceDb");
 		field.setAccessible(true);
 		field.set(metadataUpdateHandler, mdServiceDb);
@@ -84,6 +93,7 @@ public class MetadataUpdateHandlerTest {
 		when(db.getName()).thenReturn("name");
 		when(db.getCatalog()).thenReturn("catlog");
 		when(db.getSchema()).thenReturn("schema");
+		when(context.getRequest()).thenReturn(request);
 		
 		when(dbDto.getName()).thenReturn("name");
 		when(dbDto.getCatalog()).thenReturn("catlog");
@@ -132,6 +142,13 @@ public class MetadataUpdateHandlerTest {
 		HIEfwdConnection hiEfwdConnection = mock(HIEfwdConnection.class);
 		ImportManagerContext context = mock(ImportManagerContext.class);
 		
+		ResourceOptions options = new ResourceOptions();
+		options.setDataSource(true);
+		options.setSchedules(true);
+		options.setShare(true);
+		
+		ImportRequest request = new ImportRequest();
+		request.setOptions(options);
 		Field field  = AbstractResourceImportHandler.class.getDeclaredField("mdServiceDb");
 		field.setAccessible(true);
 		field.set(metadataUpdateHandler, mdServiceDb);
@@ -158,6 +175,7 @@ public class MetadataUpdateHandlerTest {
 		when(dbDto.getCatalog()).thenReturn("catlog");
 		when(dbDto.getSchema()).thenReturn("schema");
 		
+		when(context.getRequest()).thenReturn(request);
 		
 		when(db.getName()).thenReturn("name");
 		when(db.getCatalog()).thenReturn("catlog");
@@ -199,6 +217,13 @@ public class MetadataUpdateHandlerTest {
 		HIMetadataConnectionEFWD hiMetadataConnectionEFWD = mock(HIMetadataConnectionEFWD.class);
 		HIEfwdConnection hiEfwdConnection = mock(HIEfwdConnection.class);
 		ImportManagerContext context = mock(ImportManagerContext.class);
+		ResourceOptions options = new ResourceOptions();
+		options.setDataSource(true);
+		options.setSchedules(true);
+		options.setShare(true);
+		
+		ImportRequest request = new ImportRequest();
+		request.setOptions(options);
 		
 		Field field  = AbstractResourceImportHandler.class.getDeclaredField("mdServiceDb");
 		field.setAccessible(true);
@@ -231,6 +256,7 @@ public class MetadataUpdateHandlerTest {
 		when(db.getCatalog()).thenReturn("catlog").thenReturn("catlog2");
 		when(db.getSchema()).thenReturn("schema").thenReturn("schema2");
 		
+		when(context.getRequest()).thenReturn(request);
 		
 		when(fileMetadata.getHiMetadataConnections()).thenReturn(connectionDTOs);
 		when(hiMetadataConnectionDTO.getMetadataDatabases()).thenReturn(metadataDatabaseDTO);

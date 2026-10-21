@@ -290,6 +290,8 @@
         <intercept-url pattern="/exportData*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/downloadReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/fileDownload*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/downloadEvents*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/updateEFWTemplate*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
@@ -323,6 +325,8 @@
                        access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/importFile*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+
+        <intercept-url pattern="/uploadChunk*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/workflow*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 

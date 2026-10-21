@@ -106,6 +106,10 @@ def test_decision_tree_picks_one_strategy():
     assert forced["id"] == STRATEGY_MECE
     assert forced["selection"]["source"] == "hint"
 
+    retired = select_strategy("any question", persona=ceo, hint="so_what_contextual_anchoring")
+    assert retired["id"] == STRATEGY_INVERTED_PYRAMID
+    assert retired["template_id"] == "executive-kpi-first"
+
 
 def test_fallback_plan_uses_inverted_pyramid_for_executives():
     persona = resolve_persona(["CEO"])
@@ -219,17 +223,20 @@ def test_plan_prompt_allows_similar_line_adaptation():
     assert "{grounding_pack}" in CONTEXT_PLAN_PROMPT
     assert "semantic model" in CONTEXT_PLAN_PROMPT.lower()
     assert "poor fit" in CONTEXT_PLAN_PROMPT
-    assert "structural only" in CONTEXT_PLAN_PROMPT
+    assert "layout suggestion" in CONTEXT_PLAN_PROMPT
     assert "Never copy" in CONTEXT_PLAN_PROMPT
     assert "average order value" in CONTEXT_PLAN_PROMPT.lower()
     assert "measure_hints" in CONTEXT_PLAN_PROMPT
-    assert "Think across relations" in CONTEXT_PLAN_PROMPT
+    assert "think across relations" in CONTEXT_PLAN_PROMPT
     assert "same-table" in CONTEXT_PLAN_PROMPT
     assert "{sql_shape_rules}" in CONTEXT_PLAN_PROMPT
+    assert "{scope_lock}" in CONTEXT_PLAN_PROMPT
     assert "{chart_limit}" in CONTEXT_PLAN_PROMPT
     from helicalbi.sql_agent.config import THINK_FLAT_SQL_PLAN_RULES
 
-    assert "add extra" in THINK_FLAT_SQL_PLAN_RULES
+    assert "drill-down" in THINK_FLAT_SQL_PLAN_RULES
+    assert "only when" in THINK_FLAT_SQL_PLAN_RULES
+    assert "value found" in THINK_FLAT_SQL_PLAN_RULES
     assert "subquery" in THINK_FLAT_SQL_PLAN_RULES
 
 
@@ -249,6 +256,60 @@ def test_strategy_prompt_omits_question_templates():
     assert "Independent drivers" not in block
     assert "band=" in block
     assert "viz=" in block
+
+
+def test_think_plan_frames_questions_with_create_agent(monkeypatch):
+    parsed = InvestigationPlan(
+        persona=PERSONA_TACTICAL,
+        tier="tactical",
+        strategies=[STRATEGY_MECE],
+        strategy_id=STRATEGY_MECE,
+        domain="Should Not Stick",
+        topics=["Other Topic"],
+        charts=[
+            DashboardChartSpec(
+                title="Travel Cost by Year",
+                question="What is travel cost by year?",
+                viz_hint="line",
+                topic="Trip Economics",
+            )
+        ],
+    )
+    captured: dict = {}
+
+    class _Agent:
+        def invoke(self, payload):
+            captured["messages"] = payload["messages"]
+            return {"structured_response": parsed, "messages": []}
+
+    def fake_create_agent(model, tools=None, **kwargs):
+        captured["tools"] = tools
+        captured["system"] = kwargs.get("system_prompt")
+        captured["response_format"] = kwargs.get("response_format")
+        return _Agent()
+
+    monkeypatch.setattr("langchain.agents.create_agent", fake_create_agent)
+    monkeypatch.setattr(
+        "helicalbi.sql_agent.nodes.investigation_planner.invoke_agent_model",
+        lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("dashboard planner should not run")),
+    )
+    persona = resolve_persona(["Marketing Manager"])
+    plan = build_investigation_plan(
+        "How has travel spend moved?",
+        persona=persona,
+        selected_domains=["Travel"],
+        selected_topics=["Trip Economics"],
+        grounding_pack="TOPIC Trip Economics\n  components: Travel Cost, Year",
+        flat_sql=True,
+        max_charts=4,
+    )
+    assert captured["tools"] is None
+    assert captured["response_format"] is InvestigationPlan
+    assert "already finalized" in captured["system"]
+    assert "Trip Economics" in captured["messages"][0].content
+    assert plan.domain == "Travel"
+    assert plan.topics == ["Trip Economics"]
+    assert plan.charts[0].question == "What is travel cost by year?"
 
 
 def test_build_investigation_plan_falls_back_when_llm_fails(monkeypatch):

@@ -96,9 +96,13 @@ public class FolderImportHandler extends AbstractResourceImportHandler {
 		if (dsExists) {
 			String dsFileName = manifestUtils.getDatasource(context.removeDestination(resource.getResourceURL()), manifest);
 			if (null != dsFileName) {
+				context.addLog(resource.getResourceURL(), "[datasource] Importing folder datasource…");
 				DatasourceHandler dsHandler = DatasourceFactory.getHandler("folder");
 				dsHandler.setContext(context);
 				dsHandler.importResource(null, dsFileName, conflictMode);
+				context.addLog(resource.getResourceURL(), "[datasource] Folder datasource imported.");
+			} else {
+				context.addLog(resource.getResourceURL(), "[datasource] No datasource sidecar found; skipped.");
 			}
 		}
 		if(!context.getResourceUrlMap().containsKey(folderURL)) {

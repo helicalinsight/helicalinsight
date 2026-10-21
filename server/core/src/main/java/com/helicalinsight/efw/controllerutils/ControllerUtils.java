@@ -89,6 +89,13 @@ public class ControllerUtils {
 		return "XMLHttpRequest".equals(request.getHeader("X-Requested-With"));
 	}
 
+	public static boolean isResumableDownloadPreparePath(String servletPath) {
+		if (servletPath == null) {
+			return false;
+		}
+		String path = servletPath.toLowerCase();
+		return path.equals("/downloadreport") || path.equals("/exportresource");
+	}
 	/**
 	 * Checks whether the parameters are null or empty strings. If an empty or null
 	 * parameter is found then RequiredParameterIsNullException is thrown with the

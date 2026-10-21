@@ -200,6 +200,25 @@ export const cleanSQL = (sqlText = "") => {
     .trim();
 };
 
+const sqlTextFrom = (value) => {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") return value.raw_sql || "";
+  return "";
+};
+
+/** SQL shown in open/edit. The loaded message keeps `sql` empty and stores the statement on fullChatResponse. */
+export const resolveInstantBiSql = ({
+  loadedRawSql = "",
+  messageSql = "",
+  fullChatResponse = {},
+} = {}) => {
+  const fromResponse = sqlTextFrom(fullChatResponse?.sql);
+  const fromDataModel = fullChatResponse?.report_model?.data_model?.sql || "";
+  return cleanSQL(
+    loadedRawSql || sqlTextFrom(messageSql) || fromResponse || fromDataModel || ""
+  );
+};
+
 /** Shared compact viewport for every chart type (same size in chat preview). */
 const COMPACT_CHART_ASPECT_RATIO = 420 / 1000;
 const COMPACT_CHART_MIN_HEIGHT = 220;
@@ -436,37 +455,60 @@ export const loadInstantBiHreports = async (props = {}) => {
   const { dispatch, reportState = {} } = props || {};
   const { chat_responses = [], hreportInteractions = {} } = reportState || {};
   const metadataForHreport = getMetadataForHreport(dispatch);
+ 
+  const units = [];
+  const seenHreportIds = new Set();
+  
+  const pushUnit = ({ hreportId, reportModel = {}, chatSequenceId, hasError = false, requireModel = false }) => {
+    if (!hreportId || hasError || seenHreportIds.has(hreportId)) return;
+    if (requireModel && (!reportModel || !Object.keys(reportModel).length)) return;
+    seenHreportIds.add(hreportId);
+    units.push({ hreportId, reportModel, chatSequenceId });
+  };
+  (Array.isArray(chat_responses) ? chat_responses : []).forEach((response = {}) => {
+    pushUnit({
+      hreportId: response?.hreportId,
+      reportModel: response?.report_model || {},
+      chatSequenceId: response?.chat_sequence_id,
+      hasError: Boolean(response?.error),
+    });
+    const steps = response?.question_history || response?.questionHistory || [];
+    (Array.isArray(steps) ? steps : []).forEach((step = {}) => {
+      const stepResponse = step?.fullChatResponse || step?.chat_response || step?.chatResponse || {};
+      pushUnit({
+        hreportId: step?.hreportId || stepResponse?.hreportId,
+        reportModel: step?.report_model || step?.reportModel || stepResponse?.report_model || {},
+        chatSequenceId: response?.chat_sequence_id,
+        hasError: Boolean(step?.error || stepResponse?.error),
+        requireModel: true,
+      });
+    });
+  });
   const processNext = (index) => {
     return new Promise((resolve) => {
-      if (index >= chat_responses.length) {
+      if (index >= units.length) {
         resolve();
         return;
       }
 
-      const response = chat_responses[index];
-      const { hreportId, error } = response || {};
-
-      if (!hreportId || error) {
-        resolve(processNext(index + 1));
-        return;
-      }
+      const unit = units[index];
 
       const hreportProps = {};
-      hreportProps.reportId = hreportId;
+      hreportProps.reportId = unit.hreportId;
       hreportProps.reportMetadata = metadataForHreport;
 
       const bridge = createHReportBridge({
         dispatch,
-        reportModel: response.report_model || {},
+        reportModel: unit.reportModel || {},
         onComplete: () => {
-          dispatch(updateLoadingStatusForHreport({ sequenceId: response.chat_sequence_id, loading: false }))
+          dispatch(updateLoadingStatusForHreport({ sequenceId: unit.chatSequenceId, loading: false }))
           resolve(processNext(index + 1));
         },
         onError: () => {
-          dispatch(updateLoadingStatusForHreport({ sequenceId: response.chat_sequence_id, loading: false }))
+          dispatch(updateLoadingStatusForHreport({ sequenceId: unit.chatSequenceId, loading: false }))
           resolve(processNext(index + 1));
         },
-        interactions: hreportInteractions?.[hreportId] || {},
+        interactions: hreportInteractions?.[unit.hreportId] || {},
         ...hreportProps
       });
 

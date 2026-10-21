@@ -98,7 +98,7 @@ function admin(dispatch) {
 	};
 
 	const postUploadFile = (formData, config, callback = () => {}, errback = () => {}) => {
-		const url = '/importResource';
+		const url = config?.stream ? '/importResource?stream=true' : '/importResource';
 		return uploadFilePostRequest({
 			dispatch,
 			url,

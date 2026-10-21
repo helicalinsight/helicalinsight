@@ -27,12 +27,30 @@ def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_re
         if metadata is not None
         else {"joins": [], "databaseName": "testdb"}
     )
+    # Fast-mode session loader resolves ModelLayerHelper via app(); keep that
+    # bound to the same patched InstantBI module the controller uses.
+    session_app = MagicMock()
+    session_app.ModelLayerHelper.return_value = helper_mock
+    session_app.get_db_function_of_metadata.return_value = db_ref or {
+        "reference": "postgres"
+    }
+    # Prefer the real InstantBI app module graphs (already patched by fixtures).
+    session_app.main_graph = app_module.main_graph
+    session_app.viz_graph = app_module.viz_graph
     return (
         patch.object(app_module, "ModelLayerHelper", return_value=helper_mock),
         patch.object(
             app_module,
             "get_db_function_of_metadata",
             return_value=db_ref or {"reference": "postgres"},
+        ),
+        patch(
+            "helicalbi.interactive.fast.session.app",
+            return_value=session_app,
+        ),
+        patch(
+            "helicalbi.interactive.fast.orchestrator.app",
+            return_value=session_app,
         ),
         patch("GraphBuilderManger.sql_generator_graph", sql_generator_mock),
         patch(
@@ -45,6 +63,14 @@ def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_re
         ),
         patch(
             "helicalbi.interactive.fast_flow.SqlExecutor.write_insight",
+            side_effect=lambda state: state,
+        ),
+        patch(
+            "helicalbi.interactive.fast.orchestrator.SqlExecutor.process_flow",
+            side_effect=lambda state: state,
+        ),
+        patch(
+            "helicalbi.interactive.fast.orchestrator.SqlExecutor.write_insight",
             side_effect=lambda state: state,
         ),
         patch(
@@ -65,6 +91,19 @@ def _patch_interactive_pipeline(app_module, helper_mock, *, metadata=None, db_re
         ),
         patch("helicalbi.controller.interactive.audit_llm_usage_async"),
     )
+
+
+def _default_rm_cols_in_filter() -> bool:
+    """``feature_flags.rm_cols_in_filter`` from the shipped application yaml.
+
+    Omitted key uses the same fallback as ``app_config`` (True).
+    """
+    from helicalbi.common.app_config import _flag_bool
+    from helicalbi.core.ConfigLoader import ConfigLoader
+
+    config = ConfigLoader.load_raw_config("application_config.yaml") or {}
+    flags = config.get("feature_flags") or {}
+    return _flag_bool(flags.get("rm_cols_in_filter"), True)
 
 
 def parse_sse_events(raw):
@@ -338,6 +377,7 @@ class TestInteractive:
         helper_mock.get_metadata_layerlocation.return_value = "/meta"
 
         payload = self._build_payload(session_auth)
+        expected_default = _default_rm_cols_in_filter()
         with ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(app_module, helper_mock):
                 stack.enter_context(ctx)
@@ -349,7 +389,7 @@ class TestInteractive:
             )
             resp = flask_client.post("/interactive", json=payload)
         assert resp.status_code == 200
-        assert form_default.call_args.kwargs["rm_cols_in_filter"] is False
+        assert form_default.call_args.kwargs["rm_cols_in_filter"] is expected_default
 
         with ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(app_module, helper_mock):
@@ -515,7 +555,9 @@ class TestInteractive:
         }
         main_mock.invoke.return_value = empty_state
 
-        with caplog.at_level(logging.DEBUG, logger="helicalbi.interactive.fast_flow"), ExitStack() as stack:
+        with caplog.at_level(
+            logging.DEBUG, logger="helicalbi.interactive.fast.orchestrator"
+        ), ExitStack() as stack:
             for ctx in _patch_interactive_pipeline(
                 app_module, helper_mock, metadata=metadata_payload
             ):
@@ -1581,6 +1623,19 @@ class TestUtilityConfig:
         assert "logging" in body["config"]
         assert "kpi" in body["config"]
 
+    def test_list_analytical_operations(self, flask_client):
+        resp = flask_client.get("/utility/analytical-operations")
+        assert resp.status_code == 200
+        body = json.loads(resp.data)
+        assert body["status"] == 1
+        assert isinstance(body.get("operations"), list)
+        assert body["count"] == len(body["operations"])
+        assert body["count"] > 0
+        first = body["operations"][0]
+        assert first.get("operation")
+        assert "requiredInputs" in first
+        assert "optionalInputs" in first
+
 
 # ---------------------------------------------------------------------------
 # /convert-dashboard
@@ -1595,14 +1650,12 @@ class TestConvertDashboard:
                         "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
                         "data_model": None,
                     },
-                    "dashboard_model": {
-                        "kind": "viz",
-                        "title": "Cost",
-                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                    },
+                    "kind": "viz",
+                    "title": "Cost",
+                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
                 }
             ],
-            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "dashboard_config": {"theme": "default"},
             "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
         }
         graph_mock = MagicMock()
@@ -1634,7 +1687,8 @@ class TestConvertDashboard:
         assert "metadata" not in body
         assert "gridItemsData" not in body
         assert "sql_parts" not in (body["items"][0] or {})
-        assert body["items"][0]["dashboard_model"]["layout"]["w"] == 6
+        assert body["items"][0]["layout"]["w"] == 6
+        assert "dashboard_model" not in body["items"][0]
         assert "viz" not in body["items"][0]
         invoked = graph_mock.invoke.call_args[0][0]["items"][0]
         assert "sql_parts" not in invoked
@@ -1652,14 +1706,12 @@ class TestConvertDashboard:
                         "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
                         "data_model": None,
                     },
-                    "dashboard_model": {
-                        "kind": "viz",
-                        "title": "Cost",
-                        "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                    },
+                    "kind": "viz",
+                    "title": "Cost",
+                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
                 }
             ],
-            "theme": {"color": "#1677ff", "background": "#ffffff"},
+            "dashboard_config": {"theme": "default"},
             "templateId": "t1",
             "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
         }
@@ -1668,7 +1720,7 @@ class TestConvertDashboard:
 
         def stream_updates(state, stream_mode="updates"):
             yield {"CollectContext": {"items": graph_result["items"]}}
-            yield {"PlanSummary": {"theme": graph_result["theme"]}}
+            yield {"PlanSummary": {"dashboard_config": graph_result["dashboard_config"]}}
             yield {"SelectFilters": {}}
             yield {
                 "MakeLayout": {
@@ -1844,7 +1896,7 @@ class TestAgentDashboard:
                 "dashboardid": "dash-agent-1",
                 "items": [{"component_id": "ab12CD34"}],
                 "layout": [{"itemId": "ab12CD34", "x": 0, "y": 0, "w": 6, "h": 4}],
-                "theme": {"color": "#1677ff"},
+                "dashboard_config": {"theme": "default"},
                 "templateId": "analytical-grid",
             },
             "token_usage": {"total_tokens": 9},

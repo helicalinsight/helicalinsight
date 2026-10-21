@@ -1,4 +1,9 @@
-"""LangGraph: tool-calling planner → InstantBI tools → synthesize → dashboard."""
+"""Dashboard agent LangGraph: plan execute / ReAct planner → synthesize → layout.
+
+Public entry: :func:`run_dashboard_agent` (controllers + think mode).
+When ``investigation_plan`` has charts, routing starts at ``execute_plan``;
+otherwise the free-form tool-calling planner runs.
+"""
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -25,9 +30,11 @@ from helicalbi.sql_agent.nodes.synthesizer import synthesizer_node
 from helicalbi.sql_agent.state import AgentState, initial_agent_state
 from helicalbi.sql_agent.tools import dashboard_tools
 from helicalbi.sql_agent.token_budget import charts_complete
+from helicalbi.sql_agent.util.normalize import plan_scope
 
 
 def gathering_should_stop(state: AgentState) -> bool:
+    """True when the agent marked complete, hit the chart budget, or max tool loops."""
     if state.get("is_complete") or charts_complete(state):
         return True
     max_loops = int(state.get("max_tool_loops") or 0)
@@ -35,6 +42,7 @@ def gathering_should_stop(state: AgentState) -> bool:
 
 
 def route_planner(state: AgentState) -> str:
+    """After planner: tools if tool_calls remain, else synthesizer."""
     if gathering_should_stop(state):
         return "synthesizer"
     messages = state.get("messages") or []
@@ -56,18 +64,12 @@ def route_start(state: AgentState) -> str:
 
 
 def _plan_scope(plan: dict[str, Any]) -> tuple[list[str], list[str]]:
-    topics = [str(topic).strip() for topic in (plan.get("topics") or []) if str(topic).strip()]
-    domain = plan.get("domain")
-    if isinstance(domain, str) and domain.strip():
-        domains = [domain.strip()]
-    elif isinstance(domain, list):
-        domains = [str(item).strip() for item in domain if str(item).strip()]
-    else:
-        domains = []
-    return topics, domains
+    """Backward-compatible alias for :func:`plan_scope`."""
+    return plan_scope(plan)
 
 
 def build_dashboard_agent(checkpointer=None):
+    """Compile the dashboard StateGraph (execute_plan | planner → tools → … → dashboard)."""
     workflow = StateGraph(AgentState)
     workflow.add_node("execute_plan", execute_plan_node)
     workflow.add_node("planner", planner_node)

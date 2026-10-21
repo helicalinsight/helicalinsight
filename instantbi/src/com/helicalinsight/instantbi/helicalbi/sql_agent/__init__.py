@@ -1,4 +1,13 @@
-"""InstantBI dashboard agent (LangGraph)."""
+"""InstantBI SQL / dashboard agent package.
+
+Public surface (lazy for heavy graphs):
+
+* :data:`AgentState` / :func:`initial_agent_state` — LangGraph state bag
+* :func:`run_dashboard_agent` / :func:`build_dashboard_agent` — execute path
+* :mod:`helicalbi.sql_agent.investigation` — plan-then-execute facade
+* :mod:`helicalbi.sql_agent.strategy_tree` — strategy engine facade
+* :mod:`helicalbi.sql_agent.constants` — shared literals (no magic numbers in logic)
+"""
 
 from helicalbi.sql_agent.state import AgentState, SubQuestionStep, initial_agent_state
 

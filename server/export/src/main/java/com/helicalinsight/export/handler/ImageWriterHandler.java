@@ -1,20 +1,20 @@
 package com.helicalinsight.export.handler;
 
-import com.helicalinsight.adhoc.service.HICubeDAOService;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceImages;
 import com.helicalinsight.export.dto.Manifest;
 import com.helicalinsight.export.dto.ResourceExtension;
 import com.helicalinsight.export.dto.ResourceOptions;
+import com.helicalinsight.export.utils.ResourceSuffix;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
- * This class handles the writing of Helical Insight resources of type "cube" during the export process.
- * It extends the {@link AbstractResourceWriterHandler} class and implements the necessary logic for writing cube resources.
- * The write method is responsible for writing the cube resource along with its associated metadata and dependencies.
+ * Writes Helical Insight image resources during export.
+ * Image binary content is written to a {@code _image} sidecar file; the primary
+ * resource JSON contains metadata only.
  */
 @Component("imageWriterHandler")
 public class ImageWriterHandler extends AbstractResourceWriterHandler {
@@ -39,7 +39,26 @@ public class ImageWriterHandler extends AbstractResourceWriterHandler {
             }
         }
         manifestUtils.insertDependency(report.getPath(), depFolderUrl, manifest);
-        dataWriter.write(hResource, dir, report, "");
+
+        HIResourceImages sourceImages = hResource.getHiResourceImages();
+        HIResourceImages imagePayload = new HIResourceImages();
+        if (sourceImages != null) {
+            imagePayload.setContentType(sourceImages.getContentType());
+            imagePayload.setContent(sourceImages.getContent());
+            byte[] content = sourceImages.getContent();
+            sourceImages.setContent(null);
+            try {
+                dataWriter.write(hResource, dir, report, "");
+            } finally {
+                sourceImages.setContent(content);
+            }
+        } else {
+            dataWriter.write(hResource, dir, report, "");
+        }
+
+        dataWriter.write(imagePayload, dir, report, ResourceSuffix.IMAGE);
+        recycleBinHandler.writeResource(hResource, report, dir, manifest);
+        manifestUtils.insertImageFile(report, manifest);
         manifestUtils.insertPath(report.getPath(), manifest);
         share(report, manifest, options, dir);
         schedule(report, manifest, options, dir);

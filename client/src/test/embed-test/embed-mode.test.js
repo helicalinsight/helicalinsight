@@ -1,26 +1,60 @@
 import "regenerator-runtime/runtime";
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, fireEvent,act,waitFor } from '@testing-library/react';
-import { Provider } from 'react-redux'; 
-import reducers from '../../redux';
-import { DndProvider } from 'react-dnd'; 
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { hiMockAxios } from '../../app/mock-axios';
-import { HIRouter } from '../../pages';
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => { });
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+
+jest.mock("@chartshq/react-muze/components", () => {
+    const Stub = () => null;
+    const html = (strings, ...values) =>
+        String(
+            (Array.isArray(strings) ? strings : [strings]).reduce(
+                (acc, part, index) =>
+                    acc + part + (values[index] !== undefined ? values[index] : ""),
+                ""
+            )
+        );
+    return {
+        __esModule: true,
+        default: Object.assign(Stub, { Operators: { html } }),
+        Canvas: Stub,
+        Layer: Stub,
+    };
+});
+const reducers = require('../../redux').default;
+const { hiMockAxios } = require('../../app/mock-axios');
+const { HIRouter } = require('../../pages');
 const crypto = require('crypto');
 const flushPromises = () => new Promise(setImmediate);
-const App = ({store,auth,report}) => {
-	return (
-		<DndProvider backend={HTML5Backend}>
-			<Provider store={store}>
+
+
+const App = ({ store, auth, report }) => {
+    return (
+        <DndProvider backend={HTML5Backend}>
+            <Provider store={store}>
                 <HIRouter auth={auth} report={report} />
             </Provider>
-		</DndProvider>
-	);
+        </DndProvider>
+    );
 };
 
 describe("Hreport visualisation", () => {
-    test("jwt report",async () => {
+    test("jwt report", async () => {
         const store = configureStore({
             reducer: reducers,
             middleware: (getDefaultMiddleware) =>
@@ -34,14 +68,14 @@ describe("Hreport visualisation", () => {
         });
         const dispatch = store.dispatch
         const getState = store.getState
-        await flushPromises( render(<App 
+        await flushPromises(render(<App
             store={store}
-            auth={{ type: 'jwt', authToken:"Bearer 1234" }} 
-            report={{dir: 'naresh', file: "parent.hr"}} 
-            />))
+            auth={{ type: 'jwt', authToken: "Bearer 1234" }}
+            report={{ dir: 'naresh', file: "parent.hr" }}
+        />))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
     });
-    test("jwt report with filters",async () => {
+    test("jwt report with filters", async () => {
         const store = configureStore({
             reducer: reducers,
             middleware: (getDefaultMiddleware) =>
@@ -55,15 +89,15 @@ describe("Hreport visualisation", () => {
         });
         const dispatch = store.dispatch
         const getState = store.getState
-        await flushPromises( render(<App 
+        await flushPromises(render(<App
             store={store}
-            auth={{ type: 'jwt', authToken:"Bearer 1234" }} 
-            report={{dir: 'naresh', file: "child.hr",booking_platform :"Agent"}} 
-            />))
+            auth={{ type: 'jwt', authToken: "Bearer 1234" }}
+            report={{ dir: 'naresh', file: "child.hr", booking_platform: "Agent" }}
+        />))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
     });
 
-    test("token report",async () => {
+    test("token report", async () => {
         const store = configureStore({
             reducer: reducers,
             middleware: (getDefaultMiddleware) =>
@@ -77,14 +111,14 @@ describe("Hreport visualisation", () => {
         });
         const dispatch = store.dispatch
         const getState = store.getState
-        await flushPromises( render(<App 
+        await flushPromises(render(<App
             store={store}
-            auth={{ type: 'token', authToken:"Bearer 1234" }} 
-            report={{dir: 'naresh', file: "parent.hr"}} 
-            />))
+            auth={{ type: 'token', authToken: "Bearer 1234" }}
+            report={{ dir: 'naresh', file: "parent.hr" }}
+        />))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
     });
-    test("token report with filters",async () => {
+    test("token report with filters", async () => {
         const store = configureStore({
             reducer: reducers,
             middleware: (getDefaultMiddleware) =>
@@ -98,11 +132,11 @@ describe("Hreport visualisation", () => {
         });
         const dispatch = store.dispatch
         const getState = store.getState
-        await flushPromises( render(<App 
+        await flushPromises(render(<App
             store={store}
-            auth={{ type: 'token', authToken:"Bearer 1234" }} 
-            report={{dir: 'naresh', file: "child.hr",booking_platform :"Agent"}} 
-            />))
+            auth={{ type: 'token', authToken: "Bearer 1234" }}
+            report={{ dir: 'naresh', file: "child.hr", booking_platform: "Agent" }}
+        />))
         expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
     });
 }); 

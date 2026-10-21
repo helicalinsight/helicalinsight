@@ -8,25 +8,37 @@ import {
 
 jest.setTimeout(30000);
 
-// Mock muze wasm fetch (js/muze/*.module.wasm via whatwg-fetch/XHR) which
-// otherwise rejects with "TypeError: Network request failed" mid-suite and
-// gets attributed to whichever test is running (e.g. quarter case).
-// Must be installed BEFORE requiring RelativeList (which transitively imports
-// @chartshq/muze via filter-utils -> base -> utilities -> grid-chart-utils),
-// so use dynamic require after mock. Returning a never-settling promise keeps
-// muze chunk loading pending without rejecting.
 const __originalFetch = global.fetch;
 global.fetch = jest.fn((url, ...rest) => {
     const urlStr = String(url);
     if (urlStr.includes(".wasm") || urlStr.includes("muze")) {
-        return new Promise(() => {});
+        return new Promise(() => { });
     }
     return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error("fetch not available"));
 });
 afterAll(() => {
     global.fetch = __originalFetch;
 });
-// eslint-disable-next-line @typescript-eslint/no-var-requires
+
+jest.mock("@chartshq/react-muze/components", () => {
+    const Stub = () => null;
+    const html = (strings, ...values) =>
+        String(
+            (Array.isArray(strings) ? strings : [strings]).reduce(
+                (acc, part, index) =>
+                    acc + part + (values[index] !== undefined ? values[index] : ""),
+                ""
+            )
+        );
+    return {
+        __esModule: true,
+        default: Object.assign(Stub, { Operators: { html } }),
+        Canvas: Stub,
+        Layer: Stub,
+    };
+});
+
+
 const RelativeList = require("../../../../components/hi-reports/hi-editing-area/components/filters/relative-list").default;
 const crypto = require("crypto");
 const flushPromises = () => new Promise(setImmediate);
@@ -39,9 +51,9 @@ const App = ({ ...props }) => {
 };
 
 describe("hreport relative date filters test", () => {
-    
+
     test("relative date anchor filter with date function as individual", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsIndividual} />));
+        await flushPromises(render(<App {...dataWithDatepartAsIndividual} />));
         expect(screen.queryByTestId(/hr-relative-list-value-individual/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-individual/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-individual/i), {})
@@ -53,7 +65,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as date", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsDate} />));
+        await flushPromises(render(<App {...dataWithDatepartAsDate} />));
         expect(screen.queryByTestId(/hr-relative-list-value-date/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-date/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-date/i), {})
@@ -65,7 +77,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as year", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsYear} />));
+        await flushPromises(render(<App {...dataWithDatepartAsYear} />));
         expect(screen.queryByTestId(/hr-relative-list-value-year/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-year/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-year/i), {})
@@ -77,7 +89,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as quarter", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsQuarter} />));
+        await flushPromises(render(<App {...dataWithDatepartAsQuarter} />));
         expect(screen.queryByTestId(/hr-relative-list-value-quarter/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-quarter/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-quarter/i), {})
@@ -89,7 +101,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as month", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsMonth} />));
+        await flushPromises(render(<App {...dataWithDatepartAsMonth} />));
         expect(screen.queryByTestId(/hr-relative-list-value-month/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-month/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-month/i), {})
@@ -101,7 +113,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as time", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsTime} />));
+        await flushPromises(render(<App {...dataWithDatepartAsTime} />));
         expect(screen.queryByTestId(/hr-relative-list-value-time/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-time/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-time/i), {})
@@ -113,7 +125,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as hour", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsHour} />));
+        await flushPromises(render(<App {...dataWithDatepartAsHour} />));
         expect(screen.queryByTestId(/hr-relative-list-value-hour/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-hour/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-hour/i), {})
@@ -125,7 +137,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as minute", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsMinute} />));
+        await flushPromises(render(<App {...dataWithDatepartAsMinute} />));
         expect(screen.queryByTestId(/hr-relative-list-value-minute/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-minute/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-minute/i), {})
@@ -137,7 +149,7 @@ describe("hreport relative date filters test", () => {
     });
 
     test("relative date anchor filter with date function as seconds", async () => {
-        await flushPromises( render(<App {...dataWithDatepartAsSecond} />));
+        await flushPromises(render(<App {...dataWithDatepartAsSecond} />));
         expect(screen.queryByTestId(/hr-relative-list-value-second/i)).toBeTruthy();
         expect(screen.queryByTestId(/hr-relative-list-checkbox-second/i)).toBeTruthy();
         fireEvent.change(screen.queryByTestId(/hr-relative-list-checkbox-second/i), {})

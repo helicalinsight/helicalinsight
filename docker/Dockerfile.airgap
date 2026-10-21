@@ -1,0 +1,75 @@
+# Airgap Helical Insight runtime — Ubuntu + full JDK + Tomcat + Chrome zips baked in.
+# Build / push with the -full tag (distinct from the slim image):
+#   docker build -f Dockerfile.airgap -t hiee/helicalinsight:nitrogen-j25t11-full .
+#   docker push hiee/helicalinsight:nitrogen-j25t11-full
+# Import retags to hiee/helicalinsight:nitrogen-j25t11 for Compose.
+#
+# Multi-arch: TARGETARCH selects linux64 (amd64) or linux-arm64 (arm64).
+# No registry access required at runtime.
+
+FROM tomcat:11.0.25-jdk25-temurin-noble
+
+ARG TARGETARCH
+ARG CHROME_VERSION=154.0.8037.92
+
+ENV INSTALLATION_LOCATION="/usr/local/Helical Insight" \
+    INSTALL_CHROME=true \
+    HOST_IP=localhost \
+    TOMCAT_LOCATION=/usr/local/tomcat \
+    CATALINA_HOME=/usr/local/tomcat
+
+RUN mkdir -p "${INSTALLATION_LOCATION}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl unzip \
+        libglib2.0-0 libnss3 libdbus-1-3 libatk1.0-0 libatk-bridge2.0-0 \
+        libcups2 libdrm-dev libxkbcommon-x11-0 libxcomposite1 libxdamage1 \
+        libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2t64 \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
+# Bake Chrome-for-Testing + chromedriver for the build architecture.
+# TARGETARCH is set by BuildKit; without it (classic docker build) fall back to
+# the container's dpkg/uname arch so Chrome still downloads.
+# Unsupported arches (e.g. ppc64le): skip Chrome with a warning — do not fail.
+# Always store as fixed paths (/tmp/chrome.zip, /tmp/chromedriver.zip) when baked.
+ARG TARGETARCH
+ARG CHROME_VERSION=154.0.8037.92
+RUN set -eux; \
+    arch="${TARGETARCH:-}"; \
+    if [ -z "${arch}" ]; then \
+      arch="$(dpkg --print-architecture 2>/dev/null || true)"; \
+    fi; \
+    if [ -z "${arch}" ]; then \
+      case "$(uname -m)" in \
+        x86_64) arch=amd64 ;; \
+        aarch64|arm64) arch=arm64 ;; \
+      esac; \
+    fi; \
+    case "${arch}" in \
+      amd64|x86_64) PLATFORM=linux64 ;; \
+      arm64|aarch64) PLATFORM=linux-arm64 ;; \
+      *) \
+        echo "WARNING: Chrome for Testing has no build for arch=${arch} (TARGETARCH=${TARGETARCH:-unset}); skipping Chrome bake. PDF/export will not work on this arch." >&2; \
+        exit 0 ;; \
+    esac; \
+    echo "Downloading Chrome for platform=${PLATFORM} (arch=${arch})"; \
+    BASE="https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/${PLATFORM}"; \
+    curl -fSL "${BASE}/chrome-${PLATFORM}.zip" -o /tmp/chrome.zip; \
+    curl -fSL "${BASE}/chromedriver-${PLATFORM}.zip" -o /tmp/chromedriver.zip
+
+# Dedicated airgap entrypoint (slim image keeps config/entry/entrypoint.sh via Compose mount)
+COPY config/entry/entrypoint.airgap.sh /entrypoint.airgap.sh
+RUN chmod +x /entrypoint.airgap.sh
+
+# Tomcat cleanup (same as slim runtime)
+RUN rm -rf /usr/local/tomcat/logs/* /usr/local/tomcat/temp/* /usr/local/tomcat/work/* \
+    /usr/local/tomcat/webapps/examples /usr/local/tomcat/webapps/docs \
+    /usr/local/tomcat/webapps/manager /usr/local/tomcat/webapps/host-manager
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+# Use baked airgap entrypoint — not the Compose-mounted slim /entrypoint.sh
+ENTRYPOINT ["/bin/bash", "/entrypoint.airgap.sh"]
+EXPOSE 8080
+CMD ["/bin/bash", "-c", "$CATALINA_HOME/bin/catalina.sh run"]

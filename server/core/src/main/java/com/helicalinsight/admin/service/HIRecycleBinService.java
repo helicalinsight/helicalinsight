@@ -27,6 +27,7 @@ public interface HIRecycleBinService {
 	public <T> Map<String,List<T>> prepareHIResources(HIResource resource, boolean includeParent, Integer userId) ;
 	boolean isRecycleBinPresent(Long id);
 	HIRecycleBin findHIRecycleBinByUserId(int userId);
+	HIRecycleBin findHIRecycleBinByOrgId(int orgId);
 	boolean deleteHIRecycleBinByResourceId(Integer resourceId);
 	void deleteRecycleBinsByIds(List<RecycleBinDTO> recycleBins);
 	List<HIRecycleBin> findAll();

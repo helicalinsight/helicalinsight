@@ -19,6 +19,8 @@ import { removeLayoutConstants } from "../../components/hi-dashboard-designer/ut
 import { makeid } from "../../components/hi-dashboard-designer/utils/common-functions";
 import { cloneDeep } from "lodash";
 import { freeFloatFilterDefaultSettings } from "../../components/hi-dashboard-designer/utils/constants";
+import { getFieldDisplayName } from "../../utils/utilities";
+import { findBoundReportFilter } from "../../components/hi-instant-bi/utils/filter-bind";
 
 const designerReducer = (
   state = initialStates.dashboardDesignerIntialState,
@@ -722,6 +724,7 @@ const designerReducer = (
         gridIndex,
         designerSettings,
         savedReportName,
+        instantSubject = null
       } = action.payload;
       return produce(state, (draft) => {
         draft.gridSettings = gridSettings;
@@ -736,7 +739,58 @@ const designerReducer = (
         draft.isLoading = false;
         draft.designerSettings = designerSettings;
         draft.savedReportName = savedReportName;
+        if(instantSubject) {
+          draft.instantSubject = instantSubject;
+        }
       });
+    case actionTypes.UPDATE_DASHBOARD_CREATE_ITEM_REPORT: {
+      const { id, hreportId = null, hreportError = null, report, componentId } = action.payload || {};
+      const patchItem = (items = []) =>
+        (items || []).map((item) => {
+          if (item?.id === id) {
+            return {
+              ...item,
+              reportInfo: { ...(item.reportInfo || {}), hreportId, hreportError },
+            };
+          }
+          if (Array.isArray(item?.children) && item.children.length) {
+            return { ...item, children: patchItem(item.children) };
+          }
+          return item;
+        });
+      return produce(state, (draft) => {
+        draft.gridItemsData = patchItem(draft.gridItemsData);
+        if (componentId && hreportId) {
+          draft.gridItemsData = draft.gridItemsData.map(item => {
+            if (item.reportInfo?.sourceItemId === componentId) {
+              item = {
+                ...item,
+                reportInfo: { ...(item.reportInfo || {}), hreportId, hreportError },
+              }
+              if (report?.filters?.length) {
+                const filter = findBoundReportFilter(report, {
+                  column: item.reportInfo?.column,
+                  alias: item.reportInfo?.alias,
+                  label: item.reportInfo?.label,
+                  title: item.reportInfo?.title,
+                });
+                if (filter) {
+                  item.parameter = {
+                    dashboardFilter: {
+                      columnName: getFieldDisplayName(filter),
+                      uid: filter.uid,
+                    },
+                  }
+                  item.listeners = [getFieldDisplayName(filter)]
+                  draft.filterCounter = draft.filterCounter + 1
+                }
+              }
+            }
+            return item;
+          })
+        }
+      });
+    }
     case actionTypes.STORE_FILTERS_LIST:
       return produce(state, (draft) => {
         let { filtersList, designerItemId, reportId } = action.payload;
@@ -1044,6 +1098,13 @@ const designerReducer = (
         for (let key in draft) {
           draft[key] = designerState[key] ?? draft[key];
         }
+      })
+    }
+
+    case actionTypes.UDPATE_INSTANT_SUBJECT: {
+      return produce(state, (draft) => {
+        const subject = action.payload;
+        draft.instantSubject = subject
       })
     }
 

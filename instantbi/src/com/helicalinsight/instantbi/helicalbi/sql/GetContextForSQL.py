@@ -321,6 +321,21 @@ def _format_column_detail(meta: dict) -> str:
         parts.append(
             "synonyms: " + ", ".join(str(item) for item in synonyms if item)
         )
+    grain = str(meta.get("grain") or "").strip()
+    additivity = str(meta.get("additivity") or "").strip()
+    business_direction = str(meta.get("direction") or "").strip()
+    if grain:
+        parts.append(f"grain: {grain}")
+    if additivity:
+        parts.append(f"additivity: {additivity}")
+    if business_direction:
+        parts.append(f"business direction: {business_direction}")
+    if grain or additivity or business_direction:
+        from helicalbi.sql_agent.strategy.diagnostics import measure_trait_guidance
+
+        guidance = measure_trait_guidance(grain, additivity, business_direction)
+        if guidance:
+            parts.append(f"use: {guidance}")
     return "; ".join(parts)
 
 

@@ -21,6 +21,10 @@ import {getReleaseNotes} from "./admin-mock-data";
 
 export const hiMockAxios = () => {
   return {
+    abort: () => {},
+    controller: { signal: undefined, abort: () => {} },
+    source: { token: undefined, cancel: () => {} },
+    requestId: "mock-request-id",
     instance: {
       post: function (url, data, config) {
         if (url?.url === "/hi-ee/downloadReport.html") {

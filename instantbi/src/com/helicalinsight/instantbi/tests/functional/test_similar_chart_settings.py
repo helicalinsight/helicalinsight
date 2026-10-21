@@ -1,11 +1,11 @@
-"""Tests for ChatResponse viz suggestion fields."""
+"""Tests that viz responses no longer carry similar-chart suggestions."""
 from __future__ import annotations
 
 from helicalbi.model.output.ChatResponse import ChatResponse
 from helicalbi.viz._charts import hydrate_saved_viz
 
 
-def test_chat_response_includes_similar_chart_from_state():
+def test_chat_response_omits_similar_chart():
     response = ChatResponse.from_model_state(
         {
             "viz_hint": "bar",
@@ -17,7 +17,7 @@ def test_chat_response_includes_similar_chart_from_state():
     )
     payload = response.to_dict()
     assert payload["viz"]["chart_name"] == "bar"
-    assert payload["viz"]["similar_chart"] == ["donut", "point"]
+    assert "similar_chart" not in payload["viz"]
     assert "settings" not in payload["viz"]
     assert payload["viz"]["vf_template"] == ""
 
@@ -34,7 +34,7 @@ def test_other_chart_includes_vf_template_when_vf_created():
     payload = response.to_dict()
     assert payload["viz"]["chart_name"] == "other"
     assert payload["viz"]["vf_template"]
-    assert payload["viz"]["similar_chart"] == []
+    assert "similar_chart" not in payload["viz"]
 
 
 def test_spaced_chart_name_is_preserved():
@@ -48,10 +48,10 @@ def test_spaced_chart_name_is_preserved():
     )
     payload = response.to_dict()
     assert payload["viz"]["chart_name"] == "heat map"
-    assert payload["viz"]["similar_chart"] == []
+    assert "similar_chart" not in payload["viz"]
 
 
-def test_hydrate_saved_viz_keeps_similar_chart():
+def test_hydrate_saved_viz_drops_similar_chart():
     payload = hydrate_saved_viz(
         {
             "chart_name": "relation",
@@ -62,5 +62,5 @@ def test_hydrate_saved_viz_keeps_similar_chart():
         }
     )
     assert payload["chart_name"] == "relation"
-    assert payload["similar_chart"] == ["bar", "sankey"]
+    assert "similar_chart" not in payload
     assert "settings" not in payload

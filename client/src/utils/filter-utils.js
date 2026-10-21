@@ -21,8 +21,8 @@ export const inputValueConditions = ["CONTAINS", "DOES_NOT_CONTAINS", "STARTS_WI
 
 export const searchConditions = ["EQUALS", "NOT_EQUALS", "IS_ONE_OF", "IS_NOT_ONE_OF", "IS_LESS_THAN", "IS_GREATER_THAN",
     "IS_LESS_THAN_OR_EQUAL_TO", "IS_GREATER_THAN_OR_EQUAL_TO"]
-export const valuesConditions = ["EQUALS", "NOT_EQUALS", "IS_ONE_OF","IS_NOT_ONE_OF", "IS_LESS_THAN", 
-    "IS_GREATER_THAN","IS_NOT_ONE_OF","IS_LESS_THAN_OR_EQUAL_TO", "IS_GREATER_THAN_OR_EQUAL_TO"]
+export const valuesConditions = ["EQUALS", "NOT_EQUALS", "IS_ONE_OF", "IS_NOT_ONE_OF", "IS_LESS_THAN",
+    "IS_GREATER_THAN", "IS_NOT_ONE_OF", "IS_LESS_THAN_OR_EQUAL_TO", "IS_GREATER_THAN_OR_EQUAL_TO"]
 
 export const valuesModeCostomConditions = [
     "CONTAINS", "DOES_NOT_CONTAINS", "STARTS_WITH", "DOES_NOT_STARTS_WITH", "ENDS_WITH", "DOES_NOT_ENDS_WITH", "IS_NULL",
@@ -70,10 +70,10 @@ export const dateTypes = {
 }
 
 export const dateFormats = {
-    DATETIME:"YYYY-MM-DD HH:mm:ss.S",
-    DATE:"YYYY-MM-DD",
-    TIME:"HH:mm:ss",
-    MONTHNAME:"MMMM"
+    DATETIME: "YYYY-MM-DD HH:mm:ss.S",
+    DATE: "YYYY-MM-DD",
+    TIME: "HH:mm:ss",
+    MONTHNAME: "MMMM"
 }
 
 
@@ -229,11 +229,17 @@ export const addDateValues = ({ filter, emptyValues }) => {
     return filter
 }
 
-export const getDatePart = fullName => {
+export const getDatePart = (fullName, returns) => {
     let val = fullName.split(".").pop()
     if (val === "todate") return "date"
     if (val === "totime") return "time"
     if (val === "todatetime") return "datetime"
+    if (returns && ["date", "dateTime"].indexOf(returns) > -1) {
+        return {
+            date: "date",
+            dateTime: "datetime"
+        }[returns]
+    }
     return val
 }
 
@@ -286,7 +292,7 @@ export const createDbFunc = (filter, datePart, databaseFunctions, dateFunctions)
     return filter
 }
 export const addDateSpecific = (data) => {
-    let { filter, dataType, databaseFunctionName, databaseFunctions, dateFunctions,drillownFilter } = data
+    let { filter, dataType, databaseFunctionName, databaseFunctions, dateFunctions, drillownFilter } = data
     // let datePart = dataType === "time" ? "hour" : "year"
     let datePart = "individual"
     // datePart = drillownFilter ? "individual" : datePart
@@ -309,7 +315,7 @@ export const addDateSpecific = (data) => {
                 break;
             case "day":
                 datePart = "day"
-                break; 
+                break;
             case "quarter":
                 datePart = "quarter"
                 break;
@@ -325,7 +331,7 @@ export const addDateSpecific = (data) => {
                 break;
             case "time":
                 datePart = "time"
-                // datePart = "hour"
+            // datePart = "hour"
             case "maketime":
                 datePart = "time"
             case "maketime":
@@ -347,7 +353,7 @@ export const addDateSpecific = (data) => {
     filter = {
         ...filter, datePart,
         currentDate: (new Date()).toString(),
-        condition: drillownFilter? filter.condition : "EQUALS", dateValuesType,
+        condition: drillownFilter ? filter.condition : "EQUALS", dateValuesType,
         anchor: defaultAnchor()
     }
     return filter
@@ -357,9 +363,9 @@ export const getFilterDataType = filter => {
     return filter.dataType
 }
 export const getCanvasFieldDataType = field => {
-    let {type,databaseFunction} = field
-    let {dataType} = type || {}
-    if(databaseFunction && Object.keys(databaseFunction).length){
+    let { type, databaseFunction } = field
+    let { dataType } = type || {}
+    if (databaseFunction && Object.keys(databaseFunction).length) {
         dataType = databaseFunction.returns
     }
     return dataType
@@ -426,7 +432,7 @@ export const getCurrentDate = ({ filter, dataType, valueDateFunc }) => {
             currentDate = moment(value, "MM")
         } else if (valueDateFunc === "day") {
             let value = filter.values.length ? filter.values[0] : moment(currentDate).date()
-            currentDate = moment().set("month",0).set("date",value) 
+            currentDate = moment().set("month", 0).set("date", value)
         } else if (valueDateFunc === "hour") {
             let value = filter.values.length ? filter.values[0] : moment(currentDate).hour()
             currentDate = moment(value, "HH")
@@ -517,7 +523,7 @@ export const getRelativePartList = (dataType, displayDateFunc, datePart) => {
     }
 }
 
-export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
+export const getRelativeList = ({ filter, dataType, selectedPart, isAnchor }) => {
     try {
         let { datePart } = filter
         if (selectedPart) datePart = selectedPart
@@ -532,7 +538,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
         switch (datePart) {
             case "year":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Year`, val: 0, part: "years" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Year`, val: 0, part: "years" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Year`, type: "next", val: 1, part: "years" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Year`, type: "last", val: 1, part: "years" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "years", label2: "Years" },
@@ -542,7 +548,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 break;
             case "quarter":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Quarter`, val: 0, part: "quarters" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Quarter`, val: 0, part: "quarters" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Quarter`, type: "next", val: 1, part: "quarters" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Quarter`, type: "last", val: 1, part: "quarters" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "quarters", label2: "Quarters" },
@@ -552,7 +558,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 break;
             case "month":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Month`, val: 0, part: "months" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Month`, val: 0, part: "months" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Month`, type: "next", val: 1, part: "months" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Month`, type: "last", val: 1, part: "months" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "months", label2: "Months" },
@@ -564,7 +570,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 list = [
                     { label: isAnchor ? "Anchor day" : "Today", val: 0, part: "days" },
                     { label: isAnchor ? "Anchor Next day" : "Tomorrow", type: "next", val: 1, part: "days" },
-                    { label: isAnchor ? "Anchor Previous day" :"Yesterday", type: "last", val: 1, part: "days" },
+                    { label: isAnchor ? "Anchor Previous day" : "Yesterday", type: "last", val: 1, part: "days" },
                     { label1: isAnchor ? "Anchor Next" : "Next", val: "custom", type: "next", part: "days", label2: "Days" },
                     { label1: isAnchor ? "Anchor Last" : "Last", val: "custom", type: "last", part: "days", label2: "Days" },
                     { label: isAnchor ? "Day to Anchor" : "Day to Date", type: "last", val: "toDate", part: "years" },
@@ -572,7 +578,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 break;
             case "hour":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Hour`, val: 0, part: "hours" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Hour`, val: 0, part: "hours" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Hour`, type: "next", val: 1, part: "hours" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Hour`, type: "last", val: 1, part: "hours" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "hours", label2: "Hours" },
@@ -582,7 +588,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 break;
             case "minute":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Minute`, val: 0, part: "minutes" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Minute`, val: 0, part: "minutes" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Minute`, type: "next", val: 1, part: "minutes" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Minute`, type: "last", val: 1, part: "minutes" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "minutes", label2: "Minutes" },
@@ -592,7 +598,7 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
                 break;
             case "second":
                 list = [
-                    { label: `${isAnchor ? "Anchor": "This"} Second`, val: 0, part: "seconds" },
+                    { label: `${isAnchor ? "Anchor" : "This"} Second`, val: 0, part: "seconds" },
                     { label: `${isAnchor ? "Anchor" : ""} Next Second`, type: "next", val: 1, part: "seconds" },
                     { label: `${isAnchor ? "Anchor" : ""} Previous Second`, type: "last", val: 1, part: "seconds" },
                     { label1: `${isAnchor ? "Anchor" : ""} Next`, val: "custom", type: "next", part: "seconds", label2: "Seconds" },
@@ -620,9 +626,9 @@ export const getRelativeList = ({filter, dataType, selectedPart,isAnchor}) => {
 export const addFilterValue = (filter, value) => {
     return produce(filter, draft => {
         let { condition, values } = draft
-        if(value === "_all_"){
+        if (value === "_all_") {
             values = values.includes("_all_") ? [] : ["_all_"]
-        }else if (Array.isArray(value)) {
+        } else if (Array.isArray(value)) {
             values = value
         } else {
             let currentIndex = values.indexOf(value)
@@ -728,7 +734,7 @@ export const getDBFunctionObject = ({ value, defaultReturn, databaseFunctions })
 }
 
 
-export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, databaseFunctions, tables,orderBy, isCube }) => {
+export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, databaseFunctions, tables, orderBy, isCube, functionsDefinition = "", fieldOriginalName }) => {
     let DBkey = (filter.databaseFunction && filter.databaseFunction.value) || ""
     let valueDBFunction = defaultValueDisplayMap[DBkey]
     valueDBFunction = getDBFunctionObject({ value: valueDBFunction, defaultReturn: false, databaseFunctions })
@@ -739,11 +745,11 @@ export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, da
         value: 'none'
     } : {
         display: orderBy,
-        value: 'none' 
+        value: 'none'
     }
     const returnObj = {
         "isEnabled": true,
-        unique:true,
+        unique: true,
         "valueDBFunction": valueDBFunction ? extractDatabaseFunctions(fromJS(valueDBFunction), `${database}.${filter.column}`) : filter.databaseFunction, //-- commented for replacing function nem with function object
         "DisplayDBFunction": DisplayDBFunction ? extractDatabaseFunctions(fromJS(DisplayDBFunction), `${database}.${filter.column}`) : filter.databaseFunction, //-- commented for replacing function nem with function object
         "isDefaultFunction": true,
@@ -766,7 +772,7 @@ export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, da
         //     defaultFunction: "none",
         //     fullyQualifiedColumn: "dimdate.dim_id"
         // } :
-        "displayColumn":  getColumnbject({
+        "displayColumn": getColumnbject({
             tables,
             type: 'getColumnObj',
             fullyQualifiedColumn: filter.column,
@@ -776,8 +782,22 @@ export const getInitialMapping = ({ filter, defaultValueDisplayMap, database, da
                 filter.aggregate && filter.aggregate.length ? filter.aggregate[0] : 'none'
         }),
     }
-    returnObj.displayDBfunctionsDefinition = !returnObj.DisplayDBFunction ? "" : `${returnObj.DisplayDBFunction.value}(${returnObj.displayColumn.alias})`
-    returnObj.displayDBfunctionsDefinition = !returnObj.valueDBFunction ? "" : `${returnObj.valueDBFunction.value}(${returnObj.valueColumn.alias})`
+    returnObj.displayDBfunctionsDefinition = functionsDefinition
+    returnObj.valueDBfunctionsDefinition = functionsDefinition
+
+    if (filter.custom) {
+        returnObj.valueColumn = {
+            ...returnObj.valueColumn,
+            alias: fieldOriginalName,
+            // fullyQualifiedColumn: filter.column
+        }
+        returnObj.displayColumn = {
+            ...returnObj.displayColumn,
+            alias: fieldOriginalName,
+            // fullyQualifiedColumn: filter.column
+        }
+    }
+
     return returnObj;
 }
 
@@ -815,13 +835,13 @@ const setDatabaseFunction = (dbFunction) => {
         functionName: dbFunction.key,
         dataType: dbFunction.returns,
         // parameters:setParameters(dbFunction?.parameters,formData,setDatabaseFunction)
-        parameters:setParameters(dbFunction?.parameters,setDatabaseFunction)
+        parameters: setParameters(dbFunction?.parameters, setDatabaseFunction)
     }
 }
 
 
-export const filterSearchFormdata = ({filter,formData}) => {
-    let { mapping,dataType,column } = filter
+export const filterSearchFormdata = ({ filter, formData }) => {
+    let { mapping, dataType, column } = filter
     let displayDBFunc = "";
     let databaseFunction = {}
     if (mapping && mapping.DisplayDBFunction) {
@@ -837,7 +857,7 @@ export const filterSearchFormdata = ({filter,formData}) => {
         //     parameters
         // }
 
-        databaseFunction = setDatabaseFunction(mapping.DisplayDBFunction,formData)
+        databaseFunction = setDatabaseFunction(mapping.DisplayDBFunction, formData)
     }
     if (displayDBFunc === "monthname") {
         databaseFunction = {
@@ -863,139 +883,143 @@ export const filterSearchFormdata = ({filter,formData}) => {
     return formData
 }
 
-export const fetchFilterValues = (data,dispatch,getApi) => {
+export const fetchFilterValues = (data, dispatch, getApi) => {
     const Notify = notify(dispatch);
     let {
-        filter,filters,debouncedSearchTerm,dateFunctions,metadata,reportId,returnFormData,databaseFunctions
+        filter, filters, debouncedSearchTerm, dateFunctions, metadata, reportId, returnFormData, databaseFunctions
     } = data
     const { columnID } = filter || {}
-    
-    try{
-        let {name,formData} = metadata || {};
-        name = name || filter.columnDatabase; 
+
+    try {
+        let { name, formData } = metadata || {};
+        name = name || filter.columnDatabase;
         let tempFilter = { ...filter };
-        let { mapping, cascade, datePart, uid, custom, column} = tempFilter;
+        let { mapping, cascade, datePart, uid, custom, column } = tempFilter;
         dispatch(loadFilterValues({ values: filter.values, uid, reportId, loading: true }));
         tempFilter.alias = "display";
-        let query = new ReportQuery({...formData,useDBFuntion:databaseFunctions}, dispatch);
+        let query = new ReportQuery({ ...formData, useDBFuntion: databaseFunctions }, dispatch);
         if (mapping.isEnabled) {
-          let { orderBy } = mapping;
-          let displayColumn = {
-            ...mapping.displayColumn,
-            alias: "display",
-            databaseFunction: mapping.DisplayDBFunction,
-            orderBy: [orderBy.display],
-            columnID
-          };
-          let valueColumn = {
-            ...mapping.valueColumn,
-            alias: "value",
-            databaseFunction: mapping.valueDBFunction,
-            orderBy: [orderBy.value],
-            columnID
-          };
-          if(custom){
-            if(!displayColumn.fullyQualifiedColumn){
-                displayColumn.column = column
-                displayColumn.custom = true
+            let { orderBy } = mapping;
+            let displayColumn = {
+                ...mapping.displayColumn,
+                alias: "display",
+                databaseFunction: mapping.DisplayDBFunction,
+                orderBy: [orderBy.display],
+                columnID
+            };
+            let valueColumn = {
+                ...mapping.valueColumn,
+                alias: "value",
+                databaseFunction: mapping.valueDBFunction,
+                orderBy: [orderBy.value],
+                columnID
+            };
+            if (custom) {
+                if (!displayColumn.fullyQualifiedColumn) {
+                    displayColumn.column = column
+                    displayColumn.custom = true
+                }
+                if (!valueColumn.fullyQualifiedColumn) {
+                    valueColumn.column = column
+                    valueColumn.custom = true
+                }
             }
-            if(!valueColumn.fullyQualifiedColumn){
-                valueColumn.column = column
-                valueColumn.custom = true
+            if (displayColumn.defaultFunction !== "none") {
+                if (displayColumn.defaultFunction.includes("groupBy")) {
+                    displayColumn.groupBy = [mapping.displayColumn.defaultFunction];
+                }
+                if (displayColumn.defaultFunction.includes("aggregate")) {
+                    displayColumn.aggregate = [mapping.displayColumn.defaultFunction];
+                }
             }
-          }
-          if (displayColumn.defaultFunction !== "none") {
-            if (displayColumn.defaultFunction.includes("groupBy")) {
-              displayColumn.groupBy = [mapping.displayColumn.defaultFunction];
+            if (valueColumn.defaultFunction !== "none") {
+                if (valueColumn.defaultFunction.includes("groupBy")) {
+                    valueColumn.groupBy = [mapping.valueColumn.defaultFunction];
+                }
+                if (valueColumn.defaultFunction.includes("aggregate")) {
+                    valueColumn.aggregate = [mapping.valueColumn.defaultFunction];
+                }
             }
-            if (displayColumn.defaultFunction.includes("aggregate")) {
-              displayColumn.aggregate = [mapping.displayColumn.defaultFunction];
+            let datePartList = dateFunctions["dateTime"];
+            let dateFunc = datePartList.find((func) => func.part === datePart);
+            if (!displayColumn.databaseFunction && datePart && datePart !== "individual") {
+                if (dateFunc && dateFunc.key) {
+                    displayColumn.databaseFunction = dateFunc;
+                }
             }
-          }
-          if (valueColumn.defaultFunction !== "none") {
-            if (valueColumn.defaultFunction.includes("groupBy")) {
-              valueColumn.groupBy = [mapping.valueColumn.defaultFunction];
+            if (!valueColumn.databaseFunction && datePart && datePart !== "individual") {
+                if (dateFunc && dateFunc.key) {
+                    valueColumn.databaseFunction = dateFunc;
+                }
             }
-            if (valueColumn.defaultFunction.includes("aggregate")) {
-              valueColumn.aggregate = [mapping.valueColumn.defaultFunction];
+            selectBuilder(displayColumn, name, query);
+            selectBuilder(valueColumn, name, query);
+            if (cascade.isEnabled) {
+                cascade.filters.map((fltr) => {
+                    let { uid, condition } = fltr;
+                    let cascadeFilter = filters.find((cascadeFilter) => cascadeFilter.uid === uid);
+                    if (cascadeFilter) {
+                        let tempFilter = { ...cascadeFilter };
+                        whereBuilder({ field: tempFilter, query, filterCondition: condition, database: name });
+
+                        // query.select("HIUSER.travel_details.source", "source")
+                        // query.where("source", "IN"  , ['Ahmedabad'])
+                    }
+                });
             }
-          }
-          let datePartList = dateFunctions["dateTime"];
-          let dateFunc = datePartList.find((func) => func.part === datePart);
-          if (!displayColumn.databaseFunction && datePart && datePart !== "individual") {
-            if (dateFunc && dateFunc.key) {
-              displayColumn.databaseFunction = dateFunc;
-            }
-          }
-          if (!valueColumn.databaseFunction && datePart && datePart !== "individual") {
-            if (dateFunc && dateFunc.key) {
-              valueColumn.databaseFunction = dateFunc;
-            }
-          }
-          selectBuilder(displayColumn, name, query);
-          selectBuilder(valueColumn, name, query);
-          if (cascade.isEnabled) {
-            cascade.filters.map((fltr) => {
-              let { uid, condition } = fltr;
-              let cascadeFilter = filters.find((cascadeFilter) => cascadeFilter.uid === uid);
-              if (cascadeFilter) {
-                let tempFilter = { ...cascadeFilter };
-                whereBuilder({field:tempFilter, query, filterCondition:condition,database:name});
-    
-                // query.select("HIUSER.travel_details.source", "source")
-                // query.where("source", "IN"  , ['Ahmedabad'])
-              }
-            });
-          }
         }
         if (debouncedSearchTerm) {
-          query.where("display", "LIKE", debouncedSearchTerm);
+            if (custom) {
+                query.where({ name: column }, "LIKE", debouncedSearchTerm, { custom: true });
+            } else {
+                query.where("display", "LIKE", debouncedSearchTerm);
+            }
         }
         query.limit(-1);
         return new Promise((resolve) => {
             query
-              .reportFormData()
-              .manipulateFormData((formData) => {
-                if (debouncedSearchTerm) {
-                  formData = filterSearchFormdata({ filter, formData, dateFunctions });
-                }
-                if(mapping.unique){
-                    formData.distinctResults = true;
-                }
-                if (returnFormData){
-                    resolve(formData)
-                }
-                return formData;
-              })
-              .execute({
-                getApi:getApi,
-                callBack: (res) => {
-                  dispatch(loadFilterValues({ values: res.data, uid, reportId, loading: false }));
-                },
-                errorBack: (err) => {
-                    dispatch(loadFilterValues({ values: [], uid, reportId, loading: false }))
-                    if (err?.message) {
-                        Notify.error({ type: "Back end", message: err?.message });
+                .reportFormData()
+                .manipulateFormData((formData) => {
+                    if (debouncedSearchTerm) {
+                        formData = filterSearchFormdata({ filter, formData, dateFunctions });
                     }
-                },
-              });
+                    if (mapping.unique) {
+                        formData.distinctResults = true;
+                    }
+                    if (returnFormData) {
+                        resolve(formData)
+                    }
+                    return formData;
+                })
+                .execute({
+                    getApi: getApi,
+                    callBack: (res) => {
+                        dispatch(loadFilterValues({ values: res.data, uid, reportId, loading: false }));
+                    },
+                    errorBack: (err) => {
+                        dispatch(loadFilterValues({ values: [], uid, reportId, loading: false }))
+                        if (err?.message) {
+                            Notify.error({ type: "Back end", message: err?.message });
+                        }
+                    },
+                });
         })
-    }catch(e){
-        Notify.error({message:e.message})
+    } catch (e) {
+        Notify.error({ message: e.message })
     }
-  };
+};
 
 const checkForDistinctAndCountFnApplied = (aggregateList) => {
     if (aggregateList && aggregateList?.length > 0 && aggregateList?.length <= 2) {
         let fns = []
-        if(aggregateList?.length === 2){
+        if (aggregateList?.length === 2) {
             fns = aggregateList?.map((item) => {
                 if (item?.includes("count") || item?.includes("distinct")) {
                     return true;
                 }
             })
         }
-        if(aggregateList?.length === 1){
+        if (aggregateList?.length === 1) {
             fns = aggregateList?.map((item) => {
                 if (item?.includes("count")) {
                     return true;
@@ -1005,136 +1029,147 @@ const checkForDistinctAndCountFnApplied = (aggregateList) => {
         return fns?.every((item) => item === true)
     }
     return false
-}  
- 
-  export const getMinMaxValues = (data,dispatch) => {
+}
+
+export const getMinMaxValues = (data, dispatch) => {
     const Notify = notify(dispatch);
-    let { filter,metadata,reportId,returnFormData,databaseFunctions,filters } = data
-    const { aggregate= [] } = filter || {}
-    let {name,formData} = metadata
-    name = name || filter.columnDatabase; 
+    let { filter, metadata, reportId, returnFormData, databaseFunctions, filters } = data
+    const { aggregate = [] } = filter || {}
+    let { name, formData } = metadata
+    name = name || filter.columnDatabase;
     let tempFilter = { ...filter };
-    let { mapping,uid,cascade,columnID } = tempFilter;
-    let query = new ReportQuery({...formData,useDBFuntion:databaseFunctions}, dispatch);
+    let { mapping, uid, cascade, columnID, custom, column } = tempFilter;
+    let query = new ReportQuery({ ...formData, useDBFuntion: databaseFunctions }, dispatch);
     if (mapping.isEnabled) {
-      let minColumn = {
-        ...mapping.displayColumn,
-        alias: "min",
-        databaseFunction: mapping.DisplayDBFunction,
-        orderBy: ["asc"],
-        columnID:columnID
-      };
-      let maxColumn = {
-        ...mapping.displayColumn,
-        alias: "max",
-        databaseFunction: mapping.DisplayDBFunction,
-        orderBy: ["asc"],
-        columnID:columnID
-      };
-      minColumn.aggregate = ['db.generic.aggregate.min'];
-    //   maxColumn.aggregate = ['db.generic.aggregate.max'];
+        if (custom) {
+            if (!mapping.displayColumn.fullyQualifiedColumn) {
+                mapping.displayColumn.column = column
+                mapping.displayColumn.custom = true
+            }
+            if (!mapping.valueColumn.fullyQualifiedColumn) {
+                mapping.valueColumn.column = column
+                mapping.valueColumn.custom = true
+            }
+        }
+
+        let minColumn = {
+            ...mapping.displayColumn,
+            alias: "min",
+            databaseFunction: mapping.DisplayDBFunction,
+            orderBy: ["asc"],
+            columnID: columnID
+        };
+        let maxColumn = {
+            ...mapping.displayColumn,
+            alias: "max",
+            databaseFunction: mapping.DisplayDBFunction,
+            orderBy: ["asc"],
+            columnID: columnID
+        };
+        minColumn.aggregate = ['db.generic.aggregate.min'];
+        //   maxColumn.aggregate = ['db.generic.aggregate.max'];
         if (checkForDistinctAndCountFnApplied(aggregate)) { // added this function and check for bug 6531, if distinct and count together applied to filter
             maxColumn.aggregate = ['db.generic.aggregate.count'];
         } else {
             maxColumn.aggregate = ['db.generic.aggregate.max'];
         }
-      selectBuilder(minColumn, name, query);
-      selectBuilder(maxColumn, name, query);
-      if (cascade.isEnabled) {
-        cascade.filters.map((fltr) => {
-          let { uid, condition } = fltr;
-          let cascadeFilter = filters.find((cascadeFilter) => cascadeFilter.uid === uid);
-          if (cascadeFilter) {
-            let tempFilter = { ...cascadeFilter };
-            whereBuilder({field:tempFilter, query, filterCondition:condition,database:name});
+        selectBuilder(minColumn, name, query);
+        selectBuilder(maxColumn, name, query);
+        if (cascade.isEnabled) {
+            cascade.filters.map((fltr) => {
+                let { uid, condition } = fltr;
+                let cascadeFilter = filters.find((cascadeFilter) => cascadeFilter.uid === uid);
+                if (cascadeFilter) {
+                    let tempFilter = { ...cascadeFilter };
+                    whereBuilder({ field: tempFilter, query, filterCondition: condition, database: name });
 
-            // query.select("HIUSER.travel_details.source", "source")
-            // query.where("source", "IN"  , ['Ahmedabad'])
-          }
-        });
-      }
+                    // query.select("HIUSER.travel_details.source", "source")
+                    // query.where("source", "IN"  , ['Ahmedabad'])
+                }
+            });
+        }
     }
     query.limit(-1);
-    if(returnFormData){
-        return new Promise((resolve)=>{
-            resolve(query.reportFormData({show:true}).formData)
+    if (returnFormData) {
+        return new Promise((resolve) => {
+            resolve(query.reportFormData({ show: true }).formData)
         })
     }
     return new Promise(() => {
         query
-          .reportFormData()
-          .execute({
-            callBack: (res) => {
-                let { data } = res;
-                  dispatch(loadValuesRange({ valuesRange: { min: checkForDistinctAndCountFnApplied(aggregate) ? 1 : data[0].min, max: data[0].max }, uid, reportId }));
-            //   dispatch(loadValuesRange({ valuesRange: { min: data[0].min, max: data[0].max }, uid,reportId }));
-            },
-            errorBack: (err) => {
-              Notify.error({ type: "Back end", message: err.message });
-            },
-          });
+            .reportFormData()
+            .execute({
+                callBack: (res) => {
+                    let { data } = res;
+                    dispatch(loadValuesRange({ valuesRange: { min: checkForDistinctAndCountFnApplied(aggregate) ? 1 : data[0].min, max: data[0].max }, uid, reportId }));
+                    //   dispatch(loadValuesRange({ valuesRange: { min: data[0].min, max: data[0].max }, uid,reportId }));
+                },
+                errorBack: (err) => {
+                    Notify.error({ type: "Back end", message: err.message });
+                },
+            });
     })
-  };
+};
 
 export const getRelativeDate = (filter) => {
-        const { anchor: { isAnchor, anchorDate, value, direction, part, relativePart }, condition, dataType, datePart, mapping } = filter || {}
-        let displayDateFunc = datePart, valueDateFunc = datePart
-        if (mapping && mapping.DisplayDBFunction && mapping.DisplayDBFunction.functionName) {
-            let val = mapping.DisplayDBFunction.functionName
-            displayDateFunc = getDatePart(val)
-        }
-        if (mapping && mapping.valueDBFunction && mapping.valueDBFunction.functionName) {
-            valueDateFunc = getDatePart(mapping.valueDBFunction.functionName)
-        }
-        if (funcMap.indexOf(displayDateFunc) === -1) return filter;
-        let { toolTipFormat } = datePickerFormat(filter, dataType);
-        let isRange = rangeConditions.includes(condition);
-        let dateNow = isAnchor ? anchorDate : moment()._d
-        let startValue = "01", endValue = "01"
-        if (direction === "last") {
-            if (value === "toDate") {
-                startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-                endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "now")
-            } else {
-                startValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
-                endValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "end")
-            }
-        } else if (direction === "next") {
-            startValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "end")
-        } else {
+    const { anchor: { isAnchor, anchorDate, value, direction, part, relativePart }, condition, dataType, datePart, mapping } = filter || {}
+    let displayDateFunc = datePart, valueDateFunc = datePart
+    if (mapping && mapping.DisplayDBFunction && mapping.DisplayDBFunction.functionName) {
+        let val = mapping.DisplayDBFunction.functionName
+        displayDateFunc = getDatePart(val)
+    }
+    if (mapping && mapping.valueDBFunction && mapping.valueDBFunction.functionName) {
+        valueDateFunc = getDatePart(mapping.valueDBFunction.functionName)
+    }
+    if (funcMap.indexOf(displayDateFunc) === -1) return filter;
+    let { toolTipFormat } = datePickerFormat(filter, dataType);
+    let isRange = rangeConditions.includes(condition);
+    let dateNow = isAnchor ? anchorDate : moment()._d
+    let startValue = "01", endValue = "01"
+    if (direction === "last") {
+        if (value === "toDate") {
             startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "end")
-        }
-        if (isRange) {
-            const [startDate, endDate] = changeRangeDateTime(startValue, endValue, filter)
-            return {
-                ...filter,
-                values: [startDate, endDate]
-            }
+            endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "now")
         } else {
-            let dateValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
-            const dateTime = changeEqualDateTime(dateValue, valueDateFunc, dataType)
-            return {
-                ...filter,
-                values: [dateTime]
-            }
+            startValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
+            endValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "end")
         }
+    } else if (direction === "next") {
+        startValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "start")
+        endValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "end")
+    } else {
+        startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
+        endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "end")
+    }
+    if (isRange) {
+        const [startDate, endDate] = changeRangeDateTime(startValue, endValue, filter)
+        return {
+            ...filter,
+            values: [startDate, endDate]
+        }
+    } else {
+        let dateValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
+        const dateTime = changeEqualDateTime(dateValue, valueDateFunc, dataType)
+        return {
+            ...filter,
+            values: [dateTime]
+        }
+    }
 }
 
 const getDateNow = (value, datePart) => {
     value = Array.isArray(value) ? value[0] : value;
     let format = momentDateFormat.get(datePart) || "YYYY-MM-DD HH:mm:ss";
-    let date =  moment(value,format)
-    if(date?.isValid()){
+    let date = moment(value, format)
+    if (date?.isValid()) {
         return date
-    }else{
+    } else {
         return moment(value, "YYYY-MM-DD HH:mm:ss");
     }
 }
 
 export const getDateFromValue = (val, filter, index, returnRelativeDateParts = false) => {
-    if(typeof val !== 'string') return val;
+    if (typeof val !== 'string') return val;
     let tempValue = val?.replace(/\s/g, '+');
     const regex = relativeDateRegex;
     const match = tempValue.match(regex);
@@ -1149,7 +1184,7 @@ export const getDateFromValue = (val, filter, index, returnRelativeDateParts = f
         isAnchor = isDateAnchor,
         anchorDate = anchorDateStr
     const [, anchorPart, base, modifier] = match;
-    if(!isRange && base === "to_date"){
+    if (!isRange && base === "to_date") {
         return val
     }
     switch (base) {
@@ -1204,15 +1239,15 @@ export const getDateFromValue = (val, filter, index, returnRelativeDateParts = f
     if (modifier) {
         const operator = modifier[0];
         const dateValue = parseInt(modifier.slice(1));
-        if (operator === '+' && !["tomorrow","yesterday","to_date"].includes(base)) {
+        if (operator === '+' && !["tomorrow", "yesterday", "to_date"].includes(base)) {
             direction = "next";
             value = dateValue
-        } else if (operator === '-' && !["tomorrow","yesterday","to_date"].includes(base)) {
+        } else if (operator === '-' && !["tomorrow", "yesterday", "to_date"].includes(base)) {
             direction = "last";
             value = dateValue
         }
     }
-    if(anchorPart){
+    if (anchorPart) {
         isAnchor = true;
         // dateNow = isArray(anchorDate) ? moment(new Date(anchorDate?.[0])) : anchorDate;
         dateNow = getDateNow(anchorDate, relativePart);
@@ -1227,7 +1262,7 @@ export const getDateFromValue = (val, filter, index, returnRelativeDateParts = f
             anchorDate
         }
     }
-    const {dataType} = filter || {}
+    const { dataType } = filter || {}
     let { toolTipFormat } = datePickerFormat(filter, dataType);
     let isTodate = base === "to_date";
     let dateValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, isTodate ? "now" : index === 2 ? "end" : "start")
@@ -1235,7 +1270,7 @@ export const getDateFromValue = (val, filter, index, returnRelativeDateParts = f
 }
 
 export const matchDateStr = (str) => {
-    if(!str || typeof str !== 'string') return false;
+    if (!str || typeof str !== 'string') return false;
     let tempValue = str?.replace(/\s/g, '+');
     const regex = relativeDateRegex;
     const match = tempValue.match(regex);
@@ -1248,16 +1283,16 @@ export const checkIsObject = (obj) => {
 
 export const compareObjects = (obj1, obj2) => {
     if (obj1.value === obj2.value) {
-      return obj1;
+        return obj1;
     } else if (obj1.value > obj2.value) {
-      return obj1;
+        return obj1;
     } else {
-      return obj2;
+        return obj2;
     }
-  }
+}
 
-export const prepareRelativeOptionFromAnchor = (data={}) => {
-    const  {anchor = {}, isRange = false, index = 1, actualValue} = data
+export const prepareRelativeOptionFromAnchor = (data = {}) => {
+    const { anchor = {}, isRange = false, index = 1, actualValue } = data
     const {
         relativePart = "",
         value = 0,
@@ -1265,11 +1300,11 @@ export const prepareRelativeOptionFromAnchor = (data={}) => {
         isAnchor
     } = anchor;
     // if(isAnchor) return actualValue;
-    if(!relativePart && !matchDateStr(actualValue)) return actualValue;
+    if (!relativePart && !matchDateStr(actualValue)) return actualValue;
     let operator = '';
-    if(value === "toDate" && isRange){
-        if(index === 1) return relativePart;
-        if(index === 2) return 'to_date'
+    if (value === "toDate" && isRange) {
+        if (index === 1) return relativePart;
+        if (index === 2) return 'to_date'
     }
     let numericValue = parseInt(value);
     if (direction === 'last') {
@@ -1278,23 +1313,23 @@ export const prepareRelativeOptionFromAnchor = (data={}) => {
         operator = '+';
     }
     let relativeOption = relativePart;
-    if(relativePart === "day") relativeOption = "today";
-    if(isRange){
-        if(index === 1){
-            if(isAnchor){
-                relativeOption  = 'anchor_' + relativeOption;
+    if (relativePart === "day") relativeOption = "today";
+    if (isRange) {
+        if (index === 1) {
+            if (isAnchor) {
+                relativeOption = 'anchor_' + relativeOption;
             }
-            if(direction === "next" && value > 1 ){
+            if (direction === "next" && value > 1) {
                 relativeOption += operator + 1
                 return relativeOption
             }
-            if(operator) {
+            if (operator) {
                 relativeOption += operator + numericValue;
             }
             return relativeOption;
         }
-        if(index === 2){
-            if(direction === "last" && value > 1){
+        if (index === 2) {
+            if (direction === "last" && value > 1) {
                 relativeOption += operator + 1
                 return relativeOption
             }
@@ -1303,19 +1338,19 @@ export const prepareRelativeOptionFromAnchor = (data={}) => {
     if (operator) {
         relativeOption += operator + numericValue;
     }
-    if(isAnchor){
-        relativeOption  = 'anchor_' + relativeOption;
+    if (isAnchor) {
+        relativeOption = 'anchor_' + relativeOption;
     }
     return relativeOption;
 }
 
 export const getRelativeAnchor = (returnObj) => {
-    if(typeof returnObj === "string") return returnObj
-    const { value: fValue, part, direction, relativePart, isAnchor, anchorDate  } = returnObj || {}
+    if (typeof returnObj === "string") return returnObj
+    const { value: fValue, part, direction, relativePart, isAnchor, anchorDate } = returnObj || {}
     let anchor = { value: fValue, direction, relativePart, part, isAnchor, anchorDate }
     if (fValue > 1) {
         let lastInput = 3,
-            nextInput = 3,  
+            nextInput = 3,
             active = 1
         if (direction === "last") {
             lastInput = fValue;
@@ -1423,7 +1458,7 @@ export const checkRelativeDateFilter = (filters = [], parameters) => {
             let isRange = rangeConditions.includes(condition);
             filter = updateRelativeDateAnchor(filter, parameters, isRange);
             const newValues = getRelativeDateFromValue(filterValues, filter);
-            filter = {...filter, values : newValues }
+            filter = { ...filter, values: newValues }
         }
         return filter
     })
@@ -1451,7 +1486,7 @@ export const changeRangeDateTime = (startDate, endDate, filter) => {
                     endDate = endDate.format(dateFormats.TIME)
                     break;
             }
-        break;
+            break;
         case dateTypes.DATE:
             startDate = startDate.format(dateFormats.DATE)
             endDate = endDate.format(dateFormats.DATE)
@@ -1509,7 +1544,7 @@ export const changeEqualDateTime = (dateTime, valueDateFunc, dataType) => {
                     dateTime = moment(dateTime).format(dateFormats.TIME)
                     break;
             }
-        break;
+            break;
         case dateTypes.DATE:
             dateTime = moment(dateTime).format(dateFormats.DATE)
             break;

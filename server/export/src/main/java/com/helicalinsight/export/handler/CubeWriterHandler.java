@@ -54,6 +54,8 @@ public class CubeWriterHandler  extends AbstractResourceWriterHandler {
 			mdWriterHandler.write(mdDTO, dir, manifest, options);
 			manifestUtils.insertPath(resource.getPath(), manifest);
 			dataWriter.write(this.addOwner(hiMetadataCube,null), dir, resource,"");
+			HIResource cubeResource = serviceDB.getResourceByIdIgnoreFilter(resource.getResourceId());
+			recycleBinHandler.writeResource(cubeResource, resource, dir, manifest);
 			String csv = hiMetadataCube.getHiResourceMetadata().getHiResource().getResourceURL().concat(",").concat(depPath);
 			manifestUtils.insertDependency(resource.getPath(), csv, manifest);
 		}

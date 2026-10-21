@@ -1,4 +1,10 @@
-"""Interactive chat modes (fast, think, auto)."""
+"""Interactive chat modes (fast, think, auto).
+
+* ``modes`` — mode identity / aliases
+* ``fast`` / ``fast_flow`` — normal single-question InstantBI turn
+* ``think`` / ``think_flow`` — multi-question investigation turn
+* ``auto_mode`` — LLM/heuristic router between fast and think
+"""
 
 from helicalbi.interactive.modes import (
     DEFAULT_INTERACTIVE_MODE,

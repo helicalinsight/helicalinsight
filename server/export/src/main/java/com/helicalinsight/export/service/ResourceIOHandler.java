@@ -52,6 +52,9 @@ public abstract class ResourceIOHandler {
 	
 	@Autowired
 	protected ShareHandler shareHandler;
+
+	@Autowired
+	protected RecycleBinHandler recycleBinHandler;
 	
 	@Autowired
 	protected ResourceDTOMapper dtoMapper;

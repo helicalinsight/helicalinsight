@@ -35,6 +35,8 @@ public class ExportDtoTest extends ExportUnitTestBase {
 		dependencies.put("dep", Arrays.asList("a"));
 		Map<String, List<String>> images = new HashMap<>();
 		images.put("img", Arrays.asList("i"));
+		Map<String, String> imageFiles = new HashMap<>();
+		imageFiles.put("path.image", "path.image_image");
 		ResourceOptions options = new ResourceOptions();
 
 		manifest.setVersion("2");
@@ -44,6 +46,7 @@ public class ExportDtoTest extends ExportUnitTestBase {
 		manifest.setDataSources(dataSources);
 		manifest.setDependencies(dependencies);
 		manifest.setImages(images);
+		manifest.setImageFiles(imageFiles);
 		manifest.setOptions(options);
 
 		Assert.assertEquals("2", manifest.getVersion());
@@ -53,6 +56,7 @@ public class ExportDtoTest extends ExportUnitTestBase {
 		Assert.assertEquals(dataSources, manifest.getDataSources());
 		Assert.assertEquals(dependencies, manifest.getDependencies());
 		Assert.assertEquals(images, manifest.getImages());
+		Assert.assertEquals(imageFiles, manifest.getImageFiles());
 		Assert.assertEquals(options, manifest.getOptions());
 	}
 

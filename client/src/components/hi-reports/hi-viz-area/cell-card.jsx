@@ -109,7 +109,7 @@ const CellCardContent = props => {
                 let fieldInfo = reportFields.find(field => field.id === fltr.mappedColumnId)
                 if (!fieldInfo) return null
                 if (getFieldDisplayName(fieldInfo) === item.field) {
-                    let filters = reportState.filters.map(filter => {
+                    let filters = reportState?.filters?.map(filter => {
                         // if (filter.column === fieldInfo.column) { // it should be mapped with column alias/label/autogen_alias [7856]
                         //     return addFilterValue(filter, item.value)
                         // }
@@ -146,7 +146,7 @@ const CellCardContent = props => {
             return Notify.warning({ message });
         }
         let params = {}
-        reportState.filters.map(item => {
+        reportState?.filters?.map(item => {
             params[getFieldAliasName(item)] = item.values
         })
         reportState = modifyFilters(reportState, params)

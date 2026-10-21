@@ -652,6 +652,10 @@ $advanced-card-width: 250;
     }
   }
 }
+
+.filters-advance-dropdown{
+  z-index: 99;
+}
 .advanced-mode-list {
   // height: 200px;
   min-height: 20px;

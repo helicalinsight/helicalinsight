@@ -20,6 +20,25 @@
     }
   },
   {
+    "id": "transferTicketPurge",
+    "title": "Transfer Ticket Purge",
+    "description": "Purges expired resumable download and upload tickets from the shared in-memory registry.",
+    "layout": "Static/layout/temp-directory-clean.ui.layout",
+    "enabled": true,
+    "paused": false,
+    "expireDate": "never",
+    "task": {
+      "class": "com.helicalinsight.export.ticket.TransferTicketPurgeJob"
+    },
+    "cron": "0 0/5 * * * ?",
+    "scheduledTime": "00:00:00",
+    "timeZone": "",
+    "email": {
+      "enabled": false,
+      "to": ""
+    }
+  },
+  {
     "id": "tempDirectoryClean",
     "title": "Temp Directory Clean",
     "description": "Deletes files from the temp directory that are older than the configured number of days.",

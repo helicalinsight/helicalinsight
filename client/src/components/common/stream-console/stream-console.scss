@@ -1,0 +1,123 @@
+.hi-stream-console {
+  --hi-console-bg: #1a1d23;
+  --hi-console-fg: #e8eaed;
+  --hi-console-muted: #9aa0a6;
+  --hi-console-border: #2a2f38;
+  --hi-console-log: #b0b8c4;
+  --hi-console-info: #69b1ff;
+  --hi-console-warning: #faad14;
+  --hi-console-error: #ff7875;
+  --hi-console-debug: #b37feb;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--hi-console-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--hi-console-bg);
+  color: var(--hi-console-fg);
+}
+
+.hi-stream-console-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--hi-console-border);
+  background: #22262e;
+}
+
+.hi-stream-console-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+
+  .ant-tag-checkable {
+    margin-inline-end: 0;
+    color: var(--hi-console-muted);
+    background: transparent;
+    border: 1px solid transparent;
+
+    &:hover {
+      color: var(--hi-console-fg);
+    }
+
+    &.ant-tag-checkable-checked {
+      color: #fff;
+      background: #3a4150;
+      border-color: #4a5263;
+    }
+  }
+}
+
+.hi-stream-console-copy {
+  color: var(--hi-console-fg);
+  flex-shrink: 0;
+
+  &.hi-stream-console-copy-done {
+    color: #52c41a;
+  }
+}
+
+.hi-stream-console-body {
+  max-height: 420px;
+  overflow: auto;
+  font-family: Consolas, Monaco, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 8px 10px 12px;
+}
+
+.hi-stream-console-empty {
+  opacity: 0.6;
+  padding: 12px 4px;
+}
+
+.hi-stream-console-row {
+  display: grid;
+  grid-template-columns: 78px 96px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 2px 0;
+}
+
+.hi-stream-console-tag {
+  margin-inline-end: 0;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  width: 100%;
+}
+
+.hi-stream-console-ts {
+  color: var(--hi-console-muted);
+  white-space: nowrap;
+}
+
+.hi-stream-console-msg {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hi-stream-console-row-log .hi-stream-console-msg {
+  color: var(--hi-console-log);
+}
+
+.hi-stream-console-row-info .hi-stream-console-msg {
+  color: var(--hi-console-info);
+}
+
+.hi-stream-console-row-warning .hi-stream-console-msg {
+  color: var(--hi-console-warning);
+}
+
+.hi-stream-console-row-error .hi-stream-console-msg {
+  color: var(--hi-console-error);
+}
+
+.hi-stream-console-row-debug .hi-stream-console-msg {
+  color: var(--hi-console-debug);
+}

@@ -1531,6 +1531,40 @@ public class JsonUtils {
         JsonObject settingsJson = newGetSettingsJson();
         return GsonUtility.optIntValue(settingsJson, "eventBatchSize", 100);
     }
+
+    public static int getDownloadChunkSize() {
+        return GsonUtility.optIntValue(newGetSettingsJson(), "downloadChunkSize", 1048576);
+    }
+
+    public static int getUploadChunkSize() {
+        return GsonUtility.optIntValue(newGetSettingsJson(), "uploadChunkSize", 1048576);
+    }
+
+    public static boolean isResumableDownloadEnabled() {
+        return GsonUtility.optBooleanValue(newGetSettingsJson(), "resumableDownload", false);
+    }
+    
+    public static boolean isStreamResponseEnabled() {
+		return GsonUtility.optBooleanValue(JsonUtils.newGetSettingsJson(), "streamResponse", false);
+	}
+
+    public static boolean isResumableUploadEnabled() {
+        return GsonUtility.optBooleanValue(newGetSettingsJson(), "resumableUpload", false);
+    }
+    
+    public static JsonObject getImportExportOptions() {
+        JsonObject configured = GsonUtility.optJsonObjectOrEmpty(newGetSettingsJson(), "importExportOptions");
+        JsonObject options = new JsonObject();
+        for (String key : configured.keySet()) {
+            String text = GsonUtility.optString(configured, key);
+            if ("true".equalsIgnoreCase(text) || "false".equalsIgnoreCase(text)) {
+                options.addProperty(key, GsonUtility.optBooleanValue(configured, key, false));
+            } else {
+                GsonUtility.setMappedValue(options, key, GsonUtility.jsonElementToObject(configured.get(key)));
+            }
+        }
+        return options;
+    }
     
     public static String getSseUpdateBatchStrategy() {
     	JsonObject settingsJson = newGetSettingsJson();
@@ -1550,6 +1584,9 @@ public class JsonUtils {
     }
     
 
+    public static Integer getDefaultDatasourceId() {
+    	return GsonUtility.optIntValue(newGetSettingsJson(), "defaultDatasourceId", 1);
+    }
 
 
 }

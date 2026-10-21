@@ -10,6 +10,7 @@ from langgraph.prebuilt import InjectedState
 from pydantic import BaseModel, Field
 
 from helicalbi.common import app_config
+from helicalbi.sql_agent.prompt import STEP_INSIGHT_PROMPT
 from helicalbi.sql_agent.tools.context import AgentToolContext
 from helicalbi.sql_agent.tools.findings import describe_query_findings
 
@@ -17,32 +18,78 @@ logger = logging.getLogger(__name__)
 
 _MAX_SAMPLE_ROWS = 50
 
-STEP_INSIGHT_PROMPT = """You are a business analyst writing Instant BI findings for a non-technical user.
-This is the same style as data-insight: ground every claim in the result sample.
 
-Context (do not repeat in technical form):
-User: {username}
-Step title: {title}
-User question: {user_question}
-SQL: {sql}
-Selected domain: {domain}
-Selected topics: {topics}
-Result sample: {sample_data}
+def _success_insight_metadata(
+    state: dict[str, Any],
+    last_sql: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    src = last_sql if isinstance(last_sql, dict) else {}
+    tables = src.get("required_tables") or state.get("required_tables") or []
+    domain = src.get("domain") or state.get("domain") or state.get("selected_domains") or []
+    topics = src.get("topics") or state.get("topics") or state.get("selected_topics") or []
+    return {
+        "required_tables": list(tables) if not isinstance(tables, str) else [tables],
+        "domain": list(domain) if not isinstance(domain, str) else [domain],
+        "topics": list(topics) if not isinstance(topics, str) else [topics],
+    }
 
-Task:
-Write a conclusive answer and a short descriptive analysis for this investigation step.
 
-Rules:
-- answer: 1–2 sentences with the direct takeaway; wrap decisive numbers in **bold** markdown.
-- analysis: 2–4 sentences on business meaning and one practical implication when supported.
-  Bold the few key figures; optional 2–3 short `-` bullets if a comparison is clearer that way.
-- Use only facts supported by the result sample. Do not invent values.
-- Clear conversational business language. No SQL, schemas, tables, charts, or system terms.
-- No headings or labels like "Answer:" or "Insight:".
-- Translate field names into everyday language.
+def sql_success_insight(
+    *,
+    question: str,
+    sql: str,
+    state: dict[str, Any],
+    last_sql: dict[str, Any] | None = None,
+    existing_insight: str = "",
+    _invoke_llm=None,
+) -> str:
+    """Per-question summary.insight: same SqlSuccessPrompt route as fast mode (no result rows)."""
+    for candidate in (
+        existing_insight,
+        str((last_sql or {}).get("output") or "") if isinstance(last_sql, dict) else "",
+    ):
+        text = str(candidate or "").strip()
+        if text and not text.lstrip().startswith(("[", "{")):
+            return text
+    from helicalbi.core.flows.SqlExecutor import generate_sql_success_insight
 
-{format_instructions}
-"""
+    return generate_sql_success_insight(
+        question,
+        sql,
+        _success_insight_metadata(state, last_sql),
+        state=state,
+        _invoke_llm=_invoke_llm,
+    )
+
+
+def apply_sql_success_insight(
+    step: dict[str, Any],
+    state: dict[str, Any],
+    *,
+    question: str,
+    sql: str,
+    last_sql: dict[str, Any] | None = None,
+    _invoke_llm=None,
+) -> dict[str, Any]:
+    """Set summary.insight from SqlSuccessPrompt; leave analysis for conclusion findings."""
+    chat_response = dict(step.get("chat_response") or {})
+    summary = dict(chat_response.get("summary") or {})
+    insight = sql_success_insight(
+        question=question,
+        sql=sql,
+        state=state,
+        last_sql=last_sql,
+        existing_insight=str(summary.get("insight") or "").strip(),
+        _invoke_llm=_invoke_llm,
+    )
+    if not insight:
+        return step
+    summary["insight"] = insight
+    chat_response["summary"] = summary
+    step["chat_response"] = chat_response
+    step.pop("answer", None)
+    return step
+
 
 
 class StepInsightOutput(BaseModel):
@@ -124,6 +171,7 @@ class AnalysisTools:
         question: str = "",
         title: str = "",
         _invoke=None,
+        _invoke_llm=None,
     ) -> dict[str, Any]:
         ctx = AgentToolContext(state)
         raw = (note or "").strip() or str(state.get("query_result") or "")
@@ -134,6 +182,7 @@ class AnalysisTools:
         # Prefer live SQL preview rows from the last execute when available.
         session = state.get("session_context") if isinstance(state.get("session_context"), dict) else {}
         last = session.get("_last_sql_state") if isinstance(session, dict) else None
+        last_sql = last if isinstance(last, dict) else None
         sample_data: list[Any] = []
         if isinstance(last, dict):
             preview = ctx.preview_data(last)
@@ -143,6 +192,13 @@ class AnalysisTools:
             row_cap = int(getattr(app_config, "default_sql_limit", None) or _MAX_SAMPLE_ROWS)
             sample_data = _sample_rows_from_raw(raw, limit=row_cap)
 
+        insight = sql_success_insight(
+            question=asked,
+            sql=sql,
+            state=state,
+            last_sql=last_sql,
+            _invoke_llm=_invoke_llm,
+        )
         llm_insight = _llm_step_insight(
             question=asked,
             title=heading,
@@ -152,12 +208,13 @@ class AnalysisTools:
             _invoke=_invoke,
         )
         if llm_insight is not None:
-            answer = llm_insight.answer
             analysis = llm_insight.analysis
+            fallback_insight = llm_insight.answer
         else:
             described = describe_query_findings(raw, question=asked, title=heading)
-            answer = described["answer"]
             analysis = described["analysis"]
+            fallback_insight = described["answer"]
+        insight = insight or fallback_insight
 
         collected = list(state.get("collected_data") or [])
         collected.append(
@@ -167,10 +224,9 @@ class AnalysisTools:
                 "pruned_schema": state.get("current_schema_subset") or "",
                 "generated_sql": sql,
                 "execution_result": str(state.get("query_result") or state.get("sql_error") or ""),
-                "answer": answer,
                 "analysis": analysis,
                 "chat_response": {
-                    "summary": {"insight": answer},
+                    "summary": {"insight": insight},
                 },
                 "report_model": {},
                 "chat_seq_id": ctx.unique_seq(),
@@ -180,7 +236,6 @@ class AnalysisTools:
         return {
             "ok": True,
             "analysis": analysis,
-            "answer": answer,
             "state_patch": {"collected_data": collected, "sql_retry_count": 0},
         }
 

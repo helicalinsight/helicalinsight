@@ -5,6 +5,48 @@ import { createTabTitle } from "../../utils/utilities";
 import actionTypes from "../actions/actionTypes";
 import initialStates, { getIBInitialReportState } from "./initialStates";
 
+const normalizeThinkStepForLoad = (step = {}) => {
+  if (!step || typeof step !== "object") return step;
+  const {
+    fullChatResponse: savedFullChatResponse,
+    vizActivityTrail: _vizActivityTrail,
+    vizLoading: _vizLoading,
+    vizError: _vizError,
+    vizDetails: _vizDetails,
+    vf: _vf,
+    report_model: topReportModel,
+    reportModel: topReportModelCamel,
+    chatResponse: chatResponseCamel,
+    chat_response: savedChatResponse,
+    ...restStep
+  } = step;
+  const rawChatResponse = savedChatResponse || chatResponseCamel
+    || savedFullChatResponse || {};
+  const { hreportId: nestedHreportId, ...pureChatResponse } = rawChatResponse || {};
+  const reportModel = topReportModel || topReportModelCamel
+    || pureChatResponse.report_model || {};
+  const hasModel = Boolean(reportModel && Object.keys(reportModel).length);
+  const chat_response = { ...pureChatResponse };
+  if (hasModel && !chat_response.report_model) {
+    chat_response.report_model = reportModel;
+  }
+  const hreportId = step.hreportId || nestedHreportId
+    || chatResponseCamel?.hreportId || savedFullChatResponse?.hreportId
+    || (hasModel ? uuidv4() : null);
+  return {
+    ...restStep,
+    chat_response,
+    report_model: reportModel,
+    ...(hreportId ? { hreportId } : {}),
+    fullChatResponse: {
+      ...chat_response,
+      ...(hreportId ? { hreportId } : {}),
+    },
+    vizLoading: false,
+    vizError: "",
+  };
+};
+
 
 const instantBIReducer = (
   state = initialStates.instantBIInitialState,
@@ -462,9 +504,9 @@ const instantBIReducer = (
             || (Array.isArray(rest.question_history) && rest.question_history.length)
             || (Array.isArray(rest.questionHistory) && rest.questionHistory.length)
           );
-          const questionHistory = rest.questionHistory
+          const questionHistory = (rest.questionHistory
             || rest.question_history
-            || [];
+            || []).map(normalizeThinkStepForLoad);
           const askedQuestions = rest.askedQuestions
             || rest.asked_questions
             || questionHistory.map((item) => item?.question).filter(Boolean);
@@ -491,7 +533,21 @@ const instantBIReducer = (
             chatSequenceId: sequenceId,
             needsLoadChat: false,
             persistedInFile: false,
-            fullChatResponse: { ...rest },
+            fullChatResponse: (() => {
+              const fullChatResponse = { ...rest };
+              if (isThinkPlan) {
+                fullChatResponse.question_history = questionHistory;
+                delete fullChatResponse.questionHistory;
+                return fullChatResponse;
+              }
+              if (!fullChatResponse.hreportId) {
+                const reportModel = fullChatResponse.report_model || {};
+                const hasChart = Boolean(fullChatResponse?.viz?.vf_template)
+                  || Boolean(reportModel && Object.keys(reportModel).length);
+                if (hasChart) fullChatResponse.hreportId = uuidv4();
+              }
+              return fullChatResponse;
+            })(),
             hreportLoading: true,
             isThinkPlan,
             askedQuestions,
@@ -502,10 +558,7 @@ const instantBIReducer = (
             plan: rest.plan || {},
             llmActivityDetails: rest.llmActivityDetails || rest.llm_activity_details || null,
             dashboardModel: rest.dashboardModel || rest.dashboard_model || rest.dashboard || null,
-            ...rest,
-            // Do not restore workings in open/edit.
             activityTrail: [],
-            activity_trail: undefined,
           });
         }
       });
@@ -571,7 +624,6 @@ const instantBIReducer = (
         reportId,
         chatSequenceId,
         chart_name,
-        similar_chart,
         vf_template,
         vf,
         vf_title,
@@ -583,7 +635,7 @@ const instantBIReducer = (
           const patchViz = (viz = {}) => {
             const next = { ...viz };
             if (chart_name != null) next.chart_name = chart_name;
-            if (similar_chart != null) next.similar_chart = similar_chart;
+            delete next.similar_chart;
             if (vf_template != null) next.vf_template = vf_template;
             if (vf_title != null) next.vf_title = vf_title;
             delete next.settings;

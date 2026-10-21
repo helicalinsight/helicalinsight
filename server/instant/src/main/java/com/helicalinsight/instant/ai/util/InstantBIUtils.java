@@ -1,6 +1,7 @@
 package com.helicalinsight.instant.ai.util;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.admin.model.Principal;
 import com.helicalinsight.admin.model.Profile;
@@ -130,20 +131,157 @@ public final class InstantBIUtils {
         return parseRequestBoolean(value, true);
     }
 
+    public static JsonArray getHistory(JsonArray inputs, String chatSeqId) {
+        return getHistory(inputs, parentSequenceId(chatSeqId));
+    }
+
     public static JsonArray getHistory(JsonArray inputs, int chatSequenceId) {
         JsonArray history = new JsonArray();
+        if (inputs == null) {
+            return history;
+        }
 
         for (int index = inputs.size() - 1; index >= 0; index--) {
-            JsonObject obj = inputs.get(index).getAsJsonObject();
+            JsonElement element = inputs.get(index);
+            if (element == null || !element.isJsonObject()) {
+                continue;
+            }
+            JsonObject obj = element.getAsJsonObject();
+            int seqId = parentSequenceId(GsonUtility.optString(obj, "chat_sequence_id"));
 
-            int seqId = obj.get("chat_sequence_id").getAsInt();
-
-            if (seqId < chatSequenceId) {
-                history.add(obj.get("input").getAsString());
+            if (seqId > 0 && seqId < chatSequenceId) {
+                JsonElement input = obj.get("input");
+                if (input != null && input.isJsonPrimitive()) {
+                    history.add(input.getAsString());
+                }
             }
         }
 
         return history;
+    }
+
+    /**
+     * Parent turn for ids like {@code 1} or think-step ids like {@code 1_2}.
+     */
+    public static int parentSequenceId(String chatSeqId) {
+        if (StringUtils.isBlank(chatSeqId)) {
+            return 0;
+        }
+        String text = chatSeqId.trim();
+        int split = -1;
+        for (int i = 0; i < text.length(); i++) {
+            char ch = text.charAt(i);
+            if (ch == '_' || ch == '-') {
+                split = i;
+                break;
+            }
+        }
+        String parent = split > 0 ? text.substring(0, split) : text;
+        try {
+            return Integer.parseInt(parent);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    /**
+     * Saved Instant report chat payload for data-insight: parent turns or think-mode
+     * supporting questions keyed as {@code parent_index}.
+     */
+    @Nullable
+    public static JsonObject findSavedChatResponseItem(JsonObject stateJson, String chatSeqId) {
+        if (stateJson == null || StringUtils.isBlank(chatSeqId)) {
+            return null;
+        }
+        String wanted = chatSeqId.trim();
+        JsonArray chatResponses = GsonUtility.optJsonArray(stateJson, "chat_responses");
+        if (chatResponses == null) {
+            return null;
+        }
+        for (JsonElement element : chatResponses) {
+            if (element == null || !element.isJsonObject()) {
+                continue;
+            }
+            JsonObject chatResponse = element.getAsJsonObject();
+            String seq = sequenceIdAsString(chatResponse, "chat_sequence_id");
+            if (seqEquals(wanted, seq)) {
+                return chatResponse;
+            }
+            JsonObject stepItem = findThinkStepChatResponse(chatResponse, seq, wanted);
+            if (stepItem != null) {
+                return stepItem;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static JsonObject findThinkStepChatResponse(JsonObject parent, String parentSeq, String wanted) {
+        JsonArray history = GsonUtility.optJsonArray(parent, "question_history");
+        if (history == null) {
+            history = GsonUtility.optJsonArray(parent, "questionHistory");
+        }
+        if (history == null) {
+            return null;
+        }
+        for (JsonElement element : history) {
+            if (element == null || !element.isJsonObject()) {
+                continue;
+            }
+            JsonObject step = element.getAsJsonObject();
+            String stepSeq = firstNonBlank(
+                    GsonUtility.optString(step, "chat_seq_id"),
+                    GsonUtility.optString(step, "chatSeqId"));
+            if (StringUtils.isBlank(stepSeq)) {
+                String index = sequenceIdAsString(step, "index");
+                if (StringUtils.isNotBlank(parentSeq) && StringUtils.isNotBlank(index)) {
+                    stepSeq = parentSeq + "-" + index;
+                }
+            }
+            if (!seqEquals(wanted, stepSeq)) {
+                continue;
+            }
+            JsonObject nested = GsonUtility.optJsonObject(step, "chat_response");
+            if (nested == null) {
+                nested = GsonUtility.optJsonObject(step, "fullChatResponse");
+            }
+            if (nested == null) {
+                nested = GsonUtility.optJsonObject(step, "chatResponse");
+            }
+            return nested != null ? nested : step;
+        }
+        return null;
+    }
+
+    private static boolean seqEquals(String left, String right) {
+        return normalizeSeq(left).equals(normalizeSeq(right));
+    }
+
+    private static String normalizeSeq(String value) {
+        return StringUtils.defaultString(value).trim().replace('_', '-');
+    }
+
+    private static String sequenceIdAsString(JsonObject obj, String key) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) {
+            return "";
+        }
+        JsonElement element = obj.get(key);
+        if (element != null && element.isJsonPrimitive()) {
+            return element.getAsString().trim();
+        }
+        return "";
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (StringUtils.isNotBlank(value)) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 
     @NotNull

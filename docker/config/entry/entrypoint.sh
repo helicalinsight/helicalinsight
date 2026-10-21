@@ -20,10 +20,14 @@ TOMCAT_LOCATION="/usr/local/tomcat"
 LOCKFILE="/usr/local/Helical Insight/hi/hi-repository/hi.lock"
 CHROME_VERSION="128.0.6613.119"
 CHROME_DRIVER_VERSION="128.0.6613.119"
+SETTING_XML="${INSTALLATION_LOCATION}/hi/hi-repository/System/Admin/setting.xml"
+EFFECTIVE_BASE_URL="http://localhost:8080/hi-ee/hi.html"
 
+echo "BaseUrl: ${EFFECTIVE_BASE_URL}"
+sed -i "s|<BaseUrl>.*</BaseUrl>|<BaseUrl>${EFFECTIVE_BASE_URL}</BaseUrl>|" "${SETTING_XML}"
 
 if [ -f "${LOCKFILE}" ]; then
-  echo "Lock file exists. Exiting."
+  echo "Lock file exists. Skipping one-time setup."
 else
   touch "$LOCKFILE"
   echo "Lock file created. Continuing..."
@@ -39,9 +43,8 @@ fi
 unzip -o /usr/local/tomcat/webapps/hi-ee.war -d usr/local/tomcat/webapps/hi-ee
 
 sed -i "s|<efwSolution>.*</efwSolution>|<efwSolution>${INSTALLATION_LOCATION}/hi/hi-repository</efwSolution>|; \
-            s|<BaseUrl>.*</BaseUrl>|<BaseUrl>https://${HOST_IP}/hi-ee/hi.html</BaseUrl>|; \
-            s|<defaultBaseurl>true</defaultBaseurl>|<defaultBaseurl>false</defaultBaseurl>|; \
-            " "${INSTALLATION_LOCATION}/hi/hi-repository/System/Admin/setting.xml"
+            s|<defaultBaseurl>false</defaultBaseurl>|<defaultBaseurl>true</defaultBaseurl>|; \
+            " "${SETTING_XML}"
 
 sed -i "s|<url>jdbc:derby:\${INSTALL_PATH}\${FILE_SEPARATOR}db\${FILE_SEPARATOR}SampleTravelData</url>|<url>jdbc:derby:${INSTALLATION_LOCATION}/hi/db/SampleTravelData</url>|;" "${INSTALLATION_LOCATION}/hi/hi-repository/System/Admin/globalConnections.xml"
 

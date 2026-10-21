@@ -73,7 +73,7 @@ const getImageProperties = (gridItemsData) => {
 
 }
 const HIDashboardDesigner = (designerProps) => {
-  const { refresh, setRefresh, parameters } = designerProps || {};
+  const { refresh, setRefresh, parameters, fromInstant = false } = designerProps || {};
   const history = useHistory();
   const { location } = history || {};
   const { pathname } = location || {};
@@ -577,6 +577,7 @@ const HIDashboardDesigner = (designerProps) => {
                 key={ele.id}
                 element={ele}
                 parameters={parameters}
+                fromInstant={fromInstant}
               ></SizeAwareHIGridItem>
             </div>
           </div>
@@ -589,6 +590,7 @@ const HIDashboardDesigner = (designerProps) => {
       highlight,
       dashboardVariables,
       applyDashboardFilters,
+      fromInstant
     ]
   );
 
@@ -603,6 +605,7 @@ const HIDashboardDesigner = (designerProps) => {
     maximizedGridItem,
     dashboardVariables,
     applyDashboardFilters,
+    fromInstant
   ]);
 
   return (

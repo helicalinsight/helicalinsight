@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 
@@ -11,6 +13,100 @@ from helicalbi.prompt.SqlSuccessPrompty import success_prompt_formatted
 from helicalbi.sql.sql_retry import sql_execution_failed
 
 logger = logging.getLogger(__name__)
+
+
+def _trait_name(item: dict) -> str:
+    return str(
+        item.get("measure_name")
+        or item.get("metric")
+        or item.get("alias_name")
+        or item.get("column_name")
+        or ""
+    ).strip()
+
+
+def measure_traits_for_insight(state: dict | None) -> list[dict]:
+    """Grain, additivity, and business direction for measures used in this turn."""
+    if not isinstance(state, dict):
+        return []
+    wanted: set[str] = set()
+    sources: list[dict] = []
+    for metric in state.get("required_business_metrics") or []:
+        if isinstance(metric, dict):
+            sources.append(metric)
+            name = _trait_name(metric).lower()
+            if name:
+                wanted.add(name)
+    plan = state.get("query_plan") or {}
+    if isinstance(plan, str):
+        try:
+            plan = json.loads(plan)
+        except (TypeError, ValueError):
+            plan = {}
+    if isinstance(plan, dict):
+        for key in ("pickedMetrics", "pickedMeasures", "picked_metrics", "picked_measures"):
+            for item in plan.get(key) or []:
+                text = str(item or "").strip().lower()
+                if text:
+                    wanted.add(text)
+    for cube in state.get("cube_metadata") or []:
+        if isinstance(cube, dict):
+            sources.extend(
+                measure
+                for measure in (cube.get("measures") or [])
+                if isinstance(measure, dict)
+            )
+
+    traits: list[dict] = []
+    seen: set[str] = set()
+    for item in sources:
+        grain = str(item.get("grain") or "").strip()
+        additivity = str(item.get("additivity") or "").strip()
+        direction = str(item.get("direction") or "").strip()
+        if not (grain or additivity or direction):
+            continue
+        name = _trait_name(item)
+        key = name.lower()
+        if not name or key in seen:
+            continue
+        if wanted and key not in wanted:
+            continue
+        seen.add(key)
+        trait = {"measure": name}
+        if grain:
+            trait["grain"] = grain
+        if additivity:
+            trait["additivity"] = additivity
+        if direction:
+            trait["direction"] = direction
+        traits.append(trait)
+    return traits
+
+
+def generate_sql_success_insight(
+    user_query: str,
+    sql: str,
+    metadata: dict | None = None,
+    *,
+    state: dict | None = None,
+    _invoke_llm=None,
+) -> str:
+    """SqlSuccessPrompt insight from question + SQL + metadata. Does not use result rows."""
+    formatted = success_prompt_formatted.format(
+        user_query=user_query or "",
+        sql_query=sql or "",
+        metadata=json.dumps(metadata or {}, default=str),
+    )
+    invoke = _invoke_llm
+    try:
+        if invoke is None:
+            insight, _ = invoke_llm(llm, formatted, state=state)
+        else:
+            insight, _ = invoke(formatted, state=state)
+        return str(getattr(insight, "content", insight) or "").strip()
+    except Exception:
+        logger.exception("SqlSuccess insight generation failed")
+        return ""
 
 
 class SqlExecutor:
@@ -39,18 +135,18 @@ class SqlExecutor:
             "required_tables": state.get("required_tables", []),
             "domain": state.get("domain", []),
             "topics": state.get("topics", []),
+            "measure_traits": measure_traits_for_insight(state),
         }
-        insight, _ = invoke_llm(
-            llm,
-            success_prompt_formatted.format(
-                user_query=user_query,
-                sql_query=sql,
-                metadata=json.dumps(metadata_to_send, default=str),
-            ),
+        insight_text = generate_sql_success_insight(
+            user_query,
+            sql,
+            metadata_to_send,
             state=state,
         )
-        state["output"] = insight.content
-        add_insight(state["thread_id"], insight.content)
+        if not insight_text:
+            return state
+        state["output"] = insight_text
+        add_insight(state["thread_id"], insight_text)
         return state
 
     def process_flow(self, state: ModelState):

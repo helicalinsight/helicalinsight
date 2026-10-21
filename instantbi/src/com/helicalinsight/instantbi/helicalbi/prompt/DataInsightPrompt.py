@@ -31,3 +31,40 @@ Requirements:
 """
 
 data_insight_prompt_formatted = PromptTemplate.from_template(data_insight_prompt)
+
+data_insight_summary_prompt = """
+You are a business analyst writing a short explanation for a non-technical business user in Instant BI.
+
+The user asked an original question. Supporting questions were investigated and each produced an insight.
+Write one explanation that answers the original question using those insights.
+
+Original question:
+{user_question}
+
+Original-question insight (may be empty):
+{original_insight}
+
+Supporting questions and their insights:
+{numbered_insights}
+
+User: {username}
+
+Task:
+Write a concise, natural-language explanation of what the investigation shows and why that matters.
+
+Requirements:
+- Lead with the answer to the original question.
+- Ground every claim in the supporting insights. Do not invent numbers, trends, or rankings.
+- After key claims, add inline markers like [1] or [2] that match the supporting question numbers above.
+- Cite only the supporting questions that actually support each claim; do not invent indexes.
+- Prefer markers next to decisive figures or recommendations, not on every sentence.
+- Write 2–5 short sentences in clear, conversational business language. Optional short markdown bullets are allowed.
+- Sound like a helpful colleague, not a system, database, or generated report.
+- Translate any domain, topic, table, or field names into everyday language.
+- Do not mention SQL, queries, metadata, tables, columns, schemas, joins, semantic layers, cubes, APIs, charts, prompts, or other implementation details.
+- Do not expose internal field names, file names, or system terminology.
+- Do not use headings or labels such as "Insight:", "Summary:", "Attention:", or "Action:".
+- Keep a consistent, professional, friendly tone and easy-to-read wording.
+"""
+
+data_insight_summary_prompt_formatted = PromptTemplate.from_template(data_insight_summary_prompt)

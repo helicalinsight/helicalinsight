@@ -76,5 +76,11 @@ export const derby_pg_mockAxios = () => {
             })
         }
     }
-    return { instance: data }
+    return {
+        abort: () => {},
+        controller: { signal: undefined, abort: () => {} },
+        source: { token: undefined, cancel: () => {} },
+        requestId: "mock-request-id",
+        instance: data,
+    }
 }

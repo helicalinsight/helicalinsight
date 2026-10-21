@@ -352,7 +352,7 @@ const buildMeasureEntry = (child, sortOrder) => {
     aggregationValue === "None" ||
     aggregationValue === "";
   const isManualMetric = isManualMetricChild(child);
-  return {
+  const entry = {
     measureName: (child.fields || child.columnName || "").trim(),
     aggregator: isNoneAggregation ? "None" : aggregationValue,
     ...(isManualMetric
@@ -370,6 +370,16 @@ const buildMeasureEntry = (child, sortOrder) => {
     formula: collapseNewlines(child.formula),
     sortOrder,
   };
+  if (child.grain) {
+    entry.grain = String(child.grain).trim();
+  }
+  if (child.direction) {
+    entry.direction = String(child.direction).trim();
+  }
+  if (child.additivity) {
+    entry.additivity = String(child.additivity).trim();
+  }
+  return entry;
 };
 
 const buildLevelEntry = (child) => ({
@@ -643,6 +653,9 @@ const createChildFromMeasure = (measure) => {
     metricId: isManualMetric ? measure.metricId || measure.columnId || "" : "",
     defaultFunction,
     semanticType: measure.semanticType || "",
+    grain: measure.grain || "",
+    direction: measure.direction || "",
+    additivity: measure.additivity || "",
     domain: measure.business?.domain ?? measure.domain ?? "",
     topic: measure.business?.topic ?? measure.topic ?? "",
     businessDescription: measure.business?.description ?? "",
@@ -1132,6 +1145,9 @@ const mergeFieldList = (stored = [], display = [], kind) => {
       defaultFunction: item.defaultFunction || previous.defaultFunction || "",
       formula: readFormulaFromEntry(item) || readFormulaFromEntry(previous),
       sortOrder: item.sortOrder ?? previous.sortOrder,
+      grain: item.grain || previous.grain || "",
+      direction: item.direction || previous.direction || "",
+      additivity: item.additivity || previous.additivity || "",
     };
   });
 };
@@ -1216,6 +1232,12 @@ export const convertAgentDataToCubeFieldsData = (agentData) => {
     cubeName: "",
     children,
     businessViewEntries,
+    diagnosticCapabilities: Array.isArray(data.diagnosticCapabilities)
+      ? data.diagnosticCapabilities
+      : [],
+    customAnalyticalOperations: Array.isArray(data.customAnalyticalOperations)
+      ? data.customAnalyticalOperations
+      : [],
     hierarchyData: {
       isHierarchyPresent: hierarchyList.length > 0,
       hierarchyList,
@@ -1265,6 +1287,16 @@ export const convertCubeFieldsDataToAgentData = (
         measures,
       },
     ],
+    diagnosticCapabilities: Array.isArray(cubeFieldsData.diagnosticCapabilities)
+      ? cubeFieldsData.diagnosticCapabilities
+      : Array.isArray(existingAgentData?.diagnosticCapabilities)
+        ? existingAgentData.diagnosticCapabilities
+        : [],
+    customAnalyticalOperations: Array.isArray(cubeFieldsData.customAnalyticalOperations)
+      ? cubeFieldsData.customAnalyticalOperations
+      : Array.isArray(existingAgentData?.customAnalyticalOperations)
+        ? existingAgentData.customAnalyticalOperations
+        : [],
   });
 };
 
@@ -1321,14 +1353,18 @@ const groupDimensionAiContext = (dimension = {}) => {
 
 const groupMeasureAiContext = (measure = {}) => {
   const grouped = groupFieldAiContext(measure);
-  if (!isManualMetricEntry(grouped)) {
-    return grouped;
+  let result = grouped;
+  if (isManualMetricEntry(grouped)) {
+    const { columnId, ...rest } = grouped;
+    result = {
+      ...rest,
+      metricId: grouped.metricId || columnId || "",
+    };
   }
-  const { columnId, ...rest } = grouped;
-  return {
-    ...rest,
-    metricId: grouped.metricId || columnId || "",
-  };
+  if (measure.grain) result.grain = measure.grain;
+  if (measure.direction) result.direction = measure.direction;
+  if (measure.additivity) result.additivity = measure.additivity;
+  return result;
 };
 
 const stripSortOrderFromDimension = (dimension = {}) => {
@@ -1366,6 +1402,12 @@ export const toPublicAgentData = (agentData) => {
       };
     }),
     domain: data.domain || [],
+    diagnosticCapabilities: Array.isArray(data.diagnosticCapabilities)
+      ? data.diagnosticCapabilities
+      : [],
+    customAnalyticalOperations: Array.isArray(data.customAnalyticalOperations)
+      ? data.customAnalyticalOperations
+      : [],
   };
 };
 
@@ -1423,6 +1465,13 @@ export const mergeDisplayAgentDataWithStored = (
         ),
       },
     ],
+    diagnosticCapabilities:
+      display.diagnosticCapabilities?.length
+        ? display.diagnosticCapabilities
+        : stored.diagnosticCapabilities || [],
+    customAnalyticalOperations: Array.isArray(display.customAnalyticalOperations)
+      ? display.customAnalyticalOperations
+      : stored.customAnalyticalOperations || [],
   });
 };
 

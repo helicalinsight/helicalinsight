@@ -7,6 +7,8 @@ import { changeOptions } from "../../../../../redux/actions/hreport.actions";
 import HITooltip from "../../../../common/components/hi-tooltip";
 import ShortCutText from '../../../../common/hi-shortcuts/hi-shortcuts';
 import { isMatchingShortcut, resetShortcuts } from '../../../utils/utilities';
+import { reportHasRawSql } from '../../../utils/base';
+import { InfoCircleFilled, InfoCircleOutlined, InfoOutlined } from '@ant-design/icons';
 
 const Settings = ({ openFileBrowser }) => {
     const dispatch = useDispatch()
@@ -23,10 +25,11 @@ const Settings = ({ openFileBrowser }) => {
             }
         }
     }, [keysPressed])
-    const { options, metadata } = useSelector(state => {
+    const { options, metadata, ...restReport } = useSelector(state => {
         let activeReport = state.hreport.present.reports.find(report => report.active)
         return activeReport
     })
+    const isRAWFunctionUsed = reportHasRawSql(restReport);
     const { limitBy, sample, prependTableNameToAlias } = options
     const toggleSample = e => {
         if (sample === e) return null
@@ -105,7 +108,13 @@ const Settings = ({ openFileBrowser }) => {
                             onClick={() => {
                                 dispatch(fileBrowserActions.setShowFileBrowser(true))
                                 openFileBrowser("metadata", true)
-                            }}>
+                            }}
+                            icon={
+                                isRAWFunctionUsed ? <Tooltip title="This report uses Native Queries. Before changing the report Metadata, ensure the Native Queries are updated accordingly to avoid breaking the report.">
+                                    <InfoCircleOutlined />
+                                </Tooltip> : null
+                            }
+                        >
                             Change Metadata
                         </Button>
                     </ShortCutText>

@@ -336,6 +336,9 @@ public class MetadataUpdateHandler extends MetadataImportHandler {
 	private final void handleConnections(List<HIMetadataConnections> dbConnections , 
 			List<HIMetadataConnectionDTO> fileConnections,HIResourceMetadata metadata) {
 		
+		if (!context.getRequest().getOptions().getDataSource()) {
+			return ;
+		}
 		Map<String,HIMetadataConnections> dbConnectionMap = new HashMap<>();
 		for(HIMetadataConnections dbConn : dbConnections ) {
 			MetadataDatabases db =  mdServiceDb.getHIMetadataDatabases(metadata.getId(), String.valueOf(dbConn.getId()));

@@ -1,6 +1,8 @@
 """Collect convert-dashboard items from the request or ChatGraphMemory."""
 from __future__ import annotations
 
+import ast
+import json
 import secrets
 import string
 from typing import Any
@@ -9,6 +11,88 @@ from helicalbi.common.ChatGraphMemory import chat_graph_memory
 from helicalbi.sql.SqlSanitizer import extract_sql, strip_sql_markdown
 
 _ID_CHARS = string.ascii_letters + string.digits
+
+
+def is_column_ref_label(value: Any) -> bool:
+    """True when text is a wire column object or a catalog path, not a display title."""
+    text = str(value or "").strip()
+    if not text:
+        return False
+    if text.startswith("{") and text.endswith("}"):
+        return True
+    return " " not in text and text.count(".") >= 2
+
+
+def _as_mapping(value: Any) -> dict[str, Any] | None:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if len(text) > 2000 or not (text.startswith("{") and text.endswith("}")):
+        return None
+    parsed: Any = None
+    try:
+        parsed = ast.literal_eval(text)
+    except (ValueError, SyntaxError, MemoryError, RecursionError):
+        parsed = None
+    if not isinstance(parsed, dict):
+        try:
+            parsed = json.loads(text)
+        except (ValueError, TypeError):
+            return None
+    return parsed if isinstance(parsed, dict) else None
+
+
+def column_path(value: Any, _depth: int = 0) -> str:
+    """Column path from a string, ``{name, id}`` ref, or a stringified ref."""
+    if _depth > 4 or value is None:
+        return ""
+    mapping = _as_mapping(value)
+    if mapping is None:
+        return str(value or "").strip()
+    for key in ("column", "name", "alias"):
+        nested = mapping.get(key)
+        if nested in (None, ""):
+            continue
+        path = column_path(nested, _depth + 1)
+        if path:
+            return path
+    return ""
+
+
+def column_leaf(value: Any) -> str:
+    path = column_path(value).replace('"', "")
+    parts = [part for part in path.split(".") if part]
+    return parts[-1] if parts else ""
+
+
+def column_table(value: Any, explicit: Any = "") -> str:
+    table = str(explicit or "").strip()
+    if table and not is_column_ref_label(table):
+        return table
+    path = column_path(value).replace('"', "")
+    parts = [part for part in path.split(".") if part]
+    if len(parts) >= 2:
+        return parts[-2]
+    return ""
+
+
+def filter_title(raw: dict[str, Any]) -> str:
+    """Display name for a slicer. Never the ``{name, id}`` wire object."""
+    source = raw.get("column")
+    if source in (None, ""):
+        source = raw.get("name") if raw.get("name") not in (None, "") else raw.get("alias")
+    leaf = column_leaf(source)
+    path = column_path(source).replace('"', "")
+    for key in ("label", "alias", "title", "header_title"):
+        text = str(raw.get(key) or "").strip()
+        if not text or is_column_ref_label(text):
+            continue
+        if path and text.replace('"', "") == path:
+            continue
+        return text
+    return leaf or "Filter"
 
 
 def new_component_id(used: set[str] | None = None) -> str:
@@ -241,7 +325,7 @@ def item_cards(items: list[dict[str, Any]], *, domain: Any = None, topics: Any =
             if isinstance(raw, str) and raw.strip():
                 filters.append(raw.strip())
             elif isinstance(raw, dict):
-                name = str(raw.get("name") or raw.get("column") or raw.get("alias") or "").strip()
+                name = column_leaf(raw.get("column") or raw.get("name") or raw.get("alias") or raw)
                 if name:
                     filters.append(name)
         cards.append(

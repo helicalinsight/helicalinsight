@@ -264,6 +264,12 @@ export const updateColumn = (data) => {
 		payload: data
 	};
 };
+export const updateEditingField = (data) => {
+	return {
+		type: actionTypes.UPDATE_EDITING_FIELD,
+		payload: data
+	};
+};
 export const changeEditingPane = (data) => {
 	return {
 		type: actionTypes.CHANGE_EDITING_PANE,
@@ -702,6 +708,13 @@ export const loadReportFilters = (data) => {
 export const loadReportFromLocalStorage = (data) => {
 	return {
 		type: actionTypes.LOAD_REPORT_FROM_LOCALSTORAGE,
+		payload: data
+	};
+};
+
+export const loadReportsFromLocalStorage = (data) => {
+	return {
+		type: actionTypes.LOAD_REPORTS_FROM_LOCALSTORAGE,
 		payload: data
 	};
 };

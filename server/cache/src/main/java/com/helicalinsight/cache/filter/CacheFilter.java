@@ -63,6 +63,15 @@ public class CacheFilter implements Filter {
 
         HttpServletRequest httpRequest = ((HttpServletRequest) request);
 
+        /* Resumable prepare must reach ExportController (ticket JSON).
+         * Only defer on download prepare URLs — never skip cache for executeDatasource/etc.
+         * Cache is still used by DownloadCacheProducer → materializeToFile → CacheHelper. */
+        String servletPath = httpRequest.getServletPath();
+        if ("true".equalsIgnoreCase(httpRequest.getParameter("resumable")) && ControllerUtils.isResumableDownloadPreparePath(servletPath)) {
+            logger.info("Resumable prepare for {} — defer to controller; cache used by materializer", servletPath);
+            chain.doFilter(request, response);
+            return;
+        }
         /*IF CACHE IS ENABLED THEN THE CACHE FILTER WILL START CACHING THE REQUESTS*/
         if (!CacheUtils.isCacheEnabled()) {
             logger.info("Cache layer is disabled. Forwarding request.");

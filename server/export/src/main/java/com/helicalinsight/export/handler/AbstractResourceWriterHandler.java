@@ -6,12 +6,15 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.helicalinsight.adhoc.service.HIMetadataResourceServiceDB;
+import com.helicalinsight.admin.model.HIResource;
+import com.helicalinsight.admin.model.BaseResourceProps;
 import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.export.dto.Manifest;
 import com.helicalinsight.export.dto.ResourceOptions;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.service.ShareHandler;
 import com.helicalinsight.export.utils.JsonMapperUtils;
@@ -54,6 +57,16 @@ public abstract class AbstractResourceWriterHandler {
 	
 	@Autowired
 	protected ManifestUtils manifestUtils;
+
+	@Autowired
+	protected RecycleBinHandler recycleBinHandler;
+
+	protected void markDeleted(BaseResourceProps payload, HIResource resource, ResourceOptions options) {
+		if (options != null && Boolean.TRUE.equals(options.getRecycleBin())
+				&& payload != null && resource != null && Boolean.TRUE.equals(resource.isDeleted())) {
+			payload.setIsDeleted(true);
+		}
+	}
 
 	/**
      * Abstract method to be implemented by classes extending this abstract class.

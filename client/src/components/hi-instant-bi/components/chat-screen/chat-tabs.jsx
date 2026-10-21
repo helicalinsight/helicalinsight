@@ -167,7 +167,6 @@ const PreviewTab = (props = {}) => {
         handleDataInsight,
         isOpenMode,
         vizDetails,
-        isConvertingChart,
         resolvedData,
         resolvedVf,
         id,
@@ -186,13 +185,17 @@ const PreviewTab = (props = {}) => {
         previewPlaceholder = null,
         isPreviewLoading = false,
         previewActivityTrail = [],
+        extraProps = {}
     } = props || {};
 
     const editingAreaRef = useRef(null);
     const filtersAreaRef = useRef(null);
     const [renderCount, setRenderCount] = useState(0);
     const { hreportId, } = fullChatResponse || {};
-    const { filters = [], selectedType } = activeReport?.hreportInteractions?.[hreportId] || {};
+    let { filters = [], selectedType } = activeReport?.hreportInteractions?.[hreportId] || {};
+    if (props.filters) {
+        filters = props.filters
+    }
     const hasFilters = filters?.length > 0;
     const reports = useSelector((state) => state.hreport.present.reports);
 
@@ -284,16 +287,9 @@ const PreviewTab = (props = {}) => {
                     }}
                     isOpenMode={isOpenMode}
                     vizType={getHReportSelectedChartType(hreportId, reports, selectedType)}
+                    dashboardMode={props.dashboardMode}
+                    extraProps={extraProps}
                 />
-                {isConvertingChart && (
-                    <div
-                        className="chart-preview-section__converting"
-                        data-testid="ib-convert-chart-loading"
-                    >
-                        <LoadingBar />
-                        <Text type="secondary">Converting chart…</Text>
-                    </div>
-                )}
             </div>
             {(isLoadingDataInsight || dataInsightContent) && (
                 <div
@@ -307,9 +303,9 @@ const PreviewTab = (props = {}) => {
                         >
                             <LoadingBar handleClick={handleAbortDataInsight} />
                             <ChatTypingText
-                              lines={dataInsightTrail}
-                              fallback="Preparing your explanation…"
-                              active={isLoadingDataInsight}
+                                lines={dataInsightTrail}
+                                fallback="Preparing your explanation…"
+                                active={isLoadingDataInsight}
                             />
                         </div>
                     ) : (
@@ -585,5 +581,5 @@ const ChatTabs = (props = {}) => {
     )
 }
 
-export { JsonTab };
+export { JsonTab, SemanticTab, PreviewTab, SQLTab, WorkingTab };
 export default ChatTabs

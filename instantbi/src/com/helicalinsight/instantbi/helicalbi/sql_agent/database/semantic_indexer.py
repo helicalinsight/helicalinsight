@@ -1,20 +1,35 @@
-"""RAG over the InstantBI semantic model (domains, topics, metrics, AI context)."""
+"""RAG over the InstantBI semantic model (domains, topics, metrics, AI context).
+
+``SemanticLayerIndexer`` chunks the cube/semantic layer, embeds chunks into an
+in-memory vector index, and builds topic / diagnostic packs for the plan graph.
+Registry helpers (:func:`get_semantic_indexer` / :func:`set_semantic_indexer`)
+scope one indexer per catalog id for the request lifetime.
+"""
 from __future__ import annotations
 
 from typing import Any, Callable, Dict, List, Optional
 
 from helicalbi.common.CubeInfoModel import apply_ai_context, _topic_name
 from helicalbi.sql_agent.config import DEFAULT_SCHEMA_TOP_K
+from helicalbi.sql_agent.constants import (
+    DEFAULT_OVERVIEW_CHARS,
+    SEMANTIC_MIN_SUFFICIENT_SCORE,
+)
 from helicalbi.sql_agent.database.schema_indexer import (
     InMemoryVectorIndex,
     VectorIndex,
     hashing_embed,
     tokenize,
 )
+from helicalbi.sql_agent.strategy.catalog import custom_operations_from_source
+from helicalbi.sql_agent.strategy_tree import (
+    iter_applicable_measures,
+    iter_diagnostic_uses,
+)
 
 _INDEXERS: Dict[str, "SemanticLayerIndexer"] = {}
 DEFAULT_CATALOG_ID = "default"
-_MIN_SUFFICIENT_SCORE = 0.12
+_MIN_SUFFICIENT_SCORE = SEMANTIC_MIN_SUFFICIENT_SCORE
 
 
 def _join_bits(parts: List[str]) -> str:
@@ -58,7 +73,95 @@ class SemanticLayerIndexer:
         self._index = vector_index or InMemoryVectorIndex()
         self._chunks: Dict[str, Dict[str, Any]] = {}
         self._topic_catalog: List[Dict[str, Any]] = []
-        self._field_ai: Dict[str, Dict[str, str]] = {}
+        self._field_ai: Dict[str, Dict[str, Any]] = {}
+        self._diagnostic_capabilities: List[Dict[str, Any]] = []
+        self._custom_analytical_operations: List[Dict[str, Any]] = []
+
+    def measure_direction(self, name: str) -> str:
+        """Return business direction ('positive', 'negative', 'neutral') or empty string."""
+        info = self._field_ai.get(str(name or "").strip().lower()) or {}
+        return str(info.get("direction") or "").strip()
+
+    def measure_grain(self, name: str) -> str:
+        """Return measure grain (e.g. 'meeting', 'order', 'day') or empty string."""
+        info = self._field_ai.get(str(name or "").strip().lower()) or {}
+        return str(info.get("grain") or "").strip()
+
+    def measure_metadata(self, name: str) -> Dict[str, Any]:
+        """Return all metadata for a measure/component."""
+        return dict(self._field_ai.get(str(name or "").strip().lower()) or {})
+
+    def diagnostic_capabilities(self) -> List[Dict[str, Any]]:
+        """Return diagnostic capabilities configured in the semantic model."""
+        return [dict(item) for item in self._diagnostic_capabilities if isinstance(item, dict)]
+
+    def custom_analytical_operations(self) -> List[Dict[str, Any]]:
+        """Return type-custom analytical strategies saved on the semantic model."""
+        return [dict(item) for item in self._custom_analytical_operations if isinstance(item, dict)]
+
+    def _append_custom_strategies(self, text: str) -> str:
+        if not self._custom_analytical_operations:
+            return text
+        lines = ["Custom analytical strategies:"]
+        for op in self._custom_analytical_operations:
+            name = str(op.get("operation") or "").strip()
+            if not name:
+                continue
+            description = str(op.get("description") or "").strip()
+            lines.append(f"- {name} (custom)" + (f": {description}" if description else ""))
+        extra = "\n".join(lines)
+        return f"{text}\n{extra}".strip() if text else extra
+
+    def component_names_by_kind(self) -> Dict[str, List[str]]:
+        """Business names indexed as measures or dimensions."""
+        measures: List[str] = []
+        dimensions: List[str] = []
+        seen_measures: set[str] = set()
+        seen_dimensions: set[str] = set()
+        for chunk in self._chunks.values():
+            meta = chunk.get("metadata") or {}
+            name = str(meta.get("name") or "").strip()
+            kind = str(meta.get("kind") or "")
+            key = name.lower()
+            if not name:
+                continue
+            if kind in {"measure", "metric"} and key not in seen_measures:
+                seen_measures.add(key)
+                measures.append(name)
+            elif kind == "dimension" and key not in seen_dimensions:
+                seen_dimensions.add(key)
+                dimensions.append(name)
+        return {"measures": measures, "dimensions": dimensions}
+
+    def matching_diagnostic_capabilities(
+        self,
+        query: str,
+        metric_names: Optional[Sequence[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Find diagnostic capabilities matching the query text or metric names."""
+        q = str(query or "").lower()
+        m_set = {str(m).strip().lower() for m in (metric_names or []) if str(m).strip()}
+        matches: List[Dict[str, Any]] = []
+        for cap in self._diagnostic_capabilities:
+            if not isinstance(cap, dict):
+                continue
+            cap_name = str(cap.get("capability") or "").strip().lower()
+            applicable = [
+                name.lower()
+                for name in iter_applicable_measures(
+                    cap.get("applicableTo") or cap.get("applicable_to")
+                )
+            ]
+            match = False
+            if cap_name and cap_name in q:
+                match = True
+            for app in applicable:
+                if app in m_set or app in q:
+                    match = True
+                    break
+            if match:
+                matches.append(dict(cap))
+        return matches
 
     def index_model(
         self,
@@ -67,6 +170,17 @@ class SemanticLayerIndexer:
     ) -> None:
         model_data = model_data or {}
         prepared = prepared or {}
+        self._diagnostic_capabilities = list(
+            model_data.get("diagnosticCapabilities")
+            or model_data.get("diagnostic_capabilities")
+            or prepared.get("diagnosticCapabilities")
+            or prepared.get("diagnostic_capabilities")
+            or []
+        )
+        self._custom_analytical_operations = (
+            custom_operations_from_source(model_data)
+            or custom_operations_from_source(prepared)
+        )
         chunks = _build_chunks(model_data, prepared)
         self._topic_catalog = _topic_catalog_from_model(model_data, prepared)
         self._field_ai = _field_ai_from_model(model_data, prepared)
@@ -97,15 +211,30 @@ class SemanticLayerIndexer:
         if not domains:
             if self._chunks:
                 kinds = sorted({(c.get("metadata") or {}).get("kind") or "chunk" for c in self._chunks.values()})
-                return "Semantic model indexed units: " + ", ".join(kinds)
-            return ""
+                return self._append_custom_strategies(
+                    "Semantic model indexed units: " + ", ".join(kinds)
+                )
+            return self._append_custom_strategies("")
         lines = ["Semantic model domains and topics:"]
         for domain, payload in domains.items():
             desc = f" — {payload['description']}" if payload["description"] else ""
             topics = ", ".join(payload["topics"]) if payload["topics"] else "(no topics listed)"
             lines.append(f"- {domain}{desc}")
             lines.append(f"  topics: {topics}")
-        return "\n".join(lines)
+        if self._diagnostic_capabilities:
+            lines.append("Diagnostic capabilities:")
+            for cap in self._diagnostic_capabilities:
+                c_name = cap.get("capability") or "capability"
+                c_app = ", ".join(
+                    iter_applicable_measures(
+                        cap.get("applicableTo") or cap.get("applicable_to")
+                    )
+                )
+                c_uses = ", ".join(
+                    ref["name"] for ref in iter_diagnostic_uses(cap.get("uses"))
+                )
+                lines.append(f"- {c_name} (applicable to measures: {c_app}; uses: {c_uses})")
+        return self._append_custom_strategies("\n".join(lines))
 
     def topic_catalog(self) -> List[Dict[str, Any]]:
         """Structured domain/topic/component catalog for plan-time selection."""
@@ -133,7 +262,7 @@ class SemanticLayerIndexer:
         self,
         topic_names: Optional[List[str]] = None,
         *,
-        max_chars: int = 3500,
+        max_chars: int = DEFAULT_OVERVIEW_CHARS,
     ) -> str:
         """Enriched prompt block for selected topics (desc, components, aiContext)."""
         wanted = {str(name).strip().lower() for name in (topic_names or []) if str(name).strip()}
@@ -177,15 +306,62 @@ class SemanticLayerIndexer:
                 instructions = str(ai.get("instructions") or "").strip()
                 synonyms = str(ai.get("synonyms") or "").strip()
                 examples = str(ai.get("examples") or "").strip()
-                if not (instructions or synonyms or examples):
+                grain = str(ai.get("grain") or "").strip()
+                direction = str(ai.get("direction") or "").strip()
+                additivity = str(ai.get("additivity") or "").strip()
+                semantic_type = str(ai.get("semantic_type") or "").strip()
+                formula = str(ai.get("formula") or "").strip()
+                process_stages = ai.get("process_stages") or []
+                stages_str = (
+                    ", ".join(str(s) for s in process_stages)
+                    if isinstance(process_stages, list)
+                    else str(process_stages).strip()
+                )
+                has_content = (
+                    instructions
+                    or synonyms
+                    or examples
+                    or grain
+                    or direction
+                    or additivity
+                    or semantic_type
+                    or formula
+                    or stages_str
+                )
+                if not has_content:
                     continue
                 lines.append(f"  field {component}:")
+                if formula:
+                    lines.append(f"    formula: {formula}")
+                if grain:
+                    lines.append(f"    grain: {grain}")
+                if direction:
+                    lines.append(f"    business direction: {direction}")
+                if additivity:
+                    lines.append(f"    additivity: {additivity}")
+                if semantic_type:
+                    lines.append(f"    semantic type: {semantic_type}")
+                if stages_str:
+                    lines.append(f"    process stages: {stages_str}")
                 if instructions:
                     lines.append(f"    AI instructions: {instructions}")
                 if synonyms:
                     lines.append(f"    synonyms: {synonyms}")
                 if examples:
                     lines.append(f"    examples: {examples}")
+        if self._diagnostic_capabilities:
+            lines.append("DIAGNOSTIC CAPABILITIES")
+            for cap in self._diagnostic_capabilities:
+                c_name = cap.get("capability") or "capability"
+                c_app = ", ".join(
+                    iter_applicable_measures(
+                        cap.get("applicableTo") or cap.get("applicable_to")
+                    )
+                )
+                c_uses = ", ".join(
+                    ref["name"] for ref in iter_diagnostic_uses(cap.get("uses"))
+                )
+                lines.append(f"  capability {c_name}: applicable to measures [{c_app}], uses [{c_uses}]")
         text = "\n".join(lines)
         limit = max(0, int(max_chars or 0))
         return text[:limit] if limit else text
@@ -362,21 +538,128 @@ def _topic_catalog_from_model(
 def _field_ai_from_model(
     model_data: dict[str, Any],
     prepared: dict[str, Any],
-) -> Dict[str, Dict[str, str]]:
-    """Map field/measure names (lower) → aiContext instructions/synonyms/examples."""
-    fields: Dict[str, Dict[str, str]] = {}
+) -> Dict[str, Dict[str, Any]]:
+    """Map field/measure names (lower) → metadata (instructions, synonyms, grain, direction, etc.)."""
+    fields: Dict[str, Dict[str, Any]] = {}
 
-    def _store(name: str, instructions: str = "", synonyms: str = "", examples: str = "") -> None:
+    def _store(
+        name: str,
+        instructions: str = "",
+        synonyms: str = "",
+        examples: str = "",
+        grain: str = "",
+        direction: str = "",
+        additivity: str = "",
+        semantic_type: str = "",
+        formula: str = "",
+        process_stages: Optional[List[str]] = None,
+    ) -> None:
         key = str(name or "").strip().lower()
         if not key:
             return
-        current = fields.setdefault(key, {"instructions": "", "synonyms": "", "examples": ""})
+        current = fields.setdefault(
+            key,
+            {
+                "instructions": "",
+                "synonyms": "",
+                "examples": "",
+                "grain": "",
+                "direction": "",
+                "additivity": "",
+                "semantic_type": "",
+                "formula": "",
+                "process_stages": [],
+            },
+        )
         if instructions and not current["instructions"]:
             current["instructions"] = instructions
         if synonyms and not current["synonyms"]:
             current["synonyms"] = synonyms
         if examples and not current["examples"]:
             current["examples"] = examples
+        if grain and not current["grain"]:
+            current["grain"] = grain
+        if direction and not current["direction"]:
+            current["direction"] = direction
+        if additivity and not current["additivity"]:
+            current["additivity"] = additivity
+        if semantic_type and not current["semantic_type"]:
+            current["semantic_type"] = semantic_type
+        if formula and not current["formula"]:
+            current["formula"] = formula
+        if process_stages and not current["process_stages"]:
+            current["process_stages"] = list(process_stages)
+
+    top_measures = list(model_data.get("measures") or []) + list(prepared.get("measures") or [])
+    for measure in top_measures:
+        if not isinstance(measure, dict):
+            continue
+        normalized = apply_ai_context(dict(measure))
+        name = str(
+            normalized.get("measureName")
+            or normalized.get("name")
+            or ""
+        ).strip()
+        if not name:
+            continue
+        ai = normalized.get("aiContext") if isinstance(normalized.get("aiContext"), dict) else {}
+        if not ai:
+            ai = normalized.get("ai_context") if isinstance(normalized.get("ai_context"), dict) else {}
+        instructions = str(
+            normalized.get("ai_instructions") or (ai or {}).get("instructions") or ""
+        ).strip()
+        synonyms = _synonyms_text(
+            normalized.get("synonyms") if normalized.get("synonyms") is not None else (ai or {}).get("synonyms")
+        )
+        examples = str(
+            normalized.get("ai_examples") or (ai or {}).get("examples") or ""
+        ).strip()
+        grain = str(normalized.get("grain") or "").strip()
+        direction = str(normalized.get("direction") or "").strip()
+        additivity = str(normalized.get("additivity") or "").strip()
+        semantic_type = str(normalized.get("semanticType") or normalized.get("semantic_type") or "").strip()
+        formula = str(normalized.get("formula") or "").strip()
+        process_stages = normalized.get("processStages") or normalized.get("process_stages") or []
+        if not isinstance(process_stages, list):
+            process_stages = [str(process_stages)] if process_stages else []
+        _store(
+            name,
+            instructions=instructions,
+            synonyms=synonyms,
+            examples=examples,
+            grain=grain,
+            direction=direction,
+            additivity=additivity,
+            semantic_type=semantic_type,
+            formula=formula,
+            process_stages=process_stages,
+        )
+
+    for metric in list(model_data.get("business_metrics") or []) + list(prepared.get("business_metrics") or []):
+        if not isinstance(metric, dict):
+            continue
+        name = str(metric.get("metric") or metric.get("name") or metric.get("measureName") or "").strip()
+        if not name:
+            continue
+        formula = str(metric.get("formula") or "").strip()
+        description = str(metric.get("description") or "").strip()
+        grain = str(metric.get("grain") or "").strip()
+        direction = str(metric.get("direction") or "").strip()
+        additivity = str(metric.get("additivity") or "").strip()
+        semantic_type = str(metric.get("semanticType") or metric.get("semantic_type") or "").strip()
+        process_stages = metric.get("processStages") or metric.get("process_stages") or []
+        if not isinstance(process_stages, list):
+            process_stages = [str(process_stages)] if process_stages else []
+        _store(
+            name,
+            instructions=description,
+            formula=formula,
+            grain=grain,
+            direction=direction,
+            additivity=additivity,
+            semantic_type=semantic_type,
+            process_stages=process_stages,
+        )
 
     cube_info = model_data.get("cube_info") or model_data.get("cube") or []
     for cube in cube_info:
@@ -404,7 +687,26 @@ def _field_ai_from_model(
             examples = str(
                 normalized.get("ai_examples") or (ai or {}).get("examples") or ""
             ).strip()
-            _store(name, instructions, synonyms, examples)
+            grain = str(normalized.get("grain") or "").strip()
+            direction = str(normalized.get("direction") or "").strip()
+            additivity = str(normalized.get("additivity") or "").strip()
+            semantic_type = str(normalized.get("semanticType") or normalized.get("semantic_type") or "").strip()
+            formula = str(normalized.get("formula") or "").strip()
+            process_stages = normalized.get("processStages") or normalized.get("process_stages") or []
+            if not isinstance(process_stages, list):
+                process_stages = [str(process_stages)] if process_stages else []
+            _store(
+                name,
+                instructions=instructions,
+                synonyms=synonyms,
+                examples=examples,
+                grain=grain,
+                direction=direction,
+                additivity=additivity,
+                semantic_type=semantic_type,
+                formula=formula,
+                process_stages=process_stages,
+            )
             for hierarchy in item.get("hierarchies") or []:
                 if not isinstance(hierarchy, dict):
                     continue
@@ -415,15 +717,15 @@ def _field_ai_from_model(
                     level_name = str(level.get("levelName") or "").strip()
                     _store(
                         level_name,
-                        str((level_ai or {}).get("instructions") or "").strip(),
-                        _synonyms_text((level_ai or {}).get("synonyms")),
-                        str((level_ai or {}).get("examples") or "").strip(),
+                        instructions=str((level_ai or {}).get("instructions") or "").strip(),
+                        synonyms=_synonyms_text((level_ai or {}).get("synonyms")),
+                        examples=str((level_ai or {}).get("examples") or "").strip(),
                     )
 
     ai_instructions = prepared.get("ai_instructions") or {}
     if isinstance(ai_instructions, dict):
         for field_name, instructions in ai_instructions.items():
-            _store(str(field_name), str(instructions or "").strip(), "", "")
+            _store(str(field_name), instructions=str(instructions or "").strip())
     return fields
 
 
@@ -495,6 +797,44 @@ def _build_chunks(model_data: dict[str, Any], prepared: dict[str, Any]) -> List[
             )
         )
 
+    measures = prepared.get("measures") or model_data.get("measures") or []
+    for index, measure in enumerate(measures):
+        if not isinstance(measure, dict):
+            continue
+        name = str(
+            measure.get("measureName")
+            or measure.get("name")
+            or f"measure-{index}"
+        ).strip()
+        description = str(measure.get("description") or "").strip()
+        formula = str(measure.get("formula") or "").strip()
+        grain = str(measure.get("grain") or "").strip()
+        direction = str(measure.get("direction") or "").strip()
+        additivity = str(measure.get("additivity") or "").strip()
+        semantic_type = str(measure.get("semanticType") or measure.get("semantic_type") or "").strip()
+        process_stages = measure.get("processStages") or measure.get("process_stages") or []
+        stages_str = ", ".join(str(s) for s in process_stages) if isinstance(process_stages, list) else str(process_stages).strip()
+        chunks.append(
+            _chunk(
+                f"measure:{name}",
+                kind="measure",
+                name=name,
+                document=_join_bits(
+                    [name, description, formula, grain, direction, additivity, semantic_type, stages_str, "measure"]
+                ),
+                prompt=_format_measure(
+                    name=name,
+                    description=description,
+                    formula=formula,
+                    grain=grain,
+                    direction=direction,
+                    additivity=additivity,
+                    semantic_type=semantic_type,
+                    process_stages=stages_str,
+                ),
+            )
+        )
+
     cube_info = model_data.get("cube_info") or model_data.get("cube") or []
     for cube in cube_info:
         if not isinstance(cube, dict):
@@ -517,16 +857,39 @@ def _build_chunks(model_data: dict[str, Any], prepared: dict[str, Any]) -> List[
             examples = str(normalized.get("ai_examples") or "").strip()
             synonyms = _synonyms_text(normalized.get("synonyms"))
             kind = "measure" if normalized.get("measureName") else "dimension"
+            grain = str(normalized.get("grain") or "").strip()
+            direction = str(normalized.get("direction") or "").strip()
+            additivity = str(normalized.get("additivity") or "").strip()
             chunks.append(
                 _chunk(
                     f"{kind}:{cube_name}:{name}",
                     kind=kind,
                     name=name,
                     document=_join_bits(
-                        [name, cube_name, description, instructions, examples, synonyms, kind]
+                        [
+                            name,
+                            cube_name,
+                            description,
+                            instructions,
+                            examples,
+                            synonyms,
+                            grain,
+                            direction,
+                            additivity,
+                            kind,
+                        ]
                     ),
                     prompt=_format_field(
-                        kind, name, cube_name, description, instructions, examples, synonyms
+                        kind,
+                        name,
+                        cube_name,
+                        description,
+                        instructions,
+                        examples,
+                        synonyms,
+                        grain,
+                        direction,
+                        additivity,
                     ),
                 )
             )
@@ -558,6 +921,67 @@ def _build_chunks(model_data: dict[str, Any], prepared: dict[str, Any]) -> List[
                     prompt=f"AI INSTRUCTIONS for {field_name}: {text}",
                 )
             )
+
+    capabilities = (
+        model_data.get("diagnosticCapabilities")
+        or model_data.get("diagnostic_capabilities")
+        or prepared.get("diagnosticCapabilities")
+        or prepared.get("diagnostic_capabilities")
+        or []
+    )
+    for cap in capabilities:
+        if not isinstance(cap, dict):
+            continue
+        c_name = str(cap.get("capability") or "").strip()
+        if not c_name:
+            continue
+        c_app = iter_applicable_measures(
+            cap.get("applicableTo") or cap.get("applicable_to")
+        )
+        c_uses = [ref["name"] for ref in iter_diagnostic_uses(cap.get("uses"))]
+        chunks.append(
+            _chunk(
+                f"diagnostic_capability:{c_name}",
+                kind="diagnostic_capability",
+                name=c_name,
+                document=_join_bits([c_name, "diagnostic capability", " ".join(c_app), " ".join(c_uses)]),
+                prompt=(
+                    f"DIAGNOSTIC CAPABILITY {c_name}\n"
+                    f"  applicable to measures: {', '.join(c_app)}\n"
+                    f"  uses (strategy, measure, dimension, or other): {', '.join(c_uses)}"
+                ),
+            )
+        )
+
+    for op in custom_operations_from_source(model_data) or custom_operations_from_source(prepared):
+        name = str(op.get("operation") or "").strip()
+        if not name:
+            continue
+        description = str(op.get("description") or "").strip()
+        required = ", ".join(op.get("requiredInputs") or [])
+        optional = ", ".join(op.get("optionalInputs") or [])
+        preconditions = ", ".join(op.get("preconditions") or [])
+        limitations = ", ".join(op.get("limitations") or [])
+        logic = str((op.get("execution") or {}).get("logic") or "").strip()
+        chunks.append(
+            _chunk(
+                f"custom_strategy:{name}",
+                kind="custom_strategy",
+                name=name,
+                document=_join_bits(
+                    [name, "custom analytical strategy", description, preconditions, limitations, logic]
+                ),
+                prompt=(
+                    f"CUSTOM ANALYTICAL STRATEGY {name}\n"
+                    f"  description: {description}\n"
+                    f"  required inputs: {required}\n"
+                    f"  optional inputs: {optional}\n"
+                    f"  preconditions: {preconditions}\n"
+                    f"  limitations: {limitations}\n"
+                    f"  execution: {logic}"
+                ),
+            )
+        )
     return chunks
 
 
@@ -660,6 +1084,34 @@ def _format_metric(name: str, description: str, formula: str, tables: str) -> st
     return "\n".join(lines)
 
 
+def _format_measure(
+    name: str,
+    description: str = "",
+    formula: str = "",
+    grain: str = "",
+    direction: str = "",
+    additivity: str = "",
+    semantic_type: str = "",
+    process_stages: str = "",
+) -> str:
+    lines = [f"MEASURE {name}"]
+    if description:
+        lines.append(f"  definition: {description}")
+    if formula:
+        lines.append(f"  formula: {formula}")
+    if grain:
+        lines.append(f"  grain: {grain}")
+    if direction:
+        lines.append(f"  direction: {direction}")
+    if additivity:
+        lines.append(f"  additivity: {additivity}")
+    if semantic_type:
+        lines.append(f"  semantic type: {semantic_type}")
+    if process_stages:
+        lines.append(f"  process stages: {process_stages}")
+    return "\n".join(lines)
+
+
 def _format_field(
     kind: str,
     name: str,
@@ -668,12 +1120,21 @@ def _format_field(
     instructions: str,
     examples: str,
     synonyms: str,
+    grain: str = "",
+    direction: str = "",
+    additivity: str = "",
 ) -> str:
     lines = [f"{kind.upper()} {name}"]
     if cube_name:
         lines.append(f"  cube: {cube_name}")
     if description:
         lines.append(f"  definition: {description}")
+    if grain:
+        lines.append(f"  grain: {grain}")
+    if additivity:
+        lines.append(f"  additivity: {additivity}")
+    if direction:
+        lines.append(f"  direction: {direction}")
     if synonyms:
         lines.append(f"  synonyms: {synonyms}")
     if examples:

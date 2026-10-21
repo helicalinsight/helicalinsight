@@ -88,7 +88,7 @@
 				<dependency>
 					<groupId>org.postgresql</groupId>
 					<artifactId>postgresql</artifactId>
-					<version>42.7.11</version>
+					<version>42.7.13</version>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -159,7 +159,7 @@
 					<archive>
 						<addMavenDescriptor>false</addMavenDescriptor>
 					</archive>
-					<packagingExcludes>WEB-INF/lib/bcprov-jdk15-1.*.jar,WEB-INF/lib/servlet-api-2.5.jar,WEB-INF/lib/slf4j-log4j*.jar,WEB-INF/lib/log4j-1.2.17.jar,WEB-INF/lib/velocity-1.7.jar,WEB-INF/lib/netty-3.10.5.Final.jar,guava-14.0.1.jar,HikariCP-java7-2.4.13.jar</packagingExcludes>
+					<packagingExcludes>WEB-INF/lib/bcprov-jdk15-1.*.jar,WEB-INF/lib/servlet-api-2.5.jar,WEB-INF/lib/slf4j-log4j*.jar,WEB-INF/lib/log4j-1.2.17.jar,WEB-INF/lib/log4j-slf4j-impl*.jar,WEB-INF/lib/log4j-over-slf4j*.jar,WEB-INF/lib/slf4j-reload4j*.jar,WEB-INF/lib/velocity-1.7.jar,WEB-INF/lib/netty-3.10.5.Final.jar,guava-14.0.1.jar,HikariCP-java7-2.4.13.jar</packagingExcludes>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -234,11 +234,8 @@
 	</build>
 
 	<dependencies>
-		<!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
-
-
 		<!--Add your dependencies here-->
-		
+
 		<dependency>
 			<groupId>com.helicalinsight</groupId>
 			<artifactId>hi-adhoc</artifactId>
@@ -308,18 +305,6 @@
 			<artifactId>derbynet</artifactId>
 			<version>10.17.1.0</version>
 		</dependency>
-		<dependency>
-				<groupId>org.apache.logging.log4j</groupId>
-				<artifactId>log4j-1.2-api</artifactId>
-			</dependency>
-
-		<!-- SLF4J → Log4j2 binding -->
-			<dependency>
-				<groupId>org.apache.logging.log4j</groupId>
-				<artifactId>log4j-slf4j2-impl</artifactId>
-				
-			</dependency>
-
 	</dependencies>
 </project>
 

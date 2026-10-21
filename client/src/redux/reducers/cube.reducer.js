@@ -133,6 +133,24 @@ export const cubeReducer = (state = initialStates.cubeInitialState, action) => {
 					}
 				};
 			}
+			if (updateName === 'diagnosticCapabilities') {
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						diagnosticCapabilities: Array.isArray(checkVal) ? checkVal : []
+					}
+				};
+			}
+			if (updateName === 'customAnalyticalOperations') {
+				return {
+					...state,
+					cubeFieldsData: {
+						...state.cubeFieldsData,
+						customAnalyticalOperations: Array.isArray(checkVal) ? checkVal : []
+					}
+				};
+			}
 			let dupCubeFieldsData = JSON.parse(JSON.stringify(state.cubeFieldsData));
 			let dupChildren = [];
 			let duplicateHierarchyData = {

@@ -213,15 +213,17 @@ def _expand_hierarchy_items(items: list, name_key: str) -> List[dict]:
     levelName, columnName, formula, and aiContext for selection prompts.
     """
     expanded: List[dict] = []
-    seen_names: Set[str] = set()
+    seen_items: Set[tuple] = set()
 
     def _append(item: dict) -> None:
         name = item.get(name_key)
-        if name:
-            key = str(name)
-            if key in seen_names:
-                return
-            seen_names.add(key)
+        col = item.get("columnName") or item.get("column_name") or ""
+        tid = item.get("tableId") or item.get("table_id") or ""
+        cid = item.get("columnId") or item.get("column_id") or ""
+        key = (str(name), str(tid), str(col), str(cid))
+        if key in seen_items:
+            return
+        seen_items.add(key)
         expanded.append(item)
 
     for item in items or []:
@@ -583,6 +585,15 @@ def cube_info_to_cube_metadata(
             # Formula is a top-level key (not nested under metric).
             if preferred_alias:
                 measure_entry["measure_name"] = preferred_alias
+            if measure.get("grain"):
+                measure_entry["grain"] = measure.get("grain")
+            if measure.get("direction"):
+                measure_entry["direction"] = measure.get("direction")
+            if measure.get("additivity"):
+                measure_entry["additivity"] = measure.get("additivity")
+            process_stages = measure.get("processStages") or measure.get("process_stages")
+            if process_stages:
+                measure_entry["process_stages"] = process_stages
             ai_context = _ai_context_payload(measure)
             if ai_context:
                 measure_entry["ai_context"] = ai_context
@@ -1461,6 +1472,10 @@ def _business_metric_from_cube_item(
         value = item.get(field) or metric_obj.get(field)
         if value:
             entry[field] = value
+    for field in ("grain", "direction", "additivity"):
+        value = str(item.get(field) or metric_obj.get(field) or "").strip()
+        if value:
+            entry[field] = value
     return entry
 
 
@@ -1626,6 +1641,12 @@ def _component_record_from_item(item: dict, name_key: str) -> Optional[dict]:
     column_name = item.get("columnName")
     if column_name not in (None, ""):
         record["columnName"] = str(column_name)
+    table_id = item.get("tableId") or item.get("table_id")
+    if table_id not in (None, ""):
+        record["tableId"] = str(table_id)
+    table_name = item.get("tableName") or item.get("table_name")
+    if table_name not in (None, ""):
+        record["tableName"] = str(table_name)
     semantic_type = item.get("semanticType")
     if semantic_type not in (None, ""):
         record["semanticType"] = semantic_type
@@ -1678,11 +1699,13 @@ def resolve_topic_component(
     component: dict,
     by_id: Dict[str, List[dict]],
     by_name: Dict[str, List[dict]],
+    preferred_table_id: Optional[str] = None,
 ) -> dict:
     """Resolve a domain topic component ``{id, name}`` against the cube index.
 
     Topics may reference a dimension, measure, hierarchy level, or a
-    blank-column (computed) measure.
+    blank-column (computed) measure. When multiple candidates exist across
+    tables, ``preferred_table_id`` disambiguates in favor of the topic's primary table.
     """
     raw_id = component.get("id")
     raw_name = component.get("name")
@@ -1706,6 +1729,23 @@ def resolve_topic_component(
     if not candidates and name:
         candidates = list(by_name.get(name.lower()) or [])
 
+    # If candidates don't match preferred_table_id, check if by_name has a match on the preferred table.
+    if preferred_table_id and name:
+        preferred_candidates = [
+            c for c in (by_name.get(name.lower()) or [])
+            if str(c.get("tableId") or "") == str(preferred_table_id)
+        ]
+        if preferred_candidates:
+            candidates = preferred_candidates + [
+                c for c in candidates if str(c.get("tableId") or "") != str(preferred_table_id)
+            ]
+        elif candidates:
+            # Sort matching table first
+            candidates = sorted(
+                candidates,
+                key=lambda c: 0 if str(c.get("tableId") or "") == str(preferred_table_id) else 1,
+            )
+
     resolved = dict(candidates[0]) if candidates else {}
     result: dict[str, Any] = {}
     if cid:
@@ -1720,6 +1760,8 @@ def resolve_topic_component(
         for key in (
             "kind",
             "columnName",
+            "tableId",
+            "tableName",
             "semanticType",
             "hierarchyName",
             "levelName",
@@ -1780,12 +1822,29 @@ def topic_mappings_from_domain(
             topic_name = _topic_name(topic)
             if not topic_name:
                 continue
+
+            # First pass: identify the dominant table for this topic to resolve ambiguous level names.
+            table_counts: Dict[str, int] = {}
+            for comp in topic.get("components") or []:
+                if not isinstance(comp, dict):
+                    continue
+                c_id = str(comp.get("id") or "").strip()
+                c_name = str(comp.get("name") or "").strip().lower()
+                c_candidates = (by_id.get(c_id) or []) if c_id else (by_name.get(c_name) or [])
+                for cand in c_candidates:
+                    t_id = str(cand.get("tableId") or "").strip()
+                    if t_id:
+                        table_counts[t_id] = table_counts.get(t_id, 0) + 1
+            dominant_table_id = max(table_counts.items(), key=lambda x: x[1])[0] if table_counts else None
+
             legacy_components: List[str] = []
             rich_components: List[dict] = []
             for component in topic.get("components") or []:
                 if not isinstance(component, dict):
                     continue
-                resolved = resolve_topic_component(component, by_id, by_name)
+                resolved = resolve_topic_component(
+                    component, by_id, by_name, preferred_table_id=dominant_table_id
+                )
                 if not resolved.get("name") and not resolved.get("id"):
                     continue
                 rich_components.append(resolved)

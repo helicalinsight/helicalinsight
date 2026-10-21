@@ -54,7 +54,8 @@ const getHrTaskBarItems = ({
   isSavingInProgress,
   handleToggle,
   fullscreen,
-  getDropdownOptions = () => { }
+  getDropdownOptions = () => { },
+  onExportFormat,
 }) => {
   let { metadataShelf, fieldsAreaShelf, toolsAreaShelf } = layout;
   const handlePreviewClick = () => {
@@ -82,6 +83,10 @@ const getHrTaskBarItems = ({
     generateReport({ ...activeReport, user }, dispatch, getApi);
   };
   const handleExport = (format) => {
+    if (typeof onExportFormat === "function") {
+      onExportFormat(format);
+      return;
+    }
     exportReport({ id: activeReport.id, format }, dispatch);
   };
   const handleRefreshData = () => {

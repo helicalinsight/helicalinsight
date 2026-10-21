@@ -227,3 +227,15 @@ def register(flask_app) -> None:
             return _ok({"config": result})
         except Exception as exc:
             return _fail(exc)
+
+    @flask_app.route("/utility/analytical-operations", methods=["GET", "POST"])
+    def utility_list_analytical_operations():
+        """List analytical operations from analytical_strategy.json for the Diagnostics UI."""
+        log_endpoint_input("/utility/analytical-operations", _request_data())
+        try:
+            from helicalbi.sql_agent.strategy_tree import list_analytical_operations_for_api
+
+            operations = list_analytical_operations_for_api()
+            return _ok({"operations": operations, "count": len(operations)})
+        except Exception as exc:
+            return _fail(exc)

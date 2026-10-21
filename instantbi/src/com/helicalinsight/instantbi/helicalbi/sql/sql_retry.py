@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Callable
 
+from helicalbi.sql_agent.prompt import THINK_FLAT_SQL_RETRY_DIRECTIVE
+
 logger = logging.getLogger(__name__)
 
 SQL_RETRY_MAX = 3
@@ -33,12 +35,7 @@ def rewrite_failed_sql_prompt(
         "the measure entirely."
     )
     if flat_sql:
-        bits.append(
-            "Think mode forbids subqueries. Rewrite as one flat SELECT that "
-            "joins base tables only. Do not use CTEs, derived tables, or any "
-            "nested SELECT. If the comparison needs another aggregate, drop "
-            "that part — it belongs in a separate question."
-        )
+        bits.append(THINK_FLAT_SQL_RETRY_DIRECTIVE)
     else:
         bits.append(
             "Prefer JOIN of pre-aggregated derived tables over nested scalar "

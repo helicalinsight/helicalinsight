@@ -4,14 +4,12 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.util.Date;
-import java.util.Objects;
 
 @Embeddable
 
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-public class HIResourceFolder implements Serializable {
+public class HIResourceFolder extends BaseResourceProps {
 
     @Column(name="title",table="hi_resource_folder",length = 60)
     private String title;

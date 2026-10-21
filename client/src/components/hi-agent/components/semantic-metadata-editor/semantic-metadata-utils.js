@@ -99,11 +99,20 @@ export function ensureShape(d) {
         measures: Array.isArray(entry?.measures) ? entry.measures : [],
       }));
 
+  const diagnosticCapabilities = Array.isArray(next.diagnosticCapabilities)
+    ? next.diagnosticCapabilities
+    : [];
+  const customAnalyticalOperations = Array.isArray(next.customAnalyticalOperations)
+    ? next.customAnalyticalOperations
+    : [];
+
   return {
     domain,
     cube: cube.length
       ? cube
       : [{ cubeName: "", dimensions: [], measures: [] }],
+    diagnosticCapabilities,
+    customAnalyticalOperations,
   };
 }
 

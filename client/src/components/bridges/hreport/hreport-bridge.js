@@ -24,7 +24,8 @@ import {
     updateFilterAlias,
     updateOrderBy,
     updateSelectedType,
-    updateSubVizType
+    updateSubVizType,
+    toggleCombineCharts
 } from '../../../redux/actions/hreport.actions';
 import { conditions } from '../../hi-reports/hi-editing-area/utils/constants';
 import { saveDataBaseFunction } from '../../hi-reports/hi-fields-area/utils/utilities';
@@ -35,6 +36,7 @@ import {
 import { getTableTree } from '../../hi-reports/utils/utilities';
 import { checkReportsAvailable, getReportById, getUserState } from './utils';
 import { resolveHreportSelectedType } from './viz-type-map';
+import { get } from 'js-cookie';
 
 function getHreportInfo(reportModel = {}) {
     const {
@@ -60,7 +62,9 @@ function getHreportInfo(reportModel = {}) {
 
     const {
         viz: vizType = "",
-        mark = ""
+        mark = "",
+        dualaxis = false,
+        measures: dualAxisMeasures = []
     } = chart || {};
 
     const props = viz_model?.properties || {};
@@ -202,6 +206,8 @@ function getHreportInfo(reportModel = {}) {
         filters: filtersToReturn,
         markType: mark,
         vizType: vizType ? vizType.toLowerCase() : "",
+        dualaxis: Boolean(dualaxis),
+        dualAxisMeasures: Array.isArray(dualAxisMeasures) ? dualAxisMeasures : [],
         vfTemplate: atob(vf_template),
         limitBy,
         filterExpression
@@ -227,7 +233,10 @@ function createHReportBridge(props = {}) {
         filters = [],
         markType = "",
         vizType = "",
+        dualaxis = false,
+        dualAxisMeasures = [],
         vfTemplate = "",
+        canvasFieldIds = {},
         limitBy = null,
         filterExpression = [];
 
@@ -239,7 +248,10 @@ function createHReportBridge(props = {}) {
         filters = reportData.filters;
         markType = reportData.markType;
         vizType = reportData.vizType;
+        dualaxis = reportData.dualaxis;
+        dualAxisMeasures = reportData.dualAxisMeasures;
         vfTemplate = reportData.vfTemplate;
+        canvasFieldIds = {};
         limitBy = reportData.limitBy;
         filterExpression = reportData.filterExpression;
     }
@@ -254,11 +266,11 @@ function createHReportBridge(props = {}) {
     }
 
     function addReport() {
-        dispatch(addNewReport({ reportId }));
+        dispatch(addNewReport({ reportId, isInstantReport: true }));
     }
 
     function addInitialReport() {
-        dispatch(loadIntialReport({ reportId }));
+        dispatch(loadIntialReport({ reportId, isInstantReport: true }));
     }
 
     function isObject(obj) {
@@ -325,12 +337,51 @@ function createHReportBridge(props = {}) {
         return columnToAdd;
     }
 
+    const DUAL_AXIS_VIZ = new Set(["bar", "line", "area", "point", "tick"]);
+
+    // Fallback series colors when a dual-axis measure has no explicit color.
+    // Same order as Ant Design Charts' default categorical palette.
+    const COMBINED_SERIES_COLORS = [
+        "#5B8FF9",
+        "#5AD8A6",
+        "#5D7092",
+        "#F6BD16",
+        "#6F5EF9",
+        "#6DC8EC",
+        "#945FB9",
+        "#FF9845",
+        "#1E9493",
+        "#FF99C3",
+    ];
+
+    function resolveDualViz(name) {
+        const key = String(name || "").trim().toLowerCase();
+        return DUAL_AXIS_VIZ.has(key) ? key : "line";
+    }
+
+    function resolveCombinedSeriesColor(seriesColor, index = 0) {
+        const explicit = typeof seriesColor === "string" ? seriesColor.trim() : "";
+        if (explicit) return explicit;
+        if (!COMBINED_SERIES_COLORS.length) return "";
+        return COMBINED_SERIES_COLORS[index % COMBINED_SERIES_COLORS.length] || "";
+    }
+
+    function aggregateDefaultFunction(field) {
+        const list = Array.isArray(field?.aggregate) ? field.aggregate : [];
+        return list.find((item) => typeof item === "string" && item.includes(".")) || "";
+    }
+
     function addFieldToReport(field, fieldId, fieldToAdd, addedAs = "column") {
+        if (field?.alias) {
+            canvasFieldIds[field.alias] = fieldId;
+        }
+        const defaultFunction = aggregateDefaultFunction(field);
         dispatch(addFieldToCanvas({
             addedAs,
             id: fieldId,
             ...fieldToAdd,
             ...(field.geographicType ? { geographicType: field.geographicType } : {}),
+            ...(defaultFunction ? { defaultFunction } : {}),
         }))
         if (field.order) {
             dispatch(updateOrderBy({ id: fieldId, key: field.order }))
@@ -432,10 +483,10 @@ function createHReportBridge(props = {}) {
                 if (filterField.databaseFunction) {
                     addFieldToReport(filterField, filterId, filterColumn, "column")
                     const field = getFieldById(filterId);
-                    dispatch(createFilter({ ...field, uid: filterId, reportId }));
+                    dispatch(createFilter({ ...field, uid: filterId, reportId, active: false }));
                     removeFieldFromReport(filterId)
                 } else {
-                    dispatch(createFilter({ ...filterColumn, uid: filterId, columnID: filterField.id, from: "metadata" }))
+                    dispatch(createFilter({ ...filterColumn, uid: filterId, columnID: filterField.id, from: "metadata", active: false }))
                 }
                 updateFilterCondition(filterId, condition)
 
@@ -480,7 +531,7 @@ function createHReportBridge(props = {}) {
     function addProperties() { } // to do
 
     function onReportGenSuccess() {
-        onComplete(true)
+        onComplete(true, getCurrentReport());
         lookForLoadingReports()
     }
 
@@ -547,6 +598,36 @@ function createHReportBridge(props = {}) {
         }
     }
 
+    function usesDualAxis() {
+        return Boolean(dualaxis) && dualAxisMeasures.length > 1;
+    }
+
+    function applyDualAxis() {
+        const currentReport = getCurrentReport();
+        if (!currentReport?.combine) {
+            dispatch(toggleCombineCharts({ reportId }));
+        }
+        const marks = currentReport?.marksList || [];
+        let measureIndex = 0;
+        dualAxisMeasures.forEach((item) => {
+            const fieldName = item?.field;
+            if (!fieldName) return;
+            const fieldId = canvasFieldIds[fieldName];
+            const mark = marks.find((entry) => fieldId && entry.id === fieldId)
+                || marks.find((entry) => entry.value === fieldName);
+            const id = mark?.id || fieldId;
+            const value = mark?.value && mark.value !== "_all_" ? mark.value : fieldName;
+            if (!id || value === "_all_") return;
+            dispatch(updateSubVizType({
+                value,
+                name: resolveDualViz(item.viz),
+                id,
+                seriesColor: resolveCombinedSeriesColor(item.color, measureIndex),
+            }));
+            measureIndex += 1;
+        });
+    }
+
     function updateVizAndMarks() {
         let selectedType = resolveHreportSelectedType(markType) || markType,
             subVizType = vizType;
@@ -554,9 +635,20 @@ function createHReportBridge(props = {}) {
             selectedType = interactions?.selectedType || selectedType;
             subVizType = interactions?.subVizType || subVizType;
         }
+        const dual = usesDualAxis();
+        if (dual) {
+            selectedType = "GridChart";
+        }
         changeSubVizType(subVizType);
         changeSelectedVizType(selectedType);
-        eventUpdater({ hreportId: reportId, event: "change_viz", data: { selectedType, subVizType } });
+        if (dual) {
+            applyDualAxis();
+        }
+        eventUpdater({
+            hreportId: reportId,
+            event: "change_viz",
+            data: { selectedType, subVizType, dualaxis: dual },
+        });
     }
 
     function updateMetadataForReport(reportMetadata) {

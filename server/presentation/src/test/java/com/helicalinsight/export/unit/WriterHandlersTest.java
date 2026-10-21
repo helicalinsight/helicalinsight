@@ -12,9 +12,11 @@ import static org.mockito.Mockito.when;
 import java.lang.reflect.Field;
 import java.util.Collections;
 
+import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
@@ -44,6 +46,7 @@ import com.helicalinsight.export.handler.ImageWriterHandler;
 import com.helicalinsight.export.handler.MetadataWriterHandler;
 import com.helicalinsight.export.handler.ResourceDataWriter;
 import com.helicalinsight.export.service.DatasourceHandler;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.export.utils.ManifestUtils;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 
@@ -51,7 +54,7 @@ import com.helicalinsight.resourcedb.HIResourceDTO;
 public class WriterHandlersTest extends ExportUnitTestBase {
 
 	private void injectBaseFields(AbstractResourceWriterHandler handler, HIResourceServiceDB serviceDB,
-			ResourceDTOMapper dtoMapper, ManifestUtils manifestUtils, ResourceDataWriter dataWriter, UserService userService)
+			ResourceDTOMapper dtoMapper, ManifestUtils manifestUtils, ResourceDataWriter dataWriter, UserService userService, RecycleBinHandler recycleBinHandler)
 			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
 		Field serviceField = AbstractResourceWriterHandler.class.getDeclaredField("serviceDB");
 		serviceField.setAccessible(true);
@@ -72,6 +75,11 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		Field userServiceField = AbstractResourceWriterHandler.class.getDeclaredField("userService");
 		userServiceField.setAccessible(true);
 		userServiceField.set(handler, userService);
+		
+		Field recyclebinHandlerField = AbstractResourceWriterHandler.class.getDeclaredField("recycleBinHandler");
+		recyclebinHandlerField.setAccessible(true);
+		recyclebinHandlerField.set(handler, recycleBinHandler);
+		
 	}
 
 	@Test
@@ -87,7 +95,8 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		HIResourceConstituentMappingService pathService = mock(HIResourceConstituentMappingService.class);
 		ApplicationSettings applicationSettings = mock(ApplicationSettings.class);
 		UserService userService = mock(UserService.class);
-		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService);
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class); 
+		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService, recycleBinHandler);
 
 		Field pathField = AbstractResourceWriterHandler.class.getDeclaredField("pathService");
 		pathField.setAccessible(true);
@@ -150,7 +159,8 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		HIResourceConstituentMappingService mappingService = mock(HIResourceConstituentMappingService.class);
 		UserService userService = mock(UserDetailsServiceImpl.class);
 		
-		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService);
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class); 
+		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService, recycleBinHandler);
 
 		Field folderField = HCRWriterHandler.class.getDeclaredField("folderWriterHandlerHandler");
 		folderField.setAccessible(true);
@@ -181,13 +191,18 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		when(hReport.getCreatedBy()).thenReturn(3);
 		when(mappingService.findByParentId(1)).thenReturn(Collections.emptyList());
 		when(manifestUtils.pathExists(any(), eq(manifest))).thenReturn(true);
-		
+		when(options.getDataSource()).thenReturn(false);
+
 		User user = mock(User.class);
 		when(userService.findUser(3)).thenReturn(user);
 		when(user.getUsername()).thenReturn("admin");
-		
+
 		handler.write(report, "dir", manifest, options);
 
+		ArgumentCaptor<String> previewCaptor = ArgumentCaptor.forClass(String.class);
+		verify(hReport).setPreviewFormData(previewCaptor.capture());
+		Assert.assertTrue(previewCaptor.getValue().contains("connectionDbDetails"));
+		Assert.assertTrue(previewCaptor.getValue().contains("connectionDbDetailsEfwd"));
 		verify(dataWriter).write(any(), eq("dir"), eq(report), eq(""));
 		verify(manifestUtils).insertPath("parent/hcr", manifest);
 		verify(manifestUtils).insertDependency(eq("parent/hcr"), anyString(), eq(manifest));
@@ -205,7 +220,8 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		FolderWriterHandler folderWriterHandler = mock(FolderWriterHandler.class);
 		
 		UserService userService = mock(UserDetailsServiceImpl.class);
-		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService);
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class); 
+		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService, recycleBinHandler);
 
 		Field mdField = HReportWriterHandler.class.getDeclaredField("mdWriterHandler");
 		mdField.setAccessible(true);
@@ -262,7 +278,8 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		ManifestUtils manifestUtils = mock(ManifestUtils.class);
 		ResourceDataWriter dataWriter = mock(ResourceDataWriter.class);
 		UserService userService = mock(UserDetailsServiceImpl.class);
-		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService);
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class); 
+		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService, recycleBinHandler);
 
 		HIResourceDTO report = mock(HIResourceDTO.class);
 		HIResource hResource = mock(HIResource.class);
@@ -296,7 +313,8 @@ public class WriterHandlersTest extends ExportUnitTestBase {
 		
 		UserService userService = mock(UserDetailsServiceImpl.class);
 		
-		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService);
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class); 
+		injectBaseFields(handler, serviceDB, dtoMapper, manifestUtils, dataWriter, userService, recycleBinHandler);
 
 		Field mdField = AbstractResourceWriterHandler.class.getDeclaredField("mdServiceDB");
 		mdField.setAccessible(true);

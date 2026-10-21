@@ -27,7 +27,6 @@ import net.sf.jasperreports.engine.design.JRDesignBand;
 import net.sf.jasperreports.engine.design.JRDesignDatasetRun;
 import net.sf.jasperreports.engine.design.JRDesignExpression;
 import net.sf.jasperreports.engine.design.JRDesignImage;
-import net.sf.jasperreports.engine.design.JRDesignTextField;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.type.CalculationEnum;
 import net.sf.jasperreports.engine.type.HorizontalPosition;
@@ -95,18 +94,7 @@ public class HCRCrosstab implements IHCRBandContents {
 			
 			JRDesignCellContents designCell = new JRDesignCellContents();
 			HCRUtils.applyStyleReference(cellJson, designCell::setStyleNameReference);
-			
-			if (cellJson.has("textField")) {
-				
-				for(JsonElement textFieldElement : GsonUtility.optJsonArray(cellJson, "textField")) {
-					JsonObject textFieldJson = textFieldElement.getAsJsonObject();
-					if ( textFieldJson != null && !textFieldJson.keySet().isEmpty()) {
-						JRDesignTextField textField = hcrTextField.prepareTextField(textFieldJson,jasperDesign);
-						designCell.addElement(textField);
-					}
-				}
-			}
-			
+			addTextFieldsToCell(designCell, cellJson, jasperDesign);
 			addImages(jasperDesign, designCell, cellJson);
 
 			cell.setContents(designCell);
@@ -159,10 +147,7 @@ public class HCRCrosstab implements IHCRBandContents {
 
 			JRDesignCellContents headerCell = new JRDesignCellContents();
 			JsonObject rowHeaderJson = rowGroupJson.getAsJsonObject("crosstabRowHeader");
-			JsonObject rowHeaderTextField = rowHeaderJson.getAsJsonObject("textField");
-			if(rowHeaderTextField != null && !rowHeaderTextField.keySet().isEmpty()) {
-				headerCell.addElement(hcrTextField.prepareTextField(rowHeaderTextField, jasperDesign));
-			}
+			addTextFieldsToCell(headerCell, rowHeaderJson, jasperDesign);
 			addImages(jasperDesign, headerCell, rowHeaderJson);
 			HCRUtils.applyStyleReference(rowHeaderJson, headerCell::setStyleNameReference);
 			rowGroup.setHeader(headerCell);
@@ -170,11 +155,7 @@ public class HCRCrosstab implements IHCRBandContents {
 			if (rowGroupJson.has("crosstabTotalRowHeader")) {
 				JRDesignCellContents totalHeader = new JRDesignCellContents();
 				JsonObject totalHeaderJson = rowGroupJson.getAsJsonObject("crosstabTotalRowHeader");
-				
-				JsonObject tableHeaderText = 	totalHeaderJson.getAsJsonObject("textField");
-				if(tableHeaderText != null && !tableHeaderText.keySet().isEmpty()) {
-					totalHeader.addElement(hcrTextField.prepareTextField(tableHeaderText, jasperDesign));
-				}
+				addTextFieldsToCell(totalHeader, totalHeaderJson, jasperDesign);
 				addImages(jasperDesign, totalHeader, totalHeaderJson);
 				HCRUtils.applyStyleReference(totalHeaderJson, totalHeader::setStyleNameReference);
 				rowGroup.setTotalHeader(totalHeader);
@@ -209,10 +190,7 @@ public class HCRCrosstab implements IHCRBandContents {
 			// Column header
 			JRDesignCellContents colHeaderCell = new JRDesignCellContents();
 			JsonObject colHeaderJson = colGroupJson.getAsJsonObject("crosstabColumnHeader");
-			JsonObject columnHeaderTextField = colHeaderJson.getAsJsonObject("textField");
-			if(columnHeaderTextField != null && !columnHeaderTextField.keySet().isEmpty()) {
-				colHeaderCell.addElement(hcrTextField.prepareTextField(columnHeaderTextField, jasperDesign));
-			}
+			addTextFieldsToCell(colHeaderCell, colHeaderJson, jasperDesign);
 			addImages(jasperDesign, colHeaderCell, colHeaderJson);
 			HCRUtils.applyStyleReference(colHeaderJson, colHeaderCell::setStyleNameReference);
 			colGroup.setHeader(colHeaderCell);
@@ -220,10 +198,7 @@ public class HCRCrosstab implements IHCRBandContents {
 			if (colGroupJson.has("crosstabTotalColumnHeader")) {
 				JRDesignCellContents totalHeader = new JRDesignCellContents();
 				JsonObject totalHeaderJson = colGroupJson.getAsJsonObject("crosstabTotalColumnHeader");
-				JsonObject totalHeaderTextField = totalHeaderJson.getAsJsonObject("textField");
-				if(totalHeaderTextField != null && !totalHeaderTextField.keySet().isEmpty()) {
-					totalHeader.addElement(hcrTextField.prepareTextField(totalHeaderTextField, jasperDesign));
-				}
+				addTextFieldsToCell(totalHeader, totalHeaderJson, jasperDesign);
 				addImages(jasperDesign, totalHeader, totalHeaderJson);
 				HCRUtils.applyStyleReference(totalHeaderJson, totalHeader::setStyleNameReference);
 				colGroup.setTotalHeader(totalHeader);
@@ -273,6 +248,31 @@ public class HCRCrosstab implements IHCRBandContents {
 				JsonObject imageJson = element.getAsJsonObject();
 				JRDesignImage jrDesignImage = hcrImage.prepareImage(jasperDesign, imageJson);
 				designCell.addElement(jrDesignImage);
+			}
+		}
+	}
+
+	private void addTextFieldsToCell(JRDesignCellContents designCell, JsonObject cellJson, JasperDesign jasperDesign) {
+		if (cellJson == null || !cellJson.has("textField")) {
+			return;
+		}
+		JsonElement textFieldElement = cellJson.get("textField");
+		if (textFieldElement == null || textFieldElement.isJsonNull()) {
+			return;
+		}
+		if (textFieldElement.isJsonArray()) {
+			for (JsonElement element : textFieldElement.getAsJsonArray()) {
+				if (element != null && element.isJsonObject()) {
+					JsonObject textFieldJson = element.getAsJsonObject();
+					if (!textFieldJson.keySet().isEmpty()) {
+						designCell.addElement(hcrTextField.prepareTextField(textFieldJson, jasperDesign));
+					}
+				}
+			}
+		} else if (textFieldElement.isJsonObject()) {
+			JsonObject textFieldJson = textFieldElement.getAsJsonObject();
+			if (!textFieldJson.keySet().isEmpty()) {
+				designCell.addElement(hcrTextField.prepareTextField(textFieldJson, jasperDesign));
 			}
 		}
 	}

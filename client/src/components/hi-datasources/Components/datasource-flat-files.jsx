@@ -63,14 +63,16 @@ const DataSourceFlatFiles = (props) => {
     formData.append("type", "csv");
     formData.append("file", fileUploaded);
 
+    setIsUploading(true);
+    setProgress(0);
+
     apiRef.current = requests.datasource(dispatch).postUploadFile(
       formData,
       {
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setIsUploading(true);
+          const total = progressEvent.total || 0;
+          const percentCompleted =
+            total > 0 ? Math.round((progressEvent.loaded * 100) / total) : 0;
           setProgress(percentCompleted);
         },
       },

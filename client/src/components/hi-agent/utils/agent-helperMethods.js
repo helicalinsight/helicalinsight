@@ -37,6 +37,11 @@ const flattenFields = (children = []) =>
 
 const isManualMetric = (field) =>
   field?.agentSource?.kind === "manual-metric" ||
+  Boolean(field?.measure?.isMeasureCheck) ||
+  Boolean(field?.isMeasureCheck) ||
+  Boolean(field?.isMeasure) ||
+  field?.kind === "measure" ||
+  field?.type === "measure" ||
   (field?.measure?.isMeasureCheck &&
     !field.tableId &&
     !getColumnName(field) &&

@@ -1,0 +1,533 @@
+
+{
+  "analyticalOperationsCatalog": {
+    "version": "1.0",
+    "operations": [
+      {
+        "operation": "trend",
+        "category": "temporal_analysis",
+        "description": "Compare a measure across time to identify trajectory, velocity, and pattern changes.",
+        "requiredInputs": ["measure", "timeDimension"],
+        "optionalInputs": ["dimensions", "filters", "interval", "baseline"],
+        "execution": {
+          "method": "sql",
+          "logic": "Aggregate the measure into ordered time intervals and calculate changes between observations."
+        },
+        "preconditions": ["A valid time dimension and aggregation are defined."],
+        "outputFields": ["timePeriod", "measureValue", "absoluteChange", "percentageChange"],
+        "limitations": ["Account for incomplete periods, missing intervals, and seasonality."],
+        "dashboardVisualizations": ["line_chart", "area_chart"]
+      },
+      {
+        "operation": "period_comparison",
+        "category": "temporal_analysis",
+        "description": "Compare the current period with a previous period, including MoM, QoQ, YoY, or custom date ranges.",
+        "requiredInputs": ["measure", "timeDimension", "currentPeriod", "comparisonPeriod"],
+        "optionalInputs": ["dimensions", "filters"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate the measure for both periods and return absolute and percentage differences."
+        },
+        "preconditions": ["Period boundaries and comparison rules are explicit."],
+        "outputFields": ["currentValue", "previousValue", "absoluteChange", "percentageChange"],
+        "limitations": ["Handle zero denominators and unequal period coverage."],
+        "dashboardVisualizations": ["kpi_card", "grouped_bar_chart", "line_chart"]
+      },
+      {
+        "operation": "segment",
+        "category": "dimensional_analysis",
+        "description": "Break a measure down by a valid dimension to evaluate categorical splits.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["additionalDimensions", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Group records by dimension members and calculate the selected measure."
+        },
+        "preconditions": ["The dimension has a valid relationship to the measure."],
+        "outputFields": ["dimensionValue", "measureValue", "recordCount"],
+        "limitations": ["Validate join grain and avoid duplicated aggregation."],
+        "dashboardVisualizations": ["bar_chart", "stacked_bar_chart", "table"]
+      },
+      {
+        "operation": "decompose",
+        "category": "metric_analysis",
+        "description": "Break a measure into its registered components or additive sub-metrics.",
+        "requiredInputs": ["measure"],
+        "optionalInputs": ["dimensions", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Resolve the registered decomposition definition and calculate its component measures."
+        },
+        "preconditions": ["The measure has an explicit, valid decomposition."],
+        "outputFields": ["component", "componentValue", "totalValue", "componentContribution"],
+        "limitations": ["Components must reconcile with the total under the registered formula."],
+        "dashboardVisualizations": ["waterfall_chart", "stacked_bar_chart", "table"]
+      },
+      {
+        "operation": "contribution",
+        "category": "dimensional_analysis",
+        "description": "Identify dimensions or entities contributing most to a measure change or total volume.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["comparisonPeriods", "filters", "topN"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate group values, shares of the overall total, and contributions to change when comparison periods are provided."
+        },
+        "preconditions": ["The denominator or comparison baseline is meaningful."],
+        "outputFields": ["dimensionValue", "measureValue", "contributionPercentage", "changeContribution", "rank"],
+        "limitations": ["Distinguish contribution to a total from contribution to a change."],
+        "dashboardVisualizations": ["pareto_chart", "ranked_bar_chart", "waterfall_chart"]
+      },
+      {
+        "operation": "distribution",
+        "category": "statistical_analysis",
+        "description": "Analyze the distribution and spread of a measure across dimension members or numeric value bins.",
+        "requiredInputs": ["measure"],
+        "optionalInputs": ["dimension", "binDefinition", "filters", "percentiles"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Calculate frequencies, quantiles, spread, and distribution statistics at the declared observation grain."
+        },
+        "preconditions": ["The numeric measure and analysis grain are defined."],
+        "outputFields": ["binOrGroup", "frequency", "minimum", "maximum", "median", "percentiles"],
+        "limitations": ["Aggregated group values and record-level values represent different distributions."],
+        "dashboardVisualizations": ["histogram", "box_plot", "density_plot"]
+      },
+      {
+        "operation": "reason_analysis",
+        "category": "diagnostics",
+        "description": "Analyze registered reason codes or explanatory categorical dimensions to understand business outcomes.",
+        "requiredInputs": ["outcomeMeasure", "reasonDimension"],
+        "optionalInputs": ["dimensions", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Group outcome counts or rates by reason category and rank the categories."
+        },
+        "preconditions": ["Reason values have defined meanings and are associated with the target outcome."],
+        "outputFields": ["reason", "outcomeCount", "outcomeRate", "contributionPercentage"],
+        "limitations": ["Recorded reasons may be incomplete or subjective and do not automatically establish root cause."],
+        "dashboardVisualizations": ["ranked_bar_chart", "pareto_chart", "table"]
+      },
+      {
+        "operation": "mix_analysis",
+        "category": "variance_analysis",
+        "description": "Determine whether changes in dimensional composition or volume mix contributed to an aggregate measure change.",
+        "requiredInputs": ["measure", "dimension", "comparisonPeriods"],
+        "optionalInputs": ["additionalDimensions", "filters"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Separate changes associated with group proportions from changes in group-level values using a documented decomposition method."
+        },
+        "preconditions": ["Groups are consistently defined across periods and the metric supports the selected decomposition."],
+        "outputFields": ["group", "previousMix", "currentMix", "previousMetric", "currentMetric", "mixEffect", "withinGroupEffect"],
+        "limitations": ["Decomposition results depend on the chosen method and treatment of interaction effects."],
+        "dashboardVisualizations": ["waterfall_chart", "stacked_bar_chart", "table"]
+      },
+      {
+        "operation": "outlier_detection",
+        "category": "statistical_analysis",
+        "description": "Identify dimension members with unusually high or low values relative to an appropriate cohort baseline.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["baselineDefinition", "method", "threshold", "minimumSampleSize"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Calculate a suitable baseline and flag group values that meet the selected outlier criterion."
+        },
+        "preconditions": ["A meaningful comparison population and sufficient observations exist."],
+        "outputFields": ["dimensionValue", "measureValue", "baseline", "deviation", "outlierFlag"],
+        "limitations": ["Unusual values are not necessarily errors or failures."],
+        "dashboardVisualizations": ["box_plot", "scatter_plot", "ranked_bar_chart"]
+      },
+      {
+        "operation": "ranking",
+        "category": "dimensional_analysis",
+        "description": "Order entities from highest to lowest to isolate top performers and underperforming laggards.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["topN", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Aggregate by dimension, order by the selected measure, and assign ranks."
+        },
+        "preconditions": ["The ranking measure, direction, and aggregation are defined."],
+        "outputFields": ["entity", "measureValue", "rank"],
+        "limitations": ["Use rates or normalized metrics where raw totals are not comparable."],
+        "dashboardVisualizations": ["ranked_bar_chart", "table"]
+      },
+      {
+        "operation": "pareto_analysis",
+        "category": "contribution_analysis",
+        "description": "Identify the smallest set of dimension members accounting for a selected share of a total.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["targetContributionPercentage", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Rank groups by contribution and calculate cumulative contribution percentages."
+        },
+        "preconditions": ["Group contributions can be meaningfully compared against the total."],
+        "outputFields": ["dimensionValue", "measureValue", "contributionPercentage", "cumulativeContribution", "rank"],
+        "limitations": ["The 80/20 relationship is a hypothesis to test, not a guaranteed distribution."],
+        "dashboardVisualizations": ["pareto_chart"]
+      },
+      {
+        "operation": "concentration_risk",
+        "category": "risk_analysis",
+        "description": "Measure dependency on a small number of accounts, suppliers, destinations, or other entities.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["topN", "concentrationThreshold", "comparisonPeriods"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate top-N shares and, where appropriate, a concentration index from entity-level contributions."
+        },
+        "preconditions": ["The entity population and concentration measure are defined."],
+        "outputFields": ["topNShare", "entityContribution", "concentrationIndex", "riskFlag"],
+        "limitations": ["Concentration is an exposure indicator, not proof that a loss will occur."],
+        "dashboardVisualizations": ["pareto_chart", "ranked_bar_chart", "kpi_card"]
+      },
+      {
+        "operation": "benchmark_comparison",
+        "category": "performance_analysis",
+        "description": "Compare actual performance against targets, SLAs, budgets, peer groups, or baselines.",
+        "requiredInputs": ["measure", "benchmark"],
+        "optionalInputs": ["dimensions", "timeRange", "tolerance"],
+        "execution": {
+          "method": "sql",
+          "logic": "Align actual and benchmark values and calculate absolute and relative deviations."
+        },
+        "preconditions": ["A valid benchmark source, scope, and comparison rule exist."],
+        "outputFields": ["actualValue", "benchmarkValue", "variance", "variancePercentage", "status"],
+        "limitations": ["Ensure benchmarks are comparable in time period, units, and population."],
+        "dashboardVisualizations": ["bullet_chart", "kpi_card", "bar_chart"]
+      },
+      {
+        "operation": "variance_waterfall",
+        "category": "variance_analysis",
+        "description": "Show sequential positive and negative changes bridging an initial state to a final total or target.",
+        "requiredInputs": ["startingValue", "endingValue", "changeComponents"],
+        "optionalInputs": ["comparisonPeriods", "dimensions"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate change components and order them to reconcile the initial value to the final value."
+        },
+        "preconditions": ["The change components reconcile under a defined decomposition."],
+        "outputFields": ["step", "changeValue", "runningTotal", "stepType"],
+        "limitations": ["Do not label unexplained residuals as known drivers."],
+        "dashboardVisualizations": ["waterfall_chart"]
+      },
+      {
+        "operation": "gap_analysis",
+        "category": "performance_analysis",
+        "description": "Quantify shortfalls or surpluses between actual performance and defined goals or expectations.",
+        "requiredInputs": ["actualMeasure", "targetMeasure"],
+        "optionalInputs": ["dimensions", "timeRange", "tolerance"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate actual minus target and classify the gap according to the business objective."
+        },
+        "preconditions": ["The target and direction of desirable performance are defined."],
+        "outputFields": ["actualValue", "targetValue", "gap", "gapPercentage", "status"],
+        "limitations": ["A positive gap is not always favorable; interpretation depends on the measure."],
+        "dashboardVisualizations": ["bullet_chart", "kpi_card", "bar_chart"]
+      },
+      {
+        "operation": "cumulative_aggregation",
+        "category": "temporal_analysis",
+        "description": "Calculate running totals, cumulative progress, YTD, or MTD accumulations.",
+        "requiredInputs": ["measure", "timeDimension"],
+        "optionalInputs": ["accumulationWindow", "dimensions", "filters"],
+        "execution": {
+          "method": "sql",
+          "logic": "Aggregate in time order and calculate the running value within the specified partition and reset boundary."
+        },
+        "preconditions": ["Time ordering, window boundaries, and reset rules are defined."],
+        "outputFields": ["timePeriod", "periodValue", "cumulativeValue"],
+        "limitations": ["Use only for measures with appropriate cumulative semantics."],
+        "dashboardVisualizations": ["line_chart", "area_chart"]
+      },
+      {
+        "operation": "cohort_analysis",
+        "category": "temporal_analysis",
+        "description": "Compare lifecycle behavior and performance among groups sharing a defined inception event.",
+        "requiredInputs": ["entityIdentifier", "cohortDefinition", "targetMeasure"],
+        "optionalInputs": ["followUpPeriod", "dimensions", "filters"],
+        "execution": {
+          "method": "sql",
+          "logic": "Assign entities to cohorts and compare their metrics across consistent elapsed-time windows."
+        },
+        "preconditions": ["Cohort membership and observation windows are defined."],
+        "outputFields": ["cohort", "elapsedPeriod", "entityCount", "measureValue"],
+        "limitations": ["Incomplete follow-up can bias comparisons."],
+        "dashboardVisualizations": ["cohort_heatmap", "line_chart", "table"]
+      },
+      {
+        "operation": "funnel_conversion",
+        "category": "process_analysis",
+        "description": "Analyze stage-by-stage conversion, velocity, and drop-off across sequential workflows.",
+        "requiredInputs": ["processModel", "orderedStages", "entityIdentifier"],
+        "optionalInputs": ["timeDimension", "dimensions", "filters"],
+        "execution": {
+          "method": "process_engine",
+          "logic": "Determine eligible entities at each stage and calculate stage counts, transition rates, drop-offs, and elapsed times where available."
+        },
+        "preconditions": ["Stage mappings, transition rules, and entity identifiers are defined."],
+        "outputFields": ["stage", "entityCount", "conversionRate", "dropOffRate", "elapsedTime"],
+        "limitations": ["Handle alternative paths, skipped stages, and incomplete records."],
+        "dashboardVisualizations": ["funnel_chart", "process_diagram", "table"]
+      },
+      {
+        "operation": "churn_retention",
+        "category": "lifecycle_analysis",
+        "description": "Measure attrition, repeat activity, and retention across defined time windows.",
+        "requiredInputs": ["entityIdentifier", "activityDefinition", "timeDimension"],
+        "optionalInputs": ["cohortDefinition", "retentionWindow", "dimensions"],
+        "execution": {
+          "method": "sql",
+          "logic": "Identify active entities and repeat activity within defined windows, applying an explicit churn rule."
+        },
+        "preconditions": ["Entity activity history and churn definitions are available."],
+        "outputFields": ["period", "eligibleEntities", "retainedEntities", "retentionRate", "churnRate"],
+        "limitations": ["Do not apply customer-retention concepts to entities without a meaningful repeat-activity lifecycle."],
+        "dashboardVisualizations": ["line_chart", "cohort_heatmap", "kpi_card"]
+      },
+      {
+        "operation": "correlation_analysis",
+        "category": "statistical_analysis",
+        "description": "Evaluate statistical association between two or more continuous measures.",
+        "requiredInputs": ["numericMeasures"],
+        "optionalInputs": ["dimensions", "timeRange", "method"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Calculate suitable association statistics at a compatible observation grain."
+        },
+        "preconditions": ["Measures have compatible observations and a defined statistical method."],
+        "outputFields": ["measurePair", "correlationCoefficient", "sampleSize"],
+        "limitations": ["Correlation does not prove causation."],
+        "dashboardVisualizations": ["scatter_plot", "correlation_matrix"]
+      },
+      {
+        "operation": "elasticity_sensitivity",
+        "category": "sensitivity_analysis",
+        "description": "Measure the responsiveness of an outcome relative to changes in an input driver.",
+        "requiredInputs": ["outcomeMeasure", "inputMeasure"],
+        "optionalInputs": ["model", "scenarioRange", "dimensions"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Estimate a suitable elasticity or sensitivity measure using a defined model or controlled scenario."
+        },
+        "preconditions": ["The input-output relationship and calculation method are defined."],
+        "outputFields": ["inputChangePercentage", "outcomeChangePercentage", "elasticity"],
+        "limitations": ["Observed responsiveness is not necessarily causal; percentage changes require suitable nonzero baselines."],
+        "dashboardVisualizations": ["scatter_plot", "sensitivity_chart", "table"]
+      },
+      {
+        "operation": "ratio_rate_analysis",
+        "category": "metric_analysis",
+        "description": "Compute normalized unit economics, efficiency ratios, margins, and rates.",
+        "requiredInputs": ["numeratorMeasure", "denominatorMeasure"],
+        "optionalInputs": ["dimensions", "timeRange", "filters"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate the registered ratio or rate using compatible populations, units, and aggregation grains."
+        },
+        "preconditions": ["The ratio formula and denominator eligibility rules are defined."],
+        "outputFields": ["numerator", "denominator", "ratioValue"],
+        "limitations": ["Handle zero denominators and avoid averaging group-level ratios without appropriate weighting."],
+        "dashboardVisualizations": ["kpi_card", "line_chart", "bar_chart"]
+      },
+      {
+        "operation": "utilization_capacity",
+        "category": "operational_analysis",
+        "description": "Compare actual utilization or throughput with a defined capacity limit.",
+        "requiredInputs": ["actualMeasure", "capacityMeasure"],
+        "optionalInputs": ["dimensions", "timeRange", "filters"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate utilization rates and remaining capacity from compatible actual and capacity measures."
+        },
+        "preconditions": ["Capacity data and measurement units are available."],
+        "outputFields": ["actualValue", "capacityValue", "utilizationRate", "remainingCapacity"],
+        "limitations": ["Do not infer theoretical capacity from actual activity alone."],
+        "dashboardVisualizations": ["gauge_chart", "bullet_chart", "bar_chart"]
+      },
+      {
+        "operation": "cross_tabulation",
+        "category": "dimensional_analysis",
+        "description": "Analyze intersections of two categorical dimensions across a shared measure.",
+        "requiredInputs": ["dimensionA", "dimensionB"],
+        "optionalInputs": ["measure", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Group by both dimensions and calculate counts or the selected measure."
+        },
+        "preconditions": ["Both dimensions have valid relationships to the same analysis grain."],
+        "outputFields": ["dimensionAValue", "dimensionBValue", "measureValue"],
+        "limitations": ["Sparse cells and high cardinality can make comparisons unreliable."],
+        "dashboardVisualizations": ["heatmap", "pivot_table", "stacked_bar_chart"]
+      },
+      {
+        "operation": "seasonality_cycle",
+        "category": "temporal_analysis",
+        "description": "Identify recurring patterns across calendar cycles.",
+        "requiredInputs": ["measure", "timeDimension"],
+        "optionalInputs": ["cycleType", "dimensions", "timeRange"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Aggregate by the relevant calendar position and evaluate repeated patterns across cycles."
+        },
+        "preconditions": ["Sufficient historical coverage exists for the selected cycle."],
+        "outputFields": ["cyclePosition", "measureValue", "seasonalPattern"],
+        "limitations": ["Distinguish seasonal patterns from trends and changes in data coverage."],
+        "dashboardVisualizations": ["seasonal_line_chart", "heatmap"]
+      },
+      {
+        "operation": "velocity_acceleration",
+        "category": "temporal_analysis",
+        "description": "Measure the rate of change and acceleration of a metric over time.",
+        "requiredInputs": ["measure", "timeDimension"],
+        "optionalInputs": ["interval", "dimensions", "smoothingMethod"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Calculate successive changes per unit time and changes in those rates."
+        },
+        "preconditions": ["Ordered observations with meaningful time intervals are available."],
+        "outputFields": ["timePeriod", "measureValue", "velocity", "acceleration"],
+        "limitations": ["Results can be sensitive to interval size, noise, and missing observations."],
+        "dashboardVisualizations": ["line_chart", "area_chart"]
+      },
+      {
+        "operation": "frequency_recency",
+        "category": "entity_analysis",
+        "description": "Group entities by how recently and how frequently defined activities occur.",
+        "requiredInputs": ["entityIdentifier", "activityDate"],
+        "optionalInputs": ["asOfDate", "frequencyWindow", "dimensions"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate time since the most recent activity and activity frequency within the defined window."
+        },
+        "preconditions": ["Activity history and a reference date are defined."],
+        "outputFields": ["entity", "recency", "frequency"],
+        "limitations": ["Choose windows appropriate to the business activity; recency does not necessarily imply future behavior."],
+        "dashboardVisualizations": ["scatter_plot", "segmented_table", "bar_chart"]
+      },
+      {
+        "operation": "percentile_tiering",
+        "category": "statistical_analysis",
+        "description": "Classify entities into quartiles, deciles, or custom tiers based on their relative metric values.",
+        "requiredInputs": ["measure", "dimension"],
+        "optionalInputs": ["numberOfTiers", "tierBoundaries", "filters", "timeRange"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate percentile ranks or quantile boundaries and assign entities to the requested tiers."
+        },
+        "preconditions": ["A defined entity grain and sufficient observations exist."],
+        "outputFields": ["entity", "measureValue", "percentileRank", "tier"],
+        "limitations": ["Ties, small populations, and changing comparison populations can affect tier membership."],
+        "dashboardVisualizations": ["bar_chart", "box_plot", "table"]
+      },
+      {
+        "operation": "threshold_alerting",
+        "category": "monitoring",
+        "description": "Identify measures or entities that breach configured thresholds, SLAs, or control limits.",
+        "requiredInputs": ["measure", "thresholdRule"],
+        "optionalInputs": ["dimension", "timeRange", "severityRules"],
+        "execution": {
+          "method": "sql",
+          "logic": "Evaluate the metric against registered threshold rules and classify the result."
+        },
+        "preconditions": ["Thresholds, directions, and evaluation scopes are defined."],
+        "outputFields": ["entityOrPeriod", "measureValue", "threshold", "breachStatus", "severity"],
+        "limitations": ["Distinguish business thresholds from statistically derived control limits."],
+        "dashboardVisualizations": ["alert_list", "kpi_card", "line_chart"]
+      },
+      {
+        "operation": "anomaly_detection",
+        "category": "statistical_analysis",
+        "description": "Identify unexpected spikes, drops, or patterns relative to an appropriate baseline.",
+        "requiredInputs": ["measure", "timeDimension"],
+        "optionalInputs": ["dimensions", "baselineModel", "sensitivity", "seasonality"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Compare observed values with expected values from a suitable baseline or anomaly model."
+        },
+        "preconditions": ["Sufficient observations and an appropriate baseline are available."],
+        "outputFields": ["timePeriod", "observedValue", "expectedValue", "deviation", "anomalyScore"],
+        "limitations": ["Anomalies require investigation and are not automatically errors or business failures."],
+        "dashboardVisualizations": ["annotated_line_chart", "scatter_plot", "alert_list"]
+      },
+      {
+        "operation": "root_cause_drilldown",
+        "category": "diagnostics",
+        "description": "Traverse valid dimensional hierarchies to investigate drivers of a high-level metric or variance.",
+        "requiredInputs": ["measure", "dimensionHierarchy", "targetCondition"],
+        "optionalInputs": ["comparisonPeriod", "filters", "maximumDepth"],
+        "execution": {
+          "method": "sql",
+          "logic": "Rank relevant groups at each hierarchy level, select meaningful branches, and continue until the stopping criteria are met."
+        },
+        "preconditions": ["Hierarchy levels, valid relationships, and a drill-down stopping rule are defined."],
+        "outputFields": ["hierarchyLevel", "dimensionValue", "measureValue", "variance", "contribution"],
+        "limitations": ["A drill-down identifies localized patterns but does not prove causation."],
+        "dashboardVisualizations": ["drill_down_bar_chart", "decomposition_tree", "table"]
+      },
+      {
+        "operation": "basket_affinity",
+        "category": "association_analysis",
+        "description": "Find items or events that frequently co-occur within the same transaction or defined unit.",
+        "requiredInputs": ["observationIdentifier", "itemOrEvent"],
+        "optionalInputs": ["minimumSupport", "minimumConfidence", "minimumLift"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Calculate co-occurrence counts and association-rule statistics within the defined observation unit."
+        },
+        "preconditions": ["A meaningful transaction or co-occurrence unit and repeated item or event data exist."],
+        "outputFields": ["itemSet", "support", "confidence", "lift"],
+        "limitations": ["Co-occurrence does not imply causation. This operation is unsuitable without repeated item-level observations."],
+        "dashboardVisualizations": ["network_graph", "association_table"]
+      },
+      {
+        "operation": "aging_backlog",
+        "category": "operational_analysis",
+        "description": "Categorize open items by elapsed time since creation or entry into a defined state.",
+        "requiredInputs": ["entityIdentifier", "startDate", "currentStatus"],
+        "optionalInputs": ["asOfDate", "agingBuckets", "dimensions"],
+        "execution": {
+          "method": "sql",
+          "logic": "Calculate elapsed age for eligible open items and aggregate counts or amounts into defined buckets."
+        },
+        "preconditions": ["Open status, start date, reference date, and bucket boundaries are defined."],
+        "outputFields": ["agingBucket", "itemCount", "totalAmount", "oldestAge"],
+        "limitations": ["Use business-specific aging rules and exclude closed items where appropriate."],
+        "dashboardVisualizations": ["stacked_bar_chart", "aging_table", "bar_chart"]
+      },
+      {
+        "operation": "forecasting_run_rate",
+        "category": "predictive_analysis",
+        "description": "Estimate future period totals using current pace, recent run rates, and historical patterns.",
+        "requiredInputs": ["measure", "timeDimension", "forecastHorizon"],
+        "optionalInputs": ["currentPeriodProgress", "seasonality", "historicalPeriods"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Estimate a run-rate projection or apply a validated forecasting method appropriate to the data."
+        },
+        "preconditions": ["The projection basis, elapsed period, remaining period, and forecast assumptions are defined."],
+        "outputFields": ["forecastPeriod", "actualValue", "projectedValue", "assumptions"],
+        "limitations": ["A simple run rate assumes a pace that may not persist; label projections and model-based forecasts distinctly."],
+        "dashboardVisualizations": ["forecast_chart", "kpi_card", "line_chart"]
+      },
+      {
+        "operation": "what_if_scenario",
+        "category": "decision_support",
+        "description": "Model how a target metric changes under hypothetical input values or operational scenarios.",
+        "requiredInputs": ["targetMeasure", "scenarioParameters", "calculationModel"],
+        "optionalInputs": ["baselineScenario", "constraints", "parameterRanges"],
+        "execution": {
+          "method": "statistical_engine",
+          "logic": "Recalculate the target metric for each scenario using registered formulas, assumptions, and constraints."
+        },
+        "preconditions": ["The relationship between scenario inputs and target metric is explicitly defined."],
+        "outputFields": ["scenario", "parameterValues", "baselineValue", "scenarioValue", "difference"],
+        "limitations": ["Hypothetical outputs are conditional calculations, not guaranteed predictions or causal effects."],
+        "dashboardVisualizations": ["scenario_comparison_chart", "sensitivity_chart", "table"]
+      }
+    ]
+  }
+}
