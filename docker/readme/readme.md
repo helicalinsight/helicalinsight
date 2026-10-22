@@ -30,6 +30,17 @@ Same steps for every Docker package. Copy `.env`, start Compose, open the browse
 5. Wait until services are up (first run can take several minutes — see below), then open **https://localhost**  
    Login: **hiadmin** / **hiadmin**
 
+### Image tags
+
+Defaults are baked into Compose. To pin or swap an image, set any of these in `.env`:
+
+| Variable | Default |
+|----------|---------|
+| `HIEE_IMAGE` | `hiee/helicalinsight:nitrogen-j25t11` |
+| `POSTGRES_IMAGE` | `postgres:15.8-alpine3.20` |
+| `NGINX_IMAGE` | `nginx:alpine` |
+| `INSTANTBI_IMAGE` | `python:3.13-slim` |
+
 ### From a git clone
 
 Run the repo setup script once so Instant BI app is linked (`docker/instantbi/com/helicalinsight/instantbi`), `hi-repository/System/InstantBI` points at `helicalbi/config`, and `docker/.env` exists:
@@ -90,8 +101,13 @@ docker compose up -d
 
 See [portchange.md](portchange.md).
 
+## Airgap / offline install
+
+When the client has no internet, export images as tars and load them under the same names as in `.env`. See [airgap.md](airgap.md).
+
 ## More help
 
 - Rebuild the `hiee` image: [build.md](build.md)
+- Airgap / offline images: [airgap.md](airgap.md)
 - Product overview & contributor setup: [../../README.md](../../README.md)
 - [Helical Insight documentation](https://www.helicalinsight.com/)

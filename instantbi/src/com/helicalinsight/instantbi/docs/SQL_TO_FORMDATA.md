@@ -1,6 +1,6 @@
 # SQL → formData: functions, aggregates, custom columns
 
-How InstantBI turns agent SQL into Helical `formData` wire JSON — especially **database functions**, **aggregates**, **GROUP BY**, **HAVING**, **filters**, and **custom columns**.
+How InstantBI turns agent SQL into Helical `formData` wire JSON — especially **database functions**, **aggregates**, **GROUP BY**, **HAVING**, **filters**, **`rm_cols_in_filter`**, and **custom columns**.
 
 Sample getFunctions payload: [`tests/servicefunctionresponse.json`](../tests/servicefunctionresponse.json).  
 Functional tests: [`tests/functional/test_sql_to_formdata.py`](../tests/functional/test_sql_to_formdata.py).
@@ -230,6 +230,65 @@ Aggregate predicates in WHERE are skipped by the filters part and emitted under 
 
 ---
 
+## Remove SELECT columns that are also filters (`rm_cols_in_filter`)
+
+### What changes on the chart
+
+With the feature on, the chart shows the comparison the person asked for. The condition they asked for stays on the report as a filter. That same field is taken off the chart, so it is not drawn again as a bar, slice, or column. The chart type is chosen from the fields that remain, so a filter does not force an extra split.
+
+| Question | Filter the viewer still sees | What the chart shows |
+|----------|-------------------------------|----------------------|
+| Travel cost by booking platform for March | Month is March | Booking platform and travel cost. March is not its own group. |
+| Destinations where travel cost is above 100 | Travel cost is above 100 | The destinations that qualify. Cost is the cutoff, so it is not also a bar. |
+| Travel cost above 100, and that is the only thing to show | Travel cost is above 100 | The cost number stays. The chart is not left blank. |
+| How many trips went to Paris | Destination is Paris | The count stays. Paris stays as the filter. |
+| International travel cost by month, when International is part of the cost formula | No extra report filter for trip type | Month and that cost both stay. |
+
+With the feature off, the filtered field is on the chart as well as in the filter. March can appear as its own column even though every row is already March, and that extra grouping can change the chart (a simple bar can become a chart split by month).
+
+### How the wire payload changes
+
+After filters and HAVING are built, `assemble_form_data` can drop SELECT columns that repeat a filter field (`drop_select_columns_also_filtered` in `assembler.py`). The filter stays. The column is removed from `formData.columns`, and `functions.groupBy` is built from the columns that remain.
+
+| Case | `rm_cols_in_filter: true` |
+|------|---------------------------|
+| Dimension in WHERE or HAVING, other SELECT columns exist | Drop the dimension from columns and groupBy |
+| Aggregate in HAVING on the same measure, other SELECT columns exist | Drop that measure |
+| `COUNT(col) WHERE col = …` | Keep the measure (WHERE does not match an aggregate) |
+| Only one SELECT column | Keep it, even if it is also filtered |
+| `SUM(col) FILTER (WHERE …)` | Keep it; that WHERE is inside the SELECT, not a query filter |
+| `rm_cols_in_filter: false` | Keep every SELECT column; filters are unchanged |
+
+Example (`true`): `SELECT booking_platform, EXTRACT(MONTH FROM travel_date), SUM(travel_cost) … WHERE EXTRACT(MONTH FROM travel_date) = 3` keeps **Booking Platform** and **Travel Cost**. **Travel Month** remains only as a filter.
+
+### Usage
+
+Default is `feature_flags.rm_cols_in_filter` in [`application_config.yaml`](../helicalbi/config/application_config.yaml) (currently `false`). If that key is omitted, the code fallback is `true`.
+
+A request overrides the config. The query string wins, then top-level JSON, then `input.rm_cols_in_filter`.
+
+```
+POST /interactive?rm_cols_in_filter=true
+```
+
+```json
+{ "rm_cols_in_filter": false, "input": { "inputString": "…", "rm_cols_in_filter": true } }
+```
+
+The top-level `false` wins over `input.rm_cols_in_filter`.
+
+Java proxy (`InstantBIController` `/ai/interactive-chat`). Omit the parameter to use the yaml flag. It is forwarded as `input.rm_cols_in_filter`:
+
+```
+/ai/interactive-chat?removeColsInFilter=true
+```
+
+Accepted values: `true` / `false`, `1` / `0`, `yes` / `no`, `y` / `n`, `on` / `off`. Anything else keeps the configured default.
+
+Direct callers pass the same flag into `sql_to_form_data(..., rm_cols_in_filter=True)`.
+
+---
+
 ## HAVING
 
 File: `sql_components/having_parts.py`
@@ -320,4 +379,4 @@ Parser helper `_side_column_meta` always stores `database_function_sql` for func
 | `sql_components/having_parts.py` | HAVING (reuses filter DB-fn helper) |
 | `sql_components/groupby_parts.py` | `functions.groupBy` |
 | `sql_components/functions_parts.py` | merge groupBy + aggregate lists |
-| `assembler.py` | end-to-end `sql_to_form_data` |
+| `assembler.py` | end-to-end `sql_to_form_data`; drops filtered SELECT columns when `rm_cols_in_filter` is true |

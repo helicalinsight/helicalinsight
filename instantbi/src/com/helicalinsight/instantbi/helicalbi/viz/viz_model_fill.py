@@ -17,6 +17,7 @@ from helicalbi.common.CubeInfoModel import (
 )
 from helicalbi.model.output.viz.ChartSettings import ChartSettings, DimensionSetting
 from helicalbi.model.output.viz.VizModel import (
+    DualAxisMeasure,
     VizChart,
     VizData,
     VizModel,
@@ -164,9 +165,22 @@ MARK_VIZ_CATALOG: list[dict[str, Any]] = [
     {"name": "Maps", "values": ["Line", "Point", "Heatmap"]},
     {"name": "Table", "values": ["Table"]},
     {"name": "Grid Table", "values": ["Grid table"]},
+    # Dual axis (Combine) exists only on Grid Chart. Arc, doughnut, and heatmap
+    # cannot share that chart with another mark.
+    {"name": "Grid Chart", "values": ["Bar", "Line", "Area", "Point", "Tick"]},
     {"name": "Card", "values": ["KPI", "Trend"]},
     {"name": "VF", "values": []},
 ]
+
+# Cartesian Grid Chart marks that hreport will combine onto two axes.
+_DUAL_AXIS_CHART_TYPES = frozenset({"bar", "column", "line", "area", "point"})
+_DUAL_AXIS_VIZ_LABEL = {
+    "bar": "Bar",
+    "column": "Bar",
+    "line": "Line",
+    "area": "Area",
+    "point": "Point",
+}
 
 # InstantBI catalog chart_type → (mark, viz) using MARK_VIZ_CATALOG.
 _CHART_TYPE_TO_MARK_VIZ: dict[str, tuple[str, str]] = {
@@ -671,66 +685,6 @@ def _pick_chart_type(
     return "table"
 
 
-def similar_charts_for_data(
-    data_types: Any,
-    *,
-    current: str = "",
-    limit: int = 8,
-    dimension_count: Optional[int] = None,
-    measure_count: Optional[int] = None,
-    ordered: bool = False,
-    form_data: Optional[dict[str, Any]] = None,
-    cube_metadata: Optional[list] = None,
-    field_names: Optional[list[str]] = None,
-    sql: str = "",
-) -> list[str]:
-    """Chart types compatible with the result shape, excluding the current pick."""
-    if dimension_count is not None and measure_count is not None:
-        dims, measures = dimension_count, measure_count
-    else:
-        dims, measures, ordered = infer_chart_shape(data_types)
-    ordered = _detect_ordered(
-        data_types,
-        ordered=ordered,
-        field_names=field_names,
-        form_data=form_data,
-        cube_metadata=cube_metadata,
-    )
-    options = possible_chart_options(dims, measures, ordered)
-    current_key = (resolve_chart_name(current) or current or "").strip().lower()
-    skip = _FALLBACK_CHARTS | _MAP_CHARTS | {current_key, "other", ""}
-    # Same rule as auto-pick: grid_table only for multi-dim + aggregates.
-    has_agg = _has_aggregate_columns(form_data, sql, measures)
-    if not (dims >= 2 and has_agg):
-        skip = skip | {"grid_table"}
-    by_name = {opt.visualization_type: opt for opt in options}
-    ordered_names: list[str] = []
-    preference = _ORDERED_PREFERENCE + _CHART_PREFERENCE if ordered else _CHART_PREFERENCE
-    for name in preference:
-        if name in by_name and name not in skip and name not in ordered_names:
-            ordered_names.append(name)
-    # Prefer grid_table over relation for multi-dim aggregate suggestions.
-    if (
-        dims >= 2
-        and has_agg
-        and "grid_table" in by_name
-        and "grid_table" not in skip
-        and "grid_table" not in ordered_names
-    ):
-        # Insert after common categorical charts, before relation/sankey-style.
-        insert_at = len(ordered_names)
-        for i, name in enumerate(ordered_names):
-            if name == "relation":
-                insert_at = i
-                break
-        ordered_names.insert(insert_at, "grid_table")
-    for opt in options:
-        name = opt.visualization_type
-        if name not in skip and name not in ordered_names:
-            ordered_names.append(name)
-    return ordered_names[:limit]
-
-
 def _roles_from_metadata(data_types: Any) -> tuple[list[str], list[str]]:
     dimensions: list[str] = []
     measures: list[str] = []
@@ -740,6 +694,68 @@ def _roles_from_metadata(data_types: Any) -> tuple[list[str], list[str]]:
         else:
             dimensions.append(name)
     return _unique(dimensions), _unique(measures)
+
+
+def _solid_series_color(value: Any) -> Optional[str]:
+    """Return a hex/rgb series color, else None."""
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if text.startswith("#") or text.lower().startswith("rgb"):
+        return text
+    return None
+
+
+def _color_index(raw: Optional[dict[str, Any]]) -> dict[str, str]:
+    """Lowercased field name → solid series color."""
+    index: dict[str, str] = {}
+    if not isinstance(raw, dict):
+        return index
+    for name, value in raw.items():
+        key = str(name or "").strip().lower()
+        hex_color = _solid_series_color(value)
+        if key and hex_color:
+            index[key] = hex_color
+    return index
+
+
+def _column_colors_from_cube(cube_metadata: Optional[list]) -> dict[str, str]:
+    """Per-column hex from cube field color / properties.color when present."""
+    index: dict[str, str] = {}
+    for key, item in _cube_fields_by_name(cube_metadata).items():
+        if not isinstance(item, dict):
+            continue
+        props = item.get("properties") if isinstance(item.get("properties"), dict) else {}
+        hex_color = _solid_series_color(item.get("color") or props.get("color"))
+        if hex_color:
+            index[str(key).strip().lower()] = hex_color
+    return index
+
+
+def _apply_measure_colors(
+    chart: VizChart,
+    column_colors: Optional[dict[str, str]],
+) -> VizChart:
+    """Copy known column colors onto dual-axis measures; leave the rest empty."""
+    if not chart.dualaxis or not chart.measures:
+        return chart
+    colors = _color_index(column_colors)
+    if not colors:
+        return chart
+    updated = []
+    changed = False
+    for item in chart.measures:
+        hex_color = colors.get(str(item.field or "").strip().lower())
+        if hex_color and hex_color != item.color:
+            updated.append(item.model_copy(update={"color": hex_color}))
+            changed = True
+        else:
+            updated.append(item)
+    if not changed:
+        return chart
+    return chart.model_copy(update={"measures": updated})
 
 
 def _chart_viz_and_mark(chart_type: str, *, geo: bool = False) -> VizChart:
@@ -755,6 +771,50 @@ def _chart_viz_and_mark(chart_type: str, *, geo: bool = False) -> VizChart:
 
     # Unknown catalog types fall back to VF (custom / no child viz).
     return VizChart(viz="", mark="VF")
+
+
+def _apply_dual_axis(
+    chart: VizChart,
+    measures: list[str],
+    chart_type: str,
+    *,
+    column_colors: Optional[dict[str, str]] = None,
+) -> VizChart:
+    """Turn a multi-measure cartesian chart into a Grid Chart dual axis.
+
+    hreport plots this with Grid Chart + Combine. The first measure keeps the
+    primary mark. Every later measure becomes Line (or Bar when the primary is
+    already Line). Series color comes from properties/cube for that column when
+    present; otherwise it stays empty until the user recommends one. Arc,
+    doughnut, and heatmap stay single-axis because Combine rejects them.
+    """
+    if chart.mark != "Chart":
+        return chart
+    key = resolve_chart_name(chart_type) or str(chart_type or "").strip().lower()
+    if key not in _DUAL_AXIS_CHART_TYPES:
+        return chart
+    plotted = [str(name).strip() for name in measures if str(name or "").strip()]
+    if len(plotted) < 2:
+        return chart
+    primary = _DUAL_AXIS_VIZ_LABEL.get(key, "Bar")
+    secondary = "Bar" if primary == "Line" else "Line"
+    colors = _color_index(column_colors)
+    series = [
+        DualAxisMeasure(
+            field=name,
+            viz=primary if index == 0 else secondary,
+            color=colors.get(name.lower()),
+        )
+        for index, name in enumerate(plotted)
+    ]
+    return chart.model_copy(
+        update={
+            "dualaxis": True,
+            "mark": "Grid Chart",
+            "viz": primary,
+            "measures": series,
+        }
+    )
 
 
 def _wire_column_path(column: Any) -> str:
@@ -1132,25 +1192,6 @@ def build_viz_model(
     if form_data is not None:
         viz_context = dict(viz_context)
         viz_context["form_data"] = form_data
-    viz_context = dict(viz_context)
-    similar_kwargs = {
-        "current": chart_type,
-        "form_data": form_data,
-        "cube_metadata": cube_metadata,
-        "field_names": list(rows) + list(columns),
-        "sql": sql or "",
-    }
-    if form_data is not None:
-        viz_context["similar_chart"] = similar_charts_for_data(
-            data_types,
-            dimension_count=len(rows),
-            measure_count=len(columns),
-            **similar_kwargs,
-        )
-    else:
-        viz_context["similar_chart"] = similar_charts_for_data(
-            data_types, **similar_kwargs
-        )
 
     model_columns = _data_model_column_names(form_data)
     if not model_columns:
@@ -1184,9 +1225,14 @@ def build_viz_model(
         rows[0] if rows else (columns[1] if len(columns) > 1 else None),
     )
 
-    chart = _chart_viz_and_mark(
+    chart = _apply_dual_axis(
+        _chart_viz_and_mark(
+            chart_type,
+            geo=_user_asked_for_map(user_query) and chart_type in {"line", "point"},
+        ),
+        measures,
         chart_type,
-        geo=_user_asked_for_map(user_query) and chart_type in {"line", "point"},
+        column_colors=_column_colors_from_cube(cube_metadata),
     )
     geographic_roles: dict[str, str] = {}
     if chart.mark == "Maps":
@@ -1299,6 +1345,11 @@ def merge_properties_polish(model: VizModel, polish) -> VizModel:
     )
     # Do not let polish wipe deterministic Excel-style formatting.
     incoming.pop("formatting", None)
+    measure_colors = incoming.pop("measure_colors", None)
+    color_payload = incoming.get("color")
+    if isinstance(color_payload, dict):
+        incoming.pop("color", None)
+        measure_colors = {**(measure_colors or {}), **color_payload}
 
     # Drop removed / renamed keys from both sides.
     for key in _DROPPED_PROPERTY_KEYS:
@@ -1324,4 +1375,5 @@ def merge_properties_polish(model: VizModel, polish) -> VizModel:
         current[key] = value
 
     model.properties = VizProperties.model_validate(current)
+    model.chart = _apply_measure_colors(model.chart, measure_colors)
     return model

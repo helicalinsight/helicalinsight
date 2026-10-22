@@ -19,7 +19,6 @@ def register(flask_app) -> None:
     @flask_app.route("/updateMemory", methods=["POST"])
     def update_memory():
         data = request.get_json() or {}
-        logger.error("updateMemory data=%s", data)
         log_endpoint_input("/updateMemory", data)
         user_input = data.get("input", data) if isinstance(data, dict) else {}
         _session_cookie, username, _user_id, _org_id = bind_request_identity(data, user_input)

@@ -17,6 +17,7 @@ public class ResourceSuffixTest extends ExportUnitTestBase {
 		Assert.assertEquals("_schedule", ResourceSuffix.SCHEDULE);
 		Assert.assertEquals(".efwsr", ResourceSuffix.SCHEDULE_RESULT);
 		Assert.assertEquals("_content", ResourceSuffix.EFW_CONTENT);
+		Assert.assertEquals("_image", ResourceSuffix.IMAGE);
 	}
 
 }

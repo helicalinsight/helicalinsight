@@ -162,6 +162,7 @@ flowchart LR
 | `input.chat_seq_id` | Turn id within the thread |
 | `input.last_chats` | Optional chat history fallback |
 | `requestId` | Optional cancellation key (query param or JSON) |
+| `rm_cols_in_filter` | Optional. When on, a field used as a filter stays as the filter and is taken off the chart, so March is not also its own bar. Query param, top-level JSON, or `input.rm_cols_in_filter`. Default is `feature_flags.rm_cols_in_filter` in `application_config.yaml`. See [SQL_TO_FORMDATA.md](SQL_TO_FORMDATA.md#what-changes-on-the-chart). |
 | Session auth | `sessionCookie` + `username` |
 
 The handler resolves authentication, loads the model file, and fetches the linked metadata definition (tables, joins, database name, dialect).

@@ -2850,15 +2850,12 @@ describe("test getTableStyles fn", () => {
         });
 
         it('sets isConditionalStyleReq to true for all styles', () => {
-            expect(result[0].isConditionalStyleReq).toBe(true);
-            expect(result[0].expression).toBe("");
-            expect(result[0].expressionBackColor).toBe("#BFE1FF");
-            expect(result[1].isConditionalStyleReq).toBe(true);
-            expect(result[1].expression).toBe("");
-            expect(result[1].expressionBackColor).toBe("#BFE1FF");
-            expect(result[2].isConditionalStyleReq).toBe(true);
-            expect(result[2].expression).toBe("");
-            expect(result[2].expressionBackColor).toBe("#BFE1FF");
+            result.forEach((style) => {
+                expect(style.isConditionalStyleReq).toBe(true);
+                expect(style.conditionalStyles).toEqual([]);
+                expect(style).not.toHaveProperty('expression');
+                expect(style).not.toHaveProperty('expressionBackColor');
+            });
         });
     });
 

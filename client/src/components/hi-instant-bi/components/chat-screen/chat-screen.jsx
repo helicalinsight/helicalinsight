@@ -10,6 +10,7 @@ import { abortRecommendationsRequest, instantBiChatAPI } from '../../utils/insta
 import "./chat-screen.scss";
 import MessageInputBoxNew, { resolveChatMode } from './message-input-box-new';
 import MessageList from './message-list';
+import { thinkStepSequenceId } from './think-plan-helpers';
 
 const InstantBIChatScreen = (props = {}) => {
     const {
@@ -66,9 +67,6 @@ const InstantBIChatScreen = (props = {}) => {
             return {
                 ...item,
                 ...next,
-                analysis: next.analysis || item.analysis || "",
-                answer: next.answer || item.answer || "",
-                purpose: next.purpose || item.purpose || "",
                 question: next.question || item.question || "",
                 title: next.title || item.title || "",
                 chat_seq_id: next.chat_seq_id || item.chat_seq_id || "",
@@ -221,9 +219,11 @@ const InstantBIChatScreen = (props = {}) => {
     const handleShowThinkQuestion = async (question, questionIndex, planMessage = {}, stepItem = {}) => {
         if (!question || !planMessage?.id) return;
         const planMessageId = planMessage.id;
-        const showSeqId = stepItem.chat_seq_id
-            || stepItem.chatSeqId
-            || `${planMessage.chatSequenceId || planMessage.chat_seq_id || '1'}_${questionIndex}`;
+        const showSeqId = thinkStepSequenceId({
+            chatSeqId: stepItem.chat_seq_id || stepItem.chatSeqId,
+            parentSeqId: planMessage.chatSequenceId || planMessage.chat_seq_id || '1',
+            index: questionIndex,
+        });
         const reportModel = stepItem.report_model
             || stepItem.reportModel
             || stepItem.fullChatResponse?.report_model
@@ -273,6 +273,7 @@ const InstantBIChatScreen = (props = {}) => {
                 vf: res.vf,
                 vizDetails: res.fullChatResponse?.viz || {},
                 vizActivityTrail: ['Visualization ready.'],
+                chat_seq_id: showSeqId,
             }));
         } catch (error) {
             patchThinkQuestionHistory(planMessageId, questionIndex, (item) => ({

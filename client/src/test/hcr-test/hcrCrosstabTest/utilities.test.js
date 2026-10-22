@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
-import { getCrosstabLayout, getCrosstabOutlineData, getMeasureCellsByCellIndex } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
-import { calculateCTTotalHeightAndWidth, getActualField, getCTColumnGroups, getCTComputedLayout, getCTMeasureCells, getCTMeasures, getCTRowGroups, getCTStaticTextNode, getCTStylesReferences, getCTTextNode, getNestedArr, getNextItemsLength } from "../../../components/hi-canned-reports/hcrCanvas/hcrCanvasPaneHelperMethods";
+import { getCrosstabLayout, getCrosstabOutlineData, getCrosstabTrackIndexes, getMeasureCellsByCellIndex } from "../../../components/hi-canned-reports/hcrCanvas/advanceComponents/utils";
+import { calculateCTTotalHeightAndWidth, getActualField, getCTColumnGroups, getCTComputedLayout, getCrosstabConfigV2, getCTMeasureCells, getCTMeasures, getCTRowGroups, getCTStaticTextNode, getCTStylesReferences, getCTTextNode, getNestedArr, getNextItemsLength } from "../../../components/hi-canned-reports/hcrCanvas/hcrCanvasPaneHelperMethods";
 import { createHCRCrosstabGrid } from "../../../components/hi-canned-reports/hcrCanvas/hcrCrossTab/utilities";
 
 describe('test createHCRCrosstabGrid fn', () => {
@@ -380,6 +380,86 @@ describe('CT Column Groups Utilities', () => {
             expect(columnGroups[2].totalCellHeight).toBe(25);
         });
 
+        it('sizes header cells and header nodes for the visible data columns when sub totals are disabled', () => {
+            const columnFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { columnGroups } = getCTColumnGroups(columnFields, fields, [], { enableSubTotals: false });
+
+            expect(columnGroups.map((group) => group.headerCellWidth)).toEqual([50, 50, 50]);
+            expect(columnGroups.map((group) => group.cells[0].width)).toEqual([50, 50, 50]);
+            expect(columnGroups.map((group) => group.totalPosition)).toEqual(['END', 'NONE', 'NONE']);
+            expect(columnGroups.map((group) => group.totalCellHeight)).toEqual([75, 50, 25]);
+        });
+
+        it('keeps the full header width when grand totals are disabled but sub totals are enabled', () => {
+            const columnFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { columnGroups } = getCTColumnGroups(columnFields, fields, [], { enableGrandTotals: false });
+
+            expect(columnGroups.map((group) => group.headerCellWidth)).toEqual([150, 100, 50]);
+            expect(columnGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'END', 'END']);
+        });
+
+        it('applies the selected grand and sub total positions to column group totals', () => {
+            const columnFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { columnGroups } = getCTColumnGroups(columnFields, fields, [], {
+                grandTotalPosition: 'START',
+                subTotalPosition: 'START'
+            });
+
+            expect(columnGroups.map((group) => group.totalPosition)).toEqual(['START', 'START', 'START']);
+        });
+
+        it('ignores the selected total positions when the corresponding totals are disabled', () => {
+            const columnFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { columnGroups } = getCTColumnGroups(columnFields, fields, [], {
+                enableGrandTotals: false,
+                grandTotalPosition: 'START',
+                enableSubTotals: false,
+                subTotalPosition: 'START'
+            });
+
+            expect(columnGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'NONE', 'NONE']);
+        });
+
+        it('normalizes lowercase total positions and falls back to END for invalid values', () => {
+            const columnFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { columnGroups } = getCTColumnGroups(columnFields, fields, [], {
+                grandTotalPosition: 'start',
+                subTotalPosition: 'middle'
+            });
+
+            expect(columnGroups.map((group) => group.totalPosition)).toEqual(['START', 'END', 'END']);
+        });
+
         it('assigns CT styleNameReference to the total cell of the first field and CG for subsequent fields', () => {
             const columnFields = ['field1', 'field2'];
             const fields = [
@@ -512,6 +592,86 @@ describe('CT Column Groups Utilities', () => {
             expect(rowGroups[2].totalCellWidth).toBe(50);
         });
 
+        it('sizes row header cells and header nodes for the visible data rows when sub totals are disabled', () => {
+            const rowFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { rowGroups } = getCTRowGroups(rowFields, fields, undefined, [], { enableSubTotals: false });
+
+            expect(rowGroups.map((group) => group.headerCellHeight)).toEqual([25, 25, 25]);
+            expect(rowGroups.map((group) => group.cells[0].height)).toEqual([25, 25, 25]);
+            expect(rowGroups.map((group) => group.totalPosition)).toEqual(['END', 'NONE', 'NONE']);
+            expect(rowGroups.map((group) => group.totalCellWidth)).toEqual([150, 100, 50]);
+        });
+
+        it('keeps the full header height when grand totals are disabled but sub totals are enabled', () => {
+            const rowFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { rowGroups } = getCTRowGroups(rowFields, fields, undefined, [], { enableGrandTotals: false });
+
+            expect(rowGroups.map((group) => group.headerCellHeight)).toEqual([75, 50, 25]);
+            expect(rowGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'END', 'END']);
+        });
+
+        it('applies the selected grand and sub total positions to row group totals', () => {
+            const rowFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { rowGroups } = getCTRowGroups(rowFields, fields, undefined, [], {
+                grandTotalPosition: 'START',
+                subTotalPosition: 'END'
+            });
+
+            expect(rowGroups.map((group) => group.totalPosition)).toEqual(['START', 'END', 'END']);
+        });
+
+        it('ignores the selected total positions when the corresponding row totals are disabled', () => {
+            const rowFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { rowGroups } = getCTRowGroups(rowFields, fields, undefined, [], {
+                enableGrandTotals: false,
+                grandTotalPosition: 'START',
+                enableSubTotals: false,
+                subTotalPosition: 'START'
+            });
+
+            expect(rowGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'NONE', 'NONE']);
+        });
+
+        it('normalizes lowercase total positions and falls back to END for invalid values', () => {
+            const rowFields = ['field1', 'field2', 'field3'];
+            const fields = [
+                { name: 'field1', clazz: 'java.lang.String' },
+                { name: 'field2', clazz: 'java.lang.String' },
+                { name: 'field3', clazz: 'java.lang.String' }
+            ];
+
+            const { rowGroups } = getCTRowGroups(rowFields, fields, undefined, [], {
+                grandTotalPosition: 'start',
+                subTotalPosition: 'middle'
+            });
+
+            expect(rowGroups.map((group) => group.totalPosition)).toEqual(['START', 'END', 'END']);
+        });
+
         it('assigns CT styleNameReference to the total cell of the first field and CG for subsequent fields', () => {
             const rowFields = ['field1', 'field2'];
             const fields = [
@@ -629,7 +789,7 @@ describe('CT Column Groups Utilities', () => {
             expect(cells[0].height).toBe(25);
         });
 
-        it('builds cols from columnGroups reversed and prefixed with Detail, and rows from rowGroups prefixed with Detail', () => {
+        it('builds cols from columnGroups reversed and prefixed with Detail, and rows from rowGroups reversed and prefixed with Detail', () => {
             const columnGroups = [{ name: 'colA' }, { name: 'colB' }];
             const rowGroups = [{ name: 'rowX' }, { name: 'rowY' }];
 
@@ -640,12 +800,12 @@ describe('CT Column Groups Utilities', () => {
                 'Detail/Detail',
                 'colB/Detail',
                 'colA/Detail',
-                'Detail/rowX',
-                'colB/rowX',
-                'colA/rowX',
                 'Detail/rowY',
                 'colB/rowY',
-                'colA/rowY'
+                'colA/rowY',
+                'Detail/rowX',
+                'colB/rowX',
+                'colA/rowX'
             ]);
         });
 
@@ -705,7 +865,7 @@ describe('CT Column Groups Utilities', () => {
 
             const { cells } = getCTMeasureCells([], columnGroups, rowGroups, [], styles);
 
-            const middleCell = cells.find((cell) => cell.name === 'colB/rowX');
+            const middleCell = cells.find((cell) => cell.name === 'colB/rowY');
             expect(middleCell.styleNameReference).toBe('cg-id');
         });
 
@@ -720,9 +880,9 @@ describe('CT Column Groups Utilities', () => {
 
             const { cells } = getCTMeasureCells([], columnGroups, rowGroups, [], styles);
 
-            const lastRowCell = cells.find((cell) => cell.name === 'Detail/rowY');
+            const lastRowCell = cells.find((cell) => cell.name === 'Detail/rowX');
             const lastColCell = cells.find((cell) => cell.name === 'colA/Detail');
-            const lastRowAndColCell = cells.find((cell) => cell.name === 'colA/rowY');
+            const lastRowAndColCell = cells.find((cell) => cell.name === 'colA/rowX');
 
             expect(lastRowCell.styleNameReference).toBe('ct-id');
             expect(lastColCell.styleNameReference).toBe('ct-id');
@@ -967,6 +1127,58 @@ describe('CT Column Groups Utilities', () => {
 
             expect(result.rowHeights).toEqual([25, 25, 25]);
         });
+
+        it('reserves the measure lane only while at least one total type is visible', () => {
+            const config = {
+                columnGroups: [{ name: 'colA' }],
+                rowGroups: [{ name: 'rowX' }],
+                measures: ['measure1', 'measure2'],
+                enableTotalsHeaders: true
+            };
+
+            const visibleTotals = getCTComputedLayout(config);
+            const hiddenTotals = getCTComputedLayout({
+                ...config,
+                enableGrandTotals: false,
+                enableSubTotals: false
+            });
+
+            expect(visibleTotals.colWidths).toEqual([100, 50, 50]);
+            expect(hiddenTotals.colWidths).toEqual([50, 50, 50]);
+        });
+
+        it('still reserves the measure lane when measure headers are explicitly enabled and all totals are hidden', () => {
+            const result = getCTComputedLayout({
+                columnGroups: [{ name: 'colA' }],
+                rowGroups: [{ name: 'rowX' }],
+                measures: ['measure1', 'measure2'],
+                enableMeasureHeaders: true,
+                enableGrandTotals: false,
+                enableSubTotals: false
+            });
+
+            expect(result.colWidths).toEqual([100, 50, 50]);
+        });
+
+        it('uses a double height header row only for horizontal layouts with headers and visible totals', () => {
+            const config = {
+                columnGroups: [{ name: 'colA' }],
+                rowGroups: [{ name: 'rowX' }],
+                measures: ['measure1', 'measure2'],
+                measuresLayout: 'horizontal',
+                enableTotalsHeaders: true
+            };
+
+            const visibleTotals = getCTComputedLayout(config);
+            const hiddenTotals = getCTComputedLayout({
+                ...config,
+                enableGrandTotals: false,
+                enableSubTotals: false
+            });
+
+            expect(visibleTotals.rowHeights).toEqual([50, 25, 25]);
+            expect(hiddenTotals.rowHeights).toEqual([25, 25, 25]);
+        });
     });
 
     describe('calculateCTTotalHeightAndWidth', () => {
@@ -1046,6 +1258,132 @@ describe('CT Column Groups Utilities', () => {
 
             expect(result.width).toBe(250);
         });
+
+        it('shrinks width and height to the detail area when both total types are disabled', () => {
+            const rows = [{ name: 'rowX' }, { name: 'rowY' }];
+            const columns = [{ name: 'colA' }, { name: 'colB' }, { name: 'colC' }];
+            const measures = ['measure1'];
+
+            const result = calculateCTTotalHeightAndWidth(rows, columns, measures, {
+                enableGrandTotals: false,
+                enableSubTotals: false
+            });
+
+            expect(result.width).toBe(150);
+            expect(result.height).toBe(100);
+        });
+
+        it('keeps only the sub totals when grand totals are disabled', () => {
+            const rows = [{ name: 'rowX' }, { name: 'rowY' }];
+            const columns = [{ name: 'colA' }, { name: 'colB' }, { name: 'colC' }];
+            const measures = ['measure1'];
+
+            const result = calculateCTTotalHeightAndWidth(rows, columns, measures, {
+                enableGrandTotals: false
+            });
+
+            expect(result.width).toBe(250);
+            expect(result.height).toBe(125);
+        });
+
+        it('keeps only the grand totals when sub totals are disabled', () => {
+            const rows = [{ name: 'rowX' }, { name: 'rowY' }];
+            const columns = [{ name: 'colA' }, { name: 'colB' }, { name: 'colC' }];
+            const measures = ['measure1'];
+
+            const result = calculateCTTotalHeightAndWidth(rows, columns, measures, {
+                enableSubTotals: false
+            });
+
+            expect(result.width).toBe(200);
+            expect(result.height).toBe(125);
+        });
+
+        it('does not reserve the measures lane for totals headers when all totals are hidden', () => {
+            const rows = [{ name: 'rowX' }];
+            const columns = [{ name: 'colA' }];
+            const measures = ['measure1', 'measure2'];
+
+            const visibleTotals = calculateCTTotalHeightAndWidth(rows, columns, measures, {
+                enableTotalsHeaders: true
+            });
+            const hiddenTotals = calculateCTTotalHeightAndWidth(rows, columns, measures, {
+                enableTotalsHeaders: true,
+                enableGrandTotals: false,
+                enableSubTotals: false
+            });
+
+            expect(visibleTotals).toEqual({ width: 200, height: 125 });
+            expect(hiddenTotals).toEqual({ width: 100, height: 75 });
+        });
+    });
+
+    describe('getCrosstabConfigV2', () => {
+        const fields = [
+            { name: 'colA', clazz: 'java.lang.String' },
+            { name: 'colB', clazz: 'java.lang.String' },
+            { name: 'rowX', clazz: 'java.lang.String' },
+            { name: 'm1', clazz: 'java.lang.Integer' }
+        ];
+        const baseConfig = {
+            columnFields: ['colA', 'colB'],
+            rowFields: ['rowX'],
+            measures: ['m1'],
+            nodeId: 'crosstab-1',
+            fields,
+            measuresAggregateMap: { m1: 'Sum' }
+        };
+
+        it('marks every group NONE and shrinks the crosstab when both total types are disabled', () => {
+            const config = getCrosstabConfigV2({
+                ...baseConfig,
+                enableGrandTotals: false,
+                enableSubTotals: false,
+                grandTotalPosition: 'START',
+                subTotalPosition: 'START'
+            });
+
+            expect(config.columnGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'NONE']);
+            expect(config.rowGroups.map((group) => group.totalPosition)).toEqual(['NONE']);
+            expect(config.width).toBe(100);
+            expect(config.height).toBe(75);
+            expect(config.colWidths).toEqual([50, 50, 50, 50]);
+            expect(config.rowHeights).toEqual([25, 25, 25, 25]);
+            expect(Object.keys(config.nodes)).toHaveLength(12);
+        });
+
+        it('propagates the selected total positions into the created groups and sizes', () => {
+            const config = getCrosstabConfigV2({
+                ...baseConfig,
+                enableGrandTotals: true,
+                enableSubTotals: true,
+                grandTotalPosition: 'START',
+                subTotalPosition: 'START'
+            });
+
+            expect(config.columnGroups.map((group) => group.totalPosition)).toEqual(['START', 'START']);
+            expect(config.rowGroups.map((group) => group.totalPosition)).toEqual(['START']);
+            expect(config.width).toBe(200);
+            expect(config.height).toBe(100);
+            expect(config.measures).toHaveLength(1);
+            expect(config.measures[0].name).toBe('m1');
+            expect(config.measures[0].label).toBe('m1_MEASURE');
+            expect(Object.keys(config.nodes)).toHaveLength(12);
+        });
+
+        it('normalizes final group positions and keeps the full structure when totals are hidden', () => {
+            const config = getCrosstabConfigV2({
+                ...baseConfig,
+                enableGrandTotals: false,
+                enableSubTotals: true,
+                grandTotalPosition: 'invalid',
+                subTotalPosition: 'start'
+            });
+
+            expect(config.columnGroups.map((group) => group.totalPosition)).toEqual(['NONE', 'START']);
+            expect(config.rowGroups.map((group) => group.totalPosition)).toEqual(['NONE']);
+            expect(Object.keys(config.nodes)).toHaveLength(12);
+        });
     });
 
     describe('getMeasureCellsByCellIndex', () => {
@@ -1096,6 +1434,64 @@ describe('CT Column Groups Utilities', () => {
         });
     });
 
+    describe('getCrosstabTrackIndexes', () => {
+        it('builds default END ordering with details first and totals in reverse group order', () => {
+            const result = getCrosstabTrackIndexes({
+                columnGroups: [{ name: 'colA' }, { name: 'colB' }],
+                rowGroups: [{ name: 'rowX' }]
+            });
+
+            expect(result.columnOrder).toEqual([
+                { type: 'detail', groupIndex: -1 },
+                { type: 'total', groupIndex: 1 },
+                { type: 'total', groupIndex: 0 }
+            ]);
+            expect(result.rowOrder).toEqual([
+                { type: 'detail', groupIndex: -1 },
+                { type: 'total', groupIndex: 0 }
+            ]);
+            expect(result.colIndexes).toEqual([0, 1, 2, 3]);
+            expect(result.rowIndexes).toEqual([0, 1, 2, 3]);
+        });
+
+        it('compacts hidden totals and places START totals before the detail track', () => {
+            const result = getCrosstabTrackIndexes({
+                columnGroups: [
+                    { name: 'colA', totalPosition: 'START' },
+                    { name: 'colB', totalPosition: 'NONE' },
+                    { name: 'colC', totalPosition: 'END' }
+                ],
+                rowGroups: [
+                    { name: 'rowX', totalPosition: 'START' },
+                    { name: 'rowY', totalPosition: 'NONE' },
+                    { name: 'rowZ', totalPosition: 'END' }
+                ]
+            });
+
+            expect(result.columnOrder).toEqual([
+                { type: 'total', groupIndex: 0 },
+                { type: 'detail', groupIndex: -1 },
+                { type: 'total', groupIndex: 2 }
+            ]);
+            expect(result.rowOrder).toEqual([
+                { type: 'total', groupIndex: 0 },
+                { type: 'detail', groupIndex: -1 },
+                { type: 'total', groupIndex: 2 }
+            ]);
+            expect(result.colIndexes).toEqual([0, 1, 2, 6, 3, 4]);
+            expect(result.rowIndexes).toEqual([0, 1, 2, 6, 3, 4]);
+        });
+
+        it('returns identity indexes for an empty config', () => {
+            const result = getCrosstabTrackIndexes();
+
+            expect(result.columnOrder).toEqual([{ type: 'detail', groupIndex: -1 }]);
+            expect(result.rowOrder).toEqual([{ type: 'detail', groupIndex: -1 }]);
+            expect(result.colIndexes).toEqual([0]);
+            expect(result.rowIndexes).toEqual([0]);
+        });
+    });
+
     describe('getCrosstabLayout', () => {
         it('returns only the header cell when columnGroups, rowGroups, and measureCells are all empty', () => {
             const result = getCrosstabLayout({
@@ -1132,8 +1528,8 @@ describe('CT Column Groups Utilities', () => {
 
             expect(result).toEqual([
                 { id: 'crosstab_header_cell', col: [1, 1], row: [1, 2], widthUpdaters: [], heightUpdaters: [0] },
-                { col: [1, 2], row: [1, 2], widthUpdaters: [], heightUpdaters: [0], id: 'h1' },
-                { col: [2, 2], row: [1, 2], widthUpdaters: [1], heightUpdaters: [0], id: 't1' }
+                { col: [1, 2], row: [1, 2], widthUpdaters: [0], heightUpdaters: [0], id: 'h1' },
+                { col: [2, 3], row: [1, 2], widthUpdaters: [1], heightUpdaters: [0], id: 't1' }
             ]);
         });
 
@@ -1151,7 +1547,7 @@ describe('CT Column Groups Utilities', () => {
             expect(result).toEqual([
                 { id: 'crosstab_header_cell', col: [1, 2], row: [1, 1], widthUpdaters: [0], heightUpdaters: [] },
                 { col: [1, 2], row: [2, 3], widthUpdaters: [0], heightUpdaters: [1], id: 't2' },
-                { col: [1, 2], row: [1, 2], widthUpdaters: [0], heightUpdaters: [], id: 'h2' }
+                { col: [1, 2], row: [1, 2], widthUpdaters: [0], heightUpdaters: [0], id: 'h2' }
             ]);
         });
 
@@ -1171,6 +1567,143 @@ describe('CT Column Groups Utilities', () => {
             });
 
             expect(result).toHaveLength(1 + columnGroups.length * 2 + rowGroups.length * 2);
+        });
+
+        it('omits total cells for groups whose totalPosition is NONE and compacts the remaining columns', () => {
+            const columnGroups = [
+                { name: 'colA', totalPosition: 'NONE', cells: [{ id: 'ch1' }, { id: 'ct1' }] },
+                { name: 'colB', cells: [{ id: 'ch2' }, { id: 'ct2' }] }
+            ];
+
+            const result = getCrosstabLayout({
+                columnGroups,
+                rowGroups: [],
+                measureCells: [],
+                colWidths: [10, 20, 30],
+                rowHeights: [100, 200]
+            });
+
+            expect(result.find((cell) => cell.id === 'ct1')).toBeUndefined();
+            expect(result.find((cell) => cell.id === 'ch1')).toMatchObject({ col: [1, 3], row: [1, 2] });
+            expect(result.find((cell) => cell.id === 'ch2')).toMatchObject({ col: [1, 2], row: [2, 3] });
+            expect(result.find((cell) => cell.id === 'ct2')).toMatchObject({ col: [2, 3], row: [2, 3] });
+        });
+
+        it('places START totals before the detail data and END totals after it', () => {
+            const columnGroups = [
+                { name: 'colA', totalPosition: 'START', cells: [{ id: 'ch1' }, { id: 'ct1' }] },
+                { name: 'colB', totalPosition: 'END', cells: [{ id: 'ch2' }, { id: 'ct2' }] }
+            ];
+
+            const result = getCrosstabLayout({
+                columnGroups,
+                rowGroups: [],
+                measureCells: [],
+                colWidths: [10, 20, 30],
+                rowHeights: [100, 200]
+            });
+
+            expect(result.find((cell) => cell.id === 'ct1')).toMatchObject({ col: [1, 2], row: [1, 3] });
+            expect(result.find((cell) => cell.id === 'ch1')).toMatchObject({ col: [2, 4], row: [1, 2] });
+            expect(result.find((cell) => cell.id === 'ct2')).toMatchObject({ col: [3, 4], row: [2, 3] });
+            expect(result.find((cell) => cell.id === 'ch2')).toMatchObject({ col: [2, 3], row: [2, 3] });
+        });
+
+        it('places START row totals above the detail data and END row totals below it', () => {
+            const rowGroups = [
+                { name: 'rowX', totalPosition: 'START', cells: [{ id: 'rh1' }, { id: 'rt1' }] },
+                { name: 'rowY', totalPosition: 'END', cells: [{ id: 'rh2' }, { id: 'rt2' }] }
+            ];
+
+            const result = getCrosstabLayout({
+                columnGroups: [],
+                rowGroups,
+                measureCells: [],
+                colWidths: [10, 20, 30],
+                rowHeights: [100, 200, 300]
+            });
+
+            expect(result.find((cell) => cell.id === 'rt1')).toMatchObject({
+                col: [1, 3],
+                row: [1, 2],
+                widthUpdaters: [0, 1],
+                heightUpdaters: [2]
+            });
+            expect(result.find((cell) => cell.id === 'rh1')).toMatchObject({
+                col: [1, 2],
+                row: [2, 4],
+                heightUpdaters: [0, 1]
+            });
+            expect(result.find((cell) => cell.id === 'rh2')).toMatchObject({
+                col: [2, 3],
+                row: [2, 3],
+                heightUpdaters: [0]
+            });
+            expect(result.find((cell) => cell.id === 'rt2')).toMatchObject({
+                col: [2, 3],
+                row: [3, 4],
+                widthUpdaters: [1],
+                heightUpdaters: [1]
+            });
+        });
+
+        it('omits row totals for NONE groups and compacts the remaining rows', () => {
+            const rowGroups = [
+                { name: 'rowX', totalPosition: 'NONE', cells: [{ id: 'rh1' }, { id: 'rt1' }] },
+                { name: 'rowY', totalPosition: 'END', cells: [{ id: 'rh2' }, { id: 'rt2' }] }
+            ];
+
+            const result = getCrosstabLayout({
+                columnGroups: [],
+                rowGroups,
+                measureCells: [],
+                colWidths: [10, 20],
+                rowHeights: [100, 200, 300]
+            });
+
+            expect(result.find((cell) => cell.id === 'rt1')).toBeUndefined();
+            expect(result.find((cell) => cell.id === 'rh1')).toMatchObject({ col: [1, 2], row: [1, 3] });
+            expect(result.find((cell) => cell.id === 'rh2')).toMatchObject({ col: [2, 3], row: [1, 2] });
+            expect(result.find((cell) => cell.id === 'rt2')).toMatchObject({ col: [2, 3], row: [2, 3] });
+        });
+
+        it('maps measure cells to the placed detail and total tracks and skips hidden total groups', () => {
+            const columnGroups = [
+                { name: 'colA', totalPosition: 'NONE', cells: [{ id: 'ch1' }, { id: 'ct1' }] },
+                { name: 'colB', totalPosition: 'END', cells: [{ id: 'ch2' }, { id: 'ct2' }] }
+            ];
+            const rowGroups = [
+                { name: 'rowX', totalPosition: 'END', cells: [{ id: 'rh1' }, { id: 'rt1' }] }
+            ];
+            const measureCells = [
+                { id: 'mDetail', cellIndex: 0 },
+                { id: 'mColTotal', cellIndex: 0, columnTotalGroup: 'colB', rowTotalGroup: 'rowX' },
+                { id: 'mHiddenColTotal', cellIndex: 0, columnTotalGroup: 'colA' },
+                { id: 'mUnknownColTotal', cellIndex: 0, columnTotalGroup: 'missing' }
+            ];
+
+            const result = getCrosstabLayout({
+                columnGroups,
+                rowGroups,
+                measureCells,
+                colWidths: [10, 20, 30],
+                rowHeights: [100, 200, 300]
+            });
+
+            expect(result.find((cell) => cell.id === 'mDetail')).toMatchObject({
+                col: [2, 3],
+                row: [3, 4],
+                widthUpdaters: [1],
+                heightUpdaters: [2]
+            });
+            expect(result.find((cell) => cell.id === 'mColTotal')).toMatchObject({
+                col: [3, 4],
+                row: [4, 5],
+                widthUpdaters: [2],
+                heightUpdaters: [3]
+            });
+            expect(result.find((cell) => cell.id === 'mHiddenColTotal')).toBeUndefined();
+            expect(result.find((cell) => cell.id === 'mUnknownColTotal')).toBeUndefined();
         });
 
         it('preserves original cell ids from columnGroups and rowGroups via the spread on each pushed cell', () => {

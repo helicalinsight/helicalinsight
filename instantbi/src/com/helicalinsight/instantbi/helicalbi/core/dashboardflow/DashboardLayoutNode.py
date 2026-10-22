@@ -24,7 +24,7 @@ def _merge_planned_widgets(state: DashboardLayoutState, widgets: list[dict]) -> 
     merged = [row for row in widgets if isinstance(row, dict)]
     kinds = {str(row.get("kind") or "").lower() for row in merged}
     summary = state.get("summary") if isinstance(state.get("summary"), dict) else {}
-    if "summary" not in kinds and (summary.get("text") or summary.get("title")):
+    if not ({"summary", "text"} & kinds) and (summary.get("text") or summary.get("title")):
         merged.append(
             {
                 "kind": "summary",
@@ -62,7 +62,7 @@ class DashboardLayoutNode:
             )
             plan = {
                 "templateId": state.get("templateId") or "",
-                "theme": state.get("theme") or {},
+                "dashboard_config": state.get("dashboard_config") or {},
                 "summary": state.get("summary") or {},
                 "layout_plan": state.get("layout_plan") or "",
             }
@@ -87,17 +87,17 @@ class DashboardLayoutNode:
             )
             dumped = decision.model_dump() if hasattr(decision, "model_dump") else dict(decision)
             state["templateId"] = dumped.get("templateId") or state.get("templateId") or ""
-            state["theme"] = dumped.get("theme") or state.get("theme") or fallback["theme"]
+            state["dashboard_config"] = (
+                dumped.get("dashboard_config")
+                or state.get("dashboard_config")
+                or fallback["dashboard_config"]
+            )
             if dumped.get("title"):
                 state["title"] = str(dumped.get("title") or "")
-            if isinstance(dumped.get("header"), dict) and dumped.get("header"):
-                state["header"] = dumped["header"]
-            if isinstance(dumped.get("parameters"), dict) and dumped.get("parameters"):
-                state["parameters"] = dumped["parameters"]
             state["widgets"] = _merge_planned_widgets(state, dumped.get("widgets") or fallback["widgets"])
         except Exception:
             logger.exception("Dashboard layout LLM failed; using deterministic layout")
             state["templateId"] = state.get("templateId") or "executive-kpi-first"
-            state["theme"] = state.get("theme") or fallback["theme"]
+            state["dashboard_config"] = state.get("dashboard_config") or fallback["dashboard_config"]
             state["widgets"] = _merge_planned_widgets(state, fallback["widgets"])
         return state

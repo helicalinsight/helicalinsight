@@ -4,13 +4,12 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.util.Date;
 
 @Embeddable
 
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-public class HIResourceEFW implements Serializable {
+public class HIResourceEFW extends BaseResourceProps {
 
     @Column(name = "title", table = "hi_resource_efw")
     private String title;

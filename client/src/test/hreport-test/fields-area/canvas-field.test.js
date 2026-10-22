@@ -5,13 +5,27 @@ import { render, screen, fireEvent,act,waitFor, cleanup } from '@testing-library
 import { Provider } from 'react-redux';
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import reducers from '../../../redux';
-import FieldsArea from "../../../components/hi-reports/hi-fields-area/hi-fields-area"
-import { hiMockAxios } from '../../../app/mock-axios';
-import actionTypes from "../../../redux/actions/actionTypes";
-import { openMetadata } from "../../../components/hi-reports/utils/base";
-import { addFieldToReport, handleAddFeild, handleAddFilter } from "../../../components/hi-reports/utils/utilities";
-import { addFieldToCanvas, updateAggregations } from "../../../redux/actions/hreport.actions";
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+const reducers = require('../../../redux').default;
+const FieldsArea = require("../../../components/hi-reports/hi-fields-area/hi-fields-area").default;
+const { hiMockAxios } = require('../../../app/mock-axios');
+const actionTypes = require("../../../redux/actions/actionTypes").default;
+const { openMetadata } = require("../../../components/hi-reports/utils/base");
+const { addFieldToReport, handleAddFeild, handleAddFilter } = require("../../../components/hi-reports/utils/utilities");
+const { addFieldToCanvas, updateAggregations } = require("../../../redux/actions/hreport.actions");
 
 const flushPromises = () => new Promise(setImmediate);
 

@@ -87,8 +87,9 @@ public class HCRWriterHandler  extends AbstractResourceWriterHandler {
 
 		}
 		JsonObject asJsonObject = JsonParser.parseString(previewFormDataJson).getAsJsonObject();
-		asJsonObject.add("connectionDbDetails",filesList);
-		asJsonObject.add("connectionDbDetailsEfwd",efwdFileList);
+		// Always embed so import can restore Query and remap globalId when DS is excluded
+		asJsonObject.add("connectionDbDetails", filesList);
+		asJsonObject.add("connectionDbDetailsEfwd", efwdFileList);
 		hReport.setPreviewFormData(asJsonObject.toString());
 
 		hReport.setCreatedBy(hResource.getCreatedBy());
@@ -122,7 +123,9 @@ public class HCRWriterHandler  extends AbstractResourceWriterHandler {
 		manifestUtils.insertDependency(report.getPath(), allDep, manifest);
 
 
+		markDeleted(hReport, hResource, options);
 		dataWriter.write(this.addOwner(hReport,hReport.getCreatedBy()), dir, report,"");
+		recycleBinHandler.writeResource(hResource, report, dir, manifest);
 		manifestUtils.insertPath(report.getPath(), manifest);
 		share(report, manifest, options, dir);
 		schedule(report, manifest, options, dir);

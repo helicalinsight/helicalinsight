@@ -17,6 +17,7 @@ Requirements:
 - Focus on business meaning: what was asked, what area of the business it relates to, and why that view is useful.
 - Translate any domain, topic, table, or field names into everyday language (for example, "travel spend by destination" instead of internal names).
 - Base the insight only on the user question, SQL intent, and business context. Do not invent numbers, trends, rankings, or result values.
+- When measure traits are in the business context, follow them. Stay with the stated grain. Do not describe a non-additive measure as a simple total. Do not call an increase favorable when direction is negative, or a decrease favorable when direction is positive. When direction is neutral, describe volume without calling the change good or bad.
 - When useful, end with one simple next question or decision the user might consider.
 - Do not mention SQL, queries, metadata, tables, columns, schemas, joins, semantic layers, cubes, APIs, charts, prompts, or other implementation details.
 - Do not expose internal field names, file names, or system terminology.

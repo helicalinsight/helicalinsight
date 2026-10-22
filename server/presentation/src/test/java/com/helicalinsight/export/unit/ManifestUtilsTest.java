@@ -52,11 +52,13 @@ public class ManifestUtilsTest extends ExportUnitTestBase {
 		utils.insertDatasource(resource, manifest);
 		utils.insertDatasourceEFWD(resource, manifest);
 		utils.insertSchedules(resource, manifest);
+		utils.insertImageFile(resource, manifest);
 
 		Assert.assertTrue(manifest.getShares().containsKey("folder/report"));
 		Assert.assertTrue(manifest.getDataSources().containsKey("folder/report"));
 		Assert.assertTrue(manifest.getDataSources().containsKey("folder/reportefwd"));
 		Assert.assertTrue(manifest.getSchedules().containsKey("folder/report"));
+		Assert.assertEquals("folder/report_image", manifest.getImageFiles().get("folder/report"));
 	}
 
 	@Test
@@ -76,11 +78,14 @@ public class ManifestUtilsTest extends ExportUnitTestBase {
 		Manifest manifest = new Manifest();
 		manifest.getShares().put("k", "v");
 		manifest.getDataSources().put("d", "ds");
+		manifest.getImageFiles().put("img", "img_image");
 		manifest.getDependencies().put("dep", Arrays.asList("a"));
 		manifest.getResourcePaths().add("path");
 
 		Assert.assertEquals("v", utils.getShare("k", manifest));
 		Assert.assertEquals("ds", utils.getDatasource("d", manifest));
+		Assert.assertEquals("img_image", utils.getImageFile("img", manifest));
+		Assert.assertNull(utils.getImageFile("missing", manifest));
 		Assert.assertEquals(Arrays.asList("a"), utils.getDependency("dep", manifest));
 		Assert.assertTrue(utils.dependencyExists("dep", manifest));
 		Assert.assertFalse(utils.dependencyExists("missing", manifest));

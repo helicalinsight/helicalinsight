@@ -68,7 +68,10 @@ public class FolderWriterHandler extends AbstractResourceWriterHandler {
 
 		String uniqueUrlWithExtension = resource.getPath() + FOLDER_EXTENSION;
 		HIResourceFolder folder = serviceDB.getHIResourceFolderByResourceId(resource.getResourceId());
+		HIResource hResource = serviceDB.getResourceByIdIgnoreFilter(resource.getResourceId());
+		markDeleted(folder, hResource, options);
 		dataWriter.write(this.addOwner(folder,folder.getCreatedBy()), dir,resource,ResourceSuffix.FOLDER);
+		recycleBinHandler.writeResource(hResource, uniqueUrlWithExtension, dir, manifest);
 		manifestUtils.insertPath(uniqueUrlWithExtension, manifest);
 		List<ResourceEfwContents> efwdFileContent=resourceEfwContent.fetchResourceEfwContentByResourceId(resource.getResourceId());
 		Map<String,List<String>> imageMaps =manifest.getImages();

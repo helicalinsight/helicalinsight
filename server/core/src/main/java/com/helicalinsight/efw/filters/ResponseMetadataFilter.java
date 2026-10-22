@@ -40,7 +40,11 @@ public class ResponseMetadataFilter implements Filter {
         String path = httpRequest.getServletPath();
         if (!ControllerUtils.isAjax(httpRequest)
                 || (path != null && isStaticAsset(path))
-                || isStreamingRequest(httpRequest)) {
+                || isStreamingRequest(httpRequest)
+                || isFileDownloadPath(path)
+                || isDownloadEventsPath(path)
+                || ("true".equalsIgnoreCase(httpRequest.getParameter("resumable"))
+                        && ControllerUtils.isResumableDownloadPreparePath(path))) {
             chain.doFilter(request, response);
             return;
         }
@@ -142,5 +146,19 @@ public class ResponseMetadataFilter implements Filter {
                 || lowerPath.endsWith(".html")
                 || lowerPath.endsWith(".woff")
                 || lowerPath.endsWith(".woff2");
+    }
+
+    private boolean isFileDownloadPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        return path.equals("/fileDownload") || path.startsWith("/fileDownload/");
+    }
+
+    private boolean isDownloadEventsPath(String path) {
+        if (path == null) {
+            return false;
+        }
+        return path.equals("/downloadEvents") || path.startsWith("/downloadEvents/");
     }
 }

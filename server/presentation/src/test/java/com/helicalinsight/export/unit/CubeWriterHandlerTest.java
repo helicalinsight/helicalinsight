@@ -28,6 +28,7 @@ import com.helicalinsight.export.handler.CubeWriterHandler;
 import com.helicalinsight.export.handler.FolderWriterHandler;
 import com.helicalinsight.export.handler.MetadataWriterHandler;
 import com.helicalinsight.export.handler.ResourceDataWriter;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.export.utils.ManifestUtils;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 
@@ -45,7 +46,7 @@ public class CubeWriterHandlerTest extends ExportUnitTestBase {
 		FolderWriterHandler folderWriterHandler = mock(FolderWriterHandler.class);
 		MetadataWriterHandler mdWriterHandler = mock(MetadataWriterHandler.class);
 		HICubeDAOService cubeService = mock(HICubeDAOService.class);
-
+		RecycleBinHandler recyclebinHandler = mock(RecycleBinHandler.class);
 		Field serviceField = AbstractResourceWriterHandler.class.getDeclaredField("serviceDB");
 		serviceField.setAccessible(true);
 		serviceField.set(handler, serviceDB);
@@ -73,6 +74,12 @@ public class CubeWriterHandlerTest extends ExportUnitTestBase {
 		Field cubeField = CubeWriterHandler.class.getDeclaredField("cubeService");
 		cubeField.setAccessible(true);
 		cubeField.set(handler, cubeService);
+		
+		Field recycycleBinHandlerField = AbstractResourceWriterHandler.class.getDeclaredField("recycleBinHandler");
+		recycycleBinHandlerField.setAccessible(true);
+		recycycleBinHandlerField.set(handler, recyclebinHandler);
+		
+		
 
 		HIResourceDTO resource = mock(HIResourceDTO.class);
 		HIResource folderResource = mock(HIResource.class);

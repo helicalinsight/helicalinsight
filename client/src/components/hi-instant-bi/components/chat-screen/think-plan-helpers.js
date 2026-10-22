@@ -143,3 +143,16 @@ export const collapsedQuestionLead = (question = "") => {
   const match = COLLAPSED_QUESTION_LEADS.find((item) => item.test.test(text));
   return match?.lead || DEFAULT_COLLAPSED_QUESTION_LEAD;
 };
+
+export const thinkStepSequenceId = ({
+  chatSeqId = "",
+  parentSeqId = "",
+  index,
+} = {}) => {
+  const existing = String(chatSeqId || "").trim();
+  if (existing) return existing;
+  const parent = String(parentSeqId || "").trim();
+  const step = String(index ?? "").trim();
+  if (!parent || !step) return "";
+  return `${parent}-${step}`;
+};

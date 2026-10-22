@@ -1,5 +1,5 @@
 
-import { Button, Drawer, Form, Input } from "antd";
+import { Button, Drawer, Form } from "antd";
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/material.css';
 import { useEffect, useState } from "react";
@@ -7,7 +7,18 @@ import { Controlled as CodeMirror } from 'react-codemirror2';
 import { useDispatch, useSelector } from "react-redux";
 import types from "../../../constants/metadata";
 import { addFieldToCanvas, toggleQueryEditor, updateCustomColumn } from "../../../redux/actions/hreport.actions";
+import { customFieldDataTypeList } from "../utils/constants";
+import CustomColumnChip from "./custom-column-chip";
+import notify from "../../hi-notifications/notify";
 require('codemirror/mode/sql/sql');
+
+const DEFAULT_CUSTOM_COLUMN_DATA_TYPE = "java.lang.String";
+
+const resolveCustomColumnType = (backendDataType) => {
+    const match = customFieldDataTypeList.find((item) => item.backendDataType === backendDataType)
+        || customFieldDataTypeList.find((item) => item.backendDataType === DEFAULT_CUSTOM_COLUMN_DATA_TYPE);
+    return { backendDataType: match.backendDataType, dataType: match.dataType };
+}
 
 
 const CustomQuery = () => {
@@ -15,23 +26,26 @@ const CustomQuery = () => {
     const [form] = Form.useForm();
     const [query, setQuery] = useState("")
     const [queryValidator, setQueryValidator] = useState(false);
+    const [alias, setAlias] = useState("")
+    const [dataType, setDataType] = useState(() => resolveCustomColumnType(DEFAULT_CUSTOM_COLUMN_DATA_TYPE))
+    const Notify = notify(dispatch);
 
-    const { customColumnData } = useSelector(state => {
+    const { customColumnData, fields = [] } = useSelector(state => {
         let activeReport = state.hreport.present.reports.find(report => report.active)
         return activeReport
     })
+    const customFields = fields.filter(field => field.custom).filter(field => field.id !== customColumnData?.id)
+
     useEffect(() => {
         if (customColumnData) {
             if (customColumnData.id) {
                 setQuery(customColumnData.column)
-                form.setFieldsValue({
-                    alias: customColumnData.alias
-                })
+                setAlias(customColumnData.alias || "")
+                setDataType(resolveCustomColumnType(customColumnData.type?.backendDataType))
             } else {
                 setQuery("")
-                form.setFieldsValue({
-                    alias: ""
-                })
+                setAlias("")
+                setDataType(resolveCustomColumnType(DEFAULT_CUSTOM_COLUMN_DATA_TYPE))
             }
         }
     }, [customColumnData])
@@ -45,14 +59,22 @@ const CustomQuery = () => {
     const handleChange = value => {
         setQuery(value)
     }
-    const onFinish = (values) => {
+    const onFinish = () => {
         if (query) {
             setQueryValidator(false)
+            if (customFields.length) {
+                if (customFields.some((field) => field.alias === alias)) {
+                    return Notify.warning({
+                        message: `${alias} already exists in Custom Fields.`,
+                        type: "frontend"
+                    })
+                }
+            }
 
             if (customColumnData.id) {
-                dispatch(updateCustomColumn({ column: query, alias: values.alias, id: customColumnData.id }))
+                dispatch(updateCustomColumn({ column: query, alias, id: customColumnData.id, type: dataType }))
             } else {
-                dispatch(addFieldToCanvas({ column: query, alias: values.alias, genre: types.CUSTOM_FORMULA }))
+                dispatch(addFieldToCanvas({ column: query, alias, genre: types.CUSTOM_FORMULA, type: dataType }))
             }
         } else {
             setQueryValidator(true)
@@ -71,8 +93,14 @@ const CustomQuery = () => {
         >
             <div className="hr-query-editor-container" data-testid="hr-query-editor-container" >
                 <Form form={form} onFinish={onFinish} className="hr-query-alias" >
-                    <Form.Item name="alias" label="Alias" rules={[{ required: true, message: 'Please provide a name' }]}>
-                        <Input />
+                    <Form.Item label="Alias">
+                        <CustomColumnChip
+                            alias={alias}
+                            type={dataType}
+                            onAliasChange={setAlias}
+                            onDataTypeChange={setDataType}
+                            tooltip="Double click to edit alias"
+                        />
                     </Form.Item>
                     <Form.Item>
                         <div>Query</div>

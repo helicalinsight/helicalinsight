@@ -6,6 +6,7 @@ import {
   Row,
   Select,
   Space,
+  Switch,
   Tooltip,
 } from "antd";
 import React, { useState, useEffect } from "react";
@@ -21,6 +22,11 @@ import { cloneDeep, isEmpty, isEqual } from "lodash";
 import { useFieldSelection } from "../../../hooks/useHCRFieldsSelection";
 import ElementProperties from "./elementProperties";
 const { getHcrPropertyTooltipInfo } = hcrCanvasPaneHelperMethods;
+
+const normalizeTotalPosition = (position) => {
+  const normalizedPosition = (position || "").toString().toUpperCase();
+  return ["START", "END"].includes(normalizedPosition) ? normalizedPosition : "END";
+};
 
 const CrosstabPropertiesV2 = ({
   EditorPanels,
@@ -262,7 +268,15 @@ const CrosstabPropertiesV2 = ({
       Left: "Left" in actualConfig.padding ? actualConfig.padding.Left : 1,
     },
     properties: actualConfig.properties || [],
+    measuresLayout: actualConfig.measuresLayout || "vertical",
+    enableMeasureHeaders: actualConfig.enableMeasureHeaders || false,
+    enableTotalsHeaders: actualConfig.enableTotalsHeaders || false,
+    enableGrandTotals: actualConfig.enableGrandTotals !== false,
+    enableSubTotals: actualConfig.enableSubTotals !== false,
+    grandTotalPosition: normalizeTotalPosition(actualConfig.grandTotalPosition),
+    subTotalPosition: normalizeTotalPosition(actualConfig.subTotalPosition),
   };
+
 
   const onCheckboxChange = (isChecked, key) => {
     onPropertyChange({ key, value: isChecked });
@@ -288,7 +302,14 @@ const CrosstabPropertiesV2 = ({
         fields,
         measuresAggregateMap,
         padding,
-        tableStyles
+        tableStyles,
+        measuresLayout: nodeValues.measuresLayout,
+        enableMeasureHeaders: nodeValues.enableMeasureHeaders,
+        enableTotalsHeaders: nodeValues.enableTotalsHeaders,
+        enableGrandTotals: nodeValues.enableGrandTotals,
+        enableSubTotals: nodeValues.enableSubTotals,
+        grandTotalPosition: nodeValues.grandTotalPosition,
+        subTotalPosition: nodeValues.subTotalPosition,
       });
       const { columnGroups, rowGroups, measureCells, crosstabHeader, measures, width, height, nodes, styles = [], colWidths, rowHeights } = config || {};
       crossTabWidth = width > cWidth ? width : cWidth;
@@ -638,6 +659,118 @@ const CrosstabPropertiesV2 = ({
               disabled={isSelectionDisabled}
             />
           </div>
+
+          {
+            selectedMeasures?.length > 1 ? (
+              <div>
+                <Divider className="group-divider" />
+                <div>
+                  <Tooltip title="Change measures layout to Horizontal/Vertical.">
+                    <div className="property-label">Measures Layout</div>
+                  </Tooltip>
+                  <Select
+                    value={nodeValues.measuresLayout}
+                    options={
+                      [
+                        { label: "Vertical", value: "vertical" },
+                        { label: "Horizontal", value: "horizontal" }
+                      ]
+                    }
+                    style={{ width: "100%" }}
+                    onChange={(value) => { onPropertyChange({ key: "measuresLayout", value }) }}
+                    placeholder="Select Measure Layout"
+                    disabled={isSelectionDisabled}
+                  />
+                </div>
+                <div>
+                  <Tooltip title="If true, every measure's label will be added in column (if measures layout is horizontal)/row (if measures layout is vertical) headers.">
+                    <div className="parameter-label">
+                      Measure Labels In Column Headers
+                    </div>
+                  </Tooltip>
+                  <Switch
+                    checked={nodeValues.enableMeasureHeaders}
+                    onChange={(value) => {
+                      onPropertyChange({ key: "enableMeasureHeaders", value })
+                    }}
+                    disabled={isSelectionDisabled}
+                  />
+                </div>
+                <div>
+                  <Tooltip title="If true, every measure's label will be added in column (if measures layout is horizontal)/row (if measures layout is vertical) totals headers.">
+                    <div className="parameter-label">
+                      Measure Labels in Column Totals Headers
+                    </div>
+                  </Tooltip>
+                  <Switch
+                    checked={nodeValues.enableTotalsHeaders}
+                    onChange={(value) => {
+                      onPropertyChange({ key: "enableTotalsHeaders", value })
+                    }}
+                    disabled={isSelectionDisabled}
+                  />
+                </div>
+              </div>
+            ) : null
+          }
+
+          {
+            selectedMeasures?.length ? (
+              <div>
+                <div>
+                  <Tooltip title="If true, the grand totals of rows and columns are shown.">
+                    <div className="parameter-label">Grand Totals</div>
+                  </Tooltip>
+                  <Switch
+                    checked={nodeValues.enableGrandTotals}
+                    onChange={(value) => {
+                      onPropertyChange({ key: "enableGrandTotals", value })
+                    }}
+                    disabled={isSelectionDisabled}
+                  />
+                </div>
+                <div>
+                  <div className="property-label">Grand Total Position</div>
+                  <Select
+                    value={nodeValues.grandTotalPosition}
+                    options={[
+                      { label: "Start", value: "START" },
+                      { label: "End", value: "END" }
+                    ]}
+                    style={{ width: "100%" }}
+                    onChange={(value) => { onPropertyChange({ key: "grandTotalPosition", value }) }}
+                    disabled={isSelectionDisabled || !nodeValues.enableGrandTotals}
+                  />
+                </div>
+                <div>
+                  <Tooltip title="If true, the sub totals of rows and columns are shown.">
+                    <div className="parameter-label">Sub Totals</div>
+                  </Tooltip>
+                  <Switch
+                    checked={nodeValues.enableSubTotals}
+                    onChange={(value) => {
+                      onPropertyChange({ key: "enableSubTotals", value })
+                    }}
+                    disabled={isSelectionDisabled}
+                  />
+                </div>
+                <div>
+                  <div className="property-label">Sub Total Position</div>
+                  <Select
+                    value={nodeValues.subTotalPosition}
+                    options={[
+                      { label: "Start", value: "START" },
+                      { label: "End", value: "END" }
+                    ]}
+                    style={{ width: "100%" }}
+                    onChange={(value) => { onPropertyChange({ key: "subTotalPosition", value }) }}
+                    disabled={isSelectionDisabled || !nodeValues.enableSubTotals}
+                  />
+                </div>
+              </div>
+            ) : null
+          }
+
           {selectedMeasures?.length ? (
             <div>
               <Divider className="group-divider" />
@@ -747,6 +880,53 @@ const CrosstabPropertiesV2 = ({
             />
           </Collapse.Panel>
         </Collapse>
+        {/* <Collapse size={"small"} className="node-property-collapse">
+          <Collapse.Panel
+            header={<span className="node-property-title">Crosstab Configuration</span>}
+            key={"configuration"}
+          >
+            <div>
+              <div className="property-label">Measures Layout</div>
+              <Select
+                value={nodeValues.measuresLayout}
+                options={
+                  [
+                    { label: "Vertical", value: "vertical" },
+                    { label: "Horizontal", value: "horizontal" }
+                  ]
+                }
+                style={{ width: "100%" }}
+                onChange={(value) => { onPropertyChange({ key: "measuresLayout", value }) }}
+                placeholder="Select Measure Layout"
+                disabled={isSelectionDisabled}
+              />
+            </div>
+            <div>
+              <div className="parameter-label">
+                Add Measure Headers
+              </div>
+              <Switch
+                checked={nodeValues.enableMeasureHeaders}
+                onChange={(value) => {
+                  onPropertyChange({ key: "enableMeasureHeaders", value })
+                }}
+                disabled={isSelectionDisabled}
+              />
+            </div>
+            <div>
+              <div className="parameter-label">
+                Add Totals Headers
+              </div>
+              <Switch
+                checked={nodeValues.enableTotalsHeaders}
+                onChange={(value) => {
+                  onPropertyChange({ key: "enableTotalsHeaders", value })
+                }}
+                disabled={isSelectionDisabled}
+              />
+            </div>
+          </Collapse.Panel>
+        </Collapse> */}
       </Collapse>
       <Collapse size={"small"} className="node-property-collapse">
         <Collapse.Panel

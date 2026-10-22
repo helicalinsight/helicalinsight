@@ -1,350 +1,94 @@
 {
-  "version": 1,
+  "version": 2,
   "default_strategy": "mece_metric_structuring",
   "intents": [
     {
       "id": "alert",
-      "keywords": [
-        "running out",
-        "out of stock",
-        "stock",
-        "safety buffer",
-        "blocker",
-        "bottleneck",
-        "rejection",
-        "spike",
-        "alert",
-        "threshold"
-      ]
+      "keywords": ["running out", "out of stock", "stock", "blocker", "bottleneck", "rejection", "alert", "threshold"]
     },
     {
       "id": "wait",
-      "keywords": ["waiting", "wait time", "too long", "sla", "queue"]
+      "keywords": ["waiting", "wait time", "sla", "queue"]
     },
     {
       "id": "compare",
-      "keywords": [
-        "compare",
-        "compared",
-        "versus",
-        " vs ",
-        "last quarter",
-        "first quarter",
-        "prior quarter",
-        "qoq",
-        "q1",
-        "q2",
-        "q3",
-        "q4",
-        "wow",
-        "mom",
-        "year over year",
-        "yoy"
-      ]
+      "keywords": ["compare", "versus", " vs ", "quarter", "yoy", "year over year"]
     },
     {
       "id": "why",
-      "keywords": [
-        "why",
-        "root cause",
-        "attrition",
-        "spiking",
-        "factors",
-        "squeezing",
-        "drivers",
-        "explain"
-      ]
+      "keywords": ["why", "root cause", "attrition", "factor", "driver", "explain"]
     },
     {
       "id": "roi",
-      "keywords": ["roi", "budget", "allocation", "cac", "cpc", "spend"]
+      "keywords": ["roi", "budget", "allocation", "spend"]
     },
     {
       "id": "target",
-      "keywords": ["target", "goal", "meeting", "quota", "benchmark"]
+      "keywords": ["target", "goal", "quota", "benchmark"]
     }
   ],
   "strategies": {
     "inverted_pyramid": {
       "id": "inverted_pyramid",
-      "title": "The Inverted Pyramid Technique",
-      "consulting_purpose": "Directly addresses executive cognitive fatigue by answering the user question in under 3 seconds.",
-      "example_domain": "E-commerce / Sales Performance",
-      "example_question": "Are we meeting our monthly revenue targets?",
+      "title": "Executive KPI",
       "template_id": "executive-kpi-first",
-      "layout_guidance": "Top: 3-4 massive KPI blocks. Middle: actual vs target time-series. Bottom: underperformer table. Clean, uncluttered UI.",
-      "color_guidance": "Neutral chrome; high contrast only for a target miss (amber/red).",
-      "design_application": "Headline KPI with target delta, then monthly actual-vs-target line, then a transactional table of underperforming categories.",
+      "layout": "Top: headline KPI. Middle: trend. Bottom: short table.",
       "charts": [
-        {
-          "level": "top",
-          "title": "Headline KPI vs target",
-          "question_template": "What is the headline KPI for: {question}? Include the current value and variance vs target.",
-          "viz_hint": "kpi",
-          "purpose": "Answer the question in under 3 seconds.",
-          "context_anchor": "vs target and vs prior period"
-        },
-        {
-          "level": "middle",
-          "title": "Actual vs target trend",
-          "question_template": "Show the time-series of actual vs target for: {question}",
-          "viz_hint": "line",
-          "purpose": "Give historical context under the headline KPI.",
-          "context_anchor": "actual vs target"
-        },
-        {
-          "level": "bottom",
-          "title": "Underperforming segments",
-          "question_template": "Which segments are underperforming for: {question}?",
-          "viz_hint": "table",
-          "purpose": "Show where to look next without cluttering the executive view.",
-          "context_anchor": ""
-        }
+        {"level": "top", "title": "Headline", "viz_hint": "kpi", "purpose": "Headline value.", "context_anchor": "vs target or prior period"},
+        {"level": "middle", "title": "Trend", "viz_hint": "line", "purpose": "Trend under the headline."},
+        {"level": "bottom", "title": "Focus list", "viz_hint": "table", "purpose": "Where to look next."}
       ]
     },
     "progressive_disclosure": {
       "id": "progressive_disclosure",
-      "title": "Progressive Disclosure (The Drill-Down Strategy)",
-      "consulting_purpose": "Eliminates data clutter and guides the user through an analytical journey.",
-      "example_domain": "HR / Employee Turnover",
-      "example_question": "Why is engineering team attrition spiking?",
+      "title": "Drill-down",
       "template_id": "drilldown-hierarchical",
-      "layout_guidance": "Simple overview first, then a driver drill-down, then a dense detail table for export.",
-      "color_guidance": "Standard analytical palette; highlight outliers only.",
-      "design_application": "Main view shows the high-level breakdown. Follow-on charts uncover tenure, scores, or reason codes.",
+      "layout": "Overview, then one driver breakdown, then a detail table.",
       "charts": [
-        {
-          "level": "primary",
-          "title": "Overview breakdown",
-          "question_template": "What is the high-level breakdown for: {question}?",
-          "viz_hint": "bar",
-          "purpose": "Keep the first view simple before drill-down.",
-          "context_anchor": ""
-        },
-        {
-          "level": "supporting",
-          "title": "Root-cause slice",
-          "question_template": "What underlying drivers explain: {question}?",
-          "viz_hint": "bar",
-          "purpose": "Next layer using dimensions/metrics from the semantic model only.",
-          "context_anchor": ""
-        },
-        {
-          "level": "detail",
-          "title": "Detail extract",
-          "question_template": "Provide a detailed data table to explore: {question}",
-          "viz_hint": "table",
-          "purpose": "Raw grid for hypothesis testing and export.",
-          "context_anchor": ""
-        }
+        {"level": "primary", "title": "Overview", "viz_hint": "bar", "purpose": "High-level breakdown."},
+        {"level": "supporting", "title": "Driver", "viz_hint": "bar", "purpose": "One driver slice."},
+        {"level": "detail", "title": "Detail", "viz_hint": "table", "purpose": "Detail rows."}
       ]
     },
     "mece_metric_structuring": {
       "id": "mece_metric_structuring",
-      "title": "MECE Metric Structuring",
-      "consulting_purpose": "Validates data trust by covering the topic fully without overlapping variables from the semantic model.",
-      "example_domain": "Travel / Sales Order",
-      "example_question": "Why did travel cost change last quarter vs first quarter?",
+      "title": "Analytical grid",
       "template_id": "analytical-grid",
-      "layout_guidance": "Headline outcome comparison, then mutually exclusive dimension breakdowns from the semantic model, then period trend.",
-      "color_guidance": "Consistent categorical colors per semantic dimension value.",
-      "design_application": "Top: outcome metric for the compared periods. Middle: breakdown by real model dimensions (e.g. travel type, travel medium). Bottom: period trend. Never invent textbook levers like AOV or order volume unless they exist in the model.",
+      "layout": "Outcome KPI, then one dimension breakdown, then the period trend.",
       "charts": [
-        {
-          "level": "top",
-          "title": "Core outcome",
-          "question_template": "What is the primary outcome KPI for: {question}?",
-          "viz_hint": "kpi",
-          "purpose": "Anchor on the outcome metric named in the question / semantic model, with period comparison when asked.",
-          "context_anchor": "vs compared period"
-        },
-        {
-          "level": "middle",
-          "title": "Dimension breakdown",
-          "question_template": "Break down {question} by the most relevant non-overlapping dimensions from the semantic model.",
-          "viz_hint": "bar",
-          "purpose": "MECE slice using categorical dimensions present in the semantic model only.",
-          "context_anchor": ""
-        },
-        {
-          "level": "bottom",
-          "title": "Period shift",
-          "question_template": "How did the outcome for {question} move across the compared periods (monthly or quarterly)?",
-          "viz_hint": "line",
-          "purpose": "Show period movement for the same outcome metric.",
-          "context_anchor": "across compared periods"
-        }
+        {"level": "top", "title": "Outcome", "viz_hint": "kpi", "purpose": "Outcome metric.", "context_anchor": "vs compared period"},
+        {"level": "middle", "title": "Breakdown", "viz_hint": "bar", "purpose": "Breakdown by one semantic dimension."},
+        {"level": "bottom", "title": "Period", "viz_hint": "line", "purpose": "Period movement of the same metric."}
       ]
     },
     "semantic_color_coding": {
       "id": "semantic_color_coding",
-      "title": "Semantic Color Coding (Psychological UI)",
-      "consulting_purpose": "Alerts the business user where to focus immediate operational attention.",
-      "example_domain": "Supply Chain / Inventory Health",
-      "example_question": "Which fulfillment centers are running out of stock?",
+      "title": "Operational exceptions",
       "template_id": "operational-realtime",
-      "layout_guidance": "Visual focus on today's exceptions. Neutral for normal; amber/red for breaches.",
-      "color_guidance": "Gray for normal; amber or red as soon as a safety buffer or threshold is breached.",
-      "design_application": "Exception KPI, bottleneck/status breakdown, then an action list of failing nodes.",
+      "layout": "Exception KPI, then the failing breakdown, then a status table.",
       "charts": [
-        {
-          "level": "top",
-          "title": "Current blockers",
-          "question_template": "What needs attention right now for: {question}?",
-          "viz_hint": "kpi",
-          "purpose": "Surface today's exceptions.",
-          "context_anchor": "vs safety threshold / daily cap"
-        },
-        {
-          "level": "middle",
-          "title": "Exception breakdown",
-          "question_template": "Where are the active bottlenecks or threshold breaches for: {question}?",
-          "viz_hint": "bar",
-          "purpose": "Point operational attention at failing nodes.",
-          "context_anchor": "alert when below safety buffer"
-        },
-        {
-          "level": "bottom",
-          "title": "Today's workflow",
-          "question_template": "List the current workflow items and statuses for: {question}",
-          "viz_hint": "table",
-          "purpose": "Give the manager a daily action list.",
-          "context_anchor": ""
-        }
-      ]
-    },
-    "intent_driven_layout": {
-      "id": "intent_driven_layout",
-      "title": "Intent-Driven Functional Layout",
-      "consulting_purpose": "Aligns the layout with the user's cadence of action (strategic vs operational).",
-      "example_domain": "Digital Marketing / Paid Ads Campaign",
-      "example_question": "Is our budget allocation generating ROI?",
-      "template_id": "operational-realtime",
-      "layout_guidance": "Operational cadence: real-time blockers, caps, and status — not long-range strategy.",
-      "color_guidance": "High-contrast alerts for spikes, rejections, and cap breaches.",
-      "design_application": "For operators: CPC spikes, status rejections, daily budget caps. Keep the screen tied to this week's actions.",
-      "charts": [
-        {
-          "level": "top",
-          "title": "Cadence KPI",
-          "question_template": "What is the operational headline for: {question}?",
-          "viz_hint": "kpi",
-          "purpose": "Match the user's daily/weekly action cadence.",
-          "context_anchor": "vs daily cap or this week"
-        },
-        {
-          "level": "middle",
-          "title": "Live exceptions",
-          "question_template": "What real-time spikes, rejections, or cap breaches affect: {question}?",
-          "viz_hint": "bar",
-          "purpose": "Show what needs action now.",
-          "context_anchor": "today / this week"
-        },
-        {
-          "level": "bottom",
-          "title": "Status board",
-          "question_template": "What is the current status board for: {question}?",
-          "viz_hint": "table",
-          "purpose": "Operational checklist of items in flight.",
-          "context_anchor": ""
-        }
-      ]
-    },
-    "so_what_contextual_anchoring": {
-      "id": "so_what_contextual_anchoring",
-      "title": "The So What? Contextual Anchoring",
-      "consulting_purpose": "Prevents arbitrary interpretation by pairing every value with target, history, or benchmark.",
-      "example_domain": "Healthcare / Customer Support Wait Times",
-      "example_question": "Are patients waiting too long to see telehealth doctors?",
-      "template_id": "executive-kpi-first",
-      "layout_guidance": "Never show an isolated number. Pair KPIs with micro-trend and target labels.",
-      "color_guidance": "Flag values that miss the target; keep on-target metrics quiet.",
-      "design_application": "KPI as '14 Mins (▲ 4m vs Last Week | Target: < 10 Mins)', plus a sparkline/trend and the segments that miss the threshold.",
-      "charts": [
-        {
-          "level": "top",
-          "title": "Anchored KPI",
-          "question_template": "What is the current value for: {question}? Include vs last period and vs target.",
-          "viz_hint": "kpi",
-          "purpose": "Never display an isolated number.",
-          "context_anchor": "vs last period | vs target"
-        },
-        {
-          "level": "middle",
-          "title": "Micro-trend",
-          "question_template": "Show the recent trend for: {question} against the target threshold.",
-          "viz_hint": "line",
-          "purpose": "Give historical context beside the KPI.",
-          "context_anchor": "target threshold"
-        },
-        {
-          "level": "bottom",
-          "title": "Missed-threshold segments",
-          "question_template": "Which segments miss the target for: {question}?",
-          "viz_hint": "table",
-          "purpose": "Clarify where the threshold is breached.",
-          "context_anchor": "vs target"
-        }
+        {"level": "top", "title": "Exceptions", "viz_hint": "kpi", "purpose": "What needs attention now.", "context_anchor": "vs threshold"},
+        {"level": "middle", "title": "Breakdown", "viz_hint": "bar", "purpose": "Where the exception is."},
+        {"level": "bottom", "title": "Status", "viz_hint": "table", "purpose": "Items to act on."}
       ]
     }
   },
-  "decision_tree": {
-    "id": "root",
-    "match": "intent",
-    "cases": [
-      { "equals": "alert", "strategy": "semantic_color_coding" },
-      { "equals": "wait", "strategy": "so_what_contextual_anchoring" },
-      {
-        "equals": "compare",
-        "then": {
-          "id": "compare_by_persona",
-          "match": "persona",
-          "cases": [
-            { "equals": "executive", "strategy": "inverted_pyramid" },
-            { "equals": "analyst", "strategy": "progressive_disclosure" },
-            { "equals": "tactical_manager", "strategy": "progressive_disclosure" },
-            { "default": true, "strategy": "mece_metric_structuring" }
-          ]
-        }
-      },
-      {
-        "equals": "why",
-        "then": {
-          "id": "why_by_persona",
-          "match": "persona",
-          "cases": [
-            { "equals": "executive", "strategy": "so_what_contextual_anchoring" },
-            { "equals": "analyst", "strategy": "progressive_disclosure" },
-            { "equals": "tactical_manager", "strategy": "mece_metric_structuring" },
-            { "default": true, "strategy": "progressive_disclosure" }
-          ]
-        }
-      },
-      {
-        "equals": "roi",
-        "then": {
-          "id": "roi_by_persona",
-          "match": "persona",
-          "cases": [
-            { "equals": "executive", "strategy": "inverted_pyramid" },
-            { "equals": "operational_manager", "strategy": "intent_driven_layout" },
-            { "default": true, "strategy": "intent_driven_layout" }
-          ]
-        }
-      },
-      {
-        "default": true,
-        "then": {
-          "id": "persona_default",
-          "match": "persona",
-          "cases": [
-            { "equals": "executive", "strategy": "inverted_pyramid" },
-            { "equals": "operational_manager", "strategy": "intent_driven_layout" },
-            { "equals": "analyst", "strategy": "progressive_disclosure" },
-            { "default": true, "strategy": "mece_metric_structuring" }
-          ]
-        }
-      }
-    ]
-  }
+  "rules": [
+    {"intent": "alert", "layout": "semantic_color_coding"},
+    {"intent": "wait", "layout": "inverted_pyramid"},
+    {"intent": "compare", "persona": "executive", "layout": "inverted_pyramid"},
+    {"intent": "compare", "persona": "analyst", "layout": "progressive_disclosure"},
+    {"intent": "compare", "persona": "tactical_manager", "layout": "progressive_disclosure"},
+    {"intent": "compare", "layout": "mece_metric_structuring"},
+    {"intent": "why", "persona": "executive", "layout": "inverted_pyramid"},
+    {"intent": "why", "persona": "analyst", "layout": "progressive_disclosure"},
+    {"intent": "why", "persona": "tactical_manager", "layout": "mece_metric_structuring"},
+    {"intent": "why", "layout": "progressive_disclosure"},
+    {"intent": "roi", "persona": "executive", "layout": "inverted_pyramid"},
+    {"intent": "roi", "layout": "semantic_color_coding"},
+    {"persona": "executive", "layout": "inverted_pyramid"},
+    {"persona": "operational_manager", "layout": "semantic_color_coding"},
+    {"persona": "analyst", "layout": "progressive_disclosure"},
+    {"layout": "mece_metric_structuring"}
+  ]
 }

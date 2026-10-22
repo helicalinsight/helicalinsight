@@ -16,11 +16,8 @@ class DashboardLayoutState(TypedDict, total=False):
     chat_context: list[dict[str, Any]]
     layout_plan: str
     filter_components: list[dict[str, Any]]
-    theme: dict[str, Any]
+    dashboard_config: dict[str, Any]
     title: str
-    header: dict[str, Any]
-    parameters: dict[str, Any]
-    variables: dict[str, Any]
     summary: dict[str, Any]
     sections: list[dict[str, Any]]
     filters: list[dict[str, Any]]

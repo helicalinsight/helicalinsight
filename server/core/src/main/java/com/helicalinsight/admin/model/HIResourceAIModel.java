@@ -4,13 +4,12 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.util.Date;
 
 @Embeddable
 
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-public class HIResourceAIModel implements Serializable {
+public class HIResourceAIModel extends BaseResourceProps {
 
     @Column(name = "report_name", table = "hi_resource_model")
     private String aiModelName;

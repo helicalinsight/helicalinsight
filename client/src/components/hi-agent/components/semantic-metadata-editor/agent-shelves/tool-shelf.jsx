@@ -1,10 +1,15 @@
 import React from "react";
 import { Tooltip } from "antd";
-import { ApartmentOutlined, FileTextOutlined } from "@ant-design/icons";
+import {
+  ApartmentOutlined,
+  FileTextOutlined,
+  ExperimentOutlined,
+} from "@ant-design/icons";
 import TutorialInfo from "../../../../common/hi-tutorial";
 
 export const TOOL_BUSINESS_VIEW = "business-view";
 export const TOOL_AGENT_JSON = "agent-json";
+export const TOOL_DIAGNOSTICS = "diagnostics";
 
 const TOOLS = [
   {
@@ -14,6 +19,14 @@ const TOOLS = [
       "Organize your data into domains and topics. Domains group related business areas, topics hold fields that belong together.",
     icon: <ApartmentOutlined />,
     tutorialKey: "hi-agent-tool-business-view",
+  },
+  {
+    key: TOOL_DIAGNOSTICS,
+    label: "Diagnostics",
+    tooltip:
+      "Configure diagnostic capabilities, connected driver metrics, and root-cause decomposition uses.",
+    icon: <ExperimentOutlined />,
+    tutorialKey: "hi-agent-tool-diagnostics",
   },
   {
     key: TOOL_AGENT_JSON,

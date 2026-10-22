@@ -17,7 +17,6 @@ import {
 } from "@ant-design/icons";
 import {
   Button,
-  Progress,
   Modal,
   Skeleton,
   Card,
@@ -28,6 +27,7 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { fileBrowserActions, appActions } from "../redux/actions";
 import { HIFileBrowser } from "../components";
+import DownloadProgressModal from "../components/common/download-progress-modal";
 import SaveItems from "../components/hi-fileBrowser/SaveItems";
 import notify from "../components/hi-notifications/notify";
 import {
@@ -38,6 +38,7 @@ import {
 import {
   setDesignerMode,
   setPreviewMode,
+  storeDashboardConfig,
   updateParameterDrawerStatus,
   designerUndo,
   designerRedo,
@@ -47,6 +48,8 @@ import {
   clearDesignerUndoRedoHistory,
   openCompactFbBrower,
   replaceReportId,
+  storeFiltersList,
+  updateDashboardInstantSubject,
 } from "../redux/actions/dashboard-designer.actions";
 import { updateReportsRefresh } from "../redux/actions/dashboard.actions";
 import Draggable from "react-draggable";
@@ -68,8 +71,13 @@ import { designerTaskbarItems } from "../components/hi-dashboard-designer/utils/
 import TutorialInfo from "../components/common/hi-tutorial";
 import { validateDesignerName } from "./utils/helperMethods";
 import { routesUrl } from "../app/constants";
+import createIBDashboardBridge from "../components/bridges/dashboard/dashboard-bridge";
+import { consumeConvertDashboardSeed } from "../components/hi-instant-bi/utils/convert-sql-to-hr-save";
+import { INSTANT_EDIT_MODE } from "../components/hi-instant-bi/utils/save-instant-dashboard";
+import { openMetadata } from "../components/hi-reports/utils/base";
 import useExportOptions from "../hooks/useExportOptions";
 import DashboardJsonEditor from "../components/hi-dashboard-designer/components/json-editor/dashboard-json-editor";
+import { loadReportsFromLocalStorage } from "../redux/actions/hreport.actions";
 
 const DashboardDesigner = (props) => {
   const gridItemsData = useSelector((state) =>
@@ -140,6 +148,10 @@ const DashboardDesigner = (props) => {
 
   const replaceReportIdValue = useSelector(
     (state) => state.designer.present.replaceReportId
+  );
+
+  const dashboardInstantSubject = useSelector(
+    (state) => state.designer.present.instantSubject
   );
 
   const Notify = notify(dispatch);
@@ -372,6 +384,50 @@ const DashboardDesigner = (props) => {
     if (isCreateMode) {
       dispatch(setDesignerMode("create"));
     }
+  }, []);
+
+  useEffect(() => {
+    const seed = consumeConvertDashboardSeed();
+    if (!seed?.dashboardConfig) return undefined;
+    let cancelled = false;
+    (async () => {
+      dispatch(loadReportsFromLocalStorage({ reports: seed.hreportConfig }))
+      dispatch(storeDashboardConfig({ ...seed.dashboardConfig, designerMode: INSTANT_EDIT_MODE }));
+      dispatch(setPreviewMode(false));
+      const gridItemsFiltersInfo = seed?.gridItemsFiltersInfo || []
+      gridItemsFiltersInfo.forEach((item) => {
+        dispatch(storeFiltersList(item));
+      })
+      const subject = seed.subject || {};
+      dispatch(updateDashboardInstantSubject(subject));
+
+      // let reportMetadata = null;
+      // if (subject.metadataFileName && subject.location) {
+      //   try {
+      //     const response = await openMetadata(
+      //       { location: subject.location, metadataFileName: subject.metadataFileName },
+      //       dispatch,
+      //       () => { },
+      //       true
+      //     );
+      //     if (!cancelled && response && !response.error) {
+      //       reportMetadata = response;
+      //     }
+      //   } catch (error) {
+      //     reportMetadata = null;
+      //   }
+      // }
+      // if (cancelled) return;
+      // const bridge = createIBDashboardBridge({
+      //   dispatch,
+      //   gridItemsData: seed.dashboardConfig.gridItemsData,
+      //   reportMetadata,
+      // });
+      // bridge.init();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -680,6 +736,7 @@ const DashboardDesigner = (props) => {
           dispatch,
           Notify,
           uuid: dashboardUUID,
+          instantSubject: dashboardInstantSubject
         });
       } else {
         Notify.error({
@@ -723,6 +780,7 @@ const DashboardDesigner = (props) => {
       toggleIframes,
       dispatch,
       Notify,
+      instantSubject: dashboardInstantSubject
     });
   };
   const onDragFb = (_, d) => {
@@ -948,27 +1006,14 @@ const DashboardDesigner = (props) => {
           // </Tooltip>
         )}
       </Skeleton>
-      <Modal
-        visible={!!downloadingInfo}
+      <DownloadProgressModal
+        downloadingInfo={downloadingInfo}
         className="hi-dd-download-modal"
-        title="Downloading"
-        okText={() => null}
-        cancelText="Cancel"
-        maskClosable={false}
-        // onOk={() => {
-        //   remove(warningVisible.deleteKey);
-        //   setWarningVisible({ visible: false, deleteKey: "" });
-        // }}
         onCancel={() => {
-          hiAxiosRef.current.abort();
+          hiAxiosRef.current?.abort?.();
           setDownloadingInfo(null);
         }}
-      >
-        <div>
-          <Progress percent={downloadingInfo?.progress} />
-          <div>Please wait while downloading</div>
-        </div>
-      </Modal>
+      />
       <Modal
         visible={!!editModeModal}
         okText={"Leave"}

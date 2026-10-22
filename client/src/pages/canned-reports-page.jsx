@@ -21,6 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import requests from "../base/requests";
 import { postDownloadRequest } from "../base/service";
+import DownloadProgressModal from "../components/common/download-progress-modal";
 import {
   CannedReports,
   HIFileBrowser,
@@ -145,6 +146,8 @@ const CannedReportsPage = (props) => {
     (state) => state.app.applicationSettingsData?.streamResponse,
   );
 
+  const isOpenMode = props?.mode === "open";
+
   const { getMenuOptions, getDropdownOptions } = useExportOptions();
   const [showImage, setShowImage] = useState(true);
 
@@ -179,6 +182,8 @@ const CannedReportsPage = (props) => {
   const { previewParameters } = canvasProperties || {};
   const [currentShortCut, setCurrentShortCut] = useState("");
   const [reportExport, setReportExport] = useState("");
+  const [downloadingInfo, setDownloadingInfo] = useState(null);
+  const hiAxiosRef = useRef(null);
   const {
     previewRequest,
     hcrConfigurationsRequest,
@@ -481,12 +486,15 @@ const CannedReportsPage = (props) => {
       const pgCount = pageDetails.totalPageCount / 10;
       switch (currentShortCut) {
         case "save":
+          if (isOpenMode) break;
           saveHcr();
           break;
         case "saveAs":
+          if (isOpenMode) break;
           saveAsHcr();
           break;
         case "preview":
+          if (isOpenMode) break;
           if (isPreviewing) {
             fetchPreviewDetails({});
           } else {
@@ -505,6 +513,7 @@ const CannedReportsPage = (props) => {
           }
           break;
         case "validateNodes":
+          if (isOpenMode) break;
           if (!isPreviewing) {
             validateNodes({
               flowchartInstance,
@@ -516,11 +525,13 @@ const CannedReportsPage = (props) => {
           }
           break;
         case "toggleParameterFilter":
+          if (isOpenMode) break;
           if (isPreviewing) {
             dispatch(hcrActions.updateHcrFiltersDrawerStatus());
           }
           break;
         case "closePreview":
+          if (isOpenMode) break;
           if (isPreviewing) {
             dispatch(hcrActions.handleTogglePreview(false));
             resetStream();
@@ -1137,11 +1148,12 @@ const CannedReportsPage = (props) => {
       tableStyles,
       dispatch
     });
-    postDownloadRequest({
+    hiAxiosRef.current = postDownloadRequest({
       dispatch,
       formData: previewFormData,
       reportName,
       isReportNameInResponse: true,
+      callback: setDownloadingInfo,
     });
   }
 
@@ -1865,12 +1877,12 @@ const CannedReportsPage = (props) => {
       ].filter(Boolean);
       props.renderTaskbar(taskbarItems);
     }
-  }, [reportName, exportType, isStreamComplete, isAborted]);
+  }, [reportName, exportType, isStreamComplete, isAborted, appliedFilters]);
 
   const { width, height } = getCanvasDimensions(canvasProperties);
   const showPreviewError = previewError || isAborted;
   const isAwaitingFirstStreamPage =
-    isStreamToggle && !previewTag && !previewError && !isAborted;
+    isStreamToggle && !previewTag && !previewError && !isAborted && !isStreamComplete;
   const showPreviewSkeleton = isPreviewLoading || isAwaitingFirstStreamPage;
   const divStyles = {
     width: `${width}px`,
@@ -2004,6 +2016,13 @@ const CannedReportsPage = (props) => {
             : null}
         </>
       )}
+      <DownloadProgressModal
+        downloadingInfo={downloadingInfo}
+        onCancel={() => {
+          hiAxiosRef.current?.abort?.();
+          setDownloadingInfo(null);
+        }}
+      />
     </>
   );
 };

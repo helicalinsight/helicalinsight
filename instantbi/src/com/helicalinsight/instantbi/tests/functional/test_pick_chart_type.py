@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pytest
 
-from helicalbi.viz.viz_model_fill import _pick_chart_type, similar_charts_for_data
+from helicalbi.viz.viz_model_fill import _pick_chart_type
 
 pytestmark = pytest.mark.functional
 
@@ -247,23 +247,6 @@ def test_year_extract_function_picks_line_even_with_opaque_alias():
         },
     )
     assert picked == "line"
-
-
-def test_quarter_extract_similar_charts_prefer_trend_over_bar():
-    names = similar_charts_for_data(
-        _md(
-            ("Quarter", "numeric"),
-            ("Number of Travels", "numeric"),
-            ("Travel Cost", "numeric"),
-        ),
-        current="line",
-        dimension_count=1,
-        measure_count=2,
-        form_data=_QUARTER_FORM_DATA,
-    )
-    assert "area" in names
-    assert "bar" in names
-    assert names.index("area") < names.index("bar")
 
 
 def test_explicit_table_request_still_honored():

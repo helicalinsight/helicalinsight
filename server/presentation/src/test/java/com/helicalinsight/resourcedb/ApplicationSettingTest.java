@@ -122,6 +122,11 @@ public class ApplicationSettingTest {
         JSONObject jsonObject = JSONObject.fromObject(result.getResponse().getContentAsString());
         Assert.assertTrue(jsonObject.has("streamResponse"));
         Assert.assertFalse(jsonObject.getBoolean("streamResponse"));
+        Assert.assertTrue(jsonObject.has("resumableDownload"));
+        Assert.assertFalse(jsonObject.getBoolean("resumableDownload"));
+        Assert.assertTrue(jsonObject.has("resumableUpload"));
+        Assert.assertFalse(jsonObject.getBoolean("resumableUpload"));
+        Assert.assertTrue(jsonObject.has("uploadChunkSize"));
     }
 
 

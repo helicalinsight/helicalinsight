@@ -45,13 +45,20 @@ class TestRmColsInFilterParam:
     def test_resolve_query_param_and_json_body(self):
         from flask import Flask
 
+        from helicalbi.common.app_config import _flag_bool
         from helicalbi.controller.helpers import resolve_rm_cols_in_filter
+        from helicalbi.core.ConfigLoader import ConfigLoader
+
+        config = ConfigLoader.load_raw_config("application_config.yaml") or {}
+        expected_default = _flag_bool(
+            (config.get("feature_flags") or {}).get("rm_cols_in_filter"), True
+        )
 
         app = Flask(__name__)
         with app.test_request_context("/interactive?rm_cols_in_filter=false"):
             assert resolve_rm_cols_in_filter() is False
         with app.test_request_context("/interactive"):
-            assert resolve_rm_cols_in_filter() is False
+            assert resolve_rm_cols_in_filter() is expected_default
         with app.test_request_context("/interactive"):
             assert resolve_rm_cols_in_filter({"input": {}}, {"rm_cols_in_filter": False}) is False
         with app.test_request_context("/interactive?rm_cols_in_filter=true"):

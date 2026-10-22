@@ -1,4 +1,8 @@
-"""Interactive chat mode: fast | think | auto (LLM picks fast or think)."""
+"""Interactive chat mode identity: fast | think | auto.
+
+Aliases and normalization only — routing lives in ``auto_mode``, execution in
+``fast`` / ``think`` packages.
+"""
 from __future__ import annotations
 
 from typing import Any, Mapping, Optional

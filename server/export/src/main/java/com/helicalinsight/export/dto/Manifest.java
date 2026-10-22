@@ -18,6 +18,8 @@ public class Manifest implements Serializable {
 	private Map<String, String> dataSources = new HashMap<>();;
 	private Map<String,List<String>> dependencies = new HashMap<>();
 	private Map<String,List<String>> images = new HashMap<>();
+	private Map<String, String> imageFiles = new HashMap<>();
+	private Map<String, String> recycleBins = new HashMap<>();
 	private ResourceOptions options;
 
 	public Map<String, List<String>> getImages() {
@@ -26,6 +28,22 @@ public class Manifest implements Serializable {
 
 	public void setImages(Map<String, List<String>> images) {
 		this.images = images;
+	}
+
+	public Map<String, String> getImageFiles() {
+		return imageFiles;
+	}
+
+	public void setImageFiles(Map<String, String> imageFiles) {
+		this.imageFiles = imageFiles;
+	}
+
+	public Map<String, String> getRecycleBins() {
+		return recycleBins;
+	}
+
+	public void setRecycleBins(Map<String, String> recycleBins) {
+		this.recycleBins = recycleBins;
 	}
 
 	public List<String> getResourcePaths() {

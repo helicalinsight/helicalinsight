@@ -293,6 +293,8 @@ const cubeInitialState = {
     cubeName: "",
     children: [],
     businessViewEntries: [],
+    diagnosticCapabilities: [],
+    customAnalyticalOperations: [],
     // key: '',
     hierarchyData: { isHierarchyPresent: false, hierarchyList: [] },
   },

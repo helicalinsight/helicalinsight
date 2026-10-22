@@ -49,7 +49,8 @@ import {
   hcrCanvasPaneHelperMethods,
   getCrosstabStyles,
   getCrosstabConfigV2,
-  getCTMeasureCells
+  getCTMeasureCells,
+  getCTStaticTextNode
 } from "./hcrCanvas/hcrCanvasPaneHelperMethods";
 
 
@@ -1481,7 +1482,8 @@ export const getPreviewTextField = (textField = {}) => {
     styleName,
     evalGroup,
     properties = [],
-    paragraph = {}
+    paragraph = {},
+    textAdjust
   } = textField;
 
   const nodeDetails = {
@@ -1523,6 +1525,7 @@ export const getPreviewTextField = (textField = {}) => {
     evaluationTime: evalTime,
     patternExpression: patternExp,
     evaluationGroupName: evalGroup,
+    textAdjust
   };
 
   if (!isEmpty(paragraph)) {
@@ -1803,6 +1806,7 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
   const layoutProperties = getLayoutProperty(dispatch) || {}
 
   function getUpdateSize(node, style = {}) {
+    if (isEmpty(node)) return node;
     const clonedNode = cloneDeep(node)
     const { padding = {} } = style || {}
     const { Top = 0, Bottom = 0, Right = 0, Left = 0 } = padding || {};
@@ -1815,17 +1819,38 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
   function getGroups(groups = [], headerLabel, totalHeaderLabel, nodes = {}, sizeUnit) {
     return groups.map((cGrp) => {
       const { cells = [], name, totalPosition } = cGrp || {};
+      const normalizedTotalPosition = ["NONE", "START", "END"].includes((totalPosition || "").toString().toUpperCase())
+        ? totalPosition.toString().toUpperCase()
+        : "END";
       const [headerCell, totalCell] = cells || [];
-      const { className = "", nodeIds: headerCellNodeIds = [], styleNameReference: hStyleId } = headerCell || {};
-      const { nodeIds: totalCellNodesIds = [], styleNameReference: tStyleId } = totalCell || {};
-      let header = nodes[headerCellNodeIds?.[0]] || {};
-      let totalHeader = nodes[totalCellNodesIds?.[0]] || {};
+      const {
+        className = "",
+        nodeIds: headerCellNodeIds = [],
+        styleNameReference: hStyleId,
+        layout: hLayout,
+        width: headerCellW,
+        height: headerCellH,
+      } = headerCell || {};
+      const {
+        nodeIds: totalCellNodesIds = [],
+        styleNameReference: tStyleId,
+        layout: tLayout,
+        width: totalCellW,
+        height: totalCellH,
+      } = totalCell || {};
+      const isHeaderLayoutFree = hLayout === "Free Layout", isHeadeHorizontalLayout = isLayoutHorizontal(hLayout);
+      const isTotalLayoutFree = tLayout === "Free Layout", isTotalHorizontalLayout = isLayoutHorizontal(tLayout);
 
       let { styleName: hStyleNameReference = null, ...restHStyle } = styles.find(({ id }) => id === hStyleId) || {};
       let { styleName: tStyleNameReference = null, ...restTStyle } = styles.find(({ id }) => id === tStyleId) || {};
 
-      header = getUpdateSize(header, restHStyle);
-      totalHeader = getUpdateSize(totalHeader, restTStyle);
+      const headers = headerCellNodeIds.map((hn) => {
+        return getUpdateSize(nodes[hn], restHStyle) || null;
+      }).filter(Boolean);
+
+      const totalHeaders = totalCellNodesIds.map((hn) => {
+        return getUpdateSize(nodes[hn], restTStyle) || null;
+      }).filter(Boolean);
 
       return {
         name,
@@ -1834,24 +1859,57 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
           className: className || "java.lang.String",
           expression: `$F{${name}}`,
         },
-        [headerLabel]: isEmpty(header) ? {} : {
-          width: headerCell.width,
-          height: headerCell.height,
+        [headerLabel]: {
+          width: headerCellW,
+          height: headerCellH,
           styleNameReference: hStyleNameReference,
-          textField: getPreviewTextField({
-            ...header, x: 0, y: 0, label: header.label,
+          textField: headers.map((header, i, _arr) => {
+            const payload = {
+              ...header,
+              label: header.label,
+            }
+            if (isHeadeHorizontalLayout) {
+              payload.x = (headerCellW / (_arr.length || 1)) * i;
+              payload.y = 0;
+            } else {
+              if (!isHeaderLayoutFree) {
+                payload.x = 0;
+                payload.y = (headerCellH / (_arr.length || 1)) * i;
+              }
+            }
+            const nodePayload = getPreviewTextField(payload)
+            if (header.static) {
+              return addEscapedQuotes(nodePayload)
+            }
+            return nodePayload
           })
         },
-        [totalHeaderLabel]: isEmpty(totalHeader) ? {} : {
+        [totalHeaderLabel]: {
+          width: totalCellW,
+          height: totalCellH,
           styleNameReference: tStyleNameReference,
-          width: totalCell.width,
-          height: totalCell.height,
-          textField: addEscapedQuotes(
-            getPreviewTextField({
-              ...totalHeader, x: 0, y: 0, label: totalHeader.label
-            }))
+          textField: totalHeaders.map((totalHeader, i, _arr) => {
+            const payload = {
+              ...totalHeader,
+              label: totalHeader.label,
+            }
+            if (isTotalHorizontalLayout) {
+              payload.x = (totalCellW / (_arr.length || 1)) * i;
+              payload.y = 0;
+            } else {
+              if (!isTotalLayoutFree) {
+                payload.x = 0;
+                payload.y = (totalCellH / (_arr.length || 1)) * i;
+              }
+            }
+            const nodePayload = getPreviewTextField(payload)
+            if (totalHeader.static) {
+              return addEscapedQuotes(nodePayload)
+            }
+            return nodePayload
+          })
         },
-        ...(totalPosition ? { totalPosition } : {})
+        totalPosition: normalizedTotalPosition
       }
     })
   }
@@ -1865,6 +1923,7 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
       const { width, height, nodeIds = [], columnTotalGroup, rowTotalGroup, styleNameReference: styleId, layout } = cell || {};
       let { styleName: styleNameReference, ...restStyle } = styles.find(({ id }) => id === styleId) || {};
       const isHorizontalLayout = isLayoutHorizontal(layout);
+      const isFreeLayout = layout === "Free Layout";
       let nodeHeight, nodeWidth;
       if (isHorizontalLayout) {
         nodeHeight = height;
@@ -1892,8 +1951,14 @@ export const getCTNodesFormData = (crosstab = {}, dispatch) => {
                 x = index * width
               }
             }
-            if (isHorizontalLayout) {
-
+            if (node.static) {
+              if (isFreeLayout) {
+                return addEscapedQuotes(getPreviewTextField({ ...node, width, height }))
+              }
+              return addEscapedQuotes(getPreviewTextField({ ...node, x, y, width, height }))
+            }
+            if (isFreeLayout) {
+              return getPreviewTextField({ ...node, width, height })
             }
             return getPreviewTextField({ ...node, x, y, width, height })
           }
@@ -5947,13 +6012,18 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     targetCellId,
     width,
     height,
+    x,
+    y,
+    dx,
+    dy,
     colWidths,
     rowHeights,
     position,
     cellsToUpdate = [],
     type,
     resizeFactor,
-    selectedConditionalStyle = []
+    selectedConditionalStyle = [],
+    newField
   } = payload || {}
 
   const initialSelectionPayload = {
@@ -5985,7 +6055,28 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
       width: width,
       height: height / prevNodes,
     }
+    if (cell.layout === "Free Layout") {
+      node.width = Number(item.width) || width;
+      node.height = Number(item.height) || height;
+      const placed = clampFreeNodePosition(cell, node, undefined, undefined, nodeIds.length);
+      node.x = placed.x;
+      node.y = placed.y;
+    }
     return node;
+  }
+
+  function clampFreeNodePosition(cell = {}, node = {}, rawX, rawY, fallbackIndex = 0) {
+    const width = Number(node.width) || 0;
+    const height = Number(node.height) || 0;
+    const maxX = Math.max(0, (Number(cell.width) || 0) - width);
+    const maxY = Math.max(0, (Number(cell.height) || 0) - height);
+    let nextX = Number(rawX), nextY = Number(rawY);
+    if (!Number.isFinite(nextX)) nextX = (fallbackIndex % 5) * 20;
+    if (!Number.isFinite(nextY)) nextY = (fallbackIndex % 5) * 20;
+    return {
+      x: Math.min(Math.max(0, Math.round(nextX)), maxX),
+      y: Math.min(Math.max(0, Math.round(nextY)), maxY),
+    };
   }
 
   function getCell(component, cellId) {
@@ -6031,8 +6122,9 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
   }
 
   function updateNode(component, nodeIds, cell, type) {
-    const width = cell.width;
-    const height = cell.height / nodeIds.length;
+    const isHorizontalLayout = ["Horizontal Layout", "Grid Layout"].includes(cell.layout);
+    const width = isHorizontalLayout ? cell.width / (nodeIds.length || 1) : cell.width;
+    const height = isHorizontalLayout ? cell.height : cell.height / (nodeIds.length || 1);
 
     nodeIds.forEach((nodeId) => {
       const node = component.config.nodes[nodeId]
@@ -6061,14 +6153,14 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
       const widthFactor = width - cell.width;
       cell.width = cell.width + (resizeFactor ? resizeFactor : widthFactor);
 
-      if (cell.nodeIds.length) {
+      if (cell.nodeIds.length && cell.layout !== "Free Layout") {
         updateNode(component, cell.nodeIds, cell, "width")
       }
     }
     if (height !== undefined) {
       const heightFactor = height - cell.height;
       cell.height = cell.height + (resizeFactor ? resizeFactor : heightFactor);
-      if (cell.nodeIds.length) {
+      if (cell.nodeIds.length && cell.layout !== "Free Layout") {
         updateNode(component, cell.nodeIds, cell, "height")
       }
     }
@@ -6154,12 +6246,12 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
       const targetCell = getCell(component, targetCellId)
       if (!nodeToMove || !targetCell) break;
 
+      const isTargetFreeLayout = targetCell.layout === "Free Layout";
       const sourceCell = getCell(component, sourceCellId)
       if (sourceCell) {
         sourceCell.nodeIds = sourceCell.nodeIds.filter((id) => id !== nodeId);
 
-        // reset source cell nodes height
-        if (sourceCell.nodeIds.length) {
+        if (sourceCell.nodeIds.length && sourceCell.layout !== "Free Layout") {
           sourceCell.nodeIds.forEach((nId, i, arr) => {
             let cellNode = component.config.nodes[nId]
             cellNode.height = sourceCell.height / (arr.length || 1)
@@ -6169,18 +6261,100 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
       targetCell.nodeIds.push(nodeId);
 
       nodeToMove.cellId = targetCellId;
-      nodeToMove.width = targetCell.width;
-      nodeToMove.height = targetCell.height;
+      if (isTargetFreeLayout) {
+        if (nodeToMove.width == null) nodeToMove.width = targetCell.width;
+        if (nodeToMove.height == null) nodeToMove.height = targetCell.height;
+        const placed = clampFreeNodePosition(targetCell, nodeToMove, x, y, targetCell.nodeIds.length - 1);
+        nodeToMove.x = placed.x;
+        nodeToMove.y = placed.y;
+      } else {
+        nodeToMove.width = targetCell.width;
+        nodeToMove.height = targetCell.height;
 
-      // set targetCell nodes width and other properties
-      targetCell.nodeIds.forEach((nId, i, arr) => {
-        let cellNode = component.config.nodes[nId]
-        cellNode.height = targetCell.height / (arr.length || 1)
-        cellNode.width = targetCell.width
-        HCR_TABLE_CELL_PROPERTIES.forEach((property) => {
-          if (targetCell[property]) cellNode[property] = targetCell[property]
+        targetCell.nodeIds.forEach((nId, i, arr) => {
+          let cellNode = component.config.nodes[nId]
+          cellNode.height = targetCell.height / (arr.length || 1)
+          cellNode.width = targetCell.width
+          HCR_TABLE_CELL_PROPERTIES.forEach((property) => {
+            if (targetCell[property]) cellNode[property] = targetCell[property]
+          })
         })
-      })
+      }
+      break;
+    }
+    case "addNewNode": {
+      if (newField) {
+        const cell = getCell(component, targetCellId)
+        if (!cell) break;
+        const nodeHeight = 25;
+        const nodeWidth = 50;
+        const newNode = getCTStaticTextNode({
+          width: nodeWidth,
+          height: nodeHeight,
+          cellId: targetCellId,
+          label: newField.label,
+          value: newField.label,
+        });
+        switch (cell.layout) {
+          case "Free Layout": {
+            const width = cell.width / (cell.nodeIds.length + 1);
+            newNode.width = width;
+            newNode.height = cell.height;
+            const placed = clampFreeNodePosition(cell, newNode, x, y, cell.nodeIds.length - 1);
+            newNode.x = placed.x;
+            newNode.y = placed.y;
+          }
+            break;
+          case "Horizontal Layout":
+          case "Grid Layout": {
+            const width = cell.width / (cell.nodeIds.length + 1);
+            newNode.width = width;
+            newNode.height = cell.height;
+            cell.nodeIds.forEach((nId) => {
+              let cellNode = component.config.nodes[nId]
+              cellNode.height = cell.height;
+              cellNode.width = width
+            })
+            break;
+          }
+          case "Vertical Layout": {
+            const height = cell.height / (cell.nodeIds.length + 1);
+            newNode.width = cell.width;
+            newNode.height = height;
+            cell.nodeIds.forEach((nId) => {
+              let cellNode = component.config.nodes[nId]
+              cellNode.width = cell.width
+              cellNode.height = height
+            })
+          }
+          default:
+            const cHeight = cell.height / (cell.nodeIds.length + 1);
+            newNode.width = cell.width;
+            newNode.height = cHeight;
+            cell.nodeIds.forEach((nId) => {
+              let cellNode = component.config.nodes[nId]
+              cellNode.width = cell.width
+              cellNode.height = cHeight
+            })
+            break;
+        }
+
+        cell.nodeIds.push(newNode.id);
+        component.config.nodes[newNode.id] = newNode;
+      }
+      break;
+    }
+    case "moveNodePosition": {
+      const nodeToMove = component.config.nodes[nodeId]
+      if (!nodeToMove) break;
+      const cell = getCell(component, nodeToMove.cellId)
+      if (!cell || cell.layout !== "Free Layout") break;
+      let nextX = x, nextY = y;
+      if (Number.isFinite(Number(dx))) nextX = (Number(nodeToMove.x) || 0) + Number(dx);
+      if (Number.isFinite(Number(dy))) nextY = (Number(nodeToMove.y) || 0) + Number(dy);
+      const placed = clampFreeNodePosition(cell, nodeToMove, nextX, nextY, 0);
+      nodeToMove.x = placed.x;
+      nodeToMove.y = placed.y;
       break;
     }
     case "deleteNode": {
@@ -6286,6 +6460,74 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
     }
     case "updateCellProperties": {
       if (cellIds.length) {
+        if (properties && properties.layout) {
+          switch (properties.layout) {
+            case "Free Layout": {
+              cellIds.forEach((cellId) => {
+                const cell = getCell(component, cellId);
+                (cell?.nodeIds || []).forEach((nId, i, _arr) => {
+                  const cellNode = component.config.nodes[nId];
+                  if (cellNode) {
+                    if (cell.layout === "Vertical Layout") {
+                      const cH = cell.height / (cell.nodeIds.length || 1);
+                      cellNode.width = cell.width;
+                      cellNode.height = cH;
+                      cellNode.x = 0;
+                      cellNode.y = i * cH;
+                    } else {
+                      if (["Horizontal Layout", "Grid Layout"].includes(cell.layout)) {
+                        if (cellNode) {
+                          const cW = cell.width / (cell.nodeIds.length || 1);
+                          cellNode.width = cW;
+                          cellNode.height = cell.height;
+                          cellNode.x = i * cW;
+                          cellNode.y = 0;
+                        }
+                      } else {
+                        const cH = cell.height / (cell.nodeIds.length || 1)
+                        cellNode.width = cell.width;
+                        cellNode.height = cH
+                        cellNode.x = 0;
+                        cellNode.y = i * cH
+                      }
+                    }
+                  }
+                })
+              })
+              break;
+            }
+            case "Vertical Layout": {
+              cellIds.forEach((cellId) => {
+                const cell = getCell(component, cellId);
+                (cell?.nodeIds || []).forEach((nId, i) => {
+                  const cellNode = component.config.nodes[nId];
+                  if (cellNode) {
+                    cellNode.width = cell.width;
+                    cellNode.height = cell.height / (cell.nodeIds.length || 1);
+                  }
+                })
+              })
+              break
+            }
+            case "Horizontal Layout":
+            case "Grid Layout": {
+              cellIds.forEach((cellId) => {
+                const cell = getCell(component, cellId);
+                (cell?.nodeIds || []).forEach((nId, i) => {
+                  const cellNode = component.config.nodes[nId];
+                  if (cellNode) {
+                    cellNode.width = cell.width / (cell.nodeIds.length || 1);
+                    cellNode.height = cell.height;
+                  }
+                })
+              })
+              break
+            }
+            default:
+              break;
+          }
+        }
+
         cellIds.forEach((cellId) => {
           updateCell(component, cellId, properties)
         })
@@ -6342,6 +6584,22 @@ export const updateHCRCrosstabComponent = (component, actionType, payload = {}) 
           }
         })
       }
+      break;
+    }
+    case "resizeNode": {
+      function updateNode(nodeId, value) {
+        component.config.nodes[nodeId] = { ...component.config.nodes[nodeId], ...value }
+      }
+
+      if (height) {
+        updateNode(nodeId, { height })
+      }
+
+      if (width) {
+        updateNode(nodeId, { width })
+      }
+
+
       break;
     }
     default:

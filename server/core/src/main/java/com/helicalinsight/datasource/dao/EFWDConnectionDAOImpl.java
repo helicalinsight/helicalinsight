@@ -55,6 +55,7 @@ import com.helicalinsight.efw.framework.FactoryMethodWrapper;
 import com.helicalinsight.efw.serviceframework.IComponent;
 import com.helicalinsight.efw.utility.EfwdDatasourceUtils;
 import com.helicalinsight.efw.utility.SplitterUtils;
+import com.helicalinsight.resourcedb.Deleted;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 
 import lombok.extern.slf4j.Slf4j;
@@ -260,7 +261,7 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
     	bin.setHiRecycleBinHIEfwdConnection(binConnection);
     	bin.setDeletedOn(new Date());
     	recycleBinService.save(bin);
-		getSession().merge(connection);
+    	updateDeleteStatus(connection.getId(), Deleted.TRUE);
 		return connection.getId();
 	
 	}
@@ -1319,27 +1320,32 @@ public class EFWDConnectionDAOImpl implements EFWDConnectionDAO {
 		}
 		return null;
 	}
-
-	@Override
-	public void restoreConnection(Integer connectionId) {
+	
+	private void updateDeleteStatus(Integer connectionId, boolean delete) {
 		try {
 			String hql = """
 					update HIEfwdConnection
-					set deleted = false
+					set deleted = :delete
 					where id = :id
-					  and deleted = true
 					""";
 			Session session = getSession();
 			MutationQuery mutationQuery = session.createMutationQuery(hql);
 			mutationQuery.setParameter("id", connectionId);
+			mutationQuery.setParameter("delete", delete);
 			int count = mutationQuery.executeUpdate();
 			log.debug("No of updated connection(s) : {}", count);
 			
 		}
 		catch (Exception e) {
-			log.error("Error occurred while restoring EFWD connection : {}" , connectionId , e);
+			log.error("Error occurred while changing EFWD connection delete status: {}" , connectionId , e);
 		}
 	}
+	
+	@Override
+	public void restoreConnection(Integer connectionId) {
+		updateDeleteStatus(connectionId, Deleted.FALSE);
+	}
+	
 
 
 }

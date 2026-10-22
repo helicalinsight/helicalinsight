@@ -1327,19 +1327,26 @@
 			}
 		]
 	},
-	 "tooltip_displayFormat": {
-    "content": [
-      {
-        "displayContent": "Available for date, time, or datetime filters only. Select the appropriate format used to display values, such as dd-MM-yyyy or other applicable date and time formats."
-      }
-    ]
-  },
-
-  "tooltip_valueFormat": {
-    "content": [
-      {
-        "displayContent":  "Same as the display format, but used as the dropdown value. The key and value both represent the selected date or time format."
-      }
-    ]
-  }
+	"tooltip_displayFormat": {
+		"content": [
+			{
+				"displayContent": "Available for date, time, or datetime filters only. Select the appropriate format used to display values, such as dd-MM-yyyy or other applicable date and time formats."
+			}
+		]
+	},
+	"tooltip_valueFormat": {
+		"content": [
+			{
+				"displayContent": "Same as the display format, but used as the dropdown value. The key and value both represent the selected date or time format."
+			}
+		],
+		"tooltip_textAdjust": {
+			"isHtml":true,
+			"content": [
+				{
+					"displayContent": "Determines how the text field adjusts when content overflows its boundaries.<br/><br/><b>Possible values:</b><br/>• <b>StretchHeight:</b> Dynamically expands the text field height vertically so all text fits.<br/>• <b>CutText:</b> Truncates the text at the field boundaries if it exceeds the dimensions.<br/>• <b>ScaleFont:</b> Shrinks the font size automatically to fit the text within the fixed field size."
+				}
+			]
+		}
+	}
 }

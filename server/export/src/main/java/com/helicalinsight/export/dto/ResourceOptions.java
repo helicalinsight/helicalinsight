@@ -12,6 +12,8 @@ public class ResourceOptions implements Serializable {
 	private Boolean schedules;
 	private Boolean dataSource;
 	private Boolean share;
+	private Boolean recycleBin;
+	private Boolean exportEverything;
 
 	public Boolean getShare() {
 		return share;
@@ -29,6 +31,14 @@ public class ResourceOptions implements Serializable {
 		return dataSource;
 	}
 
+	public Boolean getRecycleBin() {
+		return recycleBin;
+	}
+
+	public Boolean getExportEverything() {
+		return exportEverything;
+	}
+
 	public void setSchedules(Boolean schedules) {
 		this.schedules = schedules;
 	}
@@ -37,10 +47,17 @@ public class ResourceOptions implements Serializable {
 		this.dataSource = dataSource;
 	}
 
+	public void setRecycleBin(Boolean recycleBin) {
+		this.recycleBin = recycleBin;
+	}
+
+	public void setExportEverything(Boolean exportEverything) {
+		this.exportEverything = exportEverything;
+	}
+
 	@Override
 	public String toString() {
 		return "{\"schedules\":\"" + schedules + "\", \"dataSource\":\"" + dataSource + "\", \"share\":\"" + share
-				+ "\"}";
+				+ "\", \"recycleBin\":\"" + recycleBin + "\", \"exportEverything\":\"" + exportEverything + "\"}";
 	}
-
 }

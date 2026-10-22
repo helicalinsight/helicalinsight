@@ -3,6 +3,7 @@ import {
   CaretUpOutlined,
   CloseOutlined,
   EditOutlined,
+  InfoCircleOutlined,
   PlusOutlined,
   VerticalAlignMiddleOutlined,
 } from "@ant-design/icons";
@@ -13,6 +14,7 @@ import { useDispatch, useSelector } from "react-redux";
 import {
   addCustomDisplayDateFormat,
   changeDateFilterFormat,
+  removeAggregateForAdvanceFilter,
   toggleFilterIngnorance,
   toggleFilterUnique,
   toggleFilterVisibility,
@@ -23,8 +25,10 @@ import {
 import { getColumnbject, getDefaultDisplayDateFormats } from "../../../../../utils/filter-utils";
 import HITooltip from "../../../../common/components/hi-tooltip";
 import notify from "../../../../hi-notifications/notify";
+import CustomColumnChip from "../../../hi-fields-area/custom-column-chip";
 import AdvancedFnEditor from "./advanced-fn-editor";
 import List from "./list";
+import { useDrop } from "react-dnd";
 
 const Advanced = (props) => {
   const { metadata, filters, fields, databaseFunctions, functions } = useSelector((state) => {
@@ -42,9 +46,36 @@ const Advanced = (props) => {
   let columnFunctions = functions;
   let { filter, reportId } = props;
 
-  let { mapping, cascade, hideInViewMode, ignore, customDisplayDateFormats = [] } = filter;
+  const [, displayDropRef] = useDrop(() => ({
+    accept: ["metadata_field"],
+    drop: (item) => {
+      const { field } = item || {}
+      const { column = {} } = field || {}
+      handleUpdateColumn({
+        value: column.fullyQualifiedColumn,
+        columnFunction: displayColumn.defaultFunction,
+        columnType: "display"
+      })
+    }
+  }), [filter]);
+
+  const [, valueDropRef] = useDrop(() => ({
+    accept: ["metadata_field"],
+    drop: (item) => {
+      const { field } = item || {}
+      const { column = {} } = field || {}
+      handleUpdateColumn({
+        value: column.fullyQualifiedColumn,
+        columnFunction: valueColumn.defaultFunction,
+        columnType: "value"
+      })
+    }
+  }), [filter]);
+
+
+  let { mapping, cascade, hideInViewMode, ignore, customDisplayDateFormats = [], displayAggregateForAdvanceFilters: displayAggregate = [], valueAggregateForAdvanceFilters: valueAaggregate = [] } = filter;
   mapping = mapping || {};
-  let { orderBy, unique } = mapping;
+  let { orderBy, unique, valueColumn, displayColumn } = mapping;
   // let displayDateFunc = datePart
   // if (mapping && mapping.DisplayDBFunction && mapping.DisplayDBFunction.functionName) {
   //     let val = mapping.DisplayDBFunction.functionName
@@ -118,6 +149,19 @@ const Advanced = (props) => {
       dispatch(updateFilterMapping({ tempFilter }));
     }
   };
+  const handleOrderByChangeWithValue = ({ columnType, value }) => {
+    let tempFilter = { ...filter };
+    let tempMapping = { ...tempFilter.mapping };
+    let tempOrderBy = { ...tempMapping.orderBy };
+    let type = columnType;
+    let opp = { value: "display", display: "value" };
+    tempOrderBy[type] = tempOrderBy[type] !== value ? value : "none";
+    tempOrderBy[opp[type]] = "none";
+    tempMapping.orderBy = tempOrderBy;
+    tempFilter.mapping = tempMapping;
+    dispatch(updateFilterMapping({ tempFilter }));
+  };
+
   const handleTypeChange = (type) => {
     setType(type);
   };
@@ -210,6 +254,84 @@ const Advanced = (props) => {
   const getValueFieldForDbFn = () => {
     const { fullyQualifiedColumn } = mapping?.valueColumn || {}
     return fields.find((field) => field.column === fullyQualifiedColumn) || {};
+  }
+
+  const handleUpdateColumn = ({ value, columnFunction, columnType }) => {
+    let tempFilter = { ...filter }
+    let newMapping = { ...mapping }
+    let aggregate = tempFilter.aggregate;
+
+    let columnSelected = getColumnbject({
+      fullyQualifiedColumn: value, type: 'getColumnObj', columnFunction, tables
+    })
+
+    if (columnType === "display") {
+      newMapping.displayColumn = columnSelected
+      tempFilter.mapping = newMapping
+      tempFilter.values = []
+      if (displayAggregate?.length) {
+        dispatch(removeAggregateForAdvanceFilter({ uid: filter?.uid, type: "display" }))
+      }
+    } else {
+      if (valueAaggregate?.length) {
+        dispatch(removeAggregateForAdvanceFilter({ uid: filter?.uid, type: "value" }))
+      }
+      newMapping.valueColumn = columnSelected
+      if (columnSelected.defaultFunction && columnSelected.defaultFunction.split('.').indexOf('aggregate') != -1) {
+        aggregate = [columnSelected.defaultFunction]
+      }
+      else {
+        aggregate = []
+      }
+      let backendDataType = filter.backendDataType;
+      let dataType = filter.dataType;
+      if (columnSelected.type) {
+        backendDataType = Object.keys(columnSelected.type)[0]
+        dataType = Object.values(columnSelected.type)[0]
+      }
+      tempFilter.mapping = newMapping
+      tempFilter.column = filter.column
+      tempFilter.backendDataType = backendDataType
+      tempFilter.dataType = dataType
+      tempFilter.values = []
+      tempFilter.aggregate = aggregate
+    }
+    dispatch(updateFilterMapping({ tempFilter }))
+  }
+
+  const handleUpdateAggregate = (columnType, val) => {
+    let value = columnType == 'value' ? valueColumn.fullyQualifiedColumn : displayColumn.fullyQualifiedColumn
+
+    let defaultFunction = columnType == 'value' ? valueColumn.defaultFunction : displayColumn.defaultFunction;
+    let columnFunction = defaultFunction !== val ? val : "none";
+    handleUpdateColumn({ value, columnFunction, columnType })
+
+  }
+
+  const handleFilterChange = ({ columnType, key, value }) => {
+    switch (key) {
+      case "orderBy":
+        if (value) {
+          handleOrderByChangeWithValue({ columnType, value });
+        } else {
+          handleOrderByChange({ columnType });
+        }
+        break;
+      case "groupBy":
+      case "aggregate":
+        handleUpdateAggregate(columnType, value)
+        break;
+      case "functions":
+        if (columnType === "display") {
+          handleDisplayEditingField()
+        }
+        if (columnType === "value") {
+          handleValueEditingField()
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   const dateFormatSelector = (
@@ -322,19 +444,38 @@ const Advanced = (props) => {
           <>
             <Card
               type="inner"
-              title="Display"
-              extra={
-                <span
-                  onClick={() => handleOrderByChange({ columnType: "display" })}
-                  className="advanced-orderby"
-                >
-                  {orderBy.display === "none" && <VerticalAlignMiddleOutlined />}
-                  {orderBy.display === "asc" && <CaretUpOutlined />}
-                  {orderBy.display === "desc" && <CaretDownOutlined />}
-                </span>
+              title={
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Tooltip title="Drag and drop a field from the Metadata panel to change the display column.">
+                    <InfoCircleOutlined style={{ fontSize: 12, marginBottom: 2, cursor:"pointer"}} />
+                  </Tooltip>
+                  <span>Display</span>
+                </div>
               }
+              ref={displayDropRef}
+            // extra={
+            //   <span
+            //     onClick={() => handleOrderByChange({ columnType: "display" })}
+            //     className="advanced-orderby"
+            //   >
+            //     {orderBy.display === "none" && <VerticalAlignMiddleOutlined />}
+            //     {orderBy.display === "asc" && <CaretUpOutlined />}
+            //     {orderBy.display === "desc" && <CaretDownOutlined />}
+            //   </span>
+            // }
             >
-              <Row span={12} justify={"space-between"} align={"middle"}>
+              <Row span={12} style={{ marginBottom: 4 }}>
+                <CustomColumnChip
+                  filter={filter}
+                  alias={mapping.displayColumn.alias}
+                  allowRename={false}
+                  allowDataTypeChange={false}
+                  allowMenu={true}
+                  columnType="display"
+                  onFilterChange={handleFilterChange}
+                />
+              </Row>
+              {/* <Row span={12} justify={"space-between"} align={"middle"}>
                 <Col span={21} >
                   <List
                     list={columnDbFunctions}
@@ -375,7 +516,7 @@ const Advanced = (props) => {
                   isDbFunc={false}
                   initialValue={mapping.displayColumn}
                 />
-              </Row>
+              </Row> */}
               {["date", "dateTime"].includes(filter?.dataType) ? <Row span={12}>
                 {dateFormatSelector}
               </Row> : null}
@@ -383,19 +524,38 @@ const Advanced = (props) => {
             <Card
               className="items-list"
               type="inner"
-              title="Value"
-              extra={
-                <span
-                  onClick={() => handleOrderByChange({ columnType: "value" })}
-                  className="advanced-orderby"
-                >
-                  {orderBy.value === "none" && <VerticalAlignMiddleOutlined />}
-                  {orderBy.value === "asc" && <CaretUpOutlined />}
-                  {orderBy.value === "desc" && <CaretDownOutlined />}
-                </span>
+              title={
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <Tooltip title="Drag and drop a field from the Metadata panel to change the value column.">
+                    <InfoCircleOutlined style={{ fontSize: 12, marginBottom: 2, cursor: "pointer" }} />
+                  </Tooltip>
+                  <span>Value</span>
+                </div>
               }
+              ref={valueDropRef}
+            // extra={
+            //   <span
+            //     onClick={() => handleOrderByChange({ columnType: "value" })}
+            //     className="advanced-orderby"
+            //   >
+            //     {orderBy.value === "none" && <VerticalAlignMiddleOutlined />}
+            //     {orderBy.value === "asc" && <CaretUpOutlined />}
+            //     {orderBy.value === "desc" && <CaretDownOutlined />}
+            //   </span>
+            // }
             >
-              <Row span={12} justify={"space-between"} align={"middle"} >
+              <Row span={12} style={{ marginBottom: 4 }}>
+                <CustomColumnChip
+                  filter={filter}
+                  alias={mapping.valueColumn.alias}
+                  allowRename={false}
+                  allowDataTypeChange={false}
+                  allowMenu={true}
+                  columnType="value"
+                  onFilterChange={handleFilterChange}
+                />
+              </Row>
+              {/* <Row span={12} justify={"space-between"} align={"middle"} >
                 <Col span={21}>
                   <List
                     list={columnDbFunctions}
@@ -436,7 +596,7 @@ const Advanced = (props) => {
                   isDbFunc={false}
                   initialValue={mapping.valueColumn}
                 />
-              </Row>
+              </Row> */}
             </Card>
           </>
         )}

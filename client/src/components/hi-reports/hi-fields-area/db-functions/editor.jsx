@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Input, Drawer, Row, Col, Menu, List } from "antd"
-import { editFieldFunctions, updateFunctionDefination } from "../../../../redux/actions/hreport.actions"
+import { editFieldFunctions, updateEditingField, updateFunctionDefination } from "../../../../redux/actions/hreport.actions"
 import { useSelector, useDispatch } from "react-redux";
 import AutoSuggestComponent from "./auto-suggest";
 import {
@@ -12,6 +12,9 @@ import "./editor.scss"
 import Param from "./db-function-item";
 import SaveBlock from "./save-block";
 import DescriptionComponent from "./descrition";
+import CustomColumnChip from "../custom-column-chip";
+import { customFieldDataTypeList } from "../../utils/constants";
+import { isCastOrRawFunctionUsed } from "../utils/utilities";
 import { toTitleCase } from "../../../../utils/text-utils"
 
 const FunctionsEditor = props => {
@@ -190,11 +193,39 @@ const FunctionsEditor = props => {
     let sortedFunctions = [...filteredFunctions].sort((a, b) => a.value > b.value ? 1 : -1)
     let tempEditingField = { ...editingField, functionsDefinition: autoSuggestValue }
 
+    const editorDatabaseFunction = tempEditingField.databaseFunction;
+    const pendingFunctionReturns = tempEditingField.pendingFunctionReturns;
+    const storedReturns = editorDatabaseFunction && typeof editorDatabaseFunction === "object"
+        ? editorDatabaseFunction.returns
+        : undefined;
+    const effectiveReturns = pendingFunctionReturns || storedReturns;
+    const returnsEntry = effectiveReturns
+        ? customFieldDataTypeList.find((item) => item.dataType === effectiveReturns)
+        : null;
+    const chipType = returnsEntry
+        ? { backendDataType: returnsEntry.backendDataType, dataType: returnsEntry.dataType }
+        : (tempEditingField.type || field?.type || {});
+    const handleChipDataTypeChange = (entry) => {
+        if (!entry?.dataType) return;
+        const nextDatabaseFunction = editorDatabaseFunction && typeof editorDatabaseFunction === "object"
+            ? { ...editorDatabaseFunction, returns: entry.dataType }
+            : editorDatabaseFunction;
+        dispatch(updateEditingField({
+            editingField: {
+                ...tempEditingField,
+                pendingFunctionReturns: entry.dataType,
+                databaseFunction: nextDatabaseFunction,
+            }
+        }));
+    };
+
 
     return (
         <Drawer
             title={
-                <span data-testid="functions-editor" className="" >Functions</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                    <span data-testid="functions-editor" className="" >Functions</span>
+                </span>
             }
             placement="right"
             width={"50%"}
@@ -203,6 +234,16 @@ const FunctionsEditor = props => {
             visible={editingField && editingField.id === field?.id}
         >
             <Row >
+                <div style={{ marginBottom: 8, marginTop: -16 }}>
+                    <span style={{ marginRight: 8 }}>Alias: </span>
+                    <CustomColumnChip
+                        alias={tempEditingField.alias || tempEditingField.autogen_alias || tempEditingField.label || ""}
+                        type={chipType}
+                        allowRename={false}
+                        allowDataTypeChange={true}
+                        onDataTypeChange={handleChipDataTypeChange}
+                    />
+                </div>
                 <Col span={24} >
                     <div>
                         <AutoSuggestComponent

@@ -89,6 +89,99 @@ def _is_timeish(label: str) -> bool:
     return any(token in lower for token in ("date", "time", "month", "week", "year", "day", "period"))
 
 
+def _is_number(value: Any) -> bool:
+    try:
+        float(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _integer_like(value: Any) -> bool:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return False
+    return number.is_integer()
+
+
+def _pick_measure_and_dimension(rows: Sequence[Mapping[str, Any]]) -> tuple[str, str]:
+    """Choose the metric column and the slice column for a drill-down value."""
+    keys: list[str] = []
+    for row in rows:
+        for key in row:
+            name = str(key)
+            if name not in keys:
+                keys.append(name)
+    numeric = [
+        key
+        for key in keys
+        if any(_is_number(row.get(key)) for row in rows)
+    ]
+    text = [key for key in keys if key not in numeric]
+    fractional = [
+        key
+        for key in numeric
+        if any(
+            _is_number(row.get(key)) and not _integer_like(row.get(key))
+            for row in rows
+        )
+    ]
+    hinted = [
+        key
+        for key in numeric
+        if any(token in key.lower() for token in ("rate", "cost", "amount", "count", "total"))
+    ]
+    if fractional:
+        measure = next((key for key in hinted if key in fractional), fractional[0])
+    elif hinted:
+        measure = hinted[-1]
+    elif numeric:
+        measure = numeric[-1]
+    else:
+        measure = ""
+    candidates = text + [key for key in numeric if key != measure]
+    dimension = candidates[0] if candidates else ""
+    return measure, dimension
+
+
+def value_found_summary(raw_result: Any) -> str:
+    """Short value a later drill-down question can filter on."""
+    rows = _parse_rows(raw_result)
+    if not rows:
+        text = str(raw_result or "").strip()
+        if text and not _looks_like_raw_preview(text):
+            return text[:500]
+        return ""
+    measure, dimension = _pick_measure_and_dimension(rows)
+    if len(rows) == 1:
+        parts = []
+        for key, value in rows[0].items():
+            shown = _format_number(value) if key == measure else value
+            parts.append(f"{_humanize(key)} is {shown}")
+        return "; ".join(parts) + "."
+    if not (dimension and measure):
+        return f"{len(rows)} rows were returned."
+    ranked: list[tuple[Any, float]] = []
+    for row in rows:
+        try:
+            ranked.append((row.get(dimension), float(row.get(measure))))
+        except (TypeError, ValueError):
+            continue
+    if not ranked:
+        return f"{len(rows)} rows were returned."
+    highest = max(ranked, key=lambda item: item[1])
+    lowest = min(ranked, key=lambda item: item[1])
+    measure_label = _humanize(measure)
+    dimension_label = _humanize(dimension)
+    return (
+        f"Highest {dimension_label} is {highest[0]} "
+        f"({measure_label} {_format_number(highest[1])}). "
+        f"Lowest {dimension_label} is {lowest[0]} "
+        f"({measure_label} {_format_number(lowest[1])})."
+    )
+
+
 def describe_query_findings(
     raw_result: Any,
     *,

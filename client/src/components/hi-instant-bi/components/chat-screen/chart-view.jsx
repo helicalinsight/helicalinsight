@@ -2,7 +2,7 @@ import { Typography } from 'antd';
 import { useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { HelicalReports } from '../../../../pages';
-import { getHReportVizInfo, getVizHeight, getVizModifierClass, getVizWidth, parseBackendErrorMessage } from '../../utils/common-utils';
+import { getHReportVizInfo, getVizHeight, parseBackendErrorMessage } from '../../utils/common-utils';
 import { IbResponseError } from '../ib-custom-chart';
 
 const { Text } = Typography
@@ -16,7 +16,9 @@ const InstantChartView = (props = {}) => {
         backendError,
         fullChatResponse = {},
         isOpenMode,
-        vizType
+        vizType,
+        dashboardMode = false,
+        extraProps = {}
     } = props || {}
     const { hreportId, error, hreportLoading } = fullChatResponse || {}
     const liveHreport = useSelector((state) =>
@@ -29,7 +31,7 @@ const InstantChartView = (props = {}) => {
     );
     const effectiveVizType = liveSelectedType || vizType;
     const vizOptions = { subVizType: liveSubVizType || "", report: liveHreport || null };
-    const vizHeight = getVizHeight(effectiveVizType, fullChatResponse, vizOptions);
+    let vizHeight = getVizHeight(effectiveVizType, fullChatResponse, vizOptions);
 
     const hasVfError = String(error || "").trim();
 
@@ -46,14 +48,26 @@ const InstantChartView = (props = {}) => {
         );
     }
 
+
     if (!hreportId) return null;
 
     const modeForHreport = isOpenMode ? "instant-bi-open" : "instant-bi-create"
 
+    const styles = {
+        width: "100%",
+        height: `${vizHeight}rem`
+    }
+
+    if (dashboardMode) {
+        delete styles.height
+    } else {
+        styles.height = `${vizHeight}rem`
+    }
+
     return (
         <div
             className={`chart-wrapper${compact ? " chart-wrapper--compact" : ""}`.trim()}
-            style={{ width: "100%", height: `${vizHeight}rem` }}
+            style={styles}
         >
             {hreportLoading && <Text type="secondary">Just a moment…</Text>}
             {!hreportLoading && <div className="chart-wrapper__content" style={{ width: "100%", height: "100%" }}>
@@ -62,6 +76,7 @@ const InstantChartView = (props = {}) => {
                     reportId={hreportId}
                     renderEditingArea={props.renderEditingArea}
                     renderFilters={props.renderFilters}
+                    {...extraProps}
                 />
             </div>}
         </div>

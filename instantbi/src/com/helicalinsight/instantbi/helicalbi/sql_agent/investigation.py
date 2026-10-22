@@ -1,4 +1,11 @@
-"""Plan-then-execute helpers for the dashboard agent endpoint."""
+"""Plan-then-execute facade for the dashboard / think investigation pipeline.
+
+Public entry points:
+
+* :func:`create_and_store_plan` — persona + strategy + plan-context graph → memory
+* :func:`is_execute_plan_request` / :func:`stored_plan_or_raise` — execute phase
+* :func:`plan_to_public_dict` — strip internal fields for API responses
+"""
 from __future__ import annotations
 
 import logging
@@ -45,6 +52,7 @@ def is_execute_plan_request(
     query: str,
     user_input: Optional[Mapping[str, Any]] = None,
 ) -> bool:
+    """True when the client asks to run a previously stored investigation plan."""
     action = str(
         (user_input or {}).get("action") or (user_input or {}).get("phase") or ""
     ).strip().lower()
@@ -64,15 +72,20 @@ _PUBLIC_PLAN_KEYS = (
     "original_question",
     "rationale",
     "charts",
+    "analytical_operations",
+    "query_analytical_strategies",
 )
 
 
 def plan_to_public_dict(plan: Any) -> dict[str, Any]:
+    """Project an InvestigationPlan (model or dict) to the API-safe subset."""
     raw = plan.model_dump() if hasattr(plan, "model_dump") else dict(plan or {})
     public = {key: raw.get(key) for key in _PUBLIC_PLAN_KEYS if key in raw}
     public.setdefault("template_id", "")
     public.setdefault("strategy_id", "")
     public.setdefault("charts", [])
+    public.setdefault("analytical_operations", [])
+    public.setdefault("query_analytical_strategies", [])
     return public
 
 
@@ -117,6 +130,21 @@ def create_and_store_plan(
         user_query=question,
         last_chats=last_chats,
     )
+    indexer = session.get("semantic_indexer")
+    diag_caps = []
+    if indexer is not None and hasattr(indexer, "diagnostic_capabilities"):
+        diag_caps = indexer.diagnostic_capabilities()
+    elif session.get("cube_info_prepared"):
+        prep = session.get("cube_info_prepared") or {}
+        diag_caps = prep.get("diagnosticCapabilities") or prep.get("diagnostic_capabilities") or []
+    if diag_caps:
+        strategy = select_strategy(
+            question,
+            persona=persona,
+            hint=strategy_hint,
+            diagnostic_capabilities=diag_caps,
+        )
+        persona = attach_strategy(persona, strategy)
     max_domains, max_topics = _topic_caps_for_mode(mode_profile.name)
     work_state: dict[str, Any] = {"token_usage": {}, "request_id": request_id}
     graph_result = run_plan_context_graph(
@@ -124,7 +152,7 @@ def create_and_store_plan(
         persona=persona,
         strategy=strategy,
         session=session,
-        max_charts=mode_profile.max_charts,
+        max_charts=None if flat_sql else mode_profile.max_charts,
         flat_sql=bool(flat_sql),
         overview_chars=mode_profile.overview_chars,
         max_domains=max_domains,

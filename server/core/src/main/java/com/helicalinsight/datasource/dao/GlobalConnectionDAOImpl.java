@@ -23,6 +23,7 @@ import com.helicalinsight.datasource.model.*;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
 import com.helicalinsight.efw.components.JsonResultSetTransformer;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.resourcedb.Deleted;
 import com.helicalinsight.resourcesecurity.SecurityUtils;
 
 import jakarta.persistence.NoResultException;
@@ -117,8 +118,26 @@ public class GlobalConnectionDAOImpl implements GlobalConnectionDAO {
         binConnection.setRecycleBin(bin);
         bin.setHiRecycleBinDsGlobalConnections(binConnection);
         bin.setDeletedOn(new Date());
-        getSession().update(globalConnections);
-        return recycleBinService.save(bin);
+        boolean saved = recycleBinService.save(bin);
+        updateDeleteStatus(globalConnections.getGlobalId(), Deleted.TRUE);
+        return saved;
+    }
+
+    private void updateDeleteStatus(Integer globalId, boolean delete) {
+        try {
+            String hql = """
+                    update GlobalConnections
+                    set isDeleted = :delete
+                    where globalId = :id
+                    """;
+            MutationQuery mutationQuery = getSession().createMutationQuery(hql);
+            mutationQuery.setParameter("id", globalId);
+            mutationQuery.setParameter("delete", delete);
+            int count = mutationQuery.executeUpdate();
+            logger.debug("No of updated connection(s) : {}", count);
+        } catch (Exception e) {
+            logger.error("Error occurred while changing global connection delete status: {}", globalId, e);
+        }
     }
 
     @Override

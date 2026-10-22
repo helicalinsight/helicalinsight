@@ -2,15 +2,28 @@ import "regenerator-runtime/runtime";
 import { configureStore } from "@reduxjs/toolkit";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { Provider, useDispatch } from "react-redux";
-import reducers from "../../../redux";
-import axios from "axios";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import { HelicalReports } from "../../../pages/helical-reports-page"
-import { hiMockAxios } from '../../../app/mock-axios';
-import { openMetadata } from "../../../components/hi-reports/utils/base";
-import { appActions } from "../../../redux/actions";
-import { addFieldToCanvas } from "../../../redux/actions/hreport.actions";
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+const reducers = require("../../../redux").default;
+const { HelicalReports } = require("../../../pages/helical-reports-page");
+const { hiMockAxios } = require('../../../app/mock-axios');
+const { openMetadata } = require("../../../components/hi-reports/utils/base");
+const { appActions } = require("../../../redux/actions");
+const { addFieldToCanvas } = require("../../../redux/actions/hreport.actions");
 const crypto = require("crypto");
 const flushPromises = () => new Promise(setImmediate);
 

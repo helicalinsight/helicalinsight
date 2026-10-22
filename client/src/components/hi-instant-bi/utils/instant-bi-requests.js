@@ -489,8 +489,8 @@ export const hydrateThinkStepFromReportModel = async ({
   });
 };
 
-const normalizeThinkQuestionHistory = (questionHistory = []) =>
-  (Array.isArray(questionHistory) ? questionHistory : []).map((item, index) => {
+const normalizeThinkQuestionHistory = (questionHistory = []) => {
+  return (Array.isArray(questionHistory) ? questionHistory : []).map((item, index) => {
     const chatResponse = item?.fullChatResponse
       || item?.chat_response
       || item?.chatResponse
@@ -514,6 +514,7 @@ const normalizeThinkQuestionHistory = (questionHistory = []) =>
       chat_seq_id: item?.chat_seq_id || item?.chatSeqId || "",
     };
   });
+}
 
 const processThinkChatResponses = async ({
   chatResponses = [],
@@ -581,8 +582,8 @@ export const instantBiChatAPI = ({
   onAIMessage = () => { },
   onProgress,
   activeReportId,
-  chatId,
   chatSequenceId,
+  chatId,
   abortedRef
 }) => {
   dispatch(updateBIBotStatus({ status: true, reportId: activeReportId }))
@@ -596,51 +597,51 @@ export const instantBiChatAPI = ({
     mode: formData.mode,
     onProgress,
     successCB: async (res) => {
-const parsedResponse = parseInstantBIChatResponse(res);
-const { error, mode, chatResponses = [], ...fastParsed } = parsedResponse;
+      const parsedResponse = parseInstantBIChatResponse(res);
+      const { error, mode, chatResponses = [], ...fastParsed } = parsedResponse;
 
-if (!error && !res.error) {
-  const hreportProps = {
-    reportId: uuidv4(),
-  };
-  hreportProps.reportMetadata = getMetadataForHreport(dispatch);
-  if (parsedResponse.fullChatResponse) {
-    parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
-  } else {
-    parsedResponse.fullChatResponse = { hreportId: hreportProps.reportId };
-  }
-}
+      if (!error && !res.error) {
+        const hreportProps = {
+          reportId: uuidv4(),
+        };
+        hreportProps.reportMetadata = getMetadataForHreport(dispatch);
+        if (parsedResponse.fullChatResponse) {
+          parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
+        } else {
+          parsedResponse.fullChatResponse = { hreportId: hreportProps.reportId };
+        }
+      }
 
-if (mode === "think") {
-  if (error && !(parsedResponse.askedQuestions || []).length && !chatResponses.length) {
-    dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
-    onAIMessage({
-      botMessage: "",
-      error: true,
-      abortedRequest: false,
-      userInput: formData.input,
-      chatSequenceId,
-    });
-    return;
-  }
-  // Think execute returns text findings (question_history.analysis + final_answer).
-  // Empty chat_responses means no chart hydration — show the investigation panel.
-  if (
-    !(chatResponses || []).length &&
-    ((parsedResponse.askedQuestions || []).length || parsedResponse.finalAnswer)
-  ) {
-    deliverThinkPlanMessage({
-      parsedResponse,
-      dispatch,
-      activeReportId,
-      formData,
-      chatSequenceId,
-      onAIMessage,
-    });
-    return;
-  }
-  await processThinkChatResponses({
-    chatResponses,
+      if (mode === "think") {
+        if (error && !(parsedResponse.askedQuestions || []).length && !chatResponses.length) {
+          dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
+          onAIMessage({
+            botMessage: "",
+            error: true,
+            abortedRequest: false,
+            userInput: formData.input,
+            chatSequenceId,
+          });
+          return;
+        }
+        // Think execute returns text findings (question_history.analysis + final_answer).
+        // Empty chat_responses means no chart hydration — show the investigation panel.
+        if (
+          !(chatResponses || []).length &&
+          ((parsedResponse.askedQuestions || []).length || parsedResponse.finalAnswer)
+        ) {
+          deliverThinkPlanMessage({
+            parsedResponse,
+            dispatch,
+            activeReportId,
+            formData,
+            chatSequenceId,
+            onAIMessage,
+          });
+          return;
+        }
+        await processThinkChatResponses({
+          chatResponses,
           dispatch,
           activeReportId,
           formData,
@@ -703,6 +704,7 @@ export const buildInstantBIInteractiveChatFormData = ({
   mode,
   sql,
   chatResponseItem,
+  insights,
 }) => {
   const formData = {
     input,
@@ -730,6 +732,9 @@ export const buildInstantBIInteractiveChatFormData = ({
   if (chatResponseItem && typeof chatResponseItem === "object") {
     formData.chat_response_item = chatResponseItem;
   }
+  if (insights != null) {
+    formData.insights = typeof insights === "string" ? insights : JSON.stringify(insights);
+  }
   return formData;
 };
 
@@ -745,6 +750,7 @@ const instantBIInteractiveChatRequest = ({
   mode,
   sql,
   chatResponseItem,
+  insights,
   successCB = () => { },
   errorCB = () => { },
   onProgress,
@@ -760,6 +766,7 @@ const instantBIInteractiveChatRequest = ({
       mode,
       sql,
       chatResponseItem,
+      insights,
     }),
     uri,
     callback: successCB,
@@ -843,6 +850,7 @@ export const instantDataInsightAPI = ({
   requestId,
   sql,
   chatResponseItem,
+  insights,
   successCB = () => { },
   errorCB = () => { },
   onProgress,
@@ -872,6 +880,7 @@ export const instantDataInsightAPI = ({
     requestId,
     sql,
     chatResponseItem,
+    insights,
     successCB,
     errorCB,
     onProgress,
@@ -949,30 +958,32 @@ export const loadInstantBIDataInsight = ({
   agent,
   useLoadChatPayload = false,
   existingChatResponse = {},
-  sql,
+  insights,
+  skipDispatch = false,
+  suppressErrorNotify = false,
   Notify,
   abortedRef,
   onComplete = () => { },
   onProgress,
 }) => {
-  const resolvedSql = sql
-    || existingChatResponse?.sql?.raw_sql
-    || existingChatResponse?.sql
-    || "";
   if (useLoadChatPayload) {
     if (!chatSequenceId || !userInput || !location || !fileName) {
-      Notify?.error?.({
-        type: "Frontend",
-        message: "Required load chat data is missing.",
-      });
+      if (!suppressErrorNotify) {
+        Notify?.error?.({
+          type: "Frontend",
+          message: "Required load chat data is missing.",
+        });
+      }
       onComplete({ success: false });
       return;
     }
   } else if (!chatSequenceId || !userInput || !chatId) {
-    Notify?.error?.({
-      type: "Frontend",
-      message: "Required chat data is missing.",
-    });
+    if (!suppressErrorNotify) {
+      Notify?.error?.({
+        type: "Frontend",
+        message: "Required chat data is missing.",
+      });
+    }
     onComplete({ success: false });
     return;
   }
@@ -986,8 +997,7 @@ export const loadInstantBIDataInsight = ({
     fileName,
     chatId,
     agent,
-    sql: typeof resolvedSql === "string" ? resolvedSql : "",
-    chatResponseItem: existingChatResponse,
+    insights,
     onProgress,
     successCB: (response) => {
       if (abortedRef?.current) {
@@ -996,19 +1006,23 @@ export const loadInstantBIDataInsight = ({
         return;
       }
       if (response?.error) {
-        Notify?.error?.({
-          type: "Frontend",
-          message: response?.error || IB_CHART_RENDER_ERROR,
-        });
+        if (!suppressErrorNotify) {
+          Notify?.error?.({
+            type: "Frontend",
+            message: response?.error || IB_CHART_RENDER_ERROR,
+          });
+        }
         onComplete({ success: false, response });
         return;
       }
       const insight = response?.insight;
       if (!insight || !reportId) {
-        Notify?.error?.({
-          type: "Frontend",
-          message: "Unable to generate explanation for this chart.",
-        });
+        if (!suppressErrorNotify) {
+          Notify?.error?.({
+            type: "Frontend",
+            message: "Unable to generate explanation for this chart.",
+          });
+        }
         onComplete({ success: false, response });
         return;
       }
@@ -1019,21 +1033,23 @@ export const loadInstantBIDataInsight = ({
           token_usage: response.token_usage || {},
         },
       };
-      dispatch(
-        loadIBOpenChatResponse({
-          reportId,
-          chatSequenceId,
-          chatResponse,
-          source: "data-insight",
-        })
-      );
+      if (!skipDispatch) {
+        dispatch(
+          loadIBOpenChatResponse({
+            reportId,
+            chatSequenceId,
+            chatResponse,
+            source: "data-insight",
+          })
+        );
+      }
       onComplete({ success: true, response, insight, data_insight: chatResponse.data_insight });
     },
     errorCB: (err) => {
       const aborted = Boolean(abortedRef?.current);
       if (abortedRef?.current) {
         abortedRef.current = false;
-      } else {
+      } else if (!suppressErrorNotify) {
         Notify?.error?.({
           type: "Frontend",
           message: err?.message || IB_CHART_RENDER_ERROR,

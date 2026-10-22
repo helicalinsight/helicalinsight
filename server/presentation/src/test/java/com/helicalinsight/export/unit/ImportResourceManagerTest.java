@@ -7,6 +7,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
@@ -16,7 +19,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Assert;
 import org.junit.FixMethodOrder;
@@ -37,6 +42,7 @@ import com.helicalinsight.export.handler.ImportManagerContext;
 import com.helicalinsight.export.handler.importres.AbstractResourceImportHandler;
 import com.helicalinsight.export.handler.importres.ImportHandlerFactory;
 import com.helicalinsight.export.handler.importres.ImportResourceManager;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.export.utils.ManifestUtils;
 import com.helicalinsight.export.utils.ResourceFileUtils;
 import com.helicalinsight.resourcedb.Deleted;
@@ -50,23 +56,33 @@ public class ImportResourceManagerTest extends ExportUnitTestBase {
 		ImportResourceManager manager = new ImportResourceManager();
 		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
 		setField(manager, "serviceDb", serviceDb);
+		
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class);
+		setField(manager, "recycleBinHandler", recycleBinHandler);
 
-		ImportManagerContext context = new ImportManagerContext();
+		ImportManagerContext context = mock(ImportManagerContext.class);
+		ImportResponse response = mock(ImportResponse.class);
 		ImportRequest request = new ImportRequest();
 		request.setDestination("dest/folder");
-		context.setRequest(request);
 
 		HIResource destResource = mock(HIResource.class);
 		when(serviceDb.getResourceByUrl("dest/folder", Deleted.FALSE)).thenReturn(destResource);
-
+		
 		AbstractResourceImportHandler handler = mock(AbstractResourceImportHandler.class);
+		
 		HIResource imported = mock(HIResource.class);
 		when(handler.setContext(context)).thenReturn(handler);
 		when(handler.importResource("dest/folder/path/file.efw")).thenReturn(imported);
-
+		
+		Map<String,HIResource> map = new HashMap<>();
+		map.put("dest/folder/path/file.efw", imported);
+		
+		when(context.getResourceUrlMap()).thenReturn(map);
+		when(context.getResponse()).thenReturn(response);
+		when(context.getRequest()).thenReturn(request);
 		try (MockedStatic<ImportHandlerFactory> factoryMock = mockStatic(ImportHandlerFactory.class)) {
 			factoryMock.when(() -> ImportHandlerFactory.getHandler("efw")).thenReturn(handler);
-
+			
 			Method doImport = ImportResourceManager.class.getDeclaredMethod("doImport", List.class,
 					ImportManagerContext.class);
 			doImport.setAccessible(true);
@@ -83,16 +99,25 @@ public class ImportResourceManagerTest extends ExportUnitTestBase {
 		ImportResourceManager manager = new ImportResourceManager();
 		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
 		setField(manager, "serviceDb", serviceDb);
-
-		ImportManagerContext context = new ImportManagerContext();
+		
+		RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class);
+		setField(manager, "recycleBinHandler", recycleBinHandler);
+		
+		ImportManagerContext context = mock(ImportManagerContext.class);
 		ImportRequest request = new ImportRequest();
-		context.setRequest(request);
+		ImportResponse response = mock(ImportResponse.class);
 
 		AbstractResourceImportHandler handler = mock(AbstractResourceImportHandler.class);
 		HIResource imported = mock(HIResource.class);
 		when(handler.setContext(context)).thenReturn(handler);
 		when(handler.importResource("path/file.efw")).thenReturn(imported);
-
+		Map<String,HIResource> map = new HashMap<>();
+		map.put("path/file.efw", imported);
+		
+		when(context.getResourceUrlMap()).thenReturn(map);
+		when(context.getResponse()).thenReturn(response);
+		when(context.getRequest()).thenReturn(request);
+		
 		try (MockedStatic<ImportHandlerFactory> factoryMock = mockStatic(ImportHandlerFactory.class)) {
 			factoryMock.when(() -> ImportHandlerFactory.getHandler("efw")).thenReturn(handler);
 
@@ -140,9 +165,13 @@ public class ImportResourceManagerTest extends ExportUnitTestBase {
 		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
 		setField(manager, "serviceDb", serviceDb);
 
-		ImportManagerContext context = new ImportManagerContext();
-		context.setRequest(new ImportRequest());
-
+		ImportManagerContext context = mock(ImportManagerContext.class);
+		ImportRequest request = mock(ImportRequest.class);
+		ImportResponse response = mock(ImportResponse.class);
+		
+		when(context.getRequest()).thenReturn(request);
+		when(context.getResponse()).thenReturn(response);
+		
 		try (MockedStatic<ImportHandlerFactory> factoryMock = mockStatic(ImportHandlerFactory.class)) {
 			factoryMock.when(() -> ImportHandlerFactory.getHandler("unknown")).thenReturn(null);
 

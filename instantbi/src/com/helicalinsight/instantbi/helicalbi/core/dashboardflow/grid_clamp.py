@@ -1,9 +1,20 @@
 """Deterministic 12-column grid clamp and overlap repair for convert-dashboard."""
 from __future__ import annotations
 
+import html
+import re
 from typing import Any
 
-from helicalbi.core.dashboardflow.collect_items import new_component_id
+from helicalbi.core.dashboardflow.collect_items import (
+    column_leaf,
+    column_table,
+    filter_title,
+    new_component_id,
+)
+from helicalbi.model.output.dashboard.ApplyResetComponent import ApplyResetComponent
+from helicalbi.model.output.dashboard.DashboardModel import DashboardModel
+from helicalbi.model.output.dashboard.Kind import Kind
+from helicalbi.model.output.dashboard.Layout import Layout
 
 GRID_COLUMNS = 12
 _MIN_W = 2
@@ -72,14 +83,46 @@ _FALLBACK_SVG = (
     '<rect width="120" height="2" y="3" rx="1" fill="#1677ff"/></svg>'
 )
 _EXTRA_KINDS = {"summary", "text", "separator", "filter", "kpi", "svg", "image"}
-_DEFAULT_THEME = {"color": "#1677ff", "background": "#ffffff"}
+_HTML_TAG_RE = re.compile(r"<\s*/?\s*[a-zA-Z]")
+_UNSAFE_BLOCK_RE = re.compile(
+    r"<\s*(script|style|iframe|object|embed)\b[^>]*>.*?<\s*/\s*\1\s*>",
+    re.IGNORECASE | re.DOTALL,
+)
+_UNSAFE_TAG_RE = re.compile(
+    r"</?\s*(script|style|iframe|object|embed)\b[^>]*>",
+    re.IGNORECASE,
+)
+_ON_ATTR_RE = re.compile(
+    r"""\s+on[a-zA-Z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)""",
+    re.IGNORECASE,
+)
 _DEFAULT_PARAMETERS = {
     "enable": True,
     "orientation": "right",
     "enableApplyButton": True,
-    "floatingFilter": False,
+    "floatingFilter": True,
     "closeOnApply": False,
 }
+
+
+def _dashboard_config(payload: dict[str, Any]) -> dict[str, Any]:
+    """Normalize parent dashboard_config (theme + parameters) from payload."""
+    from helicalbi.model.output.dashboard.DashboardConfig import (
+        DashboardConfig,
+        default_dashboard_config,
+    )
+
+    raw = payload.get("dashboard_config")
+    if raw is None:
+        raw = payload.get("dashboardConfig")
+    if not isinstance(raw, dict):
+        raw = {}
+    # Accept top-level parameters during transition and nest under dashboard_config.
+    if "parameters" not in raw and isinstance(payload.get("parameters"), dict):
+        raw = {**raw, "parameters": payload["parameters"]}
+    if raw:
+        return DashboardConfig.model_validate(raw).model_dump()
+    return default_dashboard_config().model_dump()
 
 
 def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
@@ -87,11 +130,13 @@ def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
     aliases = {
         "chart": "viz",
         "report": "viz",
+        "instant": "viz",
         "insight": "summary",
         "overview": "summary",
         "story": "text",
         "storyline": "text",
         "slicer": "filter",
+        "instant.filter": "filter",
         "metric": "kpi",
         "key_metric": "kpi",
         "key-metric": "kpi",
@@ -110,64 +155,12 @@ def _normalize_kind(kind: str, *, aid: str, known: set[str]) -> str:
     return value
 
 
-def _as_hex_color(value: Any, default: str) -> str:
-    text = str(value or "").strip()
-    if text.startswith("#") and len(text) in {4, 7, 9}:
-        return text
-    if isinstance(value, dict):
-        try:
-            r = int(value.get("r") or 0)
-            g = int(value.get("g") or 0)
-            b = int(value.get("b") or 0)
-            return f"#{r:02x}{g:02x}{b:02x}"
-        except (TypeError, ValueError):
-            pass
-    return default
-
-
-def _tile_header(
-    raw: dict[str, Any],
-    *,
-    kind: str,
-    title: str,
-    theme_color: str,
-) -> dict[str, Any]:
-    """Tile chrome matching HI gridItemConfig.header (title + optional {{variables}})."""
-    header_raw = raw.get("header") if isinstance(raw.get("header"), dict) else {}
-    header_title = str(
-        header_raw.get("title")
-        or raw.get("header_title")
-        or title
-        or ""
-    )
-    default_bg = theme_color if kind in {"viz", "kpi", "filter"} else "#000000"
-    if kind in {"summary", "text"}:
-        default_bg = theme_color
-    return {
-        "enable": bool(header_raw.get("enable", True)),
-        "title": header_title,
-        "backgroundColor": _as_hex_color(
-            header_raw.get("backgroundColor") or header_raw.get("background"),
-            default_bg,
-        ),
-    }
-
-
-def _dashboard_header(payload: dict[str, Any], *, theme: dict[str, Any], title: str) -> dict[str, Any]:
-    header_raw = payload.get("header") if isinstance(payload.get("header"), dict) else {}
-    banner_title = str(header_raw.get("title") or title or "").strip()
-    return {
-        "enable": bool(header_raw.get("enable", True if banner_title else False)),
-        "title": banner_title,
-        "backgroundColor": _as_hex_color(
-            header_raw.get("backgroundColor") or header_raw.get("background"),
-            "#000000",
-        ),
-    }
-
-
-def _dashboard_parameters(payload: dict[str, Any]) -> dict[str, Any]:
-    raw = payload.get("parameters") if isinstance(payload.get("parameters"), dict) else {}
+def _dashboard_parameters(payload: dict[str, Any] | None = None, *, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    raw = {}
+    if isinstance(config, dict) and isinstance(config.get("parameters"), dict):
+        raw = config["parameters"]
+    elif isinstance(payload, dict) and isinstance(payload.get("parameters"), dict):
+        raw = payload["parameters"]
     orientation = str(raw.get("orientation") or _DEFAULT_PARAMETERS["orientation"]).lower()
     if orientation not in {"right", "left", "top"}:
         orientation = "right"
@@ -203,11 +196,13 @@ def _viz_rows(item: dict[str, Any]) -> list[str]:
     names: list[str] = []
     for raw in list(data.get("rows") or []) + list(data.get("filters") or []):
         if isinstance(raw, str) and raw.strip():
-            names.append(raw.strip())
+            name = column_leaf(raw)
         elif isinstance(raw, dict):
-            name = str(raw.get("name") or raw.get("column") or raw.get("alias") or "").strip()
-            if name:
-                names.append(name)
+            name = column_leaf(raw.get("column") or raw.get("name") or raw.get("alias") or raw)
+        else:
+            name = ""
+        if name:
+            names.append(name)
     return names
 
 
@@ -219,11 +214,13 @@ def _viz_measures(item: dict[str, Any]) -> list[str]:
     names: list[str] = []
     for raw in list(data.get("columns") or []):
         if isinstance(raw, str) and raw.strip():
-            names.append(raw.strip())
+            name = column_leaf(raw)
         elif isinstance(raw, dict):
-            name = str(raw.get("name") or raw.get("column") or raw.get("alias") or "").strip()
-            if name:
-                names.append(name)
+            name = column_leaf(raw.get("column") or raw.get("name") or raw.get("alias") or raw)
+        else:
+            name = ""
+        if name:
+            names.append(name)
     return names
 
 
@@ -237,42 +234,340 @@ def _widget_size(raw: dict[str, Any], *, default_w: int, default_h: int, min_w: 
     return clamp_rect(raw.get("x"), raw.get("y"), w or default_w, h or default_h, min_w=min_w, min_h=min_h)
 
 
+def _item_data_model(item: dict[str, Any]) -> dict[str, Any]:
+    data_model = item.get("data_model") if isinstance(item.get("data_model"), dict) else {}
+    if data_model:
+        return data_model
+    report = item.get("report_model") if isinstance(item.get("report_model"), dict) else {}
+    nested = report.get("data_model") if isinstance(report.get("data_model"), dict) else {}
+    return nested or {}
+
+
+def _data_model_dimension_filters(item: dict[str, Any]) -> list[dict[str, Any]]:
+    """Non-aggregated columns from data_model — preferred slicer fields."""
+    dims: list[dict[str, Any]] = []
+    for raw in _item_data_model(item).get("columns") or []:
+        if not isinstance(raw, dict):
+            continue
+        if raw.get("aggregate") or raw.get("aggregateList"):
+            continue
+        if raw.get("hidden"):
+            continue
+        dims.append(raw)
+    return dims
+
+
+def _filter_match_key(raw: Any, *, table: str = "") -> tuple[str, str] | None:
+    if isinstance(raw, str) and raw.strip():
+        column = column_leaf(raw)
+        return (column_table(raw, table).lower(), column.lower()) if column else None
+    if not isinstance(raw, dict):
+        return None
+    source = raw.get("column") if raw.get("column") not in (None, "") else raw.get("name")
+    if source in (None, ""):
+        source = raw.get("alias")
+    column = column_leaf(source)
+    if not column:
+        return None
+    return column_table(source, raw.get("table") or table).lower(), column.lower()
+
+
+def _extract_column_ref(raw: Any) -> dict[str, Any] | None:
+    if not isinstance(raw, dict):
+        return None
+    ref = raw.get("column") if isinstance(raw.get("column"), dict) else raw
+    if isinstance(ref, dict) and ref.get("name") and not isinstance(ref.get("name"), dict):
+        return {"name": str(ref.get("name")), "id": str(ref.get("id") or "")}
+    return None
+
+
+def _build_column_pool(
+    items_by_id: dict[str, dict[str, Any]],
+    filter_rows: list[dict[str, Any]],
+) -> dict[Any, Any]:
+    pool: dict[Any, Any] = {}
+    table_prefixes: dict[str, str] = {}
+
+    def _index_ref(ref: Any, fallback_table: str = "") -> None:
+        extracted = _extract_column_ref(ref)
+        if not extracted:
+            return
+        name = extracted["name"]
+        leaf = column_leaf(name).lower()
+        tbl = (column_table(name) or fallback_table).lower()
+        if tbl and tbl not in table_prefixes and "." in name:
+            table_prefixes[tbl] = name.rsplit(".", 1)[0]
+        if leaf:
+            if tbl:
+                pool[(tbl, leaf)] = extracted
+            if ("", leaf) not in pool:
+                pool[("", leaf)] = extracted
+
+    for row in filter_rows:
+        _index_ref(row.get("column_ref"), str(row.get("table") or ""))
+        _index_ref(row.get("column"), str(row.get("table") or ""))
+
+    for item in items_by_id.values():
+        dm = _item_data_model(item)
+        for col in dm.get("columns") or []:
+            if isinstance(col, dict):
+                _index_ref(col.get("column"))
+        for flt in dm.get("filters") or []:
+            if isinstance(flt, dict):
+                _index_ref(flt.get("column"))
+
+    pool["__prefixes__"] = table_prefixes
+    return pool
+
+
+def _resolve_column_ref(
+    data_model: dict[str, Any],
+    column: str,
+    table: str = "",
+    *,
+    pool: dict[Any, Any] | None = None,
+    spec: dict[str, Any] | None = None,
+) -> Any:
+    """Prefer the wire ``{name, id}`` ref from spec, columns, filters, or dashboard pool."""
+    if spec:
+        extracted = _extract_column_ref(spec.get("column_ref")) or _extract_column_ref(spec.get("column"))
+        if extracted:
+            return extracted
+
+    target = column_leaf(column)
+    if not target:
+        return column
+
+    # 1. Target data_model.columns
+    for raw in data_model.get("columns") or []:
+        if not isinstance(raw, dict):
+            continue
+        alias = str(raw.get("alias") or "").strip()
+        ref = raw.get("column")
+        leaf = column_leaf(ref if ref not in (None, "") else alias)
+        if leaf.lower() != target.lower() and alias.lower() != target.lower():
+            continue
+        extracted = _extract_column_ref(ref)
+        if extracted:
+            return extracted
+        if isinstance(ref, dict) or (isinstance(ref, str) and ref.strip()):
+            return ref
+
+    # 2. Target data_model.filters
+    for raw in data_model.get("filters") or []:
+        if not isinstance(raw, dict):
+            continue
+        alias = str(raw.get("alias") or raw.get("label") or "").strip()
+        ref = raw.get("column")
+        leaf = column_leaf(ref if ref not in (None, "") else alias)
+        if leaf.lower() != target.lower() and alias.lower() != target.lower():
+            continue
+        extracted = _extract_column_ref(ref)
+        if extracted:
+            return extracted
+
+    # 3. Global dashboard pool across all items
+    if pool:
+        tbl = table.lower()
+        if (tbl, target.lower()) in pool:
+            return pool[(tbl, target.lower())]
+        if ("", target.lower()) in pool:
+            return pool[("", target.lower())]
+        prefixes = pool.get("__prefixes__") or {}
+        if tbl and tbl in prefixes:
+            return {"name": f"{prefixes[tbl]}.{target}", "id": ""}
+
+    return column
+
+
+def _wire_slicer_filter(
+    spec: dict[str, Any],
+    data_model: dict[str, Any],
+    *,
+    index: int,
+    pool: dict[Any, Any] | None = None,
+) -> dict[str, Any]:
+    column = column_leaf(spec.get("column") if spec.get("column") not in (None, "") else spec.get("name"))
+    table = column_table(
+        spec.get("column") if spec.get("column") not in (None, "") else spec.get("name"),
+        spec.get("table"),
+    )
+    alias = str(spec.get("alias") or spec.get("label") or filter_title(spec) or column or "Filter").strip()
+    label = str(spec.get("label") or spec.get("alias") or alias).strip()
+    column_ref = _resolve_column_ref(data_model, column, table, pool=pool, spec=spec)
+    values = spec.get("default_values")
+    if values is None:
+        values = spec.get("defaultValues")
+    wire: dict[str, Any] = {
+        "column": column_ref,
+        "label": label,
+        "alias": alias,
+        "operator": "AND",
+        "id": index,
+        "mode": "auto",
+        "condition": "EQUALS",
+        "values": list(values or []),
+    }
+    if table and not isinstance(column_ref, dict):
+        wire["table"] = table
+    return wire
+
+
+def _rebuild_filter_expression(filters: list[Any]) -> list[str] | None:
+    aliases: list[str] = []
+    for raw in filters:
+        if not isinstance(raw, dict):
+            continue
+        alias = str(raw.get("alias") or raw.get("label") or "").strip()
+        if not alias:
+            alias = column_leaf(raw.get("column") or raw.get("name") or raw.get("alias"))
+        if alias:
+            aliases.append(alias)
+    if not aliases:
+        return None
+    if len(aliases) == 1:
+        return [aliases[0]]
+    joined = aliases[0]
+    for alias in aliases[1:]:
+        joined = f"{joined} AND {alias}"
+    return [joined]
+
+
+def _inject_filters_into_item(
+    item: dict[str, Any],
+    filter_specs: list[dict[str, Any]],
+    *,
+    pool: dict[Any, Any] | None = None,
+) -> None:
+    """Ensure source chart data_model.filters includes each dashboard slicer column."""
+    if not filter_specs:
+        return
+    data_model = dict(_item_data_model(item))
+    existing = [
+        dict(raw) if isinstance(raw, dict) else raw
+        for raw in (data_model.get("filters") or [])
+    ]
+    seen: set[tuple[str, str]] = set()
+    for raw in existing:
+        key = _filter_match_key(raw)
+        if key:
+            seen.add(key)
+    changed = False
+    for spec in filter_specs:
+        key = _filter_match_key(spec)
+        spec_alias = str(spec.get("alias") or spec.get("label") or "").strip()
+        if not key or key in seen:
+            if key and spec_alias:
+                for raw in existing:
+                    if isinstance(raw, dict) and _filter_match_key(raw) == key:
+                        if raw.get("alias") != spec_alias or raw.get("label") != spec_alias:
+                            raw["alias"] = spec_alias
+                            raw["label"] = spec_alias
+                            changed = True
+            continue
+        existing.append(_wire_slicer_filter(spec, data_model, index=len(existing), pool=pool))
+        seen.add(key)
+        changed = True
+    if not existing:
+        return
+    if (
+        not changed
+        and data_model.get("filters")
+        and data_model.get("filterExpression")
+        and data_model.get("customFilterExpression")
+    ):
+        return
+    for idx, raw in enumerate(existing):
+        if isinstance(raw, dict):
+            raw["id"] = idx
+    data_model["filters"] = existing
+    expr = _rebuild_filter_expression(existing)
+    if expr is not None:
+        data_model["filterExpression"] = expr
+    tokens = " AND ".join(f"${{{idx}}}" for idx in range(len(existing)))
+    if tokens:
+        data_model["customFilterExpression"] = f" {tokens} "
+    item["data_model"] = data_model
+    report = item.get("report_model") if isinstance(item.get("report_model"), dict) else None
+    if report is not None:
+        item["report_model"] = {**report, "data_model": data_model}
+
+
+def _sync_source_filters(
+    items_by_id: dict[str, dict[str, Any]],
+    filter_rows: list[dict[str, Any]],
+) -> None:
+    """Write emitted instant.filter columns onto each source item's data_model."""
+    pool = _build_column_pool(items_by_id, filter_rows)
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for row in filter_rows:
+        source_id = str(row.get("sourceItemId") or "").strip()
+        if not source_id or source_id not in items_by_id:
+            continue
+        by_source.setdefault(source_id, []).append(row)
+    for source_id, specs in by_source.items():
+        _inject_filters_into_item(items_by_id[source_id], specs, pool=pool)
+
+
 def _item_filters(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Dashboard slicers only from filters that already exist on chat viz items."""
+    """Dashboard slicers from data_model filters/dimensions, then viz shelves."""
     filters: list[dict[str, Any]] = []
     item_ids = [_item_key(entry) for entry in items if _item_key(entry)]
     seen: set[tuple[str, str]] = set()
     for item in items:
-        sql_filters = []
         model = item.get("viz_model") if isinstance(item.get("viz_model"), dict) else {}
         viz_filters = (model.get("data") or {}).get("filters") or []
         if not viz_filters:
             viz_filters = (((item.get("viz") or {}).get("viz_model") or {}).get("data") or {}).get("filters") or []
-        data_filters = (item.get("data_model") or {}).get("filters") or [] if isinstance(item.get("data_model"), dict) else []
+        data_filters = _item_data_model(item).get("filters") or []
+        dim_filters = _data_model_dimension_filters(item)
         row_dims = [{"name": name} for name in _viz_rows(item)]
-        for raw in list(sql_filters) + list(viz_filters) + list(data_filters) + row_dims:
+        # Prefer real filters and dimension columns over measure-like row shelves.
+        candidates = list(data_filters) + list(dim_filters) + list(viz_filters) + row_dims
+        for raw in candidates:
+            if isinstance(raw, str):
+                raw = {"name": raw}
             if not isinstance(raw, dict):
                 continue
-            column = str(raw.get("column") or raw.get("name") or "").strip()
-            table = str(raw.get("table") or "").strip()
+            source = raw.get("column") if raw.get("column") not in (None, "") else raw.get("name")
+            if source in (None, ""):
+                source = raw.get("alias")
+            column = column_leaf(source)
+            table = column_table(source, raw.get("table"))
             key = (table.lower(), column.lower())
             if not column or key in seen:
                 continue
             seen.add(key)
-            filters.append(
-                {
-                    "kind": "filter",
-                    "column": column,
-                    "table": table,
-                    "sourceItemId": _item_key(item) or (item_ids[0] if item_ids else ""),
-                    "listeners": list(item_ids),
-                    "x": 0,
-                    "y": 0,
-                    "w": _FILTER_W,
-                    "h": _FILTER_H,
-                }
-            )
+            col_ref = raw.get("column") if isinstance(raw, dict) and isinstance(raw.get("column"), dict) else None
+            label = str(raw.get("label") or raw.get("alias") or "").strip()
+            filt_item: dict[str, Any] = {
+                "kind": "filter",
+                "column": column,
+                "table": table,
+                "label": label,
+                "sourceItemId": _item_key(item) or (item_ids[0] if item_ids else ""),
+                "x": 0,
+                "y": 0,
+                "w": _FILTER_W,
+                "h": _FILTER_H,
+            }
+            if col_ref:
+                filt_item["column_ref"] = col_ref
+            filters.append(filt_item)
     return filters
+
+
+def _html_fragment(value: Any) -> str:
+    """Narrative tile body. Plain prose becomes a paragraph; markup is kept."""
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if _HTML_TAG_RE.search(text):
+        cleaned = _UNSAFE_BLOCK_RE.sub("", text)
+        cleaned = _UNSAFE_TAG_RE.sub("", cleaned)
+        cleaned = _ON_ATTR_RE.sub("", cleaned)
+        return cleaned[:4000]
+    return f"<p>{html.escape(text)}</p>"[:4000]
 
 
 def _title_from_item(item: dict[str, Any] | None, *, kind: str, raw: dict[str, Any]) -> str:
@@ -281,8 +576,8 @@ def _title_from_item(item: dict[str, Any] | None, *, kind: str, raw: dict[str, A
     props = model.get("properties") if isinstance(model.get("properties"), dict) else {}
     viz = source.get("viz") if isinstance(source.get("viz"), dict) else {}
     if kind == "filter":
-        return str(raw.get("title") or raw.get("column") or "Filter")
-    if kind == "summary":
+        return filter_title(raw)
+    if kind in {"summary", "text"}:
         return str(raw.get("title") or "Summary")
     if kind in {"svg", "image", "separator"}:
         return str(raw.get("title") or "")
@@ -303,49 +598,75 @@ def _dashboard_model(
     *,
     kind: str,
     item: dict[str, Any] | None = None,
-    theme_color: str = "#1677ff",
 ) -> dict[str, Any]:
-    html = str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000]
-    title = _title_from_item(item, kind=kind, raw=raw)
-    model = {
-        "kind": kind,
-        "title": title,
-        "layout": {
-            "x": int(raw.get("x") or 0),
-            "y": int(raw.get("y") or 0),
-            "w": int(raw.get("w") or 0),
-            "h": int(raw.get("h") or 0),
-        },
-        "header": _tile_header(raw, kind=kind, title=title, theme_color=theme_color),
-        "css": str(raw.get("css") or "")[:4000],
-        "js": str(raw.get("js") or "")[:4000],
-        "html": html,
-    }
-    if kind == "viz":
-        model["export"] = bool(raw.get("export", True))
-        listeners = [str(listener) for listener in (raw.get("listeners") or []) if str(listener)]
-        if listeners:
-            model["listeners"] = listeners
-    if kind == "filter":
-        model["column"] = str(raw.get("column") or "")
-        model["table"] = str(raw.get("table") or "")
-        model["listeners"] = list(raw.get("listeners") or [])
-        model["sourceItemId"] = str(raw.get("sourceItemId") or "")
-        model["defaultValues"] = _default_values(raw)
+    body = str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000]
     if kind in {"summary", "text"}:
-        # Story / insight body lives in html; keep kind as emitted (text alias preserved).
-        pass
-    return model
+        body = _html_fragment(body)
+    title = _title_from_item(item, kind=kind, raw=raw)
+    export = None
+    column = None
+    table = None
+    source_item_id = None
+    default_values = None
+    label = None
+    alias = None
+    if kind == "viz":
+        export = bool(raw.get("export", True))
+    if kind == "filter":
+        source = raw.get("column") if raw.get("column") not in (None, "") else raw.get("name")
+        column = column_leaf(source)
+        table = column_table(source, raw.get("table"))
+        source_item_id = str(raw.get("sourceItemId") or "")
+        default_values = _default_values(raw)
+        alias = str(raw.get("alias") or raw.get("label") or "").strip()
+        label = str(raw.get("label") or raw.get("alias") or alias).strip()
+    return DashboardModel(
+        Kind.wire(kind),
+        title=title,
+        label=label or "",
+        alias=alias or "",
+        layout=Layout(raw.get("x"), raw.get("y"), raw.get("w"), raw.get("h")),
+        css=str(raw.get("css") or "")[:4000],
+        js=str(raw.get("js") or "")[:4000],
+        html=body,
+        export=export,
+        column=column,
+        table=table,
+        source_item_id=source_item_id,
+        default_values=default_values,
+    ).to_dict()
+
+
+def _summary_insight(source: dict[str, Any]) -> dict[str, str]:
+    summary = source.get("summary")
+    if isinstance(summary, dict):
+        insight = str(summary.get("insight") or summary.get("text") or "")
+    else:
+        insight = str(summary or "")
+    return {"insight": insight}
+
+
+def _apply_reset_origin(filters: list[dict[str, Any]]) -> tuple[int, int]:
+    """Place the 1x1 apply-reset control on the first filter row, to the right of those filters."""
+    row_y = min(int(entry.get("y") or 0) for entry in filters)
+    row = [entry for entry in filters if int(entry.get("y") or 0) == row_y]
+    right = max(int(entry.get("x") or 0) + int(entry.get("w") or 1) for entry in row)
+    row_h = max(int(entry.get("h") or 1) for entry in row)
+    if right + 1 <= GRID_COLUMNS:
+        return right, row_y
+    return 0, row_y + row_h
 
 
 def _output_item(base: dict[str, Any] | None, *, component_id: str, dashboard_model: dict[str, Any]) -> dict[str, Any]:
     source = dict(base or {})
-    kind = str((dashboard_model or {}).get("kind") or "viz")
+    model_dict = dict(dashboard_model or {})
+    kind = Kind.wire(str(model_dict.get("kind") or Kind.INSTANT))
     item = {
         "component_id": component_id,
-        "dashboard_model": dashboard_model,
+        "itemId": component_id,
+        **model_dict,
     }
-    if kind == "viz":
+    if kind == Kind.INSTANT:
         viz_model = source.get("viz_model")
         if not isinstance(viz_model, dict):
             nested = source.get("viz") if isinstance(source.get("viz"), dict) else {}
@@ -360,9 +681,12 @@ def _output_item(base: dict[str, Any] | None, *, component_id: str, dashboard_mo
             "data_model": data_model,
             "viz_model": viz_model,
         }
+        seq = str(source.get("chat_sequence_id") or source.get("id") or "")
         item["id"] = source.get("id") or source.get("chat_sequence_id")
+        item["chat_sequence_id"] = seq
+        item["itemId"] = seq or component_id
         item["user_query"] = source.get("user_query")
-        item["summary"] = source.get("summary")
+        item["summary"] = _summary_insight(source)
     return item
 
 
@@ -388,6 +712,8 @@ def _push_extra(widget_rects: list[dict[str, Any]], used_ids: set[str], *, kind:
             "kind": kind,
             "component_id": aid,
             "title": str(fields.get("title") or ""),
+            "label": str(fields.get("label") or fields.get("alias") or ""),
+            "alias": str(fields.get("alias") or fields.get("label") or ""),
             "header_title": str(fields.get("header_title") or fields.get("title") or ""),
             "x": x,
             "y": y,
@@ -398,7 +724,6 @@ def _push_extra(widget_rects: list[dict[str, Any]], used_ids: set[str], *, kind:
             "html": str(fields.get("html") or fields.get("text") or fields.get("svg") or "")[:4000],
             "column": str(fields.get("column") or ""),
             "table": str(fields.get("table") or ""),
-            "listeners": list(fields.get("listeners") or []),
             "sourceItemId": str(fields.get("sourceItemId") or ""),
             "default_values": _default_values(fields),
             "export": bool(fields.get("export", True)),
@@ -411,10 +736,8 @@ def _ensure_required_extras(
     items: list[dict[str, Any]],
     *,
     used_ids: set[str],
-    known: set[str],
 ) -> None:
     present = {str(row.get("kind") or "") for row in widget_rects}
-    listeners = list(known)
     if "summary" not in present and "text" not in present:
         text = " ".join(str(item.get("summary") or "").strip() for item in items).strip()
         if not text:
@@ -440,9 +763,9 @@ def _ensure_required_extras(
                 used_ids,
                 kind="filter",
                 title=entry.get("column") or "Filter",
+                label=entry.get("label") or "",
                 column=entry.get("column") or "",
                 table=entry.get("table") or "",
-                listeners=listeners,
                 sourceItemId=entry.get("sourceItemId") or "",
                 x=filter_x,
                 y=filter_y,
@@ -544,7 +867,7 @@ def default_layout(items: list[dict[str, Any]]) -> dict[str, Any]:
             y += h
 
     return {
-        "theme": dict(_DEFAULT_THEME),
+        "dashboard_config": _dashboard_config({}),
         "widgets": widgets + extra,
     }
 
@@ -632,7 +955,6 @@ def apply_decision(
                     "js": str(raw.get("js") or "")[:4000],
                     "html": str(raw.get("html") or raw.get("svg") or "")[:4000],
                     "export": bool(raw.get("export", True)),
-                    "listeners": list(raw.get("listeners") or []),
                 }
             )
             continue
@@ -642,71 +964,67 @@ def apply_decision(
         # Ignore LLM component_id for extras (summary/kpi/filter/svg); assign randomly.
         aid = new_component_id(used_ids)
         x, y, w, h = _widget_size(raw, default_w=default_w, default_h=default_h, min_w=1)
-        listeners = [
-            str(listener)
-            for listener in (raw.get("listeners") or list(known))
-            if str(listener) in known
-        ]
-        widget_rects.append(
-            {
-                "kind": kind,
-                "component_id": aid,
-                "x": x,
-                "y": y,
-                "w": w,
-                "h": h,
-                "css": str(raw.get("css") or "")[:4000],
-                "js": str(raw.get("js") or "")[:4000],
-                "html": str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000],
-                "title": str(raw.get("title") or ""),
-                "header_title": str(raw.get("header_title") or raw.get("title") or ""),
-                "header": raw.get("header") if isinstance(raw.get("header"), dict) else {},
-                "column": str(raw.get("column") or ""),
-                "table": str(raw.get("table") or ""),
-                "listeners": listeners,
-                "sourceItemId": str(raw.get("sourceItemId") or (next(iter(known), ""))),
-                "default_values": _default_values(raw),
-                "export": bool(raw.get("export", True)),
-            }
+        raw_col = raw.get("column")
+        col_ref = (
+            raw.get("column_ref")
+            if isinstance(raw.get("column_ref"), dict)
+            else (raw_col if isinstance(raw_col, dict) else None)
         )
+        extra_row: dict[str, Any] = {
+            "kind": kind,
+            "component_id": aid,
+            "x": x,
+            "y": y,
+            "w": w,
+            "h": h,
+            "css": str(raw.get("css") or "")[:4000],
+            "js": str(raw.get("js") or "")[:4000],
+            "html": str(raw.get("html") or raw.get("text") or raw.get("svg") or "")[:4000],
+            "title": str(raw.get("title") or ""),
+            "label": str(raw.get("label") or raw.get("alias") or ""),
+            "alias": str(raw.get("alias") or raw.get("label") or ""),
+            "header_title": str(raw.get("header_title") or raw.get("title") or ""),
+            "header": raw.get("header") if isinstance(raw.get("header"), dict) else {},
+            "column": column_leaf(raw.get("column") if raw.get("column") not in (None, "") else raw.get("name")),
+            "table": column_table(
+                raw.get("column") if raw.get("column") not in (None, "") else raw.get("name"),
+                raw.get("table"),
+            ),
+            "sourceItemId": str(raw.get("sourceItemId") or (next(iter(known), ""))),
+            "default_values": _default_values(raw),
+            "export": bool(raw.get("export", True)),
+        }
+        if col_ref:
+            extra_row["column_ref"] = col_ref
+        widget_rects.append(extra_row)
 
     for aid, item in by_aid.items():
         if aid in seen_viz:
             continue
         match = next((row for row in fallback["widgets"] if row.get("component_id") == aid), None)
         if match:
-            widget_rects.append({**match, "css": "", "js": "", "html": "", "export": True, "listeners": []})
+            widget_rects.append({**match, "css": "", "js": "", "html": "", "export": True})
 
-    _ensure_required_extras(widget_rects, items, used_ids=used_ids, known=known)
+    _ensure_required_extras(widget_rects, items, used_ids=used_ids)
 
-    theme_raw = payload.get("theme") if isinstance(payload.get("theme"), dict) else {}
-    theme = {
-        "color": str(theme_raw.get("color") or fallback["theme"]["color"]),
-        "background": str(theme_raw.get("background") or fallback["theme"]["background"]),
-    }
-    theme_color = str(theme.get("color") or _DEFAULT_THEME["color"])
-
+    dashboard_config = _dashboard_config(payload)
+    parameters = _dashboard_parameters(payload, config=dashboard_config)
+    dashboard_config = {**dashboard_config, "parameters": parameters}
     title = str(payload.get("title") or "").strip()
     if not title:
         title = next(
             (str(item.get("user_query") or "").strip() for item in items if str(item.get("user_query") or "").strip()),
             "Dashboard",
         )
-    header = _dashboard_header(payload, theme=theme, title=title)
-    parameters = _dashboard_parameters(payload)
 
     clamped = resolve_overlaps(widget_rects)
+    _sync_source_filters(
+        by_aid,
+        [row for row in clamped if str(row.get("kind") or "") == "filter"],
+    )
     output_items: list[dict[str, Any]] = []
-    layout: list[dict[str, Any]] = []
     filters: list[dict[str, Any]] = []
     decorations: list[dict[str, Any]] = []
-    variables: dict[str, list[Any]] = {}
-    if isinstance(payload.get("variables"), dict):
-        for key, value in payload["variables"].items():
-            name = str(key or "").strip()
-            if not name:
-                continue
-            variables[name] = list(value) if isinstance(value, list) else ([] if value in (None, "") else [value])
     summary = {"title": "", "text": "", "x": 0, "y": 0, "w": 12, "h": 0}
 
     for row in clamped:
@@ -716,33 +1034,18 @@ def apply_decision(
             row,
             kind=kind,
             item=by_aid.get(aid) if kind == "viz" else None,
-            theme_color=theme_color,
         )
         if kind == "viz":
             output_items.append(_output_item(by_aid.get(aid), component_id=aid, dashboard_model=model))
-            layout.append(
-                {
-                    "itemId": str((by_aid.get(aid) or {}).get("id") or aid),
-                    "component_id": aid,
-                    "x": row["x"],
-                    "y": row["y"],
-                    "w": row["w"],
-                    "h": row["h"],
-                }
-            )
         else:
             output_items.append(_output_item(None, component_id=aid, dashboard_model=model))
             if kind == "filter":
-                column = str(row.get("column") or "")
                 default_values = list(model.get("defaultValues") or [])
-                if column and column not in variables:
-                    variables[column] = default_values
                 filters.append(
                     {
                         "column": row.get("column"),
                         "table": row.get("table"),
                         "sourceItemId": row.get("sourceItemId"),
-                        "listeners": row.get("listeners") or [],
                         "defaultValues": default_values,
                         "x": row["x"],
                         "y": row["y"],
@@ -754,7 +1057,7 @@ def apply_decision(
             elif kind in {"summary", "text"}:
                 summary = {
                     "title": str(row.get("title") or model.get("title") or ""),
-                    "text": str(row.get("html") or ""),
+                    "text": str(model.get("html") or ""),
                     "x": row["x"],
                     "y": row["y"],
                     "w": row["w"],
@@ -775,16 +1078,16 @@ def apply_decision(
                     }
                 )
 
+    if filters and parameters.get("floatingFilter"):
+        origin_x, origin_y = _apply_reset_origin(filters)
+        output_items.append(ApplyResetComponent(x=origin_x, y=origin_y).to_dict())
+
     return {
         "title": title,
-        "header": header,
-        "parameters": parameters,
-        "variables": variables,
-        "theme": theme,
+        "dashboard_config": dashboard_config,
         "items": output_items,
         "summary": summary,
         "sections": [],
         "filters": filters,
-        "layout": layout,
         "decorations": decorations,
     }

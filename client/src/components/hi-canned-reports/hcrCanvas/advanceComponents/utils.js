@@ -878,97 +878,183 @@ const getMeasureCellsByCellIndex = (measureCells) => {
 }
 
 
-const getCrosstabLayout = (config = {}) => {
-    const { columnGroups = [], rowGroups = [], measureCells = [], colWidths = [], rowHeights = [] } = config || {};
-    const rowLength = rowGroups.length,
-        columnLength = columnGroups.length;
+const CT_TOTAL_POSITIONS = ["NONE", "START", "END"];
 
-    const totalRowsCols = rowLength + columnLength + 1;
-    const columnEnd = columnLength + 1,
-        rowEnd = rowLength + 1;
+const getCTGroupTotalPosition = (group = {}) => {
+    const position = (group?.totalPosition ?? "END").toString().toUpperCase();
+    return CT_TOTAL_POSITIONS.includes(position) ? position : "END";
+}
+
+const getCTDataOrder = (groups = []) => {
+    const items = [{ type: "detail", groupIndex: -1 }];
+    for (let index = groups.length - 1; index >= 0; index -= 1) {
+        const position = getCTGroupTotalPosition(groups[index]);
+        if (position === "NONE") {
+            continue;
+        }
+        const item = { type: "total", groupIndex: index };
+        if (position === "START") {
+            items.unshift(item);
+        } else {
+            items.push(item);
+        }
+    }
+    return items;
+}
+
+const getCTHeaderItemRange = (items = [], groupIndex = 0) => {
+    let start = -1;
+    let end = -1;
+    items.forEach((item, index) => {
+        if (item.type === "detail" || item.groupIndex > groupIndex) {
+            if (start === -1) {
+                start = index;
+            }
+            end = index;
+        }
+    });
+    return [Math.max(start, 0), end + 1];
+}
+
+const getCTTotalItemIndex = (items = [], groupIndex = 0) => {
+    return items.findIndex((item) => item.type === "total" && item.groupIndex === groupIndex);
+}
+
+const getCTDataItemIndex = (items = [], groupName = "", groups = []) => {
+    if (!groupName) {
+        return items.findIndex((item) => item.type === "detail");
+    }
+    const groupIndex = groups.findIndex((group) => group.name === groupName);
+    if (groupIndex === -1) {
+        return -1;
+    }
+    return getCTTotalItemIndex(items, groupIndex);
+}
+
+const getCTColumnTrackIndex = (item = {}, columnLength = 0, rowLength = 0) => {
+    return item.type === "detail" ? rowLength : rowLength + columnLength - item.groupIndex;
+}
+
+const getCTRowTrackIndex = (item = {}, rowLength = 0, columnLength = 0) => {
+    return item.type === "detail" ? columnLength : columnLength + rowLength - item.groupIndex;
+}
+
+const getCrosstabTrackIndexes = (config = {}) => {
+    const { columnGroups = [], rowGroups = [] } = config || {};
+    const columnOrder = getCTDataOrder(columnGroups);
+    const rowOrder = getCTDataOrder(rowGroups);
+    return {
+        columnOrder,
+        rowOrder,
+        colIndexes: [
+            ...rowGroups.map((_, index) => index),
+            ...columnOrder.map((item) => getCTColumnTrackIndex(item, columnGroups.length, rowGroups.length))
+        ],
+        rowIndexes: [
+            ...columnGroups.map((_, index) => index),
+            ...rowOrder.map((item) => getCTRowTrackIndex(item, rowGroups.length, columnGroups.length))
+        ]
+    };
+}
+
+const getCrosstabLayout = (config = {}) => {
+    const { columnGroups = [], rowGroups = [], measureCells = [] } = config || {};
+    const rowLength = rowGroups.length;
+    const columnLength = columnGroups.length;
+    const { columnOrder, rowOrder } = getCrosstabTrackIndexes(config);
+
+    const columnEnd = columnLength + 1;
+    const rowEnd = rowLength + 1;
+    const rowHeaderWidths = rowGroups.map((_, index) => index);
+    const columnHeaderHeights = columnGroups.map((_, index) => index);
 
     const cells = [
-        { id: "crosstab_header_cell", col: [1, rowEnd], row: [1, columnEnd], widthUpdaters: rowGroups.map((_, i) => i), heightUpdaters: columnGroups.map((_, i) => i) }
-    ]
+        {
+            id: "crosstab_header_cell",
+            col: [1, rowEnd],
+            row: [1, columnEnd],
+            widthUpdaters: rowHeaderWidths,
+            heightUpdaters: columnHeaderHeights
+        }
+    ];
 
-    function getWIndexesWithoutRow() {
-        return colWidths.map((_, i) => i > rowLength - 1 ? i : null).filter(Boolean);
-    }
-
-    function getWIndexesWithoutColumn() {
-        return colWidths.map((_, i) => i < rowLength ? i : null).filter((item) => item !== null);
-    }
-
-    function getHIndexesWithoutRow() {
-        return rowHeights.map((_, i) => i < columnLength ? i : null).filter((item) => item !== null);
-    }
-
-    function getHIndexesWithRowOnly() {
-        return rowHeights.map((_, i) => i > columnLength - 1 ? i : null).filter(Boolean);
-    }
-
-
-    columnGroups.forEach((grp, cIndex, arr) => {
-        const nextArr = arr.slice(cIndex + 1);
-
+    columnGroups.forEach((grp, cIndex) => {
         const [hCell, tCell] = grp.cells || [];
-        const widths = getWIndexesWithoutRow();
-        const heights = getHIndexesWithoutRow();
+        const [headerStart, headerEnd] = getCTHeaderItemRange(columnOrder, cIndex);
+        const totalIndex = getCTTotalItemIndex(columnOrder, cIndex);
+
         cells.push({
-            col: [rowEnd, rowEnd + nextArr.length + 1],
+            col: [rowEnd + headerStart, rowEnd + headerEnd],
             row: [cIndex + 1, cIndex + 2],
-            widthUpdaters: widths.slice(0).filter((_, i, arr) => i < arr.length - 1 - cIndex),
-            heightUpdaters: [heights[cIndex]],
+            widthUpdaters: columnOrder.slice(headerStart, headerEnd).map((item) => getCTColumnTrackIndex(item, columnLength, rowLength)),
+            heightUpdaters: [cIndex],
             ...hCell
-        })
-        cells.push({
-            col: [rowEnd + nextArr.length + 1, totalRowsCols - cIndex],
-            row: [cIndex + 1, columnEnd],
-            widthUpdaters: [widths.reverse()[cIndex]],
-            heightUpdaters: heights.slice(cIndex),
-            ...tCell
-        })
-    })
+        });
 
-    rowGroups.forEach((grp, rIndex, arr) => {
-        const nextArr = arr.slice(rIndex + 1);
+        if (totalIndex !== -1) {
+            cells.push({
+                col: [rowEnd + totalIndex, rowEnd + totalIndex + 1],
+                row: [cIndex + 1, columnEnd],
+                widthUpdaters: [getCTColumnTrackIndex(columnOrder[totalIndex], columnLength, rowLength)],
+                heightUpdaters: columnHeaderHeights.slice(cIndex),
+                ...tCell
+            });
+        }
+    });
+
+    rowGroups.forEach((grp, rIndex) => {
         const [hCell, tCell] = grp.cells || [];
-        const widths = getWIndexesWithoutColumn()
-        const heights = getHIndexesWithRowOnly()
-        cells.push({
-            col: [rIndex + 1, rowEnd],
-            row: [totalRowsCols - rIndex, totalRowsCols - rIndex + 1],
-            widthUpdaters: widths.slice(rIndex),
-            heightUpdaters: [heights.reverse()[rIndex]],
-            ...tCell
-        })
+        const [headerStart, headerEnd] = getCTHeaderItemRange(rowOrder, rIndex);
+        const totalIndex = getCTTotalItemIndex(rowOrder, rIndex);
+
+        if (totalIndex !== -1) {
+            cells.push({
+                col: [rIndex + 1, rowEnd],
+                row: [columnEnd + totalIndex, columnEnd + totalIndex + 1],
+                widthUpdaters: rowHeaderWidths.slice(rIndex),
+                heightUpdaters: [getCTRowTrackIndex(rowOrder[totalIndex], rowLength, columnLength)],
+                ...tCell
+            });
+        }
 
         cells.push({
-            col: [rIndex + 1, nextArr.length ? rIndex + 2 : rowEnd],
-            row: [columnEnd, totalRowsCols - rIndex],
-            widthUpdaters: [widths[rIndex]],
-            heightUpdaters: heights.slice(0).filter((_, i, arr) => i < arr.length - 1 - rIndex),
+            col: [rIndex + 1, rIndex + 2],
+            row: [columnEnd + headerStart, columnEnd + headerEnd],
+            widthUpdaters: [rIndex],
+            heightUpdaters: rowOrder.slice(headerStart, headerEnd).map((item) => getCTRowTrackIndex(item, rowLength, columnLength)),
             ...hCell
-        })
-    })
+        });
+    });
 
     const measureCellsByCategory = Object.values(getMeasureCellsByCellIndex(measureCells));
+    const hasColumnGroups = columnLength > 0;
+    const hasRowGroups = rowLength > 0;
 
+    measureCellsByCategory.forEach((mCells, categoryIndex) => {
+        mCells.forEach((cell, cellIndex) => {
+            const columnItemIndex = hasColumnGroups
+                ? getCTDataItemIndex(columnOrder, cell.columnTotalGroup, columnGroups)
+                : cellIndex;
+            const rowItemIndex = hasRowGroups
+                ? getCTDataItemIndex(rowOrder, cell.rowTotalGroup, rowGroups)
+                : categoryIndex;
 
-    measureCellsByCategory.forEach((mCells, rIndex) => {
-        const widths = getWIndexesWithoutRow();
-        const heights = getHIndexesWithRowOnly()
+            if (columnItemIndex === -1 || rowItemIndex === -1) {
+                return;
+            }
 
-        mCells.forEach((cell, cIndex) => {
+            const columnItem = columnOrder[columnItemIndex] || columnOrder[0];
+            const rowItem = rowOrder[rowItemIndex] || rowOrder[0];
+
             cells.push({
-                col: [rowEnd + cIndex, rowEnd + cIndex + 1],
-                row: [columnEnd + rIndex, columnEnd + rIndex + 1],
-                widthUpdaters: [widths[cIndex]],
-                heightUpdaters: [heights[rIndex]],
+                col: [rowEnd + columnItemIndex, rowEnd + columnItemIndex + 1],
+                row: [columnEnd + rowItemIndex, columnEnd + rowItemIndex + 1],
+                widthUpdaters: [getCTColumnTrackIndex(columnItem, columnLength, rowLength)],
+                heightUpdaters: [getCTRowTrackIndex(rowItem, rowLength, columnLength)],
                 ...cell
-            })
-        })
-    })
+            });
+        });
+    });
 
     return cells;
 }
@@ -992,6 +1078,7 @@ export {
     getCTSelectedGroup,
     getHCRCrosstabContextMenu,
     getMeasureCellsByCellIndex,
-    getCrosstabLayout
+    getCrosstabLayout,
+    getCrosstabTrackIndexes
 };
 

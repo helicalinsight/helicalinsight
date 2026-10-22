@@ -1,7 +1,129 @@
 import Base64 from "./utils/Base64";
 import qs from "qs";
+import { v4 as uuidv4 } from "uuid";
 import notify from "../components/hi-notifications/notify";
 import HIStreamClient from "../app/HiStreamClient";
+import {
+  parseContentDispositionFileName,
+  resolveDownloadChunkSize,
+  runResumableDownload,
+} from "./resumable-download";
+import {
+  formDataHasFile,
+  isResumableUploadEnabled,
+  resolveUploadChunkSize,
+  runResumableUpload,
+} from "./resumable-upload";
+
+/**
+ * Shared resumable entry: resolve app settings + run prepare → /fileDownload.
+ * Used by report data export, print export, and resource ZIP export (DRY).
+ * Enabled only when setting.xml <resumableDownload>true</resumableDownload>
+ * (exposed as applicationSettingsData.resumableDownload; default false).
+ */
+const isResumableDownloadEnabled = (getState) =>
+  Boolean(getState?.()?.app?.applicationSettingsData?.resumableDownload);
+
+/**
+ * Non-resumable transfers: after user abort/cancel, ignore late progress/success
+ * callbacks so the progress dialog does not reopen.
+ */
+const attachTransferAbortGuard = (hiAxios, { cancelToken } = {}) => {
+  let cancelled = false;
+  const markCancelled = () => {
+    cancelled = true;
+  };
+  const originalAbort = hiAxios.abort.bind(hiAxios);
+  hiAxios.abort = (prop) => {
+    markCancelled();
+    try {
+      hiAxios.source?.cancel?.("cancel");
+    } catch (e) {
+      /* already cancelled */
+    }
+    originalAbort(prop);
+  };
+  if (cancelToken?.promise && typeof cancelToken.promise.then === "function") {
+    cancelToken.promise.then(markCancelled, markCancelled);
+  }
+  return {
+    isCancelled: () => cancelled,
+    guard:
+      (fn) =>
+      (...args) => {
+        if (cancelled || typeof fn !== "function") return;
+        return fn(...args);
+      },
+  };
+};
+
+const startResumableDownload = ({
+  dispatch,
+  prepareUrl,
+  prepareBody,
+  fallbackFileName,
+  callback,
+  requestId,
+  onLegacyProgress,
+}) => {
+  let hiAxios;
+  let chunkSize;
+  let useStreamResponse;
+  let resolvedUrl = prepareUrl;
+  const Notify = notify(dispatch);
+
+  dispatch((dispatch, getState, services) => {
+    hiAxios = services(dispatch);
+    if (!resolvedUrl) {
+      resolvedUrl =
+        getState().app.applicationSettingsData.settings.DashboardGlobals
+          .reportDownload;
+    }
+    chunkSize = resolveDownloadChunkSize(getState);
+    useStreamResponse = Boolean(
+      getState().app.applicationSettingsData?.streamResponse,
+    );
+  });
+
+  const rid = requestId || uuidv4();
+
+  runResumableDownload({
+    dispatch,
+    hiAxios,
+    prepareUrl: resolvedUrl,
+    prepareBody,
+    fallbackFileName,
+    callback: (info) => {
+      if (
+        typeof onLegacyProgress === "function" &&
+        info &&
+        info.progress != null
+      ) {
+        onLegacyProgress({ loaded: info.loaded, total: info.total });
+      }
+      if (typeof callback === "function") {
+        callback(info);
+      }
+    },
+    Notify,
+    chunkSize,
+    requestId: rid,
+    useStreamResponse,
+    handleDownloadFile,
+  }).catch((e) => {
+    Notify.error({
+      type: "Backend",
+      message:
+        e?.message ||
+        "ExportException: Error Occurred while resumable export",
+    });
+    if (typeof callback === "function") {
+      callback(null);
+    }
+  });
+
+  return hiAxios;
+};
 
 export const ssoLogin = async (
   dispatch,
@@ -202,6 +324,36 @@ export const uploadFilePostRequest = function ({
   callback,
   errback,
 }) {
+  let useResumable = false;
+  let useStreamResponse = false;
+  let chunkSize = 1024 * 1024;
+  let hiAxios;
+  dispatch((dispatch, getState, services) => {
+    hiAxios = services(dispatch);
+    useResumable = isResumableUploadEnabled(getState);
+    useStreamResponse = Boolean(getState?.()?.app?.applicationSettingsData?.streamResponse);
+    chunkSize = resolveUploadChunkSize(getState);
+  });
+
+  if (useResumable && formDataHasFile(formData)) {
+    const rid = hiAxios.requestId || uuidv4();
+    hiAxios.requestId = rid;
+    runResumableUpload({
+      dispatch,
+      hiAxios,
+      targetUrl: url,
+      formData,
+      config: config || {},
+      callback,
+      errback,
+      chunkSize,
+      requestId: rid,
+      useStreamResponse,
+      onEvent: useStreamResponse ? config?.onEvent : undefined,
+    });
+    return hiAxios;
+  }
+
   return axiosPost(dispatch, url, formData, callback, errback, config);
 };
 
@@ -227,9 +379,19 @@ const axiosPost = (
     data = appendRequestId(qs.parse(data), hiAxios.requestId);
     data = qs.stringify(data, { ...(stringifyConfig || {}) });
   }
+  const { isCancelled, guard } = attachTransferAbortGuard(hiAxios, {
+    cancelToken: config.cancelToken,
+  });
+  const requestConfig = {
+    ...config,
+    signal: config.signal || hiAxios.controller.signal,
+    cancelToken: config.cancelToken || hiAxios.source.token,
+    onUploadProgress: guard(config.onUploadProgress),
+  };
   hiAxios.instance
-    .post(url, data, config) // window.baseURL removed due to error
+    .post(url, data, requestConfig) // window.baseURL removed due to error
     .then((res) => {
+      if (isCancelled()) return;
       // typeof successCB == "function" && successCB(data);
 
       if (typeof res.data === "string") {
@@ -346,17 +508,17 @@ export const getResources__test = (dispatch, url, data, successCB, errorCB) => {
 // };
 
 const handleDownloadFile = (res, fileName) => {
-  const reader = new FileReader();
-  reader.onload = function () {
-    const link = document.createElement("a");
-    link.href = reader.result;
-    link.setAttribute("download", fileName);
-    link.style.display = "none";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-  };
-  reader.readAsDataURL(new Blob([res.data]));
+  const blob = res?.data instanceof Blob ? res.data : new Blob([res.data]);
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.setAttribute("download", fileName || "download");
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  // Revoke after the browser has a chance to start the download
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 };
 
 export const postDownloadRequest = function ({
@@ -366,62 +528,90 @@ export const postDownloadRequest = function ({
   callback,
   isReportNameInResponse,
 }) {
+  let useResumable = false;
+  dispatch((dispatch, getState) => {
+    useResumable = isResumableDownloadEnabled(getState);
+  });
+
+  const requestId = formData.requestId || uuidv4();
+  const payload = {
+    data: Base64.encode(JSON.stringify({ ...formData, requestId })),
+    requestId,
+  };
+  if (useResumable) {
+    payload.resumable = true;
+  }
+  if (formData.reportParameters != null) {
+    payload.reportParameters =
+      typeof formData.reportParameters === "string"
+        ? formData.reportParameters
+        : Base64.encode(JSON.stringify(formData.reportParameters));
+  }
+
+  const format =
+    formData.format || formData.type || formData.printFormat || "bin";
+  const baseName = reportName || formData.reportName || "report";
+  const fallbackName = isReportNameInResponse
+    ? `${baseName}.${format}`
+    : `${baseName}_${format}`;
+
+  if (useResumable) {
+    return startResumableDownload({
+      dispatch,
+      prepareBody: qs.stringify(payload),
+      fallbackFileName: fallbackName,
+      callback,
+      requestId,
+    });
+  }
+
   let hiAxios;
+  let url;
   dispatch((dispatch, getState, services) => {
     hiAxios = services(dispatch);
-  });
-  // if (process.env.NODE_ENV === "development") {
-  //   //  comment for dashboardGlobal
-  //   const {name, password, organization} = getDevConstants()
-  //   formData.j_password = password;
-  //   formData.j_username = name;
-  //   if(organization) formData.j_organization = organization;
-  // }
-  let url;
-  dispatch((dispatch, getState) => {
     url =
       getState().app.applicationSettingsData.settings.DashboardGlobals
         .reportDownload;
   });
-  let data = qs.stringify({ data: Base64.encode(JSON.stringify(formData)) });
+  hiAxios.requestId = requestId;
+  const { isCancelled, guard } = attachTransferAbortGuard(hiAxios);
+  const onProgress = guard((event) => {
+    const total = event.total || 0;
+    const percentCompleted =
+      total > 0 ? Math.round((event.loaded * 100) / total) : 0;
+    // No pause/resume — non-resumable
+    callback?.({ progress: percentCompleted, phase: "downloading" });
+  });
   hiAxios
     .instance({
       url,
       method: "POST",
       responseType: "blob",
-      data,
-      onDownloadProgress: (event) => {
-        const percentCompleted = Math.round((event.loaded * 100) / event.total);
-        if (callback) {
-          callback({ progress: percentCompleted });
-        }
-      },
-    }) // window.baseURL removed due to error
+      data: qs.stringify({ data: payload.data }),
+      signal: hiAxios.controller.signal,
+      cancelToken: hiAxios.source.token,
+      onDownloadProgress: onProgress,
+    })
     .then((res) => {
+      if (isCancelled()) {
+        callback?.(null);
+        return;
+      }
       let fileInfo = res.headers["content-disposition"] || "";
       let fileName = fileInfo?.split("=")[1] || "";
       fileName =
         fileName?.substr(1, fileName.length - 2) ||
         (reportName ? "" : "Untitled1");
       if (!isReportNameInResponse) {
-        // report name is not in response
         fileName = reportName + "_" + fileName;
       }
       handleDownloadFile(res, fileName);
-
-      // commented this below of using url as it was giving console error (bug id : 6608)
-
-      // const url = window.URL.createObjectURL(new Blob([res.data]));
-      // const link = document.createElement("a");
-      // link.href = url;
-      // link.setAttribute("download", fileName); //or any other extension
-      // document.body.appendChild(link);
-      // link.click();
-      // link.remove();
-      if (callback) {
-        callback(null);
-      }
+      callback?.(null);
+    })
+    .catch(() => {
+      callback?.(null);
     });
+  return hiAxios;
 };
 
 export const getDownloadRequest = function ({ dispatch, url }) {
@@ -456,7 +646,38 @@ export const postPrintDownloadRequest = function ({
   formData,
   callback,
 }) {
-  let hiAxios, url;
+  let useResumable = false;
+  dispatch((dispatch, getState) => {
+    useResumable = isResumableDownloadEnabled(getState);
+  });
+
+  const requestId = formData.requestId || uuidv4();
+  const payload = { ...formData, requestId };
+  if (useResumable) {
+    payload.resumable = true;
+  }
+  if (payload.reportParameters != null) {
+    payload.reportParameters = Base64.encode(
+      JSON.stringify(payload.reportParameters),
+    );
+  }
+
+  const fallbackName =
+    (payload.reportName || payload.reportNameParam || "report") +
+    (payload.format ? `.${payload.format}` : "");
+
+  if (useResumable) {
+    return startResumableDownload({
+      dispatch,
+      prepareBody: qs.stringify(payload),
+      fallbackFileName: fallbackName,
+      callback,
+      requestId,
+    });
+  }
+
+  let hiAxios;
+  let url;
   const Notify = notify(dispatch);
   dispatch((dispatch, getState, services) => {
     hiAxios = services(dispatch);
@@ -464,42 +685,43 @@ export const postPrintDownloadRequest = function ({
       getState().app.applicationSettingsData.settings.DashboardGlobals
         .reportDownload;
   });
-  formData.reportParameters = Base64.encode(
-    JSON.stringify(formData.reportParameters),
-  );
-  let data = qs.stringify(formData);
-  callback({ progress: 0 });
+  hiAxios.requestId = requestId;
+  const { isCancelled, guard } = attachTransferAbortGuard(hiAxios);
+  const data = qs.stringify(payload);
+  guard(callback)?.({ progress: 0, phase: "downloading" });
   hiAxios
     .instance({
       url,
       method: "POST",
       responseType: "arraybuffer",
       data,
-      onDownloadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total,
-        );
-        callback({ progress: percentCompleted });
-      },
+      signal: hiAxios.controller.signal,
+      cancelToken: hiAxios.source.token,
+      onDownloadProgress: guard((progressEvent) => {
+        const total = progressEvent.total || 0;
+        const percentCompleted =
+          total > 0 ? Math.round((progressEvent.loaded * 100) / total) : 0;
+        callback({ progress: percentCompleted, phase: "downloading" });
+      }),
     })
     .then((res) => {
+      if (isCancelled()) {
+        callback?.(null);
+        return;
+      }
       let fileInfo = res.headers["content-disposition"] || "";
       let fileName = fileInfo.split("=") || [];
       fileName = fileName[1] || "";
       if (fileName) {
         fileName = fileName.substr(1, fileName.length - 2) || "Untitled1";
-
-        // added this method to download the files (6608)
         handleDownloadFile(res, fileName);
-
-        // commented below  method of using url as it was giving console error (bug id : 6608)
       } else {
         try {
           let encoding = new TextDecoder("utf-8");
           let arr = new Uint8Array(res.data);
           let resString = encoding.decode(arr);
-          let data = JSON.parse(resString);
-          Notify.error({ type: "Backend", message: data.response.message });
+          let parsed = JSON.parse(resString);
+          Notify.error({ type: "Backend", message: parsed.response.message });
         } catch (e) {
           Notify.error({
             type: "Backend",
@@ -507,11 +729,10 @@ export const postPrintDownloadRequest = function ({
           });
         }
       }
-
       callback(null);
     })
-    .catch((e) => {
-      // Notify.error({ type: "Backend", message: e.message });
+    .catch(() => {
+      callback?.(null);
     });
   return hiAxios;
 };
@@ -523,27 +744,81 @@ export const postExportDownloadRequest = function ({
   callback,
   downLoadProgress,
 }) {
-  let hiAxios;
+  let useResumable = false;
+  dispatch((dispatch, getState) => {
+    useResumable = isResumableDownloadEnabled(getState);
+  });
 
+  const requestId = formData.requestId || uuidv4();
+  const bodyFields = {
+    formData: Base64.encode(JSON.stringify(formData)),
+    requestId,
+  };
+  if (useResumable) {
+    bodyFields.resumable = true;
+  }
+  const prepareBody = qs.stringify(bodyFields);
+  const fallbackName =
+    (formData.file || formData.dir || "export").replace(/\//g, "_") + ".zip";
+
+  if (useResumable) {
+    return startResumableDownload({
+      dispatch,
+      prepareUrl: url,
+      prepareBody,
+      fallbackFileName: fallbackName,
+      callback,
+      requestId,
+      onLegacyProgress: downLoadProgress,
+    });
+  }
+
+  let hiAxios;
   dispatch((dispatch, getState, services) => {
     hiAxios = services(dispatch);
   });
-
-  let newFormData = {
-    formData: Base64.encode(JSON.stringify(formData)),
-  };
-  newFormData = qs.stringify(newFormData);
+  hiAxios.requestId = requestId;
+  const { isCancelled, guard } = attachTransferAbortGuard(hiAxios);
   hiAxios
     .instance({
       url,
       method: "POST",
       responseType: "arraybuffer",
-      data: newFormData,
-      onDownloadProgress: (pr) => downLoadProgress(pr),
-    }) // window.baseURL removed due to error
+      data: prepareBody,
+      signal: hiAxios.controller.signal,
+      cancelToken: hiAxios.source.token,
+      onDownloadProgress: guard((pr) => {
+        if (typeof downLoadProgress === "function") {
+          downLoadProgress(pr);
+        }
+        if (typeof callback === "function" && pr?.total) {
+          // No pause/resume functions — non-resumable must not show those buttons
+          callback({
+            progress: Math.round((pr.loaded * 100) / pr.total),
+            phase: "downloading",
+          });
+        }
+      }),
+    })
     .then((res) => {
-      callback(res);
+      if (isCancelled()) {
+        callback?.(null);
+        return;
+      }
+      const fileName =
+        parseContentDispositionFileName(res.headers?.["content-disposition"]) ||
+        fallbackName;
+      handleDownloadFile(res, fileName);
+      if (typeof callback === "function") {
+        callback(null);
+      }
+    })
+    .catch(() => {
+      if (typeof callback === "function") {
+        callback(null);
+      }
     });
+  return hiAxios;
 };
 
 export const instantBIPostRequest = function (

@@ -587,13 +587,16 @@ const FbTable = (props) => {
 
     source = axios.CancelToken.source();
     setIsUploading(true);
+    setUploadedPercentage(0);
 
     fbRequests.postImageUpload(
       formData,
       {
         cancelToken: source.token,
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const total = progressEvent.total || 0;
+          const percentCompleted =
+            total > 0 ? Math.round((progressEvent.loaded * 100) / total) : 0;
           setUploadedPercentage(percentCompleted);
         },
       },
@@ -603,14 +606,17 @@ const FbTable = (props) => {
           let element = document.querySelector("#hi-file-browser-refresh")
           element?.click()
         }
-        const updatedResult = addFileToFolder(JSON.parse(JSON.stringify(files)), res.data, clickedContextRecord.path)
-        dispatch(
-          fileBrowserActions.setFbContent({
-            loading: false,
-            data: updatedResult,
-            error: null,
-          })
-        );
+        const fileData = res?.data;
+        if (fileData) {
+          const updatedResult = addFileToFolder(JSON.parse(JSON.stringify(files)), fileData, clickedContextRecord.path)
+          dispatch(
+            fileBrowserActions.setFbContent({
+              loading: false,
+              data: updatedResult,
+              error: null,
+            })
+          );
+        }
       },
       (e) => {
         if (e.message === "cancel") {

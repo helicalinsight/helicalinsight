@@ -1,12 +1,18 @@
 package com.helicalinsight.export;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -16,15 +22,18 @@ import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.utility.ResponseMetadataEnricher;
 import com.helicalinsight.efw.utility.TempDirectoryCleaner;
 import com.helicalinsight.export.crypto.FileCryptoHandler;
+import com.helicalinsight.export.download.DownloadArtifact;
 import com.helicalinsight.export.dto.Manifest;
 import com.helicalinsight.export.dto.ResourceExtension;
 import com.helicalinsight.export.dto.ResourceOptions;
 import com.helicalinsight.export.exception.ResourceExportException;
 import com.helicalinsight.export.handler.AbstractResourceWriterHandler;
 import com.helicalinsight.export.handler.ResourceWriterHandlerFactory;
+import com.helicalinsight.export.ticket.TransferTicketService;
 import com.helicalinsight.export.utils.ManifestUtils;
 import com.helicalinsight.export.utils.ResourceFileUtils;
 import com.helicalinsight.resourcedb.HIResourceDTO;
+
 /**
  * The ExportResourceManager class provides functionality for exporting resources, such as reports ,
  * as a batch operation. It handles the writing, archiving, encryption, and manifest creation for the exported resources.
@@ -35,6 +44,8 @@ import com.helicalinsight.resourcedb.HIResourceDTO;
 @Component
 public class ExportResourceManager {
 
+	private static final Logger logger = LoggerFactory.getLogger(ExportResourceManager.class);
+
 	@Autowired
 	private ResourceFileUtils fileUtils;
 
@@ -43,6 +54,10 @@ public class ExportResourceManager {
 
 	@Autowired
 	private ManifestUtils manifestUtils;
+
+	@Autowired
+	private TransferTicketService transferTicketService;
+
 	//path of the temporary directory used for exporting resources
 	private static final String TEMPDIR = TempDirectoryCleaner.getTempDirectory().getAbsolutePath();
 	
@@ -59,6 +74,31 @@ public class ExportResourceManager {
 	 * @throws Exception If an error occurs during the export process.
 	 */
 	public byte[] write(List<HIResourceDTO> resources, String path, ResourceOptions options , HttpServletResponse response) throws Exception {
+		DownloadArtifact artifact = writeToFile(resources, path, options, null);
+		byte[] bytes = fileUtils.getAllBytes(artifact.getFile());
+		Path stagingRoot = artifact.getTrackedPaths().stream()
+				.filter(p -> p.toFile().isDirectory())
+				.findFirst()
+				.orElse(artifact.getFile().getParentFile().toPath());
+		fileUtils.cleanDir(stagingRoot.getFileName().toString());
+		response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", artifact.getFileName()));
+		return bytes;
+	}
+
+	/**
+	 * Stage + zip to disk and return a DownloadArtifact. Does not read all bytes into memory
+	 * and does not clean temp files (caller / ticket abort owns cleanup).
+	 */
+	public DownloadArtifact writeToFile(List<HIResourceDTO> resources, String path, ResourceOptions options) throws Exception {
+		return writeToFile(resources, path, options, null);
+	}
+
+	/**
+	 * Stage + zip to disk for resumable export. When {@code ticketId} is set, staging is tracked early
+	 * and abort/interrupt is checked between write / encrypt / archive steps.
+	 */
+	public DownloadArtifact writeToFile(List<HIResourceDTO> resources, String path, ResourceOptions options,
+			String ticketId) throws Exception {
 		Manifest manifest = new Manifest();
 		manifest.setVersion(props.getManifestVersion());
 		ObjectNode metadata =  JacksonUtility.fromObject(ResponseMetadataEnricher.getMetaObject().toString());
@@ -70,23 +110,29 @@ public class ExportResourceManager {
 		path = path.contains("/") ? path.replace("/", "_") : path;
 		String dir = String.join("/", timeStamp, path);
 		if (Boolean.TRUE.equals(fileUtils.createSchema(dir))) {
-			write(resources, dir, options, manifest);
-			String dirfullPath = String.join(File.separator, TEMPDIR, dir);
+			Path stagingRoot = Paths.get(TEMPDIR, timeStamp);
+			if (StringUtils.isNotBlank(ticketId)) {
+				transferTicketService.track(ticketId, stagingRoot);
+			}
 			manifest.setOptions(options);
+			write(resources, dir, options, manifest, ticketId);
+			throwIfAborted(ticketId);
+			String dirfullPath = String.join(File.separator, TEMPDIR, dir);
 			manifestUtils.writeManifest(manifest, String.join(File.separator,TEMPDIR,dir));
+			throwIfAborted(ticketId);
 			cryptoHandler.encryptBatch(dirfullPath);
+			throwIfAborted(ticketId);
 			fileUtils.archive(dir);
-			File file = new File(String.join(File.separator, TEMPDIR, timeStamp, path + ResourceExtension.ZIP.getValue()));
-			byte[] bytes = fileUtils.getAllBytes(file);
-			fileUtils.cleanDir(timeStamp);
-			response.setHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", path + ".zip"));
-			return bytes;
-
-		} else {
-			throw new ResourceExportException("Error occurred while creating Folder schema");
+			throwIfAborted(ticketId);
+			File zip = new File(String.join(File.separator, TEMPDIR, timeStamp, path + ResourceExtension.ZIP.getValue()));
+			Set<Path> tracked = new LinkedHashSet<>();
+			tracked.add(stagingRoot);
+			tracked.add(zip.toPath());
+			return new DownloadArtifact(zip, path + ".zip", "application/zip", tracked);
 		}
-
+		throw new ResourceExportException("Error occurred while creating Folder schema");
 	}
+
 	/**
 	 * Recursively writes resources to the specified directory, applying options and updating the manifest
 	 * @param resources			provides the paths, extension to export
@@ -94,9 +140,10 @@ public class ExportResourceManager {
 	 * @param options			provides share related or schedule details
 	 * @param manifest			instance of manifest
 	 */
-	private void write(List<HIResourceDTO> resources, String dir, ResourceOptions options, Manifest manifest) {
-
+	private void write(List<HIResourceDTO> resources, String dir, ResourceOptions options, Manifest manifest,
+			String ticketId) {
 		for (HIResourceDTO resource : resources) {
+			throwIfAborted(ticketId);
 			String resourceType = resource.getExtension() == null ? resource.getType() : resource.getExtension();
 			AbstractResourceWriterHandler handler = ResourceWriterHandlerFactory.getHandler(resourceType);
 			handler.write(resource, dir, manifest, options);
@@ -104,11 +151,16 @@ public class ExportResourceManager {
 			handler.schedule(resource, manifest, options, dir);
 			if (resource.getChildren() != null) {
 				List<HIResourceDTO> children = resource.getChildren();
-				write(children, dir, options, manifest);
+				write(children, dir, options, manifest, ticketId);
 			}
-
 		}
 	}
 
-	
+	private void throwIfAborted(String ticketId) {
+		if (Thread.currentThread().isInterrupted()
+				|| (StringUtils.isNotBlank(ticketId) && transferTicketService.isAborted(ticketId))) {
+			logger.info("Export aborted for ticketId={}; stopping zip production (cleanup follows)", ticketId);
+			throw new ResourceExportException("Export aborted");
+		}
+	}
 }

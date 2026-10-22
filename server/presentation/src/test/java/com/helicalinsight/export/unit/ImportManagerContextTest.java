@@ -16,6 +16,7 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import com.helicalinsight.admin.model.HIEfwdConnection;
 import com.helicalinsight.admin.model.HIRecycleBin;
@@ -23,9 +24,11 @@ import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIRecycleBinService;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.export.dto.Conflict;
 import com.helicalinsight.export.dto.ImportRequest;
 import com.helicalinsight.export.dto.ImportResponse;
 import com.helicalinsight.export.dto.Manifest;
+import com.helicalinsight.export.dto.ResourceOptions;
 import com.helicalinsight.export.handler.ImportManagerContext;
 
 public class ImportManagerContextTest extends ExportUnitTestBase {
@@ -131,12 +134,25 @@ public class ImportManagerContextTest extends ExportUnitTestBase {
 	@Test
 	public void ut_a7_testRecoverHIResource() {
 		ImportManagerContext context = new ImportManagerContext();
+		
+		ImportRequest request = new ImportRequest();
+		request.setDestination("");
+		request.setOnConflict(Conflict.UPDATE);
+		request.setUpload(true);
+		
+		ResourceOptions options = new ResourceOptions();
+		options.setDataSource(true);
+		options.setRecycleBin(true);
+		options.setSchedules(true);
+		options.setShare(true);
+		request.setOptions(options);
+		context.setRequest(request);
+
 		HIResource resource = mock(HIResource.class);
 		HIRecycleBinService binService = mock(HIRecycleBinService.class);
-
 		when(resource.isDeleted()).thenReturn(true);
 		when(resource.getResourceId()).thenReturn(5);
-
+		when(binService.deleteHIRecycleBinByResourceId(Mockito.anyInt())).thenReturn(true);
 		try (MockedStatic<ApplicationContextAccessor> mocked = mockStatic(ApplicationContextAccessor.class)) {
 			mocked.when(() -> ApplicationContextAccessor.getBean(HIRecycleBinService.class)).thenReturn(binService);
 			Assert.assertTrue(context.recover(resource));

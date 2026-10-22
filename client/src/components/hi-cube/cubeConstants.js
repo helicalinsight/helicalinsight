@@ -725,6 +725,11 @@ const getSemanticDraftFromRecord = (record, variant = 'cube') => {
 	}, {});
 	if (variant === 'agent') {
 		draft.semanticType = record.semanticType ?? '';
+		if (record.measure?.isMeasureCheck) {
+			draft.grain = record.grain ?? '';
+			draft.direction = record.direction ?? '';
+			draft.additivity = record.additivity ?? '';
+		}
 		getAgentAiContextFields().forEach(({ fieldName }) => {
 			draft[fieldName] = record[fieldName] ?? '';
 		});
@@ -1381,6 +1386,93 @@ function CubeFieldSemanticMenuPanel({
             ))}
           </>
         ) : null}
+        {record?.measure?.isMeasureCheck ? (
+          <>
+            <AgentRightSubmenuTextField
+              fieldKey="measure-grain"
+              label="Grain"
+              tooltipLabel="Measurement Grain"
+              value={draft.grain ?? ""}
+              placeholder="e.g. meeting, order, transaction"
+              disabled={disabled}
+              clearFieldTooltip={clearFieldTooltip}
+              openKey={openKey}
+              onOpenKeyChange={setOpenKey}
+              onChange={(nextValue) =>
+                onDraftChange({
+                  ...draft,
+                  grain: nextValue,
+                })
+              }
+            />
+            <AgentRightSubmenuDropdown
+              itemKey="measure-direction"
+              label="Direction"
+              tooltip="Business Direction (neutral, positive, negative)"
+              selectedValue={draft.direction || "None"}
+              menu={
+                <Menu
+                  selectedKeys={[draft.direction].filter(Boolean)}
+                  onClick={({ key }) => {
+                    const nextVal = key === "__clear__" ? "" : key;
+                    const nextDraft = { ...draft, direction: nextVal };
+                    onDraftChange(nextDraft);
+                    if (dispatch && record) {
+                      commitCubeFieldSemanticDraft({
+                        dispatch,
+                        record,
+                        draft: nextDraft,
+                        variant,
+                        semanticTypeOptions,
+                      });
+                    }
+                  }}
+                  items={[
+                    { key: "__clear__", label: "(None)" },
+                    { key: "neutral", label: "Neutral" },
+                    { key: "positive", label: "Positive (higher is better)" },
+                    { key: "negative", label: "Negative (lower is better)" },
+                  ]}
+                />
+              }
+              openKey={openKey}
+              onOpenKeyChange={setOpenKey}
+            />
+            <AgentRightSubmenuDropdown
+              itemKey="measure-additivity"
+              label="Additivity"
+              tooltip="Additivity across dimensions"
+              selectedValue={draft.additivity || "None"}
+              menu={
+                <Menu
+                  selectedKeys={[draft.additivity].filter(Boolean)}
+                  onClick={({ key }) => {
+                    const nextVal = key === "__clear__" ? "" : key;
+                    const nextDraft = { ...draft, additivity: nextVal };
+                    onDraftChange(nextDraft);
+                    if (dispatch && record) {
+                      commitCubeFieldSemanticDraft({
+                        dispatch,
+                        record,
+                        draft: nextDraft,
+                        variant,
+                        semanticTypeOptions,
+                      });
+                    }
+                  }}
+                  items={[
+                    { key: "__clear__", label: "(None)" },
+                    { key: "additive", label: "Additive" },
+                    { key: "semi-additive", label: "Semi-Additive" },
+                    { key: "non-additive", label: "Non-Additive" },
+                  ]}
+                />
+              }
+              openKey={openKey}
+              onOpenKeyChange={setOpenKey}
+            />
+          </>
+        ) : null}
       </div>
 
       {agentRoleMenu ? (
@@ -1440,6 +1532,23 @@ export function commitCubeFieldSemanticDraft({
 		}
 	});
 	if (variant === 'agent') {
+		if (record.measure?.isMeasureCheck) {
+			['grain', 'direction', 'additivity'].forEach((fieldName) => {
+				const nextVal = draft[fieldName] ?? '';
+				const prevVal = record[fieldName] ?? '';
+				if (nextVal !== prevVal) {
+					dispatch(
+						updateFieldValues({
+							updateName: fieldName,
+							checkVal: nextVal,
+							recordKey: record.key,
+							isHierarchyChild: record.isHierarchyChild,
+							hierarchyKey: record.parentKey,
+						}),
+					);
+				}
+			});
+		}
 		const nextSemanticType = draft.semanticType ?? '';
 		const prevSemanticType = record.semanticType ?? '';
 		if (nextSemanticType !== prevSemanticType) {

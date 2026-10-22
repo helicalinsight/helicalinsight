@@ -393,6 +393,7 @@ public class ResourceDTOMapper {
 		dto.setOrg_id(role.getOrg_id());
 		dto.setRole_name(role.getRole_name());
 		dto.setId(role.getId());
+		dto.setOrganization(map(role.getOrganization()));
 		return dto;
 	}
 
@@ -404,6 +405,7 @@ public class ResourceDTOMapper {
 		role.setOrg_id(dto.getOrg_id());
 		role.setRole_name(dto.getRole_name());
 		role.setId(dto.getId());
+		role.setOrganization(map(dto.getOrganization()));
 		return role;
 	}
 

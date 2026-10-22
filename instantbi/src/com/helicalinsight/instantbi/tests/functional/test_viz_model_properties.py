@@ -63,58 +63,29 @@ def test_viz_data_drops_filters():
     assert not hasattr(model.data, "filters")
 
 
+def _chart(viz, mark):
+    return {"viz": viz, "mark": mark, "dualaxis": False, "measures": []}
+
+
 def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
-    assert _chart_viz_and_mark("bar").model_dump() == {"viz": "Bar", "mark": "Chart"}
-    assert _chart_viz_and_mark("column").model_dump() == {"viz": "Bar", "mark": "Chart"}
-    assert _chart_viz_and_mark("pie").model_dump() == {"viz": "Arc", "mark": "Chart"}
-    assert _chart_viz_and_mark("arc").model_dump() == {"viz": "Arc", "mark": "Chart"}
-    assert _chart_viz_and_mark("gauge").model_dump() == {"viz": "Arc", "mark": "Chart"}
-    assert _chart_viz_and_mark("wordcloud").model_dump() == {
-        "viz": "Word cloud",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("text").model_dump() == {
-        "viz": "Word cloud",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("donut").model_dump() == {
-        "viz": "Doughnut",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("doughnut").model_dump() == {
-        "viz": "Doughnut",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("heatmap").model_dump() == {
-        "viz": "Heatmap",
-        "mark": "Maps",
-    }
-    assert _chart_viz_and_mark("point", geo=True).model_dump() == {
-        "viz": "Point",
-        "mark": "Maps",
-    }
-    assert _chart_viz_and_mark("line", geo=True).model_dump() == {
-        "viz": "Line",
-        "mark": "Maps",
-    }
-    assert _chart_viz_and_mark("point").model_dump() == {
-        "viz": "Point",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("line").model_dump() == {
-        "viz": "Line",
-        "mark": "Chart",
-    }
-    assert _chart_viz_and_mark("kpi").model_dump() == {"viz": "KPI", "mark": "Card"}
-    assert _chart_viz_and_mark("table").model_dump() == {"viz": "Table", "mark": "Table"}
-    assert _chart_viz_and_mark("grid_table").model_dump() == {
-        "viz": "Grid table",
-        "mark": "Grid Table",
-    }
-    assert _chart_viz_and_mark("unknown_chart").model_dump() == {
-        "viz": "",
-        "mark": "VF",
-    }
+    assert _chart_viz_and_mark("bar").model_dump() == _chart("Bar", "Chart")
+    assert _chart_viz_and_mark("column").model_dump() == _chart("Bar", "Chart")
+    assert _chart_viz_and_mark("pie").model_dump() == _chart("Arc", "Chart")
+    assert _chart_viz_and_mark("arc").model_dump() == _chart("Arc", "Chart")
+    assert _chart_viz_and_mark("gauge").model_dump() == _chart("Arc", "Chart")
+    assert _chart_viz_and_mark("wordcloud").model_dump() == _chart("Word cloud", "Chart")
+    assert _chart_viz_and_mark("text").model_dump() == _chart("Word cloud", "Chart")
+    assert _chart_viz_and_mark("donut").model_dump() == _chart("Doughnut", "Chart")
+    assert _chart_viz_and_mark("doughnut").model_dump() == _chart("Doughnut", "Chart")
+    assert _chart_viz_and_mark("heatmap").model_dump() == _chart("Heatmap", "Maps")
+    assert _chart_viz_and_mark("point", geo=True).model_dump() == _chart("Point", "Maps")
+    assert _chart_viz_and_mark("line", geo=True).model_dump() == _chart("Line", "Maps")
+    assert _chart_viz_and_mark("point").model_dump() == _chart("Point", "Chart")
+    assert _chart_viz_and_mark("line").model_dump() == _chart("Line", "Chart")
+    assert _chart_viz_and_mark("kpi").model_dump() == _chart("KPI", "Card")
+    assert _chart_viz_and_mark("table").model_dump() == _chart("Table", "Table")
+    assert _chart_viz_and_mark("grid_table").model_dump() == _chart("Grid table", "Grid Table")
+    assert _chart_viz_and_mark("unknown_chart").model_dump() == _chart("", "VF")
 
     by_name = {entry["name"]: entry["values"] for entry in MARK_VIZ_CATALOG}
     assert by_name["Chart"] == [
@@ -134,6 +105,7 @@ def test_chart_viz_and_mark_uses_hi_mark_parent_and_child_viz():
     assert by_name["Maps"] == ["Line", "Point", "Heatmap"]
     assert by_name["Table"] == ["Table"]
     assert by_name["Grid Table"] == ["Grid table"]
+    assert by_name["Grid Chart"] == ["Bar", "Line", "Area", "Point", "Tick"]
     assert by_name["Card"] == ["KPI", "Trend"]
     assert by_name["VF"] == []
 
@@ -245,3 +217,56 @@ def test_build_viz_model_populates_properties_formatting(monkeypatch):
 
     settings = viz_model_to_chart_settings(model, data_types=metadata)
     assert settings.measure_formats == {"Travel Cost": "$#,##0.00"}
+
+
+def test_dual_axis_measure_keeps_feasible_grid_chart_marks():
+    model = VizModel.model_validate(
+        {
+            "data": {"rows": ["sales", "cost"], "columns": ["region"]},
+            "chart": {
+                "viz": "Bar",
+                "mark": "Grid Chart",
+                "dualaxis": True,
+                "measures": [
+                    {"field": "sales", "viz": "bar", "color": "#5B8FF9"},
+                    {"field": "cost", "viz": "arc", "color": " #E8684A "},
+                    {"field": "qty", "viz": "tick", "color": "#5AD8A6"},
+                ],
+            },
+        }
+    )
+    dumped = model.chart.model_dump()
+    assert dumped["dualaxis"] is True
+    assert dumped["mark"] == "Grid Chart"
+    assert [item["viz"] for item in dumped["measures"]] == ["Bar", "Line", "Tick"]
+    assert dumped["measures"][1]["color"] == "#E8684A"
+
+
+def test_merge_properties_polish_fills_recommended_dual_axis_colors():
+    model = VizModel.model_validate(
+        {
+            "data": {"rows": ["sales", "cost"], "columns": ["region"]},
+            "chart": {
+                "viz": "Bar",
+                "mark": "Grid Chart",
+                "dualaxis": True,
+                "measures": [
+                    {"field": "sales", "viz": "Bar", "color": None},
+                    {"field": "cost", "viz": "Line", "color": None},
+                ],
+            },
+            "properties": {"title": "Sales and Cost"},
+        }
+    )
+    merged = merge_properties_polish(
+        model,
+        {
+            "measure_colors": {"Travel Cost": "#ff0000", "cost": "#00aa00"},
+            "color": "#123456",
+        },
+    )
+    series = {item["field"]: item for item in merged.chart.model_dump()["measures"]}
+    assert series["sales"]["color"] is None
+    assert series["cost"]["color"] == "#00aa00"
+    assert merged.properties.color == "#123456"
+    assert "measure_colors" not in merged.properties.model_dump()

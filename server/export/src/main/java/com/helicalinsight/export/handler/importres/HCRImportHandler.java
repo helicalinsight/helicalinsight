@@ -14,8 +14,8 @@ import com.helicalinsight.admin.model.HIResourceMapping;
 import com.helicalinsight.admin.model.HIResourceHCR;
 import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.admin.service.HIResourceConstituentMappingService;
+import com.helicalinsight.datasource.GlobalJdbcType;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
-import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceUtils;
@@ -120,18 +120,13 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
 
         }
 
-        //handle image
-
-
         JsonObject asJsonObject = JsonParser.parseString(previewFormDataJson).getAsJsonObject();
-        JsonArray connectionArray = null;
-        JsonArray connectionArrayEfwd = null;
+        JsonArray connectionArray = new JsonArray();
         if (asJsonObject.has("connectionDbDetails")) {
             connectionArray = asJsonObject.get("connectionDbDetails").getAsJsonArray();
         }
         if (asJsonObject.has("connectionDbDetailsEfwd")) {
-            connectionArrayEfwd = asJsonObject.get("connectionDbDetailsEfwd").getAsJsonArray();
-            connectionArray.addAll(connectionArrayEfwd);
+            connectionArray.addAll(asJsonObject.get("connectionDbDetailsEfwd").getAsJsonArray());
         }
         asJsonObject.remove("connectionDbDetails");
         asJsonObject.remove("connectionDbDetailsEfwd");
@@ -185,9 +180,13 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
             if (dsExists) {
                 String dsFileName = manifestUtils.getDatasource(context.removeDestination(resourceUrl), context.getManifest());
                 if (null != dsFileName) {
+                    context.addLog(resourceUrl, "[datasource] Importing global datasource…");
                     DatasourceHandler dsHandler = DatasourceFactory.getHandler("global.jdbc");
                     dsHandler.setContext(context);
                     oldMappingNewMapping = dsHandler.importResourceHCR(dsFileName, onConflict);
+                    context.addLog(resourceUrl, "[datasource] Global datasource imported.");
+                } else {
+                    context.addLog(resourceUrl, "[datasource] No global datasource sidecar found; skipped.");
                 }
             }
             Integer hcrId = resource.getResourceId();
@@ -212,9 +211,13 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
             //for efwd
             String dsFileNameEfwd = manifestUtils.getDatasource(context.removeDestination(resourceUrl) + "efwd", context.getManifest());
             if (null != dsFileNameEfwd) {
+                context.addLog(resourceUrl, "[datasource] Importing EFWD datasource…");
                 DatasourceHandler dsHandler = DatasourceFactory.getHandler("folder");
                 dsHandler.setContext(context);
                 oldMappingNewMappingEfwd = dsHandler.importResourceHCR(dsFileNameEfwd, onConflict);
+                context.addLog(resourceUrl, "[datasource] EFWD datasource imported.");
+            } else {
+                context.addLog(resourceUrl, "[datasource] No EFWD datasource sidecar found; skipped.");
             }
 
             shareHandler.setContext(context);
@@ -223,6 +226,13 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
                 ResourceIOHandler scheduleHandler = (ResourceIOHandler) ApplicationContextAccessor.getBean("scheduleIOHandler");
                 scheduleHandler.setContext(context);
                 scheduleHandler.importResource(resource, resourceUrl, onConflict);
+            }
+
+            if (connectionArray.size() == 0) {
+                connectionArray = buildDefaultConnectionDetails(report.getState(), asJsonObject.toString());
+            }
+            if (connectionArray.size() == 0) {
+                return resource;
             }
 
             List<HIHcrConnections> hiHcrConnections = efwdConnectionService.fetchAllHcrConnectionsByResourceId(resource.getResourceId());
@@ -265,6 +275,19 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
                     String sn = newString.get(i);
                     stateJson = stateJson.replace(ss, sn);
                 }
+            } else if (!allConn.isEmpty()) {
+                Integer defaultDatasourceId = JsonUtils.getDefaultDatasourceId();
+                for (String ss : allConn) {
+                    JsonObject connObj = JsonParser.parseString(ss).getAsJsonObject();
+                    connObj.addProperty("id", String.valueOf(defaultDatasourceId));
+                    if (!ss.contains("global.jdbc")) {
+                        connObj.addProperty("type", GlobalJdbcType.TYPE);
+                    }
+                    stateJson = stateJson.replace(ss, connObj.toString());
+                }
+                context.addWarning(resource.getResourceURL(),
+                        "Datasource not imported; assigned default datasource (id="
+                                + defaultDatasourceId + ").");
             }
             JsonObject stateJsonObject = JsonParser.parseString(stateJson).getAsJsonObject();
             JsonObject forEfwd = new JsonObject();
@@ -278,6 +301,44 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
             serviceDb.editHIResource(resource);
         }
         return resource;
+    }
+
+    /**
+     * When connectionDbDetails were not exported, rebuild minimal connection stubs
+     * for each hi_hcr_db ref using the configured defaultDatasourceId.
+     */
+    private JsonArray buildDefaultConnectionDetails(String stateJson, String previewJson) {
+        JsonArray connectionArray = new JsonArray();
+        List<String> allKeyValues = DashboardUtils.findKeyValue("temp_uuid", stateJson);
+        allKeyValues.addAll(DashboardUtils.findKeyValue("temp_uuid", previewJson));
+        Set<String> uniqueList = new LinkedHashSet<>(allKeyValues);
+        Integer defaultDatasourceId = JsonUtils.getDefaultDatasourceId();
+        for (String efwString : uniqueList) {
+            if (!efwString.replace("hi_hcr_db", "").matches("\\d+")) {
+                continue;
+            }
+            JsonObject fileAsJson = new JsonObject();
+            JsonObject dataSources = new JsonObject();
+            JsonObject connection = new JsonObject();
+            connection.addProperty("id", "1");
+            connection.addProperty("type", GlobalJdbcType.TYPE);
+            connection.addProperty("globalId", defaultDatasourceId);
+            dataSources.add("Connection", connection);
+            fileAsJson.add("DataSources", dataSources);
+
+            JsonObject dataMaps = new JsonObject();
+            JsonObject dataMap = new JsonObject();
+            dataMap.addProperty("id", "1");
+            dataMap.addProperty("connection", 1);
+            dataMap.addProperty("type", "");
+            dataMap.addProperty("Name", "");
+            dataMap.addProperty("Query", "");
+            dataMaps.add("DataMap", dataMap);
+            fileAsJson.add("DataMaps", dataMaps);
+            fileAsJson.addProperty("fileName", efwString);
+            connectionArray.add(fileAsJson);
+        }
+        return connectionArray;
     }
 
     private JsonObject setEfwd(JsonObject formDataJson, HIResource hiResource,
@@ -326,17 +387,31 @@ public class HCRImportHandler extends AbstractResourceImportHandler {
         AbstractHCRConnectionSave abstractHCRConnectionSave = null;
         JsonObject dataSources = efwdJsonObject.getAsJsonObject("DataSources");
         JsonObject obj = dataSources.getAsJsonObject("Connection");
+        Integer defaultDatasourceId = JsonUtils.getDefaultDatasourceId();
         if (obj.has("globalId")) {
             Integer old = obj.get("globalId").getAsInt();
             Integer newId = globalMapping.get(old);
+            if (newId == null) {
+                newId = defaultDatasourceId;
+            }
             obj.remove("globalId");
             obj.addProperty("globalId", newId);
+            if (newId == null) {
+                context.addWarning(hiResource.getResourceURL(),
+                        "Datasource remap incomplete; connection id left unset.");
+            }
         }
         if (obj.has("efwdId")) {
             Integer old = obj.get("efwdId").getAsInt();
             Integer newId = efwdMapping.get(old);
-            obj.remove("efwdId");
-            obj.addProperty("efwdId", newId);
+            if (newId == null) {
+                obj.remove("efwdId");
+                obj.addProperty("type", GlobalJdbcType.TYPE);
+                obj.addProperty("globalId", defaultDatasourceId);
+            } else {
+                obj.remove("efwdId");
+                obj.addProperty("efwdId", newId);
+            }
         }
         String type = obj.get("type").getAsString();
         if (type.equals("sql.jdbc") || type.equals("sql.jdbc.groovy") || type.equals("sql.jdbc.groovy.managed")) {

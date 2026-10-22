@@ -1,6 +1,6 @@
 import "../index.scss";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Dropdown, Menu, Layout, Tooltip, Button, Progress, Modal } from "antd";
+import { Dropdown, Menu, Layout, Tooltip, Button, Spin, Typography } from "antd";
 import { useSelector } from "react-redux";
 import { getDashboardConfig } from "../utils/get-dashboard-config";
 import {
@@ -20,6 +20,7 @@ import {
   FilePdfOutlined
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
+import DownloadProgressModal from "../../common/download-progress-modal";
 import {
   changeIsDraggableInGridItem,
   changeIsSelectedInGridItem,
@@ -46,6 +47,8 @@ import {
 } from "../utils/recursive-functions";
 import { exportPrintedReport, getDashboardVariableConfig, getFieldDisplayName } from "../../../utils/utilities";
 import { HIDashboard } from "../../hi-dashboard";
+import DashboardTileTabs from "../../hi-instant-bi/components/chat-screen/dashboard-tile-tabs";
+import { DASHBOARD_CREATE_TILE } from "../../bridges/dashboard/dashboard-bridge";
 import {
   addItem,
   getDashboardVariableScope,
@@ -62,7 +65,7 @@ import notify from "../../hi-notifications/notify";
 import { removeAllReports } from "../../../redux/actions/hreport.actions";
 import { getMinimizedGridItemOptions } from "../utils/hi-grid-item-functions";
 import { executeScript } from "../../hi-reports/utils/utilities";
-import { isEqual } from "lodash";
+import { isEmpty, isEqual } from "lodash";
 import TabComponent from "./tab-component";
 import DropdownComponent from "./dropdown-component";
 import SortableTable from "./hi-parameter-drawer/hi-sortable-table";
@@ -71,6 +74,9 @@ import { SortableHandle } from "react-sortable-hoc";
 import { freeFloatFilterDefaultSettings, freeFloatFilterKeyName } from "../utils/constants";
 import { uuid } from "../../../utils/uuid";
 import useExportOptions from "../../../hooks/useExportOptions";
+import ThinkStepCard from "../../hi-instant-bi/components/chat-screen/think-step-card";
+import { HelicalReports } from "../../../pages";
+import DashboardInstantFilter from "./dashboard-instant-filter";
 
 const { Header, Content } = Layout;
 const withSizeHOC = withSize({ monitorHeight: true });
@@ -186,18 +192,32 @@ let HIGridItem = (props) => {
       dataIndex: "index",
       width: 80,
       className: "drag-visible",
-      render: (_, record) => (
-        <div style={{ marginLeft: 18 }}>
-          <HIDashboardWrapper
-            type={record.reportInfo?.extension}
-            parameter={record.parameter}
-            id={record.id}
-            listeners={record.listeners}
-            reportInfo={record.reportInfo}
-            dashboardVariables={variables}
-          />
-        </div>
-      ),
+      render: (_, record) => {
+        const instantFilter = record.reportInfo?.filterType === "instant";
+        return (
+          <div style={{ marginLeft: 18 }}>
+            {!instantFilter ?
+              <HIDashboardWrapper
+                type={record.reportInfo?.extension}
+                parameter={record.parameter}
+                id={record.id}
+                listeners={record.listeners}
+                reportInfo={record.reportInfo}
+                dashboardVariables={variables}
+              />
+              :
+              <DashboardInstantFilter
+                gridItem={record}
+                parameter={record.parameter}
+                id={record.id}
+                listeners={record.listeners}
+                reportInfo={record.reportInfo}
+                dashboardVariables={variables}
+              />
+            }
+          </div>
+        )
+      },
     },
   ];
   const [colsValues, breakpointsValues] = getDashboardConfig(
@@ -233,6 +253,7 @@ let HIGridItem = (props) => {
   const [imageStyles] = getDashboardConfig(gridItemsData, id, ["image"]);
 
   const shouldShowGridItemsToolBar = () => {
+    if (props.fromInstant) return false;
     if (
       isOpenMode
       && (compType === "text" || compType === "image")) {
@@ -472,27 +493,14 @@ let HIGridItem = (props) => {
   );
 
   const downloadingInfoModal = (
-    <Modal
-      visible={!!downloadingInfo}
+    <DownloadProgressModal
+      downloadingInfo={downloadingInfo}
       className="hi-hr-download-modal"
-      title="Downloading"
-      okText={() => null}
-      cancelText="Cancel"
-      maskClosable={false}
-      // onOk={() => {
-      //   remove(warningVisible.deleteKey); // test
-      //   setWarningVisible({ visible: false, deleteKey: "" });
-      // }}
       onCancel={() => {
-        hiAxiosRef.current.abort();
+        hiAxiosRef.current?.abort?.();
         setDownloadingInfo(null);
       }}
-    >
-      <div>
-        <Progress percent={downloadingInfo?.progress} />
-        <div>Please wait while downloading</div>
-      </div>
-    </Modal>
+    />
   )
 
   const handleExport = (e, format) => {
@@ -689,20 +697,20 @@ let HIGridItem = (props) => {
           : []),
         ...(reportInfo &&
           reportInfo?.mode !== "filter" &&
-          reportInfo?.extension === "hr"
-          ? [
-            {
-              key: "filters",
-              // tooltip: "Filters",
+          reportInfo?.extension === "hr" &&
+          reportInfo?.mode !== "dashboard-instant-filter" ? [
+          {
+            key: "filters",
+            // tooltip: "Filters",
 
-              icon: (
-                <Tooltip title="Add filters">
-                  <FilterOutlined />
-                </Tooltip>
-              ),
-              children: filtersGridItemsConfig,
-            },
-          ]
+            icon: (
+              <Tooltip title="Add filters">
+                <FilterOutlined />
+              </Tooltip>
+            ),
+            children: filtersGridItemsConfig,
+          },
+        ]
           : []),
         {
           key: "remove",
@@ -814,6 +822,34 @@ let HIGridItem = (props) => {
       reportInfo={reportInfo}
       listeners={listeners}
     />
+  );
+
+  const renderInstantItem = (reportInfo = {}) => {
+    const { hreportId } = reportInfo || {};
+    return (
+      <DashboardTileTabs
+        hreportId={hreportId}
+        gridId={id}
+        reportInfo={reportInfo}
+        parameter={parameter}
+        listeners={listeners}
+      />
+    )
+  }
+
+  const renderDashboardCreateComponent = !reportInfo?.hreportId ? (
+    <div
+      style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", gap: 8 }}
+      data-testid={`ib-dashboard-create-loading-${id}`}
+    >
+      <Typography.Text type="secondary">Preparing chart…</Typography.Text>
+    </div>
+  ) : reportInfo?.hreportError ? (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%" }}>
+      <Typography.Text type="danger">Unable to load this chart.</Typography.Text>
+    </div>
+  ) : (
+    renderInstantItem(reportInfo)
   );
 
   const groupedComponent = (
@@ -1029,6 +1065,8 @@ let HIGridItem = (props) => {
     switch (compType) {
       case "dashboard-designer-component":
         return renderDashboardDesignerComponent;
+      case DASHBOARD_CREATE_TILE:
+        return renderDashboardCreateComponent;
       case "grouped-component":
         return groupedComponent;
       case "text":

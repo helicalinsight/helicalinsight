@@ -2,13 +2,16 @@ import {
   BarsOutlined,
   CaretDownOutlined,
   CaretRightOutlined,
+  CloseCircleOutlined,
   CloseOutlined,
   DoubleRightOutlined,
   FunnelPlotOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
 import { Button, Card, Checkbox, Dropdown, Input, Menu, Tag, Typography } from "antd";
+import { isEmpty } from "lodash";
 import { useEffect, useRef, useState } from "react";
+import OutsideClickHandler from "react-outside-click-handler";
 import { useDispatch } from "react-redux";
 import ErrorFallback from "../../../../../errorBoundry/ErrorFallback";
 import { useDebounce } from "../../../../../hooks";
@@ -17,7 +20,6 @@ import {
   updateFilterAlias
 } from "../../../../../redux/actions/hreport.actions";
 import {
-  checkIsValidDateFilter,
   getFilterDataType,
   getMinMaxValues,
   inputValueConditions,
@@ -33,15 +35,13 @@ import notify from "../../../../hi-notifications/notify";
 import { dateTypes } from "../../../utils/constants";
 import { allConditions } from "../../utils/constants";
 import { checkForDisplayDBMonthFunction } from "../../utils/filter-utils";
+import { getHTMLColorFormat } from "../../utils/property-utils";
 import Advanced from "./advanced";
 import BooleanFilter from "./boolean-filter";
 import DateFilter from "./date-filter";
 import NumericFilter from "./numeric-filter";
 import RangeSelection from "./range-selection";
 import TextFilter from "./text-filter";
-import OutsideClickHandler from "react-outside-click-handler";
-import { isEmpty } from "lodash";
-import { getHTMLColorFormat } from "../../utils/property-utils";
 
 const { Text } = Typography;
 
@@ -52,6 +52,7 @@ const Filter = (props) => {
   const [editing, setEditing] = useState(false);
   const [searchClickType, setSearchClickType] = useState("");
   const [isMouseHover, setIsMouseHover] = useState(false);
+  const [advanceOpen, setAdvanceOpen] = useState(false);
   const renameInput = useRef(null);
   let { filter,
     reportId,
@@ -343,16 +344,33 @@ const Filter = (props) => {
           overlay={<Advanced reportId={reportId} filter={filter} />}
           placement="bottomLeft"
           trigger={["click"]}
+          visible={advanceOpen}
+          onVisibleChange={(visible) => {
+            if (visible) {
+              setAdvanceOpen(true);
+            }
+          }}
+          overlayClassName="filters-advance-dropdown"
         >
           <Button
             type="link"
             className="filters-advance-btn"
             data-testid={`filters-advance-btn-${reportId}-${filterName}`}
             onMouseOver={() => setIsMouseHover(true)}
+            onClick={() => setAdvanceOpen((open) => !open)}
           >
-            <HITooltip title={"Advance mode"}  >
-              <BarsOutlined />
-            </HITooltip>
+            {
+              !advanceOpen &&
+              <HITooltip title={"Advance mode"}>
+                <BarsOutlined />
+              </HITooltip>
+            }
+            {
+              advanceOpen &&
+              <HITooltip title={"Close Advance mode"}>
+                <CloseCircleOutlined />
+              </HITooltip>
+            }
           </Button>
         </Dropdown>
       )}

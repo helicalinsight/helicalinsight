@@ -1,0 +1,684 @@
+/* Diagnostic Capabilities Panel - Business View Layout & Indentation */
+.diagnostic-business-hierarchy {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 13px;
+
+  .cube-business-view-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 6px 12px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .cube-bv-toolbar-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #1890ff;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 2px 4px;
+
+      &:hover {
+        color: #40a9ff;
+      }
+    }
+  }
+
+  .business-view-hierarchy-body {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px 12px;
+  }
+
+  .diagnostic-split {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 12px;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .diagnostic-capabilities-pane {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  .diagnostic-section-note {
+    margin: 0 0 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #8c8c8c;
+  }
+
+  .business-view-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+
+    .business-view-empty-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #595959;
+      margin: 0 0 8px 0;
+    }
+
+    .business-view-empty-desc {
+      font-size: 12px;
+      color: #8c8c8c;
+      margin: 0;
+      max-width: 320px;
+      line-height: 1.5;
+    }
+  }
+
+  /* 1. Root Level: Capability Entry */
+  .business-view-entry {
+    margin-bottom: 6px;
+
+    .business-view-entry-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      min-height: 26px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      user-select: none;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+    }
+
+    .business-view-entry-caret {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      color: #8c8c8c;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .business-view-type-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      color: #595959;
+
+      &.business-view-type-icon--domain {
+        color: #1890ff;
+      }
+      &.business-view-type-icon--topic {
+        color: #722ed1;
+      }
+    }
+
+    .business-view-entry-label {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      flex: 1;
+      min-width: 0;
+
+      &.business-view-entry-label--with-add {
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .cube-info-icon,
+      .cube-field-info-icon {
+        color: #8c8c8c;
+        font-size: 12px;
+        cursor: help;
+        flex-shrink: 0;
+      }
+    }
+
+    .business-view-context-trigger {
+      display: inline-flex;
+      align-items: center;
+      cursor: context-menu;
+    }
+
+    .business-view-entry-title.row-title {
+      display: inline-flex !important;
+      align-items: center !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      font-size: 13px;
+      line-height: normal !important;
+      color: #262626;
+
+      .ant-typography-edit {
+        margin-left: 4px;
+        font-size: 12px;
+        color: #8c8c8c;
+        &:hover {
+          color: #1890ff;
+        }
+      }
+    }
+
+    .business-view-title-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262626;
+      white-space: nowrap;
+    }
+
+    .business-view-action-btn {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #1890ff;
+      cursor: pointer;
+      flex-shrink: 0;
+      font-size: 12px;
+      padding: 0 2px;
+      line-height: 1;
+
+      &:hover {
+        color: #40a9ff;
+      }
+    }
+  }
+
+  /* 2. Topics under Capability: Indented by 20px */
+  .business-view-agent-topics {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding-left: 20px !important;
+    margin-top: 2px !important;
+  }
+
+  .business-view-agent-topic-row {
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    transition: background-color 0.15s, border-color 0.15s;
+
+    &.business-view-agent-topic-dropzone {
+      border: 1px dashed transparent;
+
+      &.is-drop-over {
+        background-color: rgba(24, 144, 255, 0.08);
+        border-color: #1890ff;
+      }
+    }
+  }
+
+  .business-view-agent-topic-main {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-height: 24px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    user-select: none;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+    }
+
+    .business-view-agent-topic-caret {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      color: #8c8c8c;
+      cursor: pointer;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .business-view-topic-title.row-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262626;
+      margin: 0;
+      white-space: nowrap;
+    }
+  }
+
+  /* 3. Fields inside Applicable Measures and Strategies: Indented by 20px */
+  .business-view-agent-topic-fields {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding-left: 20px !important;
+    padding-top: 2px;
+    padding-bottom: 4px;
+
+    .business-view-agent-topic-fields-empty {
+      font-size: 12px;
+      color: #bfbfbf;
+      font-style: italic;
+      margin: 2px 0 2px 4px;
+    }
+  }
+
+  .business-view-agent-topic-field-row {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 22px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #262626;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.04);
+    }
+  }
+
+  .diagnostic-value-title {
+    margin: 0 !important;
+    font-size: 13px;
+    color: #262626;
+
+    .ant-typography-edit {
+      margin-left: 4px;
+      font-size: 12px;
+      color: #8c8c8c;
+
+      &:hover {
+        color: #1890ff;
+      }
+    }
+  }
+
+  /* 4. Hierarchy rows under Strategies */
+  .business-view-agent-topic-hierarchy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .business-view-agent-topic-hierarchy-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      min-height: 22px;
+      padding: 2px 4px;
+      border-radius: 4px;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+      }
+    }
+
+    .business-view-agent-topic-hierarchy-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      color: #8c8c8c;
+      cursor: pointer;
+      flex-shrink: 0;
+
+      &:hover {
+        color: #1890ff;
+      }
+    }
+
+    .business-view-agent-topic-hierarchy-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: #262626;
+    }
+
+    .business-view-agent-topic-hierarchy-children {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 2px !important;
+      padding-left: 20px !important;
+    }
+  }
+
+  .diagnostic-add-input {
+    padding: 2px 0 4px;
+    max-width: 260px;
+  }
+
+  .diagnostic-operations-catalog {
+    flex: 0 0 220px;
+    width: 220px;
+    height: 100%;
+    max-height: 100%;
+    margin-bottom: 0;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    background: #fafafa;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .diagnostic-operations-catalog-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .diagnostic-operations-catalog-title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
+    color: #262626;
+  }
+
+  .diagnostic-operations-count {
+    margin-left: auto;
+    font-size: 12px;
+  }
+
+  .diagnostic-operations-catalog-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    padding: 0 8px 8px;
+  }
+
+  .diagnostic-operations-filter {
+    margin-bottom: 6px;
+  }
+
+  .diagnostic-operations-error {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: #cf1322;
+  }
+
+  .diagnostic-operations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .diagnostic-operation-group-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #8c8c8c;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+      color: #262626;
+    }
+  }
+
+  .diagnostic-custom-strategy {
+    margin-bottom: 8px;
+  }
+
+  .diagnostic-custom-strategy-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+  }
+
+  .diagnostic-custom-strategy-name {
+    margin: 0 !important;
+    font-size: 12px;
+  }
+
+  .diagnostic-custom-strategy-fields {
+    margin-top: 6px;
+
+    .diagnostic-input-slot:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .diagnostic-custom-strategy-row {
+    .diagnostic-operation-name {
+      flex: 1 1 auto;
+    }
+
+    .diagnostic-custom-strategy-edit {
+      margin-left: auto;
+      color: #8c8c8c;
+      cursor: pointer;
+    }
+  }
+
+  .diagnostic-operations-catalog-header .business-view-action-btn {
+    color: #1890ff;
+    cursor: pointer;
+  }
+
+  .diagnostic-operation-group-items {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    margin: 0 0 6px 16px;
+  }
+
+  .analytical-operation-drag-source {
+    display: block;
+    width: 100%;
+    cursor: grab;
+  }
+
+  .diagnostic-operation-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 12px;
+    color: #262626;
+    min-width: 0;
+
+    .diagnostic-operation-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &:hover {
+      background: rgba(24, 144, 255, 0.08);
+      color: #1890ff;
+    }
+  }
+
+  .diagnostic-operation-category {
+    color: #8c8c8c;
+    font-size: 11px;
+  }
+
+  .diagnostic-use-entry {
+    margin-bottom: 4px;
+  }
+
+  .diagnostic-use-op-icon {
+    margin-right: 4px;
+    color: #722ed1;
+  }
+
+  .diagnostic-use-inputs {
+    padding: 4px 0 4px 20px;
+  }
+
+  .diagnostic-input-group-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #8c8c8c;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 4px;
+  }
+
+  .diagnostic-input-group-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px 12px;
+    align-items: start;
+  }
+
+  .diagnostic-use-input-row {
+    overflow: visible;
+
+    .diagnostic-input-slot {
+      min-width: 0;
+    }
+  }
+
+  .diagnostic-input-slot {
+    min-width: 0;
+    border-radius: 4px;
+    padding: 0;
+
+    &.is-drop-over .diagnostic-input-values {
+      background-color: rgba(24, 144, 255, 0.08);
+      border-color: #1890ff;
+    }
+  }
+
+  .diagnostic-input-slot-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .diagnostic-input-slot-label {
+    font-size: 12px;
+    color: #595959;
+    line-height: 1.3;
+  }
+
+  .diagnostic-input-values {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 28px;
+    padding: 2px 6px;
+    border: 1px dashed #d9d9d9;
+    border-radius: 4px;
+    background: transparent;
+
+    &:focus-within {
+      border-color: #1890ff;
+      box-shadow: none;
+    }
+
+    .ant-input {
+      flex: 1 1 72px;
+      min-width: 72px;
+      padding: 0 2px;
+      background: transparent;
+    }
+  }
+
+  .diagnostic-input-chip {
+    margin: 0;
+    max-width: 100%;
+  }
+
+  .diagnostic-input-required-mark {
+    margin-left: 2px;
+    color: #cf1322;
+  }
+}
+
+.diagnostic-custom-strategy-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .diagnostic-custom-strategy-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: #595959;
+  }
+
+  .diagnostic-input-slot-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  .diagnostic-input-slot-label {
+    font-size: 12px;
+    color: #595959;
+    line-height: 1.3;
+  }
+
+  .diagnostic-input-values {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-height: 32px;
+    padding: 4px 8px;
+    border: 1px solid #d9d9d9;
+    border-radius: 4px;
+    background: #fff;
+
+    .ant-input {
+      flex: 1 1 120px;
+      min-width: 120px;
+      padding: 0 2px;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  .diagnostic-input-chip {
+    margin: 0;
+  }
+}

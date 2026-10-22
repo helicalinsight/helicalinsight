@@ -13,6 +13,10 @@ export const CUBE_EDITOR_TOOLTIPS = {
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure in reports.",
   Format:
     "Choose how numeric values are displayed (e.g., 0.00, #,##0) when this field is used as a measure.",
+  Grain:
+    "The level this measure is recorded at (for example, meeting, order, or transaction). Analysis stays at this grain and does not join a finer table that duplicates these rows.",
+  "Measurement Grain":
+    "The level this measure is recorded at (for example, meeting, order, or transaction). Analysis stays at this grain and does not join a finer table that duplicates these rows.",
   Partition:
     "Mark a field for partitioning when you need data split or grouped along this dimension.",
   Dimension:
@@ -72,6 +76,10 @@ export const AGENT_EDITOR_TOOLTIPS = {
     "Choose how values roll up (e.g., Sum, Count) when this field is used as a measure.",
   Format:
     "Choose how values are displayed (eg:: 0,0.00 etc..). Available formats depend on the selected semantic type.",
+  Grain:
+    "The level this measure is recorded at (for example, meeting, order, or transaction). Analysis stays at this grain and does not join a finer table that duplicates these rows.",
+  "Measurement Grain":
+    "The level this measure is recorded at (for example, meeting, order, or transaction). Analysis stays at this grain and does not join a finer table that duplicates these rows.",
   "Semantic Type":
     "Classify the column (e.g., currency, email, etc..) so the semantic model interprets values correctly.",
   Formula:

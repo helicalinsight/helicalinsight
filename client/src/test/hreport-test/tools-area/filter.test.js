@@ -3,7 +3,6 @@ import { render, screen, fireEvent, act, waitFor } from "@testing-library/react"
 import { intialFiltersState } from "./mock.data";
 import { Provider } from "react-redux";
 import reducers from "../../../redux";
-import axios from "axios";
 import Filters from "../../../components/hi-reports/hi-editing-area/components/filters/filters";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -12,13 +11,27 @@ import "regenerator-runtime/runtime";
 import { hiMockAxios } from "../../../app/mock-axios";
 const crypto = require("crypto");
 
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+
 const App = ({ intial_hreport_state, reportId, appStore = null }) => {
   const store = appStore || configureStore({
     reducer: reducers,
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         thunk: {
-          extraArgument: axios,
+          extraArgument: hiMockAxios,
         },
         immutableCheck: false,
         serializableCheck: false,

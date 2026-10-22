@@ -4,12 +4,26 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import { Provider } from 'react-redux';
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import reducers from '../../../redux';
-import Filters from "../../../components/hi-reports/hi-editing-area/components/filters/filters"
-import { hiMockAxios } from '../../../app/mock-axios';
-import actionTypes from "../../../redux/actions/actionTypes";
-import { openMetadata } from "../../../components/hi-reports/utils/base";
-import { addFieldToCanvas, createFilter } from "../../../redux/actions/hreport.actions";
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+const reducers = require('../../../redux').default;
+const Filters = require("../../../components/hi-reports/hi-editing-area/components/filters/filters").default;
+const { hiMockAxios } = require('../../../app/mock-axios');
+const actionTypes = require("../../../redux/actions/actionTypes").default;
+const { openMetadata } = require("../../../components/hi-reports/utils/base");
+const { addFieldToCanvas, createFilter } = require("../../../redux/actions/hreport.actions");
 
 const flushPromises = () => new Promise(setImmediate);
 
@@ -83,18 +97,30 @@ describe("Rendering filters pane", () => {
         expect(screen.queryByTestId(/filters-advance-btn-test_1234-meeting_date/i)).toBeTruthy()
         fireEvent.click(screen.queryByTestId(/filters-advance-btn-test_1234/i))
         expect(screen.queryByTestId(/filter-advanced-mode/i)).toBeTruthy()
-        expect(screen.queryByTestId(/advance-filter-display-dbfunc/i)).toBeTruthy()
-        fireEvent.click(screen.queryByTestId(/advance-filter-display-dbfunc/i))
-        expect(screen.queryByTestId(/advance-mode-list-meeting_date/i)).toBeTruthy()
-        expect(screen.queryByTestId(/advance-mode-list-meeting_date/i).children.length).toEqual(79)
-        const searchElem = screen.queryByTestId(/advance-mode-list-input-meeting_date/i)
-        expect(searchElem).toBeTruthy()
-        fireEvent.change(searchElem, { target: { value: "con" } })
-        expect(screen.queryByTestId(/advance-mode-list-meeting_date/i).children.length).toEqual(3)
-        fireEvent.change(searchElem, { target: { value: "sin" } })
-        expect(screen.queryByTestId(/advance-mode-list-meeting_date/i).children.length).toEqual(2)
-        fireEvent.change(searchElem, { target: { value: "" } })
-        expect(screen.queryByTestId(/advance-mode-list-meeting_date/i).children.length).toEqual(79)
+        const getTestFilter = () => {
+            const report = getState().hreport.present.reports.find((item) => item.active);
+            return report.filters[0];
+        };
+        const chipLabels = screen.getAllByTestId('hr-custom-column-chip-label');
+        expect(chipLabels).toHaveLength(2);
+        expect(chipLabels[0].textContent).toBe('meeting_date');
+        fireEvent.click(chipLabels[0]);
+        expect(await screen.findByText('Group by')).toBeTruthy();
+        expect(screen.getByText('Aggregate')).toBeTruthy();
+        expect(screen.getByText('Functions')).toBeTruthy();
+        expect(screen.getByText('Order By')).toBeTruthy();
+        const initialDefaultFunction = getTestFilter().mapping.displayColumn.defaultFunction;
+        fireEvent.click(screen.getByText('Group by'));
+        await waitFor(() => {
+            expect(getTestFilter().mapping.displayColumn.defaultFunction).not.toBe(initialDefaultFunction);
+        });
+        expect(['db.generic.groupBy.group', 'none'])
+            .toContain(getTestFilter().mapping.displayColumn.defaultFunction);
+        expect(getTestFilter().mapping.orderBy.display).toBe('asc');
+        fireEvent.click(screen.getAllByLabelText('sort-ascending')[0]);
+        await waitFor(() => {
+            expect(getTestFilter().mapping.orderBy.display).toBe('desc');
+        });
     });
     test("date filter with dateadd db function", async () => {
         let reportId = uuidv4()

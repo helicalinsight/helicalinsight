@@ -47,10 +47,6 @@ class VizSection(BaseModel):
     chart_name: str = Field(default="", description="Selected chart / visualization type, e.g. bar, pie, line.")
     vf_title: str = Field(default="", description="Human friendly visualization title.")
     vf_reason: str = Field(default="", description="Reason for choosing this visualization.")
-    similar_chart: list[str] = Field(
-        default_factory=list,
-        description="Other chart types compatible with the current result shape.",
-    )
 
 
 class ReportModelSection(BaseModel):
@@ -159,7 +155,6 @@ class ChatResponse(BaseModel):
             chart_name=chart_name,
             vf_title=_as_str(state.get("vf_title")),
             vf_reason=_as_str(state.get("viz_reason")),
-            similar_chart=_as_similar_charts(state),
         )
         report_model = ReportModelSection(
             data_model=_wire_data_model(state.get("viz_form_data")),
@@ -354,30 +349,6 @@ def _as_str(value: Any) -> str:
     if isinstance(value, str):
         return value
     return str(value)
-
-
-def _as_similar_charts(state: dict) -> list[str]:
-    raw = state.get("similar_chart")
-    if not isinstance(raw, list):
-        context = state.get("viz_column_context")
-        if isinstance(context, dict):
-            raw = context.get("similar_chart")
-    if not isinstance(raw, list):
-        return []
-    names: list[str] = []
-    seen: set[str] = set()
-    for item in raw:
-        if not isinstance(item, str):
-            continue
-        text = item.strip()
-        if not text:
-            continue
-        key = text.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        names.append(text)
-    return names
 
 
 def _is_other_chart_type(chart_name: str) -> bool:

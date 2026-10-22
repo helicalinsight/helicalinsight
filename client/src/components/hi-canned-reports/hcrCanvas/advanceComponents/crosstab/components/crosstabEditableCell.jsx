@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { useDispatch } from 'react-redux';
 import { hcrActions } from '../../../../../../redux/actions';
@@ -31,15 +31,61 @@ const CrosstabEditableCell = (props = {}) => {
     const [visible, setVisible] = useState(false)
     const isSelected = selectedCells?.includes(cellId);
     const isCrosstabHeaderCell = cellId === "crosstab_header_cell";
+    const isFreeLayout = cell?.layout === "Free Layout";
+    const isHorizontalLayout = cell?.layout === "Horizontal Layout";
+    const elementsRef = useRef(null);
+
+    const otherCellStyles = {
+        display: "flex",
+        flexDirection: "column",
+    }
+    if (isHorizontalLayout) {
+        otherCellStyles.flexDirection = "row";
+    }
+
 
     const [{ isOver, canDrop }, dropRef] = useDrop({
-        accept: HCR_CROSSTAB_NODE,
-        drop: (item) => {
-            updateCrosstab("moveNode", {
-                targetCellId: cellId,
-                nodeId: item.nodeId,
-                sourceCellId: item.sourceCellId
-            })
+        accept: [HCR_CROSSTAB_NODE, "customNodes"],
+        drop: (item, monitor) => {
+            if (item.type === "customNodes") {
+                if (item.record.category === "text") {
+                    updateCrosstab("addNewNode", {
+                        targetCellId: cellId,
+                        newField: item.record
+                    })
+                }
+                return;
+            }
+            if (!isFreeLayout) {
+                updateCrosstab("moveNode", {
+                    targetCellId: cellId,
+                    nodeId: item.nodeId,
+                    sourceCellId: item.sourceCellId
+                })
+                return;
+            }
+            const offset = monitor.getClientOffset();
+            const rect = elementsRef.current?.getBoundingClientRect();
+            let x, y;
+            if (offset && rect) {
+                x = Math.round(offset.x - rect.left);
+                y = Math.round(offset.y - rect.top);
+            }
+            if (item.sourceCellId === cellId) {
+                updateCrosstab("moveNodePosition", {
+                    nodeId: item.nodeId,
+                    x,
+                    y
+                })
+            } else {
+                updateCrosstab("moveNode", {
+                    targetCellId: cellId,
+                    nodeId: item.nodeId,
+                    sourceCellId: item.sourceCellId,
+                    x,
+                    y
+                })
+            }
         },
         canDrop: () => {
             return !isCrosstabHeaderCell;
@@ -60,6 +106,16 @@ const CrosstabEditableCell = (props = {}) => {
             actionType,
             ...payload
         }))
+    }
+
+    const updateNode = (actionType, payload = {}) => {
+        if ((actionType === "resizeNode" || actionType === "moveNodePosition") && payload?.nodeId) {
+            dispatch(hcrActions.hcrUpdateCrosstabComponent({
+                id: componentId,
+                actionType,
+                ...payload
+            }))
+        }
     }
 
 
@@ -92,7 +148,7 @@ const CrosstabEditableCell = (props = {}) => {
                 position: "relative",
                 gridColumn,
                 gridRow,
-                ...cellStyles,
+                ...cellStyles
             }}
             onClick={handleCellClick}
         >
@@ -106,12 +162,17 @@ const CrosstabEditableCell = (props = {}) => {
                 cellId={cellId}
                 crosstabData={crosstabData}
             />}
-            <div className="cell-elements">
+            <div
+                ref={elementsRef}
+                className={`cell-elements${isFreeLayout ? " free-layout" : ""}`}
+                style={isFreeLayout ? { position: "relative", height: cell.height, minHeight: cell.height, width: "100%" } : otherCellStyles}
+            >
                 {nodeIds.map((id, i) => {
                     const node = nodes[id];
+                    if (!node) return null;
                     return (
                         <>
-                            {i > 0 ? <div style={{ height: 1, background: "#b9c7d8", width: "100%" }}></div> : null}
+                            {!isFreeLayout && i > 0 ? <div style={{ height: 1, background: "#b9c7d8", width: "100%" }}></div> : null}
                             <DraggableNode
                                 key={id}
                                 selectedNodes={selectedNodes}
@@ -122,6 +183,10 @@ const CrosstabEditableCell = (props = {}) => {
                                 crosstabData={crosstabData}
                                 copiedNodes={copiedNodes}
                                 mode={mode}
+                                cell={cell}
+                                resize={isFreeLayout}
+                                isFreeLayout={isFreeLayout}
+                                updateNode={updateNode}
                             />
                         </>
                     )

@@ -6,6 +6,40 @@ import { collectAssignableBusinessTopicKeys } from "./agentBusinessTopicMembersh
 
 export const AGENT_CUBE_FIELD_DND_TYPE = "agentCubeField";
 export const METADATA_ROW_CHILD_DND_TYPE = "metadataRowChild";
+export const ANALYTICAL_OPERATION_DND_TYPE = "analyticalOperation";
+
+export function AnalyticalOperationDragSource({ operation, children }) {
+  const canDrag = Boolean(operation?.operation);
+  const [, drag] = useDrag(
+    () => ({
+      type: ANALYTICAL_OPERATION_DND_TYPE,
+      item: () => ({
+        key: `op-${operation.operation}`,
+        operation: operation.operation,
+        category: operation.category || "",
+        description: operation.description || "",
+        requiredInputs: Array.isArray(operation.requiredInputs)
+          ? operation.requiredInputs
+          : [],
+        optionalInputs: Array.isArray(operation.optionalInputs)
+          ? operation.optionalInputs
+          : [],
+      }),
+      canDrag: () => canDrag,
+    }),
+    [operation, canDrag],
+  );
+
+  if (!canDrag) {
+    return children;
+  }
+
+  return (
+    <div ref={drag} className="analytical-operation-drag-source">
+      {children}
+    </div>
+  );
+}
 
 export function AgentCubeFieldDragSource({ record, disabled = false, children }) {
   const canDragRecord = !disabled && !record?.isDelete;
@@ -59,14 +93,34 @@ export function AgentTopicDropZone({
   topicName,
   onDropCubeField,
   onDropMetadataField,
+  onDropAnalyticalOperation,
+  acceptAnalyticalOperations = false,
+  acceptCubeFields = true,
   children,
   className = "",
 }) {
+  const acceptTypes = [
+    ...(acceptCubeFields
+      ? [AGENT_CUBE_FIELD_DND_TYPE, METADATA_ROW_CHILD_DND_TYPE]
+      : []),
+    ...(acceptAnalyticalOperations || onDropAnalyticalOperation
+      ? [ANALYTICAL_OPERATION_DND_TYPE]
+      : []),
+  ];
   const [{ isOver, canDrop }, drop] = useDrop(
     () => ({
-      accept: [AGENT_CUBE_FIELD_DND_TYPE, METADATA_ROW_CHILD_DND_TYPE],
+      accept: acceptTypes.length ? acceptTypes : [AGENT_CUBE_FIELD_DND_TYPE],
       canDrop: (item, monitor) => {
         const type = monitor.getItemType();
+        if (type === ANALYTICAL_OPERATION_DND_TYPE) {
+          return Boolean(
+            (acceptAnalyticalOperations || onDropAnalyticalOperation) &&
+              item?.operation,
+          );
+        }
+        if (!acceptCubeFields) {
+          return false;
+        }
         if (type === METADATA_ROW_CHILD_DND_TYPE) {
           return Boolean(item?.columnId || item?.alias || item?.columnName);
         }
@@ -77,6 +131,13 @@ export function AgentTopicDropZone({
           return;
         }
         const type = monitor.getItemType();
+        if (type === ANALYTICAL_OPERATION_DND_TYPE) {
+          onDropAnalyticalOperation?.(item);
+          return { droppedOnTopic: true };
+        }
+        if (!acceptCubeFields) {
+          return;
+        }
         if (type === METADATA_ROW_CHILD_DND_TYPE) {
           onDropMetadataField?.(item);
           return { droppedOnTopic: true };
@@ -92,7 +153,15 @@ export function AgentTopicDropZone({
         canDrop: monitor.canDrop(),
       }),
     }),
-    [domainName, topicName, onDropCubeField, onDropMetadataField],
+    [
+      domainName,
+      topicName,
+      onDropCubeField,
+      onDropMetadataField,
+      onDropAnalyticalOperation,
+      acceptAnalyticalOperations,
+      acceptCubeFields,
+    ],
   );
 
   return (

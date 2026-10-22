@@ -69,7 +69,7 @@ List<Integer> globalList = resource.getGlobalIds();
 						for (HIMetadataConnectionGlobal mdGlobalConnection : mdGlobalConnections) {
 							GlobalConnections globalConnection = mdGlobalConnection.getGlobalConnections();
 							int globalId = globalConnection.getGlobalId();
-							hadleGlobalConnection(globalId, dsWrapper);
+							hadleGlobalConnection(globalId, dsWrapper, dir, manifest);
 						}
 					}
 					dataWriter.write(dsWrapper, dir, resource, ResourceSuffix.DATASOURCE);
@@ -79,14 +79,14 @@ List<Integer> globalList = resource.getGlobalIds();
 		}else{
 			List<DataSourceWrapper> dsWrapper = new ArrayList<>();
 			for(Integer globalId : globalList) {
-				hadleGlobalConnection(globalId, dsWrapper);
+				hadleGlobalConnection(globalId, dsWrapper, dir, manifest);
 			}
 			dataWriter.write(dsWrapper, dir, resource, ResourceSuffix.DATASOURCE);
 			manifestUtils.insertDatasource(resource, manifest);
 		}
 	}
 
-private void hadleGlobalConnection(Integer globalId,List<DataSourceWrapper> dsWrapper){
+private void hadleGlobalConnection(Integer globalId,List<DataSourceWrapper> dsWrapper, String dir, Manifest manifest){
 
 
 	List<DSExtraOption> extraOptions = connectionService.getExtraOptions(globalId);// BUG-7548
@@ -117,6 +117,7 @@ private void hadleGlobalConnection(Integer globalId,List<DataSourceWrapper> dsWr
 	wrapper.setExtraOptions(extraOptions);//BUG - 7548
 
 	dsWrapper.add(wrapper);
+	recycleBinHandler.writeGlobalConnection(globalId, dir, manifest);
 
 
 
@@ -362,7 +363,7 @@ return  oldMappingNewMapping;
 	}
 
 	private final void  handleSecurity(Integer globalId , List<GlobalConnectionSecurity> security) {
-		shareHandler.importGlobalConnectionPermissions(globalId, security);
+		shareHandler.importGlobalConnectionPermissions(globalId, security, context);
 	}
 
 	@NotNull
@@ -371,8 +372,9 @@ return  oldMappingNewMapping;
 		GlobalConnections gConnection = connectionService.getGlobalConnectionBy(lookup);
 		if( gConnection == null ) {
 			connection.setGlobalId(null);
+			connection.setDeleted(false);
 			Object createdByObj = connection.getCreatedBy();
-			User createdBy =  shareUtils.resolveUser(createdByObj);
+			User createdBy =  shareUtils.resolveUser(createdByObj, context);
 			connection.setCreatedBy(createdBy);
 			connectionService.addGlobalConnections(connection);
 			gConnection = connection;
@@ -382,6 +384,7 @@ return  oldMappingNewMapping;
 			connectionService.editGlobalConnections(gConnection);
 		}
 		context.putGlobalConnection(connectionId, gConnection);
+		recycleBinHandler.importGlobalConnection(connectionId, gConnection, context);
 		return gConnection;
 	}
 

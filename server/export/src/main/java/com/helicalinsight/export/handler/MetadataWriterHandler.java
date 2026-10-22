@@ -52,8 +52,10 @@ public class MetadataWriterHandler extends AbstractResourceWriterHandler {
 			HIResource hiResource = serviceDB.getResourceByIdIgnoreFilter(resource.getResourceId());
 			HIResourceDTO hiResourceDTO =  dtoMapper.map(hiResource);
 			metadata.setHiResource(hiResourceDTO);
+			markDeleted(metadata, hiResource, options);
 			manifestUtils.insertPath(resource.getPath(), manifest);
 			dataWriter.write(this.addOwner(metadata,metadata.getCreatedBy()), dir, resource,"");
+			recycleBinHandler.writeResource(hiResource, resource, dir, manifest);
 			manifestUtils.insertDependency(resource.getPath(), depPath, manifest);
 			share(resource, manifest, options, dir);
 			if (options != null && options.getDataSource()) {

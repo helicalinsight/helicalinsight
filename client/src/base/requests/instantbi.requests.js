@@ -28,6 +28,7 @@ export const uriConfig = {
   instantBIUtilityLlm: "ai/utility/llm",
   instantBIUtilitySettings: "ai/utility/settings",
   instantBIUtilityPrefix: "ai/utility",
+  instantBIUtilityAnalyticalOperations: "ai/utility/analytical-operations",
   instantBISettingsModels: "ai/settings/models",
 };
 

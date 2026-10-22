@@ -400,3 +400,802 @@ def test_validate_rejects_ungrounded_then_fallback_uses_allowed_names():
         assert any(name in question for name in allowed) or chart.get("measure_hints")
         for hint in chart.get("measure_hints") or []:
             assert hint.lower() in allowed
+
+
+def test_select_analytical_operations_node_populates_operations():
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+    from helicalbi.sql_agent.strategy_tree import select_analytical_operations
+
+    ops = select_analytical_operations("Why did travel spend drop last quarter compared to first quarter?")
+    assert ops
+    op_names = [op["operation"] for op in ops]
+    assert any(name in op_names for name in ("period_comparison", "trend", "contribution", "mix_analysis"))
+
+    state = {
+        "question": "Why did travel spend drop last quarter compared to first quarter?",
+        "activity_trace": [],
+    }
+    result = select_analytical_operations_node(state)
+    assert result["analytical_operations"]
+    assert result["selected_operations"]
+    trace = result["activity_trace"]
+    assert len(trace) == 1
+    assert trace[0]["node"] == "select_analytical_operations"
+    assert trace[0]["stage"] == "plan_graph"
+    assert "operations" in trace[0]["result"]
+
+
+def test_plan_json_contains_query_analytical_strategies():
+    from helicalbi.sql_agent.models import DashboardChartSpec, InvestigationPlan
+    from helicalbi.sql_agent.investigation import plan_to_public_dict
+
+    chart1 = DashboardChartSpec(
+        title="Revenue Trend",
+        question="What is the monthly revenue trend?",
+        viz_hint="line",
+    )
+    chart2 = DashboardChartSpec(
+        title="Revenue by Region",
+        question="What is revenue breakdown by region?",
+        viz_hint="bar",
+    )
+    plan = InvestigationPlan(
+        persona="executive",
+        tier="strategic",
+        strategy_id="inverted_pyramid",
+        original_question="How is revenue trending and performing across regions?",
+        charts=[chart1, chart2],
+    )
+    plan_dict = plan_to_public_dict(plan)
+    assert "query_analytical_strategies" in plan_dict
+    assert len(plan_dict["query_analytical_strategies"]) == 2
+    assert plan_dict["query_analytical_strategies"][0]["analytical_strategy"] == "trend"
+    assert plan_dict["query_analytical_strategies"][1]["analytical_strategy"] == "segment"
+    assert plan_dict["charts"][0]["analytical_strategy"] == "trend"
+    assert plan_dict["charts"][1]["analytical_strategy"] == "segment"
+    assert plan_dict["charts"][0]["operation"] == "trend"
+    assert plan_dict["charts"][1]["operation"] == "segment"
+
+
+def test_measure_grain_direction_and_process_stages_indexing():
+    indexer = SemanticLayerIndexer()
+    model = {
+        "modelName": "sales_model",
+        "domain": [
+            {
+                "domain_name": "Sales Meetings",
+                "topics": [
+                    {
+                        "topic": "Meeting Overview",
+                        "description": "Sales meeting volume and outcomes",
+                        "components": ["Meeting Count", "Meeting Cancellation Rate"],
+                    }
+                ],
+            }
+        ],
+        "measures": [
+            {
+                "measureName": "Meeting Count",
+                "semanticType": "count",
+                "formula": "COUNT(meeting_details.meeting_id)",
+                "grain": "meeting",
+                "additivity": "additive",
+                "direction": "neutral",
+                "processStages": ["S1", "S5", "S6"],
+            },
+            {
+                "measureName": "Meeting Cancellation Rate",
+                "semanticType": "ratio",
+                "formula": "SUM(cancelled) / COUNT(meeting_id)",
+                "grain": "meeting",
+                "additivity": "non-additive",
+                "direction": "negative",
+                "processStages": ["S5", "S6"],
+            },
+        ],
+    }
+    indexer.index_model(model)
+
+    assert indexer.measure_direction("Meeting Count") == "neutral"
+    assert indexer.measure_grain("Meeting Count") == "meeting"
+    assert indexer.measure_direction("Meeting Cancellation Rate") == "negative"
+    assert indexer.measure_grain("Meeting Cancellation Rate") == "meeting"
+
+    meta = indexer.measure_metadata("Meeting Count")
+    assert meta["grain"] == "meeting"
+    assert meta["direction"] == "neutral"
+    assert meta["additivity"] == "additive"
+    assert meta["semantic_type"] == "count"
+    assert meta["process_stages"] == ["S1", "S5", "S6"]
+    assert meta["formula"] == "COUNT(meeting_details.meeting_id)"
+
+    pack = indexer.topic_pack(["Meeting Overview"])
+    assert "field Meeting Count:" in pack
+    assert "formula: COUNT(meeting_details.meeting_id)" in pack
+    assert "grain: meeting" in pack
+    assert "business direction: neutral" in pack
+    assert "additivity: additive" in pack
+    assert "semantic type: count" in pack
+    assert "process stages: S1, S5, S6" in pack
+    assert "business direction: negative" in pack
+
+
+def test_cube_info_measure_grain_direction():
+    from helicalbi.common.CubeInfoModel import cube_info_to_cube_metadata
+
+    cube = {
+        "name": "sales_cube",
+        "measures": [
+            {
+                "measureName": "Meeting Count",
+                "columnName": "meeting_details.meeting_id",
+                "semanticType": "count",
+                "formula": "COUNT(meeting_details.meeting_id)",
+                "grain": "meeting",
+                "additivity": "additive",
+                "direction": "neutral",
+                "processStages": ["S1", "S5", "S6"],
+            }
+        ],
+    }
+    resolved = cube_info_to_cube_metadata([cube], {})
+    assert len(resolved) == 1
+    table_measures = resolved[0]["measures"]
+    assert len(table_measures) == 1
+    m = table_measures[0]
+    assert m["measure_name"] == "Meeting Count"
+    assert m["grain"] == "meeting"
+    assert m["direction"] == "neutral"
+    assert m["additivity"] == "additive"
+    assert m["process_stages"] == ["S1", "S5", "S6"]
+
+
+def test_diagnostic_capabilities_indexing_and_retrieval():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+
+    diag_model = {
+        "modelName": "sales_model",
+        "diagnosticCapabilities": [
+            {
+                "capability": "growth_diagnosis",
+                "applicableTo": ["Travel Cost"],
+                "uses": ["trend", "period_comparison", "segment"],
+            }
+        ],
+        "measures": [
+            {"measureName": "Travel Cost", "grain": "travel", "direction": "negative"}
+        ],
+    }
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(diag_model, {})
+
+    caps = indexer.diagnostic_capabilities()
+    assert len(caps) == 1
+    assert caps[0]["capability"] == "growth_diagnosis"
+    assert caps[0]["uses"] == ["trend", "period_comparison", "segment"]
+
+    matches = indexer.matching_diagnostic_capabilities("How much total travel cost has changed over the year")
+    assert len(matches) == 1
+    assert matches[0]["capability"] == "growth_diagnosis"
+
+
+def test_custom_strategy_type_is_loaded_and_prompted():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.strategy_tree import (
+        analytical_operations_prompt_block,
+        merge_custom_operations,
+        operations_for_diagnostic_uses,
+        resolve_diagnostic_uses,
+    )
+
+    custom = {
+        "operation": "fare gap",
+        "type": "custom",
+        "category": "custom",
+        "description": "Compare fare to a target.",
+        "requiredInputs": ["measure", "benchmark"],
+        "optionalInputs": ["timeDimension"],
+        "preconditions": ["A target exists."],
+        "limitations": ["Do not invent a benchmark."],
+        "execution": {"method": "sql", "logic": "Subtract target from actual."},
+        "custom": True,
+    }
+    model = {
+        "customAnalyticalOperations": [
+            custom,
+            {"operation": "ignored catalog copy", "category": "comparison"},
+        ],
+        "diagnosticCapabilities": [
+            {
+                "capability": "fare review",
+                "applicableTo": ["Fare"],
+                "uses": [{"analyticalOperation": "fare gap", "measure": "Fare"}],
+            }
+        ],
+    }
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(model, {})
+    loaded = indexer.custom_analytical_operations()
+    assert [op["operation"] for op in loaded] == ["fare gap"]
+    assert loaded[0]["type"] == "custom"
+    assert "fare gap (custom)" in indexer.overview()
+
+    merged = merge_custom_operations(
+        [{"operation": "trend", "description": "Change over time."}],
+        loaded,
+    )
+    assert [op["operation"] for op in merged] == ["trend", "fare gap"]
+    use_plan = resolve_diagnostic_uses(
+        model["diagnosticCapabilities"],
+        operations=merged,
+        measures=["Fare"],
+        dimensions=[],
+    )
+    chosen = operations_for_diagnostic_uses(use_plan, merged)
+    assert [op["operation"] for op in chosen] == ["fare gap"]
+    block = analytical_operations_prompt_block(chosen)
+    assert "fare gap (custom): Compare fare to a target." in block
+    assert "required inputs: measure, benchmark" in block
+    assert "preconditions: A target exists." in block
+    assert "limitations: Do not invent a benchmark." in block
+    assert "execution: Subtract target from actual." in block
+
+
+def test_analytical_operations_diagnostic_boosting():
+    from helicalbi.sql_agent.strategy_tree import select_analytical_operations
+
+    diag_caps = [
+        {
+            "capability": "growth_diagnosis",
+            "applicableTo": ["Travel Cost"],
+            "uses": ["trend", "period_comparison", "segment"],
+        }
+    ]
+    ops = select_analytical_operations(
+        "How much total travel cost has changed over the year",
+        max_operations=3,
+        diagnostic_capabilities=diag_caps,
+    )
+    op_names = {op["operation"] for op in ops}
+    assert "trend" in op_names
+    assert "period_comparison" in op_names
+    assert "segment" in op_names
+
+
+def test_diagnostic_capabilities_object_shaped_uses_and_applicable_to():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.strategy_tree import (
+        iter_applicable_measures,
+        iter_diagnostic_uses,
+        list_analytical_operations_for_api,
+        select_analytical_operations,
+    )
+
+    ops = list_analytical_operations_for_api()
+    assert any(op["operation"] == "trend" for op in ops)
+    trend = next(op for op in ops if op["operation"] == "trend")
+    assert "measure" in trend["requiredInputs"]
+    assert "timeDimension" in trend["requiredInputs"]
+
+    cap = {
+        "capability": "Successful Meeting diagnosis",
+        "applicableTo": [{"measure": "Successful Meeting Rate"}],
+        "uses": [
+            {
+                "analyticalOperation": "trend",
+                "measure": "Successful Meeting Rate",
+                "timeDimension": "Meeting Date",
+            }
+        ],
+    }
+    assert iter_applicable_measures(cap["applicableTo"]) == ["Successful Meeting Rate"]
+    assert iter_diagnostic_uses(cap["uses"]) == [
+        {
+            "name": "trend",
+            "hinted_kind": "strategy",
+            "measures": ["Successful Meeting Rate"],
+            "dimensions": ["Meeting Date"],
+        }
+    ]
+
+    indexer = SemanticLayerIndexer()
+    indexer.index_model({"diagnosticCapabilities": [cap]}, {})
+    matches = indexer.matching_diagnostic_capabilities(
+        "Why did Successful Meeting Rate change?"
+    )
+    assert len(matches) == 1
+    selected = select_analytical_operations(
+        "Why did Successful Meeting Rate change?",
+        max_operations=3,
+        diagnostic_capabilities=[cap],
+    )
+    assert "trend" in {op["operation"] for op in selected}
+
+
+def test_hierarchy_level_deduplication_across_tables():
+    from helicalbi.common.CubeInfoModel import (
+        _expand_hierarchy_items,
+        build_cube_component_index,
+        resolve_topic_component,
+    )
+
+    dimensions = [
+        {
+            "dimensionName": "Meeting Date",
+            "tableId": "1043",
+            "columnName": "meeting_details.meeting_date",
+            "hierarchies": [
+                {
+                    "hierarchyName": "Meeting Date Hierarchy",
+                    "tableId": "1043",
+                    "levels": [
+                        {
+                            "levelName": "YEAR",
+                            "tableId": "1043",
+                            "columnName": "meeting_details.meeting_date",
+                            "columnId": "meet-col-1",
+                        }
+                    ],
+                }
+            ],
+        },
+        {
+            "dimensionName": "Travel Date",
+            "tableId": "1065",
+            "columnName": "travel_details.travel_date",
+            "hierarchies": [
+                {
+                    "hierarchyName": "Travel Date Hierarchy",
+                    "tableId": "1065",
+                    "levels": [
+                        {
+                            "levelName": "YEAR",
+                            "tableId": "1065",
+                            "columnName": "travel_details.travel_date",
+                            "columnId": "trav-col-1",
+                        }
+                    ],
+                }
+            ],
+        },
+    ]
+
+    expanded = _expand_hierarchy_items(dimensions, "dimensionName")
+    # Both YEAR levels must be preserved because they belong to distinct tables
+    year_levels = [item for item in expanded if item.get("levelName") == "YEAR"]
+    assert len(year_levels) == 2
+    table_ids = {item["tableId"] for item in year_levels}
+    assert "1043" in table_ids
+    assert "1065" in table_ids
+
+    # When querying with a preferred table ID (e.g. 1065 for travel_details),
+    # resolve_topic_component should resolve to travel_details.travel_date
+    by_id, by_name = build_cube_component_index([{"dimensions": expanded}])
+    resolved = resolve_topic_component(
+        {"name": "YEAR"},
+        by_id,
+        by_name,
+        preferred_table_id="1065",
+    )
+    assert resolved["tableId"] == "1065"
+    assert resolved["columnName"] == "travel_details.travel_date"
+
+
+def _ratio_diagnosis_model():
+    return {
+        "modelName": "meetings",
+        "diagnosticCapabilities": [
+            {
+                "capability": "ratio_diagnosis",
+                "applicableTo": [
+                    "Meeting Cancellation Rate",
+                    "Successful Meeting Rate",
+                    "Cost per Client",
+                ],
+                "uses": ["measureDecomposition", "trend", "segment", "Client Name"],
+            }
+        ],
+        "measures": [
+            {
+                "measureName": "Meeting Cancellation Rate",
+                "formula": "Cancelled Meetings / Meeting Count",
+                "grain": "meeting",
+                "additivity": "non-additive",
+                "direction": "negative",
+            },
+            {
+                "measureName": "Cancelled Meetings",
+                "grain": "meeting",
+                "additivity": "additive",
+                "direction": "neutral",
+            },
+            {
+                "measureName": "Meeting Count",
+                "grain": "meeting",
+                "additivity": "additive",
+                "direction": "neutral",
+            },
+            {"measureName": "Successful Meeting Rate"},
+            {"measureName": "Cost per Client"},
+        ],
+        "cube_info": [
+            {
+                "name": "meetings",
+                "dimensions": [{"dimensionName": "Client Name"}],
+                "measures": [],
+            }
+        ],
+    }
+
+
+def test_think_mode_uses_applicable_measures_and_classified_uses():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+    from helicalbi.sql_agent.strategy_tree import diagnostic_capabilities_prompt_block
+
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(_ratio_diagnosis_model(), {})
+    state = {
+        "question": "Why is the meeting cancellation rate high?",
+        "flat_sql": True,
+        "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+        "session": {"semantic_indexer": indexer},
+        "allowed_names": ["Meeting Cancellation Rate"],
+        "grounding_pack": "TOPIC Meetings\n  components: Meeting Cancellation Rate",
+        "activity_trace": [],
+    }
+    result = select_analytical_operations_node(state)
+
+    assert result["selected_operations"] == ["decompose", "trend", "segment"]
+    kinds = {(item["kind"], item["name"]) for item in result["diagnostic_use_plan"]}
+    assert ("strategy", "decompose") in kinds
+    assert ("strategy", "trend") in kinds
+    assert ("strategy", "segment") in kinds
+    assert ("dimension", "Client Name") in kinds
+    assert ("measure", "Cancelled Meetings") in kinds
+    assert ("measure", "Meeting Count") in kinds
+    assert result["matched_diagnostic_capabilities"][0]["matchedMeasures"] == [
+        "Meeting Cancellation Rate"
+    ]
+    assert "Client Name" in result["allowed_names"]
+    assert "Cancelled Meetings" in result["allowed_names"]
+    assert "formula: Cancelled Meetings / Meeting Count" in result["grounding_pack"]
+    assert "grain: meeting" in result["grounding_pack"]
+    assert "additivity: non-additive" in result["grounding_pack"]
+    assert "business direction: negative" in result["grounding_pack"]
+    assert "do not SUM this measure" in result["grounding_pack"]
+
+    block = diagnostic_capabilities_prompt_block(
+        result["matched_diagnostic_capabilities"],
+        use_plan=result["diagnostic_use_plan"],
+    )
+    assert "Meeting Cancellation Rate" in block
+    assert "measureDecomposition" in block
+    assert "strategy decompose" in block
+    assert "dimension Client Name" in block
+    assert "Cancelled Meetings" in block
+    assert "grain 'meeting'" in block
+    assert "do not SUM this measure" in block
+    assert "an increase is unfavorable" in block
+    assert "SUM is valid across dimensions at this grain" in block
+    assert "Allowed strategies: decompose, trend, segment" in block
+    assert "Allowed measures: Meeting Cancellation Rate, Cancelled Meetings, Meeting Count" in block
+    assert "Allowed dimensions: Client Name" in block
+    assert "Do not use any other" in block
+    assert "3 to 5 flat questions" not in block
+
+
+def test_think_mode_ignores_diagnostic_capability_for_unrelated_question():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(_ratio_diagnosis_model(), {})
+    result = select_analytical_operations_node(
+        {
+            "question": "How many meetings happened?",
+            "flat_sql": True,
+            "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+            "session": {"semantic_indexer": indexer},
+            "activity_trace": [],
+        }
+    )
+    assert result["matched_diagnostic_capabilities"] == []
+    assert result["diagnostic_use_plan"] == []
+    assert "decompose" not in result["selected_operations"]
+
+
+def test_think_mode_repairs_plan_missing_diagnostic_uses():
+    from helicalbi.sql_agent.nodes.plan_graph import validate_questions_node
+
+    validated = validate_questions_node(
+        {
+            "question": "Why is the meeting cancellation rate high?",
+            "flat_sql": True,
+            "repair_count": 0,
+            "allowed_names": [
+                "Meeting Cancellation Rate",
+                "Client Name",
+                "Cancelled Meetings",
+                "Meeting Count",
+            ],
+            "matched_diagnostic_capabilities": [
+                {
+                    "capability": "ratio_diagnosis",
+                    "matchedMeasures": ["Meeting Cancellation Rate"],
+                }
+            ],
+            "diagnostic_use_plan": [
+                {"kind": "strategy", "name": "decompose", "source": "measureDecomposition"},
+                {"kind": "strategy", "name": "trend", "source": "trend"},
+                {"kind": "strategy", "name": "segment", "source": "segment"},
+                {"kind": "dimension", "name": "Client Name", "source": "Client Name"},
+            ],
+            "plan": {
+                "charts": [
+                    {
+                        "title": "Cancellation by client",
+                        "question": "What is Meeting Cancellation Rate by Client Name?",
+                        "viz_hint": "bar",
+                        "operation": "segment",
+                        "measure_hints": ["Meeting Cancellation Rate"],
+                        "components": ["Meeting Cancellation Rate", "Client Name"],
+                    }
+                ]
+            },
+            "activity_trace": [],
+        }
+    )
+    assert validated["validation_ok"] is False
+    feedback = validated["validation_feedback"]
+    assert "Missing diagnostic strategy 'decompose'" in feedback
+    assert "Missing diagnostic strategy 'trend'" in feedback
+
+
+def test_think_mode_keeps_only_configured_strategy_fields():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+    from helicalbi.sql_agent.strategy_tree import (
+        charts_within_diagnostic_scope,
+        diagnostic_capabilities_prompt_block,
+        diagnostic_field_scope,
+        diagnostic_scope_lock,
+    )
+
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(
+        {
+            "modelName": "travel",
+            "diagnosticCapabilities": [
+                {
+                    "capability": "travel_cost_split",
+                    "applicableTo": ["Travel Cost", "Meeting Count"],
+                    "uses": [
+                        {
+                            "analyticalOperation": "segment",
+                            "measure": "Travel Cost",
+                            "dimension": "Client Destination",
+                            "additionalDimensions": ["Booking Platform"],
+                        }
+                    ],
+                }
+            ],
+            "measures": [
+                {"measureName": "Travel Cost"},
+                {"measureName": "Meeting Count"},
+            ],
+            "cube_info": [
+                {
+                    "name": "travel",
+                    "dimensions": [
+                        {"dimensionName": "Client Destination"},
+                        {"dimensionName": "Booking Platform"},
+                        {"dimensionName": "Employee Name"},
+                    ],
+                    "measures": [],
+                }
+            ],
+        },
+        {},
+    )
+    result = select_analytical_operations_node(
+        {
+            "question": "Why is Travel Cost high?",
+            "flat_sql": True,
+            "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+            "session": {"semantic_indexer": indexer},
+            "allowed_names": ["Travel Cost"],
+            "grounding_pack": "TOPIC Travel",
+            "activity_trace": [],
+        }
+    )
+    assert result["selected_operations"] == ["segment"]
+    kinds = {(item["kind"], item["name"]) for item in result["diagnostic_use_plan"]}
+    assert ("strategy", "segment") in kinds
+    assert ("measure", "Travel Cost") in kinds
+    assert ("dimension", "Client Destination") in kinds
+    assert ("dimension", "Booking Platform") in kinds
+    assert ("measure", "Meeting Count") not in kinds
+
+    scope = diagnostic_field_scope(
+        result["diagnostic_use_plan"],
+        result["matched_diagnostic_capabilities"],
+    )
+    assert scope["strategies"] == ["segment"]
+    assert scope["measures"] == ["Travel Cost"]
+    assert scope["dimensions"] == ["Client Destination", "Booking Platform"]
+
+    block = diagnostic_capabilities_prompt_block(
+        result["matched_diagnostic_capabilities"],
+        use_plan=result["diagnostic_use_plan"],
+    )
+    assert "Configured fields for this strategy: measures Travel Cost; dimensions Client Destination, Booking Platform" in block
+    assert "Allowed strategies: segment" in block
+    lock = diagnostic_scope_lock(scope)
+    assert "same analytical strategy: segment" in lock
+    assert "Dashboard layout slots are optional" in lock
+    assert "Travel Cost" in lock
+    assert "Employee Name" not in lock
+    assert "Meeting Count" not in lock
+
+    kept = charts_within_diagnostic_scope(
+        [
+            {
+                "question": "What is Travel Cost by Client Destination?",
+                "operation": "segment",
+                "measure_hints": ["Travel Cost"],
+                "components": ["Travel Cost", "Client Destination"],
+            },
+            {
+                "question": "What is Travel Cost by Employee Name?",
+                "operation": "segment",
+                "measure_hints": ["Travel Cost"],
+                "components": ["Travel Cost", "Employee Name"],
+            },
+            {
+                "question": "Which employees rank highest on Meeting Count?",
+                "operation": "ranking",
+                "measure_hints": ["Meeting Count"],
+                "components": ["Employee Name", "Meeting Count"],
+            },
+        ],
+        scope,
+    )
+    assert len(kept) == 1
+    assert kept[0]["operation"] == "segment"
+    assert kept[0]["measure_hints"] == ["Travel Cost"]
+    assert kept[0]["components"] == ["Travel Cost", "Client Destination"]
+
+    from helicalbi.sql_agent.nodes.plan_graph import validate_questions_node
+
+    validated = validate_questions_node(
+        {
+            "question": "Why is Travel Cost high?",
+            "flat_sql": True,
+            "repair_count": 0,
+            "allowed_names": ["Travel Cost", "Client Destination", "Booking Platform"],
+            "session": {"semantic_indexer": indexer},
+            "matched_diagnostic_capabilities": result["matched_diagnostic_capabilities"],
+            "diagnostic_use_plan": result["diagnostic_use_plan"],
+            "plan": {
+                "charts": [
+                    {
+                        "title": "Cost by employee",
+                        "question": "What is Travel Cost by Employee Name?",
+                        "viz_hint": "bar",
+                        "operation": "ranking",
+                        "measure_hints": ["Meeting Count"],
+                        "components": ["Travel Cost", "Employee Name"],
+                    }
+                ]
+            },
+            "activity_trace": [],
+        }
+    )
+    feedback = validated["validation_feedback"]
+    assert "strategy 'ranking'" in feedback
+    assert "measure 'Meeting Count'" in feedback
+    assert "Employee Name" in feedback
+
+
+def test_think_mode_locks_misspelled_question_to_configured_trend():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+    from helicalbi.sql_agent.strategy_tree import (
+        charts_within_diagnostic_scope,
+        diagnostic_field_scope,
+    )
+
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(
+        {
+            "modelName": "meetings",
+            "diagnosticCapabilities": [
+                {
+                    "capability": "Sucessful Meeting diagonsis",
+                    "applicableTo": [{"measure": "Successful Meeting Rate"}],
+                    "uses": [
+                        {
+                            "analyticalOperation": "trend",
+                            "measure": "Successful Meeting Rate",
+                            "timeDimension": "YEAR",
+                        }
+                    ],
+                }
+            ],
+            "measures": [
+                {"measureName": "Successful Meeting Rate"},
+                {"measureName": "Meeting Cancellation Rate"},
+                {"measureName": "Successful Visit Cost"},
+            ],
+            "cube_info": [
+                {
+                    "name": "meetings",
+                    "dimensions": [
+                        {"dimensionName": "YEAR"},
+                        {"dimensionName": "Meeting Purpose"},
+                        {"dimensionName": "Client Name"},
+                    ],
+                    "measures": [],
+                }
+            ],
+        },
+        {},
+    )
+    result = select_analytical_operations_node(
+        {
+            "question": "how sucessful meeting are impacting business",
+            "flat_sql": True,
+            "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+            "session": {"semantic_indexer": indexer},
+            "allowed_names": [],
+            "grounding_pack": "TOPIC Meetings",
+            "activity_trace": [],
+        }
+    )
+    assert result["selected_operations"] == ["trend"]
+    activity = result["activity_trace"][-1]["reason"]
+    assert "Picked capability 'Sucessful Meeting diagonsis'" in activity
+    assert "Measure: Successful Meeting Rate" in activity
+    assert "Analytical strategy: trend" in activity
+    assert "Dimension: YEAR" in activity
+    assert result["matched_diagnostic_capabilities"][0]["matchedMeasures"] == [
+        "Successful Meeting Rate"
+    ]
+    scope = diagnostic_field_scope(
+        result["diagnostic_use_plan"],
+        result["matched_diagnostic_capabilities"],
+    )
+    assert scope["strategies"] == ["trend"]
+    assert scope["measures"] == ["Successful Meeting Rate"]
+    assert scope["dimensions"] == ["YEAR"]
+
+    kept = charts_within_diagnostic_scope(
+        [
+            {
+                "question": "How does Successful Meeting Rate change by YEAR?",
+                "operation": "trend",
+                "measure_hints": ["Successful Meeting Rate"],
+                "components": ["Successful Meeting Rate", "YEAR"],
+            },
+            {
+                "question": "What is Meeting Cancellation Rate by Meeting Purpose?",
+                "operation": "segment",
+                "measure_hints": ["Meeting Cancellation Rate"],
+                "components": ["Meeting Cancellation Rate", "Meeting Purpose"],
+            },
+            {
+                "question": "Which clients drive Successful Visit Cost?",
+                "operation": "contribution",
+                "measure_hints": ["Successful Visit Cost"],
+                "components": ["Successful Visit Cost", "Client Name"],
+            },
+        ],
+        scope,
+    )
+    assert len(kept) == 1
+    assert kept[0]["operation"] == "trend"
+    assert kept[0]["measure_hints"] == ["Successful Meeting Rate"]
+
+
+

@@ -84,7 +84,6 @@ class VizModelFiller:
             state["visualization"] = chart_type
             state["viz_hint"] = chart_type
             state["vf_title"] = viz_model.properties.title or ""
-            state["similar_chart"] = list(viz_context.get("similar_chart") or [])
             form_source = (
                 "sql_to_formdata"
                 if (viz_context or {}).get("form_data") is not None

@@ -49,6 +49,7 @@ export default function NodeTextField({
     tooltip_printWhenDetailOverflows,
     tooltip_stretchWithOverflow,
     tooltip_blankWhenNull,
+    tooltip_textAdjust
   } = tooltipInfo || {};
 
   const selectTypes = [
@@ -99,6 +100,13 @@ export default function NodeTextField({
       options: ["None", ...(customStyles.map((ele) => ele.styleName) || [])],
       key: "styleName",
       tooltip: tooltip_styleNameReference,
+      allowClear: false
+    },
+    {
+      title: "Text Adjust",
+      options: ["StretchHeight", "ScaleFont", "CutText"],
+      key: "textAdjust",
+      tooltip: tooltip_textAdjust,
       allowClear: false
     },
   ];

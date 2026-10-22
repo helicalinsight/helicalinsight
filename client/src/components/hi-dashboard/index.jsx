@@ -137,7 +137,7 @@ const HIDashboard = (props) => {
   );
   return (
     <HIDashboardWrapper
-     data-testid = "hi-dashboard"
+      data-testid="hi-dashboard"
       type={type}
       parameter={parameter}
       id={id}

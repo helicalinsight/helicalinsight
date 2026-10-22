@@ -1,18 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { hcrActions } from '../../../../../../redux/actions';
 import { HCR_CROSSTAB_CELL_HEIGHT, HCR_CROSSTAB_CELL_WIDTH } from '../../../../hcr-constants';
 import { getCrosstabApplyStyles } from '../../../hcrCanvasPaneHelperMethods';
-import { getCrosstabLayout, getMeasureCellsByCellIndex } from '../../utils';
+import { getCrosstabLayout, getCrosstabTrackIndexes } from '../../utils';
 import CrosstabEditableCell from './crosstabEditableCell';
 
 const MIN_HEIGHT = HCR_CROSSTAB_CELL_HEIGHT,
     MIN_WIDTH = HCR_CROSSTAB_CELL_WIDTH;
 
-const borderRight = {
-    borderRight: '1px solid #b9c7d8',
-    borderBottom: '1px solid #b9c7d8',
-}
 
 const CrosstabLayout = (props = {}) => {
     const {
@@ -47,14 +43,12 @@ const CrosstabLayout = (props = {}) => {
     const [colWidths, setColWidths] = useState(ctColWidths || []);
     const [rowHeights, setRowHeights] = useState(ctRowHeights || []);
 
-
     const gridRef = useRef(null);
     const dragRef = useRef(null);
     const colHandleRefs = useRef([]);
     const rowHandleRefs = useRef([]);
 
     const { tableStyles = [] } = activeTab || {}
-    const measureCellsByCategory = Object.values(getMeasureCellsByCellIndex(measureCells));
     const editableCellProps = {
         onNodeClick,
         selectedCells,
@@ -69,8 +63,11 @@ const CrosstabLayout = (props = {}) => {
     }
 
     const cells = getCrosstabLayout(config);
-    const totalWidth = colWidths.reduce((a, b) => a + b, 0);
-    const totalHeight = rowHeights.reduce((a, b) => a + b, 0);
+    const { colIndexes, rowIndexes } = useMemo(() => getCrosstabTrackIndexes(config), [config]);
+    const visibleColWidths = useMemo(() => colIndexes.map((index) => colWidths[index] ?? 0), [colIndexes, colWidths]);
+    const visibleRowHeights = useMemo(() => rowIndexes.map((index) => rowHeights[index] ?? 0), [rowIndexes, rowHeights]);
+    const totalWidth = visibleColWidths.reduce((a, b) => a + b, 0);
+    const totalHeight = visibleRowHeights.reduce((a, b) => a + b, 0);
 
     function updateCrosstab(actionType, payload = {}) {
         dispatch(hcrActions.hcrUpdateCrosstabComponent({
@@ -128,6 +125,8 @@ const CrosstabLayout = (props = {}) => {
             const startSize = type === "col" ? colWidths[index] : rowHeights[index];
             const workingWidths = [...colWidths];
             const workingHeights = [...rowHeights];
+            const getVisibleWidths = (widths) => colIndexes.map((i) => widths[i] ?? 0);
+            const getVisibleHeights = (heights) => rowIndexes.map((i) => heights[i] ?? 0);
 
             dragRef.current = { type, index, startCoord, startSize, workingWidths, workingHeights, resizeFactor: 0 };
 
@@ -138,20 +137,19 @@ const CrosstabLayout = (props = {}) => {
                 const delta = coord - d.startCoord;
                 dragRef.current.resizeFactor = delta;
                 if (d.type === "col") {
-                    const newSize = Math.max(MIN_WIDTH, Math.round(d.startSize + delta));
-                    d.workingWidths[d.index] = newSize;
-                    applyGridTemplate(d.workingWidths, d.workingHeights);
-                    colHandleRefs.current.forEach((el, i) =>
-                        positionHandle(el, "col", i, d.workingWidths, d.workingHeights)
-                    );
+                    d.workingWidths[d.index] = Math.max(MIN_WIDTH, Math.round(d.startSize + delta));
                 } else {
-                    const newSize = Math.max(MIN_HEIGHT, Math.round(d.startSize + delta));
-                    d.workingHeights[d.index] = newSize;
-                    applyGridTemplate(d.workingWidths, d.workingHeights);
-                    rowHandleRefs.current.forEach((el, i) =>
-                        positionHandle(el, "row", i, d.workingWidths, d.workingHeights)
-                    );
+                    d.workingHeights[d.index] = Math.max(MIN_HEIGHT, Math.round(d.startSize + delta));
                 }
+                const nextWidths = getVisibleWidths(d.workingWidths);
+                const nextHeights = getVisibleHeights(d.workingHeights);
+                applyGridTemplate(nextWidths, nextHeights);
+                colHandleRefs.current.forEach((el, i) =>
+                    positionHandle(el, "col", i, nextWidths, nextHeights)
+                );
+                rowHandleRefs.current.forEach((el, i) =>
+                    positionHandle(el, "row", i, nextWidths, nextHeights)
+                );
             };
 
             const onMouseUp = () => {
@@ -177,14 +175,14 @@ const CrosstabLayout = (props = {}) => {
             window.addEventListener("mousemove", onMouseMove);
             window.addEventListener("mouseup", onMouseUp);
         },
-        [colWidths, rowHeights, applyGridTemplate, positionHandle]
+        [colWidths, rowHeights, colIndexes, rowIndexes, applyGridTemplate, positionHandle]
     );
 
     useEffect(() => {
-        applyGridTemplate(colWidths, rowHeights);
-        colHandleRefs.current.forEach((el, i) => positionHandle(el, "col", i, colWidths, rowHeights));
-        rowHandleRefs.current.forEach((el, i) => positionHandle(el, "row", i, colWidths, rowHeights));
-    }, [colWidths, rowHeights, applyGridTemplate, positionHandle]);
+        applyGridTemplate(visibleColWidths, visibleRowHeights);
+        colHandleRefs.current.forEach((el, i) => positionHandle(el, "col", i, visibleColWidths, visibleRowHeights));
+        rowHandleRefs.current.forEach((el, i) => positionHandle(el, "row", i, visibleColWidths, visibleRowHeights));
+    }, [visibleColWidths, visibleRowHeights, applyGridTemplate, positionHandle]);
 
     useEffect(() => {
         setColWidths(ctColWidths || []);
@@ -198,8 +196,8 @@ const CrosstabLayout = (props = {}) => {
                     ref={gridRef}
                     style={{
                         display: "grid",
-                        gridTemplateColumns: colWidths.map((w) => `${w}px`).join(" "),
-                        gridTemplateRows: rowHeights.map((h) => `${h}px`).join(" "),
+                        gridTemplateColumns: visibleColWidths.map((w) => `${w}px`).join(" "),
+                        gridTemplateRows: visibleRowHeights.map((h) => `${h}px`).join(" "),
                         width: totalWidth,
                         height: totalHeight,
                         boxSizing: "content-box",
@@ -227,11 +225,11 @@ const CrosstabLayout = (props = {}) => {
                     })}
                 </div>
 
-                {editable && colWidths.map((_, i) => (
+                {editable && colIndexes.map((originalIndex, i) => (
                     <div
-                        key={`col-handle-${i}`}
+                        key={`col-handle-${originalIndex}`}
                         ref={(el) => (colHandleRefs.current[i] = el)}
-                        onMouseDown={(e) => onMouseDown("col", i, e)}
+                        onMouseDown={(e) => onMouseDown("col", originalIndex, e)}
                         style={{
                             position: "absolute",
                             top: 0,
@@ -245,11 +243,11 @@ const CrosstabLayout = (props = {}) => {
                     />
                 ))}
 
-                {editable && rowHeights.map((_, i) => (
+                {editable && rowIndexes.map((originalIndex, i) => (
                     <div
-                        key={`row-handle-${i}`}
+                        key={`row-handle-${originalIndex}`}
                         ref={(el) => (rowHandleRefs.current[i] = el)}
-                        onMouseDown={(e) => onMouseDown("row", i, e)}
+                        onMouseDown={(e) => onMouseDown("row", originalIndex, e)}
                         style={{
                             position: "absolute",
                             left: 0,
