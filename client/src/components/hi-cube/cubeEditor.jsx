@@ -1091,7 +1091,13 @@ export function CubeEditor({ showBusinessFields = true }) {
     ) : (
       fieldName
     );
-    const isMissingFromMetadata = missingMetadataFieldKeys.has(field.key);
+    const isMeasureField =
+      Boolean(field?.measure?.isMeasureCheck) ||
+      Boolean(field?.isMeasureCheck) ||
+      Boolean(field?.isMeasure) ||
+      field?.kind === "measure" ||
+      field?.type === "measure";
+    const isMissingFromMetadata = !isMeasureField && missingMetadataFieldKeys.has(field.key);
     return (
       <div
         key={field.key}
@@ -1928,11 +1934,17 @@ export function CubeEditor({ showBusinessFields = true }) {
             size="small"
             onChange={handleFieldsListSortChange}
             locale={{ emptyText: <></> }}
-            rowClassName={(record) =>
-              missingMetadataFieldKeys.has(record.key)
+            rowClassName={(record) => {
+              const isMeasure =
+                Boolean(record?.measure?.isMeasureCheck) ||
+                Boolean(record?.isMeasureCheck) ||
+                Boolean(record?.isMeasure) ||
+                record?.kind === "measure" ||
+                record?.type === "measure";
+              return !isMeasure && missingMetadataFieldKeys.has(record?.key)
                 ? "agent-field-missing-metadata"
-                : ""
-            }
+                : "";
+            }}
           />
           {fieldsTableDataSource.length === 0 ? (
             <div className="cube-fields-empty-hint">

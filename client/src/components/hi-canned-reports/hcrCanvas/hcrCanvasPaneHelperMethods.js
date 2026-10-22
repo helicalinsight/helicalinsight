@@ -1,6 +1,6 @@
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Tooltip } from "antd";
-import { isEmpty } from "lodash";
+import { cloneDeep, isEmpty } from "lodash";
 import { v4 as uuidv4 } from "uuid";
 import { hcrActions } from "../../../redux/actions";
 import notify from "../../hi-notifications/notify";
@@ -491,12 +491,41 @@ export const calculateCTTotalHeightAndWidth = (
   rows = [],
   columns = [],
   measures = [],
+  options = {},
 ) => {
-  const headerCWidth = HCR_CROSSTAB_CELL_WIDTH * (columns.length + 1);
-  const headerCHeight = HCR_CROSSTAB_CELL_HEIGHT * columns.length;
-  const rowsHWidth = HCR_CROSSTAB_CELL_WIDTH * rows.length;
-  const rowsHHeight =
-    HCR_CROSSTAB_CELL_HEIGHT * ((rows.length + 1) * measures.length);
+  const {
+    measuresLayout = "vertical",
+    enableMeasureHeaders = false,
+    enableTotalsHeaders = false,
+    enableGrandTotals = true,
+    enableSubTotals = true
+  } = options || {};
+
+  const measuresCount = measures.length;
+  const hasMultipleMeasures = measuresCount > 1;
+  const isHorizontalLayout = measuresLayout === "horizontal" && hasMultipleMeasures;
+  const hasVisibleTotals = enableGrandTotals || enableSubTotals;
+  const hasMeasureHeaders = (enableMeasureHeaders || (enableTotalsHeaders && hasVisibleTotals)) && hasMultipleMeasures;
+  const measureLaneWidth = !isHorizontalLayout && hasMeasureHeaders
+    ? HCR_CROSSTAB_CELL_WIDTH
+    : 0;
+  const headerRowHeight = isHorizontalLayout && hasMeasureHeaders
+    ? HCR_CROSSTAB_CELL_HEIGHT * 2
+    : HCR_CROSSTAB_CELL_HEIGHT;
+
+  const visibleColumnTotals = columns.length
+    ? (enableGrandTotals ? 1 : 0) + Math.max(0, columns.length - 1) * (enableSubTotals ? 1 : 0)
+    : 0;
+  const visibleRowTotals = rows.length
+    ? (enableGrandTotals ? 1 : 0) + Math.max(0, rows.length - 1) * (enableSubTotals ? 1 : 0)
+    : 0;
+
+  const headerCWidth = HCR_CROSSTAB_CELL_WIDTH * (visibleColumnTotals + 1) * (isHorizontalLayout ? measuresCount : 1);
+  const headerCHeight = headerRowHeight * columns.length;
+  const rowsHWidth = HCR_CROSSTAB_CELL_WIDTH * rows.length + (rows.length ? measureLaneWidth : 0);
+  const rowsHHeight = (isHorizontalLayout
+    ? HCR_CROSSTAB_CELL_HEIGHT
+    : HCR_CROSSTAB_CELL_HEIGHT * measuresCount) * (visibleRowTotals + 1);
 
   return {
     width: headerCWidth + rowsHWidth,
@@ -513,7 +542,9 @@ export const getCTStaticTextNode = ({
   height,
   cellId,
   label,
-  value
+  value,
+  x = 0,
+  y = 0
 }) => {
   return {
     id: uuidv4(),
@@ -532,11 +563,75 @@ export const getCTStaticTextNode = ({
     zIndex: 10,
     type: "defaultNodes",
     fontSize: 10,
-    x: 0,
-    y: 0,
+    x,
+    y,
     cellId,
     static: true
   };
+}
+
+const addBorder = (node, { left = false, right = false, bottom = false, top = false }) => {
+  const border = {
+    Top: {
+      stroke: 0,
+      style: "SOLID",
+      color: "#000103"
+    },
+    Bottom: {
+      stroke: 0,
+      style: "SOLID",
+      color: "#000103"
+    },
+    Right: {
+      stroke: 0,
+      style: "SOLID",
+      color: "#000103"
+    },
+    Left: {
+      stroke: 0,
+      style: "SOLID",
+      color: "#000103"
+    }
+  }
+  if (left) border.Left.stroke = 1
+  if (right) border.Right.stroke = 1
+  if (bottom) border.Bottom.stroke = 1
+  if (top) border.Top.stroke = 1
+
+  return {
+    ...(cloneDeep(node) || {}),
+    borders: border
+  }
+}
+
+export const getCTMeasureHeaderNodes = ({
+  measures = [],
+  cellId,
+  isHorizontal = true,
+  offsetX = 0,
+  offsetY = 0,
+  borders = {
+    left: false,
+    right: false,
+    bottom: false,
+    top: false
+  }
+} = {}) => {
+  return measures.map((measure, index) => {
+    return addBorder(getCTStaticTextNode({
+      width: HCR_CROSSTAB_CELL_WIDTH,
+      height: HCR_CROSSTAB_CELL_HEIGHT,
+      cellId,
+      label: measure,
+      value: measure,
+      x: isHorizontal
+        ? offsetX + index * HCR_CROSSTAB_CELL_WIDTH
+        : offsetX,
+      y: isHorizontal
+        ? offsetY
+        : offsetY + index * HCR_CROSSTAB_CELL_HEIGHT
+    }), { left: borders.left, right: borders.right, bottom: borders.bottom, top: borders.top })
+  })
 }
 
 export const getCTTextNode = ({
@@ -586,22 +681,60 @@ export const getCTStylesReferences = (styles) => {
   }
 }
 
-export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) => {
+export const getCTColumnGroups = (columnFields = [], fields = [], styles = [], options = {}) => {
+  const {
+    measures = [],
+    measuresLayout = "vertical",
+    enableMeasureHeaders = false,
+    enableTotalsHeaders = false,
+    enableGrandTotals = true,
+    enableSubTotals = true,
+    grandTotalPosition = "END",
+    subTotalPosition = "END"
+  } = options || {};
+
+  const measuresCount = measures.length || 1;
+  const hasMultipleMeasures = measures.length > 1;
+  const isHorizontalLayout = measuresLayout === "horizontal";
+  const isMeasuresLayoutApplied = isHorizontalLayout && hasMultipleMeasures;
+  const widthFactor = isMeasuresLayoutApplied ? measuresCount : 1;
+  const hasVisibleTotals = enableGrandTotals || enableSubTotals;
+  const headerRowHeight = isMeasuresLayoutApplied && (enableMeasureHeaders || (enableTotalsHeaders && hasVisibleTotals))
+    ? HCR_CROSSTAB_CELL_HEIGHT * 2
+    : HCR_CROSSTAB_CELL_HEIGHT;
+
   const nodes = [];
   const { CH, CT, CG } = getCTStylesReferences(styles);
+  const isTotalEnabledAtIndex = (index) => index === 0 ? enableGrandTotals : enableSubTotals;
+  const getTotalPosition = (index) => {
+    if (!isTotalEnabledAtIndex(index)) return "NONE";
+    const totalPosition = index === 0 ? grandTotalPosition : subTotalPosition;
+    const normalizedPosition = (totalPosition || "").toString().toUpperCase();
+    return ["START", "END"].includes(normalizedPosition) ? normalizedPosition : "END";
+  };
+
   const columnGroups = columnFields.map((field, i, arr) => {
     const arrCount = arr.slice(i).length;
-    const cellWidth = HCR_CROSSTAB_CELL_WIDTH * arrCount,
-      cellHeight = HCR_CROSSTAB_CELL_HEIGHT * arrCount;
+    const visibleTotalsAfter = arr.slice(i + 1).filter((_, offset) => isTotalEnabledAtIndex(i + offset + 1)).length;
+    const visibleDataColumns = visibleTotalsAfter + 1;
+    const cellWidth = HCR_CROSSTAB_CELL_WIDTH * visibleDataColumns * widthFactor,
+      totalCellWidth = HCR_CROSSTAB_CELL_WIDTH * widthFactor,
+      totalCellHeight = headerRowHeight * arrCount;
 
     const headerCellId = uuidv4(),
       totalCellId = uuidv4();
 
     const actualField = getActualField(fields, field);
 
+    const isLastGroup = i === arr.length - 1;
+    const isFirstGroup = i === 0;
+    const isTotalEnabled = isTotalEnabledAtIndex(i);
+    const isHeaderFreeLayout = isMeasuresLayoutApplied && enableMeasureHeaders && isLastGroup;
+    const isTotalFreeLayout = isMeasuresLayoutApplied && enableTotalsHeaders && isTotalEnabled;
+
     const headerNode = getCTTextNode({
       width: cellWidth,
-      height: HCR_CROSSTAB_CELL_HEIGHT,
+      height: isHeaderFreeLayout ? HCR_CROSSTAB_CELL_HEIGHT : headerRowHeight,
       cellId: headerCellId,
       label: `$V{${field}}`,
       value: field,
@@ -609,14 +742,44 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) =
     });
 
     const totalNode = getCTStaticTextNode({
-      width: HCR_CROSSTAB_CELL_WIDTH,
-      height: cellHeight,
+      width: totalCellWidth,
+      height: isTotalFreeLayout ? totalCellHeight - HCR_CROSSTAB_CELL_HEIGHT : totalCellHeight,
       cellId: totalCellId,
       label: `Total ${field}`,
       value: field,
     });
 
-    nodes.push(headerNode, totalNode);
+    if (isFirstGroup) {
+      totalNode.fontFill = "#ffffff";
+    }
+
+    const headerMeasureNodes = isHeaderFreeLayout
+      ? getCTMeasureHeaderNodes({
+        measures,
+        cellId: headerCellId,
+        isHorizontal: true,
+        offsetX: 0,
+        offsetY: HCR_CROSSTAB_CELL_HEIGHT,
+        borders: { top: true, left: !isFirstGroup }
+      })
+      : [];
+
+    let totalMeasureNodes = isTotalFreeLayout
+      ? getCTMeasureHeaderNodes({
+        measures,
+        cellId: totalCellId,
+        isHorizontal: true,
+        offsetX: 0,
+        offsetY: totalCellHeight - HCR_CROSSTAB_CELL_HEIGHT,
+        borders: { top: true, left: true }
+      })
+      : [];
+
+    if (isFirstGroup) {
+      totalMeasureNodes = totalMeasureNodes.map((node) => ({ ...node, fontFill: "#ffffff" }));
+    }
+
+    nodes.push(headerNode, ...headerMeasureNodes, totalNode, ...totalMeasureNodes);
 
     return {
       id: uuidv4(),
@@ -624,7 +787,8 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) =
       label: field,
       type: "columnGroup",
       headerCellWidth: cellWidth,
-      totalCellHeight: cellHeight,
+      totalCellHeight,
+      totalPosition: getTotalPosition(i),
       className: "java.lang.String",
       expression: `$F{${field}}`,
       cells: [
@@ -633,19 +797,21 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) =
           label: `Header ${field}`,
           value: field,
           width: cellWidth,
-          height: HCR_CROSSTAB_CELL_HEIGHT,
-          nodeIds: [headerNode.id],
+          height: headerRowHeight,
+          nodeIds: [headerNode.id, ...headerMeasureNodes.map(node => node.id)],
           className: actualField.clazz,
-          styleNameReference: CH
+          styleNameReference: CH,
+          ...(isHeaderFreeLayout ? { layout: "Free Layout" } : {})
         },
         {
           id: totalCellId,
           label: `Total ${field}`,
           value: field,
-          width: HCR_CROSSTAB_CELL_WIDTH,
-          height: cellHeight,
-          nodeIds: [totalNode.id],
-          styleNameReference: i > 0 ? CG : CT
+          width: totalCellWidth,
+          height: totalCellHeight,
+          nodeIds: [totalNode.id, ...totalMeasureNodes.map(node => node.id)],
+          styleNameReference: i > 0 ? CG : CT,
+          ...(isTotalFreeLayout ? { layout: "Free Layout" } : {})
         }
       ],
     }
@@ -653,23 +819,60 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = []) =
   return { columnGroups, nodes }
 }
 
-export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = []) => {
+export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [], options = {}) => {
+  const {
+    measuresLayout = "vertical",
+    enableMeasureHeaders = false,
+    enableTotalsHeaders = false,
+    enableGrandTotals = true,
+    enableSubTotals = true,
+    grandTotalPosition = "END",
+    subTotalPosition = "END"
+  } = options || {};
+
+  const measuresCount = measures?.length || 1;
+  const hasMultipleMeasures = (measures?.length || 0) > 1;
+  const isHorizontalLayout = measuresLayout === "horizontal";
+  const isMeasuresLayoutApplied = !isHorizontalLayout && hasMultipleMeasures;
+  const heightFactor = isHorizontalLayout ? 1 : measuresCount;
+  const hasVisibleTotals = enableGrandTotals || enableSubTotals;
+  const measureLaneWidth = isMeasuresLayoutApplied && (enableMeasureHeaders || (enableTotalsHeaders && hasVisibleTotals))
+    ? HCR_CROSSTAB_CELL_WIDTH
+    : 0;
+
   const nodes = [];
   const { CH, CT, CG } = getCTStylesReferences(styles);
+  const isTotalEnabledAtIndex = (index) => index === 0 ? enableGrandTotals : enableSubTotals;
+  const getTotalPosition = (index) => {
+    if (!isTotalEnabledAtIndex(index)) return "NONE";
+    const totalPosition = index === 0 ? grandTotalPosition : subTotalPosition;
+    const normalizedPosition = (totalPosition || "").toString().toUpperCase();
+    return ["START", "END"].includes(normalizedPosition) ? normalizedPosition : "END";
+  };
+
   const rowGroups = rowFields.map((field, i, arr) => {
     const arrCount = arr.slice(i).length;
-    const measuresLength = measures?.length;
+    const visibleTotalsAfter = arr.slice(i + 1).filter((_, offset) => isTotalEnabledAtIndex(i + offset + 1)).length;
+    const visibleDataRows = visibleTotalsAfter + 1;
+    const isLastGroup = i === arr.length - 1;
+    const isFirstGroup = i === 0;
 
-    const cellWidth = HCR_CROSSTAB_CELL_WIDTH * arrCount,
-      cellHeight = HCR_CROSSTAB_CELL_HEIGHT * arrCount * (measuresLength || 1);
+    const cellWidth = HCR_CROSSTAB_CELL_WIDTH + (isLastGroup ? measureLaneWidth : 0),
+      cellHeight = HCR_CROSSTAB_CELL_HEIGHT * visibleDataRows * heightFactor,
+      totalCellWidth = HCR_CROSSTAB_CELL_WIDTH * arrCount + measureLaneWidth,
+      totalCellHeight = HCR_CROSSTAB_CELL_HEIGHT * heightFactor;
 
     const headerCellId = uuidv4(),
       totalCellId = uuidv4();
 
     const actualField = getActualField(fields, field);
 
+    const isTotalEnabled = isTotalEnabledAtIndex(i);
+    const isHeaderFreeLayout = isMeasuresLayoutApplied && enableMeasureHeaders && isLastGroup;
+    const isTotalFreeLayout = isMeasuresLayoutApplied && enableTotalsHeaders && isTotalEnabled;
+
     const headerNode = getCTTextNode({
-      width: HCR_CROSSTAB_CELL_WIDTH,
+      width: isHeaderFreeLayout ? cellWidth - measureLaneWidth : cellWidth,
       height: cellHeight,
       cellId: headerCellId,
       label: `$V{${field}}`,
@@ -678,13 +881,44 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
     });
 
     const totalNode = getCTStaticTextNode({
-      width: cellWidth,
-      height: HCR_CROSSTAB_CELL_HEIGHT * (measuresLength || 1),
+      width: isTotalFreeLayout ? totalCellWidth - measureLaneWidth : totalCellWidth,
+      height: totalCellHeight,
       cellId: totalCellId,
       label: `Total ${field}`,
       value: field,
     });
-    nodes.push(headerNode, totalNode);
+
+    if (isFirstGroup) {
+      totalNode.fontFill = "#ffffff";
+    }
+
+    const headerMeasureNodes = isHeaderFreeLayout
+      ? getCTMeasureHeaderNodes({
+        measures,
+        cellId: headerCellId,
+        isHorizontal: false,
+        offsetX: cellWidth - measureLaneWidth,
+        offsetY: 0,
+        borders: { top: !isFirstGroup, left: true }
+      })
+      : [];
+
+    let totalMeasureNodes = isTotalFreeLayout
+      ? getCTMeasureHeaderNodes({
+        measures,
+        cellId: totalCellId,
+        isHorizontal: false,
+        offsetX: totalCellWidth - measureLaneWidth,
+        offsetY: 0,
+        borders: { top: true, left: true }
+      })
+      : [];
+
+    if (isFirstGroup) {
+      totalMeasureNodes = totalMeasureNodes.map(node => ({ ...node, fontFill: "#ffffff" }));
+    }
+
+    nodes.push(headerNode, ...headerMeasureNodes, totalNode, ...totalMeasureNodes);
 
     return {
       id: uuidv4(),
@@ -692,7 +926,8 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
       label: field,
       type: "rowGroup",
       headerCellHeight: cellHeight,
-      totalCellWidth: cellWidth,
+      totalCellWidth,
+      totalPosition: getTotalPosition(i),
       className: "java.lang.String",
       expression: `$F{${field}}`,
       cells: [
@@ -700,20 +935,22 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
           id: headerCellId,
           label: `Header ${field}`,
           value: field,
-          width: HCR_CROSSTAB_CELL_WIDTH,
+          width: cellWidth,
           height: cellHeight,
-          nodeIds: [headerNode.id],
+          nodeIds: [headerNode.id, ...headerMeasureNodes.map(node => node.id)],
           className: actualField.clazz,
-          styleNameReference: CH
+          styleNameReference: CH,
+          ...(isHeaderFreeLayout ? { layout: "Free Layout" } : {})
         },
         {
           id: totalCellId,
           label: `Total ${field}`,
           value: field,
-          width: cellWidth,
-          height: HCR_CROSSTAB_CELL_HEIGHT * (measuresLength || 1),
-          nodeIds: [totalNode.id],
-          styleNameReference: i > 0 ? CG : CT
+          width: totalCellWidth,
+          height: totalCellHeight,
+          nodeIds: [totalNode.id, ...totalMeasureNodes.map(node => node.id)],
+          styleNameReference: i > 0 ? CG : CT,
+          ...(isTotalFreeLayout ? { layout: "Free Layout" } : {})
         }
       ],
     }
@@ -721,16 +958,28 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
   return { rowGroups, nodes }
 }
 
-export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = [], fields = [], styles) => {
+export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = [], fields = [], styles, options = {}) => {
+  const { measuresLayout = "vertical", enableMeasureHeaders, enableTotalsHeaders } = options || {};
+  const measuresCount = measures?.length || 1;
+  const isHorizontalLayout = measuresLayout === "horizontal" && (measures?.length || 0) > 1;
+  const cellWidth = isHorizontalLayout
+    ? HCR_CROSSTAB_CELL_WIDTH * measuresCount
+    : HCR_CROSSTAB_CELL_WIDTH;
+  const cellHeight = isHorizontalLayout
+    ? HCR_CROSSTAB_CELL_HEIGHT
+    : HCR_CROSSTAB_CELL_HEIGHT * measuresCount;
+
   const nodes = [], cells = [];
   const { CG, CT, CD } = getCTStylesReferences(styles);
   const cols = ["Detail", ...(columnGroups?.map((col) => col.name)?.reverse() || [])];
   const rows = ["Detail", ...(rowGroups?.map((row) => row.name)?.reverse() || [])];
 
+  const bordersRequired = measuresCount > 1 && (enableMeasureHeaders || (enableTotalsHeaders));
+
   function getMeasures(measures, cellId, fields) {
-    return measures.map((measure) => {
+    return measures.map((measure, i) => {
       const actualField = getActualField(fields, measure);
-      const node = getCTTextNode({
+      let node = getCTTextNode({
         width: HCR_CROSSTAB_CELL_WIDTH,
         height: HCR_CROSSTAB_CELL_HEIGHT,
         cellId,
@@ -738,6 +987,9 @@ export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = 
         value: measure,
         actualField,
       })
+      if (bordersRequired) {
+        node = addBorder(node, { left: i > 0 });
+      }
       return node;
     })
   }
@@ -746,7 +998,10 @@ export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = 
     cols.forEach((col, colIndex, colArr) => {
       const name = `${col}/${row}`;
       const cellId = uuidv4();
-      const measureNodes = getMeasures(measures, cellId, fields);
+      let measureNodes = getMeasures(measures, cellId, fields);
+      if (rowIndex === rowArr.length - 1 || colIndex === colArr.length - 1) {
+        measureNodes = measureNodes.map(node => ({ ...node, fontFill: "#ffffff" }));
+      }
       nodes.push(...measureNodes);
       const cell = {
         id: cellId,
@@ -755,9 +1010,10 @@ export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = 
         type: "measureCell",
         nodeIds: measureNodes.map((node) => node.id),
         cellIndex: rowIndex,
-        width: HCR_CROSSTAB_CELL_WIDTH,
-        height: HCR_CROSSTAB_CELL_HEIGHT * (measures?.length || 1),
-        styleNameReference: CG
+        width: cellWidth,
+        height: cellHeight,
+        styleNameReference: CG,
+        ...(isHorizontalLayout ? { layout: "Horizontal Layout" } : {})
       }
       if (col !== "Detail") {
         cell.columnTotalGroup = col;
@@ -798,23 +1054,44 @@ export const getCTMeasures = (measures, fields, measuresAggregateMap) => {
   })
 }
 
-export const getCTComputedLayout = ({ columnGroups = [], rowGroups = [], measures = [] }) => {
+export const getCTComputedLayout = ({
+  columnGroups = [],
+  rowGroups = [],
+  measures = [],
+  measuresLayout = "vertical",
+  enableMeasureHeaders = false,
+  enableTotalsHeaders = false,
+  enableGrandTotals = true,
+  enableSubTotals = true
+}) => {
   const totalRowsCols = rowGroups.length + columnGroups.length + 1;
+  const rowLength = rowGroups.length;
+  const columnLength = columnGroups.length;
+  const measuresCount = measures.length;
+  const hasMultipleMeasures = measuresCount > 1;
+  const isHorizontalLayout = measuresLayout === "horizontal" && hasMultipleMeasures;
+  const hasVisibleTotals = enableGrandTotals || enableSubTotals;
+  const hasMeasureHeaders = (enableMeasureHeaders || (enableTotalsHeaders && hasVisibleTotals)) && hasMultipleMeasures;
+  const measureLaneWidth = !isHorizontalLayout && hasMeasureHeaders
+    ? HCR_CROSSTAB_CELL_WIDTH
+    : 0;
+  const headerRowHeight = isHorizontalLayout && hasMeasureHeaders
+    ? HCR_CROSSTAB_CELL_HEIGHT * 2
+    : HCR_CROSSTAB_CELL_HEIGHT;
 
   function getColumnWidths() {
-    const colLength = columnGroups.length;
     return Array.from({ length: totalRowsCols }, (_, i) => {
-      return HCR_CROSSTAB_CELL_WIDTH;
+      if (i < rowLength) {
+        return HCR_CROSSTAB_CELL_WIDTH + (i === rowLength - 1 ? measureLaneWidth : 0);
+      }
+      return HCR_CROSSTAB_CELL_WIDTH * (isHorizontalLayout ? measuresCount : 1);
     })
   }
 
   function getRowHeights() {
-    const rowLength = rowGroups.length;
-    const colLength = columnGroups.length;
-    const measureLength = measures.length;
     return Array.from({ length: totalRowsCols }, (_, i) => {
-      if (i < colLength) return HCR_CROSSTAB_CELL_HEIGHT;
-      return HCR_CROSSTAB_CELL_HEIGHT * measureLength;
+      if (i < columnLength) return headerRowHeight;
+      return isHorizontalLayout ? HCR_CROSSTAB_CELL_HEIGHT : HCR_CROSSTAB_CELL_HEIGHT * measuresCount;
     })
   }
 
@@ -831,16 +1108,23 @@ export const getCrosstabConfigV2 = ({
   nodeId,
   fields = [],
   measuresAggregateMap = {},
-  padding = {},
-  tableStyles = []
+  tableStyles = [],
+  measuresLayout = "vertical",
+  enableMeasureHeaders = false,
+  enableTotalsHeaders = false,
+  enableGrandTotals = true,
+  enableSubTotals = true,
+  grandTotalPosition = "END",
+  subTotalPosition = "END"
 }) => {
   const styles = getCrosstabDefaultStyles(nodeId, tableStyles)
-  const { columnGroups, nodes: columnNodes = [] } = getCTColumnGroups(columnFields, fields, styles);
-  const { rowGroups, nodes: rowNodes = [] } = getCTRowGroups(rowFields, fields, measures, styles);
-  const { cells: measureCells, nodes: measureNodes = [] } = getCTMeasureCells(measures, columnGroups, rowGroups, fields, styles);
-  const { colWidths, rowHeights } = getCTComputedLayout({ columnGroups, rowGroups, measures });
+  const layoutOptions = { measures, measuresLayout, enableMeasureHeaders, enableTotalsHeaders, enableGrandTotals, enableSubTotals, grandTotalPosition, subTotalPosition };
+  const { columnGroups, nodes: columnNodes = [] } = getCTColumnGroups(columnFields, fields, styles, layoutOptions);
+  const { rowGroups, nodes: rowNodes = [] } = getCTRowGroups(rowFields, fields, measures, styles, layoutOptions);
+  const { cells: measureCells, nodes: measureNodes = [] } = getCTMeasureCells(measures, columnGroups, rowGroups, fields, styles, layoutOptions);
+  const { colWidths, rowHeights } = getCTComputedLayout({ columnGroups, rowGroups, measures, measuresLayout, enableMeasureHeaders, enableTotalsHeaders, enableGrandTotals, enableSubTotals });
 
-  const { width, height } = calculateCTTotalHeightAndWidth(rowFields, columnFields, measures);
+  const { width, height } = calculateCTTotalHeightAndWidth(rowFields, columnFields, measures, { measuresLayout, enableMeasureHeaders, enableTotalsHeaders, enableGrandTotals, enableSubTotals });
   const nodes = [...columnNodes, ...rowNodes, ...measureNodes].reduce((acc, curr) => {
     acc[curr.id] = curr
     return acc

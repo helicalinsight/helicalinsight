@@ -1,9 +1,38 @@
 import "regenerator-runtime/runtime";
 import { getInsantBISaveData } from "../../components/hi-instant-bi/utils/base";
 import { shouldUseLoadChatPayloadForInsight, buildInstantBIInteractiveChatFormData, parseInstantBIChatResponse } from "../../components/hi-instant-bi/utils/instant-bi-requests";
+import { loadInstantBiHreports, resolveInstantBiSql } from "../../components/hi-instant-bi/utils/common-utils";
+import createHReportBridge from "../../components/bridges/hreport/hreport-bridge";
 import instantBIReducer from "../../redux/reducers/instant-bi.reducer";
 import actionTypes from "../../redux/actions/actionTypes";
 import initialStates from "../../redux/reducers/initialStates";
+
+jest.mock("../../pages", () => {
+  const React = require("react");
+  return {
+    HelicalReports: () => <div data-testid="ib-custom-chart" />,
+  };
+});
+
+jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: () => <div data-testid="ib-custom-chart" />,
+    IB_CHART_RENDER_ERROR: "Something went wrong. Please try again.",
+    IbResponseError: () => <div data-testid="ib-vf-template-error" />,
+  };
+});
+
+jest.mock("../../components/bridges/hreport/hreport-bridge", () => ({
+  __esModule: true,
+  default: jest.fn((props = {}) => ({
+    init: () => {
+      props.onComplete?.();
+      return Promise.resolve();
+    },
+  })),
+}));
 
 const buildActiveReportForSave = () => ({
   activeChatID: "chat-1",
@@ -75,7 +104,7 @@ describe("getInsantBISaveData", () => {
     expect(savedResponse.sql).toEqual({ raw_sql: "SELECT 1" });
   });
 
-  it("it should persist preferred chart and similar_chart on save", () => {
+  it("it should persist preferred chart and drop similar_chart on save", () => {
     const activeReport = buildActiveReportForSave();
     activeReport.chats[0].messageList[1].fullChatResponse.viz = {
       chart_name: "bar",
@@ -97,8 +126,112 @@ describe("getInsantBISaveData", () => {
     expect(saveData.state.chat_responses[0].viz).toEqual({
       chart_name: "bar",
       vf_title: "Sales chart",
-      similar_chart: [{ "vf.column": "column" }],
     });
+  });
+
+  it("it should save think steps slim without fullChatResponse duplicates", () => {
+    const liveStep = {
+      index: 1,
+      question: "Q1",
+      title: "T1",
+      viz_hint: "bar",
+      purpose: "purpose",
+      components: ["a"],
+      measure_hints: [],
+      dimensions: [],
+      answer: "ans",
+      analysis: "analysis",
+      chat_seq_id: "1_1",
+      data: [{ v: 1 }],
+      vf: "function Draw(){}",
+      vizDetails: { chart_name: "bar" },
+      vizLoading: false,
+      vizError: "",
+      vizActivityTrail: ["trail"],
+      report_model: { viz_model: { id: "m1" } },
+      chat_response: {
+        viz: { vf_title: "T1" },
+        sql: { raw_sql: "SELECT 1" },
+        summary: { insight: "ans" },
+        report_model: { viz_model: { id: "m1" } },
+        token_usage: {},
+        error: "",
+        hreportId: "hr-1",
+      },
+      fullChatResponse: {
+        viz: { vf_title: "T1" },
+        sql: { raw_sql: "SELECT 1" },
+        summary: { insight: "ans" },
+        report_model: { viz_model: { id: "m1" } },
+        token_usage: {},
+        error: "",
+        hreportId: "hr-1",
+      },
+    };
+    const activeReport = buildActiveReportForSave();
+    activeReport.chats[0].messageList.push({
+      isUser: false,
+      userInput: "Think question",
+      chatSequenceId: 2,
+      isThinkPlan: true,
+      askedQuestions: ["Q1"],
+      questionHistory: [liveStep],
+      citedQuestionIndexes: [1],
+      openingInsight: "Opening",
+      finalAnswer: "Final",
+      text: "Final",
+      plan: { strategy_id: "s1" },
+      dashboardModel: { title: "Dash" },
+      llmActivityDetails: {
+        steps: 1,
+        final_answer: "nested final",
+        path: [
+          {
+            name: "final_answer",
+            stage: "final_answer",
+            result: { final_answer: "Final", cited_question_indexes: [1] },
+          },
+        ],
+      },
+      fullChatResponse: {
+        final_answer: "from full chat",
+        opening_insight: "from full chat",
+      },
+    });
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch: mockDispatch,
+    });
+    const savedThink = saveData.state.chat_responses.find((entry) => entry.is_think_plan);
+    const savedStep = savedThink.question_history[0];
+    [
+      "fullChatResponse",
+      "report_model",
+      "reportModel",
+      "vf",
+      "vizDetails",
+      "vizLoading",
+      "vizError",
+      "vizActivityTrail",
+      "answer",
+    ].forEach((key) => expect(savedStep).not.toHaveProperty(key));
+    expect(savedStep.hreportId).toBe("hr-1");
+    expect(savedStep.chat_response).not.toHaveProperty("hreportId");
+    expect(savedStep.chat_response.report_model).toEqual({ viz_model: { id: "m1" } });
+    expect(savedStep.data).toEqual([{ v: 1 }]);
+    expect(savedThink).not.toHaveProperty("dashboard");
+    expect(savedThink).not.toHaveProperty("fullChatResponse");
+    expect(savedThink).not.toHaveProperty("viz");
+    expect(savedThink).not.toHaveProperty("final_answer");
+    expect(savedThink).not.toHaveProperty("finalAnswer");
+    expect(savedThink.opening_insight).toBe("Opening");
+    expect(savedThink).not.toHaveProperty("openingInsight");
+    expect(savedThink).not.toHaveProperty("summary");
+    expect(savedThink.llm_activity_details).not.toHaveProperty("final_answer");
+    expect(savedThink.llm_activity_details.path || []).toHaveLength(0);
+    expect(JSON.stringify(savedThink)).not.toMatch(/"final_answer"/);
+    expect(savedThink.dashboard_model).toEqual({ title: "Dash" });
   });
 
   it("it should exclude runtime metadata & loaded chat cache from state", () => {
@@ -117,6 +250,42 @@ describe("getInsantBISaveData", () => {
     expect(saveData.state.subject).toEqual({
       model: { dir: "agents", file: "sales.metadata" },
     });
+  });
+});
+
+describe("resolveInstantBiSql", () => {
+  const savedResponse = {
+    sql: {
+      raw_sql: "```sql\nSELECT SUM(\"travel_details\".\"travel_cost\") AS \"Travel Cost\"\nFROM \"travel_details\"\nLIMIT 100",
+    },
+    report_model: {
+      data_model: {
+        sql: "SELECT SUM(\"travel_details\".\"travel_cost\") AS \"Travel Cost\" FROM \"travel_details\" LIMIT 100",
+      },
+    },
+  };
+
+  it("reads saved raw_sql when open and edit leave message sql empty", () => {
+    expect(resolveInstantBiSql({
+      messageSql: "",
+      fullChatResponse: savedResponse,
+    })).toBe('SELECT SUM("travel_details"."travel_cost") AS "Travel Cost"\nFROM "travel_details"\nLIMIT 100');
+  });
+
+  it("prefers a live message sql over the saved response", () => {
+    expect(resolveInstantBiSql({
+      messageSql: "SELECT 1",
+      fullChatResponse: savedResponse,
+    })).toBe("SELECT 1");
+  });
+
+  it("falls back to data_model sql when raw_sql is missing", () => {
+    expect(resolveInstantBiSql({
+      messageSql: "",
+      fullChatResponse: {
+        report_model: savedResponse.report_model,
+      },
+    })).toBe(savedResponse.report_model.data_model.sql);
   });
 });
 
@@ -169,9 +338,12 @@ describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
       expect(message.data).toEqual([]);
       expect(message.metadata).toEqual([]);
       expect(message.vf).toBe("");
+      expect(message.sql).toBe("");
       expect(message.text).toBe(`Insight ${seq}`);
-      expect(message.sql).toEqual({ raw_sql: `SELECT ${seq}` });
-      expect(message.viz).toEqual({ vf_title: `Chart ${seq}` });
+      // Raw backend payload must not leak onto the message (no duplication).
+      expect(message).not.toHaveProperty("viz");
+      expect(message).not.toHaveProperty("summary");
+      expect(message).not.toHaveProperty("activity_trail");
       expect(message.fullChatResponse).toEqual({
         viz: { vf_title: `Chart ${seq}` },
         sql: { raw_sql: `SELECT ${seq}` },
@@ -180,6 +352,196 @@ describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
     });
     expect(report.previews).toEqual([]);
     expect(report.loadedChatResponses).toEqual({});
+  });
+
+  it("it should load think-plan responses without duplicating snake_case fields", () => {
+    const state = instantBIReducer(initialStates.instantBIInitialState, {
+      type: actionTypes.LOAD_IB_REPORT_DATA,
+      payload: {
+        reportId: "report-1",
+        location: "reports",
+        uuid: "report.instant",
+        loading: false,
+        mode: "open",
+        data: {
+          reportName: "MyReport",
+          metadata: {
+            location: "agents",
+            metadataFileName: "sales.metadata",
+          },
+          state: {
+            inputs: [{ chat_sequence_id: 1, input: "Think question" }],
+            chat_responses: [
+              {
+                chat_sequence_id: 1,
+                is_think_plan: true,
+                asked_questions: ["Q1", "Q2"],
+                question_history: [
+                  {
+                    index: 1,
+                    question: "Q1",
+                    chat_seq_id: "1_1",
+                    report_model: { viz_model: {} },
+                    chat_response: {
+                      hreportId: "hr-1",
+                      report_model: { viz_model: {} },
+                    },
+                    fullChatResponse: {
+                      hreportId: "hr-1",
+                      report_model: { viz_model: {} },
+                    },
+                  },
+                ],
+                cited_question_indexes: [1],
+                opening_insight: "Opening",
+                final_answer: "Final",
+                plan: { strategy_id: "s1" },
+                dashboard_model: { title: "Dash" },
+                dashboard: { title: "Dash" },
+                llm_activity_details: { steps: 2 },
+                summary: { insight: "Final" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const report = state.reports[0];
+    const botMessage = report.chats[0].messageList.find((message) => !message.isUser);
+    expect(botMessage.isThinkPlan).toBe(true);
+    expect(botMessage.text).toBe("Final");
+    expect(botMessage.finalAnswer).toBe("Final");
+    expect(botMessage.askedQuestions).toEqual(["Q1", "Q2"]);
+    expect(botMessage.questionHistory).toHaveLength(1);
+    expect(botMessage.questionHistory[0].fullChatResponse.hreportId).toBe("hr-1");
+    expect(botMessage.openingInsight).toBe("Opening");
+    expect(botMessage.citedQuestionIndexes).toEqual([1]);
+    expect(botMessage.plan).toEqual({ strategy_id: "s1" });
+    expect(botMessage.dashboardModel).toEqual({ title: "Dash" });
+    expect(botMessage.llmActivityDetails).toEqual({ steps: 2 });
+    // No snake_case duplicates on the message itself.
+    [
+      "is_think_plan",
+      "asked_questions",
+      "question_history",
+      "cited_question_indexes",
+      "opening_insight",
+      "final_answer",
+      "dashboard_model",
+      "llm_activity_details",
+      "activity_trail",
+      "viz",
+      "summary",
+      "dashboard",
+    ].forEach((key) => expect(botMessage).not.toHaveProperty(key));
+    // Raw payload preserved for tabs/bridge rehydration.
+    expect(botMessage.fullChatResponse.is_think_plan).toBe(true);
+    expect(botMessage.fullChatResponse.question_history).toHaveLength(1);
+  });
+
+  it("it should rebuild step fullChatResponses from the slim persisted shape", () => {
+    const state = instantBIReducer(initialStates.instantBIInitialState, {
+      type: actionTypes.LOAD_IB_REPORT_DATA,
+      payload: {
+        reportId: "report-1",
+        location: "reports",
+        uuid: "report.instant",
+        loading: false,
+        mode: "open",
+        data: {
+          reportName: "MyReport",
+          metadata: {
+            location: "agents",
+            metadataFileName: "sales.metadata",
+          },
+          state: {
+            inputs: [{ chat_sequence_id: 1, input: "Think question" }],
+            chat_responses: [
+              {
+                chat_sequence_id: 1,
+                is_think_plan: true,
+                asked_questions: ["Q1"],
+                question_history: [
+                  {
+                    index: 1,
+                    question: "Q1",
+                    title: "T1",
+                    answer: "ans",
+                    analysis: "analysis",
+                    chat_seq_id: "1_1",
+                    data: [{ v: 1 }],
+                    hreportId: "hr-9",
+                    chat_response: {
+                      viz: { vf_title: "T1", vf_template: btoa("function Draw(){}") },
+                      sql: { raw_sql: "SELECT 1" },
+                      summary: { insight: "ans" },
+                      report_model: { viz_model: { id: "m1" } },
+                      token_usage: {},
+                    },
+                  },
+                ],
+                final_answer: "Final",
+                summary: { insight: "Final" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const botMessage = state.reports[0].chats[0].messageList.find((message) => !message.isUser);
+    const step = botMessage.questionHistory[0];
+    expect(step.hreportId).toBe("hr-9");
+    expect(step.report_model).toEqual({ viz_model: { id: "m1" } });
+    expect(step.chat_response).not.toHaveProperty("hreportId");
+    expect(step.fullChatResponse.hreportId).toBe("hr-9");
+    expect(step.fullChatResponse.report_model).toEqual({ viz_model: { id: "m1" } });
+    expect(step.vizLoading).toBe(false);
+    expect(step.vizError).toBe("");
+    expect(step.data).toEqual([{ v: 1 }]);
+    expect(botMessage.fullChatResponse.question_history[0].fullChatResponse.hreportId).toBe("hr-9");
+  });
+
+  it("it should assign a fresh hreportId to fast responses missing one", () => {
+    const state = instantBIReducer(initialStates.instantBIInitialState, {
+      type: actionTypes.LOAD_IB_REPORT_DATA,
+      payload: {
+        reportId: "report-1",
+        location: "reports",
+        uuid: "report.instant",
+        loading: false,
+        mode: "open",
+        data: {
+          reportName: "MyReport",
+          metadata: {
+            location: "agents",
+            metadataFileName: "sales.metadata",
+          },
+          state: {
+            inputs: [
+              { chat_sequence_id: 1, input: "Chart question" },
+              { chat_sequence_id: 2, input: "Text question" },
+            ],
+            chat_responses: [
+              {
+                chat_sequence_id: 1,
+                viz: { vf_title: "Chart", vf_template: btoa("function Draw(){}") },
+                sql: { raw_sql: "SELECT 1" },
+                summary: { insight: "Insight 1" },
+              },
+              {
+                chat_sequence_id: 2,
+                summary: { insight: "Just text" },
+              },
+            ],
+          },
+        },
+      },
+    });
+    const botMessages = state.reports[0].chats[0].messageList.filter((message) => !message.isUser);
+    const chartMessage = botMessages.find((message) => message.chatSequenceId === 1);
+    const textMessage = botMessages.find((message) => message.chatSequenceId === 2);
+    expect(chartMessage.fullChatResponse.hreportId).toBeDefined();
+    expect(textMessage.fullChatResponse).not.toHaveProperty("hreportId");
   });
 });
 
@@ -539,6 +901,134 @@ describe("shouldUseLoadChatPayloadForInsight", () => {
   });
 });
 
+describe("loadInstantBiHreports", () => {
+  const makeDispatch = () => {
+    const fn = jest.fn((action) => {
+      if (typeof action === "function") {
+        return action(fn, () => ({
+          instantBI: {
+            reports: [
+              {
+                active: true,
+                metadataForHreport: { metadata: {}, funcs: [], dateFunctions: [] },
+              },
+            ],
+          },
+        }));
+      }
+      return action;
+    });
+    return fn;
+  };
+
+  beforeEach(() => {
+    createHReportBridge.mockClear();
+  });
+
+  it("should rehydrate fast responses and think-plan steps with saved hreportIds", async () => {
+    const dispatch = makeDispatch();
+    await loadInstantBiHreports({
+      dispatch,
+      reportState: {
+        chat_responses: [
+          {
+            chat_sequence_id: 1,
+            is_think_plan: true,
+            question_history: [
+              {
+                index: 1,
+                question: "Q1",
+                report_model: { viz_model: { id: "m1" } },
+                fullChatResponse: {
+                  hreportId: "hr-step-1",
+                  report_model: { viz_model: { id: "m1" } },
+                },
+              },
+              {
+                index: 2,
+                question: "Q2",
+                report_model: {},
+                fullChatResponse: {},
+              },
+            ],
+            final_answer: "Final",
+          },
+          {
+            chat_sequence_id: 2,
+            hreportId: "hr-fast",
+            report_model: { viz_model: { id: "m2" } },
+          },
+        ],
+        hreportInteractions: {
+          "hr-step-1": { selectedType: "Antcharts" },
+        },
+      },
+    });
+    const calls = createHReportBridge.mock.calls.map(([props]) => props);
+    expect(calls.map((props) => props.reportId)).toEqual(["hr-step-1", "hr-fast"]);
+    expect(calls[0].reportModel).toEqual({ viz_model: { id: "m1" } });
+    expect(calls[0].interactions).toEqual({ selectedType: "Antcharts" });
+    expect(calls[1].reportModel).toEqual({ viz_model: { id: "m2" } });
+    expect(calls[1].interactions).toEqual({});
+  });
+
+  it("should rehydrate slim steps with hoisted hreportIds", async () => {
+    const dispatch = makeDispatch();
+    await loadInstantBiHreports({
+      dispatch,
+      reportState: {
+        chat_responses: [
+          {
+            chat_sequence_id: 1,
+            is_think_plan: true,
+            question_history: [
+              {
+                index: 1,
+                question: "Q1",
+                hreportId: "hr-slim-1",
+                chat_response: {
+                  viz: { vf_title: "T1" },
+                  report_model: { viz_model: { id: "m1" } },
+                },
+              },
+            ],
+            final_answer: "Final",
+          },
+        ],
+        hreportInteractions: {},
+      },
+    });
+    const calls = createHReportBridge.mock.calls.map(([props]) => props);
+    expect(calls.map((props) => props.reportId)).toEqual(["hr-slim-1"]);
+    expect(calls[0].reportModel).toEqual({ viz_model: { id: "m1" } });
+  });
+
+  it("should skip error responses and steps without a report model", async () => {
+    const dispatch = makeDispatch();
+    await loadInstantBiHreports({
+      dispatch,
+      reportState: {
+        chat_responses: [
+          { chat_sequence_id: 1, hreportId: "hr-error", error: "boom" },
+          {
+            chat_sequence_id: 2,
+            is_think_plan: true,
+            question_history: [
+              {
+                index: 1,
+                question: "Q1",
+                fullChatResponse: { hreportId: "hr-no-model" },
+              },
+            ],
+          },
+        ],
+        hreportInteractions: {},
+      },
+    });
+    expect(createHReportBridge).not.toHaveBeenCalled();
+  });
+});
+
 describe("buildInstantBIInteractiveChatFormData", () => {
   it("should not include nested formData when not provided", () => {
     expect(
@@ -585,6 +1075,34 @@ describe("buildInstantBIInteractiveChatFormData", () => {
       chat_sequence_id: 2,
       mode: "auto",
       show_llm_activity_details: true,
+    });
+  });
+
+  it("should omit sql and chat_response_item from data-insight payloads", () => {
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Explain this chart",
+        chatId: "chat-1",
+        chatSequenceId: "1-1",
+      })
+    ).toEqual({
+      input: "Explain this chart",
+      chatid: "chat-1",
+      chat_sequence_id: "1-1",
+    });
+  });
+
+  it("should send chat id and parent sequence for think-plan explain", () => {
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Which employee should I pick?",
+        chatId: "chat-1",
+        chatSequenceId: "1",
+      })
+    ).toEqual({
+      input: "Which employee should I pick?",
+      chatid: "chat-1",
+      chat_sequence_id: "1",
     });
   });
 });

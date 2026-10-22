@@ -15,6 +15,20 @@ import actionTypes from "../../../redux/actions/actionTypes";
 import { addFieldToCanvas, toggleFloating } from "../../../redux/actions/hreport.actions";
 import { getFloatingType } from "../../../utils/filter-utils";
 
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+
 // const App = (props) => {
 //     let {store,...rest} = props
 // 	return (

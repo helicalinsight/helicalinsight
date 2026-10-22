@@ -9,6 +9,7 @@ import { anchorConstant, checkIsValidDateFilter, checkRelativeDateFilter, getFil
 import { updateDashboardVariables } from "../redux/actions";
 import { getActualFieldDataType } from "../components/hi-reports/hi-viz-area/utils/grid-chart-utils";
 import { getRelativeDateValues } from "../components/hi-reports/hi-editing-area/utils/filter-utils";
+import { parseDbFuncString } from "../components/hi-reports/hi-fields-area/utils/parse-db-func";
 
 export const dataTypes = {
   NUMERIC: "numeric",
@@ -216,6 +217,16 @@ export const checkWhetherStateIsLoaded = (file, reports) => {
   }
   return report;
 };
+
+export const checkWhetherStateIsLoadedById = (reportId, reports) => {
+  let report = reports.find((report) => {
+    return report.id === reportId;
+  });
+  if (report) {
+    report = JSON.parse(JSON.stringify(report));
+  }
+  return report;
+};
 export const getFieldAliasName = (column) => {
   return column?.columnAlias
     ? column?.columnAlias
@@ -264,6 +275,21 @@ export const modifyFilters = (state, parameters) => {
     return { ...state, filters: checkRelativeDateFilter(state.filters, parameters) } // added for 6336 , was not working in open mode 
   }
 };
+
+export const modifyReportResponse = (state) => {
+  return produce(state, (draft) => {
+    draft.fields = draft.fields.map((field, index, fields) => {
+      if (field.custom) {
+        if (!field.functionsDefinition) {
+          field.functionsDefinition = `RAW(${field.column})`;
+          let { databaseFunction = {} } = parseDbFuncString({ databaseFunctions: state.databaseFunctions, fields, editingField: { functionsDefinition: field.functionsDefinition } }) || {}
+          field.databaseFunction = databaseFunction
+        }
+      }
+      return field
+    })
+  });
+}
 
 export const modifyTableProperties = (state, pageSize) => {
   const { properties, reportData } = state || {}
@@ -587,6 +613,7 @@ export const getInitialCascade = () => {
   };
 };
 export const exportReport = ({ id, format, callback }, dispatch) => {
+  const hiAxiosHolder = { current: null };
   dispatch((dispatch, getState) => {
     let activeReport = getState().hreport.present.reports.find(item => item.id === id);
     if (activeReport?.activeDrillthroughId) {
@@ -609,9 +636,14 @@ export const exportReport = ({ id, format, callback }, dispatch) => {
         serviceType: "report",
         service: "fetchData",
       };
-      postDownloadRequest({ dispatch, formData, reportName, callback });
+      hiAxiosHolder.current = postDownloadRequest({ dispatch, formData, reportName, callback });
     });
   });
+  return {
+    abort: (prop) => hiAxiosHolder.current?.abort?.(prop),
+    pauseDownload: () => hiAxiosHolder.current?.pauseDownload?.(),
+    resumeDownload: () => hiAxiosHolder.current?.resumeDownload?.(),
+  };
 };
 
 export const getRelativeCacheTime = (lastModified, serverTime, clientTime) => {

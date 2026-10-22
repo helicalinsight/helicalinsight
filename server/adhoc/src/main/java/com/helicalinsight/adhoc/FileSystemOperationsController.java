@@ -332,14 +332,34 @@ public class FileSystemOperationsController implements ApplicationContextAware {
      * @param request     The http request object
      */
     @RequestMapping(value = "/importFile", method = RequestMethod.POST)
-    public void executeImportOperation(@RequestParam("file") MultipartFile mfile,
-                                       @RequestParam("destination") String destination,
+    public void executeImportOperation(@RequestParam(value = "file", required = false) MultipartFile mfile,
+                                       @RequestParam(value = "destination", required = false) String destination,
                                        HttpServletRequest request,
                                        HttpServletResponse response) throws IOException {
         //;
 
         logger.debug("Lock_List_Start  :" + ApplicationUtilities.lockPathForFileBrowser);
         boolean isAjax = ControllerUtils.isAjax(request);
+
+        if ("true".equalsIgnoreCase(request.getParameter("resumable"))) {
+            try {
+                Object uploadService = ApplicationContextAccessor.getBean("resumableUploadService");
+                String json = (String) uploadService.getClass()
+                        .getMethod("prepareFromHttpRequest", HttpServletRequest.class, String.class)
+                        .invoke(uploadService, request, "/importFile");
+                ControllerUtils.handleSuccess(response, isAjax, json);
+            } catch (Exception e) {
+                Throwable cause = e.getCause() != null ? e.getCause() : e;
+                if (cause instanceof IllegalArgumentException) {
+                    response.sendError(HttpServletResponse.SC_BAD_REQUEST, cause.getMessage());
+                } else {
+                    ControllerUtils.handleFailure(response, isAjax, cause instanceof Exception
+                            ? (Exception) cause : e);
+                }
+            }
+            return;
+        }
+
         //  String destination = request.getParameter("destination");
         String message = null;
         try {

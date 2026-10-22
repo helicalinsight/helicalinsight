@@ -201,10 +201,6 @@ const FieldMenu = (props) => {
     selectedKeys.push(orderBy[0])
   }
 
-  if (custom && !isEmpty(field?.type)) {
-    selectedKeys.push(field?.type?.backendDataType)
-  }
-
   const handleMenuClick = (e) => {
     switch (e.key) {
       case "1":
@@ -268,9 +264,6 @@ const FieldMenu = (props) => {
             case "order_by":
               handleOrderBy(e.key)
               break
-            case "dataType":
-              handleDataType(field.id, e.key)
-              break;
           }
           break
         }
@@ -461,21 +454,6 @@ const FieldMenu = (props) => {
             );
           })}
         </SubMenu>
-
-        {custom ?
-          <SubMenu key="dataType" title={"Data Type"} data-testid="data-type-menu-list">
-            {customFieldDataTypeList.map(({ backendDataType, dataType }) => {
-              return (
-                <Menu.Item
-                  className="aggregation-item"
-                  key={backendDataType}
-                >
-                  {dataType}
-                </Menu.Item>
-              );
-            })}
-          </SubMenu>
-          : null}
 
         {/* date function render in case of date/dateTime data type */}
 

@@ -4,14 +4,13 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.util.Date;
 
 
 @Embeddable
 
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-public class HIResourceHCR implements Serializable {
+public class HIResourceHCR extends BaseResourceProps {
 
     @Column(name="file_name",table="hi_resource_hcr")
     public String fileName;

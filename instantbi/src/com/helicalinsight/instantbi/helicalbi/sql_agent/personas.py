@@ -5,11 +5,9 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from helicalbi.sql_agent.strategy_tree import (
     STRATEGY_INVERTED_PYRAMID,
-    STRATEGY_INTENT_LAYOUT,
     STRATEGY_MECE,
     STRATEGY_PROGRESSIVE_DISCLOSURE,
     STRATEGY_SEMANTIC_COLOR,
-    STRATEGY_SO_WHAT,
 )
 
 PERSONA_EXECUTIVE = "executive"

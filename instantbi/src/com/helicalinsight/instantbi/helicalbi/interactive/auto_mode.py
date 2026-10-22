@@ -1,4 +1,8 @@
-"""Classify a question as fast or think when interactive mode is auto."""
+"""Classify a question as fast or think when interactive mode is auto.
+
+Heuristics and LLM classification live here; thresholds/markers are in
+``helicalbi.interactive.constants``.
+"""
 from __future__ import annotations
 
 import logging
@@ -7,6 +11,12 @@ from typing import Any, Mapping, Optional
 
 from pydantic import BaseModel, Field
 
+from helicalbi.interactive.constants import (
+    AUTO_THINK_AGGREGATE_PATTERN,
+    AUTO_THINK_MARKERS,
+    AUTO_THINK_MIN_QUESTION_MARKS,
+    AUTO_THINK_MIN_TEXT_LENGTH,
+)
 from helicalbi.interactive.modes import (
     INTERACTIVE_MODE_AUTO,
     INTERACTIVE_MODE_FAST,
@@ -14,49 +24,9 @@ from helicalbi.interactive.modes import (
     is_auto_mode,
     resolve_interactive_mode_from_input,
 )
+from helicalbi.sql_agent.prompt import AUTO_MODE_PROMPT
 
 logger = logging.getLogger(__name__)
-
-_THINK_MARKERS = (
-    "why ",
-    "why?",
-    "how come",
-    "explain",
-    "analy",
-    "compare",
-    "versus",
-    " vs ",
-    "breakdown",
-    "break down",
-    "root cause",
-    "driver",
-    "across ",
-    "investigate",
-    "recommend",
-    "strategy",
-    "dashboard",
-    "what caused",
-    "and why",
-    "deep dive",
-    "overview of",
-    "briefing",
-)
-
-AUTO_MODE_PROMPT = """You route Instant BI questions to Fast or Think.
-
-Fast: one metric, list, filter, or a single chart.
-Examples: "total travel cost", "bookings by month", "top 5 customers".
-
-Think: investigation across several angles — why/how, comparison, root cause,
-drivers, recommendations, or an executive briefing.
-Examples: "why did cost rise", "compare regions and explain drivers",
-"analyze travel spend and recommend actions".
-
-Question:
-{question}
-
-{format_instructions}
-"""
 
 
 class InteractiveModeChoice(BaseModel):
@@ -73,11 +43,14 @@ def heuristic_interactive_mode(question: str) -> str:
     text = f" {str(question or '').strip().lower()} "
     if not text.strip():
         return INTERACTIVE_MODE_FAST
-    if text.count("?") >= 2 or len(text) > 180:
+    if (
+        text.count("?") >= AUTO_THINK_MIN_QUESTION_MARKS
+        or len(text) > AUTO_THINK_MIN_TEXT_LENGTH
+    ):
         return INTERACTIVE_MODE_THINK
-    if any(marker in text for marker in _THINK_MARKERS):
+    if any(marker in text for marker in AUTO_THINK_MARKERS):
         return INTERACTIVE_MODE_THINK
-    if re.search(r"\b(each|every|all)\b.+\b(by|across|versus|vs)\b", text):
+    if re.search(AUTO_THINK_AGGREGATE_PATTERN, text):
         return INTERACTIVE_MODE_THINK
     return INTERACTIVE_MODE_FAST
 

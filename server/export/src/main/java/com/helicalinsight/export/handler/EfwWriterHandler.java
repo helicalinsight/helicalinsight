@@ -53,7 +53,9 @@ public class EfwWriterHandler extends AbstractResourceWriterHandler {
 				}
 			}
 		}
+		markDeleted(efwResource, hResource, options);
 		dataWriter.write(this.addOwner(efwResource,efwResource.getCreatedBy()),dir, resource,"");
+		recycleBinHandler.writeResource(hResource, resource, dir, manifest);
 		dataWriter.write(content, dir, resource,ResourceSuffix.EFW_CONTENT);
 		manifestUtils.insertPath(resource.getPath(), manifest);
 		manifestUtils.insertDependency(resource.getPath(),depFolderUrl, manifest);

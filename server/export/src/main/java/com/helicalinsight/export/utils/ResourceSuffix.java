@@ -8,4 +8,6 @@ public class ResourceSuffix {
 	public static final String SCHEDULE = "_schedule";
 	public static final String SCHEDULE_RESULT = ".efwsr";
 	public static final String EFW_CONTENT = "_content";
+	public static final String IMAGE = "_image";
+	public static final String RECYCLE_BIN = "_recyclebin";
 }

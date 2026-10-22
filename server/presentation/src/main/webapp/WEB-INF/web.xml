@@ -31,6 +31,26 @@
     <listener>
         <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
     </listener>
+    
+   
+	<!--
+	  Honor X-Forwarded-* from the reverse proxy (e.g. nginx TLS termination)
+	  so getScheme()/getRequestURL() use the public https URL for baseUrl and related links.
+	  Keep this filter first so all later filters and controllers see the corrected request.
+	-->
+    
+    <filter>
+		<filter-name>forwardedHeaderFilter</filter-name>
+		<filter-class>org.springframework.web.filter.ForwardedHeaderFilter</filter-class>
+		<async-supported>true</async-supported>
+	</filter>
+	<filter-mapping>
+		<filter-name>forwardedHeaderFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+		<dispatcher>REQUEST</dispatcher>
+		<dispatcher>ASYNC</dispatcher>
+	</filter-mapping>
+	
 	  <filter>
         <filter-name>encodingFilter</filter-name>
         <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
@@ -94,7 +114,7 @@
 		</init-param>
 		<init-param>
 			<param-name>cors.exposed.headers</param-name>
-			<param-value>Access-Control-Allow-Origin,Access-Control-Allow-Credentials,Content-Disposition</param-value>
+			<param-value>Access-Control-Allow-Origin,Access-Control-Allow-Credentials,Content-Disposition,Accept-Ranges,Content-Range,Content-Length,X-Checksum-SHA256</param-value>
 		</init-param>
 		<init-param>
 			<param-name>cors.preflight.maxage</param-name>

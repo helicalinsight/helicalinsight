@@ -13,6 +13,7 @@ import { HIDashboardWrapper } from "../../../hi-dashboard/components/hi-dashboar
 import SortableTable from "./hi-sortable-table";
 import "./index.scss";
 import { updateDashboardVariables } from "../../../../redux/actions";
+import DashboardInstantFilter from "../dashboard-instant-filter";
 
 const DragHandle = SortableHandle(() => (
   <MenuOutlined style={{ cursor: "grab", color: "#999" }} />
@@ -41,56 +42,64 @@ const HIReportParametersDrawer = () => {
   const columns = [
     ...(!isOpenMode && !previewMode
       ? [
-          {
-            title: "Sort",
-            dataIndex: "sort",
-            width: 10,
-            className: "drag-visible",
-            render: () => <DragHandle />,
-          },
-        ]
+        {
+          title: "Sort",
+          dataIndex: "sort",
+          width: 10,
+          className: "drag-visible",
+          render: () => <DragHandle />,
+        },
+      ]
       : []),
     {
       title: "Filter",
       dataIndex: "index",
       width: 80,
       className: "drag-visible",
-      render: (_, record) => (
-        <div>
-          <HIDashboardWrapper
-            type={record.reportInfo?.extension}
-            parameter={record.parameter}
-            id={record.id}
-            listeners={record.listeners}
-            reportInfo={record.reportInfo}
-            dashboardVariables={variables}
-          />
-          {/* <HIDashboard
-            id={record.id}
-            type={record.reportInfo?.extension}
-            parameter={record.parameter}
-            reportInfo={record.reportInfo}
-            listeners={record.listeners}
-          /> */}
-        </div>
-      ),
+      render: (_, record) => {
+        const instantFilter = record.reportInfo?.filterType === "instant" || record?.reportInfo?.kind === "instant";
+        return (
+          <div >
+            {!instantFilter ?
+              <HIDashboardWrapper
+                type={record.reportInfo?.extension}
+                parameter={record.parameter}
+                id={record.id}
+                listeners={record.listeners}
+                reportInfo={record.reportInfo}
+                dashboardVariables={variables}
+              />
+              :
+              <DashboardInstantFilter
+                gridItem={record}
+                parameter={record.parameter}
+                id={record.id}
+                listeners={record.listeners}
+                reportInfo={record.reportInfo}
+                dashboardVariables={variables}
+              />
+            }
+          </div>
+        )
+      },
+
     },
     ...(!isOpenMode && !previewMode
       ? [
-          {
-            title: "Close",
-            dataIndex: "close",
-            width: 10,
-            className: "drag-visible",
-            render: (_, record) => (
-              <CloseOutlined
-                onClick={() => {
-                  dispatch(deleteGridItem(record.id));
-                }}
-              />
-            ),
-          },
-        ]
+        {
+          title: "Close",
+          dataIndex: "close",
+          width: 10,
+          className: "drag-visible",
+          render: (_, record) => (
+            <CloseOutlined
+              onClick={() => {
+                dispatch(deleteGridItem(record.id));
+              }}
+            />
+          ),
+        },
+      ]
       : []),
   ];
 
@@ -121,36 +130,36 @@ const HIReportParametersDrawer = () => {
       }
       extra={
         <>
-        {parameterSettings?.enableApplyButton && (
+          {parameterSettings?.enableApplyButton && (
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => {
+                dispatch(applyDashboardFilters(new Date().getTime().toString()));
+                if (parameterSettings?.closeOnApply) {
+                  dispatch(updateParameterDrawerStatus(false));
+                }
+              }}
+            >
+              Apply
+            </Button>
+          )}
           <Button
             size="small"
-            type="primary"
+            style={{ marginLeft: 8 }}
             onClick={() => {
+              // Reset logic
+              dispatch((dispatch, getState) => {
+                const baseStateReports = getState().hreport.present.baseStateReports;
+
+                for (let baseReport of baseStateReports) {
+                  if (baseReport.mode !== "filter") continue;
+                  dispatch(updateDashboardVariables({ key: baseReport.dashboardFilter.columnName, value: baseReport.filters.find(filter => filter.uid === baseReport.dashboardFilter.uid)?.values }))
+                }
+
+              }); // Reset the filters
               dispatch(applyDashboardFilters(new Date().getTime().toString()));
-              if(parameterSettings?.closeOnApply){
-                dispatch(updateParameterDrawerStatus(false));
-              }
             }}
-          >
-            Apply
-          </Button>
-        )}
-        <Button
-          size="small"
-          style={{ marginLeft: 8 }} 
-          onClick={() => {
-            // Reset logic
-            dispatch((dispatch, getState) => {
-              const baseStateReports = getState().hreport.present.baseStateReports;
-
-              for (let baseReport of baseStateReports){
-                if (baseReport.mode !== "filter") continue;
-                dispatch(updateDashboardVariables({ key: baseReport.dashboardFilter.columnName, value: baseReport.filters.find(filter => filter.uid === baseReport.dashboardFilter.uid)?.values}))
-              }
-
-            }); // Reset the filters
-            dispatch(applyDashboardFilters(new Date().getTime().toString()));
-          }}
           >
             Reset
           </Button>

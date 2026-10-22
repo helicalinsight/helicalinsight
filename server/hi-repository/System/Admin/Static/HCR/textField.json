@@ -17,6 +17,7 @@
 		"textWidth": 50,
 		"textHeight": 50,
 		"rotationType": "None",
+		"textAdjust" : "CutText",
 		"markUp": "none",
 		"mode": "Transparent",
 		"stretchType": "NoStretch",

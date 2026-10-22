@@ -36,7 +36,8 @@ const AdvancedFnEditor = (props = {}) => {
         onClose()
     }
 
-    const applyParsedFunction = (databaseFunction) => {
+    const applyParsedFunction = (databaseFunction, editingField) => {
+        const { functionsDefinition } = editingField || {}
         let tempFilter = { ...filter };
         let newMapping = { ...(filter.mapping || {}) };
         const dbKey = databaseFunction && databaseFunction.key;
@@ -48,12 +49,14 @@ const AdvancedFnEditor = (props = {}) => {
                 ...newMapping,
                 valueDBFunction: databaseFunction,
                 valueDBFuntionInfo: dbFunc,
+                valueDBfunctionsDefinition: functionsDefinition
             };
             tempFilter.databaseFunction = dbFunc;
         } else {
             mappingObj = {
                 ...newMapping,
                 DisplayDBFunction: databaseFunction,
+                displayDBfunctionsDefinition: functionsDefinition
             };
         }
         tempFilter.mapping = mappingObj;
@@ -65,7 +68,7 @@ const AdvancedFnEditor = (props = {}) => {
     const handleSave = (data) => {
         const { databaseFunctions, fields, editingField } = data || {}
         let { databaseFunction } = parseDbFuncString({ databaseFunctions, fields, editingField: { ...editingField } })
-        applyParsedFunction(databaseFunction)
+        applyParsedFunction(databaseFunction, editingField)
         onClose()
     }
 

@@ -1,6 +1,10 @@
 """Unit tests for descriptive SQL findings (no raw JSON in analysis)."""
 
-from helicalbi.sql_agent.tools.findings import describe_query_findings, prefers_detail_table
+from helicalbi.sql_agent.tools.findings import (
+    describe_query_findings,
+    prefers_detail_table,
+    value_found_summary,
+)
 
 import pytest
 
@@ -47,6 +51,18 @@ def test_describe_timeseries_mentions_detail_table():
     )
     assert "time series" in described["analysis"].lower() or "points" in described["answer"].lower()
     assert not described["analysis"].lstrip().startswith("[")
+
+
+def test_value_found_summary_names_high_and_low():
+    raw = (
+        "[{'YEAR': 2015, 'Successful Meeting Rate': 0.4}, "
+        "{'YEAR': 2016, 'Successful Meeting Rate': 0.8}]"
+    )
+    summary = value_found_summary(raw)
+    assert "2016" in summary
+    assert "2015" in summary
+    assert "Highest" in summary
+    assert "Lowest" in summary
 
 
 def test_prefers_detail_table_for_trend():

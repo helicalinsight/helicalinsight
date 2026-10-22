@@ -5,8 +5,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
@@ -19,8 +22,11 @@ import org.junit.Assert;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import com.helicalinsight.adhoc.services.HCRGlobalConnectionSaveHandler;
+import com.helicalinsight.admin.model.HIHcrConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceHCR;
 import com.helicalinsight.admin.model.ResourceType;
@@ -40,8 +46,6 @@ import com.helicalinsight.export.handler.importres.AbstractResourceImportHandler
 import com.helicalinsight.export.handler.importres.HCRImportHandler;
 import com.helicalinsight.export.service.ShareHandler;
 import com.helicalinsight.export.utils.ManifestUtils;
-import com.helicalinsight.resourcesecurity.SecurityUtils;
-import com.helicalinsight.resourcesecurity.jaxb.Security;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class HCRImportHandlerTest extends ExportUnitTestBase {
@@ -172,6 +176,89 @@ public class HCRImportHandlerTest extends ExportUnitTestBase {
 
 			HIResource result = handler.createNewReport(report, "report.hcr", "parent/", "parent/report.hcr");
 			Assert.assertEquals(resource, result);
+		}
+	}
+
+	@Test
+	public void ut_a4_testImportWithoutDatasourceRemapsConnectionDetailsToDefault()
+			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		HCRImportHandler handler = new HCRImportHandler();
+		ImportManagerContext context = mock(ImportManagerContext.class);
+		ImportRequest request = mock(ImportRequest.class);
+		ResourceOptions options = mock(ResourceOptions.class);
+		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+		HIResource resource = mock(HIResource.class);
+		HIResourceHCR report = mock(HIResourceHCR.class);
+		ResourceDataReader fileReader = mock(ResourceDataReader.class);
+		ShareHandler shareHandler = mock(ShareHandler.class);
+		Manifest manifest = mock(Manifest.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		EFWDConnectionService efwdConnectionService = mock(EFWDConnectionService.class);
+		HIResourceConstituentMappingService mappingService = mock(HIResourceConstituentMappingService.class);
+		ResourceTypeServiceDB resourceTypeService = mock(ResourceTypeServiceDB.class);
+		ResourceType resourceType = mock(ResourceType.class);
+		HCRGlobalConnectionSaveHandler saveHandler = mock(HCRGlobalConnectionSaveHandler.class);
+		HIHcrConnections hiConn = mock(HIHcrConnections.class);
+
+		String previewJson = "{\"connectionDbDetails\":[{\"fileName\":\"99hi_hcr_db\","
+				+ "\"DataSources\":{\"Connection\":{\"id\":\"1\",\"type\":\"global.jdbc\",\"globalId\":99}},"
+				+ "\"DataMaps\":{\"DataMap\":{\"id\":\"1\",\"connection\":1,\"type\":\"sql\",\"Name\":\"q\","
+				+ "\"Query\":\"select 1\"}}}]}";
+		String stateJson = "{\"connectionDetails\":{\"id\":\"99\",\"type\":\"global.jdbc\"},"
+				+ "\"temp_uuid\":\"99hi_hcr_db\"}";
+
+		injectFull(handler, context, serviceDb, fileReader, shareHandler, manifestUtils);
+		setField(handler, "efwdConnectionService", efwdConnectionService);
+		setField(handler, "mappingService", mappingService);
+		setField(handler, "resourceTypeService", resourceTypeService);
+
+		when(context.getRequest()).thenReturn(request);
+		when(context.getManifest()).thenReturn(manifest);
+		when(context.getDate()).thenReturn(new Date());
+		when(context.getNewOldImageIds()).thenReturn(new HashMap<>());
+		when(context.removeDestination(anyString())).thenReturn("parent/report.hcr");
+		when(context.getResourceUrlMap()).thenReturn(new HashMap<>());
+		when(request.getOnConflict()).thenReturn("update");
+		when(request.getOptions()).thenReturn(options);
+		when(options.getShare()).thenReturn(false);
+		when(options.getSchedules()).thenReturn(false);
+		when(manifestUtils.compareOptions(options, manifest, "datasource")).thenReturn(false);
+		when(manifestUtils.getDatasource(anyString(), any())).thenReturn(null);
+		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(null);
+		when(fileReader.read(context, "parent/report.hcr", HIResourceHCR.class)).thenReturn(report);
+		when(report.getPreviewFormData()).thenReturn(previewJson);
+		when(report.getDiagram()).thenReturn("");
+		when(report.getFileName()).thenReturn("reportName");
+		when(report.getState()).thenReturn(stateJson);
+		when(report.getCreatedBy()).thenReturn(3);
+		when(resource.getResourceId()).thenReturn(1);
+		when(resource.getResourceURL()).thenReturn("parent/report.hcr");
+		when(efwdConnectionService.fetchAllHcrConnectionsByResourceId(anyInt())).thenReturn(Collections.emptyList());
+		when(resourceTypeService.getResourceTypeByTypeAndExtension(anyString(), anyString())).thenReturn(resourceType);
+		when(resourceType.getResourceTypeId()).thenReturn(1L);
+		when(hiConn.getId()).thenReturn(42);
+		when(saveHandler.addHcrConnection(anyString(), any())).thenReturn(hiConn);
+
+		try (MockedStatic<ResourceUtils> resourceUtilsMock = mockStatic(ResourceUtils.class);
+				MockedStatic<JsonUtils> jsonUtilsMock = mockStatic(JsonUtils.class);
+				MockedStatic<ApplicationContextAccessor> appMock = mockStatic(ApplicationContextAccessor.class)) {
+			jsonUtilsMock.when(JsonUtils::getHCRExtension).thenReturn("hcr");
+			jsonUtilsMock.when(JsonUtils::getFolderFileExtension).thenReturn("efwfolder");
+			jsonUtilsMock.when(JsonUtils::getImageExtension).thenReturn("hiimg");
+			jsonUtilsMock.when(JsonUtils::getDefaultDatasourceId).thenReturn(1);
+			resourceUtilsMock.when(() -> ResourceUtils.newHIResource(anyString(), any(), any(), anyString(),
+					anyString(), anyString(), any(), anyBoolean())).thenReturn(resource);
+			appMock.when(() -> ApplicationContextAccessor.getBean(HCRGlobalConnectionSaveHandler.class))
+					.thenReturn(saveHandler);
+
+			HIResource result = handler.importResource("parent/report.hcr");
+			Assert.assertEquals(resource, result);
+
+			ArgumentCaptor<String> stateCaptor = ArgumentCaptor.forClass(String.class);
+			verify(report).setState(stateCaptor.capture());
+			Assert.assertTrue(stateCaptor.getValue().contains("\"id\":\"1\""));
+			verify(context).addWarning(eq("parent/report.hcr"),
+					contains("assigned default datasource (id=1)"));
 		}
 	}
 

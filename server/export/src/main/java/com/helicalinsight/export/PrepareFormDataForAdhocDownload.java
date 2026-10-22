@@ -1,13 +1,8 @@
 package com.helicalinsight.export;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.helicalinsight.cache.CacheHelper;
 import com.helicalinsight.cache.CacheUtils;
-import com.helicalinsight.cache.manager.CacheManager;
-import com.helicalinsight.cache.model.Cache;
-import com.helicalinsight.efw.ApplicationProperties;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.helicalinsight.export.components.DownloadCacheManager;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -21,10 +16,6 @@ import org.springframework.stereotype.Component;
 @Scope("prototype")
 public class PrepareFormDataForAdhocDownload {
 
-    private static final ApplicationProperties applicationProperties = ApplicationProperties.getInstance();
-
-    @Autowired
-    private CacheHelper cacheHelper;
     /**
      * method prepares form data for adhoc download.
      * It is used to set the necessary parameters in the
@@ -40,12 +31,12 @@ public class PrepareFormDataForAdhocDownload {
         if (format != null)
             adhocFormData.addProperty("type", format);
         adhocFormData.addProperty("reportName", reportName);
-        CacheManager cacheManager = CacheUtils.getCacheManager("/downloadReport");
+        DownloadCacheManager cacheManager = (DownloadCacheManager) CacheUtils.getCacheManager("/downloadReport");
         cacheManager.setRequestData(adhocFormData.toString());
-        Cache cache = cacheHelper.prepareCacheFromRequest(cacheManager);
-        cacheHelper.processCache(null, null, reportName, false, cache, cacheManager);
-        JsonObject requestDataJson = JsonParser.parseString(cacheManager.getRequestData()).getAsJsonObject();
-        String fileToDownload = requestDataJson.get("fileToDownload").getAsString();
-        return fileToDownload;
+        try {
+            return cacheManager.materializeToFile(reportName, false).getAbsolutePath();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to prepare adhoc download file", e);
+        }
     }
 }

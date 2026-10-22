@@ -3,15 +3,17 @@ import notify from "../components/hi-notifications/notify";
 import { handleAxiosObject, responseHandler } from "./helperMethods";
 
 class HIStreamClient {
-    constructor({ dispatch } = {}) {
+    constructor({ dispatch, hiAxios } = {}) {
         this.dispatch = dispatch;
         this.controller = null;
-        this.hiAxios = null;
+        this.hiAxios = hiAxios || null;
         this.defaultHeaders = {
             "Content-Type": "application/x-www-form-urlencoded",
             "Accept": "text/event-stream",
         };
-        this.getHiAxios();
+        if (!this.hiAxios && dispatch) {
+            this.getHiAxios();
+        }
     }
 
     getHiAxios() {
@@ -48,10 +50,12 @@ class HIStreamClient {
         return `${base}${url}${suffix}`;
     }
 
-    getHeaders() {
+    getHeaders({ includeContentType = true } = {}) {
         let hiAxiosObject = this.getHiAxiosObject();
         return {
-            ...this.defaultHeaders,
+            ...(includeContentType
+                ? this.defaultHeaders
+                : { Accept: "text/event-stream" }),
             ...(hiAxiosObject.headers || {}),
             Accept: "text/event-stream",
         }
@@ -61,13 +65,21 @@ class HIStreamClient {
         return this.hiAxios.getRequestId?.();
     }
 
-    async request(method, url, { body, onChunk = () => { } } = {}) {
+    async request(method, url, { body, onChunk = () => { }, signal } = {}) {
         this.controller = new AbortController();
+        if (signal) {
+            if (signal.aborted) {
+                this.controller.abort();
+            } else {
+                signal.addEventListener("abort", () => this.controller.abort(), { once: true });
+            }
+        }
         const response = await fetch(url,
             {
                 method,
                 signal: this.controller.signal,
-                headers: this.getHeaders(),
+                credentials: "include",
+                headers: this.getHeaders({ includeContentType: method !== "GET" }),
                 body
             }
         );
@@ -96,11 +108,18 @@ class HIStreamClient {
                 } catch {
                     payload = dataStr;
                 }
-                const errorMessage =
-                    (payload && typeof payload === "object" && payload.error) ||
-                    dataStr ||
-                    "Unknown stream error";
-                notify(this.dispatch).error({ message: errorMessage, type: "Network Call" });
+                // Soft progress channel "error" (has channel/path) is not a fatal stream failure.
+                const isProgressError =
+                    payload &&
+                    typeof payload === "object" &&
+                    (payload.channel === "error" || payload.path);
+                if (!isProgressError) {
+                    const errorMessage =
+                        (payload && typeof payload === "object" && payload.error) ||
+                        dataStr ||
+                        "Unknown stream error";
+                    notify(this.dispatch).error({ message: errorMessage, type: "Network Call" });
+                }
                 return { event: "error", data: payload };
             }
 
@@ -139,6 +158,11 @@ class HIStreamClient {
         }
     }
 
+    /** Abort only the SSE fetch (does not call /cancelRequest). */
+    abortStream = () => {
+        this.controller?.abort();
+    };
+
     abort = (prop = {}) => {
         let { onSuccess = () => { } } = prop;
         this.hiAxios.instance
@@ -152,8 +176,10 @@ class HIStreamClient {
             .catch((error) => {
                 console.log(error);
             });
-        this.controller.abort();
+        this.abortStream();
     };
+
+    get(url, options = {}) { return this.request("GET", url, options); }
 
     post(url, body, options = {}) { return this.request("POST", url, { ...options, body }); }
 }

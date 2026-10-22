@@ -58,23 +58,16 @@ const UploadFile = (props) => {
     formData.append("type", "datasource");
     formData.append("file", fileUploaded);
 
-    // axios.post("http://localhost:3000/importFile.html", formData, {
-    //   onUploadProgress: (progressEvent) => {
-    //     const percentCompleted = Math.round(
-    //       (progressEvent.loaded * 100) / progressEvent.total
-    //     );
-    //     setProgress(percentCompleted);
-    //   },
-    // });
+    setIsUploading(true);
+    setProgress(0);
 
     requests.datasource(dispatch).postUploadFile(
       formData,
       {
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setIsUploading(true);
+          const total = progressEvent.total || 0;
+          const percentCompleted =
+            total > 0 ? Math.round((progressEvent.loaded * 100) / total) : 0;
           setProgress(percentCompleted);
         },
       },

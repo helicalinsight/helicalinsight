@@ -378,12 +378,12 @@ def needs_other_fallback(chart_name: str, user_query: str = "") -> bool:
 def hydrate_saved_viz(viz: Any) -> dict[str, Any]:
     """Normalize a saved InstantBI viz payload.
 
-    Drops legacy fields (``settings``, ``plot_config``) so older files still load.
-    Keeps ``similar_chart`` when present so convert suggestions survive save/load.
+    Drops legacy fields (``settings``, ``plot_config``, ``similar_chart``) so older files still load.
     """
     payload = dict(viz or {}) if isinstance(viz, dict) else {}
 
     payload.pop("settings", None)
     payload.pop("plot_config", None)
+    payload.pop("similar_chart", None)
 
     return payload

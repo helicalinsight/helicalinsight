@@ -1,5 +1,5 @@
 import { cloneDeep, isEmpty } from 'lodash';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { v4 as uuidv4 } from 'uuid';
 import { hcrActions } from '../../../../../redux/actions';
@@ -9,7 +9,7 @@ import SidebarPanel from '../components/sidebarPanel';
 import "../table/hcrAdvancedTable.scss";
 import CrosstabLayout from './components/crosstabLayout';
 import "./hcrCrosstab.scss";
-import { getCrosstabLayout } from '../utils';
+import { getCellsFromCrosstab, getCrosstabLayout } from '../utils';
 
 const HCRCrosstabEditMode = (props = {}) => {
     const { data = {}, lastSelectedNodeRef } = props || {};
@@ -88,6 +88,32 @@ const HCRCrosstabEditMode = (props = {}) => {
     } = config || {}
 
     const selectedNode = nodes[selectedNodeId] || null;
+
+    // latest render values for the window key handler (avoids stale closures on key repeat)
+    const liveRef = useRef(null);
+    liveRef.current = { nodes, crosstabData: data };
+
+    const moveSelectedFreeNodesByKeys = useCallback((key, step = 1) => {
+        const deltas = {
+            ArrowUp: { dx: 0, dy: -step },
+            ArrowDown: { dx: 0, dy: step },
+            ArrowLeft: { dx: -step, dy: 0 },
+            ArrowRight: { dx: step, dy: 0 },
+        }[key];
+        if (!deltas) return false;
+        const { nodes: liveNodes = {}, crosstabData: liveData = {} } = liveRef.current || {};
+        const cellsById = getCellsFromCrosstab(liveData);
+        let moved = false;
+        (liveData.selectedNodes || []).forEach((nodeId) => {
+            const node = liveNodes[nodeId];
+            if (!node) return;
+            const cell = cellsById[node.cellId];
+            if (!cell || cell.layout !== "Free Layout") return;
+            updateCrosstab("moveNodePosition", { nodeId, ...deltas });
+            moved = true;
+        });
+        return moved;
+    }, [])
 
     const updateCrosstab = (actionType, payload = {}) => {
         dispatch(hcrActions.hcrUpdateCrosstabComponent({
@@ -402,6 +428,13 @@ const HCRCrosstabEditMode = (props = {}) => {
                     setCurrentShortCut("paste");
                     if (copiedNodes.length) {
                         handlePasteNodes(copiedNodes)
+                    }
+                }
+                if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key) && !e.ctrlKey && !e.metaKey) {
+                    // nudge selected free-layout nodes (Shift = bigger step); key repeat moves continuously
+                    if (moveSelectedFreeNodesByKeys(e.key, e.shiftKey ? 10 : 1)) {
+                        e.preventDefault();
+                        setCurrentShortCut("Move");
                     }
                 }
             }

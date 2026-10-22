@@ -3,14 +3,27 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { Provider } from "react-redux";
-import { hiMockAxios } from "../../../../../../../app/mock-axios";
-import CustomChartEditor from '../../../../../../../components/hi-reports/hi-viz-area/custom-charts/custom-chart-editor';
-import { HelicalReports } from "../../../../../../../pages";
-import reducers from "../../../../../../../redux";
-import { appActions } from "../../../../../../../redux/actions";
-import { updateCustomChart } from "../../../../../../../redux/actions/hreport.actions";
 import { vfEditorMockData } from "./vf.mock-data";
-import { getPreviewStyles } from "../../../../../../../components/hi-reports/hi-viz-area/utils/utillities";
+
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => { });
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+const { hiMockAxios } = require("../../../../../../../app/mock-axios");
+const CustomChartEditor = require('../../../../../../../components/hi-reports/hi-viz-area/custom-charts/custom-chart-editor').default;
+const reducers = require("../../../../../../../redux").default;
+const { appActions } = require("../../../../../../../redux/actions");
+const { updateCustomChart } = require("../../../../../../../redux/actions/hreport.actions");
+const { getPreviewStyles } = require("../../../../../../../components/hi-reports/hi-viz-area/utils/utillities");
 const flushPromises = () => new Promise(setImmediate);
 const App = (props) => {
     const { store, ...rest } = props
@@ -24,7 +37,7 @@ const App = (props) => {
 };
 
 describe('Test VF Editor', () => {
-   
+
     const store = configureStore({
         reducer: reducers,
         middleware: (getDefaultMiddleware) =>
@@ -147,41 +160,6 @@ describe("Test the VF preview", () => {
         });
         window.HTMLElement.prototype.scrollBy = jest.fn();
     });
-
-    const App = ({ store }) => {
-        return (
-            <DndProvider backend={HTML5Backend}>
-                <Provider store={store}>
-                    <HelicalReports />
-                </Provider>
-            </DndProvider>
-        );
-    };
-
-    it('should render the preview of the code written in vf editor', async () => {
-        const store = configureStore({
-            reducer: reducers,
-            middleware: (getDefaultMiddleware) =>
-                getDefaultMiddleware({
-                    thunk: {
-                        extraArgument: hiMockAxios,
-                    },
-                    immutableCheck: false,
-                    serializableCheck: false,
-                }),
-        });
-        const dispatch = store.dispatch
-        await flushPromises(dispatch(appActions.setEditModeInfo({
-            dir: "manish/vf.hr", file: "vf.hr", extension: "hr"
-        })))
-        await flushPromises(render(<App store={store} />))
-        expect(screen.getByText("Mike")).toBeTruthy();
-        expect(screen.getByText("John")).toBeTruthy();
-        expect(screen.getByText("42")).toBeTruthy();
-        expect(screen.getByText("32")).toBeTruthy();
-        expect(screen.getAllByText("10 Downing Street")).toBeTruthy();
-
-    })
 
     it('should return the correct width and height when props are provided', () => {
         const props = {

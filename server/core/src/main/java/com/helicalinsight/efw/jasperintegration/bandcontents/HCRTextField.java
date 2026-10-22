@@ -11,6 +11,7 @@ import net.sf.jasperreports.engine.design.JRDesignTextField;
 import net.sf.jasperreports.engine.design.JasperDesign;
 import net.sf.jasperreports.engine.type.EvaluationTimeEnum;
 import net.sf.jasperreports.engine.type.ExpressionTypeEnum;
+import net.sf.jasperreports.engine.type.TextAdjustEnum;
 
 import org.springframework.stereotype.Component;
 
@@ -45,7 +46,12 @@ public class HCRTextField implements IHCRBandContents {
             textField.setEvaluationTime(EvaluationTimeEnum.getByName(evaluationTime));
             evaluationGroup(eachTextField, jasperDesign, textField, evaluationTime);
         }
-        textField.setStretchWithOverflow(GsonUtility.optBooleanValue(eachTextField,"stretchWithOverFlow", false));
+        
+        if(eachTextField.has("textAdjust")) {
+        	String textAdjust = eachTextField.get("textAdjust").getAsString();
+            textField.setTextAdjust(TextAdjustEnum.getByName(textAdjust));
+        }
+        
         textField.setBlankWhenNull(GsonUtility.optBooleanValue(eachTextField,"blankWhenNull", false));
         if (eachTextField.has("pattern"))
             textField.setPattern(eachTextField.get("pattern").getAsString());

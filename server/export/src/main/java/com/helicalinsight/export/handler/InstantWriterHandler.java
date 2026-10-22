@@ -58,7 +58,9 @@ public class InstantWriterHandler extends AbstractResourceWriterHandler {
 
 		String csv = modelUrl.concat(",").concat(depFolderUrl);
 		instantReport.setCreatedBy(hResource.getCreatedBy());
+		markDeleted(instantReport, hResource, options);
 		dataWriter.write(this.addOwner(instantReport, instantReport.getCreatedBy()), dir, report, "");
+		recycleBinHandler.writeResource(hResource, report, dir, manifest);
 		manifestUtils.insertPath(report.getPath(), manifest);
 		manifestUtils.insertDependency(report.getPath(), csv, manifest);
 		share(report, manifest, options, dir);

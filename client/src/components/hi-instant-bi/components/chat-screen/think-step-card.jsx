@@ -1,17 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Modal, Row, Typography } from "antd";
 import { CaretRightOutlined } from "@ant-design/icons";
+import { Modal, Row, Typography } from "antd";
+import { useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import notify from "../../../hi-notifications/notify";
 import InstantBITooltip from "../../instant-bi-tooltip-title";
 import { cleanSQL, getInstantBIAgentSubject } from "../../utils/common-utils";
 import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
-import ChatTabs from "./chat-tabs";
-import InstantChartView from "./chart-view";
-import { getSharedChatTabsShell } from "./chat-tabs-shared";
-import notify from "../../../hi-notifications/notify";
 import { IbResponseError } from "../ib-custom-chart";
-import { buildSqlDetailsFallback, cleanText, collapsedQuestionLead } from "./think-plan-helpers";
+import InstantChartView from "./chart-view";
+import ChatTabs from "./chat-tabs";
+import { getSharedChatTabsShell } from "./chat-tabs-shared";
+import { buildSqlDetailsFallback, cleanText, collapsedQuestionLead, thinkStepSequenceId } from "./think-plan-helpers";
 
 const { Text } = Typography;
 
@@ -57,26 +57,28 @@ const stepErrorDetails = (item = {}) => {
 
 const ThinkStepCard = ({
   item,
-  planMessageId,
+  planMessageId = "",
   planChatSequenceId = "",
   isStreaming = false,
   isOpenMode = false,
-  onShowQuestion,
+  isEditMode = false,
+  onShowQuestion = () => { },
   dispatch,
   activeReport,
   llmActivityDetails = null,
   plan = null,
   expandSignal = 0,
   citationHighlight = false,
+  renderChartOnly = false,
+  dashboardMode = false
 }) => {
   const index = item.index || 0;
   const question = item.question || "";
-  const analysis = cleanText(item.analysis);
-  const findings = cleanText(item.answer) || cleanText(item.purpose);
   const fullChatResponse = item.fullChatResponse
     || item.chat_response
     || item.chatResponse
     || {};
+  const insight = cleanText(fullChatResponse?.summary?.insight);
   const vizDetails = item.vizDetails || fullChatResponse?.viz || {};
   const sqlDetails = buildSqlDetailsFallback(item, llmActivityDetails, plan);
   const resolvedSql = sqlDetails?.raw_sql || "";
@@ -96,11 +98,13 @@ const ThinkStepCard = ({
   );
   const tokenUsage = fullChatResponse?.token_usage || {};
   const chartSettings = vizDetails?.settings || {};
-  const hasMessage = Boolean(analysis || findings || question);
+  const hasMessage = Boolean(insight || question);
   const stepHeading = item.title || question || `Question ${index}`;
-  const stepChatSeqId = item.chat_seq_id
-    || item.chatSeqId
-    || (planChatSequenceId ? `${planChatSequenceId}_${index}` : "");
+  const stepChatSeqId = thinkStepSequenceId({
+    chatSeqId: item.chat_seq_id || item.chatSeqId,
+    parentSeqId: planChatSequenceId,
+    index,
+  });
   const [isMaximized, setIsMaximized] = useState(false);
   const [expanded, setExpanded] = useState(Boolean(isStreaming));
   const collapsedQuestion = !expanded && question && question !== stepHeading ? question : "";
@@ -176,13 +180,6 @@ const ThinkStepCard = ({
       });
       return;
     }
-    if (!resolvedSql && !fullChatResponse?.sql?.raw_sql) {
-      Notify?.error?.({
-        type: "Frontend",
-        message: "Unable to explain this chart: SQL is not available yet.",
-      });
-      return;
-    }
     dataInsightAbortedRef.current = false;
     setIsLoadingDataInsight(true);
     setDataInsightTrail([]);
@@ -197,13 +194,8 @@ const ThinkStepCard = ({
       fileName: reportInfo?.uuid || (reportInfo?.reportName && `${reportInfo.reportName}.instant`),
       chatId: activeChatID,
       agent: agentSubject,
-      useLoadChatPayload: Boolean(isOpenMode),
-      sql: resolvedSql || fullChatResponse?.sql?.raw_sql || "",
-      existingChatResponse: {
-        ...fullChatResponse,
-        sql: fullChatResponse?.sql || sqlDetails,
-        data: resolvedData,
-      },
+      useLoadChatPayload: Boolean(isOpenMode || isEditMode),
+      existingChatResponse: fullChatResponse,
       Notify,
       abortedRef: dataInsightAbortedRef,
       onProgress: (progress) => {
@@ -241,12 +233,11 @@ const ThinkStepCard = ({
     }),
     showWorkingTab: false,
     vizDetails,
-    isConvertingChart: false,
     resolvedData,
     resolvedVf,
     id: `${planMessageId || "think"}_${index}`,
     chartSettings,
-    setHasPreviewError: () => {},
+    setHasPreviewError: () => { },
     resolvedFullChatResponse: fullChatResponse,
     fullChatResponse,
     isLoadingDataInsight,
@@ -279,6 +270,39 @@ const ThinkStepCard = ({
     },
   };
 
+  const renderChart = (
+    <div className="chart-container chart-container--with-tabs ib-think-step__tabs">
+      <Row justify="end" className="instant-chart-tabs-row">
+        <ChatTabs {...tabsProps} dashboardMode={dashboardMode} />
+      </Row>
+      <Modal
+        title="Preview"
+        visible={isMaximized && hasViz}
+        onCancel={() => setIsMaximized(false)}
+        width="95%"
+        style={{ top: 20 }}
+        footer={null}
+        wrapClassName="ib-chart-preview-modal"
+        destroyOnClose
+      >
+        <InstantChartView
+          data={resolvedData}
+          vf={resolvedVf}
+          id={`${planMessageId || "think"}_${index}`}
+          chartName={vizDetails?.chart_name}
+          chartSettings={chartSettings}
+          plotConfig={vizDetails?.plot_config}
+          className="chart-wrapper--modal"
+          fullChatResponse={fullChatResponse}
+        />
+      </Modal>
+    </div>
+  )
+
+  if (renderChartOnly) {
+    return renderChart
+  }
+
   return (
     <div
       className={`message-container__bot-content ib-think-step${expanded ? " is-expanded" : " is-collapsed"}${citationHighlight ? " is-citation-focus" : ""}`}
@@ -294,7 +318,7 @@ const ThinkStepCard = ({
           aria-label={expanded ? "Collapse step" : "Expand step"}
           data-testid={`ib-think-step-toggle-${index}`}
         >
-          {collapsedQuestion ? (
+          {collapsedQuestion && !isOpenMode ? (
             <InstantBITooltip
               title={`${collapsedQuestionLead(collapsedQuestion)} ${collapsedQuestion}`}
               placement="topLeft"
@@ -334,43 +358,13 @@ const ThinkStepCard = ({
             {question && stepHeading !== question ? (
               <div className="ib-think-step__question">{question}</div>
             ) : null}
-            {analysis ? (
+            {insight ? (
               <div className="ib-think-step__section">
-                <Markdown remarkPlugins={[remarkGfm]}>{analysis}</Markdown>
-              </div>
-            ) : null}
-            {findings && findings !== analysis ? (
-              <div className="ib-think-step__section">
-                <Markdown remarkPlugins={[remarkGfm]}>{findings}</Markdown>
+                <Markdown remarkPlugins={[remarkGfm]}>{insight}</Markdown>
               </div>
             ) : null}
           </div>
-          <div className="chart-container chart-container--with-tabs ib-think-step__tabs">
-            <Row justify="end" className="instant-chart-tabs-row">
-              <ChatTabs {...tabsProps} />
-            </Row>
-            <Modal
-              title="Preview"
-              visible={isMaximized && hasViz}
-              onCancel={() => setIsMaximized(false)}
-              width="95%"
-              style={{ top: 20 }}
-              footer={null}
-              wrapClassName="ib-chart-preview-modal"
-              destroyOnClose
-            >
-              <InstantChartView
-                data={resolvedData}
-                vf={resolvedVf}
-                id={`${planMessageId || "think"}_${index}`}
-                chartName={vizDetails?.chart_name}
-                chartSettings={chartSettings}
-                plotConfig={vizDetails?.plot_config}
-                className="chart-wrapper--modal"
-                fullChatResponse={fullChatResponse}
-              />
-            </Modal>
-          </div>
+          {renderChart}
         </div>
       ) : null}
     </div>

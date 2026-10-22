@@ -3,7 +3,10 @@ package com.helicalinsight.scheduling;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -29,6 +32,7 @@ import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.service.ShareHandler;
 import com.helicalinsight.export.utils.JsonMapperUtils;
 import com.helicalinsight.export.utils.ManifestUtils;
+import com.helicalinsight.export.utils.ResourceSuffix;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 import com.helicalinsight.scheduling.handler.ScheduleHandler;
 import com.helicalinsight.scheduling.model.Schedules;
@@ -90,6 +94,62 @@ public class ScheduleHandlerTest {
 		when(serviceDb.findAllEfwsrFilesByReportDirAndFile(null, null)).thenReturn(efwsrResourceFiles);
 
 		schedulehandler.write(hiResourceDTO, "dir", manifest);
+	}
+
+	@Test
+	public void testWrite_hcr()
+			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		ScheduleHandler schedulehandler = new ScheduleHandler();
+		HIResourceDTO hiResourceDTO = mock(HIResourceDTO.class);
+		SchedulesService scheduleService = mock(SchedulesService.class);
+		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+		ResourceDataWriter dataWriter = mock(ResourceDataWriter.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceDTOMapper dtoMapper = mock(ResourceDTOMapper.class);
+		ShareHandler shareHandler = mock(ShareHandler.class);
+		Manifest manifest = mock(Manifest.class);
+
+		List<Schedules> scheduleList = new ArrayList<>();
+		scheduleList.add(new Schedules());
+		when(hiResourceDTO.getExtension()).thenReturn("hcr");
+		when(hiResourceDTO.getPath()).thenReturn("ScheduleTest/report.hcr");
+		when(hiResourceDTO.getName()).thenReturn("report.hcr");
+		when(hiResourceDTO.getResourceId()).thenReturn(1);
+		when(manifest.getSchedules()).thenReturn(new HashMap<>());
+		when(scheduleService.findSchedulesByResourceId(anyInt())).thenReturn(scheduleList);
+
+		List<HIResource> efwsrResourceFiles = new ArrayList<>();
+		HIResource efwsr = new HIResource();
+		efwsrResourceFiles.add(efwsr);
+		when(serviceDb.findAllEfwsrFilesByReportDirAndFile("ScheduleTest", "report.hcr"))
+				.thenReturn(efwsrResourceFiles);
+		when(dtoMapper.map(efwsr)).thenReturn(hiResourceDTO);
+
+		Field field0 = ResourceIOHandler.class.getDeclaredField("shareHandler");
+		field0.setAccessible(true);
+		field0.set(schedulehandler, shareHandler);
+		Field field1 = ScheduleHandler.class.getDeclaredField("scheduleService");
+		field1.setAccessible(true);
+		field1.set(schedulehandler, scheduleService);
+		Field field2 = ResourceIOHandler.class.getDeclaredField("serviceDb");
+		field2.setAccessible(true);
+		field2.set(schedulehandler, serviceDb);
+		Field field3 = ResourceIOHandler.class.getDeclaredField("dataWriter");
+		field3.setAccessible(true);
+		field3.set(schedulehandler, dataWriter);
+		Field field4 = ResourceIOHandler.class.getDeclaredField("manifestUtils");
+		field4.setAccessible(true);
+		field4.set(schedulehandler, manifestUtils);
+		Field field5 = ResourceIOHandler.class.getDeclaredField("dtoMapper");
+		field5.setAccessible(true);
+		field5.set(schedulehandler, dtoMapper);
+
+		schedulehandler.write(hiResourceDTO, "dir", manifest);
+
+		verify(dataWriter).write(eq(scheduleList), eq("dir"), eq(hiResourceDTO), eq(ResourceSuffix.SCHEDULE));
+		verify(dataWriter).write(eq(efwsrResourceFiles), eq("dir"), eq(hiResourceDTO),
+				eq(ResourceSuffix.SCHEDULE_RESULT));
+		verify(manifestUtils, times(1)).insertSchedules(hiResourceDTO, manifest);
 	}
 
 	@Test

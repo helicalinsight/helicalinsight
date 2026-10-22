@@ -436,26 +436,32 @@ export const mapColors = [
 export const customFieldDataTypeList = [
     {
         backendDataType: "java.lang.String",
-        dataType: "text"
+        dataType: "text",
+        label: "Text"
     },
     {
         backendDataType: "java.lang.Integer",
-        dataType: "numeric"
+        dataType: "numeric",
+        label: "Numeric"
     },
     {
         backendDataType: "java.sql.Timestamp",
-        dataType: "dateTime"
+        dataType: "dateTime",
+        label: "Datetime"
     },
     {
         backendDataType: "java.sql.Date",
-        dataType: "date"
+        dataType: "date",
+        label: "Date"
     },
     {
         backendDataType: "java.lang.Boolean",
-        dataType: "boolean"
+        dataType: "boolean",
+        label: "Boolean"
     },
     {
         backendDataType: "java.lang.Object",
-        dataType: "other"
+        dataType: "other",
+        label: "Other"
     }
 ]

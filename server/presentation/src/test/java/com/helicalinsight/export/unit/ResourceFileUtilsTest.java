@@ -196,4 +196,21 @@ public class ResourceFileUtilsTest extends ExportUnitTestBase {
 		fileUtils.readFile(new File("/nonexistent/file.json"), Manifest.class);
 	}
 
+	@Test(expected = ResourceImportException.class)
+	public void ut_b1_testReadFileThrowsWhenObjectNodeNull() throws Exception {
+		ResourceFileUtils fileUtils = new ResourceFileUtils();
+		JsonMapperUtils jsonMapperUtils = mock(JsonMapperUtils.class);
+		Field f1 = ResourceFileUtils.class.getDeclaredField("jsonMapperUtils");
+		f1.setAccessible(true);
+		f1.set(fileUtils, jsonMapperUtils);
+
+		File file = File.createTempFile("null-node", ".json");
+		try {
+			when(jsonMapperUtils.mapToDTO(any(FileInputStream.class), eq(ObjectNode.class))).thenReturn(null);
+			fileUtils.readFile(file.getAbsolutePath(), Manifest.class);
+		} finally {
+			file.delete();
+		}
+	}
+
 }

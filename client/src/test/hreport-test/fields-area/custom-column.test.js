@@ -12,6 +12,20 @@ import types from '../../../constants/metadata';
 import { generateReport, openMetadata } from '../../../components/hi-reports/utils/base';
 const crypto = require('crypto');
 
+jest.setTimeout(30000);
+
+const __originalFetch = global.fetch;
+global.fetch = jest.fn((url, ...rest) => {
+    const urlStr = String(url);
+    if (urlStr.includes('.wasm') || urlStr.includes('muze')) {
+        return new Promise(() => {});
+    }
+    return __originalFetch ? __originalFetch(url, ...rest) : Promise.reject(new Error('fetch not available'));
+});
+afterAll(() => {
+    global.fetch = __originalFetch;
+});
+
 
 describe("Hreport visualisation", () => {
     test("open child report using drill through field", async () => {

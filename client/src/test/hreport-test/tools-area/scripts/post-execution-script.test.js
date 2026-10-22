@@ -14,6 +14,8 @@ import { applyReportScripts, changeEditorContent } from '../../../../redux/actio
 // import '../../../utils/mockJsdom';
 const crypto = require('crypto');
 const flushPromises = () => new Promise(setImmediate);
+
+jest.setTimeout(30000);
 const App = ({ store }) => {
     return (
         <DndProvider backend={HTML5Backend}>

@@ -45,6 +45,7 @@ import com.helicalinsight.export.handler.ResourceDataWriter;
 import com.helicalinsight.export.service.DatasourceHandler;
 import com.helicalinsight.export.service.DatasourceShareHandler;
 import com.helicalinsight.export.service.GlobalDSHandler;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.utils.JsonMapperUtils;
 import com.helicalinsight.export.utils.ManifestUtils;
@@ -54,6 +55,13 @@ import com.helicalinsight.resourcedb.HIResourceDTO;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class GlobalDSHandlerTest {
+
+	private static void injectRecycleBinHandler(GlobalDSHandler dsHandler)
+			throws NoSuchFieldException, IllegalAccessException {
+		Field recycleBinHandlerField = ResourceIOHandler.class.getDeclaredField("recycleBinHandler");
+		recycleBinHandlerField.setAccessible(true);
+		recycleBinHandlerField.set(dsHandler, mock(RecycleBinHandler.class));
+	}
 
 	@Test(expected = ResourceImportException.class)
 	public void ut_a1_testImportResource() throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
@@ -104,6 +112,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
 		ArrayNode dsList = jsonNodeFactory.arrayNode();
@@ -169,6 +178,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -240,6 +250,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		
@@ -308,6 +319,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		
@@ -377,6 +389,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -444,6 +457,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -511,6 +525,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
@@ -577,6 +592,7 @@ public class GlobalDSHandlerTest {
 		Field dtoMapperField = ResourceIOHandler.class.getDeclaredField("dtoMapper");
 		dtoMapperField.setAccessible(true);
 		dtoMapperField.set(dsHandler, dtoMapper);
+		injectRecycleBinHandler(dsHandler);
 		
 		
 		JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;

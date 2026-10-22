@@ -4,14 +4,13 @@ import org.hibernate.annotations.CacheConcurrencyStrategy;
 
 import jakarta.persistence.*;
 
-import java.io.Serializable;
 import java.util.Date;
 import java.util.Objects;
 
 @Embeddable
 
 @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
-public class HIResourceEFWDD implements Serializable {
+public class HIResourceEFWDD extends BaseResourceProps {
 
 	@Deprecated
     @Column(name="efw_id",table="hi_resource_efwdd")

@@ -9,6 +9,7 @@ from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
 from helicalbi.common.JsonToPara import metadata_has_column, metadata_has_table
 from helicalbi.sql.SqlSanitizer import quote_spaced_identifiers, strip_sql_markdown
 from helicalbi.sql_agent.database.catalog import SchemaCatalog
+from helicalbi.sql_agent.prompt import THINK_SUBQUERY_REJECTION
 
 
 def _expression_types(*names: str):
@@ -107,11 +108,7 @@ def subquery_rejection(sql: str, dialect: Optional[str] = None) -> Optional[str]
     """Error text when think mode must refuse a nested query."""
     if not sql_has_subquery(sql, dialect):
         return None
-    return (
-        "Subqueries are not allowed in think mode. "
-        "Write one flat SELECT that joins base tables only. "
-        "If a comparison needs another aggregate, put that in a separate question."
-    )
+    return THINK_SUBQUERY_REJECTION
 
 
 def _star_used(tree: exp.Expression) -> bool:

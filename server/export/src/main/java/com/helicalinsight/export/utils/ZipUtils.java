@@ -1,6 +1,8 @@
 package com.helicalinsight.export.utils;
 
 import java.io.File;
+import java.util.List;
+import java.util.function.BiConsumer;
 
 import org.springframework.stereotype.Component;
 
@@ -8,6 +10,7 @@ import com.helicalinsight.export.exception.ZipResourceException;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
+import net.lingala.zip4j.model.FileHeader;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
 /**
@@ -39,11 +42,34 @@ public class ZipUtils {
      * @throws ZipResourceException If the provided Zip file is invalid or corrupted.
      */
 	public void extract(String dir, String fileName) throws ZipException {
+		extract(dir, fileName, null);
+	}
+
+	/**
+	 * Extracts a Zip file entry-by-entry, optionally reporting {@code (done, total)} progress.
+	 */
+	@SuppressWarnings("unchecked")
+	public void extract(String dir, String fileName, BiConsumer<Integer, Integer> progress) throws ZipException {
 		ZipFile zipFile = new ZipFile(dir + File.separator + fileName);
-		if (zipFile.getFile().exists() && zipFile.isValidZipFile()) {
-			zipFile.extractAll(dir);
-		} else {
+		if (!zipFile.getFile().exists() || !zipFile.isValidZipFile()) {
 			throw new ZipResourceException("Invalid Zip file provided (or) Zip File corrupted.");
+		}
+		List<FileHeader> headers = zipFile.getFileHeaders();
+		int total = headers != null ? headers.size() : 0;
+		if (total == 0) {
+			zipFile.extractAll(dir);
+			if (progress != null) {
+				progress.accept(0, 0);
+			}
+			return;
+		}
+		int done = 0;
+		for (FileHeader header : headers) {
+			zipFile.extractFile(header, dir);
+			done++;
+			if (progress != null) {
+				progress.accept(done, total);
+			}
 		}
 	}
 

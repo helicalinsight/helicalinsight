@@ -8,15 +8,16 @@ import {
   ReloadOutlined,
   SyncOutlined
 } from "@ant-design/icons";
-import { Modal, Progress, Typography } from "antd";
+import { Modal, Typography } from "antd";
 import produce from "immer";
-import { cloneDeep, isEqual } from "lodash-es";
+import { cloneDeep, isEmpty, isEqual } from "lodash-es";
 import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { HINavbar, HITabs } from "../components";
 import HIShortcuts from "../components/common/hi-shortcuts/HIShortcuts";
+import DownloadProgressModal from "../components/common/download-progress-modal";
 import SaveItems from "../components/hi-fileBrowser/SaveItems";
 import { ShareFinalModal } from "../components/hi-fileBrowser/components";
 import { HIFileBrowser } from "../components/hi-fileBrowser/hi-fileBrowser";
@@ -75,6 +76,7 @@ import { checkRelativeDateFilter } from "../utils/filter-utils";
 import {
   checkForAnchorRelativeParameters,
   checkWhetherStateIsLoaded,
+  checkWhetherStateIsLoadedById,
   exportPrintedReport,
   exportReport,
   getFieldDisplayName,
@@ -98,7 +100,7 @@ const isTestMode = process.env.NODE_ENV === "test";
 
 const HelicalReports = (props) => {
   const dispatch = useDispatch();
-  let { parameters } = props;
+  let { parameters = {} } = props;
   const paramsRef = useRef({});
   const fileInfoRef = useRef(props.file);
   const shareRef = useRef(null);
@@ -178,9 +180,9 @@ const HelicalReports = (props) => {
 
   useEffect(() => {
     return () => {
-      if (!isInstantBICreateMode && !isInstantBIOpenMode) {
+      if (!isInstantBICreateMode && !isInstantBIOpenMode && !isDashboardCreateMode) {
         dispatch(clearUndoRedoHistory())
-        if (!["dashboard", "filter"].includes(props?.mode)) {
+        if (!["dashboard", "filter", "dashboard-instant-filter"].includes(props?.mode)) {
           dispatch(removeAllReports())
         }
       }
@@ -220,20 +222,30 @@ const HelicalReports = (props) => {
       }
       editModeInfoRef.current = editModeInfo;
     }
-    if (["open", "dashboard", "filter", "instant-bi"].includes(props.mode)) {
+    if (["open", "dashboard", "filter", "instant-bi", "dashboard-instant-filter"].includes(props.mode)) {
       parameters = props.mode === "filter" ? props.allFilters : parameters;
       if (props.mode === 'filter') {
         parameters = checkForAnchorRelativeParameters(parameters);
       }
       let loadedState = checkWhetherStateIsLoaded(file, reports);
+
       if (props.mode === "filter" && loadedState) {
         loadedState.loadState = true;
         loadedState.id = reportId;
         loadedState.mode = "filter";
         loadedState.dashboardFilter = dashboardFilter;
         loadedState = modifyFilters(loadedState, parameters);
-        // generateReport({...loadedState,user}, dispatch);
         generateReport(loadedState, dispatch);
+      } else if (props.mode === "dashboard-instant-filter" || (props.mode === "filter" && !isEmpty(file.instant_item))) {
+        let loadedState = checkWhetherStateIsLoadedById(file.reportId || file.instant_item.hreportId, reports);
+        if (loadedState) {
+          loadedState.loadState = true;
+          loadedState.id = reportId;
+          loadedState.mode = "filter";
+          loadedState.dashboardFilter = dashboardFilter;
+          loadedState = modifyFilters(loadedState, parameters);
+          generateReport(loadedState, dispatch);
+        }
       } else {
         setInValidFile(null)
         // dispatch(setHReportEditLoading( true))
@@ -291,8 +303,8 @@ const HelicalReports = (props) => {
           });
       }
     } else {
-      if (!["instant-bi-create", "instant-bi-open"].includes(props.mode)) dispatch(appActions.showNavbar(true));
-      if ((!reports.length || !["dashboard", "filter"].includes(props.mode)) && !["instant-bi-create", "instant-bi-open"].includes(props.mode) && !fromInstantBI) {
+      if (!["instant-bi-create", "instant-bi-open", "dashboard-create"].includes(props.mode)) dispatch(appActions.showNavbar(true));
+      if ((!reports.length || !["dashboard", "filter"].includes(props.mode)) && !["instant-bi-create", "instant-bi-open", "dashboard-create"].includes(props.mode) && !fromInstantBI) {
         if (props.testMode !== "viz") {
           dispatch(loadIntialReport({ reportId }));
         }
@@ -314,7 +326,7 @@ const HelicalReports = (props) => {
       }
     });
     return () => {
-      if (!isInstantBICreateMode) {
+      if (!isInstantBICreateMode && !isDashboardCreateMode) {
         dispatch(removeReport({ id: reportId }))
       }
       localStorage.removeItem("hreport_active_report");
@@ -409,10 +421,8 @@ const HelicalReports = (props) => {
   }
 
   useEffect(() => {
-    !['open', 'dashboard', 'filter', 'instant-bi-create', 'instant-bi-open'].includes(props.mode) && setMapGeoJsonData()
+    !['open', 'dashboard', 'filter', 'instant-bi-create', 'instant-bi-open', 'dashboard-create', 'dashboard-instant-filter'].includes(props.mode) && setMapGeoJsonData()
   }, [])
-
-
 
   useEffect(() => {
     let { file } = props;
@@ -429,7 +439,7 @@ const HelicalReports = (props) => {
     }
     if (
       !isEqual(parameters, paramsRef.current) &&
-      ["dashboard", "open", "filter"].includes(props.mode)
+      ["dashboard", "open", "filter", "instant-bi-create", "instant-bi-open"].includes(props.mode)
     ) {
       if ((props.mode !== "filter") && parameters.print !== paramsRef.current.print && ["pdf", "ppt", "pptx", "png"].includes(parameters?.print)) {
         let format = parameters?.print === 'ppt' ? 'pptx' : parameters?.print;
@@ -449,6 +459,8 @@ const HelicalReports = (props) => {
             if (!isEqual(mFltrs, aFltrs)) {
               generateReport({ ...modifiedState, loadState: true, isPrintMode, user }, dispatch, getApi);
             }
+          } else if (["instant-bi-create", "instant-bi-open"].includes(props.mode)) {
+            generateReport({ ...modifiedState, loadState: true, isPrintMode, user, mode: props.mode }, dispatch, getApi);
           } else {
             generateReport({ ...modifiedState, loadState: true, isPrintMode, user }, dispatch, getApi);
           }
@@ -492,7 +504,7 @@ const HelicalReports = (props) => {
     }
   }, [activeReportId]);
   useEffect(() => {
-    if (reportName && !["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open"].includes(props.mode)) {
+    if (reportName && !["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open", "dashboard-create"].includes(props.mode)) {
       document.title = `${reportName} | HI:Helical-Report`;
     }
   }, [reportName]);
@@ -514,7 +526,8 @@ const HelicalReports = (props) => {
   let isDashboardMode = props.mode === "dashboard";
   const isInstantBICreateMode = ["instant-bi-create"].includes(props.mode);
   const isInstantBIOpenMode = ["instant-bi-open"].includes(props.mode);
-  let isFilterMode = ["filter"].includes(props.mode);
+  const isDashboardCreateMode = ["dashboard-create"].includes(props.mode);
+  let isFilterMode = ["filter", "dashboard-instant-filter"].includes(props.mode);
   const { metadataShelf, toolsAreaShelf, fieldsAreaShelf, gridItemsLayout: gridItems } = layout;
   const { handleToggle = () => { } } = useHreportGridLayout({ preview, fullscreen, metadataShelf, toolsAreaShelf })
 
@@ -567,7 +580,7 @@ const HelicalReports = (props) => {
 
 
   useEffect(() => {
-    if (!["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open"].includes(props.mode)) {
+    if (!["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open", "dashboard-create"].includes(props.mode)) {
       if (keysPressed.length === 1 && keysPressed[0] === "Alt") {
         dispatch(setShotCutCurrentLocation("HR"))
       }
@@ -800,6 +813,7 @@ const HelicalReports = (props) => {
         });
       }
       res.filters = checkRelativeDateFilter(res.filters, {}, "edit")
+
       //added this if selected type check for map Chart if we don't have the geojson data then it can call it.
       if (res?.selectedType === "MapChart") {
         dispatch(loadReportData({ ...res, undoRedoAction: true, reportData: { loading: true } }))
@@ -915,7 +929,7 @@ const HelicalReports = (props) => {
   };
 
   const handleExport = (id, format) => {
-    exportReport({ id, format, callback: setDownloadingInfo }, dispatch);
+    hiAxiosRef.current = exportReport({ id, format, callback: setDownloadingInfo }, dispatch);
   }
 
   const handleURLExport = (id, format) => {
@@ -1266,6 +1280,10 @@ const HelicalReports = (props) => {
     id = activeReportId;
     reportId = activeReportId;
   }
+  if (!id && props.reportId && ["instant-bi-open", "instant-bi-create"].includes(props.mode)) {
+    id = props.reportId;
+    reportId = props.reportId;
+  }
 
   if (!id) return null;
   const parentContainerId = `hi-reports-${reportId?.slice(0, 6) ?? uuidv4().slice(0, 6)}`;
@@ -1305,27 +1323,14 @@ const HelicalReports = (props) => {
   )
 
   const downloadingInfoModal = (
-    <Modal
-      visible={!!downloadingInfo}
+    <DownloadProgressModal
+      downloadingInfo={downloadingInfo}
       className="hi-hr-download-modal"
-      title="Downloading"
-      okText={() => null}
-      cancelText="Cancel"
-      maskClosable={false}
-      // onOk={() => {
-      //   remove(warningVisible.deleteKey); // test
-      //   setWarningVisible({ visible: false, deleteKey: "" });
-      // }}
       onCancel={() => {
-        hiAxiosRef.current.abort();
+        hiAxiosRef.current?.abort?.();
         setDownloadingInfo(null);
       }}
-    >
-      <div>
-        <Progress percent={downloadingInfo?.progress} />
-        <div>Please wait while downloading</div>
-      </div>
-    </Modal>
+    />
   )
 
   const vizAreaCommonProps = {
@@ -1389,7 +1394,8 @@ const HelicalReports = (props) => {
         handleToggle,
         preview,
         fullscreen,
-        getDropdownOptions
+        getDropdownOptions,
+        onExportFormat: (format) => handleExport(activeReportId, format),
       })}
     >
       <HITabs
@@ -1524,7 +1530,7 @@ const HelicalReports = (props) => {
       }
     />
   );
-  if (fullscreen || isDashboardMode || isInstantBICreateMode || isInstantBIOpenMode) {
+  if (fullscreen || isDashboardMode || isInstantBICreateMode || isInstantBIOpenMode || isDashboardCreateMode) {
     content = <VizArea {...vizAreaCommonProps} />
   }
   if (isOpenMode) {
@@ -1576,7 +1582,7 @@ const HelicalReports = (props) => {
   }
 
   return <>
-    {!["open", "dashboard", "filter", "instant-bi"].includes(props.mode) && <HIShortcuts moduleData={{ name: "HelicalReport", commonRefs: { saveRef, undoRef, redoRef } }} />}
+    {!["open", "dashboard", "filter", "instant-bi", "dashboard-create"].includes(props.mode) && <HIShortcuts moduleData={{ name: "HelicalReport", commonRefs: { saveRef, undoRef, redoRef } }} />}
     <div className="hr-main-container" id="hr-main-container">{content}</div>
   </>
 };

@@ -1,16 +1,33 @@
-"""Deterministic execution of a stored investigation plan (no ReAct planner)."""
+"""Deterministic execution of a stored investigation plan (no ReAct planner).
+
+Each chart runs: semantic retrieve → generate SQL → execute (with retry) →
+build report → insight. Progress phrases and failure defaults live in
+``helicalbi.sql_agent.constants``. Plan domain/topic seeding uses
+``helicalbi.sql_agent.util.normalize``.
+"""
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List
+import random
+from typing import Any, Dict, List, Sequence
 
 from helicalbi.sql_agent.activity_details import append_trace, trace_entry
+from helicalbi.sql_agent.constants import (
+    CHART_BUILD_FAILURE_DEFAULT,
+    DEFAULT_DASHBOARD_SUB_QUESTIONS,
+    EXECUTE_STEP_DEFAULT_LABEL,
+    EXECUTE_STEP_DONE,
+    EXECUTE_STEP_FAILED,
+    EXECUTE_STEP_STARTED,
+)
 from helicalbi.sql_agent.state import AgentState
 from helicalbi.sql_agent.tools.analysis import analysis_tools
 from helicalbi.sql_agent.tools.context import AgentToolContext
 from helicalbi.sql_agent.tools.report import report_tools
 from helicalbi.sql_agent.tools.semantic import semantic_tools
+from helicalbi.sql_agent.tools.findings import value_found_summary
 from helicalbi.sql_agent.tools.sql import sql_tools
+from helicalbi.sql_agent.util.normalize import as_name_list, plan_scope
 from helicalbi.sql.sql_retry import SQL_RETRY_MAX, rewrite_failed_sql_prompt
 
 logger = logging.getLogger(__name__)
@@ -34,20 +51,8 @@ def has_planned_charts(state: AgentState | dict[str, Any] | None) -> bool:
 
 
 def _as_name_list(value: Any) -> List[str]:
-    if value is None:
-        return []
-    if isinstance(value, str):
-        text = value.strip()
-        return [text] if text else []
-    if isinstance(value, list):
-        names: List[str] = []
-        for item in value:
-            text = str(item or "").strip()
-            if text:
-                names.append(text)
-        return names
-    text = str(value).strip()
-    return [text] if text else []
+    """Backward-compatible alias for :func:`as_name_list`."""
+    return as_name_list(value)
 
 
 def _merge(state: dict[str, Any], patch: Any) -> dict[str, Any]:
@@ -59,9 +64,11 @@ def _merge(state: dict[str, Any], patch: Any) -> dict[str, Any]:
 
 
 def _seed_plan_scope(work: dict[str, Any]) -> tuple[list[str], list[str]]:
+    """Copy plan topics/domains onto working state (fallback to prior selections)."""
     plan = work.get("investigation_plan") or {}
-    topics = _as_name_list(plan.get("topics")) or _as_name_list(work.get("selected_topics"))
-    domains = _as_name_list(plan.get("domain")) or _as_name_list(work.get("selected_domains"))
+    topics, domains = plan_scope(plan)
+    topics = topics or as_name_list(work.get("selected_topics"))
+    domains = domains or as_name_list(work.get("selected_domains"))
     if topics:
         work["selected_topics"] = topics
     if domains:
@@ -91,7 +98,7 @@ def _append_failure(work: dict[str, Any], question: str, error: str, *, title: s
     ctx = AgentToolContext(work)
     seq = ctx.unique_seq()
     collected = list(work.get("collected_data") or [])
-    message = (error or "Chart could not be built.").strip()
+    message = (error or CHART_BUILD_FAILURE_DEFAULT).strip()
     collected.append(
         {
             "sub_question": question,
@@ -122,6 +129,43 @@ def _rewrite_prompt(question: str, sql: str, error: str, *, flat_sql: bool = Fal
     return rewrite_failed_sql_prompt(question, sql, error, flat_sql=flat_sql)
 
 
+def _needs_prior_value(chart: Dict[str, Any], question: str) -> bool:
+    """True when this question is a drill-down that depends on the previous result."""
+    if chart.get("uses_prior_value") is True:
+        return True
+    text = question.lower()
+    return "value found" in text or "previous question" in text
+
+
+def _with_prior_value(prompt: str, *, prior_question: str, prior_value: str) -> str:
+    """Attach the value found by the previous question when a drill-down needs it."""
+    if "Value found:" in prompt:
+        return prompt
+    found = prior_value.strip() or "No value was returned by the previous question."
+    block = (
+        "Drill-down: this question depends on the previous result. "
+        "Filter or focus using the value found. Keep the same measure and dimensions.\n"
+        f"Previous question: {prior_question or '(none)'}\n"
+        f"Value found: {found}"
+    )
+    return f"{prompt.rstrip()}\n\n{block}"
+
+
+# Aliases kept for any external monkeypatches that target these names.
+_STEP_STARTED = EXECUTE_STEP_STARTED
+_STEP_DONE = EXECUTE_STEP_DONE
+_STEP_FAILED = EXECUTE_STEP_FAILED
+
+
+def _step_status_line(phrases: Sequence[str], label: str, *, lead: bool) -> str:
+    """Pick one phrase at random and place it beside the step title."""
+    phrase = random.choice(phrases)
+    text = (label or EXECUTE_STEP_DEFAULT_LABEL).strip()
+    if lead:
+        return f"{phrase} {text}."
+    return f"{text} {phrase}."
+
+
 def execute_plan_node(state: AgentState) -> Dict[str, Any]:
     """Run each planned chart: generate_sql → execute_query → build_report.
 
@@ -129,7 +173,9 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
     """
     work = dict(state)
     charts = planned_charts(work)
-    max_charts = int(work.get("max_sub_questions") or len(charts) or 5)
+    max_charts = int(
+        work.get("max_sub_questions") or len(charts) or DEFAULT_DASHBOARD_SUB_QUESTIONS
+    )
     charts = charts[: max(1, max_charts)]
     plan_topics, plan_domains = _seed_plan_scope(work)
     loops = 0
@@ -170,6 +216,8 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
         work["selected_domains"] = plan_domains
 
     logger.info("Plan execute: %s chart(s) in stored order", len(charts))
+    prior_question = ""
+    prior_value = ""
     session = work.get("session_context") if isinstance(work.get("session_context"), dict) else {}
     progress_cb = session.get("_on_progress") if isinstance(session, dict) else None
 
@@ -189,7 +237,7 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
         _progress(
             "think_step",
             "started",
-            f"Analyzing question {chart_index}: {label}",
+            _step_status_line(_STEP_STARTED, label, lead=True),
         )
         step_ok = True
 
@@ -227,6 +275,13 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                 ).strip()
 
             prompt = question
+            drill_down = _needs_prior_value(chart, question)
+            if drill_down:
+                prompt = _with_prior_value(
+                    prompt,
+                    prior_question=prior_question,
+                    prior_value=prior_value,
+                )
             executed: Dict[str, Any] = {"ok": False, "error": "SQL execution failed"}
             sql_attempts = 0
             last_error = ""
@@ -248,6 +303,12 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                         executed["error"],
                         flat_sql=bool(work.get("flat_sql")),
                     )
+                    if drill_down:
+                        prompt = _with_prior_value(
+                            prompt,
+                            prior_question=prior_question,
+                            prior_value=prior_value,
+                        )
                     continue
 
                 sql = generated.get("sql") or work.get("generated_sql") or ""
@@ -271,6 +332,12 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     err,
                     flat_sql=bool(work.get("flat_sql")),
                 )
+                if drill_down:
+                    prompt = _with_prior_value(
+                        prompt,
+                        prior_question=prior_question,
+                        prior_value=prior_value,
+                    )
 
             if not executed.get("ok"):
                 step_ok = False
@@ -294,7 +361,14 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                         ),
                     }
                 )
+                prior_question = question
+                prior_value = ""
                 continue
+
+            found = value_found_summary(work.get("query_result"))
+            if found:
+                prior_question = question
+                prior_value = found
 
             if not want_chart:
                 # Build report_model + sql metadata (and chat memory under parent_seq_N)
@@ -338,11 +412,13 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     )
                     continue
 
-                # Overlay LLM narrative onto the built step (do not append a second step).
+                # Overlay: summary.insight stays on SqlSuccessPrompt (no result rows).
+                # STEP_INSIGHT still writes analysis so the Conclusion can use findings.
                 from helicalbi.sql_agent.tools.analysis import (
                     _llm_step_insight,
                     _sample_rows_from_raw,
                     _MAX_SAMPLE_ROWS,
+                    apply_sql_success_insight,
                 )
 
                 sql_session = (
@@ -374,31 +450,31 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                     sample_data=sample_data,
                     state=work,
                 )
-                narrative_answer = str(llm_insight.answer or "").strip() if llm_insight else ""
                 narrative_analysis = str(llm_insight.analysis or "").strip() if llm_insight else ""
                 collected = list(work.get("collected_data") or [])
                 if collected:
                     last = dict(collected[-1])
                     last["title"] = title
                     last["include_in_dashboard"] = False
-                    if narrative_answer:
-                        last["answer"] = narrative_answer
+                    last = apply_sql_success_insight(
+                        last,
+                        work,
+                        question=question,
+                        sql=str(work.get("generated_sql") or ""),
+                        last_sql=last_sql if isinstance(last_sql, dict) else None,
+                    )
                     if narrative_analysis:
                         last["analysis"] = narrative_analysis
-                    elif narrative_answer:
-                        last["analysis"] = narrative_answer
                     chat_response = dict(last.get("chat_response") or {})
-                    summary = dict(chat_response.get("summary") or {})
-                    if narrative_answer:
-                        summary["insight"] = narrative_answer
-                    if narrative_analysis:
-                        summary["analysis"] = narrative_analysis
-                    chat_response["summary"] = summary
-                    last["chat_response"] = chat_response
                     if not last.get("report_model") and chat_response.get("report_model"):
                         last["report_model"] = chat_response.get("report_model")
                     collected[-1] = last
                     work["collected_data"] = collected
+                insight_text = ""
+                if collected:
+                    last_step = collected[-1]
+                    summary = ((last_step.get("chat_response") or {}).get("summary") or {})
+                    insight_text = str(summary.get("insight") or "").strip()
                 loops += 1
                 chart_traces.append(
                     {
@@ -408,7 +484,7 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
                         "status": "ok",
                         "sql_attempts": sql_attempts,
                         "kind": "text_insight",
-                        "result": (narrative_analysis or narrative_answer)[:500],
+                        "result": (insight_text or narrative_analysis)[:500],
                         "reason": (
                             str(chart.get("purpose") or "").strip()
                             or "Built report_model for Preview; narrative for final answer."
@@ -467,10 +543,10 @@ def execute_plan_node(state: AgentState) -> Dict[str, Any]:
             _progress(
                 "think_step",
                 "done" if step_ok else "failed",
-                (
-                    f"Completed question {chart_index}: {label}"
-                    if step_ok
-                    else f"Could not complete question {chart_index}: {label}"
+                _step_status_line(
+                    _STEP_DONE if step_ok else _STEP_FAILED,
+                    label,
+                    lead=False,
                 ),
             )
 

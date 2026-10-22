@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "default_theme": "default",
+  "themes": {
+    "default": {
+      "name": "Default Blue",
+      "id": "default",
+      "textPrimary": "#1b2b3a",
+      "borderColor": "#dbe3ec",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#eef2f7",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#1f4e79"
+    },
+    "carbon": {
+      "name": "Carbon",
+      "id": "carbon",
+      "textPrimary": "#161616",
+      "borderColor": "#e0e0e0",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f4f4f4",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#161616"
+    },
+    "material3": {
+      "name": "Material 3",
+      "id": "material3",
+      "textPrimary": "#1d1b20",
+      "borderColor": "#e7e0ec",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#fef7ff",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#6750a4"
+    },
+    "fluent2": {
+      "name": "Fluent 2",
+      "id": "fluent2",
+      "textPrimary": "#242424",
+      "borderColor": "#e0e0e0",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#faf9f8",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#0f6cbd"
+    },
+    "polaris": {
+      "name": "Polaris",
+      "id": "polaris",
+      "textPrimary": "#202223",
+      "borderColor": "#e1e3e5",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f6f6f7",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#1a1a1a"
+    },
+    "antd": {
+      "name": "Ant Design",
+      "id": "antd",
+      "textPrimary": "#000000e0",
+      "borderColor": "#f0f0f0",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f5f5f5",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#001529"
+    },
+    "spectrum": {
+      "name": "Spectrum",
+      "id": "spectrum",
+      "textPrimary": "#2c2c2c",
+      "borderColor": "#e1e1e1",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f5f5f5",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#323232"
+    },
+    "primer": {
+      "name": "Primer",
+      "id": "primer",
+      "textPrimary": "#24292f",
+      "borderColor": "#d0d7de",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f6f8fa",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#24292f"
+    },
+    "midnight": {
+      "name": "Midnight",
+      "id": "midnight",
+      "textPrimary": "#e5edf7",
+      "borderColor": "#2c3a52",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#0b1220",
+      "dashboardComponent": "#1a2438",
+      "componentHeader": "#131c2e"
+    },
+    "forest": {
+      "name": "Forest",
+      "id": "forest",
+      "textPrimary": "#16301f",
+      "borderColor": "#d3e4d9",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#eef5f0",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#1f6b4d"
+    },
+    "coral": {
+      "name": "Coral",
+      "id": "coral",
+      "textPrimary": "#2b1a15",
+      "borderColor": "#f3d9d0",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#fdf3ef",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#c9533a"
+    },
+    "violet": {
+      "name": "Violet",
+      "id": "violet",
+      "textPrimary": "#231a3b",
+      "borderColor": "#e0d9f2",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f3f0fb",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#5b3fa4"
+    },
+    "mono": {
+      "name": "Mono",
+      "id": "mono",
+      "textPrimary": "#181b20",
+      "borderColor": "#e0e2e5",
+      "horizontalMargin": 10,
+      "verticalMargin": 10,
+      "background": "#f4f5f6",
+      "dashboardComponent": "#ffffff",
+      "componentHeader": "#111418"
+    }
+  }
+}

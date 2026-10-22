@@ -34,6 +34,9 @@ export const addGridItem = (obj) => {
 export const updateGridItemId = (id) => {
   return { type: actionTypes.UPDATE_GRID_ITEM_ID, payload: id };
 };
+export const updateDashboardCreateItemReport = (payload = {}) => {
+  return { type: actionTypes.UPDATE_DASHBOARD_CREATE_ITEM_REPORT, payload };
+};
 export const toggleGridItemDrawer = (id) => {
   return { type: actionTypes.TOGGLE_GRID_ITEM_DRAWER, payload: id };
 };
@@ -211,4 +214,8 @@ export const updateFreeFloatFilterSettings = (obj) => {
 
 export const updateDashboardStateThroughEditor = (payload) => {
   return { type: actionTypes.UPDATE_DASHBOARD_STATE_THROUGH_EDITOR, payload }
+}
+
+export const updateDashboardInstantSubject= (payload) => {
+  return { type: actionTypes.UDPATE_INSTANT_SUBJECT, payload }
 }

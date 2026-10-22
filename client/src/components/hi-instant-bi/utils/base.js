@@ -293,6 +293,65 @@ const getHreportDiffData = (activeReport = {}, dispatch) => {
 }
 
 
+const slimThinkStepForSave = (step) => {
+  if (!step || typeof step !== "object") return step;
+  const {
+    vizActivityTrail: _vizActivityTrail,
+    vizLoading: _vizLoading,
+    vizError: _vizError,
+    vizDetails: _vizDetails,
+    vf: _vf,
+    fullChatResponse: _fullChatResponse,
+    report_model: _reportModel,
+    reportModel: _reportModelCamel,
+    chatResponse: _chatResponseCamel,
+    chat_response: _chatResponse,
+    ...slim
+  } = step;
+  const rawChatResponse = _chatResponse || _chatResponseCamel || {};
+  const { hreportId, ...chat_response } = rawChatResponse || {};
+  const hasChatResponse = chat_response && Object.keys(chat_response).length > 0;
+  delete slim.answer;
+  return {
+    ...slim,
+    ...(hasChatResponse ? { chat_response } : {}),
+    ...(hreportId ? { hreportId } : {}),
+  };
+};
+
+const THINK_SAVE_OMIT_KEYS = [
+  "final_answer",
+  "finalAnswer",
+  "fullChatResponse",
+];
+
+const omitKeysDeep = (value, keys, { skipKeys = ["data"] } = {}) => {
+  if (Array.isArray(value)) {
+    return value.map((item) => omitKeysDeep(item, keys, { skipKeys }));
+  }
+  if (!value || typeof value !== "object") return value;
+  const next = {};
+  Object.entries(value).forEach(([key, child]) => {
+    if (keys.includes(key)) return;
+    next[key] = skipKeys.includes(key)
+      ? child
+      : omitKeysDeep(child, keys, { skipKeys });
+  });
+  return next;
+};
+
+const slimLlmActivityDetailsForSave = (details) => {
+  if (!details || typeof details !== "object") return details;
+  const next = omitKeysDeep(details, THINK_SAVE_OMIT_KEYS);
+  if (Array.isArray(next.path)) {
+    next.path = next.path.filter((entry) => {
+      const name = String(entry?.name || entry?.stage || "").trim();
+      return name !== "final_answer";
+    });
+  }
+  return next;
+};
+
 export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, dispatch }) => {
   const {
     reportInfo = {},
@@ -340,10 +399,7 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
     if (messageViz.chart_name || loadedViz.chart_name) {
       viz.chart_name = messageViz.chart_name || loadedViz.chart_name;
     }
-    if (messageViz.similar_chart || loadedViz.similar_chart) {
-      viz.similar_chart =
-        messageViz.similar_chart || loadedViz.similar_chart;
-    }
+    delete viz.similar_chart;
     // Do not persist legacy InstantBI chart settings.
     delete viz.settings;
 
@@ -355,26 +411,26 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
     };
 
     if (msg.isThinkPlan) {
-      saved.is_think_plan = true;
-      saved.asked_questions = msg.askedQuestions || [];
-      saved.question_history = (msg.questionHistory || []).map((step) => {
-        if (!step || typeof step !== "object") return step;
-        const { vizActivityTrail, ...cleanStep } = step;
-        return cleanStep;
-      });
-      saved.cited_question_indexes = msg.citedQuestionIndexes || [];
-      saved.opening_insight = msg.openingInsight || "";
-      saved.final_answer = msg.finalAnswer || msg.text || "";
-      saved.plan = msg.plan || {};
-      saved.dashboard_model = msg.dashboardModel || msg.plan?.dashboard || null;
-      saved.dashboard = saved.dashboard_model;
-      saved.llm_activity_details = msg.llmActivityDetails || null;
-      if (!saved.summary && saved.final_answer) {
-        saved.summary = { insight: saved.final_answer };
-      }
+      const openingInsight = msg.openingInsight
+        || msg.opening_insight
+        || chatResponseForSave.opening_insight
+        || "";
+      return omitKeysDeep({
+        chat_sequence_id: msg.chatSequenceId,
+        is_think_plan: true,
+        asked_questions: msg.askedQuestions || [],
+        question_history: (msg.questionHistory || []).map(slimThinkStepForSave),
+        cited_question_indexes: msg.citedQuestionIndexes || [],
+        opening_insight: openingInsight,
+        plan: msg.plan || {},
+        dashboard_model: msg.dashboardModel || msg.plan?.dashboard || null,
+        llm_activity_details: slimLlmActivityDetailsForSave(
+          msg.llmActivityDetails || chatResponseForSave.llm_activity_details || null
+        ),
+      }, THINK_SAVE_OMIT_KEYS);
     }
 
-    return saved;
+    return omitKeysDeep(saved, THINK_SAVE_OMIT_KEYS);
   })
 
   const modelSubject = getInstantBIAgentSubject(activeReport) || {};
@@ -400,5 +456,5 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
   if (saveFileInfo.uuid) {
     data.uuid = saveFileInfo.uuid
   }
-  return data;
+  return omitKeysDeep(data, THINK_SAVE_OMIT_KEYS);
 }

@@ -12,8 +12,11 @@ import org.springframework.stereotype.Component;
 
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
+import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.export.ExportResourceManager;
+import com.helicalinsight.export.download.DownloadArtifact;
 import com.helicalinsight.export.dto.ResourceExportRequest;
+import com.helicalinsight.export.dto.ResourceOptions;
 import com.helicalinsight.export.exception.ResourceExportException;
 import com.helicalinsight.resourcedb.HIResourceDTO;
 import com.helicalinsight.resourcedb.processor.HIResourceOfActiveUser;
@@ -41,6 +44,24 @@ public class ResourceExportHandler {
      * @throws Exception If an error occurs during the export process.
      */
 	public byte[] export(ResourceExportRequest request,HttpServletResponse response) throws Exception {
+		return manager.write(resolveResources(request), request.getDir(), request.getOptions(), response);
+	}
+
+	/**
+	 * Materialize export zip on disk for resumable download (no response write, no immediate cleanup).
+	 */
+	public DownloadArtifact exportToArtifact(ResourceExportRequest request) throws Exception {
+		return exportToArtifact(request, null);
+	}
+
+	/**
+	 * Materialize export zip on disk for resumable download, cooperatively aborting when the ticket is aborted.
+	 */
+	public DownloadArtifact exportToArtifact(ResourceExportRequest request, String ticketId) throws Exception {
+		return manager.writeToFile(resolveResources(request), request.getDir(), request.getOptions(), ticketId);
+	}
+
+	private List<HIResourceDTO> resolveResources(ResourceExportRequest request) {
 		String dir = request.getDir();
 		String fileName = request.getFile();
 		if(!fileName.isEmpty()) {
@@ -84,10 +105,19 @@ public class ResourceExportHandler {
 		
 		
 		else {
-			dtoList =  serviceDb.findAllResources().getResourceDTOList();
+			ResourceOptions options = request.getOptions();
+			if (options != null && Boolean.TRUE.equals(options.getExportEverything())) {
+				if (!AuthenticationUtils.isSuperAdmin(AuthenticationUtils.getLoggedInUserOrganizationId())) {
+					throw new ResourceExportException(
+							"Export everything is available only for super admin.");
+				}
+				dtoList = serviceDb.findAllResourcesUnscoped().getResourceDTOList();
+			} else {
+				dtoList = serviceDb.findAllResources().getResourceDTOList();
+			}
 		}
 		
-		return manager.write(dtoList, request.getDir(), request.getOptions(),response);
+		return dtoList;
 	}
 	/**
 	 * @param parentId  id in integer format

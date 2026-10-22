@@ -23,6 +23,7 @@ import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.model.GlobalConnectionSecurity;
 import com.helicalinsight.datasource.service.EFWDConnectionService;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
+import com.helicalinsight.export.handler.ImportManagerContext;
 import com.helicalinsight.export.utils.ResourceShareUtils;
 /**
  * DatasourceShareHandler class do the sharing of permissions for both EFWD and global connections.
@@ -84,6 +85,11 @@ public class DatasourceShareHandler {
 	 * @param securities          List of HIEfwdConnSecurity containing the security details to be imported.
 	 */
 	public void importEFWDConnectionPermissions(int connectionId, List<HIEfwdConnSecurityDTO> securities) {
+		importEFWDConnectionPermissions(connectionId, securities, null);
+	}
+
+	public void importEFWDConnectionPermissions(int connectionId, List<HIEfwdConnSecurityDTO> securities,
+			ImportManagerContext context) {
 		
 		for (HIEfwdConnSecurityDTO security : securities) {
 
@@ -96,13 +102,13 @@ public class DatasourceShareHandler {
 			Organization dbOrg = null;
 
 			if (user != null) {
-				dbUser = shareUtils.getOrInsertUser(user);
+				dbUser = shareUtils.getOrInsertUser(user, context);
 			}
 			if (role != null) {
 				dbRole = shareUtils.getOrInsertRole(role);
 			}
 			if (org != null) {
-				dbOrg = shareUtils.getOrInsertOrganiation(org);
+				dbOrg = shareUtils.getOrInsertOrganiation(org, context);
 			}
 			efwdConnectionService.updateOrInsert(connectionId, dbUser != null ? dbUser.getId() : null,
 					dbRole != null ? dbRole.getId() : null, dbOrg != null ? dbOrg.getId() : null, security.getPermission());
@@ -115,12 +121,17 @@ public class DatasourceShareHandler {
      * @param permissions      List of GlobalConnectionSecurity containing the security details to be imported.
      */
 	public void importGlobalConnectionPermissions(int globalId, List<GlobalConnectionSecurity> permissions) {
+		importGlobalConnectionPermissions(globalId, permissions, null);
+	}
+
+	public void importGlobalConnectionPermissions(int globalId, List<GlobalConnectionSecurity> permissions,
+			ImportManagerContext context) {
 		
 		globalConnectionService.deleteGlobalConnectionSecurityById(globalId);
 		if (permissions != null && !permissions.isEmpty()) {
 			permissions.forEach(permission -> {
 				permission.getGlobalConnections().setGlobalId(globalId);
-				createNewSecurity(permission);
+				createNewSecurity(permission, context);
 			});
 		}
 	}
@@ -128,26 +139,26 @@ public class DatasourceShareHandler {
 	 * Creates new security connection using provided details.
 	 * @param security     provides required data to add or create new security connection.
 	 */
-	private void createNewSecurity(GlobalConnectionSecurity security) {
+	private void createNewSecurity(GlobalConnectionSecurity security, ImportManagerContext context) {
 		User user = security.getUserId();
 		Role sharedRole = security.getRoleId();
 		Organization org = security.getOrgId();
 		Date date = new Date();
 		security.setLastUpdatedTime(date);
 		if(null != user && null == org) {
-			user = shareUtils.getOrInsertUser(mapper.map(user));
+			user = shareUtils.getOrInsertUser(mapper.map(user), context);
 			security.setUserId(user);
 		}
 		else if (null != sharedRole) {
 			sharedRole = shareUtils.getOrInsertRole(mapper.map(sharedRole));
 			security.setRoleId(sharedRole);
 		} else {
-			org = shareUtils.getOrInsertOrganiation(mapper.map(org));
+			org = shareUtils.getOrInsertOrganiation(mapper.map(org), context);
 			security.setOrgId(org);
 		}
 		
 		Object obj  = security.getCreatedBy();
-		User createdBy = shareUtils.resolveUser(obj);
+		User createdBy = shareUtils.resolveUser(obj, context);
 		security.setCreatedBy(createdBy);
 		globalConnectionService.addGlobalConnectionSecurity(security);
 	}

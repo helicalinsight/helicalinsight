@@ -1,0 +1,321 @@
+.ib-dashboard-tile-tabs {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+
+  .chart-preview-section {
+    position: relative;
+    width: 100%;
+
+    &__converting {
+      position: absolute;
+      inset: 0;
+      z-index: 11;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    &__data-insight-fab {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+    &__go-to-hreport-filter-button {
+      position: absolute;
+      right: 90px;
+      ;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+    &__go-to-hreport-button {
+      position: absolute;
+      right: 30px;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+    &__trigger-button {
+      position: absolute;
+      right: 60px;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+    &__sql-button {
+      position: absolute;
+      right: 10px;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+    &__spec-button {
+      position: absolute;
+      right: 40px;
+      bottom: 0;
+      z-index: 10;
+      width: 20px;
+      height: 20px;
+      border: none;
+      border-radius: 50%;
+      padding: 0;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+
+      .anticon {
+        font-size: 12px;
+        color: #3e4557;
+      }
+
+      &:hover .anticon {
+        color: #1890ff;
+      }
+    }
+
+
+  }
+
+  .radio-btn-container {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    display: flex;
+    align-items: center;
+
+    .radio-btn-item {
+      width: fit-content;
+      height: 24px;
+      padding: 0px 8px !important;
+      text-align: center;
+      font-size: 9px;
+      display: flex;
+      align-items: center;
+    }
+
+    .radio-btn-item:first-child {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .radio-btn-item:last-child {
+      border-radius: 0 8px 8px 0;
+    }
+  }
+
+  .json-data-viewer {
+    white-space: pre-wrap;
+    font-size: 10px;
+    width: 100%;
+    min-width: 0;
+    max-height: min(60vh, 480px);
+    overflow: auto;
+  }
+
+  .ant-tabs {
+    align-items: flex-end;
+    width: 100%;
+    height: 100%;
+
+    .ant-tabs-ink-bar {
+      display: none;
+    }
+
+    .ant-tabs-nav {
+      margin: 0;
+    }
+
+    .ant-tabs-nav-list {
+      gap: 4px !important;
+    }
+
+    .ant-tabs-nav::before {
+      border-bottom: none;
+    }
+
+    .ant-tabs-content-holder {
+      width: 100%;
+      height: 100%;
+    }
+
+    .ant-tabs-content {
+      width: 100%;
+      height: 100%;
+    }
+
+    .ant-tabs-tab {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    .ant-tabs-tab+.ant-tabs-tab {
+      margin: 0 !important;
+    }
+
+    .ant-tabs-tab-btn {
+      padding: 1px !important;
+      line-height: 1;
+    }
+
+    .ant-tabs-tab .anticon {
+      margin: 0 !important;
+    }
+
+    .ant-tabs-tabpane {
+      height: 100%;
+    }
+
+    .chart-preview-section {
+      height: 100%;
+    }
+
+    .chart-wrapper{
+      height: 100%;
+    }
+  }
+
+  &:hover {
+
+    .message-container__data-insight-info-icon,
+    .chart-preview-section__data-insight-fab,
+    .ib-think-final__data-insight-fab,
+    .ib-think-plan__data-insight-fab,
+    .chart-preview-section__go-to-hreport-button,
+    .chart-preview-section__trigger-button,
+    .chart-preview-section__sql-button,
+    .chart-preview-section__spec-button,
+    .chart-preview-section__go-to-hreport-filter-button {
+      visibility: visible;
+      transition: opacity 0.3s ease-in-out;
+      opacity: 1;
+    }
+  }
+}

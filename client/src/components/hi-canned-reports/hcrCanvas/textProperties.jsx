@@ -97,6 +97,7 @@ export default function TextProperties({
     printRepeatedValues: nodeConfig.printRepeatedValues,
     properties: nodeConfig.properties || [],
     paragraph: nodeConfig.paragraph || {},
+    textAdjust: nodeConfig.textAdjust || "CutText"
   };
 
   let groupEvalOptions = []

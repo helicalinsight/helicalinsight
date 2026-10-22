@@ -62,19 +62,26 @@ public class ShareHandler extends ResourceIOHandler {
 				for (HIResourceSecurityDB security : shareList) {
 					ObjectNode securityJson = JacksonUtility.mapToJson(security);
 					User user = userService.findUser(security.getCreatedBy());
+					recycleBinHandler.writeUser(security.getCreatedBy(), dir, manifest);
 					if(security.getOrgId()!=null) {
+						recycleBinHandler.writeOrganization(security.getOrgId().getId(), dir, manifest);
+						putId(securityJson.get("orgId"), security.getOrgId().getId());
 						List<User> users = userService.getAllUsersOfOrganization(security.getOrgId().getId());
 						if(users.size()>0) {
 							ArrayNode orgUsers = JacksonUtility.arrayNode();
 							for(User u: users){
-								ObjectNode uObject = JacksonUtility.mapToJson(u);
+								ObjectNode uObject = withUserId(u);
 								orgUsers.add(uObject);
+								recycleBinHandler.writeUser(u.getId(), dir, manifest);
 							}
 							securityJson.putPOJO(ALL_USER, orgUsers);
 						}
 					}
-					ObjectNode userObject = JacksonUtility.mapToJson(user);
-					securityJson.putPOJO(CREATED_BY, userObject);
+					if (security.getUserId() != null) {
+						recycleBinHandler.writeUser(security.getUserId().getId(), dir, manifest);
+						putId(securityJson.get("userId"), security.getUserId().getId());
+					}
+					securityJson.putPOJO(CREATED_BY, withUserId(user));
 					shareListNode.add(securityJson);
 				}
 				dataWriter.write(shareListNode, dir, resource,ResourceSuffix.SHARE);
@@ -97,13 +104,23 @@ public class ShareHandler extends ResourceIOHandler {
      * @param manifest       		manifest file containing information about the exported resources.
      */
 	public void importResource(HIResource resource, ImportRequest request ,Manifest manifest) {
+		String resourceUrl = resource != null ? resource.getResourceURL() : null;
 		boolean shareExists = manifestUtils.compareOptions(request.getOptions(), manifest,"share");
-		if(shareExists) {
-			String shareFileName = manifestUtils.getShare(context.removeDestination(resource.getResourceURL()), manifest);
-			if(shareFileName != null) {
-				importResource(resource, shareFileName,request.getOnConflict());
+		if(!shareExists) {
+			return;
+		}
+		String shareFileName = manifestUtils.getShare(context.removeDestination(resource.getResourceURL()), manifest);
+		if(shareFileName != null) {
+			if (context != null && resourceUrl != null) {
+				context.addLog(resourceUrl, "[share] Importing share settings…");
 			}
-		}	
+			importResource(resource, shareFileName,request.getOnConflict());
+			if (context != null && resourceUrl != null) {
+				context.addLog(resourceUrl, "[share] Share settings imported.");
+			}
+		} else if (context != null && resourceUrl != null) {
+			context.addLog(resourceUrl, "[share] No share sidecar found; skipped.");
+		}
 	}
 	/**
      * Method responsible for security information for a given resource from a file.
@@ -178,6 +195,10 @@ public class ShareHandler extends ResourceIOHandler {
 
 		} catch (IOException ex) {
 			LOG.error("Error occurred : {}", ex.getMessage());
+			if (context != null && resource != null && resource.getResourceURL() != null
+					&& !resource.getResourceURL().isEmpty()) {
+				context.addError(resource.getResourceURL(), "Failed to import share settings.");
+			}
 		}
 	}
 	/**
@@ -222,14 +243,14 @@ public class ShareHandler extends ResourceIOHandler {
 		share.setLastUpdatedTime(date);
 
 		if (null != user && null == org) {
-			user = shareUtils.getOrInsertUser(dtoMapper.map(user));
+			user = shareUtils.getOrInsertUser(dtoMapper.map(user), context);
 			share.setUserId(user);
 		} else if (null != sharedRole) {
 			sharedRole = shareUtils.getOrInsertRole(dtoMapper.map(sharedRole));
 			share.setRoleId(sharedRole);
 
 		} else if(null != org ) {
-			org = shareUtils.getOrInsertOrganiation(dtoMapper.map(org));
+			org = shareUtils.getOrInsertOrganiation(dtoMapper.map(org), context);
 			share.setOrgId(org);
 		}
 		serviceDb.addHIResourceSecurity(share);
@@ -245,9 +266,9 @@ public class ShareHandler extends ResourceIOHandler {
 		existing.setCreatedBy(share.getCreatedBy());
 		existing.setLastUpdatedTime(date);
 		existing.setPermission(share.getPermission());
-		if( share.getOrgId() != null  ) existing.setOrgId(shareUtils.getOrInsertOrganiation(dtoMapper.map(share.getOrgId())));
+		if( share.getOrgId() != null  ) existing.setOrgId(shareUtils.getOrInsertOrganiation(dtoMapper.map(share.getOrgId()), context));
 		if( share.getRoleId() != null ) existing.setRoleId(shareUtils.getOrInsertRole(dtoMapper.map((share.getRoleId()))));
-		if( share.getUserId() != null ) existing.setUserId(shareUtils.getOrInsertUser(dtoMapper.map(share.getUserId())));
+		if( share.getUserId() != null ) existing.setUserId(shareUtils.getOrInsertUser(dtoMapper.map(share.getUserId()), context));
 		serviceDb.editHIResourceSecurity(existing);
 	}
 	/**
@@ -258,8 +279,26 @@ public class ShareHandler extends ResourceIOHandler {
      */
 	public final Integer saveOwner(JsonNode owner) {
 		User user = mapperUtils.mapToDTO(owner.toString(), User.class);
-		user = shareUtils.getOrInsertUser(dtoMapper.map(user));
+		user = shareUtils.getOrInsertUser(dtoMapper.map(user), context);
 		return user.getId();
+	}
+
+	/**
+	 * User/Organization id getters are @JsonIgnore, so export JSON omits them.
+	 * Recycle-bin sidecars are keyed by export id (user_{id} / org_{id}), so write id explicitly.
+	 */
+	private static ObjectNode withUserId(User user) {
+		ObjectNode userObject = JacksonUtility.mapToJson(user);
+		if (user != null) {
+			userObject.put("id", user.getId());
+		}
+		return userObject;
+	}
+
+	private static void putId(JsonNode node, int id) {
+		if (node instanceof ObjectNode objectNode) {
+			objectNode.put("id", id);
+		}
 	}
 
 }

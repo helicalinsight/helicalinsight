@@ -5,6 +5,11 @@ import { hcrActions } from '../../../../../redux/actions'
 import FieldSelector from '../../fieldSelector'
 import { getCategoryClassNames, getCTSelectedGroup } from '../utils'
 
+const getNormalizedTotalPosition = (position) => {
+  const normalizedPosition = (position || "").toString().toUpperCase()
+  return ["NONE", "START", "END"].includes(normalizedPosition) ? normalizedPosition : "END"
+}
+
 const CrosstabGroup = (props = {}) => {
   const {
     data = {},
@@ -25,13 +30,13 @@ const CrosstabGroup = (props = {}) => {
 
   const currentGroup = getCTSelectedGroup(data, selectedGroup[0])
 
-  const { label, className, expression, id: groupId, calculation, type, totalPosition = "End" } = currentGroup || {}
+  const { label, className, expression, id: groupId, calculation, type, totalPosition } = currentGroup || {}
 
   const [groupState, setGroupState] = useState({
     label: label,
     expression: expression,
     className: className,
-    totalPosition: totalPosition
+    totalPosition: getNormalizedTotalPosition(totalPosition)
   })
   const [disabled, setDisabled] = useState(false)
 
@@ -69,7 +74,7 @@ const CrosstabGroup = (props = {}) => {
       label: label,
       expression: expression,
       className: className,
-      totalPosition
+      totalPosition: getNormalizedTotalPosition(totalPosition)
     })
   }, [label, className, expression, totalPosition])
 

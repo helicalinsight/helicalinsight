@@ -1,6 +1,6 @@
 import { useSelector } from "react-redux";
 import { hcrActions } from "../../../../redux/actions";
-import { Checkbox } from "antd";
+import { Checkbox, Select } from "antd";
 
 export default function CanvasPageProperties({ SelectField, InputNumberFiled, dispatch, whenNoDataType, printOrder, getLabel }) {
     const activeTab = useSelector(state => state.cannedReports.present.hcrTabData.panes.find(pane => pane.key === state.cannedReports.present.hcrTabData.activeKey)) || {};
@@ -96,7 +96,28 @@ export default function CanvasPageProperties({ SelectField, InputNumberFiled, di
                     dispatch(hcrActions.setHcrCanvasPageProps({ key: 'printOrder', value }));
                 }}
             />
-            <SelectField
+            <div>
+                <div className="property-label">{getLabel({ label: 'When No Data', tooltip: tooltip_whenNoData })}</div>
+                <Select
+                    value={pagePropsDefault.whenNoData}
+                    size={"small"}
+                    className="canvas-parameter-select"
+                    style={{ width: 110 }}
+                    options={Object.entries(whenNoDataType).map(ele => {
+                        return {
+                            label: ele[0],
+                            value: ele[1]
+                        }
+                    })}
+                    showArrow
+                    onChange={(value) => {
+                        dispatch(hcrActions.setHcrCanvasPageProps({ key: 'whenNoData', value }));
+                    }}
+                    placeholder=""
+                    allowClear={pagePropsDefault.whenNoData}
+                />
+            </div>
+            {/* <SelectField
                 label={getLabel({ label: 'When No Data', tooltip: tooltip_whenNoData })}
                 value={pagePropsDefault.whenNoData}
                 options={Object.entries(whenNoDataType).map(ele => {
@@ -109,7 +130,7 @@ export default function CanvasPageProperties({ SelectField, InputNumberFiled, di
                 onChange={(value) => {
                     dispatch(hcrActions.setHcrCanvasPageProps({ key: 'whenNoData', value }));
                 }}
-            />
+            /> */}
         </div>
         {checkOptions.map(ele => {
             return <div><Checkbox style={{ marginLeft: 0 }} onChange={(e) => { onChange(e.target.checked, ele.key) }} checked={pagePropsDefault[ele.key]}>

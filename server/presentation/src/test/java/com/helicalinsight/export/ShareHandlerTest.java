@@ -2,6 +2,7 @@ package com.helicalinsight.export;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.when;
@@ -100,7 +101,8 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(user.getId()).thenReturn(1);
 		when(share.getUserId()).thenReturn(user);
 		when(user.getUsername()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);
@@ -162,7 +164,8 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(user.getId()).thenReturn(1);
 		when(share.getRoleId()).thenReturn(role);
 		when(role.getRole_name()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);
@@ -227,7 +230,10 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(shareUtils.getOrInsertOrganiation(any(OrganizationDTO.class), nullable(ImportManagerContext.class)))
+				.thenReturn(organization);
+		when(user.getId()).thenReturn(1);
 		when(share.getOrgId()).thenReturn(organization);
 		when(organization.getOrg_name()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);
@@ -292,7 +298,8 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(user.getId()).thenReturn(1);
 		when(share.getRoleId()).thenReturn(role);
 		when(user.getUsername()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);
@@ -357,7 +364,10 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(shareUtils.getOrInsertOrganiation(any(OrganizationDTO.class), nullable(ImportManagerContext.class)))
+				.thenReturn(organization);
+		when(user.getId()).thenReturn(1);
 		when(share.getOrgId()).thenReturn(organization);
 		when(user.getUsername()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);
@@ -422,7 +432,8 @@ public class ShareHandlerTest {
 		when(mapperUtils.mapToDTO("{}", HIResourceSecurityDB.class)).thenReturn(share);
 		when(mapperUtils.mapToDTO(node.toString(), User.class)).thenReturn(user);
 		when(serviceDb.getHIResourceSecurityByResourceId(anyInt())).thenReturn(existingShareList);
-		when(shareUtils.getOrInsertUser(any(UserDTO.class))).thenReturn(user);
+		when(shareUtils.getOrInsertUser(any(UserDTO.class), nullable(ImportManagerContext.class))).thenReturn(user);
+		when(user.getId()).thenReturn(1);
 		when(share.getUserId()).thenReturn(user);
 		when(user.getUsername()).thenReturn("helical");
 		when(share.getPermission()).thenReturn(5);

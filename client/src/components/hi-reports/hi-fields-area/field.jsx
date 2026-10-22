@@ -6,7 +6,8 @@ import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import {
     CheckCircleOutlined, CloseOutlined, SortAscendingOutlined, VerticalAlignMiddleOutlined, SortDescendingOutlined,
-    NumberOutlined, CalendarOutlined, FileTextOutlined, CheckOutlined
+    NumberOutlined, CalendarOutlined, FileTextOutlined, CheckOutlined,
+    InfoCircleOutlined
 } from '@ant-design/icons';
 import { getFieldDisplayName, checkOrderIsApplied } from "../../../utils/utilities";
 import { updateFieldAlias, moveFieldInCanvas, removeFieldFromCanvas, updateOrderBy } from "../../../redux/actions/hreport.actions";
@@ -14,6 +15,7 @@ import FieldMenu from "./menu.jsx"
 import notify from "../../hi-notifications/notify";
 import { getFloatingType } from "../../../utils/filter-utils";
 import { dateTypes } from "../utils/constants";
+import { isRawDbFunction } from "../utils/base.js";
 
 const { Text } = Typography
 
@@ -28,7 +30,9 @@ const ReportField = props => {
         return activeReport
     })
     let { field } = props
-    let { orderBy, id, type } = field
+    let { orderBy, id, type, databaseFunction } = field
+    const isRAWFunctionUsed = isRawDbFunction(databaseFunction);
+
     const [{ }, drag] = useDrag(
         () => {
             return {
@@ -154,7 +158,16 @@ const ReportField = props => {
                 <Tag closable ref={drag}
                     // color="#108ee9"
                     color={backgroundColor}
-                    icon={editing ? null : dataTypeIcon}
+                    icon={editing ? null :
+                        <>
+                            {isRAWFunctionUsed ?
+                                <Tooltip title="Native query used.">
+                                    <InfoCircleOutlined />
+                                </Tooltip> : null
+                            }
+                            {dataTypeIcon}
+                        </>
+                    }
                     closeIcon={sideContent}
                 // onClose={e => onClose()}
                 >

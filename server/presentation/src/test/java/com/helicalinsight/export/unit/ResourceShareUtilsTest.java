@@ -2,6 +2,8 @@ package com.helicalinsight.export.unit;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -76,9 +78,14 @@ public class ResourceShareUtilsTest extends ExportUnitTestBase {
 		ResourceShareUtils utils = createUtilsWithMocks();
 		RoleService roleService = getField(utils, "roleService", RoleService.class);
 		when(roleService.findRoleByNameNullOrg("newrole")).thenReturn(null);
-
+		
+		OrganizationDTO orgDto = new OrganizationDTO();
+		orgDto.setDeleted(false);
+		orgDto.setOrg_name("newOrg");
+		
 		RoleDTO roleDTO = new RoleDTO();
 		roleDTO.setRole_name("newrole");
+		roleDTO.setOrganization(orgDto);
 		Assert.assertNotNull(utils.getOrInsertRole(roleDTO));
 	}
 
@@ -207,7 +214,7 @@ public class ResourceShareUtilsTest extends ExportUnitTestBase {
 
 		User inserted = new User();
 		inserted.setUsername("alice");
-		doReturn(inserted).when(utils).getOrInsertUser(dto);
+		doReturn(inserted).when(utils).getOrInsertUser(eq(dto), isNull());
 
 		Assert.assertEquals(inserted, utils.resolveUser(input));
 		verify(userService, never()).findUser(anyInt());

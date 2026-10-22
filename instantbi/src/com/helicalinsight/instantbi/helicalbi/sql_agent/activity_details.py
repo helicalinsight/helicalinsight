@@ -143,8 +143,7 @@ def build_llm_activity_details(
     for item in questions:
         hist = history_by_index.get(int(item["index"]))
         if hist:
-            item["finding"] = str(hist.get("analysis") or hist.get("answer") or "").strip()
-            item["answer"] = str(hist.get("answer") or "").strip()
+            item["finding"] = str(hist.get("analysis") or "").strip()
 
     plan_nodes = [dict(n) for n in (plan_graph or []) if isinstance(n, Mapping)]
     exec_nodes = [dict(n) for n in (execute_graph or []) if isinstance(n, Mapping)]

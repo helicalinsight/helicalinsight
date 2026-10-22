@@ -30,9 +30,9 @@ function filebrowser(dispatch, settings) {
   const postShareTableData = (formData, uri, callback = () => {}, errback = () => {}) => {
     return postRequest(dispatch, uri, formData, callback, errback);
   };
-  const postExportData = (formData, downLoadProgress, callback) => {
+  const postExportData = (formData, callback) => {
     const url = "/exportResource";
-    return postExportDownloadRequest({ dispatch, url, formData, callback, downLoadProgress });
+    return postExportDownloadRequest({ dispatch, url, formData, callback });
   };
 
   const postImageUpload = (formData, config, callback = () => {}, errback = () => {}) => {

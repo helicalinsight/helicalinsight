@@ -76,6 +76,47 @@ public class InstantBIUtilsTest {
     }
 
     @Test
+    public void getHistoryUsesParentSequenceForThinkStepIds() {
+        JsonArray inputs = new JsonArray();
+        inputs.add(chatInput(1, "parent"));
+        inputs.add(chatInput(2, "later"));
+
+        JsonArray history = InstantBIUtils.getHistory(inputs, "1_2");
+
+        assertEquals(0, history.size());
+        JsonArray afterParent = InstantBIUtils.getHistory(inputs, "2_1");
+        assertEquals(1, afterParent.size());
+        assertEquals("parent", afterParent.get(0).getAsString());
+    }
+
+    @Test
+    public void findSavedChatResponseItemReturnsParentTurn() {
+        JsonObject state = thinkReportState();
+        JsonObject item = InstantBIUtils.findSavedChatResponseItem(state, "1");
+        assertEquals(1, item.get("chat_sequence_id").getAsInt());
+        assertTrue(item.get("is_think_plan").getAsBoolean());
+    }
+
+    @Test
+    public void findSavedChatResponseItemReturnsThinkStepChatResponse() {
+        JsonObject state = thinkReportState();
+        JsonObject item = InstantBIUtils.findSavedChatResponseItem(state, "1_1");
+        assertEquals("SELECT SUM(travel_cost) FROM travel_details",
+                item.getAsJsonObject("sql").get("raw_sql").getAsString());
+        assertEquals("Total travel cost is 120000.",
+                item.getAsJsonObject("summary").get("insight").getAsString());
+    }
+
+    @Test
+    public void findSavedChatResponseItemDerivesThinkStepIdFromIndex() {
+        JsonObject state = thinkReportState();
+        JsonObject item = InstantBIUtils.findSavedChatResponseItem(state, "1-2");
+        assertEquals("SELECT month, SUM(travel_cost) FROM travel_details GROUP BY month",
+                item.getAsJsonObject("sql").get("raw_sql").getAsString());
+        assertEquals(item, InstantBIUtils.findSavedChatResponseItem(state, "1_2"));
+    }
+
+    @Test
     public void prepareResponseParsesBotResponseJson() {
         JsonObject parsed = InstantBIUtils.prepareResponse("ignored", "{\"answer\":\"ok\"}", null);
         assertEquals("ok", parsed.get("answer").getAsString());
@@ -583,6 +624,46 @@ public class InstantBIUtilsTest {
         obj.addProperty("chat_sequence_id", sequenceId);
         obj.addProperty("input", input);
         return obj;
+    }
+
+    private static JsonObject thinkReportState() {
+        JsonObject sql1 = new JsonObject();
+        sql1.addProperty("raw_sql", "SELECT SUM(travel_cost) FROM travel_details");
+        JsonObject summary1 = new JsonObject();
+        summary1.addProperty("insight", "Total travel cost is 120000.");
+        JsonObject chatResponse1 = new JsonObject();
+        chatResponse1.add("sql", sql1);
+        chatResponse1.add("summary", summary1);
+
+        JsonObject step1 = new JsonObject();
+        step1.addProperty("index", 1);
+        step1.addProperty("chat_seq_id", "1_1");
+        step1.addProperty("question", "What is total travel cost?");
+        step1.add("chat_response", chatResponse1);
+
+        JsonObject sql2 = new JsonObject();
+        sql2.addProperty("raw_sql", "SELECT month, SUM(travel_cost) FROM travel_details GROUP BY month");
+        JsonObject chatResponse2 = new JsonObject();
+        chatResponse2.add("sql", sql2);
+        JsonObject step2 = new JsonObject();
+        step2.addProperty("index", 2);
+        step2.addProperty("question", "Cost by month?");
+        step2.add("chat_response", chatResponse2);
+
+        JsonArray history = new JsonArray();
+        history.add(step1);
+        history.add(step2);
+
+        JsonObject parent = new JsonObject();
+        parent.addProperty("chat_sequence_id", 1);
+        parent.addProperty("is_think_plan", true);
+        parent.add("question_history", history);
+
+        JsonArray chatResponses = new JsonArray();
+        chatResponses.add(parent);
+        JsonObject state = new JsonObject();
+        state.add("chat_responses", chatResponses);
+        return state;
     }
 
     @SuppressWarnings("unchecked")

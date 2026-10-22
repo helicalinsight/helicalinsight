@@ -131,8 +131,15 @@ class HIAxios {
         //   message: error.message,
         // });
       });
-    this.controller.abort();
-    // this.source.cancel();
+    try {
+      // Instance defaults include cancelToken — must cancel or non-resumable XHR keeps running.
+      this.source?.cancel?.("cancel");
+    } catch (e) {
+      /* already cancelled */
+    }
+    if (this.controller && !this.controller.signal.aborted) {
+      this.controller.abort();
+    }
   };
 }
 export default HIAxios;

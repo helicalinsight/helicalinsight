@@ -1,5 +1,7 @@
 import HIIcon from '../../../common/icons/hi-icons';
+import "../advanceComponents/crosstab/hcrCrosstab.scss";
 import HCRCrosstabViewMode from '../advanceComponents/crosstab/hcrCrosstabViewMode';
+import "../advanceComponents/table/hcrAdvancedTable.scss";
 import "./hcrCrosstab.scss";
 
 const ctTemplate = (

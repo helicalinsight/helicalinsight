@@ -41,6 +41,15 @@ Examples: SUM(t.col) -> SUM("t"."col"); COUNT(distinct t.col) -> COUNT(DISTINCT 
 COUNT(when t.col=Val) -> COUNT(CASE WHEN "t"."col" = 'Val' THEN 1 END).
 Use the physical table/column references named inside the formula, not the measure name.
 
+#MEASURE TRAITS
+When a measure includes grain, additivity, or business direction, follow them:
+Stay at that grain and do not join a finer-grain table that duplicates those rows.
+additive: SUM across dimensions at that grain is valid.
+non-additive: do not SUM the measure; compute it from its formula components inside each group.
+semi-additive: do not SUM across time; sum only across non-time dimensions.
+business direction negative: an increase is unfavorable. positive: a decrease is unfavorable.
+neutral: do not treat a change as good or bad.
+
 
 
 

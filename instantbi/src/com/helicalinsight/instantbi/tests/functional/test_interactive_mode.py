@@ -156,7 +156,7 @@ def test_run_think_mode_executes_text_only_without_viz():
     assert "120k" in payload["final_answer"] or "Domestic" in payload["final_answer"]
     assert len(payload["question_history"]) == 3
     assert payload["question_history"][0]["analysis"] == "Total travel cost is 120,000 for the selected period."
-    assert payload["question_history"][0]["answer"] == "The travel cost is 120,000."
+    assert "answer" not in payload["question_history"][0]
     assert payload["question_history"][0]["index"] == 1
     assert payload["opening_insight"] == "This looks at travel spend from a few angles."
     plan_mock.assert_called_once()

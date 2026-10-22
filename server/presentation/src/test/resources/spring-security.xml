@@ -310,6 +310,8 @@
 
         <intercept-url pattern="/importFile*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
+        <intercept-url pattern="/uploadChunk*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+
         <intercept-url pattern="/workflow*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
 
         <intercept-url pattern="/saveReport*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>

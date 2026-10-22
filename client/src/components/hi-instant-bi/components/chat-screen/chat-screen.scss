@@ -241,6 +241,7 @@
             // border: 1px solid #ddd;
             // padding: 16px;
             width: 100%;
+            height: 100%;
             min-width: 0;
             border-radius: 15px;
             position: relative;
@@ -535,6 +536,7 @@
             .ant-tabs {
               align-items: flex-end;
               width: 100%;
+              height: 100%;
 
               .ant-tabs-ink-bar {
                 display: none;
@@ -553,11 +555,13 @@
               }
 
               .ant-tabs-content-holder {
-                width: 100%
+                width: 100%;
+                height: 100%;
               }
 
               .ant-tabs-content {
-                width: 100%
+                width: 100%;
+                height: 100%;
               }
 
               .ant-tabs-tab {
@@ -565,7 +569,7 @@
                 margin: 0 !important;
               }
 
-              .ant-tabs-tab + .ant-tabs-tab {
+              .ant-tabs-tab+.ant-tabs-tab {
                 margin: 0 !important;
               }
 
@@ -577,6 +581,22 @@
               .ant-tabs-tab .anticon {
                 margin: 0 !important;
               }
+
+              .ant-tabs-tabpane {
+                height: 100%;
+              }
+
+              .chart-preview-section {
+                height: 100%;
+              }
+
+              .chart-wrapper {
+                height: 100%;
+              }
+            }
+
+            .ant-row {
+              height: 100%
             }
 
           }
@@ -590,6 +610,8 @@
 
             .message-container__data-insight-info-icon,
             .chart-preview-section__data-insight-fab,
+            .ib-think-final__data-insight-fab,
+            .ib-think-plan__data-insight-fab,
             .chart-preview-section__go-to-hreport-button,
             .chart-preview-section__trigger-button,
             .chart-preview-section__sql-button,
@@ -831,8 +853,8 @@
   align-items: center;
   gap: 1.5px;
 
-  > span,
-  > .ant-tooltip-disabled-compatible-wrapper {
+  >span,
+  >.ant-tooltip-disabled-compatible-wrapper {
     display: inline-flex;
     line-height: 0;
     margin: 0;
@@ -847,8 +869,8 @@
   align-items: center;
   gap: 1.5px;
 
-  > span,
-  > .ant-tooltip-disabled-compatible-wrapper {
+  >span,
+  >.ant-tooltip-disabled-compatible-wrapper {
     display: inline-flex;
     line-height: 0;
     margin: 0;
@@ -906,7 +928,7 @@
     margin: 0 !important;
   }
 
-  .ant-tabs-tab + .ant-tabs-tab {
+  .ant-tabs-tab+.ant-tabs-tab {
     margin: 0 !important;
   }
 
@@ -918,7 +940,7 @@
     justify-content: center;
   }
 
-  .ant-tabs-tab-btn > span,
+  .ant-tabs-tab-btn>span,
   .ant-tabs-tab-btn .ant-tooltip-disabled-compatible-wrapper {
     display: inline-flex;
     line-height: 0;
@@ -1176,6 +1198,45 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+
+  &__data-insight-fab {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+
+    .anticon {
+      font-size: 12px;
+      color: #3e4557;
+    }
+
+    &:hover .anticon {
+      color: #1890ff;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &:hover &__data-insight-fab {
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 .ib-think-plan__intro {
@@ -1184,11 +1245,11 @@
   margin: 0;
   padding-right: 56px; // room for hover toolbar icons
 
-  > p:first-child {
+  >p:first-child {
     margin-top: 0;
   }
 
-  > p:last-child {
+  >p:last-child {
     margin-bottom: 0;
   }
 }
@@ -1208,6 +1269,14 @@
   padding: 2px;
 }
 
+.ib-think-plan__tabs {
+  margin-bottom: 8px;
+
+  .ant-tabs-nav {
+    margin-bottom: 8px;
+  }
+}
+
 .ib-think-plan__toolbar-label {
   margin-bottom: 0;
 }
@@ -1223,8 +1292,8 @@
   pointer-events: none;
   transition: opacity 0.15s ease, visibility 0.15s ease;
 
-  > span,
-  > .ant-tooltip-disabled-compatible-wrapper {
+  >span,
+  >.ant-tooltip-disabled-compatible-wrapper {
     display: inline-flex;
     line-height: 0;
   }
@@ -1420,6 +1489,11 @@
 
 .ib-think-step.is-expanded {
   padding-bottom: 6px;
+
+  &:hover .chart-preview-section__data-insight-fab {
+    visibility: visible;
+    opacity: 1;
+  }
 }
 
 .ib-think-step__body {
@@ -1500,6 +1574,50 @@
   p,
   li {
     max-width: 100%;
+  }
+
+  &__answer {
+    position: relative;
+    width: 100%;
+  }
+
+  &__data-insight-fab {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 50%;
+    padding: 0;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+
+    .anticon {
+      font-size: 12px;
+      color: #3e4557;
+    }
+
+    &:hover .anticon {
+      color: #1890ff;
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+
+  &:hover &__data-insight-fab {
+    visibility: visible;
+    opacity: 1;
   }
 }
 

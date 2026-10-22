@@ -23,7 +23,8 @@ public class RecycleBinDTO implements Serializable {
 	private String name;
 	private Long resourceTypeId;
 	private Date deletedOn;
-	private String deletedBy;	
+	/** Username string for list APIs; full user object for export/import sidecars. */
+	private Object deletedBy;
 	private String title;
 	private String resourceUrl;
 	private Object createdBy;

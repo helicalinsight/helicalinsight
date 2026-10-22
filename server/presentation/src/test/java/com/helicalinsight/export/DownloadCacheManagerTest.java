@@ -71,9 +71,23 @@ public class DownloadCacheManagerTest {
 		JsonObject requestParameterJson = new JsonObject();
 		requestParameterJson.addProperty("reportName", "reportName");
 		field.set(cacheManager, requestParameterJson);
-		
+
+		// null/null is materialize-only; without iDownload there is nothing to write → false
 		boolean serveCachedContent = cacheManager.serveCachedContent(request, response, rawObject);
-		Assert.assertTrue(serveCachedContent);
+		Assert.assertFalse(serveCachedContent);
+
+		// With a real payload, materialize-only succeeds
+		IDownload iDownload = mock(IDownload.class);
+		Field field2 = DownloadCacheManager.class.getDeclaredField("iDownload");
+		field2.setAccessible(true);
+		when(iDownload.downloadFormat(any(), any())).thenReturn(new StringBuilder("a,b\n1,2"));
+		field2.set(cacheManager, iDownload);
+		Field ext = DownloadCacheManager.class.getDeclaredField("fileExtension");
+		ext.setAccessible(true);
+		ext.set(cacheManager, ".csv");
+
+		Assert.assertTrue(cacheManager.serveCachedContent(null, null, rawObject));
+		Assert.assertTrue(requestParameterJson.has("fileToDownload"));
 	}
 	@Test
 	public void ut_a4_testServeCachedContent() throws IOException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {

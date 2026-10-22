@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.JsonObject;
@@ -26,6 +27,8 @@ import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.export.handler.ImportManagerContext;
+import com.helicalinsight.export.service.RecycleBinHandler;
 import com.helicalinsight.resourcedb.Deleted;
 /**
  * Utility class for managing resource sharing, including user, role, organization, and profile operations.
@@ -44,6 +47,10 @@ public class ResourceShareUtils {
 	protected ProfileService profileService;
 	@Autowired
 	protected ResourceDTOMapper mapper;
+
+	@Autowired
+	@Lazy
+	private RecycleBinHandler recycleBinHandler;
 
 
     /**
@@ -64,7 +71,7 @@ public class ResourceShareUtils {
 		} else {
 			dbRole = new Role();
 			if(org != null) dbRole.setOrg_id(org.getId());
-			Organization organization = mapper.map(role.getOrganization());
+			Organization organization =  getOrInsertOrganiation(role.getOrganization());
 			dbRole.setOrganization(organization);
 			dbRole.setRole_name(role.getRole_name());
 			roleService.add(dbRole);
@@ -79,20 +86,28 @@ public class ResourceShareUtils {
      * @return The existing or newly inserted organization.
      */
 	public Organization getOrInsertOrganiation(OrganizationDTO organization) {
+		return getOrInsertOrganiation(organization, null);
+	}
+
+	public Organization getOrInsertOrganiation(OrganizationDTO organization, ImportManagerContext context) {
+		if (organization == null) {
+			return null;
+		}
 		Organization dbOrg = orgService.getOrganizationForRecycleBinCondition(organization.getOrg_name());
 		if (dbOrg != null) {
-			if(Boolean.TRUE.equals(dbOrg.isDeleted())) {
+			if (Boolean.TRUE.equals(dbOrg.isDeleted()) && context == null) {
 				return null;
 			}
+			applyOrganizationRecycleBin(organization.getId(), dbOrg, context);
 			return dbOrg;
 		}
-		
+
 		Organization entity = new Organization();
 		entity.setOrg_name(organization.getOrg_name());
 		entity.setOrg_desc(organization.getOrg_desc());
-		entity.setDeleted(organization.getDeleted());
-		
+		entity.setDeleted(false);
 		orgService.add(entity);
+		applyOrganizationRecycleBin(organization.getId(), entity, context);
 		return entity;
 	}
 	/**
@@ -103,34 +118,62 @@ public class ResourceShareUtils {
      * @return The existing or newly inserted user.
      */
 	public User getOrInsertUser(UserDTO user) {
-		
-		OrganizationDTO fileOrg = user.getOrganization();
-		User dbUser = null;
-		Organization dbOrg = null;
-		if(fileOrg != null) {
-			dbOrg =  orgService.getOrganizationForRecycleBinCondition(fileOrg.getOrg_name());
-			if(dbOrg == null) {
-				dbOrg = new Organization();
-				dbOrg.setOrg_name(fileOrg.getOrg_name());
-				dbOrg.setOrg_desc(fileOrg.getOrg_desc());
-				dbOrg.setDeleted(fileOrg.getDeleted());
-				orgService.add(dbOrg);
+		return getOrInsertUser(user, null);
+	}
+
+	public User getOrInsertUser(UserDTO user, ImportManagerContext context) {
+		if (user == null) {
+			return null;
+		}
+		Organization dbOrg = resolveOrganizationForUser(user.getOrganization(), context);
+		User dbUser = findExistingUser(user.getUsername(), dbOrg, context != null);
+
+		if (dbUser != null) {
+			if (!Boolean.TRUE.equals(dbUser.isDeleted())) {
+				updateUser(user, dbUser);
+				upsertProfiles(user.getProfile(), dbUser);
 			}
-			dbUser = userService.findUserByNameNOrgId(user.getUsername(),dbOrg.getId(),Deleted.FALSE);
+		} else {
+			dbUser = createUser(user, dbOrg);
 		}
-		else {
-			dbUser = userService.findUserByNameNorgNull(user.getUsername(),Deleted.FALSE);
+		applyUserRecycleBin(user.getId(), dbUser, context);
+		return dbUser;
+	}
+
+	private Organization resolveOrganizationForUser(OrganizationDTO fileOrg, ImportManagerContext context) {
+		if (fileOrg == null) {
+			return null;
 		}
-		if (dbUser != null ) {
-			if(Boolean.TRUE.equals(dbUser.isDeleted())) {
-				return dbUser;
+		Organization dbOrg = orgService.getOrganizationForRecycleBinCondition(fileOrg.getOrg_name());
+		if (dbOrg == null) {
+			dbOrg = new Organization();
+			dbOrg.setOrg_name(fileOrg.getOrg_name());
+			dbOrg.setOrg_desc(fileOrg.getOrg_desc());
+			dbOrg.setDeleted(false);
+			orgService.add(dbOrg);
+		}
+		applyOrganizationRecycleBin(fileOrg.getId(), dbOrg, context);
+		return dbOrg;
+	}
+
+	private User findExistingUser(String username, Organization dbOrg, boolean includeDeleted) {
+		User dbUser;
+		if (dbOrg != null) {
+			dbUser = userService.findUserByNameNOrgId(username, dbOrg.getId(), Deleted.FALSE);
+			if (dbUser == null && includeDeleted) {
+				dbUser = userService.findUserByNameNOrgId(username, dbOrg.getId(), Deleted.TRUE);
 			}
-			updateUser(user,dbUser);
-			upsertProfiles(user.getProfile(),dbUser);
-			return dbUser;
+		} else {
+			dbUser = userService.findUserByNameNorgNull(username, Deleted.FALSE);
+			if (dbUser == null && includeDeleted) {
+				dbUser = userService.findUserByNameNorgNull(username, Deleted.TRUE);
+			}
 		}
-		
-		dbUser = new User();
+		return dbUser;
+	}
+
+	private User createUser(UserDTO user, Organization dbOrg) {
+		User dbUser = new User();
 		List<RoleDTO> roles = user.getRoles();
 		List<Role> dbRoles = new ArrayList<>();
 		for (RoleDTO role : roles) {
@@ -146,10 +189,22 @@ public class ResourceShareUtils {
 		dbUser.setIsExternallyAuthenticated(user.getIsExternallyAuthenticated());
 		dbUser.setPassword(user.getPassword());
 		dbUser.setUsername(user.getUsername());
+		dbUser.setDeleted(false);
 		userService.addUser(dbUser);
-		List<ProfileDTO> profiles = user.getProfile();
-		upsertProfiles(profiles, dbUser);
+		upsertProfiles(user.getProfile(), dbUser);
 		return dbUser;
+	}
+
+	private void applyUserRecycleBin(int exportUserId, User user, ImportManagerContext context) {
+		if (context != null) {
+			recycleBinHandler.importUser(exportUserId, user, context);
+		}
+	}
+
+	private void applyOrganizationRecycleBin(int exportOrgId, Organization organization, ImportManagerContext context) {
+		if (context != null) {
+			recycleBinHandler.importOrganization(exportOrgId, organization, context);
+		}
 	}
 	/**
      * Updates or insert the profiles associated with a user.
@@ -192,12 +247,16 @@ public class ResourceShareUtils {
 	}
 	
 	public User resolveUser(Object createdByObj) {
+		return resolveUser(createdByObj, null);
+	}
+
+	public User resolveUser(Object createdByObj, ImportManagerContext context) {
 		User createdBy = null;
 		boolean shouldFallBack = true;
 
 		if (createdByObj instanceof User user) {
 			if (user.getUsername() != null) {
-				createdBy = getOrInsertUser(mapper.map(user));
+				createdBy = getOrInsertUser(mapper.map(user), context);
 				shouldFallBack = false;
 			}
 		}
@@ -219,6 +278,10 @@ public class ResourceShareUtils {
 				User user = userService.findUser(Integer.parseInt(defaultOwnerId));
 				if (user != null) {
 					createdBy = user;
+					if (context != null && StringUtils.isNotBlank(context.getCurrentResourceUrl())) {
+						context.addWarning(context.getCurrentResourceUrl(),
+								"Resource owner not found; assigned default owner (id=" + defaultOwnerId + ").");
+					}
 				}
 			}
 		}

@@ -50,6 +50,7 @@ public interface HIRecycleBinDao {
 
 	Optional<HIRecycleBin> findHIRecycleBinBYUserId(int userId);
 
+	Optional<HIRecycleBin> findHIRecycleBinByOrgId(int orgId);
 	void deleteHIRecycleByEfwdId(Integer connectionId);
 
 	void deleteRecycleBinByGlobalId(Integer globalId);

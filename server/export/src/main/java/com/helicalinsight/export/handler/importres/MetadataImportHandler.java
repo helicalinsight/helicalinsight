@@ -10,6 +10,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -37,9 +39,11 @@ import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
 import com.helicalinsight.admin.model.HIResourceMetadataDTO;
 import com.helicalinsight.admin.model.MetadataDatabases;
+import com.helicalinsight.datasource.GlobalJdbcType;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceUtils;
+import com.helicalinsight.export.handler.ImportManagerContext;
 import com.helicalinsight.export.service.DatasourceFactory;
 import com.helicalinsight.export.service.DatasourceHandler;
 import com.helicalinsight.resourcedb.Deleted;
@@ -53,6 +57,8 @@ import com.helicalinsight.resourcesecurity.SecurityUtils;
 @Component("metadataImportHandler")
 @Scope("prototype")
 public class MetadataImportHandler extends AbstractResourceImportHandler {
+	
+	private static Logger logger = LoggerFactory.getLogger(MetadataImportHandler.class);
 
 	@Autowired
 	private EnhancedJoinsHandler enhancedJoinsHandler;
@@ -87,12 +93,15 @@ public class MetadataImportHandler extends AbstractResourceImportHandler {
 		if (dsExists) {
 			String dsFileName = manifestUtils.getDatasource(context.removeDestination(resourceUrl), context.getManifest());
 			if (null != dsFileName) {
+				context.addLog(resourceUrl, "[datasource] Importing datasource (" + metadata.getConnectionType() + ")…");
 				DatasourceHandler dsHandler = DatasourceFactory.getHandler(metadata.getConnectionType());
 				dsHandler.setContext(context);
 				dsHandler.importResource(null, dsFileName, conflictMode);
+				context.addLog(resourceUrl, "[datasource] Datasource imported.");
+			} else {
+				context.addLog(resourceUrl, "[datasource] No datasource sidecar found; skipped.");
 			}
 		}
-		
 		HIResource parent = context.getResourceUrlMap().get(parentUrl+"."+JsonUtils.getFolderFileExtension());
 		resource.setParentId(parent!=null ?parent.getResourceId() : null);
 		HIResource existingMdResorce = serviceDb.getResourceByUrl(resourceUrl,Deleted.FALSE);
@@ -166,34 +175,20 @@ public class MetadataImportHandler extends AbstractResourceImportHandler {
 			mdServiceDb.addHIMetadataConnections(newConnection);
 			List<HIMetadataConnectionGlobalDTO> globalConnectionList = connection.getMetadataGlobalConnList();
 			List<HIMetadataConnectionEFWDDTO> efwdConnectionList = connection.getMetadataConnectionEfwd();
+			
+			
 			for (HIMetadataConnectionGlobalDTO globalConnectionDTO : globalConnectionList) {
-				HIMetadataConnectionGlobal globalConnection = mapper.map(globalConnectionDTO);
-				GlobalConnections gConnections = mapper.toEntity(globalConnectionDTO.getGlobalConnections());
-				GlobalConnections dbConnection = context.getGlobalConnection(gConnections.getGlobalId());
-				if ( dbConnection != null ) {
-					globalConnection.setGlobalConnections(dbConnection);
-					globalConnection.setHiMetadataConnections(newConnection);
-					mdServiceDb.saveHIMetadataConnectionGlobal(globalConnection);
-				}
+				saveGlobalConnection(globalConnectionDTO, newConnection, context);
 			}
+
 			for (HIMetadataConnectionEFWDDTO efwdConn : efwdConnectionList) {
-				HIMetadataConnectionEFWD efwdConnection = mapper.map(efwdConn);
-				HIEfwdConnection dbConnection = context.getEfwdConnection(efwdConn.getHiEfwdConnection().getId());
-				if ( dbConnection != null ) {
-					efwdConnection.setHiEfwdConnection(dbConnection);
-					efwdConnection.setHiMetadataConnections(newConnection);
-					mdServiceDb.saveHIMetadataConnectionEfwd(efwdConnection);
-				}
+				saveEfwdConnection(efwdConn, newConnection, context);
 			}
-			List<MetadataDatabases> newDbs = new ArrayList<>();
+			
 			List<MetadataDatabasesDTO> databases = connection.getMetadataDatabases();
 			for (MetadataDatabasesDTO database : databases) {
-				
-				MetadataDatabases db = saveDatabase(database, newConnection, newMetadata);
-				newDbs.add(db);
+				saveDatabase(database, newConnection, newMetadata);
 			}
-			newConnection.setMetadataDatabases(newDbs);
-			
 			handleSecurity(metadata,newMetadata);
 			
 		}
@@ -501,5 +496,58 @@ public class MetadataImportHandler extends AbstractResourceImportHandler {
 			}
 		}
 		
+	}
+	
+	private void saveGlobalConnection(HIMetadataConnectionGlobalDTO dto, HIMetadataConnections newConnection, ImportManagerContext context) {
+	    HIMetadataConnectionGlobal globalConnection = mapper.map(dto);
+		GlobalConnections globalConnections = mapper.toEntity(dto.getGlobalConnections());
+		GlobalConnections dbConnection = context.getGlobalConnection(globalConnections.getGlobalId());
+	    if (dbConnection != null) {
+	        globalConnection.setGlobalConnections(dbConnection);
+	        saveMetadataConnection(globalConnection, newConnection);
+	    }
+	}
+	
+	private void saveEfwdConnection(HIMetadataConnectionEFWDDTO dto, HIMetadataConnections newConnection, ImportManagerContext context) {
+
+	    HIMetadataConnectionEFWD efwdConnection = mapper.map(dto);
+
+	    HIEfwdConnection dbConnection = context.getEfwdConnection(dto.getHiEfwdConnection().getId());
+
+	    if (dbConnection != null) {
+	        efwdConnection.setHiEfwdConnection(dbConnection);
+	        saveMetadataConnection(efwdConnection, newConnection);
+	        return;
+	    }
+
+	    logger.debug("Connection not found, assigning default global connection");
+	    if (StringUtils.isNotBlank(context.getCurrentResourceUrl())) {
+	    	context.addWarning(context.getCurrentResourceUrl(),
+	    			"Datasource connection not found; assigned default datasource (id=" + JsonUtils.getDefaultDatasourceId() + ").");
+	    }
+	    saveDefaultGlobalConnection(dto, newConnection, context);
+	}
+	
+	private void saveDefaultGlobalConnection(HIMetadataConnectionEFWDDTO dto, HIMetadataConnections newConnection, ImportManagerContext context) {
+		
+		String connectionType = GlobalJdbcType.TYPE;
+		newConnection.setConnectionType(connectionType);
+		newConnection.getHiResourceMetadata().setConnectionType(connectionType);
+		HIMetadataConnectionGlobal globalConnection = new HIMetadataConnectionGlobal();
+		globalConnection.setDialect(dto.getDialect());
+		globalConnection.setDriverClass(dto.getDriverClass());
+		globalConnection.setDriverClassReference(dto.getDriverClassReference());
+		globalConnection.setGlobalConnections(context.getGlobalConnection(JsonUtils.getDefaultDatasourceId()));
+		saveMetadataConnection(globalConnection, newConnection);
+	}
+	
+	private void saveMetadataConnection(HIMetadataConnectionGlobal connection, HIMetadataConnections newConnection) {
+		connection.setHiMetadataConnections(newConnection);
+		mdServiceDb.saveHIMetadataConnectionGlobal(connection);
+	}
+
+	private void saveMetadataConnection(HIMetadataConnectionEFWD connection, HIMetadataConnections newConnection) {
+		connection.setHiMetadataConnections(newConnection);
+		mdServiceDb.saveHIMetadataConnectionEfwd(connection);
 	}
 }

@@ -1,6 +1,5 @@
 package com.helicalinsight.admin.model;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,7 +13,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class HIResourceMetadataDTO implements Serializable {
+public class HIResourceMetadataDTO extends BaseResourceProps {
 	
     /**
 	 * 
