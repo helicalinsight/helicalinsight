@@ -243,8 +243,11 @@ export const runResumableDownload = async ({
   const waitAbort = new AbortController();
   let latest = { progress: 0, loaded: 0, total: 0, phase: "preparing" };
 
+  // Do not open the progress modal until prepare succeeds (avoids flash on early errors).
+  let reportToUi = false;
   const emit = (patch = {}) => {
     latest = { ...latest, ...patch };
+    if (!reportToUi) return;
     callback?.({
       ...latest,
       resumable: true,
@@ -275,8 +278,6 @@ export const runResumableDownload = async ({
     controls.resume();
     emit({ phase: "downloading" });
   };
-
-  emit({ progress: 0, loaded: 0, total: 0, phase: "preparing" });
 
   try {
     const prepareRes = await hiAxios.instance({
@@ -315,6 +316,10 @@ export const runResumableDownload = async ({
       callback?.(null);
       return;
     }
+
+    // Ticket accepted — show progress (cancel available) while artifact is prepared.
+    reportToUi = true;
+    emit({ progress: 0, loaded: 0, total: 0, phase: "preparing" });
 
     const ready =
       useStreamResponse && eventsUrl

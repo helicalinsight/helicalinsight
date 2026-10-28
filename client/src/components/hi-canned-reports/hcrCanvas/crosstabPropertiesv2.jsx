@@ -13,7 +13,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { hcrActions } from "../../../redux/actions";
 import { hcrCrosstabMeasuresAggregateFns, hcrDSQuery } from "../hcr-constants";
-import { getCrosstabDefaultStyles, hcrCanvasPaneHelperMethods, NoDataTemplate, getCrosstabConfigV2 } from "./hcrCanvasPaneHelperMethods";
+import { getCrosstabDefaultStyles, hcrCanvasPaneHelperMethods, NoDataTemplate, getCrosstabConfigV2, getHCRCrosstabLayoutOptions } from "./hcrCanvasPaneHelperMethods";
 import CommonProperties from "./hcrTable/commonProperties";
 import NodeBorders from "./nodeBorder";
 import NodePadding from "./nodePadding";
@@ -81,6 +81,8 @@ const CrosstabPropertiesV2 = ({
       state.cannedReports.present?.hCROldConfigurations
         ?.HcrPropertiesConfiguration || {},
   );
+  const { layout = {} } = designerProperties || {};
+  const layoutOptions = getHCRCrosstabLayoutOptions(layout, "measure");
   const { crosstab = {}, tooltipInfo } = HcrPropertiesConfiguration || {};
   const { content: availableCrossTabProperties = [] } =
     crosstab?.content?.find((item) => item?.name === "Crosstab") || {};
@@ -670,12 +672,12 @@ const CrosstabPropertiesV2 = ({
                   </Tooltip>
                   <Select
                     value={nodeValues.measuresLayout}
-                    options={
-                      [
-                        { label: "Vertical", value: "vertical" },
-                        { label: "Horizontal", value: "horizontal" }
-                      ]
-                    }
+                    options={layoutOptions.map((layout) => {
+                      return {
+                        label: layout,
+                        value: layout === "Horizontal Layout" ? "horizontal" : layout === "Vertical Layout" ? "vertical" : layout,
+                      };
+                    })}
                     style={{ width: "100%" }}
                     onChange={(value) => { onPropertyChange({ key: "measuresLayout", value }) }}
                     placeholder="Select Measure Layout"

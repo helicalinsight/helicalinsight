@@ -5,6 +5,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { useSequentialChatLoad } from '../../utils/use-sequential-chat-load';
 import MessageLayout from './message-layout';
 import MetadataNotConnected from './metadata-not-connected';
+import { DashboardViewProvider } from './dashboard-view-coordinator';
 
 const MessageList = (props = {}) => {
     const {
@@ -103,68 +104,70 @@ const MessageList = (props = {}) => {
     if (!messages.length) return null;
 
     return (
-        <div
-            id="scrollableDiv"
-            className="instant-bi-chat-message-box"
-            ref={scrollableRef}
-            onScroll={isOpenMode ? undefined : handleScroll}
-        >
-            <InfiniteScroll
-                dataLength={messages.length}
-                next={handleLoadMore}
-                hasMore={false}
-                style={{
-                    display: "flex",
-                    flexDirection: "column-reverse",
-                    overflow: isOpenMode ? "visible" : "hidden",
-                }}
-                loader={
-                    <Row
-                        align="middle"
-                        justify="center"
-                        style={{ padding: "5px" }}
-                    >
-                        <Spin
-                            tip="Loading"
-                            size="large"
-                            indicator={<LoadingOutlined />}
-                        />
-                    </Row>
-                }
-                inverse={false}
-                scrollableTarget="scrollableDiv"
+        <DashboardViewProvider>
+            <div
+                id="scrollableDiv"
+                className="instant-bi-chat-message-box"
+                ref={scrollableRef}
+                onScroll={isOpenMode ? undefined : handleScroll}
             >
-                {messages &&
-                    messages.map((item, index) => (
-                        <MessageLayout
-                            chatItem={item}
-                            key={item.id}
-                            index={index}
-                            {...item}
-                            {...{
-                                isFullWidth,
-                                isOpenMode,
-                                isEditMode,
-                                activeReport,
-                                dispatch,
-                                scrollableRootRef: isOpenMode ? null : scrollableRef,
-                                onRequestChatLoad: requestLoad,
-                                onRetryLoad: retryLoad,
-                                loadingChatSequenceId: loadingSequenceId,
-                                onAbortChatLoad: abortLoadChat,
-                                skippedSequenceIds,
-                                abortedSequenceIds,
-                                onShowThinkQuestion,
-                            }}
-                            handleScroll={resetScrollShow}
-                        />
-                    ))}
-            </InfiniteScroll>
-            <div ref={chatEndRef} />
-            {showScrollToBottom && (
-                <ArrowDownOutlined className='scroll-to-bottom' onClick={() => resetScrollShow()} style={{ fontSize: '20px' }} />
-            )}
-        </div>
+                <InfiniteScroll
+                    dataLength={messages.length}
+                    next={handleLoadMore}
+                    hasMore={false}
+                    style={{
+                        display: "flex",
+                        flexDirection: "column-reverse",
+                        overflow: isOpenMode ? "visible" : "hidden",
+                    }}
+                    loader={
+                        <Row
+                            align="middle"
+                            justify="center"
+                            style={{ padding: "5px" }}
+                        >
+                            <Spin
+                                tip="Loading"
+                                size="large"
+                                indicator={<LoadingOutlined />}
+                            />
+                        </Row>
+                    }
+                    inverse={false}
+                    scrollableTarget="scrollableDiv"
+                >
+                    {messages &&
+                        messages.map((item, index) => (
+                            <MessageLayout
+                                chatItem={item}
+                                key={item.id}
+                                index={index}
+                                {...item}
+                                {...{
+                                    isFullWidth,
+                                    isOpenMode,
+                                    isEditMode,
+                                    activeReport,
+                                    dispatch,
+                                    scrollableRootRef: isOpenMode ? null : scrollableRef,
+                                    onRequestChatLoad: requestLoad,
+                                    onRetryLoad: retryLoad,
+                                    loadingChatSequenceId: loadingSequenceId,
+                                    onAbortChatLoad: abortLoadChat,
+                                    skippedSequenceIds,
+                                    abortedSequenceIds,
+                                    onShowThinkQuestion,
+                                }}
+                                handleScroll={resetScrollShow}
+                            />
+                        ))}
+                </InfiniteScroll>
+                <div ref={chatEndRef} />
+                {showScrollToBottom && (
+                    <ArrowDownOutlined className='scroll-to-bottom' onClick={() => resetScrollShow()} style={{ fontSize: '20px' }} />
+                )}
+            </div>
+        </DashboardViewProvider>
     );
 }
 

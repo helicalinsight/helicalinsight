@@ -2,6 +2,7 @@ package com.helicalinsight.efw.utility;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.helicalinsight.admin.customauth.DataSourceEncrypt;
@@ -1588,5 +1589,19 @@ public class JsonUtils {
     	return GsonUtility.optIntValue(newGetSettingsJson(), "defaultDatasourceId", 1);
     }
 
+    public static boolean getShowGenerateJRXmlToggle() {
+        return GsonUtility.optBooleanValue(newGetSettingsJson(), "showJRXmlGenerationToggle", false);
+    }
+    
+	public static Set<String> getScheduleSupportedModules() {
+		JsonObject scheduleObject = GsonUtility.optJsonObject(newGetSettingsJson(), "schedule");
+		JsonArray jobs = GsonUtility.optJsonArray(scheduleObject, "job");
+		Set<String> supported = new HashSet<>();
+		for (JsonElement eachJob : jobs) {
+			JsonObject job = eachJob.getAsJsonObject();
+			supported.add(GsonUtility.optString(job, "type"));
+		}
+		return supported;
+	}
 
 }

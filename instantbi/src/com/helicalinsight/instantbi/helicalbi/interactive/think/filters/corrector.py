@@ -13,6 +13,7 @@ from helicalbi.interactive.think.constants import FILTER_TITLE_SYNC_KEYS
 from helicalbi.interactive.think.filters.kinds import DashboardItemClassifier
 from helicalbi.interactive.think.filters.labels import FilterLabelResolver
 from helicalbi.interactive.think.filters.matcher import ReportItemMatcher
+from helicalbi.model.output.dashboard.Kind import Kind
 
 
 class ThinkModeFilterCorrector:
@@ -45,6 +46,7 @@ class ThinkModeFilterCorrector:
                 result=result,
                 question_history=question_history,
             )
+        self._sync_history_report_models(payload_or_dashboard, question_history)
         return payload_or_dashboard
 
     def _collect_dashboards(
@@ -182,6 +184,68 @@ class ThinkModeFilterCorrector:
         rep_model = target_rep.get("report_model")
         if isinstance(rep_model, dict) and isinstance(rep_model.get("data_model"), dict):
             yield rep_model["data_model"]
+
+    def _sync_history_report_models(
+        self,
+        payload_or_dashboard: dict[str, Any],
+        question_history: Optional[list[dict[str, Any]]],
+    ) -> None:
+        """Copy each instant tile report_model onto the matching history chat response.
+
+        Filter correction writes filters onto the dashboard instant report_model.
+        question_history is built earlier, so its chat_response.report_model is a
+        separate copy. Align them after that correction.
+        """
+        histories: list[list[dict[str, Any]]] = []
+        if isinstance(question_history, list):
+            histories.append(question_history)
+        nested = payload_or_dashboard.get("question_history")
+        if isinstance(nested, list) and nested is not question_history:
+            histories.append(nested)
+        if not histories:
+            return
+
+        by_seq: dict[str, dict[str, Any]] = {}
+        for db in self._collect_dashboards(payload_or_dashboard):
+            for item in db.get("items") or []:
+                if not isinstance(item, dict) or not self._is_instant(item):
+                    continue
+                report = item.get("report_model")
+                if not isinstance(report, dict):
+                    model = item.get("dashboard_model")
+                    if isinstance(model, dict):
+                        report = model.get("report_model")
+                if not isinstance(report, dict):
+                    continue
+                for key in ("chat_sequence_id", "itemId", "id"):
+                    seq = str(item.get(key) or "").strip()
+                    if seq:
+                        by_seq.setdefault(seq, report)
+        if not by_seq:
+            return
+
+        for history in histories:
+            for entry in history:
+                if not isinstance(entry, dict):
+                    continue
+                report = by_seq.get(str(entry.get("chat_seq_id") or "").strip())
+                if report is None:
+                    continue
+                chat = entry.get("chat_response")
+                if not isinstance(chat, dict):
+                    chat = {}
+                    entry["chat_response"] = chat
+                chat["report_model"] = report
+
+    @staticmethod
+    def _is_instant(item: dict[str, Any]) -> bool:
+        kind = str(item.get("kind") or item.get("compType") or "").strip()
+        if Kind.wire(kind) == Kind.INSTANT:
+            return True
+        model = item.get("dashboard_model")
+        if isinstance(model, dict):
+            return Kind.wire(str(model.get("kind") or "")) == Kind.INSTANT
+        return False
 
     def _sync_dashboard_filters_list(
         self,

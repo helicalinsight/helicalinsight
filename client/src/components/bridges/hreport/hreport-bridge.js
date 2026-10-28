@@ -36,7 +36,6 @@ import {
 import { getTableTree } from '../../hi-reports/utils/utilities';
 import { checkReportsAvailable, getReportById, getUserState } from './utils';
 import { resolveHreportSelectedType } from './viz-type-map';
-import { get } from 'js-cookie';
 
 function getHreportInfo(reportModel = {}) {
     const {
@@ -488,7 +487,10 @@ function createHReportBridge(props = {}) {
                 } else {
                     dispatch(createFilter({ ...filterColumn, uid: filterId, columnID: filterField.id, from: "metadata", active: false }))
                 }
-                updateFilterCondition(filterId, condition)
+                const filter = getFilterById(filterId);
+                if (!filter.datePart) {
+                    updateFilterCondition(filterId, condition)
+                }
 
                 if (filterField.customCondition) {
                     dispatch(updateCustomCondition({ uid: filterId, customCondition: filterField.customCondition }))

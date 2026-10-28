@@ -21,7 +21,7 @@ const getTitle = (icon, title = "") => {
   return (<InstantBITooltip title={title}>{icon}</InstantBITooltip>)
 }
 
-const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter, listeners } = {}) => {
+const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter, listeners, isOpenMode } = {}) => {
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
 
@@ -38,6 +38,22 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
   const reports = useSelector((state) => state.hreport?.present?.reports || []);
   const dashboardVariables = useSelector((state) => state.dashboard.present.dashboardVariables);
   const refreshReports = useSelector((state) => state.dashboard.present.refreshReports);
+  const applyDashboardFilters = useSelector((state) => state.designer?.present?.applyDashboardFilters);
+  const enableApplyButton = useSelector(
+    (state) =>
+      state.designer?.present?.designerSettings?.find((item) => item.key === "parameters")
+        ?.values?.enableApplyButton
+  );
+
+  const appliedVariablesRef = useRef(dashboardVariables);
+  const appliedAtRef = useRef(applyDashboardFilters);
+  if (!enableApplyButton) {
+    appliedVariablesRef.current = dashboardVariables;
+  } else if (applyDashboardFilters !== appliedAtRef.current) {
+    appliedVariablesRef.current = dashboardVariables;
+    appliedAtRef.current = applyDashboardFilters;
+  }
+  const appliedDashboardVariables = appliedVariablesRef.current;
 
   const prevRefresh = useRef(refreshReports);
   useEffect(() => {
@@ -67,11 +83,11 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
   let parameters = {};
 
   listeners?.forEach((item) => {
-    if (dashboardVariables[item]) {
-      parameters[item] = dashboardVariables[item];
+    if (appliedDashboardVariables[item]) {
+      parameters[item] = appliedDashboardVariables[item];
     }
   });
-  const allFilters = parameter?.dashboardFilter ? dashboardVariables : null
+  const allFilters = parameter?.dashboardFilter ? appliedDashboardVariables : null
 
   const handleRefreshDashboard = () => {
     dispatch(refreshDashboard())
@@ -177,7 +193,7 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
     vizDetails: chat_response?.viz || {},
     sqlDetails: chat_response?.sql || {},
     tokenUsage: chat_response?.token_usage || {},
-    isOpenMode: false,
+    isOpenMode,
     isEditMode: false,
     showDataInsightButton: Boolean(hreportId) && !isLoadingDataInsight,
     handleDataInsight,
@@ -234,7 +250,7 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
   );
 
   return (
-    <div className="ib-dashboard-tile-tabs">
+    <div className="ib-dashboard-tile-tabs" key={gridId}>
       <Tabs
         className="dashboard-icon-tabs"
         activeKey={activeTab}
@@ -245,8 +261,8 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
             {null}
           </Tabs.TabPane>
         }
-        {semanticPane}
         {previewPane}
+        {semanticPane}
         {sqlPane}
       </Tabs>
 

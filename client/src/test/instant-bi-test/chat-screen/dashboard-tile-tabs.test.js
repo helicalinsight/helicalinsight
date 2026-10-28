@@ -1,6 +1,7 @@
 import '../../utils/mockJsdom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
+import { createStore } from 'redux';
 
 jest.setTimeout(30000);
 
@@ -22,9 +23,11 @@ jest.mock('react-markdown', () => ({
         require('react').createElement('div', { 'data-testid': 'markdown' }, children),
 }));
 
+const mockChartViewProps = { current: null };
 jest.mock('../../../components/hi-instant-bi/components/chat-screen/chart-view', () => ({
     __esModule: true,
     default: (props) => {
+        mockChartViewProps.current = props;
         const React = require('react');
         return React.createElement('div', {
             'data-testid': 'instant-chart-view',
@@ -117,6 +120,43 @@ const createMockStore = ({ ibReports = [ibReport], hreports = [liveHreport] } = 
     };
 };
 
+const createLiveMockStore = ({
+    dashboardVariables = {},
+    applyDashboardFilters = 'initial',
+    enableApplyButton = true,
+} = {}) => {
+    const initialState = {
+        hreport: { present: { reports: [liveHreport] } },
+        dashboard: { present: { dashboardVariables, refreshReports: 0 } },
+        designer: {
+            present: {
+                applyDashboardFilters,
+                designerSettings: [{ key: 'parameters', values: { enableApplyButton } }],
+            },
+        },
+        instantBI: { reports: [ibReport] },
+    };
+    return createStore((state = initialState, action) => {
+        if (action.type === 'SET_DASHBOARD_VARIABLES') {
+            return {
+                ...state,
+                dashboard: {
+                    present: { ...state.dashboard.present, dashboardVariables: action.payload },
+                },
+            };
+        }
+        if (action.type === 'APPLY_DASHBOARD_FILTERS') {
+            return {
+                ...state,
+                designer: {
+                    present: { ...state.designer.present, applyDashboardFilters: action.payload },
+                },
+            };
+        }
+        return state;
+    });
+};
+
 const renderTile = (store, props = {}) =>
     render(
         <Provider store={store}>
@@ -133,6 +173,7 @@ describe('DashboardTileTabs', () => {
     beforeEach(() => {
         loadInstantBIDataInsight.mockClear();
         loadInstantBIDataInsight.mockReturnValue({ abort: jest.fn() });
+        mockChartViewProps.current = null;
     });
 
     test('renders tabs with the live chart and an insight trigger', () => {
@@ -215,5 +256,52 @@ describe('DashboardTileTabs', () => {
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
         unmount();
         expect(abort).toHaveBeenCalledTimes(1);
+    });
+
+    test('applies changed dashboard filters only after Apply', () => {
+        const store = createLiveMockStore({
+            dashboardVariables: { Country: ['India'] },
+            applyDashboardFilters: '1',
+        });
+        renderTile(store, {
+            listeners: ['Country'],
+            parameter: { dashboardFilter: { columnName: 'Country' } },
+        });
+
+        expect(mockChartViewProps.current.extraProps.parameters).toEqual({ Country: ['India'] });
+
+        act(() => {
+            store.dispatch({
+                type: 'SET_DASHBOARD_VARIABLES',
+                payload: { Country: ['Japan'] },
+            });
+        });
+        expect(mockChartViewProps.current.extraProps.parameters).toEqual({ Country: ['India'] });
+        expect(mockChartViewProps.current.extraProps.allFilters).toEqual({ Country: ['India'] });
+
+        act(() => {
+            store.dispatch({ type: 'APPLY_DASHBOARD_FILTERS', payload: '2' });
+        });
+        expect(mockChartViewProps.current.extraProps.parameters).toEqual({ Country: ['Japan'] });
+        expect(mockChartViewProps.current.extraProps.allFilters).toEqual({ Country: ['Japan'] });
+    });
+
+    test('updates dashboard filters immediately when Apply is disabled', () => {
+        const store = createLiveMockStore({
+            dashboardVariables: { Country: ['India'] },
+            enableApplyButton: false,
+        });
+        renderTile(store, {
+            listeners: ['Country'],
+            parameter: { dashboardFilter: { columnName: 'Country' } },
+        });
+
+        act(() => {
+            store.dispatch({
+                type: 'SET_DASHBOARD_VARIABLES',
+                payload: { Country: ['Japan'] },
+            });
+        });
+        expect(mockChartViewProps.current.extraProps.parameters).toEqual({ Country: ['Japan'] });
     });
 });

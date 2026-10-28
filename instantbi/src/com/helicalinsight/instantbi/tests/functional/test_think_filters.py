@@ -427,3 +427,61 @@ class TestThinkModePipelineIntegration:
             assert rep["report_model"]["data_model"]["filters"][0]["alias"] == filt_res["alias"]
         finally:
             dash_mod.invoke_dashboard_layout = orig_invoke
+
+    def test_history_chat_response_uses_instant_report_model(self):
+        instant = _make_report_item(
+            "1-1",
+            columns=[
+                {"column": {"name": "public.travel.travel_date", "id": "1"}, "alias": "Year"},
+            ],
+        )
+        other = _make_report_item(
+            "1-3",
+            columns=[
+                {"column": {"name": "public.travel.travel_type", "id": "2"}, "alias": "Travel Type"},
+            ],
+        )
+        filt = _make_filter_item(
+            "filt_year",
+            column="travel_date",
+            title="Year",
+            label="Year",
+            source_item_id="1-1",
+        )
+        stale = {
+            "data_model": {"columns": [], "filters": []},
+            "viz_model": {"chart": {"viz": "Bar"}},
+        }
+        history = [
+            {
+                "index": 1,
+                "chat_seq_id": "1-1",
+                "chat_response": {"report_model": stale},
+            },
+            {
+                "index": 2,
+                "chat_seq_id": "1-3",
+                "chat_response": {"report_model": {"data_model": {"filters": [{"alias": "old"}]}}},
+            },
+            {
+                "index": 3,
+                "chat_seq_id": "1-9",
+                "chat_response": {"report_model": {"data_model": {"filters": []}}},
+            },
+        ]
+        payload = {
+            "dashboard": {"items": [instant, other, filt]},
+            "dashboard_model": None,
+            "question_history": history,
+        }
+        payload["dashboard_model"] = payload["dashboard"]
+
+        corrected = correct_think_mode_filters(payload, question_history=history)
+
+        first = corrected["question_history"][0]["chat_response"]["report_model"]
+        second = corrected["question_history"][1]["chat_response"]["report_model"]
+        untouched = corrected["question_history"][2]["chat_response"]["report_model"]
+        assert first is instant["report_model"]
+        assert second is other["report_model"]
+        assert first["data_model"]["filters"][0]["alias"] == "Year"
+        assert untouched["data_model"]["filters"] == []

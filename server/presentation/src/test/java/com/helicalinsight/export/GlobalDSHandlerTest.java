@@ -2,8 +2,12 @@ package com.helicalinsight.export;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.FileInputStream;
@@ -28,6 +32,7 @@ import com.helicalinsight.admin.model.HIMetadataConnectionGlobal;
 import com.helicalinsight.admin.model.HIMetadataConnections;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceMetadata;
+import com.helicalinsight.admin.model.User;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
 import com.helicalinsight.datasource.model.DSTypeHikari;
 import com.helicalinsight.datasource.model.DSTypeJndi;
@@ -36,6 +41,7 @@ import com.helicalinsight.datasource.model.DSTypeTomcat;
 import com.helicalinsight.datasource.model.GlobalConnectionSecurity;
 import com.helicalinsight.datasource.model.GlobalConnections;
 import com.helicalinsight.datasource.service.GlobalConnectionService;
+import com.helicalinsight.export.dto.Conflict;
 import com.helicalinsight.export.dto.DataSourceWrapper;
 import com.helicalinsight.export.dto.ImportRequest;
 import com.helicalinsight.export.dto.Manifest;
@@ -834,6 +840,127 @@ public class GlobalDSHandlerTest {
 			dsHandler.write(resource, "dir", manifest);
 		}
 		
+	}
+
+	@Test
+	public void ut_c1_skipsRecycleBinImportWhenConnectionExistsAndConflictIsSkip() throws Exception {
+		HikariImportFixture fixture = new HikariImportFixture(Conflict.SKIP, true);
+
+		fixture.importResource();
+
+		verifyNoInteractions(fixture.recycleBinHandler);
+		verify(fixture.connectionService, never()).addGlobalConnections(any(GlobalConnections.class));
+		verify(fixture.context, never()).recover(any(GlobalConnections.class));
+	}
+
+	@Test
+	public void ut_c2_importsRecycleBinWhenNewConnectionIsCreatedOnSkip() throws Exception {
+		HikariImportFixture fixture = new HikariImportFixture(Conflict.SKIP, false);
+		User createdBy = mock(User.class);
+		when(fixture.connection.getCreatedBy()).thenReturn(createdBy);
+		when(fixture.shareUtils.resolveUser(createdBy, fixture.context)).thenReturn(createdBy);
+
+		fixture.importResource();
+
+		verify(fixture.connection).setGlobalId(null);
+		verify(fixture.connection).setDeleted(false);
+		verify(fixture.connection).setCreatedBy(createdBy);
+		verify(fixture.connectionService).addGlobalConnections(fixture.connection);
+		verify(fixture.recycleBinHandler).importGlobalConnection(eq(1), eq(fixture.connection), eq(fixture.context));
+	}
+
+	@Test
+	public void ut_c3_recoversDeletedConnectionWithoutRecycleBinImportOnSkip() throws Exception {
+		HikariImportFixture fixture = new HikariImportFixture(Conflict.SKIP, true);
+		when(fixture.connection.isDeleted()).thenReturn(true);
+
+		fixture.importResource();
+
+		verify(fixture.context).recover(fixture.connection);
+		verify(fixture.connectionService).editGlobalConnections(fixture.connection);
+		verifyNoInteractions(fixture.recycleBinHandler);
+	}
+
+	@Test
+	public void ut_c4_recoversDeletedConnectionAndImportsRecycleBinOnUpdate() throws Exception {
+		HikariImportFixture fixture = new HikariImportFixture(Conflict.UPDATE, true);
+		when(fixture.connection.isDeleted()).thenReturn(true);
+
+		fixture.importResource();
+
+		verify(fixture.context).recover(fixture.connection);
+		verify(fixture.connectionService).editGlobalConnections(fixture.connection);
+		verify(fixture.recycleBinHandler).importGlobalConnection(eq(1), eq(fixture.connection), eq(fixture.context));
+	}
+
+	@Test
+	public void ut_c5_importsRecycleBinWhenExistingConnectionConflictIsUpdate() throws Exception {
+		HikariImportFixture fixture = new HikariImportFixture(Conflict.UPDATE, true);
+
+		fixture.importResource();
+
+		verify(fixture.recycleBinHandler).importGlobalConnection(eq(1), eq(fixture.connection), eq(fixture.context));
+		verify(fixture.connectionService, never()).addGlobalConnections(any(GlobalConnections.class));
+		verify(fixture.context, never()).recover(any(GlobalConnections.class));
+	}
+
+	private static final class HikariImportFixture {
+		private final GlobalDSHandler handler = new GlobalDSHandler();
+		private final GlobalConnections connection = mock(GlobalConnections.class);
+		private final GlobalConnectionService connectionService = mock(GlobalConnectionService.class);
+		private final ImportManagerContext context = mock(ImportManagerContext.class);
+		private final RecycleBinHandler recycleBinHandler = mock(RecycleBinHandler.class);
+		private final ResourceShareUtils shareUtils = mock(ResourceShareUtils.class);
+		private final String onConflict;
+
+		private HikariImportFixture(String onConflict, boolean connectionExists) throws Exception {
+			this.onConflict = onConflict;
+			JsonMapperUtils mapperUtils = mock(JsonMapperUtils.class);
+			DataSourceWrapper wrapper = mock(DataSourceWrapper.class);
+			DSTypeHikari hikari = mock(DSTypeHikari.class);
+			ImportRequest importRequest = mock(ImportRequest.class);
+			DatasourceShareHandler shareHandler = mock(DatasourceShareHandler.class);
+
+			setField(ResourceIOHandler.class, "mapperUtils", mapperUtils);
+			setField(GlobalDSHandler.class, "connectionService", connectionService);
+			setField(ResourceIOHandler.class, "context", context);
+			setField(DatasourceHandler.class, "shareHandler", shareHandler);
+			setField(ResourceIOHandler.class, "shareUtils", shareUtils);
+			setField(ResourceIOHandler.class, "dtoMapper", mock(ResourceDTOMapper.class));
+			setField(ResourceIOHandler.class, "recycleBinHandler", recycleBinHandler);
+
+			JsonNodeFactory jsonNodeFactory = JsonNodeFactory.instance;
+			ArrayNode dsList = jsonNodeFactory.arrayNode();
+			JsonNode textNode = jsonNodeFactory.textNode("Hello, World!");
+			dsList.add(textNode);
+
+			when(context.getRequest()).thenReturn(importRequest);
+			when(importRequest.getOnConflict()).thenReturn(onConflict);
+			when(connection.getId()).thenReturn(1);
+			when(connection.getGlobalId()).thenReturn(1);
+			when(connection.isDeleted()).thenReturn(false);
+			when(connectionService.getGlobalConnectionBy(any(GlobalDatasourceLookupDTO.class)))
+					.thenReturn(connectionExists ? connection : null);
+			when(connectionService.getExtraOptions(anyInt())).thenReturn(Collections.emptyList());
+			when(hikari.getGlobalConnections()).thenReturn(connection);
+			when(mapperUtils.mapToArray(any(FileInputStream.class))).thenReturn(dsList);
+			when(mapperUtils.mapToDTO(textNode.toString(), DataSourceWrapper.class)).thenReturn(wrapper);
+			when(wrapper.getHikari()).thenReturn(hikari);
+		}
+
+		private void importResource() {
+			try (MockedConstruction<FileInputStream> files = mockConstruction(FileInputStream.class);
+					MockedConstruction<GlobalDatasourceLookupDTO> lookup = mockConstruction(
+							GlobalDatasourceLookupDTO.class)) {
+				handler.importResource(mock(HIResource.class), "dsFileName", onConflict);
+			}
+		}
+
+		private void setField(Class<?> type, String name, Object value) throws Exception {
+			Field field = type.getDeclaredField(name);
+			field.setAccessible(true);
+			field.set(handler, value);
+		}
 	}
 
 }

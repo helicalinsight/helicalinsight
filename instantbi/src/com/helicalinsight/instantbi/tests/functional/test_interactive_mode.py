@@ -91,6 +91,16 @@ def test_run_think_mode_executes_text_only_without_viz():
                 "answer": "The travel cost is 120,000.",
                 "analysis": "Total travel cost is 120,000 for the selected period.",
                 "include_in_dashboard": False,
+                "chat_response": {
+                    "report_model": {
+                        "data_model": {"columns": [{"alias": "Travel Cost"}]},
+                        "viz_model": {"chart": {"viz": "KPI"}},
+                    }
+                },
+                "report_model": {
+                    "data_model": {"columns": [{"alias": "Travel Cost"}]},
+                    "viz_model": {"chart": {"viz": "KPI"}},
+                },
             },
             {
                 "sub_question": "Cost by month?",
@@ -157,6 +167,8 @@ def test_run_think_mode_executes_text_only_without_viz():
     assert len(payload["question_history"]) == 3
     assert payload["question_history"][0]["analysis"] == "Total travel cost is 120,000 for the selected period."
     assert "answer" not in payload["question_history"][0]
+    assert "report_model" not in payload["question_history"][0]
+    assert payload["question_history"][0]["chat_response"]["report_model"]["viz_model"]["chart"]["viz"] == "KPI"
     assert payload["question_history"][0]["index"] == 1
     assert payload["opening_insight"] == "This looks at travel spend from a few angles."
     plan_mock.assert_called_once()

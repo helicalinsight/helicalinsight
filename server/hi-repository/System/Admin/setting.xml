@@ -542,6 +542,7 @@
     <EfwdSampleName>__efwd_file_name__</EfwdSampleName>
     <!-- NOTE After enabling the FileBrowserCache need to restart the application in order to start the WatcherService for repository. -->
     <enableFileBrowserCache>false</enableFileBrowserCache>
+    <!--  CANNED REPORT CONFIG START  -->
     <HCRBandContent>
         <contentClass name="staticText" bean="HCRStaticText"/>
         <contentClass name="textField" bean="HCRTextField"/>
@@ -567,6 +568,9 @@
         <genratorType name="regular" bean="HCRRegularReportGenerator"/>
     </HCRGeneratorTypes>
     <HCRDefaultGeneratorType>regular</HCRDefaultGeneratorType>
+    <showJRXmlGenerationToggle>false</showJRXmlGenerationToggle> 
+     <!--  CANNED REPORT CONFIG END  -->
+    
     <!-- This tag should have value as either  XML or DATABASE . If you want to continue in XML file  then change the value to XML and change MigrateFromXMLSchedulingToDatabase to false.
     If you need to migrate all the xml schedules to database then place the existing scheduling.xml file in your hi-repository/System folder and then restart the application. After the restart the schedule data should have migrated into the default database
     -->

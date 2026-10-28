@@ -209,7 +209,13 @@ const formatHiddenCountLabel = (hiddenCount) =>
   hiddenCount > 0 ? `+${hiddenCount} more` : "See More";
 
 const ShowMoreToggle = ({ expanded, onClick, collapsedLabel = "See More" }) => (
-  <button type="button" className="ibm-show-more" onClick={onClick}>
+  <button
+    type="button"
+    className="ibm-show-more"
+    onMouseDown={(event) => event.stopPropagation()}
+    onTouchStart={(event) => event.stopPropagation()}
+    onClick={onClick}
+  >
     {expanded ? "show less" : collapsedLabel}
   </button>
 );
@@ -263,10 +269,12 @@ const PillSection = ({ label, items, kind }) => {
   const [visibleCount, setVisibleCount] = useState(items.length);
   const contentRef = useRef(null);
   const measureRef = useRef(null);
+  const itemCount = items.length;
+  const itemsSignature = `${itemCount}:${items.join("\u001f")}`;
 
   const updateVisibleCount = useCallback(() => {
     if (expanded) {
-      setVisibleCount(items.length);
+      setVisibleCount(itemCount);
       return;
     }
 
@@ -279,15 +287,15 @@ const PillSection = ({ label, items, kind }) => {
       (pill) => pill.offsetWidth
     );
     setVisibleCount(getFittingPillCount(container.clientWidth, pillWidths, pillGap));
-  }, [expanded, items]);
+  }, [expanded, itemCount]);
 
   useLayoutEffect(() => {
     updateVisibleCount();
-  }, [updateVisibleCount, items, kind, label]);
+  }, [updateVisibleCount, itemCount, kind, label]);
 
   useEffect(() => {
     setExpanded(false);
-  }, [items]);
+  }, [itemsSignature]);
 
   useEffect(() => {
     const container = contentRef.current;

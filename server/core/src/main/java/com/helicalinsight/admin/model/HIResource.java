@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.helicalinsight.efw.utility.ResourceTypeIDMap;
 import org.hibernate.annotations.CacheConcurrencyStrategy;
-import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -283,6 +282,11 @@ public class HIResource implements Serializable {
     public ResourceType getResourceType() {
 
         return ResourceTypeIDMap.getResourceTypeById(this.resourceTypeId);
+    }
+    
+    @JsonIgnore
+    public ResourceType getActualResourceType() {
+    	return resourceType;
     }
 
     public void setResourceType(ResourceType resourceType) {

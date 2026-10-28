@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -116,6 +117,7 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(options.getSchedules()).thenReturn(false);
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
 		when(fileResource.getResourceId()).thenReturn(100);
+		when(fileResource.getCreatedBy()).thenReturn(4);
 		when(fileResource.getTitle()).thenReturn("Imported Title");
 		when(fileResource.getResourcePath()).thenReturn("/imported/path");
 		when(resource.getHiResourceImages()).thenReturn(dbImages);
@@ -146,6 +148,56 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 			verify(serviceDb).editHIResource(resource);
 			verify(context).appendUpdate("parent/image.hiimg");
 			verify(shareHandler).importResource(eq(resource), eq(request), eq(manifest));
+		}
+	}
+
+	@Test
+	public void ut_a2b_testImportResourceUpdateClearsOwnerWhenSourceHasNone()
+			throws NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException {
+		HIResourceImagesImportHandler handler = new HIResourceImagesImportHandler();
+		ImportManagerContext context = mock(ImportManagerContext.class);
+		ImportRequest request = mock(ImportRequest.class);
+		ResourceOptions options = mock(ResourceOptions.class);
+		HIResourceServiceDB serviceDb = mock(HIResourceServiceDB.class);
+		HIResource resource = mock(HIResource.class);
+		HIResource fileResource = mock(HIResource.class);
+		HIResourceImages importedImages = mock(HIResourceImages.class);
+		HIResourceImages sidecarImages = mock(HIResourceImages.class);
+		HIResourceImages dbImages = mock(HIResourceImages.class);
+		ResourceDataReader fileReader = mock(ResourceDataReader.class);
+		ShareHandler shareHandler = mock(ShareHandler.class);
+		ManifestUtils manifestUtils = mock(ManifestUtils.class);
+		ResourceFileUtils fileUtils = mock(ResourceFileUtils.class);
+		Manifest manifest = mock(Manifest.class);
+
+		inject(handler, context, serviceDb, fileReader, shareHandler, manifestUtils, fileUtils);
+		stubSidecarPath(context, manifestUtils, manifest, fileReader, fileUtils, fileResource, importedImages, sidecarImages);
+
+		when(context.getRequest()).thenReturn(request);
+		when(context.getManifest()).thenReturn(manifest);
+		when(context.recover(resource)).thenReturn(true);
+		when(context.getNewOldImageIds()).thenReturn(new HashMap<>());
+		when(request.getOnConflict()).thenReturn("update");
+		when(request.getOptions()).thenReturn(options);
+		when(options.getShare()).thenReturn(false);
+		when(options.getSchedules()).thenReturn(false);
+		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(resource);
+		when(fileResource.getResourceId()).thenReturn(100);
+		when(fileResource.getCreatedBy()).thenReturn(null);
+		when(fileResource.getTitle()).thenReturn("Imported Title");
+		when(fileResource.getResourcePath()).thenReturn("/imported/path");
+		when(resource.getHiResourceImages()).thenReturn(dbImages);
+		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
+
+		try (MockedStatic<ApplicationContextAccessor> appMock = ExportTestSecuritySupport.mockApplicationContextForSecurity();
+				MockedStatic<SecurityUtils> securityMock = mockStatic(SecurityUtils.class)) {
+			Security security = ExportTestSecuritySupport.mockSecurityWithCreatedBy("1");
+			securityMock.when(SecurityUtils::securityObject).thenReturn(security);
+
+			handler.importResource("parent/image.hiimg");
+			verify(resource).setCreatedBy(isNull());
+			verify(resource).setTitle("Imported Title");
+			verify(serviceDb).editHIResource(resource);
 		}
 	}
 
@@ -183,6 +235,7 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(null);
 		when(fileResource.getResourceId()).thenReturn(100);
 		when(fileResource.getCreatedBy()).thenReturn(3);
+		when(fileResource.getTitle()).thenReturn("Banner Title");
 		when(serviceDb.addHIResource(resource)).thenReturn(300);
 		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
 
@@ -466,6 +519,7 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 		when(serviceDb.getResourceByUrl(anyString(), anyBoolean())).thenReturn(null);
 		when(fileResource.getResourceId()).thenReturn(100);
 		when(fileResource.getCreatedBy()).thenReturn(3);
+		when(fileResource.getTitle()).thenReturn("Banner Title");
 		when(parent.getResourceId()).thenReturn(50);
 		when(serviceDb.addHIResource(resource)).thenReturn(300);
 		when(resource.getResourceURL()).thenReturn("parent/image.hiimg");
@@ -489,7 +543,7 @@ public class HIResourceImagesImportHandlerTest extends ExportUnitTestBase {
 			verify(serviceDb).addHIResource(resource);
 			verify(context).appendInsert("parent/image.hiimg");
 			resourceUtilsMock.verify(() -> ResourceUtils.newHIResource(eq("hiimg"), any(Date.class), eq(7),
-					eq("parent/image.hiimg"), eq("image"), eq("image"), any(), eq(false)));
+					eq("parent/image.hiimg"), eq("image"), eq("Banner Title"), any(), eq(false)));
 		}
 	}
 

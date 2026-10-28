@@ -73,12 +73,11 @@ class FilterLabelResolver:
         for entry in collected:
             if not isinstance(entry, dict):
                 continue
-            rep = entry.get("report_model") or entry
-            dm = (
-                rep.get("data_model")
-                if isinstance(rep, dict) and isinstance(rep.get("data_model"), dict)
-                else {}
-            )
+            dm = extract_data_model(entry)
+            if not dm:
+                chat = entry.get("chat_response") or entry.get("fullChatResponse") or {}
+                if isinstance(chat, dict):
+                    dm = extract_data_model(chat)
             resolved = self._from_data_model(dm, col_name)
             if resolved:
                 return resolved
