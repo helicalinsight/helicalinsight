@@ -18,6 +18,7 @@ import LoadingBar from "../../../common/components/hi-loading-bar";
 import notify from "../../../hi-notifications/notify";
 import { getInstantBIAgentSubject } from "../../utils/common-utils";
 import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
+import { useDashboardView } from "./dashboard-view-coordinator";
 
 const { Text } = Typography;
 
@@ -70,11 +71,18 @@ const ThinkPlanPanel = ({
   );
   const [planView, setPlanView] = useState(null);
   const [citationFocus, setCitationFocus] = useState({ index: null, nonce: 0 });
+  const {
+    activeDashboardViewId,
+    activateDashboardView,
+    deactivateDashboardView,
+  } = useDashboardView();
 
   const canViewDashboard = Boolean(resolvedDashboardModel)
     && (questionHistory || []).some(hasDashboardTileModel);
 
-  const isDashboardViewActive = planView === "dashboardView" && canViewDashboard;
+  const isDashboardViewActive = planView === "dashboardView"
+    && canViewDashboard
+    && activeDashboardViewId === planMessageId;
   const highlightClearRef = useRef(null);
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
   const [dataInsightTrail, setDataInsightTrail] = useState([]);
@@ -82,7 +90,27 @@ const ThinkPlanPanel = ({
   const dataInsightApiRef = useRef(null);
   const dataInsightAbortedRef = useRef(false);
   const Notify = notify(dispatch);
+  useEffect(() => {
+    if (planView !== "dashboardView") return;
+    if (activeDashboardViewId !== planMessageId) {
+      setPlanView(null);
+    }
+  }, [activeDashboardViewId, planMessageId, planView]);
+
   const handleTabChange = (active) => {
+    if (active === "dashboardView") {
+      if (planView === "dashboardView") {
+        deactivateDashboardView(planMessageId);
+        setPlanView(null);
+      } else {
+        activateDashboardView(planMessageId);
+        setPlanView("dashboardView");
+      }
+      return;
+    }
+    if (planView === "dashboardView") {
+      deactivateDashboardView(planMessageId);
+    }
     setPlanView((current) => (current === active ? null : active));
   };
 
@@ -327,8 +355,7 @@ const ThinkPlanPanel = ({
                       activeReport={activeReport}
                       planMessageId={planMessageId}
                       isOpenMode={isOpenMode}
-                      active={planView === "dashboardView"}
-                      renderThinkStepCard={renderThinkStepCard}
+                      active={isDashboardViewActive}
                       questionsHistory={items}
                     />
                   </div>
@@ -359,37 +386,6 @@ const ThinkPlanPanel = ({
               {!items.length ? (
                 <Text type="secondary">Preparing supporting questions…</Text>
               ) : null}
-
-              <div className="ib-think-plan__details">
-                <div className="ib-think-plan__steps">
-                  {items.map((item, idx) => {
-                    const stepIndex = item.index || idx + 1;
-                    return (
-                      <ThinkStepCard
-                        key={`${stepIndex}-${item.question || ""}`}
-                        item={item}
-                        planMessageId={planMessageId}
-                        planChatSequenceId={planChatSequenceId}
-                        isStreaming={false}
-                        isOpenMode={isOpenMode}
-                        isEditMode={isEditMode}
-                        onShowQuestion={onShowQuestion}
-                        dispatch={dispatch}
-                        activeReport={activeReport}
-                        llmActivityDetails={resolvedActivityDetails}
-                        plan={plan}
-                        expandSignal={
-                          citationFocus.index === stepIndex ? citationFocus.nonce : 0
-                        }
-                        citationHighlight={citationFocus.index === stepIndex}
-                      />
-                    );
-                  })}
-                  {!items.length ? (
-                    <Text type="secondary">Preparing supporting questions…</Text>
-                  ) : null}
-                </div>
-              </div>
             </div>
 
             {finalAnswer ? (

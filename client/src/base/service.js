@@ -774,6 +774,7 @@ export const postExportDownloadRequest = function ({
   }
 
   let hiAxios;
+  const Notify = notify(dispatch);
   dispatch((dispatch, getState, services) => {
     hiAxios = services(dispatch);
   });
@@ -791,6 +792,12 @@ export const postExportDownloadRequest = function ({
         if (typeof downLoadProgress === "function") {
           downLoadProgress(pr);
         }
+        // JSON error bodies have no Content-Disposition — do not open the progress modal for them.
+        const xhr = pr?.event?.target;
+        const cd =
+          xhr?.getResponseHeader?.("Content-Disposition") ||
+          xhr?.getResponseHeader?.("content-disposition");
+        if (!cd) return;
         if (typeof callback === "function" && pr?.total) {
           // No pause/resume functions — non-resumable must not show those buttons
           callback({
@@ -805,10 +812,29 @@ export const postExportDownloadRequest = function ({
         callback?.(null);
         return;
       }
+      // Pre-chunked ExportModal behavior: JSON error body → toast; binary zip → download.
       const fileName =
         parseContentDispositionFileName(res.headers?.["content-disposition"]) ||
         fallbackName;
-      handleDownloadFile(res, fileName);
+      try {
+        const resString = new TextDecoder("utf-8").decode(
+          new Uint8Array(res.data),
+        );
+        const data = JSON.parse(resString);
+        Notify.error({
+          type: "Backend",
+          message: data?.response?.message || data?.message || "Export failed",
+        });
+      } catch (e) {
+        if (e?.name === "SyntaxError") {
+          handleDownloadFile(res, fileName);
+        } else {
+          Notify.error({
+            type: "Backend",
+            message: "ExportException: Error Occurred while exporting",
+          });
+        }
+      }
       if (typeof callback === "function") {
         callback(null);
       }

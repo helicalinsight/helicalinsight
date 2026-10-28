@@ -64,7 +64,7 @@ public class HIResourceImagesImportHandler extends AbstractResourceImportHandler
                 dbReport.setContentType(importedResource.getContentType());
                 dbReport.setContent(importedResource.getContent());
 
-                resource.setCreatedBy(importedBy);
+                resource.setCreatedBy(report.getCreatedBy() == null ? null : importedBy);
                 resource.setHiResourceImages(dbReport);
                 resource.setLastUpdatedTime(new Date());
                 resource.setTitle(report.getTitle());
@@ -82,7 +82,7 @@ public class HIResourceImagesImportHandler extends AbstractResourceImportHandler
             Integer importedBy = Boolean.TRUE.equals(context.getRequest().getOptions().getShare()) ? report.getCreatedBy() :
                     Integer.valueOf(SecurityUtils.securityObject().getCreatedBy());
 
-            resource = ResourceUtils.newHIResource(JsonUtils.getImageExtension(), context.getDate(), importedBy, resourceUrl, fileName, fileName, null, report.getCreatedBy() == null);
+            resource = ResourceUtils.newHIResource(JsonUtils.getImageExtension(), context.getDate(), importedBy, resourceUrl, fileName, report.getTitle(), null, report.getCreatedBy() == null);
             HIResource parent = context.getResourceUrlMap().get(parentUrl + "." + JsonUtils.getFolderFileExtension());
             if (null != parent) resource.setParentId(parent.getResourceId());
             resource.setLastUpdatedTime(context.getDate());

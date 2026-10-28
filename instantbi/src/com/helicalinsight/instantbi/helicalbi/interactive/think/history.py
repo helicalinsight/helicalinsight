@@ -143,7 +143,6 @@ class QuestionHistoryBuilder:
             "analysis": self._analysis.extract(step),
             "chat_seq_id": str((step or {}).get("chat_seq_id") or "").strip(),
             "chat_response": public_chat,
-            "report_model": report_model or {},
         }
 
     def _enrich_sql_section(

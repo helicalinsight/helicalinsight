@@ -370,6 +370,7 @@ return  oldMappingNewMapping;
 	private GlobalConnections getOrInsertGlobalConnection(GlobalDatasourceLookupDTO lookup, GlobalConnections connection) {
 		int connectionId = connection.getGlobalId();
 		GlobalConnections gConnection = connectionService.getGlobalConnectionBy(lookup);
+		boolean applied = false;
 		if( gConnection == null ) {
 			connection.setGlobalId(null);
 			connection.setDeleted(false);
@@ -378,13 +379,17 @@ return  oldMappingNewMapping;
 			connection.setCreatedBy(createdBy);
 			connectionService.addGlobalConnections(connection);
 			gConnection = connection;
+			applied = true;
 		}
 		else if(Boolean.TRUE.equals(gConnection.isDeleted())) {
 			context.recover(gConnection);
 			connectionService.editGlobalConnections(gConnection);
 		}
 		context.putGlobalConnection(connectionId, gConnection);
-		recycleBinHandler.importGlobalConnection(connectionId, gConnection, context);
+		String onConflict = context.getRequest().getOnConflict();
+		if (applied || Conflict.UPDATE.equalsIgnoreCase(onConflict)) {
+			recycleBinHandler.importGlobalConnection(connectionId, gConnection, context);
+		}
 		return gConnection;
 	}
 

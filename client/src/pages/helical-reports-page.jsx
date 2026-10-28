@@ -721,6 +721,7 @@ const HelicalReports = (props) => {
   const Notify = notify(dispatch);
   const saveAs = useRef(null);
   const onSave = () => {
+    if (["instant-bi-create", "instant-bi-open", "dashboard-instant-filter"].includes(props.mode)) return;
     if (!reportData?.dataId) {
       return Notify.warning({ message: "Please generate any report." });
     }
@@ -736,6 +737,7 @@ const HelicalReports = (props) => {
     }
   };
   const onSaveAs = () => {
+    if (["instant-bi-create", "instant-bi-open", "dashboard-instant-filter"].includes(props.mode)) return;
     if (!reportData?.dataId) {
       return Notify.warning({ message: "Please generate any report." });
     }

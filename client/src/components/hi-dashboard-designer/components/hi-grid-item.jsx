@@ -112,7 +112,7 @@ let HIGridItem = (props) => {
     (state) => state.designer.present.designerMode
   );
   const refreshDashboard = useSelector((state) => state.dashboard.present.refreshDashboard); // added for 7720 
-  const isOpenMode = ["open"].includes(designerMode);
+  const isOpenMode = ["open"].includes(designerMode) || props.isOpenMode;
   const dispatch = useDispatch();
   const previewMode = useSelector(
     (state) => state.designer.present.previewMode
@@ -386,7 +386,7 @@ let HIGridItem = (props) => {
     if (parameterSettings?.floatingFilter) {
       filterCompId = addItem({
         dispatch,
-        reportInfo: { ...reportInfo, mode: "filter" },
+        reportInfo: { ...reportInfo, mode: "filter", ...(reportInfo?.kind === "instant.filter" ? { filterType: "instant" } : {}) },
         parameter: {
           dashboardFilter: {
             columnName: getFieldDisplayName(item),
@@ -400,7 +400,7 @@ let HIGridItem = (props) => {
     }
     addItem({
       dispatch,
-      reportInfo: { ...reportInfo, mode: "filter" },
+      reportInfo: { ...reportInfo, mode: "filter", ...(reportInfo?.kind === "instant" ? { filterType: "instant" } : {}) },
       parameter: {
         dashboardFilter: {
           columnName: getFieldDisplayName(item),
@@ -833,6 +833,7 @@ let HIGridItem = (props) => {
         reportInfo={reportInfo}
         parameter={parameter}
         listeners={listeners}
+        isOpenMode={isOpenMode}
       />
     )
   }

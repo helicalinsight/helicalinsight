@@ -610,12 +610,7 @@ export const getCTMeasureHeaderNodes = ({
   isHorizontal = true,
   offsetX = 0,
   offsetY = 0,
-  borders = {
-    left: false,
-    right: false,
-    bottom: false,
-    top: false
-  }
+  addBorderStyles,
 } = {}) => {
   return measures.map((measure, index) => {
     return addBorder(getCTStaticTextNode({
@@ -630,7 +625,7 @@ export const getCTMeasureHeaderNodes = ({
       y: isHorizontal
         ? offsetY
         : offsetY + index * HCR_CROSSTAB_CELL_HEIGHT
-    }), { left: borders.left, right: borders.right, bottom: borders.bottom, top: borders.top })
+    }), addBorderStyles ? { left: !isHorizontal || (isHorizontal && index > 0), top: isHorizontal || (!isHorizontal && index > 0) } : {})
   })
 }
 
@@ -760,7 +755,7 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = [], o
         isHorizontal: true,
         offsetX: 0,
         offsetY: HCR_CROSSTAB_CELL_HEIGHT,
-        borders: { top: true, left: !isFirstGroup }
+        addBorderStyles: true
       })
       : [];
 
@@ -771,7 +766,7 @@ export const getCTColumnGroups = (columnFields = [], fields = [], styles = [], o
         isHorizontal: true,
         offsetX: 0,
         offsetY: totalCellHeight - HCR_CROSSTAB_CELL_HEIGHT,
-        borders: { top: true, left: true }
+        addBorderStyles: true
       })
       : [];
 
@@ -899,7 +894,7 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
         isHorizontal: false,
         offsetX: cellWidth - measureLaneWidth,
         offsetY: 0,
-        borders: { top: !isFirstGroup, left: true }
+        addBorderStyles: true
       })
       : [];
 
@@ -910,7 +905,7 @@ export const getCTRowGroups = (rowFields = [], fields = [], measures, styles = [
         isHorizontal: false,
         offsetX: totalCellWidth - measureLaneWidth,
         offsetY: 0,
-        borders: { top: true, left: true }
+        addBorderStyles: true
       })
       : [];
 
@@ -988,7 +983,7 @@ export const getCTMeasureCells = (measures = [], columnGroups = [], rowGroups = 
         actualField,
       })
       if (bordersRequired) {
-        node = addBorder(node, { left: i > 0 });
+        node = addBorder(node, { left: isHorizontalLayout && i > 0, top: !isHorizontalLayout && i > 0 });
       }
       return node;
     })
@@ -1933,6 +1928,21 @@ export const getTableBandStyle = ({ bandType, tableStyles, tableId, isFirstRow, 
 export const getCrosstabApplyStyles = ({ styles = [], crosstabId, cell = {} }) => {
   const { borderBottom, borderLeft, borderRight, borderTop, ...rest } = getTableBandStyle({ tableStyles: styles, tableId: crosstabId, cell })
   return rest;
+}
+
+export const getHCRCrosstabLayoutOptions = (layoutOptions = {}, allowed = "cell" /* cell|measure */) => {
+  if (!layoutOptions) return [];
+
+  if (isEmpty(layoutOptions)) return [];
+
+  const options = [];
+
+  for (let layout in layoutOptions) {
+    const allowedPlaces = layoutOptions[layout]?.allowedPlaces || [];
+    if (allowedPlaces.includes(allowed)) options.push(layout);
+  }
+
+  return options;
 }
 
 

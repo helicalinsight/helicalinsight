@@ -1,6 +1,5 @@
 import { ExportOutlined } from "@ant-design/icons";
 import { Typography } from "antd";
-import { cloneDeep } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import {
   setFilterCounter,
@@ -11,7 +10,7 @@ import {
 import { HIDashboardDesigner } from "../../../../hi-dashboard-designer";
 import InstantBITooltip from "../../../instant-bi-tooltip-title";
 import { assembleInstantDashboardCreateConfig, getGridItemsFiltersSettings } from "../../../utils/assemble-instant-dashboard";
-import { getInstantBIMetadataForReport, getMetadataForHreport } from "../../../utils/common-utils";
+import { getInstantBIMetadataForReport } from "../../../utils/common-utils";
 import { persistConvertDashboardSeed } from "../../../utils/convert-sql-to-hr-save";
 import { INSTANT_EDIT_MODE } from "../../../utils/save-instant-dashboard";
 import "./ib-dashboard-view.scss";
@@ -28,15 +27,11 @@ const IBDashboardView = ({
   planMessageId = "",
   active = false,
   emptyLabel = "No dashboard tiles available.",
-  renderThinkStepCard = () => null,
-  questionsHistory = []
+  questionsHistory = [],
+  isOpenMode
 } = {}) => {
-  const snapshotRef = useRef(null);
-  const hydratedIdsRef = useRef(new Map());
   const refreshKeyRef = useRef(Date.now());
-  const activatedForRef = useRef(null);
-  const cleanupRef = useRef(null);
-  const [started, setStarted] = useState(false);
+  const [startedFor, setStartedFor] = useState(null);
   const reports = useSelector((state) => state.hreport.present.reports || []);
 
   const items = Array.isArray(dashboardModel?.items) ? dashboardModel.items : [];
@@ -64,20 +59,10 @@ const IBDashboardView = ({
   };
 
   useEffect(() => {
-    if (!active || typeof dispatch !== "function" || !hasContent) return undefined;
-    if (activatedForRef.current === planMessageId) return undefined;
-    if (cleanupRef.current) {
-      cleanupRef.current();
-      cleanupRef.current = null;
+    if (!active || typeof dispatch !== "function" || !hasContent) {
+      setStartedFor(null);
+      return undefined;
     }
-    activatedForRef.current = planMessageId;
-    setStarted(true);
-    hydratedIdsRef.current = new Map();
-    let snapshot = null;
-    dispatch((_, getState) => {
-      snapshot = cloneDeep(getState()?.designer?.present);
-    });
-    snapshotRef.current = snapshot;
 
     const config = assembleInstantDashboardCreateConfig({
       dashboardModel,
@@ -104,6 +89,7 @@ const IBDashboardView = ({
       return;
     })
 
+    setStartedFor(planMessageId);
     return undefined;
   }, [active, planMessageId]);
 
@@ -116,10 +102,10 @@ const IBDashboardView = ({
   }
 
   return (
-    <div className="ib-dashboard-view" data-testid="ib-dashboard-view">
+    <div className="ib-dashboard-view" data-testid="ib-dashboard-view" key={`ib-dashboard-view-${planMessageId}`}>
       <div className="ib-dashboard-view__header" data-testid="ib-dashboard-view-title">
         <Text strong>{dashboardModel.title || "Dashboard"}</Text>
-        <InstantBITooltip title="Explore this dashboard">
+        {!isOpenMode && <InstantBITooltip title="Explore this dashboard">
           <button
             type="button"
             className="ib-dashboard-view__explore-btn"
@@ -129,15 +115,17 @@ const IBDashboardView = ({
           >
             <ExportOutlined />
           </button>
-        </InstantBITooltip>
+        </InstantBITooltip>}
       </div>
       <div className="ib-dashboard-view__designer">
-        {started ? (
+        {active && startedFor === planMessageId ? (
           <HIDashboardDesigner
+            key={planMessageId}
             refresh={refreshKeyRef.current}
             setRefresh={() => { }}
             parameters={{}}
             fromInstant={true}
+            isOpenMode={isOpenMode}
           />
         ) : (
           <div

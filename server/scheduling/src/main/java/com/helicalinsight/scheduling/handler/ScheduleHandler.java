@@ -1,10 +1,10 @@
 package com.helicalinsight.scheduling.handler;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FilenameUtils;
@@ -14,11 +14,13 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.helicalinsight.adhoc.utils.MapperUtils;
 import com.helicalinsight.admin.model.HIResource;
+import com.helicalinsight.admin.model.HIResourceEFWSR;
+import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.admin.model.User;
-import com.helicalinsight.admin.utils.ResourceDTOMapper;
+import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.efw.utility.ResourceUtils;
 import com.helicalinsight.export.dto.Manifest;
 import com.helicalinsight.export.dto.ResourceExtension;
 import com.helicalinsight.export.handler.FolderWriterHandler;
@@ -27,6 +29,7 @@ import com.helicalinsight.export.service.ResourceIOHandler;
 import com.helicalinsight.export.utils.ResourceSuffix;
 import com.helicalinsight.resourcedb.Deleted;
 import com.helicalinsight.resourcedb.HIResourceDTO;
+import com.helicalinsight.resourcesecurity.SecurityUtils;
 import com.helicalinsight.scheduling.EnhancedScheduleProcessCall;
 import com.helicalinsight.scheduling.model.JobParameters;
 import com.helicalinsight.scheduling.model.Schedules;
@@ -53,9 +56,7 @@ public class ScheduleHandler extends ResourceIOHandler {
 	@Autowired
 	private FolderImportHandler folderImportHandler;
 
-	
-	private static final Set<String> SUPPORTED = Set.of("hr", "efwdd", "hcr");
-
+	private static final Set<String> SUPPORTED = JsonUtils.getScheduleSupportedModules();
 
 	@Override
 	public void write(HIResourceDTO resource, String dir, Manifest manifest) {
@@ -138,6 +139,8 @@ public class ScheduleHandler extends ResourceIOHandler {
 			String timezone = cal.getTimeZone().getID();
 			schedule.setCreatedBy(createdBy);
 			schedule.setTimeZone(timezone);
+			ResourceType resourceType = resolveResourceType(schedule.getScheduleType(),resourcePath);
+			schedule.setScheduleType(resourceType);
 			scheduleService.addSchedule(schedule);
 			List<JobParameters> jobParameters =  schedule.getJobParameters();
 			for( JobParameters params : jobParameters ) {
@@ -146,8 +149,7 @@ public class ScheduleHandler extends ResourceIOHandler {
 			}
 			enhancedProcessCall.scheduleSpecificJob(schedule, "");
 		}
-		List<HIResource> efwsrResources = jsonMapperUtils.asList(new File(String.join(File.separator, resourcePath,
-				FilenameUtils.removeExtension(fileName) + ResourceSuffix.SCHEDULE_RESULT)), new TypeReference<List<HIResource>>() {});
+		List<HIResource> efwsrResources = jsonMapperUtils.asList(new File(String.join(File.separator, resourcePath, FilenameUtils.removeExtension(fileName) + ResourceSuffix.SCHEDULE_RESULT)), new TypeReference<List<HIResource>>() {});
 		for(HIResource efwsrResource : efwsrResources) {
 			String efwsrUrl = context.addDestination(efwsrResource.getResourceURL());
 			String parentPath = StringUtils.chop(StringUtils.substringBefore(efwsrUrl, efwsrResource.getResourcePath()));
@@ -159,25 +161,36 @@ public class ScheduleHandler extends ResourceIOHandler {
 				parent = folderImportHandler.importResource(parentPath);
 			}
 			
+			Integer importedBy = Boolean.TRUE.equals(context.getRequest().getOptions().getShare()) ? efwsrResource.getCreatedBy() :
+                Integer.valueOf(SecurityUtils.securityObject().getCreatedBy());
+			
 			boolean canShare = true;
 			if( existing == null ) {
+				HIResourceEFWSR fileEfwsr = efwsrResource.getHiResourceEFWSR();
+				fileEfwsr.setLastUpdatedTime(context.getDate());
+				efwsrResource = ResourceUtils.newHIResource(JsonUtils.getEFWSRExtension(), context.getDate(), importedBy, efwsrUrl, efwsrResource.getResourcePath(), efwsrResource.getTitle(), parent.getResourceId(), efwsrResource.getCreatedBy() == null);
+				ResourceType dbResourceType =  resolveResourceType(efwsrResource.getActualResourceType(), resourcePath);
+				efwsrResource.setResourceType(dbResourceType);
+				efwsrResource.setResourceTypeId(dbResourceType.getResourceTypeId());
+				efwsrResource.setLastUpdatedTime(context.getDate());
 				efwsrResource.setCreated_date(context.getDate());
-				efwsrResource.setParentId(parent.getResourceId());
-				efwsrResource.setResourceURL(efwsrUrl);
-				efwsrResource.setDeleted(false);
+				fileEfwsr.setCreatedBy(efwsrResource.getCreatedBy());
+				efwsrResource.setHiResourceEFWSR(fileEfwsr);
 				serviceDb.addHIResource(efwsrResource);
-				
 			}
 			else {
 				if("update".equalsIgnoreCase(onConflict) && context.recover(existing)) {
 					existing.setLastUpdatedTime(context.getDate());
-					existing.setCreatedBy(resource.getCreatedBy());
-					existing.getHiResourceEFWSR().setLastUpdatedTime(context.getDate());
-					existing.getHiResourceEFWSR().setCreatedBy(efwsrResource.getCreatedBy());
+					HIResourceEFWSR existingEfwsr =  existing.getHiResourceEFWSR();
+					if (existingEfwsr != null ) {
+						existingEfwsr.setLastUpdatedTime(context.getDate());
+						existingEfwsr.setCreatedBy(efwsrResource.getHiResourceEFWSR().getCreatedBy());
+						existingEfwsr.setReportName(efwsrResource.getHiResourceEFWSR().getReportName());
+						existingEfwsr.setReportParameters(efwsrResource.getHiResourceEFWSR().getReportParameters());
+					}
 					existing.setCreatedBy(efwsrResource.getCreatedBy());
 					existing.setTitle(efwsrResource.getTitle());
 					existing.setResourcePath(efwsrResource.getResourcePath());
-					existing.setHiResourceEFWSR(efwsrResource.getHiResourceEFWSR());
 					serviceDb.editHIResource(existing);
 					efwsrResource = existing;
 				}
@@ -193,5 +206,26 @@ public class ScheduleHandler extends ResourceIOHandler {
 		if (context != null && resourceUrl != null) {
 			context.addLog(resourceUrl, "[schedules] Imported " + schedules.size() + " schedule(s).");
 		}
+	}
+	
+	private ResourceType resolveResourceType(ResourceType resourceType , String resourcePath) {
+		if ( resourceType == null ) {
+			 throwResourceTypeException(resourcePath, "Resource type should not be null.");
+		}
+		
+		String resourceTypeName = resourceType.getName();
+		String extension = resourceType.getExtension();
+		
+		ResourceType dbResourceType =  resourceTypeService.getResourceTypeByTypeAndExtension(resourceTypeName, extension);
+		if (dbResourceType == null) {
+			throwResourceTypeException(resourcePath, "Could not find ResourceType [" + resourceTypeName + ", " + extension + "]");
+		}
+		
+		return dbResourceType;
+	}
+	
+	private void throwResourceTypeException(String resourcePath, String message) {
+	    context.addError(resourcePath, message);
+	    throw new EfwServiceException(message);
 	}
 }

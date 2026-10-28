@@ -355,10 +355,11 @@ const ImportFiles = () => {
             type: "Network Call",
             message: "Request cancelled successfully",
           });
-        } else if (e) {
+        } else if (e instanceof Error) {
+          // Plain response objects are already toasted by axios transformResponse (non-stream).
           Notify.error({
             type: "Network Call",
-            message: e?.message || "Import failed",
+            message: e.message || "Import failed",
           });
         }
         disconnect();

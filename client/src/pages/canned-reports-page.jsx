@@ -441,7 +441,8 @@ const CannedReportsPage = (props) => {
             dispatch(appActions.changeLastModified());
           },
           (e) => {
-            handlePreviewUpdate({ isPreviewLoading: false, previewError: "" })
+            const errorData = getErrorMessage(e);
+            handlePreviewUpdate({ isPreviewLoading: false, previewError: errorData })
           },
           isStream,
         );

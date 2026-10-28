@@ -477,7 +477,10 @@ export const runResumableUpload = async ({
     const importResult = parseJsonMaybe(ready.importResult ?? ready);
 
     if (importResult && importResult.status !== undefined && !importResult.status) {
-      if (typeof errback === "function") errback(importResult.response || importResult);
+      const fail = importResult.response || importResult;
+      const msg = fail?.message || "Import failed";
+      // Pass Error so ImportFiles toasts once (plain objects are skipped — axios already notified).
+      if (typeof errback === "function") errback(new Error(msg));
       return;
     }
     invokeSuccess(callback, importResult);

@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.OrganizationService;
+import com.helicalinsight.admin.service.ResourceTypeServiceDB;
 import com.helicalinsight.admin.service.RoleService;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
@@ -58,6 +59,9 @@ public abstract class ResourceIOHandler {
 	
 	@Autowired
 	protected ResourceDTOMapper dtoMapper;
+	
+	@Autowired
+	protected ResourceTypeServiceDB resourceTypeService;
 
 	/**
      * Writes the resource data to a file.

@@ -91,7 +91,7 @@ const HIDashboardDesigner = (designerProps) => {
   const designerMode = useSelector((state) => state.designer.present.designerMode);
   const previewMode = useSelector((state) => state.designer.present.previewMode);
   const refreshDashboard = useSelector((state) => state.dashboard.present.refreshDashboard); // addded for 7720
-  const isOpenMode = ["open"].includes(designerMode);
+  const isOpenMode = ["open"].includes(designerMode) || designerProps.isOpenMode;
   const selectedItems = [
     ...gridItemsData.filter((item) => item.isGrouped === true),
   ];
@@ -578,6 +578,7 @@ const HIDashboardDesigner = (designerProps) => {
                 element={ele}
                 parameters={parameters}
                 fromInstant={fromInstant}
+                isOpenMode={isOpenMode}
               ></SizeAwareHIGridItem>
             </div>
           </div>

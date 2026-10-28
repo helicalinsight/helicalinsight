@@ -605,16 +605,17 @@ public class HCRUtils {
                 	finalPropertyName = entry.getValue() + prop;
                 	break;
                 } 
-                
-                if ( finalPropertyName == null ) {
-                	if (blankPrefix != null && !prop.startsWith(blankPrefix)) {
-                		finalPropertyName = blankPrefix + prop;
-                	} else {
-                		finalPropertyName = prop;
-                	}
-                }
             }
-        	component.getPropertiesMap().setProperty(prop, GsonUtility.optString(customSettings, prop));
+        	
+        	if ( finalPropertyName == null ) {
+            	if (blankPrefix != null && !prop.startsWith(blankPrefix) ) {
+            		finalPropertyName = blankPrefix + prop;
+            	} else {
+            		finalPropertyName = prop;
+            	}
+            }
+        	
+        	component.getPropertiesMap().setProperty(finalPropertyName, GsonUtility.optString(customSettings, prop));
         }
     }
 

@@ -209,19 +209,36 @@ def jsonObj='''
 			},
 			"layout" : {
 				"Free Layout" : {
-					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.FreeLayout"
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.FreeLayout",
+					"allowedPlaces": [
+						"cell"
+					]
 				},
 				"Horizontal Layout" : {
-					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.HorizontalRowLayout"
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.HorizontalRowLayout",
+					"allowedPlaces": [
+						"cell",
+						"measure"
+					]
 				},
 				"Vertical Layout" : {
-					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.VerticalRowLayout"
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.VerticalRowLayout",
+					"allowedPlaces": [
+						"cell",
+						"measure"
+					]
 				},
 				"Grid Layout" : {
-					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout"
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.grid.JSSGridBagLayout",
+					"allowedPlaces": [
+						"cell"
+					]
 				},
 				"Spreadsheet Layout" : {
-					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.spreadsheet.SpreadsheetLayout"
+					"com.jaspersoft.studio.layout" : "com.jaspersoft.studio.editor.layout.spreadsheet.SpreadsheetLayout",
+					"allowedPlaces": [
+						"cell"
+					]
 				}
 			},
 			"whenNoDataType": {

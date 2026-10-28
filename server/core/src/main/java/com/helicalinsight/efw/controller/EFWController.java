@@ -853,6 +853,7 @@ public class EFWController {
         userData.addProperty("downloadChunkSize", JsonUtils.getDownloadChunkSize());
         userData.addProperty("resumableUpload", JsonUtils.isResumableUploadEnabled());
         userData.addProperty("uploadChunkSize", JsonUtils.getUploadChunkSize());
+        userData.addProperty("showJRXmlGenerationToggle", JsonUtils.getShowGenerateJRXmlToggle());
         userData.add("importExportOptions", JsonUtils.getImportExportOptions());
 		 if(settingsJson.has("hideDefaultLoginButtons")){
             userData.addProperty("hideDefaultLoginButtons",settingsJson.get("hideDefaultLoginButtons").getAsBoolean());

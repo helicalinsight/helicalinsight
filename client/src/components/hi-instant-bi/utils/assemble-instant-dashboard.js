@@ -382,35 +382,6 @@ export const createDashboardOtherItem = ({ dashboardItem = {}, theme } = {}) => 
   });
 };
 
-const bindText = (value) => String(value ?? "").trim();
-
-const columnLeaf = (value) => {
-  const text = bindText(value).replace(/"/g, "");
-  const parts = text.split(".").filter(Boolean);
-  return parts[parts.length - 1] || "";
-};
-
-const filterBindKeys = (model = {}) => {
-  const keys = [model.column, model.alias, model.label, model.title]
-    .map(bindText)
-    .filter(Boolean);
-  return [...new Set(keys)];
-};
-
-const reportFilterNames = (filter = {}) => {
-  const names = [filter.alias, filter.label, filter.autogen_alias, columnLeaf(filter.column)]
-    .map(bindText)
-    .filter(Boolean);
-  return [...new Set(names)];
-};
-
-const findBoundReportFilter = (report, model) => {
-  const keys = filterBindKeys(model).map((key) => key.toLowerCase());
-  if (!keys.length) return undefined;
-  return (report?.filters || []).find((filter) =>
-    reportFilterNames(filter).some((name) => keys.includes(name.toLowerCase()))
-  );
-};
 
 export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantItems = [], questionsHistory = [], index, reports = [] } = {}) => {
   const id = `item-${dashboardItem?.component_id || dashboardItem?.itemId || nextItemId()}`;
@@ -477,7 +448,7 @@ export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantIt
 
 
       const report = reports.find((report) => report.id === hreportId) || {};
-      const filter = findBoundReportFilter(report, model);
+      const filter = report?.filters?.find((fltr) => [model.column, model.alias, model.label].includes(getFieldDisplayName(fltr)));
       if (filter) {
         gridItem.parameter = {
           dashboardFilter: {
