@@ -274,5 +274,8 @@
     "presets": [
       "react-app"
     ]
+  },
+  "overrides": {
+    "immer": "9.0.7"
   }
 }
