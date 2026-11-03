@@ -60,4 +60,16 @@ public class HIRecycleBinGlobalConnectionDeleteHandler implements RecycleBinHand
 		return true;
 	}
 
+	@Override
+	public boolean handle(RecycleBinDTO bin, Map<Long, Boolean> map, boolean force) {
+		Integer globalId = bin.getResourceId();
+		if(gConnectionService.deleteGlobalConnections(globalId, force)){
+			recycleBinService.delete(bin.getRecycleBinId());
+		}else{
+			throw new EfwServiceException("The resource could not be deleted, because some of the files linked to it are not in deleted state.");
+		}
+		FlatFileDeleteUtils.deleteRequestedFolders(String.valueOf(globalId));
+		return true;
+	}
+
 }
