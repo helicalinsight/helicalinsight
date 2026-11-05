@@ -214,6 +214,15 @@ public class PreConstructedFilters {
         return tableFilters.get(tableName);
     }
     /**
+     * Retrieves a copy of the table-specific filters (excluding global filters) of a metadata table.
+     * @param tableName 		 metadata table name, without the database prefix.
+     * @return the filters of the table, or an empty list if it has none.
+     */
+    public List<String> getFiltersOfTable(String tableName) {
+        List<String> filters = tableFilters.get(this.databaseName + tableName);
+        return filters == null ? new ArrayList<>() : new ArrayList<>(filters);
+    }
+    /**
      * Constructs the pre-defined WHERE clause based on the requested tables.
      * @param requestedTables 		 list of tables for which the WHERE clause is to be constructed.
      * @return constructed WHERE clause.

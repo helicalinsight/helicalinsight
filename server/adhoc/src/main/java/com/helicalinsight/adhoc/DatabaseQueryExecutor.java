@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.helicalinsight.adhoc.MultiConnectionMergeAdhocTable;
 import com.helicalinsight.adhoc.genericsql.PreConstructedFilters;
+import com.helicalinsight.adhoc.genericsql.ScopedSecurityFilterApplier;
 import com.helicalinsight.adhoc.metadata.genericdb.MetadataDBUtility;
 import com.helicalinsight.adhoc.metadata.jaxb.*;
 import com.helicalinsight.adhoc.security.SqlQueryMetadataValidator;
@@ -26,8 +27,11 @@ import com.helicalinsight.efw.serviceframework.IComponent;
 import com.helicalinsight.efw.utility.DialectHelper;
 import com.helicalinsight.efw.utility.EfwdDatasourceUtils;
 import com.helicalinsight.efw.utility.ResultSetToJson;
+import net.sf.jsqlparser.JSQLParserException;
 import org.hibernate.cfg.Environment;
 import org.hibernate.dialect.Dialect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -41,6 +45,8 @@ import java.util.*;
  * Created by author on 02-03-2015.
  */
 public class DatabaseQueryExecutor implements IComponent {
+
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseQueryExecutor.class);
 
     /**
      * Method executes a database query based on the provided form data.
@@ -231,10 +237,9 @@ public class DatabaseQueryExecutor implements IComponent {
 
         PreConstructedFilters pf = new PreConstructedFilters(metadata, String.valueOf(openQuote), String.valueOf(closeQuote));
 
-        List<String> requestedTables = new ArrayList<>();
         Database database = metadata.getDatabase();
         String databaseName = "";
-
+        List<String> metadataTableNames = new ArrayList<>();
 
         if (database != null) {
             String name = database.getName();
@@ -249,13 +254,77 @@ public class DatabaseQueryExecutor implements IComponent {
                 List<Table> tableList = tables.getTableList();
                 if (tableList != null) {
                     for (Table t : tableList) {
-                        String tName = t.getName();
-                        String tableName = openQuote + tName + closeQuote;
-                        if (query.contains(tableName)) {
-                            requestedTables.add(databaseName + tName);
+                        if (t.getName() != null) {
+                            metadataTableNames.add(t.getName());
                         }
                     }
                 }
+            }
+        }
+
+        try {
+            return applyScopedSecurityConstraint(query, pf, databaseName, metadataTableNames);
+        } catch (JSQLParserException | RuntimeException exception) {
+            logger.warn("Could not parse the query to apply metadata security filters per scope; "
+                    + "falling back to applying them on the outer query. Reason: {}", exception.getMessage());
+            return applyLegacySecurityConstraint(query, pf, databaseName, metadataTableNames,
+                    String.valueOf(openQuote), String.valueOf(closeQuote));
+        }
+    }
+
+    /**
+     * Applies each metadata table's security filters in the scope where the table is referenced:
+     * tables (or inlined views) of the outermost query get their filters in the outer WHERE clause, while
+     * tables referenced inside sub-queries (for example inside the SQL of an inlined metadata view) get
+     * them inside that sub-query, where the table can actually be resolved.
+     * Table names are matched ignoring quotes and case.
+     */
+    static String applyScopedSecurityConstraint(String query, PreConstructedFilters pf, String databaseName,
+                                                List<String> metadataTableNames) throws JSQLParserException {
+        Map<String, String> metadataNameByNormalized = new LinkedHashMap<>();
+        Map<String, List<String>> nestedFilters = new HashMap<>();
+        for (String tName : metadataTableNames) {
+            String normalized = ScopedSecurityFilterApplier.normalize(tName);
+            metadataNameByNormalized.putIfAbsent(normalized, tName);
+            List<String> filters = pf.getFiltersOfTable(tName);
+            if (!filters.isEmpty()) {
+                nestedFilters.computeIfAbsent(normalized, key -> new ArrayList<>()).addAll(filters);
+            }
+        }
+
+        // Both calls may throw; they run before preConstructedWhereClause, which mutates pf, so that the
+        // legacy fallback starts from a clean state.
+        Set<String> outerReferences = ScopedSecurityFilterApplier.findOuterReferences(
+                query, metadataNameByNormalized.keySet());
+        String result = ScopedSecurityFilterApplier.pushDownNestedFilters(query, nestedFilters);
+
+        List<String> requestedTables = new ArrayList<>();
+        for (String normalized : outerReferences) {
+            requestedTables.add(databaseName + metadataNameByNormalized.get(normalized));
+        }
+        if (!requestedTables.isEmpty()) {
+            String restrictedWhere = pf.preConstructedWhereClause(requestedTables);
+            // Check the original text too: the push-down re-serialises the query, which can change the
+            // formatting of filters the query builder has already added.
+            if (!query.contains(restrictedWhere) && !result.contains(restrictedWhere)) {
+                result = addOrAppendWhereClause(result, restrictedWhere);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Previous behaviour, used only when the query cannot be parsed: a table is considered requested when
+     * its quoted name appears anywhere in the query text, and all filters are added to the outer WHERE clause.
+     */
+    private static String applyLegacySecurityConstraint(String query, PreConstructedFilters pf,
+                                                        String databaseName, List<String> metadataTableNames,
+                                                        String openQuote, String closeQuote) {
+        List<String> requestedTables = new ArrayList<>();
+        for (String tName : metadataTableNames) {
+            String tableName = openQuote + tName + closeQuote;
+            if (query.contains(tableName)) {
+                requestedTables.add(databaseName + tName);
             }
         }
         if (!requestedTables.isEmpty()) {
