@@ -216,27 +216,52 @@ def enrich_cube_metadata_with_aliases(
     return enriched
 
 
-def _format_ai_context(ai_context: Optional[dict]) -> str:
-    """Render the whole aiContext object for table/column selection prompts."""
-    if not isinstance(ai_context, dict) or not ai_context:
+_AI_LABEL = "AI instructions (SQL/viz):"
+
+
+def _text_items(value) -> List[str]:
+    if value in (None, ""):
+        return []
+    if isinstance(value, list):
+        raw = value
+    else:
+        raw = str(value).split(",")
+    items: List[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        text = str(item or "").strip()
+        key = " ".join(text.lower().split())
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        items.append(text)
+    return items
+
+
+def _strip_ai_label(text: str) -> str:
+    value = str(text or "").strip()
+    marker = _AI_LABEL.lower()
+    index = value.lower().find(marker)
+    if index >= 0:
+        value = value[:index]
+    return value.strip(" ;")
+
+
+def _sentence(text: str) -> str:
+    value = " ".join(str(text or "").split())
+    if not value:
         return ""
-    parts: List[str] = []
-    for key in ("instructions", "synonyms", "examples"):
-        value = ai_context.get(key)
-        if value in (None, ""):
-            continue
-        if isinstance(value, list):
-            text = ", ".join(str(item) for item in value if item)
-        else:
-            text = str(value).strip()
-        if text:
-            parts.append(f"{key}: {text}")
-    # Preserve any extra keys so the whole object still reaches the LLM.
-    for key, value in ai_context.items():
-        if key in ("instructions", "synonyms", "examples") or value in (None, ""):
-            continue
-        parts.append(f"{key}: {value}")
-    return "; ".join(parts)
+    if value[-1] not in ".!?":
+        value += "."
+    return value
+
+
+def _english_list(items: List[str]) -> str:
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
 
 
 def _format_semantic_column_line(
@@ -255,42 +280,62 @@ def _format_semantic_column_line(
     measure_name: Optional[str] = None,
     ai_context: Optional[dict] = None,
 ) -> str:
-    sql_ref = format_table_column_ref(table_name, col_name)
-    detail_parts: List[str] = []
-    if dimension_name:
-        detail_parts.append(f"dimension: {dimension_name}")
-    if measure_name:
-        detail_parts.append(f"measure: {measure_name}")
-    if hierarchy_name:
-        detail_parts.append(f"hierarchy: {hierarchy_name}")
-    if level_name:
-        detail_parts.append(f"level: {level_name}")
-    if col_desc:
-        detail_parts.append(f"Description: {col_desc}")
-    if semantic_type:
-        detail_parts.append(f"type: {semantic_type}")
-    if aggregator:
-        detail_parts.append(f"aggregator: {aggregator}")
+    """One paragraph. Description and AI instructions are written once."""
+    del default_function  # internal function ids are not SQL
+    qualified = format_table_column_ref(table_name, col_name) if table_name else col_name
+    display = str(dimension_name or measure_name or alias_name or col_name).strip()
+    title = qualified if not display or display.lower() == str(col_name).lower() else f"{display} ({qualified})"
+
+    context = ai_context if isinstance(ai_context, dict) else {}
+    instructions = str(context.get("instructions") or "").strip()
+    description = _strip_ai_label(col_desc)
+    names = {display.lower(), str(col_name).lower(), qualified.lower()}
+    if description.lower() in names:
+        description = ""
+    if instructions and description and (
+        description.lower() in instructions.lower() or instructions.lower() in description.lower()
+    ):
+        meaning = instructions if len(instructions) >= len(description) else description
+    elif instructions and description:
+        meaning = f"{description} {instructions}"
+    else:
+        meaning = instructions or description
+
+    sentences: List[str] = []
+    if meaning and meaning.lower() not in names:
+        sentences.append(_sentence(meaning))
+    elif not meaning:
+        role = "measure" if measure_name or aggregator else "column"
+        sentences.append(f"{display} is a {role}.")
+
+    if semantic_type and str(semantic_type).lower() not in (meaning or "").lower():
+        sentences.append(f"It is a {str(semantic_type).lower()} column.")
     if formula:
-        detail_parts.append(f"computed formula: {formula}")
-    if default_function:
-        detail_parts.append(f"function: {default_function}")
-    if synonyms:
-        detail_parts.append(f"synonyms: {', '.join(str(item) for item in synonyms if item)}")
-    ai_context_text = _format_ai_context(ai_context)
-    if ai_context_text:
-        detail_parts.append(f"aiContext: {{{ai_context_text}}}")
-    alias_suffix = f", alias: {alias_name}" if alias_name and alias_name != col_name else ""
-    if alias_suffix:
-        detail_parts.append(alias_suffix.strip(", "))
-    desc_part = "; ".join(detail_parts)
-    if needs_quoting(col_name) or needs_quoting(table_name):
-        if desc_part:
-            return f"  - {col_name} ({desc_part}) [SQL: {sql_ref}]"
-        return f"  - {col_name} [SQL: {sql_ref}]"
-    if desc_part:
-        return f"  - {col_name} ({desc_part})"
-    return f"  - {col_name}"
+        sentences.append(f"Use {formula}.")
+    agg = str(aggregator or "").strip()
+    if agg and agg.lower() != "calculated":
+        sentences.append(f"Aggregate with {agg}.")
+
+    level = str(level_name or "").strip()
+    hierarchy = str(hierarchy_name or "").strip()
+    level_note = []
+    if level and level.lower() not in names:
+        level_note.append(f"the {level} level")
+    if hierarchy and hierarchy.lower() not in names and hierarchy.lower() != str(col_name).lower():
+        level_note.append(f"of {hierarchy}")
+    if level_note:
+        sentences.append(f"This is {' '.join(level_note)}.")
+
+    also_called = _text_items(context.get("synonyms")) or _text_items(synonyms)
+    also_called = [item for item in also_called if item.lower() not in names]
+    if also_called:
+        sentences.append(f"Also called {_english_list(also_called)}.")
+    examples = _text_items(context.get("examples"))
+    if examples:
+        quoted = ", ".join(f'"{item}"' for item in examples)
+        sentences.append(f"Example questions include {quoted}.")
+
+    return f"{title}\n{' '.join(sentence for sentence in sentences if sentence)}"
 
 
 def cube_metadata_from_metadata_api(metadata_response: dict) -> List[dict]:
@@ -394,7 +439,7 @@ def generate_bare_minimum_context(user_query: Optional[str], cube_metadata) -> s
 def generate_compact_table_catalog(cube_metadata) -> str:
     """Compact table/column listing for table-selection prompts (no aiContext/formulas)."""
     lines = [
-        "Tables and columns (select table names only from this list):",
+        "Tables:",
     ]
     for table in iter_cube_entries(cube_metadata):
         table_name = table.get("database_table") or ""
@@ -498,6 +543,7 @@ def generate_semantic_hint(metadata_json: list) -> str:
                     ai_context=column.get("ai_context"),
                 )
             )
+            lines.append("")
 
         # Include physical measure columns as selectable SQL columns in prompts.
         for measure in table.get("measures") or []:
@@ -535,6 +581,7 @@ def generate_semantic_hint(metadata_json: list) -> str:
                     ai_context=measure.get("ai_context"),
                 )
             )
+            lines.append("")
 
     return "\n".join(lines)
 

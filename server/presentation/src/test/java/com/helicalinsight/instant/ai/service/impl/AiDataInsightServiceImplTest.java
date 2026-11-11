@@ -1,5 +1,6 @@
 package com.helicalinsight.instant.ai.service.impl;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -7,7 +8,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.Callable;
+
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
@@ -45,7 +49,7 @@ public class AiDataInsightServiceImplTest {
         when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
 
         IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
-        when(httpService.executeCancellableCall(eq(request), any(), eq("/data-insight")))
+        when(httpService.executeCancellableCall(eq(request), any(), eq("/data-insight-service")))
                 .thenReturn("{\"insight\":\"summary\",\"token_usage\":{\"total\":5}}");
 
         JsonObject settings = new JsonObject();
@@ -131,7 +135,7 @@ public class AiDataInsightServiceImplTest {
         when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
 
         IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
-        when(httpService.executeCancellableCall(eq(request), any(), eq("/data-insight")))
+        when(httpService.executeCancellableCall(eq(request), any(), eq("/data-insight-service")))
                 .thenThrow(new com.helicalinsight.efw.exceptions.EfwServiceException("Request has been cancelled."));
 
         JsonObject settings = new JsonObject();
@@ -151,6 +155,50 @@ public class AiDataInsightServiceImplTest {
                     request, response);
 
             controllerUtils.verifyNoInteractions();
+        }
+    }
+
+    @Test
+    public void executeSendsFormDataStringToInsightService() throws Exception {
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie("JSESSIONID", "session-1")});
+
+        Principal principal = mock(Principal.class);
+        User user = mock(User.class);
+        when(principal.getUsername()).thenReturn("tester");
+        when(principal.getLoggedInUser()).thenReturn(user);
+        when(user.getUsername()).thenReturn("tester");
+        when(user.getId()).thenReturn(42);
+        when(user.getRoles()).thenReturn(java.util.Collections.emptyList());
+        when(user.getProfile()).thenReturn(java.util.Collections.emptyList());
+
+        IInstantBIHttpService httpService = mock(IInstantBIHttpService.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Callable<JsonObject>> bodyCaptor = ArgumentCaptor.forClass(Callable.class);
+        when(httpService.executeCancellableCall(eq(request), bodyCaptor.capture(), eq("/data-insight-service")))
+                .thenReturn("{\"insight\":\"summary\"}");
+
+        JsonObject settings = new JsonObject();
+        settings.addProperty("BaseUrl", "http://localhost/hi.html");
+        String subject = "{\"model\":{\"path\":\"/model\"}}";
+        String reportForm = "{\"location\":\"TestFold\",\"metadataFileName\":\"Metadata_1.metadata\",\"columns\":[]}";
+
+        try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class);
+             MockedStatic<AuthenticationUtils> auth = mockStatic(AuthenticationUtils.class);
+             MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class);
+             MockedStatic<InstantBIServiceFactory> factory = mockStatic(InstantBIServiceFactory.class)) {
+            controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
+            auth.when(AuthenticationUtils::getUserDetails).thenReturn(principal);
+            jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
+            factory.when(InstantBIServiceFactory::getHttpService).thenReturn(httpService);
+
+            service.execute(new DataInsightPayload("1", "chat-1", "insight question", reportForm, subject, "/data-insight"),
+                    request, response);
+
+            JsonObject input = bodyCaptor.getValue().call().getAsJsonObject("input");
+            assertEquals("insight question", input.get("inputString").getAsString());
+            assertEquals(reportForm, input.get("formData").getAsString());
         }
     }
 }

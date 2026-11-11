@@ -1,202 +1,61 @@
-import { cloneDeep } from "lodash-es";
-import requests from "../../../base/requests";
-import { getSaveData } from "../../hi-reports/utils/base";
-import { getIntialReportState } from "../../../redux/reducers/initialStates";
-import { isSavingDesigner } from "../../../redux/actions/dashboard-designer.actions";
+import { getReportModelInteractions } from "./report-model-interactions";
 
 export const INSTANT_EDIT_MODE = "instant-edit";
 
 export const isInstantEditMode = (designerMode) => designerMode === INSTANT_EDIT_MODE;
 
-export const shouldConfirmInstantChartSaves = ({
-  designerMode,
-  dashboardUUID,
-  drafts = [],
-} = {}) =>
-  isInstantEditMode(designerMode) && !dashboardUUID && (drafts || []).length > 0;
+const INLINE_CHART_COMP_TYPES = [
+  "dashboard-designer-component",
+  "dashboard-create-component",
+];
 
-export const sanitizeInstantReportName = (value = "") => {
-  const cleaned = String(value || "")
-    .replace(/\.hr$/i, "")
-    .replace(/[\\/:*?"<>|]+/g, "_")
-    .replace(/\s+/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 80);
-  return cleaned || "Chart";
+const isObjectWithKeys = (value) =>
+  Boolean(value && typeof value === "object" && Object.keys(value).length);
+
+export const isInlineDashboardChart = (item = {}) =>
+  INLINE_CHART_COMP_TYPES.includes(item?.compType) &&
+  Boolean(item?.reportInfo?.inline || item?.reportInfo?.file?.inline);
+
+const inlineReportModelCandidates = (item = {}) => {
+  const file = item?.reportInfo?.file || {};
+  const instantItem = file.instant_item || {};
+  return [
+    file.report_model,
+    instantItem.chat_response?.report_model,
+    instantItem.chatResponse?.report_model,
+    instantItem.report_model,
+    item?.report_model,
+  ];
 };
 
-export const uniqueInstantReportName = (title, usedNames = new Set()) => {
-  const base = sanitizeInstantReportName(title);
-  let name = base;
-  let index = 2;
-  while (usedNames.has(name.toLowerCase())) {
-    name = `${base}_${index}`;
-    index += 1;
-  }
-  usedNames.add(name.toLowerCase());
-  return name;
-};
-
-export const chartTitleFromGridItem = (item = {}) => {
-  const header = (item.gridItemConfig || []).find((entry) => entry.key === "header");
+export const getInlineDashboardReportModel = (item = {}) => {
+  const candidates = inlineReportModelCandidates(item).filter(isObjectWithKeys);
   return (
-    header?.values?.title ||
-    item.reportInfo?.file?.title ||
-    item.reportInfo?.file?.reportName ||
-    "Chart"
+    candidates.find((model) =>
+      Object.keys(getReportModelInteractions(model)).length
+    ) ||
+    candidates[0] ||
+    {}
   );
 };
 
-export const isInlineDashboardChart = (item = {}) =>
-  item?.compType === "dashboard-designer-component" &&
-  Boolean(item?.reportInfo?.inline || item?.reportInfo?.file?.inline);
-
-export const buildInstantChartSaveDrafts = (gridItemsData = []) => {
-  const usedNames = new Set();
-  return (gridItemsData || []).filter(isInlineDashboardChart).map((item) => ({
-    id: item.id,
-    name: uniqueInstantReportName(chartTitleFromGridItem(item), usedNames),
-  }));
-};
-
-export const namesByItemIdFromDrafts = (drafts = []) =>
-  (drafts || []).reduce((acc, row) => {
-    if (row?.id) {
-      acc[row.id] = row.name;
-    }
-    return acc;
-  }, {});
-
-const activeReportFromInlineFile = (file = {}, { location, reportName }) => {
-  const report = cloneDeep(getIntialReportState({ active: true }));
-  report.mode = "create";
-  report.metadata = file.metadata || {};
-  report.fields = cloneDeep(file.fields || []);
-  report.filters = cloneDeep(file.hydratedFilters || []);
-  report.selectedType = file.selectedType || file.visualisationType || report.selectedType;
-  report.properties = file.properties || report.properties;
-  report.marksList = file.marksList || report.marksList;
-  report.reportInfo = {
-    ...(report.reportInfo || {}),
-    location,
-    reportName,
-  };
-  return report;
-};
-
-const fileRefFromSaveResponse = (res = {}, { location, reportName }) => {
-  const name = res.data?.name || `${reportName}.hr`;
-  const path = res.data?.path || `${String(location || "").replace(/[\\/]+$/, "")}/${name}`;
-  return {
-    path,
-    name,
-    title: res.data?.title || reportName,
-  };
-};
-
-export const applySavedChartFileRefs = (gridItemsData = [], savedByItemId = {}) =>
+export const syncInstantDashboardChartInteractions = (gridItemsData = []) =>
   (gridItemsData || []).map((item) => {
-    const file = item?.reportInfo?.file;
-    if (!file?.inline && !item?.reportInfo?.inline) {
-      return item;
-    }
-    const sourceId = file?.dashboardItemId || item.id;
-    const saved = savedByItemId[sourceId];
-    if (!saved) {
-      return item;
-    }
+    if (!isInlineDashboardChart(item)) return item;
+    const reportModel = getInlineDashboardReportModel(item);
+    if (!isObjectWithKeys(reportModel)) return item;
+    const interactions = getReportModelInteractions(reportModel);
+    const file = item.reportInfo?.file || {};
     return {
       ...item,
       reportInfo: {
         ...item.reportInfo,
-        inline: false,
-        resourceId: saved.uuid,
         file: {
-          ...saved.file,
+          ...file,
+          report_model: Object.keys(interactions).length
+            ? { ...reportModel, interactions }
+            : reportModel,
         },
       },
     };
   });
-
-export const saveHrReportFromInlineFile = ({
-  dispatch,
-  file,
-  location,
-  reportName,
-}) =>
-  new Promise((resolve, reject) => {
-    try {
-      const saveData = getSaveData(
-        activeReportFromInlineFile(file, { location, reportName })
-      );
-      requests.hreport(dispatch).saveReport(
-        saveData,
-        "",
-        (res) => {
-          if (!res?.uuid) {
-            reject(new Error("Could not save chart report."));
-            return;
-          }
-          resolve({
-            uuid: res.uuid,
-            file: fileRefFromSaveResponse(res, { location, reportName }),
-          });
-        },
-        (err) => {
-          reject(err || new Error("Could not save chart report."));
-        }
-      );
-    } catch (error) {
-      reject(error);
-    }
-  });
-
-export const persistInstantDashboardChartReports = async ({
-  dispatch,
-  gridItemsData = [],
-  location,
-  Notify,
-  reportNamesByItemId = {},
-}) => {
-  if (!location) {
-    Notify?.error?.({
-      type: "Frontend",
-      message: "Please select a folder to save the dashboard.",
-    });
-    return { ok: false, gridItemsData };
-  }
-  const charts = (gridItemsData || []).filter(isInlineDashboardChart);
-  if (!charts.length) {
-    return { ok: true, gridItemsData };
-  }
-  dispatch(isSavingDesigner(true));
-  const usedNames = new Set();
-  const savedByItemId = {};
-  try {
-    for (const item of charts) {
-      const reportName = uniqueInstantReportName(
-        reportNamesByItemId[item.id] || chartTitleFromGridItem(item),
-        usedNames
-      );
-      const saved = await saveHrReportFromInlineFile({
-        dispatch,
-        file: item.reportInfo.file,
-        location,
-        reportName,
-      });
-      savedByItemId[item.id] = saved;
-    }
-    return {
-      ok: true,
-      gridItemsData: applySavedChartFileRefs(gridItemsData, savedByItemId),
-    };
-  } catch (error) {
-    Notify?.error?.({
-      type: "Frontend",
-      message: error?.message || "Could not save chart reports for this dashboard.",
-    });
-    dispatch(isSavingDesigner(false));
-    return { ok: false, gridItemsData };
-  }
-};

@@ -32,7 +32,16 @@ class SqlTools:
         generation_query = str(prompt or tracked_question).strip() or tracked_question
         flat_sql = bool(state.get("flat_sql"))
         if flat_sql and THINK_FLAT_SQL_GENERATION not in generation_query:
-            generation_query = f"{generation_query}\n\n{THINK_FLAT_SQL_GENERATION}"
+            dialect = ctx.dialect or ""
+            dialect_line = (
+                f"Dialect: {dialect}. Use this dialect's date function for a year, "
+                "quarter, or month filter. Do not replace that function with CAST.\n"
+                if dialect
+                else ""
+            )
+            generation_query = (
+                f"{generation_query}\n\n{dialect_line}{THINK_FLAT_SQL_GENERATION}"
+            )
         result = generate_sql_for_question(
             generation_query,
             session,

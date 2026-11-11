@@ -98,6 +98,16 @@ _MEASURE_TOKENS = frozenset({
 _ORDERED_TOKENS = frozenset({
     "date", "datetime", "timestamp", "time", "datatime",
 })
+# Column types that make a calendar the suggested chart when every
+# selected column is one of these (timestamp counts as datetime).
+_TEMPORAL_TYPE_BASES = (
+    "date time",
+    "datetime",
+    "datatime",
+    "timestamp",
+    "date",
+    "time",
+)
 _DIMENSION_TOKENS = frozenset({
     "text", "string", "categorical", "category", "boolean", "bool",
     "varchar", "char", "object", "other",
@@ -251,6 +261,38 @@ def _iter_field_types(data_types: Any) -> Iterable[str]:
     )
 
 
+def _is_temporal_column_type(token: str) -> bool:
+    """True for date, datetime, time, and timestamp type names."""
+    text = str(token or "").strip().lower().replace("-", " ").replace("_", " ")
+    text = " ".join(text.split())
+    if "(" in text:
+        text = text.split("(", 1)[0].strip()
+    while text and text[-1].isdigit():
+        text = text[:-1].strip()
+    if not text:
+        return False
+    return any(text == base or text.startswith(base + " ") for base in _TEMPORAL_TYPE_BASES)
+
+
+def all_selected_columns_temporal(data_types: Any) -> bool:
+    """True when every selected column is a date, datetime, or time."""
+    tokens = [token for token in _iter_field_types(data_types) if token]
+    if not tokens:
+        return False
+    return all(_is_temporal_column_type(token) for token in tokens)
+
+
+def calendar_shape_met(dimension_count: int, measure_count: int) -> bool:
+    """True when counts fit the calendar catalog bounds: 1 dimension, 0-1 measures."""
+    for option in get_chart_options():
+        if option.visualization_type != "calendar":
+            continue
+        return _count_in_range(
+            dimension_count, option.dims_min, option.dims_max
+        ) and _count_in_range(measure_count, option.measures_min, option.measures_max)
+    return False
+
+
 def infer_chart_shape(data_types: Any) -> tuple[int, int, bool]:
     """Infer (dimension_count, measure_count, ordered) from SQL result metadata."""
     dimension_count = 0
@@ -326,6 +368,24 @@ def format_chart_selection_guide(
             len(options),
             [opt.visualization_type for opt in options],
         )
+
+    if (
+        data_types is not None
+        and all_selected_columns_temporal(data_types)
+        and calendar_shape_met(dimension_count, measure_count)
+    ):
+        calendar = next(
+            (
+                opt
+                for opt in get_chart_options()
+                if opt.visualization_type == "calendar"
+            ),
+            None,
+        )
+        if calendar is not None:
+            options = [calendar]
+            used_fallback = False
+            logger.info("chart_selection.guide route=all_temporal_calendar")
 
     ordered_note = "yes" if ordered else "no"
     lines = [

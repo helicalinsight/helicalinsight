@@ -69,6 +69,9 @@ public class ResumableUploadService {
 		copyParam(request, metadata, "config");
 		copyParam(request, metadata, "fileExtension");
 		copyParam(request, metadata, "formData");
+		copyParam(request, metadata, "driverType");
+		copyParam(request, metadata, "dataFile");
+		copyParam(request, metadata, "dataPath");
 
 		TransferTicket ticket = init(userId, requestId, fileName, contentType, fileSize, checksum, targetUrl, metadata);
 		return GSON.toJson(ticketService.uploadSessionPayload(ticket));

@@ -124,6 +124,7 @@ public class FileArchive {
             if (zipFile.isEncrypted()) {
                 zipFile.setPassword(password);
             }
+            ZipEntryPathGuard.assertEntriesStayWithin(zipFile, destination == null ? null : new File(destination));
             zipFile.extractAll(destination);
         } catch (net.lingala.zip4j.exception.ZipException e) {
             logger.error("ZipException", e);

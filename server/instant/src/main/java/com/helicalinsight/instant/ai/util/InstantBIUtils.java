@@ -12,6 +12,7 @@ import com.helicalinsight.core.request.RequestContext;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
+import com.helicalinsight.efw.parameters.RelativeFunctionCatalog;
 import com.helicalinsight.efw.filters.RequestRegistryFilter;
 import com.helicalinsight.efw.utility.JsonUtils;
 import jakarta.servlet.http.Cookie;
@@ -321,23 +322,6 @@ public final class InstantBIUtils {
     }
 
     @NotNull
-    public static JsonObject prepareConvertDashboardResponse(String botResponse) {
-        JsonObject outputJson = GsonUtility.parseString(botResponse, JsonObject.class);
-        JsonObject responseObject = new JsonObject();
-        String[] keys = {"items", "chatid", "theme", "summary", "sections", "filters", "layout", "templateId", "decorations"};
-        for (String key : keys) {
-            if (outputJson.has(key)) {
-                responseObject.add(key, outputJson.get(key));
-            }
-        }
-        String error = GsonUtility.optString(outputJson, "error");
-        if (StringUtils.isNotBlank(error)) {
-            responseObject.addProperty("error", error);
-        }
-        return responseObject;
-    }
-
-    @NotNull
     public static JsonObject prepareSqlToReportModelResponse(String botResponse) {
         JsonObject outputJson = GsonUtility.parseString(botResponse, JsonObject.class);
         JsonObject responseObject = new JsonObject();
@@ -412,7 +396,27 @@ public final class InstantBIUtils {
         if (flag != null) {
             js.getAsJsonObject("input").addProperty("rm_cols_in_filter", flag);
         }
+        js.getAsJsonObject("input").add("parameterFunctions", parameterFunctions());
         return js;
+    }
+
+    /**
+     * Relative-date catalog for interactive chat. Downstream uses it to mark
+     * filters {@code isRelative}. A missing catalog is an empty functions array.
+     */
+    @NotNull
+    private static JsonObject parameterFunctions() {
+        JsonObject empty = new JsonObject();
+        empty.add("functions", new JsonArray());
+        try {
+            JsonObject catalog = RelativeFunctionCatalog.rawJson();
+            if (catalog == null || !catalog.has("functions") || !catalog.get("functions").isJsonArray()) {
+                return empty;
+            }
+            return catalog;
+        } catch (Throwable ex) {
+            return empty;
+        }
     }
 
     /**

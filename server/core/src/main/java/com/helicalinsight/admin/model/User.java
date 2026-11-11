@@ -95,7 +95,6 @@ public class User implements Serializable {
      */
 
     @OneToMany(fetch = FetchType.EAGER, mappedBy = "user", cascade = CascadeType.REMOVE)
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Profile> profile;
     
     /**
@@ -129,14 +128,10 @@ public class User implements Serializable {
      * objects
      */
 
-    @ManyToMany
-    @LazyCollection(LazyCollectionOption.FALSE)
-    //@JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_id"),
-    // inverseJoinColumns = @JoinColumn(name = "role_id"))
+    @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_role", joinColumns = {@JoinColumn(name = "user_id",
             referencedColumnName = "id")}, inverseJoinColumns = {@JoinColumn(name = "role_id",
             referencedColumnName = "id")})
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Role> roles;
 
     /**

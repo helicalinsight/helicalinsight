@@ -4,6 +4,10 @@ import { v4 as uuidv4 } from "uuid";
 import { createTabTitle } from "../../utils/utilities";
 import actionTypes from "../actions/actionTypes";
 import initialStates, { getIBInitialReportState } from "./initialStates";
+import {
+  applyHreportInteraction,
+  applyHreportInteractionToReportModel,
+} from "../../components/hi-instant-bi/utils/report-model-interactions";
 
 const normalizeThinkStepForLoad = (step = {}) => {
   if (!step || typeof step !== "object") return step;
@@ -47,6 +51,63 @@ const normalizeThinkStepForLoad = (step = {}) => {
   };
 };
 
+
+const CHAT_RESPONSE_KEYS = ["chat_response", "chatResponse", "fullChatResponse"];
+
+const interactionHreportId = (response = {}) =>
+  response?.hreportId
+  || response?.chat_response?.hreportId
+  || response?.chatResponse?.hreportId
+  || response?.fullChatResponse?.hreportId
+  || "";
+
+const updateReportModelForInteraction = (reportModel, event, data) =>
+  applyHreportInteractionToReportModel(reportModel, event, data);
+
+const updateResponseForInteraction = (response = {}, hreportId, event, data) => {
+  if (!response || typeof response !== "object") return response;
+  let next = response;
+  if (interactionHreportId(response) === hreportId && response.report_model) {
+    next = {
+      ...next,
+      report_model: updateReportModelForInteraction(response.report_model, event, data),
+    };
+  }
+  CHAT_RESPONSE_KEYS.forEach((key) => {
+    const nested = response[key];
+    if (nested?.report_model && interactionHreportId(nested) === hreportId) {
+      next = {
+        ...next,
+        [key]: {
+          ...nested,
+          report_model: updateReportModelForInteraction(nested.report_model, event, data),
+        },
+      };
+    }
+  });
+  return next;
+};
+
+const updateThinkStepForInteraction = (step = {}, hreportId, event, data) => {
+  let next = updateResponseForInteraction(step, hreportId, event, data);
+  if (Array.isArray(step?.questionHistory)) {
+    next = {
+      ...next,
+      questionHistory: step.questionHistory.map((item) =>
+        updateResponseForInteraction(item, hreportId, event, data)
+      ),
+    };
+  }
+  return next;
+};
+
+const updateMessageForInteraction = (message = {}, hreportId, event, data) => {
+  let next = updateResponseForInteraction(message, hreportId, event, data);
+  if (message?.isThinkPlan) {
+    next = updateThinkStepForInteraction(next, hreportId, event, data);
+  }
+  return next;
+};
 
 const instantBIReducer = (
   state = initialStates.instantBIInitialState,
@@ -744,21 +805,26 @@ const instantBIReducer = (
       const { reportId, event, hreportId, data } = action.payload || {}
       return produce(state, (draft) => {
         draft.reports = draft.reports.map((report) => {
-          if (report.id === reportId) {
-            if (event === "change_viz") {
-              if (report.hreportInteractions?.[hreportId]) {
-                report.hreportInteractions[hreportId] = { ...report.hreportInteractions[hreportId], ...data }
-              } else {
-                report.hreportInteractions[hreportId] = { ...data }
-              }
-            }
-            if (event === "add_filter") {
-              if (report.hreportInteractions?.[hreportId]) {
-                report.hreportInteractions[hreportId] = { ...report.hreportInteractions[hreportId], filters: [...(report.hreportInteractions[hreportId])?.filters || [], data] }
-              } else {
-                report.hreportInteractions[hreportId] = { filters: [data] }
-              }
-            }
+          if (report.id !== reportId) return report;
+          if (["change_viz", "add_filter"].includes(event)) {
+            report.hreportInteractions = report.hreportInteractions || {};
+            report.hreportInteractions[hreportId] = applyHreportInteraction(
+              report.hreportInteractions[hreportId],
+              { event, data }
+            );
+          }
+          report.chats = (report.chats || []).map((chat) => ({
+            ...chat,
+            messageList: (chat.messageList || []).map((message) =>
+              updateMessageForInteraction(message, hreportId, event, data)
+            ),
+          }));
+          if (report.loadedChatResponses) {
+            report.loadedChatResponses = Object.entries(report.loadedChatResponses)
+              .reduce((acc, [key, response]) => {
+                acc[key] = updateResponseForInteraction(response, hreportId, event, data);
+                return acc;
+              }, {});
           }
           return report;
         })

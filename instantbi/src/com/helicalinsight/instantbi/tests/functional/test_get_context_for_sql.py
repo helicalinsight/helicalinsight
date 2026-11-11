@@ -69,9 +69,9 @@ class TestGetTableColDescription:
             }
         ]
         result = get_table_col_description(cube_metadata, ["travel_details"])
-        assert "destination_id" in result
-        assert "alias: platform" in result
-        assert "alias: destination_count" in result
+        assert "travel_details.destination_id" in result
+        assert "platform (travel_details.booking_platform)" in result
+        assert "destination_count (travel_details.destination_id)" in result
 
 
 class TestGetTableSelectionDescription:

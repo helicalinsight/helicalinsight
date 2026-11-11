@@ -1,6 +1,20 @@
 """Investigation planning prompts for dashboard and Think modes."""
 from helicalbi.prompt.FormatInstruction import format_instruction_string
 
+# Think mode: choose one diagnostic capability after heuristic shortlisting.
+CAPABILITY_PICK_PROMPT = """You choose one diagnostic capability for a Think investigation.
+
+The capabilities below were already shortlisted because the question mentions the capability name or one of its applicable measures.
+Choose the single capability that best answers the question. Decide from the question, the applicable measures, the measures the question actually mentions, and the configured uses.
+Return that capability name exactly as written in the shortlist. Do not invent a name and do not return more than one.
+
+User question:
+{question}
+
+Shortlisted capabilities:
+{candidates}
+""" + format_instruction_string
+
 # Think question system prompt (used by think_question_framer)
 THINK_QUESTION_SYSTEM = """You frame supporting questions for a Think investigation.
 Domain, topics, tables, and the grounding pack are already finalized.

@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 
 _BORDER = "--------------"
 
-_NON_CACHEABLE_SERVICES = {"executeQuery", "generateQuery"}
-_SOFT_FAILURE_SERVICES = {"executeQuery"}
+_NON_CACHEABLE_SERVICES = {"executeQuery", "generateQuery", "fetchData"}
+_SOFT_FAILURE_SERVICES = {"executeQuery", "fetchData"}
 
 
 class ServiceApiError(RuntimeError):

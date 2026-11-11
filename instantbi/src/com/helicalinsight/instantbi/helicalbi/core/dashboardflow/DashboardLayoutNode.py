@@ -14,7 +14,10 @@ from helicalbi.core.dashboardflow.grid_clamp import default_layout
 from helicalbi.model.DashboardLayoutState import DashboardLayoutState
 from helicalbi.model.output.dashboard.DashboardLayout import DashboardLayoutDecision
 from helicalbi.prompt.DashboardLayoutPrompt import dashboard_layout_prompt_string
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.LayoutTemplates import load_decision_table, load_layout_catalog
 
 logger = logging.getLogger(__name__)
@@ -55,7 +58,7 @@ class DashboardLayoutNode:
                 template=dashboard_layout_prompt_string + format_instruction_string,
                 input_variables=["item_cards", "username", "layout_plan", "filter_components"],
                 partial_variables={
-                    "format_instructions": parser.get_format_instructions(),
+                    "format_instructions": brief_format_instructions(parser.pydantic_object),
                     "decision_table": load_decision_table(),
                     "layout_catalog": load_layout_catalog(),
                 },

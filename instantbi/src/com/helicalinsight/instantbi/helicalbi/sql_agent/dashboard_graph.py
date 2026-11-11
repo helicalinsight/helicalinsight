@@ -135,6 +135,7 @@ def run_dashboard_agent(
     build_dashboard: bool = True,
     on_progress=None,
     flat_sql: bool = False,
+    parameter_functions: Optional[dict] = None,
 ) -> AgentState:
     """Load HI metadata, run the tool-calling dashboard agent, layout a dashboard."""
     profile = resolve_mode_profile(
@@ -156,6 +157,7 @@ def run_dashboard_agent(
         thread_id=thread_id,
         user_query=question,
         last_chats=last_chats,
+        parameter_functions=parameter_functions,
     )
     if callable(on_progress):
         session["_on_progress"] = on_progress

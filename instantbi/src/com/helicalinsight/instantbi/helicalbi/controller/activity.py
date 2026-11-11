@@ -93,21 +93,6 @@ class ActivityReporter:
     def insight_generated(self) -> None:
         self._progress("insight", "done", "Insight is ready.")
 
-    def collecting_visualizations(self) -> None:
-        self._progress("collect", "started", "Collecting your visualizations…")
-
-    def planning_dashboard(self) -> None:
-        self._progress("plan", "started", "Planning the dashboard…")
-
-    def selecting_filters(self) -> None:
-        self._progress("filters", "started", "Selecting filters…")
-
-    def generating_layout(self) -> None:
-        self._progress("layout", "started", "Generating the layout…")
-
-    def dashboard_generated(self) -> None:
-        self._progress("assemble", "done", "Dashboard is ready.")
-
     def generated(self, stage: str = "done") -> None:
         self._progress(stage, "done", "Found it. Done.")
 
@@ -203,35 +188,5 @@ NODE_ACTIVITY = {
         "viz",
         "started",
         "Trying another chart that fits this data…",
-    ),
-    "CollectContext": (
-        "collect",
-        "started",
-        "Collecting your visualizations…",
-    ),
-    "PlanSummary": (
-        "plan",
-        "started",
-        "Planning the dashboard…",
-    ),
-    "SelectFilters": (
-        "filters",
-        "started",
-        "Selecting filters…",
-    ),
-    "MakeLayout": (
-        "layout",
-        "started",
-        "Generating the layout…",
-    ),
-    "Assemble": (
-        "layout",
-        "started",
-        "Fitting the charts on the canvas…",
-    ),
-    "Audit": (
-        "assemble",
-        "started",
-        "Checking the dashboard…",
     ),
 }

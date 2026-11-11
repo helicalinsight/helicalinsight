@@ -82,9 +82,15 @@ class UtilityService:
         provider: Optional[str] = None,
         set_as_default: bool = True,
     ) -> dict[str, Any]:
-        return self.llm.change_model(
+        result = self.llm.change_model(
             model, provider=provider, set_as_default=set_as_default
         )
+        self._register_catalog_model(
+            package=None,
+            model=model,
+            provider=result.get("provider") or provider,
+        )
+        return result
 
     def set_default_provider(self, provider: str) -> dict[str, Any]:
         return self.llm.set_default_provider(provider)
@@ -110,7 +116,7 @@ class UtilityService:
             "headers",
             "requestParams",
         }
-        return self.llm.upsert_provider(
+        result = self.llm.upsert_provider(
             payload.get("provider") or "",
             package=payload.get("package"),
             model=payload.get("model"),
@@ -121,6 +127,12 @@ class UtilityService:
             replace_parameters=bool(payload.get("replace_parameters", False)),
             extra={k: v for k, v in payload.items() if k not in ignored},
         )
+        self._register_catalog_model(
+            package=payload.get("package"),
+            model=payload.get("model"),
+            provider=payload.get("provider"),
+        )
+        return result
 
     def update_llm_config(self, payload: dict) -> dict[str, Any]:
         return self.llm.update_llm_settings(
@@ -150,6 +162,31 @@ class UtilityService:
             }
             or None,
         )
+
+    def _register_catalog_model(
+        self,
+        *,
+        package: Optional[str],
+        model: Optional[str],
+        provider: Optional[str],
+    ) -> None:
+        """Persist a model id typed in Settings into ``llm_models_catalog.yaml``."""
+        if model is None:
+            return
+        resolved_model = str(model).strip()
+        if not resolved_model:
+            return
+        resolved_package = (package or "").strip()
+        if not resolved_package and provider:
+            try:
+                resolved_package = (
+                    self.llm.get_provider(str(provider)).get("package") or ""
+                ).strip()
+            except Exception:
+                resolved_package = ""
+        if not resolved_package:
+            return
+        self.catalog.add_model(resolved_package, resolved_model)
 
     def get_settings_bootstrap(self) -> dict[str, Any]:
         """Single payload for Admin InstantBI Settings UI initial load."""

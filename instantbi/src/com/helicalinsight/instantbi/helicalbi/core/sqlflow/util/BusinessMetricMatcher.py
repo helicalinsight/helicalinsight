@@ -86,9 +86,17 @@ def _text_references_schema(
         if ref and ref in text:
             return True
 
-    for table_name, _ in _QUALIFIED_REF.findall(text):
-        if table_name in required_tables:
-            return True
+    # A selected column must appear. Sharing a table is not enough, or every
+    # measure on that table is copied into the prompt.
+    qualified = _QUALIFIED_REF.findall(text)
+    if required_table_columns:
+        for table_name, column_name in qualified:
+            if f"{table_name}.{column_name}" in required_table_columns:
+                return True
+    else:
+        for table_name, _column_name in qualified:
+            if table_name in required_tables:
+                return True
 
     tokens = _identifiers(text)
     # When specific query-plan columns are known, bare table-token matches are

@@ -8,7 +8,7 @@ Pick one layout template, then place widgets on a 12-column grid using domain, t
 {decision_table}
 
 ### LAYOUT TEMPLATES
-ASCII sketches are in *.layout.txt files. Place widgets to match the chosen sketch on a 12-column grid.
+Place widgets to match the chosen sketch on a 12-column grid.
 {layout_catalog}
 
 ### GRID

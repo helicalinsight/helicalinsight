@@ -1111,6 +1111,32 @@ export const getMinMaxValues = (data, dispatch) => {
     })
 };
 
+export const getRelativeDateRange = (dateNow, value, part, direction, toolTipFormat, relativePart) => {
+    let startOffset = 0, endOffset = 0, endType = "end"
+    const numericValue = Number(value)
+    if (direction === "last") {
+        if (value === "toDate") {
+            endType = "now"
+        } else if (numericValue > 1) {
+            startOffset = numericValue - 1
+        } else {
+            startOffset = 1
+            endOffset = 1
+        }
+    } else if (direction === "next") {
+        if (numericValue > 1) {
+            endOffset = numericValue - 1
+        } else {
+            startOffset = 1
+            endOffset = numericValue
+        }
+    }
+    return [
+        createEffectedDate(dateNow, startOffset, part, direction, toolTipFormat, relativePart, "start"),
+        createEffectedDate(dateNow, endOffset, part, direction, toolTipFormat, relativePart, endType)
+    ]
+}
+
 export const getRelativeDate = (filter) => {
     const { anchor: { isAnchor, anchorDate, value, direction, part, relativePart }, condition, dataType, datePart, mapping } = filter || {}
     let displayDateFunc = datePart, valueDateFunc = datePart
@@ -1125,23 +1151,8 @@ export const getRelativeDate = (filter) => {
     let { toolTipFormat } = datePickerFormat(filter, dataType);
     let isRange = rangeConditions.includes(condition);
     let dateNow = isAnchor ? anchorDate : moment()._d
-    let startValue = "01", endValue = "01"
-    if (direction === "last") {
-        if (value === "toDate") {
-            startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "now")
-        } else {
-            startValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "end")
-        }
-    } else if (direction === "next") {
-        startValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "start")
-        endValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "end")
-    } else {
-        startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-        endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "end")
-    }
     if (isRange) {
+        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
         const [startDate, endDate] = changeRangeDateTime(startValue, endValue, filter)
         return {
             ...filter,

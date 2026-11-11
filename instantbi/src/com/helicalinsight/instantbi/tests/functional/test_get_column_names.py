@@ -177,3 +177,42 @@ def test_qualifies_select_clause_columns():
         "employee.emp_id",
     ]
     assert result["selectColumnName"] == ["travel_details.travel_cost"]
+
+
+def test_empty_column_list_keeps_client_name_table_and_year_column():
+    """Client Name lives on meeting_details; the model often returns only travel_details."""
+    cube_metadata = [
+        {
+            "database_table": "meeting_details",
+            "columns": [{"column_name": "client_name", "dimension_name": "Client Name"}],
+        },
+        {
+            "database_table": "travel_details",
+            "columns": [
+                {"column_name": "travel_date", "dimension_name": "Year"},
+                {"column_name": "travel_id"},
+            ],
+            "measures": [{"column_name": "travel_cost", "measure_name": "Cost Incurred"}],
+        },
+    ]
+    query_plan = {
+        "columnName": [],
+        "selectColumnName": ["client_name", "travel_id", "travel_cost"],
+        "pickedDimensions": ["client_name", "EXTRACT(YEAR FROM travel_date)"],
+        "pickedMetrics": ["travel_id", "travel_cost"],
+    }
+
+    result = _qualify_query_plan_columns(
+        query_plan, cube_metadata, ["travel_details"]
+    )
+
+    assert result["selectColumnName"] == [
+        "meeting_details.client_name",
+        "travel_details.travel_id",
+        "travel_details.travel_cost",
+    ]
+    assert result["columnName"][:3] == result["selectColumnName"]
+    assert "travel_details.travel_date" in result["columnName"]
+    assert tables_from_query_plan(
+        result, ["meeting_details", "travel_details"]
+    ) == ["meeting_details", "travel_details"]

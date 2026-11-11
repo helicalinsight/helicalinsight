@@ -51,17 +51,14 @@
           "placeholder": "openai",
           "description": "Provider identifier. New ids are allowed. Unknown logos use the default icon until an SVG is added.",
           "options": [
-            { "label": "OpenAI", "value": "openai" },
-            { "label": "Anthropic", "value": "anthropic" },
-            { "label": "Claude", "value": "claude" },
-            { "label": "Gemini", "value": "google-genai" },
-            { "label": "Vertex AI", "value": "vertexai" },
-            { "label": "Groq", "value": "groq" },
-            { "label": "Ollama", "value": "ollama" },
-            { "label": "Mistral AI", "value": "mistralai" },
-            { "label": "DeepSeek", "value": "deepseek" },
-            { "label": "Fireworks", "value": "fireworks" },
-            { "label": "Together", "value": "together" }
+            {
+              "label": "Ollama",
+              "value": "ollama"
+            },
+            {
+              "label": "Vertex AI",
+              "value": "vertexai"
+            }
           ]
         },
         {
@@ -74,8 +71,11 @@
           "allowClear": true,
           "optionFilterProp": "label",
           "options": [],
-          "placeholder": "Search and select a model",
-          "description": "Search by model name. Only catalog models for the selected provider are listed."
+          "placeholder": "Search or type a model",
+          "description": "Search the catalog, or type a model name that is not listed. Save stores that name.",
+          "editable": false,
+          "allowCustom": true,
+          "loading": false
         },
         {
           "name": "usage_path",

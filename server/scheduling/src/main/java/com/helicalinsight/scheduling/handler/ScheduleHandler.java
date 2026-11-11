@@ -18,6 +18,7 @@ import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.model.HIResourceEFWSR;
 import com.helicalinsight.admin.model.ResourceType;
 import com.helicalinsight.admin.model.User;
+import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.ResourceUtils;
@@ -147,7 +148,8 @@ public class ScheduleHandler extends ResourceIOHandler {
 				params.setScheduleIdOfJobParameter(schedule);
 				jobParameterService.addJobParameter(params);
 			}
-			enhancedProcessCall.scheduleSpecificJob(schedule, "");
+			String baseUrl = ApplicationProperties.getInstance().getDomain();
+			enhancedProcessCall.scheduleSpecificJob(schedule, baseUrl);
 		}
 		List<HIResource> efwsrResources = jsonMapperUtils.asList(new File(String.join(File.separator, resourcePath, FilenameUtils.removeExtension(fileName) + ResourceSuffix.SCHEDULE_RESULT)), new TypeReference<List<HIResource>>() {});
 		for(HIResource efwsrResource : efwsrResources) {

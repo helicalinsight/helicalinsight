@@ -1,4 +1,4 @@
-"""Fire-and-forget LLM usage audit for convert-dashboard."""
+"""Fire-and-forget LLM usage audit for dashboard layout."""
 from __future__ import annotations
 
 import logging
@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 
 class DashboardAudit:
     def process_flow(self, state: DashboardLayoutState) -> DashboardLayoutState:
-        # Lazy import: controller.helpers pulls controller.__init__ → convert_dashboard
-        # → GraphBuilderManger, which is still loading when this graph is built.
+        # Lazy import: controller.helpers pulls controller.__init__ while this graph is built.
         from helicalbi.controller.helpers import (
             extract_token_usage_dict,
             resolve_audit_status_from_response,
@@ -29,15 +28,15 @@ class DashboardAudit:
         )
         try:
             audit_llm_usage_async(
-                endpoint="/convert-dashboard",
+                endpoint="dashboard-layout",
                 user_id=state.get("user_id"),
                 session_cookie=str(state.get("session_cookie") or ""),
-                user_query=str(state.get("user_query") or "convert-dashboard"),
+                user_query=str(state.get("user_query") or "dashboard-layout"),
                 token_usage=extract_token_usage_dict(payload),
                 request_status=request_status,
                 error_message=error_message,
                 chat_id=str(state.get("chatid") or state.get("thread_id") or "") or None,
             )
         except Exception:
-            logger.exception("convert-dashboard audit layer failed")
+            logger.exception("dashboard layout audit layer failed")
         return state

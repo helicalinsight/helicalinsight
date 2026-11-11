@@ -12,7 +12,7 @@ API documentation for all endpoints in `com.helicalinsight.instant.ai.InstantBIC
 | **Auth** | Logged-in session (`JSESSIONID` cookie). Roles: `ROLE_USER`, `ROLE_ADMIN`, or `ROLE_VIEWER` |
 | **Encoding** | `agent`, `domain`, `subject`, `formData`, and `sql` may be plain JSON/text or **Base64-encoded** strings |
 | **Ajax header** | If the request is treated as Ajax, response is `application/json`; otherwise `text/html` |
-| **Streaming** | When `streamResponse` is `true` in `setting.xml`, `/ai/interactive-chat`, `/ai/data-insight`, and `/ai/convert-dashboard` return SSE (`text/event-stream`) instead of a buffered JSON body |
+| **Streaming** | When `streamResponse` is `true` in `setting.xml`, `/ai/interactive-chat` and `/ai/data-insight` return SSE (`text/event-stream`) instead of a buffered JSON body |
 
 ### SSE activity streaming (`streamResponse`)
 
@@ -31,7 +31,6 @@ Activity messages:
 
 - **interactive-chat:** opening line → each intent/SQL/viz **graph node** → Found this query is suitable: {sql} → Executing your query… → Got your data. → Found it. Chart is ready.
 - **data-insight:** Executing your query… → Got your data. → Writing an insight from your data… → Insight is ready.
-- **convert-dashboard:** each layout graph node (CollectContext → PlanSummary → SelectFilters → MakeLayout → Assemble → Audit) → Dashboard is ready.
 
 Abort is stop-only (no resume): `/cancelRequest` plus Python `POST /abort`. Chat history / memory write only on successful `complete`.
 
@@ -296,50 +295,7 @@ chat_sequence_id=2&formData={"input":"Explain the trend","location":"MyReports",
 
 ---
 
-## 5. Convert Dashboard
-
-**`GET | POST`** `/ai/convert-dashboard`
-
-Turns a chat viz/SQL array into dashboard **parts** (layout, sections, filters, theme, summary). Python does **not** return `.efwdd` or `.hr` save JSON. The InstantBI UI hydrates Dashboard Designer from those parts.
-
-### Request Parameters
-
-| Parameter | Required | Type | Description |
-|-----------|----------|------|-------------|
-| `chatid` | No | string | Chat / thread id. Used to walk memory if `items` is empty |
-| `items` | No | JSON string | Array of `{ id, sql, viz, summary }`. May be Base64-encoded |
-| `subject` | No | JSON string | `{ "model": { "dir", "file" } }` (plain or Base64) |
-| `formData` | No | JSON string | Optional metadata `location` / `metadata_file_name` / `dialect` |
-| `input` | No | string | Unused for layout; forwarded as `inputString` |
-
-### Example Request
-
-```http
-POST /ai/convert-dashboard
-Content-Type: application/x-www-form-urlencoded
-
-chatid=abc123&items=[{"id":"seq-3","sql":"SELECT ...","viz":{"chart_name":"bar","viz_model":{}}}]&subject={"model":{"dir":"MyFolder","file":"Sales.model"}}
-```
-
-### Response
-
-```json
-{
-  "status": 1,
-  "response": {
-    "items": [{ "id": "seq-3", "sql": "...", "viz": {}, "sql_parts": {}, "viz_parts": {} }],
-    "theme": { "color": "#1677ff", "background": "#ffffff" },
-    "summary": { "title": "Overview", "text": "...", "x": 0, "y": 0, "w": 12, "h": 1 },
-    "sections": [{ "id": "overview", "title": "Overview" }],
-    "filters": [{ "column": "region", "sourceItemId": "seq-3", "listeners": ["seq-3"], "x": 0, "y": 1, "w": 3, "h": 1 }],
-    "layout": [{ "itemId": "seq-3", "sectionId": "overview", "x": 0, "y": 2, "w": 6, "h": 4 }]
-  }
-}
-```
-
----
-
-## 5a. SQL to Report Model
+## 5. SQL to Report Model
 
 **`GET | POST`** `/ai/sql-to-report-model`
 
@@ -475,7 +431,6 @@ Each endpoint forwards to the Instant BI Python service (`instantbiConfig.servic
 | `/ai/agent-dashboard` | `/agent-dashboard` |
 | `/ai/data-insight` | `/data-insight` |
 | `/ai/convert-hreport` | `/instant-to-hr` |
-| `/ai/convert-dashboard` | `/convert-dashboard` |
 | `/ai/sql-to-report-model` | `/sql-to-report-model` |
 | `/ai/chat-context` | `/chat` (+ `/metadataInsight` when context is metadata) |
 

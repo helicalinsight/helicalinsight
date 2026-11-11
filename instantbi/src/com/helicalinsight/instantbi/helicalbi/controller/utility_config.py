@@ -233,9 +233,18 @@ def register(flask_app) -> None:
         """List analytical operations from analytical_strategy.json for the Diagnostics UI."""
         log_endpoint_input("/utility/analytical-operations", _request_data())
         try:
-            from helicalbi.sql_agent.strategy_tree import list_analytical_operations_for_api
+            from helicalbi.sql_agent.strategy_tree import (
+                list_analytical_operations_for_api,
+                load_input_tooltips,
+            )
 
             operations = list_analytical_operations_for_api()
-            return _ok({"operations": operations, "count": len(operations)})
+            return _ok(
+                {
+                    "operations": operations,
+                    "count": len(operations),
+                    "inputTooltips": dict(load_input_tooltips()),
+                }
+            )
         except Exception as exc:
             return _fail(exc)

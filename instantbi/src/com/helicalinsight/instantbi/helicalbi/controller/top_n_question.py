@@ -87,7 +87,7 @@ def register(flask_app) -> None:
                 logger.exception(
                     "Top N metadata fallback unavailable; continuing with model semantic layer"
                 )
-            kpi_provider = app().KpiProvider(model_data, domain)
+            kpi_provider = app().KpiProvider(model_data, domain, top_n=top_n)
             user_query = kpi_provider.user_query
             found, token_usage = kpi_provider.top_kpis()
             logger.info("Top N questions resolved count=%s domain=%s", len(found), domain)

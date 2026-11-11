@@ -106,28 +106,19 @@ class TestActivityReporter:
         parsed = _parse_event(reporter.drain()[0])
         assert parsed["data"]["message"] == "Found this query is suitable."
 
-    def test_dashboard_and_insight_methods(self):
+    def test_insight_methods(self):
         reporter = ActivityReporter()
         reporter.enable_streaming()
-        reporter.collecting_visualizations()
-        reporter.planning_dashboard()
-        reporter.selecting_filters()
-        reporter.generating_layout()
         reporter.generating_insight()
         reporter.insight_generated()
-        reporter.dashboard_generated()
         parsed = [_parse_event(raw) for raw in reporter.drain()]
         messages = [item["data"]["message"] for item in parsed]
         stages = [item["data"]["stage"] for item in parsed]
-        assert "Collecting your visualizations…" in messages
-        assert "Planning the dashboard…" in messages
-        assert "Selecting filters…" in messages
-        assert "Generating the layout…" in messages
-        assert "Writing an insight from your data…" in messages
-        assert "Insight is ready." in messages
-        assert "Dashboard is ready." in messages
-        assert "insight" in stages
-        assert "assemble" in stages
+        assert messages == [
+            "Writing an insight from your data…",
+            "Insight is ready.",
+        ]
+        assert stages == ["insight", "insight"]
 
     def test_graph_node_uses_descriptive_copy_and_skips_unknown(self):
         reporter = ActivityReporter()

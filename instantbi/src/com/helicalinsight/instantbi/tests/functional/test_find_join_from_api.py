@@ -31,7 +31,7 @@ class TestPlanColumnsByTable:
     def test_ignores_bare_columns(self):
         assert _plan_columns_by_table({"columnName": ["bare", "t.a"]}) == {"t": ["a"]}
 
-    def test_prefers_select_clause_columns(self):
+    def test_keeps_select_columns_and_adds_filter_only_tables(self):
         plan = {
             "columnName": [
                 "travel_details.travel_cost",
@@ -39,7 +39,10 @@ class TestPlanColumnsByTable:
             ],
             "selectColumnName": ["travel_details.travel_cost"],
         }
-        assert _plan_columns_by_table(plan) == {"travel_details": ["travel_cost"]}
+        assert _plan_columns_by_table(plan) == {
+            "travel_details": ["travel_cost"],
+            "employee": ["emp_id"],
+        }
         assert _select_clause_refs(plan) == ["travel_details.travel_cost"]
 
     def test_handles_invalid_input(self):
@@ -182,7 +185,7 @@ class TestJoinApiUsesSelectClause:
             "demo.employee.emp_name",
         }
 
-    def test_skips_api_when_select_clause_is_single_table(self):
+    def test_sends_filter_only_table_so_the_join_is_built(self):
         query_plan = {
             "columnName": [
                 "travel_details.travel_cost",
@@ -192,9 +195,10 @@ class TestJoinApiUsesSelectClause:
         }
 
         with patch(
-            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api"
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={"response": {"query": "SELECT 1"}},
         ) as mock_api:
-            result = FindJoinFromApi().fetch_sql(
+            FindJoinFromApi().fetch_sql(
                 "cookie",
                 "md.json",
                 "/",
@@ -204,10 +208,15 @@ class TestJoinApiUsesSelectClause:
                 query_plan=query_plan,
             )
 
-        assert result == {}
-        mock_api.assert_not_called()
+        service_json = mock_api.call_args.kwargs["service_json"]
+        form_data = json.loads(service_json["formData"])
+        column_names = {col["column"]["name"] for col in form_data["columns"]}
+        assert column_names == {
+            "demo.travel_details.travel_cost",
+            "demo.employee.emp_id",
+        }
 
-    def test_process_flow_skips_join_when_select_is_one_table(self):
+    def test_process_flow_fetches_join_when_filter_uses_another_table(self):
         state = {
             "session_cookie": "cookie",
             "cube_metadata": self._CUBES,
@@ -228,15 +237,112 @@ class TestJoinApiUsesSelectClause:
         }
 
         with patch(
-            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api"
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={
+                "response": {
+                    "query": "SELECT t.travel_cost FROM travel_details t JOIN employee e ON e.emp_id = t.travelled_by"
+                }
+            },
         ) as mock_api:
             result = FindJoinFromApi().process_flow(state)
 
-        mock_api.assert_not_called()
-        assert result["required_joins"] == ""
-        assert json.loads(result["hi_sql"]) == {}
+        mock_api.assert_called_once()
+        assert "JOIN employee" in result["required_joins"]
 
-    def test_join_tables_from_select_ignores_filter_only_tables(self):
+    def test_fetches_join_when_select_column_belongs_to_another_cube_table(self):
+        cubes = [
+            {
+                "database_table": "meeting_details",
+                "columns": [{"column_name": "client_name"}],
+            },
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {"column_name": "travel_id"},
+                    {"column_name": "travel_cost"},
+                ],
+            },
+        ]
+        state = {
+            "session_cookie": "cookie",
+            "cube_metadata": cubes,
+            "metadata_file_name": "md.json",
+            "location": "/",
+            "required_tables": ["travel_details"],
+            "dbname": "demo",
+            "dialect": "PostgreSQL",
+            "query_plan": json.dumps(
+                {
+                    "columnName": [
+                        "meeting_details.client_name",
+                        "travel_details.travel_id",
+                        "travel_details.travel_cost",
+                    ],
+                    "selectColumnName": [
+                        "meeting_details.client_name",
+                        "travel_details.travel_id",
+                        "travel_details.travel_cost",
+                    ],
+                }
+            ),
+        }
+
+        with patch(
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={
+                "response": {
+                    "query": (
+                        "SELECT m.client_name FROM meeting_details m "
+                        "JOIN travel_details t ON t.travelled_by = m.meeting_by"
+                    )
+                }
+            },
+        ) as mock_api:
+            result = FindJoinFromApi().process_flow(state)
+
+        mock_api.assert_called_once()
+        assert "JOIN travel_details" in result["required_joins"]
+
+    def test_refresh_joins_calls_the_api_for_corrected_columns(self):
+        state = {
+            "session_cookie": "cookie",
+            "cube_metadata": [
+                {
+                    "database_table": "meeting_details",
+                    "columns": [{"column_name": "client_name"}, {"column_name": "meeting_by"}],
+                },
+                {
+                    "database_table": "travel_details",
+                    "columns": [{"column_name": "travel_id"}, {"column_name": "travelled_by"}],
+                },
+            ],
+            "metadata_file_name": "md.json",
+            "location": "/",
+            "dbname": "demo",
+            "dialect": "PostgreSQL",
+            "required_joins": "",
+        }
+        with patch(
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={
+                "response": {
+                    "query": (
+                        "SELECT m.client_name FROM meeting_details m "
+                        "JOIN travel_details t ON t.travelled_by = m.meeting_by"
+                    )
+                }
+            },
+        ) as mock_api:
+            join_text = FindJoinFromApi().refresh_joins(
+                state,
+                ["meeting_details.client_name", "travel_details.travel_id"],
+            )
+
+        mock_api.assert_called_once()
+        assert "JOIN travel_details" in join_text
+        assert state["required_joins"] == join_text
+
+    def test_join_tables_include_filter_only_tables(self):
         plan = {
             "columnName": [
                 "travel_details.travel_cost",
@@ -245,7 +351,8 @@ class TestJoinApiUsesSelectClause:
             "selectColumnName": ["travel_details.travel_cost"],
         }
         assert _join_tables_from_select(plan, ["travel_details", "employee"]) == [
-            "travel_details"
+            "travel_details",
+            "employee",
         ]
 
     def test_raises_when_generate_query_returns_status_zero(self):

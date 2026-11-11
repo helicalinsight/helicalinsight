@@ -23,10 +23,12 @@ describe("semantic-metadata-utils", () => {
   });
 
   describe("ensureShape", () => {
-    it("normalizes null and non-object input to domain and cube only", () => {
+    it("normalizes null and non-object input to the default shape", () => {
       expect(ensureShape(null)).toEqual({
         domain: [],
         cube: [{ cubeName: "", dimensions: [], measures: [] }],
+        diagnosticCapabilities: [],
+        customAnalyticalOperations: [],
       });
     });
   });

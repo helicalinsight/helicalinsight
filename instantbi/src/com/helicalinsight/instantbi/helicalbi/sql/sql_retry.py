@@ -32,7 +32,12 @@ def rewrite_failed_sql_prompt(
     bits.append(
         "Rewrite the SQL using valid physical column names or metadata aliases "
         "from the schema. Prefer fixing the named columns rather than dropping "
-        "the measure entirely."
+        "the measure entirely. Do not copy the failed SQL. Replace every table "
+        "or column the error says does not exist with a name from the provided "
+        "columns. Write each base table as its original name and an alias, "
+        "and qualify columns with that alias. Do not use the alias as the "
+        "table name. Do not keep a sample table named t or a sample column "
+        "named date_col unless that exact name is in the provided columns."
     )
     if flat_sql:
         bits.append(THINK_FLAT_SQL_RETRY_DIRECTIVE)
@@ -76,6 +81,7 @@ def execute_sql_with_retries(
         work["query"] = question
         if not sql_execution_failed(work):
             work.pop("_defer_sql_insight", None)
+            work.pop("sql_retry_context", None)
             return work
         logger.info(
             "SQL retry %s/%s: %s",
@@ -92,8 +98,12 @@ def execute_sql_with_retries(
         )
         work["skip"] = False
         work["query"] = question
+        # Column and table selection must keep the original question.
+        # FinalSqlGen reads this retry text; the question stays on query.
+        work["sql_retry_context"] = prompt
         work = regenerate(work, prompt)
         work["query"] = question
     work["query"] = question
     work.pop("_defer_sql_insight", None)
+    work.pop("sql_retry_context", None)
     return work

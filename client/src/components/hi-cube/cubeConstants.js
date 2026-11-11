@@ -1216,7 +1216,7 @@ export function AgentRightSubmenuTextField({
 	);
 }
 
-function AgentAiContextTree({
+export function AgentAiContextTree({
 	draft,
 	onDraftChange,
 	disabled,

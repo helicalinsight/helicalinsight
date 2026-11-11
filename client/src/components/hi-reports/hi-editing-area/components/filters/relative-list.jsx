@@ -8,7 +8,7 @@ import {
     changeRangeDateTime,
     createEffectedDate,
     createRelativePart,
-    datePickerFormat, funcMap, getDatePart, getRelativeList, getRelativePartList, momentDateFormat, rangeConditions
+    datePickerFormat, funcMap, getDatePart, getRelativeDateRange, getRelativeList, getRelativePartList, momentDateFormat, rangeConditions
 } from "../../../../../utils/filter-utils";
 
 
@@ -84,22 +84,7 @@ const RelativeList = props => {
     }
     const applyChanges = () => {
         let dateNow = isAnchor ? anchorDate : moment()._d
-        let startValue = "01", endValue = "01"
-        if (direction === "last") {
-            if (value === "toDate") {
-                startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-                endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "now")
-            } else {
-                startValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
-                endValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "end")
-            }
-        } else if (direction === "next") {
-            startValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "end")
-        } else {
-            startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "end")
-        }
+        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
         if (range) {
             try {
                 let anchorDateData = {
@@ -158,24 +143,8 @@ const RelativeList = props => {
         }
         // setAnchorStr(moment(anchorDate).format("YYYY-MM-DD HH:mm:ss"))
     }
-    let startValue = "01", endValue = "01"
-
     let dateNow = isAnchor ? anchorDate : moment()._d
-    if (direction === "last") {
-        if (value === "toDate") {
-            startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "now")
-        } else {
-            startValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")
-            endValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "end")
-        }
-    } else if (direction === "next") {
-        startValue = createEffectedDate(dateNow, 1, part, direction, toolTipFormat, relativePart, "start")
-        endValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "end")
-    } else {
-        startValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "start")
-        endValue = createEffectedDate(dateNow, 0, part, direction, toolTipFormat, relativePart, "end")
-    }
+    const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
     let dateValue = "01"
     if (!range) {
         dateValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")

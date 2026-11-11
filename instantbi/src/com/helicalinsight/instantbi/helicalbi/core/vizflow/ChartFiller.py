@@ -10,7 +10,10 @@ from helicalbi.core.vizflow.util.ChartCodeTransform import transform_chart_code
 from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.VizFillPrompt import (
     fill_settings_prompt_string,
 )
@@ -459,7 +462,7 @@ class ChartFiller:
                 template=fill_settings_prompt_string + format_instruction_string,
                 input_variables=settings_vars,
                 partial_variables={
-                    "format_instructions": settings_parser.get_format_instructions()
+                    "format_instructions": brief_format_instructions(settings_parser.pydantic_object)
                 },
             )
             settings_response, _ = invoke_structured(

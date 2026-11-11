@@ -3,10 +3,14 @@
 package com.helicalinsight.adhoc;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +19,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -195,6 +200,86 @@ public class DataSourceSecurityUtilityTest {
 	}
 
 	@Test
+	public void testIsSavedDatasource_ClassifiesPersistedHcrConnection() {
+		assertTrue(DataSourceSecurityUtility.isSavedDatasource("123hi_hcr_db.efwd"));
+		assertTrue(DataSourceSecurityUtility.isSavedDatasource("123hi_hcr_db"));
+		assertFalse(DataSourceSecurityUtility.isSavedDatasource("abc-temp.efwd"));
+		assertFalse(DataSourceSecurityUtility.isSavedDatasource("abc_hi_hcr_db.efwd"));
+		assertFalse(DataSourceSecurityUtility.isSavedDatasource(""));
+		assertFalse(DataSourceSecurityUtility.isSavedDatasource(null));
+	}
+
+	@Test
+	public void testSavedReportQueryFilterPreviewUsesSavedConnectionInsteadOfTempDirectory() {
+		for (String dir : new String[] { null, "", "null" }) {
+			JsonObject form = queryFilterPreviewForm("123hi_hcr_db", dir);
+			JsonObject savedConnection = createConnectionJson(GlobalJdbcType.TYPE, "100", null);
+			File tempDir = new File("temp");
+
+			try (MockedStatic<TempDirectoryCleaner> tempMock = Mockito.mockStatic(TempDirectoryCleaner.class);
+					MockedStatic<ApplicationUtilities> appMock = Mockito.mockStatic(ApplicationUtilities.class);
+					MockedStatic<HCRUtils> hcrMock = Mockito.mockStatic(HCRUtils.class);
+					MockedStatic<DataSourceSecurityUtility> securityMock = Mockito
+							.mockStatic(DataSourceSecurityUtility.class, Mockito.CALLS_REAL_METHODS)) {
+
+				AtomicInteger permissionChecks = new AtomicInteger();
+				tempMock.when(TempDirectoryCleaner::getTempDirectory).thenReturn(tempDir);
+				appMock.when(() -> ApplicationUtilities.getEfwdFileFromTemp(anyString(), anyString()))
+						.thenThrow(new AssertionError(
+								"Saved report query filter must not look for an efwd file in System/Temp. dir=" + dir));
+				hcrMock.when(() -> HCRUtils.prepareConnectionJson("123")).thenReturn(savedConnection);
+				securityMock.when(() -> DataSourceSecurityUtility.isGlobalAccessible("100", DataSourceSecurityUtility.EXECUTE))
+						.thenAnswer(invocation -> {
+							permissionChecks.incrementAndGet();
+							return null;
+						});
+
+				DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(form);
+
+				assertEquals(1, permissionChecks.get());
+				hcrMock.verify(() -> HCRUtils.prepareConnectionJson("123"));
+				appMock.verify(() -> ApplicationUtilities.getEfwdFileFromTemp(anyString(), anyString()), never());
+				tempMock.verify(TempDirectoryCleaner::getTempDirectory, never());
+			}
+		}
+	}
+
+	@Test
+	public void testUnsavedReportQueryFilterPreviewStillReadsTempEfwd() throws Exception {
+		JsonObject form = queryFilterPreviewForm("abc-temp", null);
+		File tempDir = new File("temp");
+		File efwdFile = new File("temp/abc-temp.efwd");
+		JsonObject fileJson = createConnectionJson(GlobalJdbcType.TYPE, "100", null);
+		IProcessor fileProcessor = mock(IProcessor.class);
+
+		try (MockedStatic<TempDirectoryCleaner> tempMock = Mockito.mockStatic(TempDirectoryCleaner.class);
+				MockedStatic<ApplicationUtilities> appMock = Mockito.mockStatic(ApplicationUtilities.class);
+				MockedStatic<ResourceProcessorFactory> processorMock = Mockito.mockStatic(ResourceProcessorFactory.class);
+				MockedStatic<HCRUtils> hcrMock = Mockito.mockStatic(HCRUtils.class);
+				MockedStatic<DataSourceSecurityUtility> securityMock = Mockito
+						.mockStatic(DataSourceSecurityUtility.class, Mockito.CALLS_REAL_METHODS)) {
+
+			AtomicInteger permissionChecks = new AtomicInteger();
+			tempMock.when(TempDirectoryCleaner::getTempDirectory).thenReturn(tempDir);
+			appMock.when(() -> ApplicationUtilities.getEfwdFileFromTemp(tempDir.getAbsolutePath(), "abc-temp.efwd"))
+					.thenReturn(efwdFile);
+			processorMock.when(ResourceProcessorFactory::getIProcessor).thenReturn(fileProcessor);
+			when(fileProcessor.getJsonObject(efwdFile.toString(), true)).thenReturn(fileJson);
+			securityMock.when(() -> DataSourceSecurityUtility.isGlobalAccessible("100", DataSourceSecurityUtility.EXECUTE))
+					.thenAnswer(invocation -> {
+						permissionChecks.incrementAndGet();
+						return null;
+					});
+
+			DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(form);
+
+			assertEquals(1, permissionChecks.get());
+			verify(fileProcessor).getJsonObject(efwdFile.toString(), true);
+			hcrMock.verifyNoInteractions();
+		}
+	}
+
+	@Test
 	public void testIsDataSourceAuthenticated_GlobalAccessible() {
 	    JsonObject form = new JsonObject();
 	    form.addProperty("id", "10");
@@ -306,6 +391,20 @@ public class DataSourceSecurityUtilityTest {
 	}
 	
 	
+
+	private JsonObject queryFilterPreviewForm(String tempUuid, String dir) {
+		JsonObject form = new JsonObject();
+		form.addProperty("temp_uuid", tempUuid);
+		form.addProperty("isTemp", true);
+		form.addProperty("access", DataSourceSecurityUtility.EXECUTE);
+		if (dir != null) {
+			form.addProperty("dir", dir);
+		}
+		JsonObject efwd = new JsonObject();
+		efwd.addProperty("file", tempUuid + ".efwd");
+		form.add("efwd", efwd);
+		return form;
+	}
 
 	private JsonObject createConnectionJson(String type, String globalId, String efwdId) {
 		JsonObject connection = new JsonObject();

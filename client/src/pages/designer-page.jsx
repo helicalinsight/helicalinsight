@@ -73,7 +73,11 @@ import { validateDesignerName } from "./utils/helperMethods";
 import { routesUrl } from "../app/constants";
 import createIBDashboardBridge from "../components/bridges/dashboard/dashboard-bridge";
 import { consumeConvertDashboardSeed } from "../components/hi-instant-bi/utils/convert-sql-to-hr-save";
-import { INSTANT_EDIT_MODE } from "../components/hi-instant-bi/utils/save-instant-dashboard";
+import {
+  INSTANT_EDIT_MODE,
+  isInstantEditMode,
+  syncInstantDashboardChartInteractions,
+} from "../components/hi-instant-bi/utils/save-instant-dashboard";
 import { openMetadata } from "../components/hi-reports/utils/base";
 import useExportOptions from "../hooks/useExportOptions";
 import DashboardJsonEditor from "../components/hi-dashboard-designer/components/json-editor/dashboard-json-editor";
@@ -105,6 +109,9 @@ const DashboardDesigner = (props) => {
     (state) => state.designer.present.dashboardConfig
   );
   const gridIndex = useSelector((state) => state.designer.present.gridIndex);
+  const designerMode = useSelector(
+    (state) => state.designer.present.designerMode
+  );
   const isLoading = useSelector((state) => state.designer.present.isLoading);
   const isSaving = useSelector((state) => state.designer.present.isSaving);
   const gridSettingsData = useSelector(
@@ -709,41 +716,69 @@ const DashboardDesigner = (props) => {
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
 
+  const saveDashboardWithInteractions = ({ dirPath, dashName, uuid }) => {
+    let itemsToSave = gridItemsData;
+    if (isInstantEditMode(designerMode)) {
+      itemsToSave = syncInstantDashboardChartInteractions(gridItemsData);
+      dispatch(
+        storeDashboardConfig({
+          gridSettings: gridSettingsData,
+          gridItemsData: itemsToSave,
+          layout,
+          designerLayout: layout,
+          dashboardUUID: uuid || dashboardUUID,
+          dashboardVariables,
+          designerMode: "edit",
+          components,
+          parameterDrawerStatus,
+          gridIndex,
+          designerSettings,
+          savedReportName: dashName,
+          css: dashboardCSS,
+          script,
+        })
+      );
+    }
+    saveTheDashboard({
+      designerSettings,
+      parameterDrawerStatus,
+      dashboardVariables,
+      components,
+      dir: dirPath,
+      fileName: dashName,
+      gridItemsData: itemsToSave,
+      layout,
+      gridSettingsData,
+      variables,
+      dashboardConfig,
+      css: dashboardCSS,
+      script,
+      printOptions,
+      componentSettings,
+      gridWidthOption,
+      toggleIframes,
+      dispatch,
+      Notify,
+      uuid: uuid || dashboardUUID,
+      instantSubject: dashboardInstantSubject,
+    });
+  };
+
   const onSave = () => {
     const updateFileName = fileName.replace(/\.efwdd$/, '');
     if (!dashboardUUID) {
       onSaveAs();
+    } else if (dir && updateFileName) {
+      saveDashboardWithInteractions({
+        dirPath: dir,
+        dashName: savedReportName,
+        uuid: dashboardUUID,
+      });
     } else {
-      if (dir && updateFileName) {
-        saveTheDashboard({
-          parameterDrawerStatus,
-          designerSettings,
-          dashboardVariables,
-          components,
-          dir,
-          fileName: savedReportName,
-          gridItemsData,
-          layout,
-          gridSettingsData,
-          variables,
-          dashboardConfig,
-          css: dashboardCSS,
-          script,
-          printOptions,
-          componentSettings,
-          gridWidthOption,
-          toggleIframes,
-          dispatch,
-          Notify,
-          uuid: dashboardUUID,
-          instantSubject: dashboardInstantSubject
-        });
-      } else {
-        Notify.error({
-          message: "Dir and/or filename cannot be empty",
-          type: "Frontend",
-        });
-      }
+      Notify.error({
+        message: "Dir and/or filename cannot be empty",
+        type: "Frontend",
+      });
     }
   };
 
@@ -758,29 +793,18 @@ const DashboardDesigner = (props) => {
   };
 
   const saveCallback = (dir, fileName) => {
+    if (!dir?.path || !fileName) {
+      Notify.error({
+        message: "Dir and/or filename cannot be empty",
+        type: "Frontend",
+      });
+      return;
+    }
     setDir(dir.path);
     setFileName(fileName);
-    saveTheDashboard({
-      designerSettings,
-      parameterDrawerStatus,
-      dashboardVariables,
-      components,
-      dir: dir.path,
-      fileName,
-      gridItemsData,
-      layout,
-      gridSettingsData,
-      variables,
-      dashboardConfig,
-      css: dashboardCSS,
-      script,
-      printOptions,
-      componentSettings,
-      gridWidthOption,
-      toggleIframes,
-      dispatch,
-      Notify,
-      instantSubject: dashboardInstantSubject
+    saveDashboardWithInteractions({
+      dirPath: dir.path,
+      dashName: fileName,
     });
   };
   const onDragFb = (_, d) => {

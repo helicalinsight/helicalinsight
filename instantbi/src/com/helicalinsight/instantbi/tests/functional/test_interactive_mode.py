@@ -423,6 +423,62 @@ def test_heuristic_interactive_mode_routes_simple_and_complex_questions():
     assert heuristic_interactive_mode("compare regions and explain drivers") == INTERACTIVE_MODE_THINK
 
 
+def test_interactive_mode_choice_unwraps_values_and_rejects_schema():
+    from pydantic import ValidationError
+
+    from helicalbi.interactive.auto_mode import InteractiveModeChoice
+
+    direct = InteractiveModeChoice.model_validate(
+        {"mode": "fast", "reason": "one metric", "complexity": "simple"}
+    )
+    assert direct.mode == "fast"
+    wrapped = InteractiveModeChoice.model_validate(
+        {
+            "properties": {
+                "mode": "think",
+                "reason": "why",
+                "complexity": "complex",
+            },
+            "required": ["mode"],
+        }
+    )
+    assert wrapped.mode == "think"
+    with pytest.raises(ValidationError):
+        InteractiveModeChoice.model_validate(
+            {
+                "properties": {
+                    "mode": {
+                        "description": "fast or think",
+                        "type": "string",
+                    }
+                },
+                "required": ["mode"],
+            }
+        )
+
+
+def test_classify_sends_an_instance_example_not_a_schema():
+    from helicalbi.interactive.auto_mode import classify_interactive_mode
+
+    seen = {}
+
+    class Choice:
+        mode = INTERACTIVE_MODE_FAST
+        complexity = "simple"
+        reason = "one metric"
+
+    def _invoke(template, inputs, model, format_instructions=None):
+        seen["format_instructions"] = format_instructions
+        return Choice()
+
+    assert classify_interactive_mode("total travel cost", invoke=_invoke) == INTERACTIVE_MODE_FAST
+    instructions = seen["format_instructions"]
+    assert '"mode": "fast"' in instructions
+    assert '"mode": "think"' in instructions
+    assert '"properties"' not in instructions
+    assert "Here is the output schema" not in instructions
+
+
 def test_classify_interactive_mode_uses_llm_then_heuristic():
     from helicalbi.interactive.auto_mode import classify_interactive_mode
 

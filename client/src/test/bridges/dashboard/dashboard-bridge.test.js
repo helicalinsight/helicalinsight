@@ -4,10 +4,15 @@ import createIBDashboardBridge, {
   matchStepReportModel,
 } from "../../../components/bridges/dashboard/dashboard-bridge";
 import createHReportBridge from "../../../components/bridges/hreport/hreport-bridge";
+import { getReportById } from "../../../components/bridges/hreport/utils";
 
 jest.mock("../../../components/bridges/hreport/hreport-bridge", () => ({
   __esModule: true,
   default: jest.fn(),
+}));
+
+jest.mock("../../../components/bridges/hreport/utils", () => ({
+  getReportById: jest.fn(),
 }));
 
 const TILE = DASHBOARD_CREATE_TILE;
@@ -33,6 +38,7 @@ function mockBridgeSuccess(reportPayload = { id: "hydrated" }) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getReportById.mockReturnValue({});
 });
 
 describe("DASHBOARD_CREATE_TILE", () => {
@@ -364,6 +370,59 @@ describe("createIBDashboardBridge - init flow", () => {
       })
     );
     expect(onItemUpdate).toHaveBeenCalledWith({ id: "hydrated-1" });
+    expect(onComplete).toHaveBeenCalledWith([item]);
+  });
+
+  it("skips tiles whose hreport is already present and continues with the rest", async () => {
+    mockBridgeSuccess({ id: "hydrated-new" });
+    const dispatch = jest.fn();
+    getReportById.mockImplementation((receivedDispatch, reportId) =>
+      reportId === "hr-existing" ? { id: "hr-existing" } : {}
+    );
+    const onItemUpdate = jest.fn();
+    const onComplete = jest.fn();
+    const existingItem = makeTile({
+      id: "tile-existing",
+      reportInfo: { hreportId: "hr-existing" },
+    });
+    const newItem = makeTile({
+      id: "tile-new",
+      reportInfo: { hreportId: "hr-new" },
+    });
+
+    await createIBDashboardBridge({
+      dispatch,
+      gridItemsData: [existingItem, newItem],
+      onItemUpdate,
+      onComplete,
+    }).init();
+
+    expect(getReportById).toHaveBeenNthCalledWith(1, dispatch, "hr-existing");
+    expect(getReportById).toHaveBeenNthCalledWith(2, dispatch, "hr-new");
+    expect(createHReportBridge).toHaveBeenCalledTimes(1);
+    expect(createHReportBridge).toHaveBeenCalledWith(
+      expect.objectContaining({ reportId: "hr-new" })
+    );
+    expect(onItemUpdate).toHaveBeenCalledTimes(1);
+    expect(onItemUpdate).toHaveBeenCalledWith({ id: "hydrated-new" });
+    expect(onComplete).toHaveBeenCalledWith([existingItem, newItem]);
+  });
+
+  it("does not call onItemUpdate when every hreport is already present", async () => {
+    getReportById.mockReturnValue({ id: "hr-existing" });
+    const onItemUpdate = jest.fn();
+    const onComplete = jest.fn();
+    const item = makeTile({ reportInfo: { hreportId: "hr-existing" } });
+
+    await createIBDashboardBridge({
+      dispatch: jest.fn(),
+      gridItemsData: [item],
+      onItemUpdate,
+      onComplete,
+    }).init();
+
+    expect(createHReportBridge).not.toHaveBeenCalled();
+    expect(onItemUpdate).not.toHaveBeenCalled();
     expect(onComplete).toHaveBeenCalledWith([item]);
   });
 

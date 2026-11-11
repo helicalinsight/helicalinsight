@@ -108,6 +108,12 @@ public class EfwServicesController {
     public SseEmitter streamService(@RequestParam("type") String type, @RequestParam("serviceType") String serviceType,
             @RequestParam("service") String service,  HttpServletRequest request,HttpServletResponse response) throws IOException {
 
+    	String defaultCharSet = ControllerUtils.defaultCharSet();
+    	String contentType = MediaType.TEXT_EVENT_STREAM_VALUE + ";"+"charset=" + defaultCharSet;
+    	
+    	response.setContentType(contentType);
+    	response.setCharacterEncoding(defaultCharSet);
+    	
         ServiceRequestContext serviceContext  = serviceContextBuilder.buildContext(type, serviceType, service, request, gsonStore);
         String requestId  = serviceContext.getRequestId();
         

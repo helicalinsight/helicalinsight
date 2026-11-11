@@ -8,13 +8,16 @@ const hiMockAxios = () => {
     return {
       instance: (url, data, config)=> {
         if(url.url === "/hi-ee/downloadReport.html"){
-          return new Promise((resolve, reject) => {
-            resolve({
-              data: new ArrayBuffer(),
-            })
+          return Promise.resolve({
+            data: new ArrayBuffer(),
+            headers: {},
           })
         }
+        return Promise.resolve({ data: {}, headers: {} })
       },
+      abort: jest.fn(),
+      controller: { signal: {} },
+      source: { token: {}, cancel: jest.fn() },
     };
   };
 

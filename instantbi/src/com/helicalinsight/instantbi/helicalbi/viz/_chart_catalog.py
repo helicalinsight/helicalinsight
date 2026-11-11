@@ -25,7 +25,7 @@ _CHART_OPTION_ROWS: tuple[tuple, ...] = (
     ("gauge", 0, 1, 1, 2, "Progress against a target.", False, ("gauge chart", "dial", "speedometer")),
     ("progress", 0, 1, 1, 2, "Percent complete: 1–2 measures, optional 1 dimension.", False, ("progress chart", "progress bar", "percent complete")),
     ("waterfall", 1, 1, 1, 1, "Cumulative change: 1 dimension in columns and 1 measure in rows.", False, ("waterfall chart",)),
-    ("calendar", 1, 1, 0, 1, "Calendar: 1 date dimension in columns.", True, ("calendar heatmap", "calendar chart", "date heatmap")),
+    ("calendar", 1, 1, 0, 1, "Calendar: 1 dimension and 0-1 measures, when every selected column is a date, datetime, or time.", True, ("calendar heatmap", "calendar chart", "date heatmap")),
     ("wordcloud", 1, 1, 0, 0, "Word cloud: 1 dimension and 0 measures.", False, ("word cloud", "tag cloud", "text")),
     ("table", 0, None, 0, None, "Tabular fallback for any shape.", False, ("data table", "grid")),
     (

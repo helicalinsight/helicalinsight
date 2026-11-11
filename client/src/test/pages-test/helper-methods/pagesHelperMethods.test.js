@@ -1,4 +1,23 @@
-import { validateReportName, validateDesignerName } from "../../../pages/utils/helperMethods";
+import { shouldUpdateHreportDocumentTitle, validateReportName, validateDesignerName } from "../../../pages/utils/helperMethods";
+
+describe('shouldUpdateHreportDocumentTitle', () => {
+    test.each([
+        'open',
+        'dashboard',
+        'filter',
+        'instant-bi',
+        'instant-bi-create',
+        'instant-bi-open',
+        'dashboard-create',
+        'dashboard-instant-filter',
+    ])('should not update the document title in %s mode', (mode) => {
+        expect(shouldUpdateHreportDocumentTitle(mode)).toBe(false);
+    });
+
+    test.each([undefined, 'create', 'edit'])('should update the document title in %s mode', (mode) => {
+        expect(shouldUpdateHreportDocumentTitle(mode)).toBe(true);
+    });
+});
 
 describe('validateReportName', () => {
     test('should return error if name is less than 3 characters', () => {

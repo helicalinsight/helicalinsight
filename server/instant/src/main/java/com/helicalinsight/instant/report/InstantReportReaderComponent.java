@@ -20,8 +20,9 @@ import org.springframework.web.context.request.ServletRequestAttributes;
  * InstantReportReaderComponent is responsible for reading an instant report from the file system
  * and returning its content as JSON.
  *
- * Open and edit both hydrate InstantBI chat memory (parent turns and think-mode
- * supporting questions) so data-insight can resolve SQL after the report is opened.
+ * Open and edit upgrade older VF chat responses into a table {@code report_model},
+ * then hydrate InstantBI chat memory (parent turns and think-mode supporting
+ * questions) from that upgraded report so data-insight can resolve SQL.
  *
  * @author Somen
  */
@@ -51,6 +52,11 @@ public class InstantReportReaderComponent implements IComponent {
         }
 
         JsonObject reportContent = ReportOpenHelper.reportContentAsJson(adhocReport);
+        boolean rewritten = LegacyInstantStructureNormalizer.normalize(reportContent);
+        LegacyInstantStructureNormalizer.attachMetadata(reportContent, rewritten);
+        LegacyVfReportUpgrader.upgrade(reportContent);
+        LegacyInstantStructureNormalizer.stampAttachedMetadata(reportContent);
+        // Memory load always follows the upgrade, including when a VF SQL conversion fails.
         hydrateInstantBiChatMemory(reportContent);
         aliasActiveChatId(reportContent);
         return reportContent.toString();

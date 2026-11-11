@@ -11,7 +11,10 @@ from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.viz.VizResponse import OtherChartFillerResponse
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.VizFillPrompt import other_fill_prompt_string
 from helicalbi.viz._charts import get_chart_config, needs_other_fallback
 
@@ -95,7 +98,7 @@ class Fallback:
                     "viz_hint",
                 ],
                 partial_variables={
-                    "format_instructions": parser.get_format_instructions()
+                    "format_instructions": brief_format_instructions(parser.pydantic_object)
                 },
             )
             response, _ = invoke_structured(

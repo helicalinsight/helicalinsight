@@ -26,9 +26,13 @@ const Filters = props => {
         return activeReport || {}
     })
     const { user = {} } = useSelector((state) => state.app.applicationSettingsData.userData);
-    const { filters, mode, metadata, dateFunctions, databaseFunctions, fields, reportData = {}, properties: initialProperties } = activeReport || {}
+    let { filters, mode, metadata, dateFunctions, databaseFunctions, fields, reportData = {}, properties: initialProperties } = activeReport || {}
     let filtersIds = filters.map(filter => filter.uid)
     let isDashboardFilterDeleted = dashboardFilter && !filtersIds.includes(dashboardFilter.uid)
+
+    if(props.mode){
+        mode = props.mode
+    }
 
     const [collectedProps, drop] = useDrop(() => ({
         accept: ["canvas_field", "metadata_field"],

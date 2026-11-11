@@ -68,6 +68,7 @@ def load_model_session(
     thread_id: str,
     user_query: str,
     last_chats: Optional[list] = None,
+    parameter_functions: Optional[dict] = None,
 ) -> dict[str, Any]:
     """Load model, metadata, dialect, and a schema indexer via existing HI APIs."""
     from helicalbi.controller.app_context import app
@@ -149,6 +150,7 @@ def load_model_session(
         "model_file_name": model_file_name,
         "model_location": model_location,
         "dialect": (metadata_fun_ref or {}).get("reference") or "",
+        "parameter_functions": parameter_functions or {},
     }
     return {
         "base_state": base_state,
@@ -336,6 +338,8 @@ def build_viz_for_state(
             or (session.get("metadata_fun_ref") or {}).get("reference"),
             metadata=session.get("metadata"),
             catalog=session.get("metadata_fun_ref"),
+            parameter_functions=(result.get("parameter_functions") or session.get("base_state", {}).get("parameter_functions") or None),
+            relative_dates=result.get("relative_dates") or None,
         )
         if form_data is None:
             form_data = sql_to_data_model(

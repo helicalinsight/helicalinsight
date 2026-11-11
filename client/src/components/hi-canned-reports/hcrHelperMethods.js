@@ -8,6 +8,7 @@ import constants from "../../constants";
 import { appActions, fileBrowserActions, hcrActions } from "../../redux/actions";
 import { hcrTabInitialState } from "../../redux/reducers/hCR.reducer";
 import {
+  anchorConstant,
   checkRelativeDateFilter,
   defaultAnchor,
 } from "../../utils/filter-utils";
@@ -52,6 +53,7 @@ import {
   getCTMeasureCells,
   getCTStaticTextNode
 } from "./hcrCanvas/hcrCanvasPaneHelperMethods";
+import { getRelativeDateValues } from "../hi-reports/hi-editing-area/utils/filter-utils";
 
 
 const randomString = uuid;
@@ -103,6 +105,13 @@ function capitalizeFirstLetter(string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
+const isValidDateFilter = (filter) => {
+  if (!filter) return false
+  const validTypes = ["dateTime", "date"]
+  const isValidType = validTypes.includes(filter?.dataType)
+  return isValidType || filter?.datePart
+}
+
 export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
   if (filter.condition === "IN_RANGE") {
     setFilters((prevFilters) => {
@@ -121,6 +130,10 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
             ele.values = value;
           }
           ele.dateValuesType = filter.dateValuesType;
+
+          if (isValidDateFilter(filter)) {
+            ele.anchor = filter.anchor;
+          }
         }
         return { ...ele };
       });
@@ -163,12 +176,31 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
             ele.dataId = uuidv4();
           }
           ele.dateValuesType = filter.dateValuesType;
+          if (isValidDateFilter(filter)) {
+            ele.anchor = filter.anchor;
+          }
         }
         return { ...ele };
       });
     });
   }
 };
+
+export const updateHCRRelativeDateFilters = (filters) => {
+  return filters.map((filter) => {
+    if (isValidDateFilter(filter)) {
+      if (filter.anchor) {
+        const { values = [], anchor = {} } = filter || {};
+        return {
+          ...filter,
+          values: getRelativeDateValues({ anchorDateData: anchor }, values, filter),
+        }
+      }
+      return filter;
+    }
+    return filter;
+  })
+}
 
 export const getFormat = (value) => {
   if (value.toLowerCase()?.includes("date")) {
@@ -712,6 +744,7 @@ export const handleRunQuery = ({
   resetQueryuuids = () => { }
 }) => {
   const connectionDetails = reqQuery?.connectionDetails;
+  const hasStoredProcedure = !(reqQuery?.enableLimit !== false);
 
   const formData = getQueryFormdata({
     connectionDetails,
@@ -739,6 +772,7 @@ export const handleRunQuery = ({
         }),
       );
       const executeQueryFormData = {
+        hasStoredProcedure,
         mapJson: {
           map_id: 1,
           type: connectionDetails?.baseType,
@@ -3299,6 +3333,7 @@ export const getPreviewFormData = ({
     isExport,
     reportName,
     dir: saveDetails.location,
+    parameterAnchors: {}
   };
   if (activeReport.enableJRXML) {
     formData.generateXML = true
@@ -3376,6 +3411,8 @@ export const getPreviewFormData = ({
       className: filter.className,
       expressionType: "simpleText",
     };
+    const isAnchor = filter?.anchor?.isAnchor || false;
+    const anchorLabel = `${anchorConstant}${filter.label}`;
     if (filter.condition !== "IN_RANGE") {
       if (filter.className === "java.lang.Integer") {
         if (
@@ -3387,10 +3424,13 @@ export const getPreviewFormData = ({
           formData.connectionDetails[filter.label] = filter.values.join(",");
         } else if (filter.condition === "EQUALS") {
           if (["date", "dateTime"].includes(filter.dataType)) {
-            let val =
+            let val = filter?.anchor?.relativePart ? filter.values[0] :
               moment(filter.values[0], filter.displayFormat).format(
                 filter.valueFormat,
               ) || "";
+            if (isAnchor) {
+              formData.parameterAnchors[anchorLabel] = filter.anchor?.anchorDate || "";
+            }
             filObj.value = val;
             filObj.defaultExpression = val;
             formData.connectionDetails[filter.label] = val;
@@ -3416,9 +3456,13 @@ export const getPreviewFormData = ({
           formData.connectionDetails[filter.label] = reqValues;
         } else if (filter.condition === "EQUALS") {
           if (["date", "dateTime"].includes(filter.dataType)) {
-            let val = moment(filter.values[0], filter.displayFormat).format(
-              filter.valueFormat,
-            );
+            let val = filter?.anchor?.relativePart ? filter.values[0] :
+              moment(filter.values[0], filter.displayFormat).format(
+                filter.valueFormat,
+              );
+            if (isAnchor) {
+              formData.parameterAnchors[anchorLabel] = filter.anchor?.anchorDate || "";
+            }
             filObj.value = [val];
             filObj.defaultExpression = [val];
             formData.connectionDetails[filter.label] = [val];
@@ -3439,9 +3483,13 @@ export const getPreviewFormData = ({
           formData.connectionDetails[filter.label] = filter.values.join(",");
         } else if (filter.condition === "EQUALS") {
           if (["date", "dateTime"].includes(filter.dataType)) {
-            const val = moment(filter.values[0], filter.displayFormat).format(
-              filter.valueFormat,
-            );
+            const val = filter?.anchor?.relativePart ? filter.values[0] :
+              moment(filter.values[0], filter.displayFormat).format(
+                filter.valueFormat,
+              );
+            if (isAnchor) {
+              formData.parameterAnchors[anchorLabel] = filter.anchor?.anchorDate || "";
+            }
             filObj.value = val;
             filObj.defaultExpression = val;
             formData.connectionDetails[filter.label] = val;
@@ -3457,9 +3505,13 @@ export const getPreviewFormData = ({
       }
     } else {
       if (filter.range[0] === filter.label) {
-        let val = moment(filter.values[0], filter.displayFormat).format(
-          filter.valueFormat,
-        );
+        let val = filter?.anchor?.relativePart ? filter.values[0] :
+          moment(filter.values[0], filter.displayFormat).format(
+            filter.valueFormat,
+          );
+        if (isAnchor) {
+          formData.parameterAnchors[anchorLabel] = filter.anchor?.anchorDate || "";
+        }
         if (filter.className === "java.lang.Integer") {
           filObj.value = val;
           filObj.defaultExpression = val;
@@ -3474,9 +3526,13 @@ export const getPreviewFormData = ({
           formData.connectionDetails[filter.label] = val + "";
         }
       } else if (filter.range[1] === filter.label) {
-        let val = moment(filter.values[1], filter.displayFormat).format(
-          filter.valueFormat,
-        );
+        let val = filter?.anchor?.relativePart ? filter.values[1] :
+          moment(filter.values[1], filter.displayFormat).format(
+            filter.valueFormat,
+          );
+        if (isAnchor) {
+          formData.parameterAnchors[anchorLabel] = filter.anchor?.anchorDate || "";
+        }
         if (filter.className === "java.lang.Integer") {
           filObj.value = val;
           filObj.defaultExpression = val;
@@ -3494,6 +3550,10 @@ export const getPreviewFormData = ({
     }
     formData.designerProperties.parameters.push(filObj);
   });
+
+  if (isEmpty(formData.parameterAnchors)) {
+    delete formData.parameterAnchors;
+  }
 
   calculations.options.forEach((cal) => {
     const varObj = {

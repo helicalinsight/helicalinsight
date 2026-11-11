@@ -30,7 +30,7 @@ from helicalbi.prompt.DomainTopicPrompt import (
     personification,
 )
 from helicalbi.common.app_config import default_sql_limit
-from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+from helicalbi.prompt.FinalSqlPrompt import format_metrics_for_prompt, render_final_sql_prompt
 from helicalbi.service.modelservice.InformationProvider import InformationProvider
 from helicalbi.sql.GetContextForSQL import get_table_col_description
 from helicalbi.viz.ChatDefinition import format_chart_selection_guide
@@ -194,13 +194,16 @@ def render_column_prompt(
     table_names: Iterable[str],
     user_query: str,
 ) -> str:
-    table_column_description = get_table_col_description(cube_metadata, list(table_names))
+    del relationships_list
+    table_column_description = get_table_col_description(
+        cube_metadata, list(table_names)
+    )
     return detect_column_prompt_string.format(
         table_column_description=table_column_description,
-        relationship_of_table=relationships_list,
         last_chats=[],
         user_query=user_query,
         required_synonyms=synonyms_list,
+        dialect="",
     )
 
 
@@ -276,12 +279,8 @@ def render_sql_prompt(
     dialect: str = "PostgreSQL",
     required_column_description: str = "",
 ) -> str:
-    required_metrics_text = (
-        json.dumps(required_metrics, indent=2, default=str)
-        if required_metrics
-        else ""
-    )
-    return final_sql_prompt.format(
+    required_metrics_text = format_metrics_for_prompt(required_metrics)
+    return render_final_sql_prompt(user_question).format(
         dialect=dialect,
         query_plan_json=query_plan_json,
         required_joins=required_joins,

@@ -49,12 +49,16 @@ def test_think_prompts_contents():
     assert "Think investigation" in THINK_QUESTION_SYSTEM
     assert "one flat SELECT" in THINK_FLAT_SQL_PLAN_RULES
     assert "one flat SELECT" in THINK_FLAT_SQL_GENERATION
+    assert "CURRENT_DATE and CURRENT_DATE - 1 year" in THINK_FLAT_SQL_GENERATION
+    assert "EXTRACT(YEAR FROM ...) = ..." not in THINK_FLAT_SQL_GENERATION
     assert "Subqueries are not allowed" in THINK_SUBQUERY_REJECTION
     assert "forbids subqueries" in THINK_FLAT_SQL_RETRY_DIRECTIVE
     assert "Conclusion" in THINK_FINAL_ANSWER_PROMPT
     assert "{format_instructions}" in THINK_FINAL_ANSWER_PROMPT
     assert "{sample_data}" in STEP_INSIGHT_PROMPT
     assert "{question}" in AUTO_MODE_PROMPT
+    assert "why did cost rise" in AUTO_MODE_PROMPT
+    assert "Do not choose fast" in AUTO_MODE_PROMPT
     assert TP_QUESTION_SYSTEM == THINK_QUESTION_SYSTEM
     assert TP_PLAN_RULES == THINK_FLAT_SQL_PLAN_RULES
     assert TP_FLAT_SQL == THINK_FLAT_SQL_GENERATION

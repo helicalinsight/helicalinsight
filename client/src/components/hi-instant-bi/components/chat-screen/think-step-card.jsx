@@ -1,12 +1,13 @@
 import { CaretRightOutlined } from "@ant-design/icons";
 import { Modal, Row, Typography } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import notify from "../../../hi-notifications/notify";
 import InstantBITooltip from "../../instant-bi-tooltip-title";
 import { cleanSQL, getInstantBIAgentSubject } from "../../utils/common-utils";
-import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
+import { loadChartDataInsight } from "../../utils/instant-bi-requests";
 import { IbResponseError } from "../ib-custom-chart";
 import InstantChartView from "./chart-view";
 import ChatTabs from "./chat-tabs";
@@ -92,6 +93,9 @@ const ThinkStepCard = ({
       }
     })() : "");
   const hasViz = Boolean(fullChatResponse?.hreportId);
+  const liveHreport = useSelector((state) =>
+    (state.hreport?.present?.reports || []).find((report) => report.id === fullChatResponse?.hreportId)
+  );
   const isLoadingViz = Boolean(item.vizLoading);
   const hasReportModel = Boolean(
     Object.keys(item.report_model || item.reportModel || fullChatResponse?.report_model || {}).length
@@ -185,7 +189,8 @@ const ThinkStepCard = ({
     setDataInsightTrail([]);
     const agentSubject = getInstantBIAgentSubject(activeReport) || {};
     const reportInfo = activeReport?.reportInfo || {};
-    dataInsightApiRef.current = loadInstantBIDataInsight({
+    dataInsightApiRef.current = loadChartDataInsight({
+      hreport: liveHreport,
       dispatch,
       reportId,
       chatSequenceId: stepChatSeqId,
@@ -221,6 +226,7 @@ const ThinkStepCard = ({
   const tabsProps = {
     ...getSharedChatTabsShell({
       isOpenMode,
+      isEditMode,
       hasMessage,
       showMaximizeButton: hasViz,
       isMaximized,

@@ -1353,7 +1353,7 @@
         <signature><![CDATA[CAST(${column} AS ${dataType})]]></signature>
         <parameters>
             <parameter column="true" name="column"/>
-			<parameter column="false" name="dataType"/>
+			<parameter column="false" defaultValue="TEXT" name="dataType"/>
         </parameters>
         <description>Cast function converts one dataType to another datatype. Note:All Values should be in single quotes if user provide's value.Example: CAST('2019-03-22 17:34:03.000' AS char) result:2019-03-22 17:34:03.000</description>
     </function>

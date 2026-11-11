@@ -10,6 +10,7 @@ import createHReportBridge from "../../bridges/hreport/hreport-bridge";
 import { IbResponseError } from "../components/ib-custom-chart";
 import CommonMarkdownTable from "./common-markdown-table";
 import { isIbCircularChart } from "./ib-plot-theme";
+import { getReportModelInteractions } from "./report-model-interactions";
 
 export { isIbCircularChart, isIbCircularChartType } from "./ib-plot-theme";
 
@@ -459,25 +460,49 @@ export const loadInstantBiHreports = async (props = {}) => {
   const units = [];
   const seenHreportIds = new Set();
   
-  const pushUnit = ({ hreportId, reportModel = {}, chatSequenceId, hasError = false, requireModel = false }) => {
+  const pushUnit = ({
+    hreportId,
+    reportModel = {},
+    interactions = {},
+    chatSequenceId,
+    hasError = false,
+    requireModel = false,
+  }) => {
     if (!hreportId || hasError || seenHreportIds.has(hreportId)) return;
     if (requireModel && (!reportModel || !Object.keys(reportModel).length)) return;
     seenHreportIds.add(hreportId);
-    units.push({ hreportId, reportModel, chatSequenceId });
+    units.push({ hreportId, reportModel, interactions, chatSequenceId });
   };
   (Array.isArray(chat_responses) ? chat_responses : []).forEach((response = {}) => {
+    const responseHreportId = response?.hreportId || response?.chat_response?.hreportId || "";
+    const responseReportModel = response?.report_model
+      || response?.chat_response?.report_model
+      || {};
     pushUnit({
-      hreportId: response?.hreportId,
-      reportModel: response?.report_model || {},
+      hreportId: responseHreportId,
+      reportModel: responseReportModel,
+      interactions: getReportModelInteractions(
+        responseReportModel,
+        hreportInteractions?.[responseHreportId]
+      ),
       chatSequenceId: response?.chat_sequence_id,
       hasError: Boolean(response?.error),
     });
     const steps = response?.question_history || response?.questionHistory || [];
     (Array.isArray(steps) ? steps : []).forEach((step = {}) => {
       const stepResponse = step?.fullChatResponse || step?.chat_response || step?.chatResponse || {};
+      const stepHreportId = step?.hreportId || stepResponse?.hreportId || "";
+      const stepReportModel = step?.report_model
+        || step?.reportModel
+        || stepResponse?.report_model
+        || {};
       pushUnit({
-        hreportId: step?.hreportId || stepResponse?.hreportId,
-        reportModel: step?.report_model || step?.reportModel || stepResponse?.report_model || {},
+        hreportId: stepHreportId,
+        reportModel: stepReportModel,
+        interactions: getReportModelInteractions(
+          stepReportModel,
+          hreportInteractions?.[stepHreportId]
+        ),
         chatSequenceId: response?.chat_sequence_id,
         hasError: Boolean(step?.error || stepResponse?.error),
         requireModel: true,
@@ -508,7 +533,7 @@ export const loadInstantBiHreports = async (props = {}) => {
           dispatch(updateLoadingStatusForHreport({ sequenceId: unit.chatSequenceId, loading: false }))
           resolve(processNext(index + 1));
         },
-        interactions: hreportInteractions?.[unit.hreportId] || {},
+        interactions: unit.interactions || {},
         ...hreportProps
       });
 

@@ -431,7 +431,7 @@ public class ResourceAuthenticatorDB implements IResourceAuthenticatorDB, CheckC
     	
     	boolean entered=false;
         String dirFile=null;
-           if (null != GsonUtility.optStringValue(jsonFormData,filest, null) && !dataSourceLookup) {
+           if (dir != null && null != GsonUtility.optStringValue(jsonFormData,filest, null) && !dataSourceLookup) {
                String file = GsonUtility.optString(jsonFormData,filest);
                if(file.equalsIgnoreCase("true")) return  true;
    			dirFile=dir.getAsString() + "/" + file;

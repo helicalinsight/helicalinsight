@@ -37,6 +37,11 @@ import { uriConfig } from "../../../../../base/requests/instantbi.requests";
 import { uriConfig as uriConfigAdmin } from "../../../../../base/requests/admin.request";
 import notify from "../../../../hi-notifications/notify";
 import DatasourceSkeleton from "../../../../common/custom-icons/CustomSkeletons/DatasourceSkeleton";
+import {
+  configUpdatesFromForm,
+  formValuesFromConfig,
+  mergeConfigUpdates,
+} from "./developerSettingsBinding";
 import ProviderLogo, {
   displayProviderName,
   labelsFromProviderLayout,
@@ -93,9 +98,10 @@ const layoutPayloadForWrite = (layout) => {
         field.options = [];
         field.loading = false;
         field.editable = false;
-        field.allowCustom = false;
+        field.allowCustom = true;
         field.showSearch = true;
         field.optionFilterProp = "label";
+        field.placeholder = "Search or type a model";
       }
     });
   });
@@ -447,10 +453,13 @@ const InstantBISettingsEditor = () => {
       if (layoutMap.provider) {
         layoutMap.provider = patchLayoutField(layoutMap.provider, "model", {
           editable: false,
-          allowCustom: false,
+          allowCustom: true,
           showSearch: true,
           optionFilterProp: "label",
           loading: false,
+          placeholder: "Search or type a model",
+          description:
+            "Search the catalog, or type a model name that is not listed. Save stores that name.",
         });
       }
       setProviders(providerRows);
@@ -463,36 +472,10 @@ const InstantBISettingsEditor = () => {
       );
 
       const config = boot.config || {};
-      const logging = config.logging || {};
-      const app = config.app || {};
-      const kpi = config.kpi || {};
-      const flags = config.feature_flags || {};
-      const sql = config.sql || {};
-      const apiCache = config.api_cache || {};
-
-      loggingForm.setFieldsValue({
-        level: logging.level || "INFO",
-        backup_days: logging.backup_days ?? 14,
-        file: logging.file || "logs/app.log",
-        error_file: logging.error_file || "logs/error.log",
-        show_llm_activity: !!logging.show_llm_activity,
-        show_llm_activity_details: !!logging.show_llm_activity_details,
-        show_endpoint_log: !!logging.show_endpoint_log,
-        show_api_call_log: !!logging.show_api_call_log,
-        app_debug: !!app.debug,
-      });
-
-      applicationForm.setFieldsValue({
-        suggestion_query: kpi.suggestion_query || "",
-        enable_llm_usage_audit: !!flags.enable_llm_usage_audit,
-        hide_prompt_reason: !!flags.hide_prompt_reason,
-        enable_cache: !!flags.enable_cache,
-        enable_streaming: !!flags.enable_streaming,
-        enable_memory: !!flags.enable_memory,
-        default_limit: sql.default_limit ?? 100,
-        api_cache_enabled: !!apiCache.enabled,
-        api_cache_max_entries: apiCache.max_entries ?? 100,
-      });
+      loggingForm.setFieldsValue(formValuesFromConfig(layoutMap.logging, config));
+      applicationForm.setFieldsValue(
+        formValuesFromConfig(layoutMap.application, config)
+      );
     },
     [applicationForm, loggingForm]
   );
@@ -764,32 +747,14 @@ const InstantBISettingsEditor = () => {
     ]);
     setSaving(true);
     try {
-      await utilityRequest(dispatch, endpoints.appConfig, {
-        logging: {
-          level: loggingValues.level,
-          backup_days: loggingValues.backup_days,
-          file: loggingValues.file,
-          error_file: loggingValues.error_file,
-          show_llm_activity: !!loggingValues.show_llm_activity,
-          show_llm_activity_details: !!loggingValues.show_llm_activity_details,
-          show_endpoint_log: !!loggingValues.show_endpoint_log,
-          show_api_call_log: !!loggingValues.show_api_call_log,
-        },
-        app: { debug: !!loggingValues.app_debug },
-        kpi: { suggestion_query: applicationValues.suggestion_query },
-        feature_flags: {
-          enable_llm_usage_audit: !!applicationValues.enable_llm_usage_audit,
-          hide_prompt_reason: !!applicationValues.hide_prompt_reason,
-          enable_cache: !!applicationValues.enable_cache,
-          enable_streaming: !!applicationValues.enable_streaming,
-          enable_memory: !!applicationValues.enable_memory,
-        },
-        sql: { default_limit: applicationValues.default_limit },
-        api_cache: {
-          enabled: !!applicationValues.api_cache_enabled,
-          max_entries: applicationValues.api_cache_max_entries,
-        },
-      });
+      await utilityRequest(
+        dispatch,
+        endpoints.appConfig,
+        mergeConfigUpdates(
+          configUpdatesFromForm(layouts.logging, loggingValues),
+          configUpdatesFromForm(layouts.application, applicationValues)
+        )
+      );
       Notify.success({
         type: "InstantBI Settings",
         message: "Developer settings saved",

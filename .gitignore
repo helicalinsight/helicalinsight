@@ -148,3 +148,12 @@ instantbi/**/.idea/workspace.xml
 /instantbi/**/.idea
 server/**/.flattened-pom.xml
 *.lock
+*.exe
+
+# Local Tomcat start/stop scripts
+server/tomcat-env.bat
+server/start.bat
+server/stop.bat
+server/debug-start.bat
+server/debug-stop.bat
+server/start-all.bat

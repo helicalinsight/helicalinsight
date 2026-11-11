@@ -7,6 +7,11 @@ import ChatTabs from '../../../components/hi-instant-bi/components/chat-screen/c
 import InstantChartView from '../../../components/hi-instant-bi/components/chat-screen/chart-view';
 import { changeReport } from '../../../redux/actions/hreport.actions';
 
+jest.mock('../../../components/hi-instant-bi/utils/common-utils', () => ({
+    __esModule: true,
+    getHReportSelectedChartType: jest.fn(() => ''),
+}));
+
 jest.mock('react-markdown', () => ({
     __esModule: true,
     default: ({ children }) =>
@@ -82,8 +87,10 @@ jest.mock('antd', () => {
     const React = require('react');
     return {
         ...actual,
-        Drawer: ({ children }) =>
-            React.createElement('div', { 'data-testid': 'mock-drawer' }, children),
+        Drawer: ({ children, visible }) =>
+            visible
+                ? React.createElement('div', { 'data-testid': 'mock-drawer' }, children)
+                : null,
         Popover: ({ content, children }) =>
             React.createElement(
                 'div',
@@ -265,6 +272,20 @@ describe('ChatTabs - SQL tab', () => {
 
         expect(container.querySelector('.sql-copy-btn')).toBeNull();
     });
+
+    test('highlights the active SQL or Report Model view icon', () => {
+        const { container } = renderChatTabs(baseProps());
+        openTab(container, 'sql');
+
+        const sqlButton = container.querySelector('.chart-preview-section__sql-button');
+        const specButton = container.querySelector('.chart-preview-section__spec-button');
+        expect(sqlButton.classList.contains('is-active')).toBe(true);
+        expect(specButton.classList.contains('is-active')).toBe(false);
+
+        fireEvent.click(specButton);
+        expect(sqlButton.classList.contains('is-active')).toBe(false);
+        expect(specButton.classList.contains('is-active')).toBe(true);
+    });
 });
 
 describe('ChatTabs - Semantic tab', () => {
@@ -334,7 +355,7 @@ describe('ChatTabs - Preview tab', () => {
         expect(container).toBeTruthy();
     });
 
-    test('hides filters and editing controls in open mode', () => {
+    test('hides editing controls in open mode', () => {
         const { container } = renderChatTabs(baseProps({ isOpenMode: true }));
 
         expect(
@@ -343,6 +364,48 @@ describe('ChatTabs - Preview tab', () => {
         expect(container.querySelector('.chart-preview-section__trigger-button')).toBeNull();
         expect(container.querySelector('.chart-preview-section__go-to-hreport-button')).toBeNull();
         expect(InstantChartView.lastProps.isOpenMode).toBe(true);
+    });
+
+    test('shows the filter control in open mode when filters are available', () => {
+        const { container } = renderChatTabs(
+            baseProps({ isOpenMode: true, filters: [{ id: 'f1' }] })
+        );
+
+        expect(
+            container.querySelector('.chart-preview-section__hreport-filter-button-open')
+        ).toBeTruthy();
+        expect(
+            container.querySelector('.chart-preview-section__go-to-hreport-filter-button')
+        ).toBeNull();
+        expect(container.querySelector('.chart-preview-section__trigger-button')).toBeNull();
+        expect(container.querySelector('.chart-preview-section__go-to-hreport-button')).toBeNull();
+    });
+
+    test('omits the filter control in open mode when filters are unavailable', () => {
+        const { container } = renderChatTabs(baseProps({ isOpenMode: true }));
+
+        expect(
+            container.querySelector('.chart-preview-section__hreport-filter-button-open')
+        ).toBeNull();
+    });
+
+    test('opens the filters drawer in open mode and activates the report', async () => {
+        changeReport.mockClear();
+        const props = baseProps({
+            isOpenMode: true,
+            filters: [{ id: 'f1' }],
+        });
+        const { container } = renderChatTabs(props);
+
+        expect(screen.queryByTestId('filters-area-slot')).toBeNull();
+
+        fireEvent.click(
+            container.querySelector('.chart-preview-section__hreport-filter-button-open')
+        );
+
+        await waitFor(() => expect(screen.getByTestId('filters-area-slot')).toBeTruthy());
+        expect(changeReport).toHaveBeenCalledWith({ id: 'hr-1' });
+        expect(props.dispatch).toHaveBeenCalledWith({ type: 'CHANGE_REPORT', payload: { id: 'hr-1' } });
     });
 
     test('opens the report editor in a new window preserving context', () => {

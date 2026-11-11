@@ -1,0 +1,14 @@
+{
+  "functions": [
+    { "name": "today", "unit": "DAYS", "boundary": "DAY", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "Today" },
+    { "name": "tomorrow", "unit": "DAYS", "boundary": "DAY", "offset": 1, "direction": "NEXT", "acceptsModifier": false, "label": "Tomorrow" },
+    { "name": "yesterday", "unit": "DAYS", "boundary": "DAY", "offset": 1, "direction": "LAST", "acceptsModifier": false, "label": "Yesterday" },
+    { "name": "month", "unit": "MONTHS", "boundary": "MONTH", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Month" },
+    { "name": "year", "unit": "YEARS", "boundary": "YEAR", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Year" },
+    { "name": "quarter", "unit": "MONTHS", "multiplier": 3, "boundary": "QUARTER", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Quarter" },
+    { "name": "hour", "unit": "HOURS", "boundary": "HOUR", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Hour" },
+    { "name": "minute", "unit": "MINUTES", "boundary": "MINUTE", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Minute" },
+    { "name": "second", "unit": "SECONDS", "boundary": "SECOND", "offset": 0, "direction": "NONE", "acceptsModifier": true, "label": "This Second" },
+    { "name": "to_date", "boundary": "NOW", "direction": "LAST", "acceptsModifier": false, "inheritsUnit": true, "label": "To Date" }
+  ]
+}

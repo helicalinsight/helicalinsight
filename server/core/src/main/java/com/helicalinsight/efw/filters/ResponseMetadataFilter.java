@@ -125,9 +125,7 @@ public class ResponseMetadataFilter implements Filter {
         return path.equals("/ai/interactive-chat")
                 || path.startsWith("/ai/interactive-chat/")
                 || path.equals("/ai/data-insight")
-                || path.startsWith("/ai/data-insight/")
-                || path.equals("/ai/convert-dashboard")
-                || path.startsWith("/ai/convert-dashboard/");
+                || path.startsWith("/ai/data-insight/");
     }
 
     private boolean isEnrichableContentType(String contentType) {

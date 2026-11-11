@@ -7,7 +7,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { hiMockAxios } from "../../../../../../../app/mock-axios";
 import { relative_list, props } from "./mocks/relative-list.mocks";
 import RelativeList from "../../../../../../../components/hi-reports/hi-editing-area/components/filters/relative-list";
-import { changeEqualDateTime, changeRangeDateTime, checkIsObject, checkIsValidDateFilter, checkRelativeDateFilter, compareObjects, dateTypes, getDateFromValue, getRelativeAnchor, matchDateStr, prepareRelativeOptionFromAnchor, updateFilterAnchorDate, updateRelativeDateAnchor } from "../../../../../../../utils/filter-utils";
+import { changeEqualDateTime, changeRangeDateTime, checkIsObject, checkIsValidDateFilter, checkRelativeDateFilter, compareObjects, dateTypes, getDateFromValue, getRelativeAnchor, getRelativeDateRange, matchDateStr, prepareRelativeOptionFromAnchor, updateFilterAnchorDate, updateRelativeDateAnchor } from "../../../../../../../utils/filter-utils";
 import { relativeDateFilters } from "./mocks/relative-date-filters";
 import moment from "moment";
 import { relativeDateFilter } from "./relativeList.mocks";
@@ -691,5 +691,30 @@ describe('test parseExpression', () => {
   });
   test('parseExpression returns the correct object when the input value with time,  matches the expected pattern', () => {
     expect(parseExpression('__a_second+1_2022-01-01 10:10:10')).toEqual({ anchor: '__a', base: 'second', modifier: '+1', anchorDate: '2022-01-01 10:10:10' });
+  })
+})
+
+describe('test getRelativeDateRange', () => {
+  const dateNow = moment('2026-11-05')
+  const format = 'YYYY-MM-DD'
+  const getRange = (value, direction) => getRelativeDateRange(dateNow, value, 'years', direction, format, 'year').map(date => date.format(format))
+
+  test('next N years includes the current year', () => {
+    expect(getRange(2, 'next')).toEqual(['2026-01-01', '2027-12-31'])
+    expect(getRange(3, 'next')).toEqual(['2026-01-01', '2028-12-31'])
+  })
+
+  test('previous N years includes the current year', () => {
+    expect(getRange(2, 'last')).toEqual(['2025-01-01', '2026-12-31'])
+    expect(getRange(3, 'last')).toEqual(['2024-01-01', '2026-12-31'])
+  })
+
+  test('single next and previous year remain adjacent years', () => {
+    expect(getRange(1, 'next')).toEqual(['2027-01-01', '2027-12-31'])
+    expect(getRange(1, 'last')).toEqual(['2025-01-01', '2025-12-31'])
+  })
+
+  test('year to date ends at the anchor date', () => {
+    expect(getRange('toDate', 'last')).toEqual(['2026-01-01', '2026-11-05'])
   })
 })

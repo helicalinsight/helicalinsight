@@ -3,9 +3,10 @@
 from helicalbi.controller.abort import register as register_abort
 from helicalbi.controller.agent_dashboard import register as register_agent_dashboard
 from helicalbi.controller.clear_api_cache import register as register_clear_api_cache
-from helicalbi.controller.convert_dashboard import register as register_convert_dashboard
-from helicalbi.controller.data_insight import register as register_data_insight
-from helicalbi.controller.get_semantic_data import register as register_get_semantic_data
+from helicalbi.controller.data_insight import (
+    register as register_data_insight,
+    register_service as register_data_insight_service,
+)
 from helicalbi.controller.hello import register as register_hello
 from helicalbi.controller.instant_to_hr import register as register_instant_to_hr
 from helicalbi.controller.interactive import register as register_interactive
@@ -25,10 +26,9 @@ def register_routes(app) -> None:
     register_abort(app)
     register_clear_api_cache(app)
     register_data_insight(app)
+    register_data_insight_service(app)
     register_instant_to_hr(app)
     register_sql_to_report_model(app)
-    register_get_semantic_data(app)
     register_update_memory(app)
-    register_convert_dashboard(app)
     register_agent_dashboard(app)
     register_utility_config(app)

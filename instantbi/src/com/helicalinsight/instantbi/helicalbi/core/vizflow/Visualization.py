@@ -8,7 +8,10 @@ from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.viz.VizResponse import get_visualization_response_model
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +41,7 @@ class Visualization:
                 template=format_instruction_string,
                 input_variables=["domain", "topics", "user_question", "sql",
                                  "data_types", "previous_viz"],
-                partial_variables={"format_instructions": parser.get_format_instructions()},
+                partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
             )
             response, _ = invoke_structured(
                 prompt,

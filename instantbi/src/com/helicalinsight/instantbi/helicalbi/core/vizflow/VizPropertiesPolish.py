@@ -19,7 +19,10 @@ from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.viz.VizModel import VizModel, VizPropertiesPolish
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.VizFillPrompt import viz_properties_polish_prompt_string
 from helicalbi.viz.viz_model_fill import merge_properties_polish, viz_model_to_chart_settings
 
@@ -71,7 +74,7 @@ class VizPropertiesPolishNode:
                     "column_viz_context",
                 ],
                 partial_variables={
-                    "format_instructions": parser.get_format_instructions()
+                    "format_instructions": brief_format_instructions(parser.pydantic_object)
                 },
             )
             polish, _ = invoke_structured(

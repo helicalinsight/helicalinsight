@@ -4,6 +4,7 @@
  */
 export const getSharedChatTabsShell = ({
   isOpenMode = false,
+  isEditMode = false,
   hasMessage = false,
   showMaximizeButton = false,
   isMaximized = false,
@@ -22,10 +23,10 @@ export const getSharedChatTabsShell = ({
   defaultTab: "preview",
   previewFirst: true,
   semanticLabel: "Semantic",
-  // Working is the streamed activity trail. Hide it when streaming is off.
-  showWorkingTab: !isOpenMode && Boolean(streamingEnabled),
-  workingLines: !isOpenMode && streamingEnabled ? workingLines : [],
-  workingActive: Boolean(!isOpenMode && streamingEnabled && workingActive),
+  // Working is the streamed activity trail. Hide it outside create mode.
+  showWorkingTab: !isOpenMode && !isEditMode && Boolean(streamingEnabled),
+  workingLines: !isOpenMode && !isEditMode && streamingEnabled ? workingLines : [],
+  workingActive: Boolean(!isOpenMode && !isEditMode && streamingEnabled && workingActive),
   workingQuestion,
   workingFallback,
   showDataInsightButton,

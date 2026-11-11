@@ -32,11 +32,20 @@ def needs_llm_table_narrowing(
 
 
 def tables_from_query_plan(query_plan: dict, known_tables: Optional[List[str]] = None) -> List[str]:
-    """Extract distinct table names from qualified query-plan columns."""
+    """Extract distinct table names from qualified query-plan columns.
+
+    SELECT columns count too. The model often leaves ``columnName`` empty and
+    puts the grouping column only in ``selectColumnName``.
+    """
     known_lookup = {str(table) for table in (known_tables or []) if table}
     tables: List[str] = []
     seen = set()
-    for raw_ref in (query_plan or {}).get("columnName") or []:
+    refs: List[Any] = []
+    for key in ("columnName", "selectColumnName"):
+        values = (query_plan or {}).get(key) or []
+        if isinstance(values, list):
+            refs.extend(values)
+    for raw_ref in refs:
         ref = str(raw_ref).strip()
         if not ref or "." not in ref:
             continue

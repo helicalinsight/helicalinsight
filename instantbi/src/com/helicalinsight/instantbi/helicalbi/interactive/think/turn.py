@@ -189,6 +189,7 @@ class ThinkTurn:
             if "show_llm_activity_details" in self.user_input
             else self.payload.get("show_llm_activity_details"),
             on_progress=progress_cb,
+            parameter_functions=self.user_input.get("parameterFunctions") or None,
         )
         self._set_total_time_consumed(
             self.to_send, self._time.perf_counter() - self.request_started

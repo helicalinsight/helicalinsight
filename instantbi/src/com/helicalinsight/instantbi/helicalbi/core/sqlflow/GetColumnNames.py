@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections import defaultdict
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
@@ -18,8 +19,18 @@ from helicalbi.common.JsonToPara import (
 from helicalbi.core.sqlflow.util.FallbackSqlHelpers import tables_from_query_plan
 from helicalbi.model.SQLModel import SQLModel
 from helicalbi.model.output.ColumnResponse import get_column_response_model
+from helicalbi.core.sqlflow.util.SchemaChunks import (
+    column_entries,
+    cubes_for_columns,
+    cubes_for_tables,
+    merge_column_plans,
+    split_chunks,
+)
 from helicalbi.prompt.DetectColumnPrompt import detect_column_prompt_string
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.sql.GetContextForSQL import get_table_col_description
 
 logger = logging.getLogger(__name__)
@@ -169,6 +180,56 @@ def _qualify_column_refs(
     return qualified
 
 
+def _physical_owners(cube_metadata) -> Dict[str, List[str]]:
+    """Map physical column_name values to the tables that store them."""
+    mapping: Dict[str, List[str]] = defaultdict(list)
+    for cube in iter_cube_entries(cube_metadata or []):
+        table_name = cube.get("database_table")
+        if not table_name:
+            continue
+        for bucket in ("columns", "measures"):
+            for item in cube.get(bucket) or []:
+                if isinstance(item, dict):
+                    _register_name(mapping, item.get("column_name"), str(table_name))
+    return mapping
+
+
+def _refs_named_in_picked(
+    query_plan: dict,
+    cube_metadata,
+    required_tables: List[str],
+) -> List[str]:
+    """Qualified columns written inside pickedDimensions / pickedMetrics text."""
+    texts: List[str] = []
+    for key in ("pickedDimensions", "pickedMetrics"):
+        values = query_plan.get(key) or []
+        if isinstance(values, list):
+            texts.extend(str(item) for item in values if str(item).strip())
+    blob = "\n".join(texts)
+    if not blob.strip():
+        return []
+    owners = _physical_owners(cube_metadata)
+    cubes = _cube_by_table(cube_metadata)
+    refs: List[str] = []
+    for column_name in sorted(owners, key=len, reverse=True):
+        if not re.search(
+            rf"(?<![A-Za-z0-9_]){re.escape(column_name)}(?![A-Za-z0-9_])",
+            blob,
+        ):
+            continue
+        table_name = _select_table_for_column(
+            column_name, owners, required_tables
+        ) or ""
+        if not table_name:
+            continue
+        physical = (
+            _physical_column_name(cubes.get(table_name) or {}, column_name)
+            or column_name
+        )
+        refs.append(f"{table_name}.{physical}")
+    return refs
+
+
 def _qualify_query_plan_columns(
     query_plan: dict,
     cube_metadata,
@@ -189,6 +250,14 @@ def _qualify_query_plan_columns(
         query_plan["selectColumnName"] = _qualify_column_refs(
             select_refs, cube_metadata, required_tables, column_to_tables, cubes
         )
+    # The model often leaves columnName empty and names the group-by only in SELECT.
+    if not query_plan["columnName"] and query_plan.get("selectColumnName"):
+        query_plan["columnName"] = list(query_plan["selectColumnName"])
+    seen = set(query_plan["columnName"])
+    for ref in _refs_named_in_picked(query_plan, cube_metadata, required_tables):
+        if ref not in seen:
+            query_plan["columnName"].append(ref)
+            seen.add(ref)
     return query_plan
 
 
@@ -202,43 +271,68 @@ class GetColumnNames:
         required_synonyms = state["required_synonyms"]
         last_chats = state["last_chats"]
         cube_metadata = state["cube_metadata"]
-        relationship_of_table = state["relationship_of_table"]
-
-        table_column_description = get_table_col_description(
-            cube_metadata,
-            table_names,
-            user_query=user_query,
-            model_data={
-                "topic_mappings": state.get("topic_mappings"),
-                "cube_metadata": cube_metadata,
-                "domain_context": state.get("domain_context"),
-                "domain": state.get("domain"),
-                "topics": state.get("topics"),
-            },
-            domain_context=state.get("domain_context"),
+        model_data = {
+            "topic_mappings": state.get("topic_mappings"),
+            "cube_metadata": cube_metadata,
+            "domain_context": state.get("domain_context"),
+            "domain": state.get("domain"),
+            "topics": state.get("topics"),
+        }
+        scoped_tables = []
+        if isinstance(table_names, list):
+            scoped_tables = [str(table) for table in table_names if table]
+        scoped_cubes = (
+            cubes_for_tables(cube_metadata, scoped_tables) or cube_metadata
+            if scoped_tables
+            else cube_metadata
         )
+        groups = split_chunks(column_entries(scoped_cubes)) or [None]
 
         parser = PydanticOutputParser(pydantic_object=get_column_response_model())
         prompt = PromptTemplate(
             template=detect_column_prompt_string + format_instruction_string,
             input_variables=["user_query", "required_synonyms", "last_chats",
-                             "table_column_description"],
-            partial_variables={"format_instructions": parser.get_format_instructions()},
+                             "table_column_description", "dialect"],
+            partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
         )
-        response, _ = invoke_structured(
-            prompt,
-            llm,
-            parser,
-            {
-                "user_query": user_query,
-                "required_synonyms": required_synonyms,
-                "last_chats": last_chats,
-                "table_column_description": table_column_description,
-            },
-            state=state,
-        )
+        plans = []
+        for index, group in enumerate(groups, start=1):
+            if group is None:
+                chunk_cubes = scoped_cubes
+                chunk_tables = scoped_tables
+            else:
+                if len(groups) > 1:
+                    logger.info(
+                        "Column prompt chunk %s/%s (%s columns)",
+                        index,
+                        len(groups),
+                        len(group),
+                    )
+                chunk_cubes = cubes_for_columns(cube_metadata, group)
+                chunk_tables = list(dict.fromkeys(table for table, _bucket, _item in group))
+            table_column_description = get_table_col_description(
+                chunk_cubes,
+                chunk_tables,
+                user_query=user_query,
+                model_data=model_data,
+                domain_context=state.get("domain_context"),
+            )
+            response, _ = invoke_structured(
+                prompt,
+                llm,
+                parser,
+                {
+                    "user_query": user_query,
+                    "required_synonyms": required_synonyms,
+                    "last_chats": last_chats,
+                    "table_column_description": table_column_description,
+                    "dialect": state.get("dialect") or "",
+                },
+                state=state,
+            )
+            plans.append(response.model_dump())
 
-        raw_query_plan = response.model_dump()
+        raw_query_plan = plans[0] if len(plans) == 1 else merge_column_plans(plans)
         query_plan = _qualify_query_plan_columns(
             deepcopy(raw_query_plan),
             cube_metadata,

@@ -369,12 +369,12 @@ export function AgentWorkspace({
                     description={
                       <>
                         <Text strong className="agent-workspace-no-metadata-title">
-                          No Metadata Connected
+                          No Model Connected
                         </Text>
                         <br />
                         <Text type="secondary" className="agent-workspace-no-metadata-desc">
-                          Please connect a Metadata file to configure the Semantic Model.
-                          Business View and JSON will be available once Metadata is connected.
+                          Please connect a Semantic Model to configure.
+                          Business View, Diagnostic capability, and Model Spec will be available once a Semantic Model is connected.
                         </Text>
                       </>
                     }

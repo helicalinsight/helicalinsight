@@ -24,6 +24,7 @@ import ChartIcon from "../../../common/icons/chart-icons"
 import "../../components/ib-chart-preferences.scss"
 import InstantBITooltip from '../../instant-bi-tooltip-title'
 import { getHReportSelectedChartType } from "../../utils/common-utils"
+import { getReportModelInteractions } from "../../utils/report-model-interactions"
 import InstantBIResponseMetadata from '../instant-bi-response-metadata'
 import AISparklesIcon from './ai-sparkles-icon'
 import ChatTypingText from "./chat-typing-text"
@@ -135,7 +136,7 @@ const RenderFilters = (props) => {
                 <Button
                     size="small"
                     type="text"
-                    className="chart-preview-section__go-to-hreport-filter-button"
+                    className={props.isOpenMode ? "chart-preview-section__hreport-filter-button-open" : "chart-preview-section__go-to-hreport-filter-button"}
                     icon={<FilterOutlined />}
                     onClick={() => {
                         setOpen(true)
@@ -185,19 +186,30 @@ const PreviewTab = (props = {}) => {
         previewPlaceholder = null,
         isPreviewLoading = false,
         previewActivityTrail = [],
-        extraProps = {}
+        extraProps = {},
+        openModeFilters = false
     } = props || {};
 
     const editingAreaRef = useRef(null);
     const filtersAreaRef = useRef(null);
     const [renderCount, setRenderCount] = useState(0);
     const { hreportId, } = fullChatResponse || {};
-    let { filters = [], selectedType } = activeReport?.hreportInteractions?.[hreportId] || {};
+    const reports = useSelector((state) => state.hreport.present.reports);
+    const reportModel = fullChatResponse?.report_model
+        || resolvedFullChatResponse?.report_model
+        || {};
+    let { filters = [], selectedType } = getReportModelInteractions(
+        reportModel,
+        activeReport?.hreportInteractions?.[hreportId]
+    );
+    const liveFilters = reports.find((report) => report.id === hreportId)?.filters;
+    if (Array.isArray(liveFilters) && liveFilters.length) {
+        filters = liveFilters
+    }
     if (props.filters) {
         filters = props.filters
     }
     const hasFilters = filters?.length > 0;
-    const reports = useSelector((state) => state.hreport.present.reports);
 
     const handleGoToHreport = () => {
         if (hreportId) {
@@ -259,8 +271,8 @@ const PreviewTab = (props = {}) => {
                         </button>
                     </InstantBITooltip>
                 )}
-                {hreportId && !isOpenMode && hasFilters && (
-                    <RenderFilters filtersArea={filtersAreaRef.current} changeActiveReport={changeActiveReport} />
+                {hreportId && hasFilters && (
+                    <RenderFilters filtersArea={filtersAreaRef.current} changeActiveReport={changeActiveReport} isOpenMode={isOpenMode} />
                 )}
                 {hreportId && !isOpenMode && (
                     <RenderEditingArea editingArea={editingAreaRef.current} onClickGoToHreport={handleGoToHreport} changeActiveReport={changeActiveReport} />
@@ -289,6 +301,7 @@ const PreviewTab = (props = {}) => {
                     vizType={getHReportSelectedChartType(hreportId, reports, selectedType)}
                     dashboardMode={props.dashboardMode}
                     extraProps={extraProps}
+                    openModeFilters={openModeFilters}
                 />
             </div>
             {(isLoadingDataInsight || dataInsightContent) && (
@@ -404,7 +417,7 @@ const SQLTab = (props = {}) => {
                 <Button
                     size="small"
                     type="text"
-                    className="chart-preview-section__sql-button"
+                    className={`chart-preview-section__sql-button ${activeTab === "sql" ? " is-active" : ""}`}
                     icon={<ConsoleSqlOutlined />}
                     onClick={() => setActiveTab("sql")}
                 />
@@ -413,7 +426,7 @@ const SQLTab = (props = {}) => {
                 <Button
                     size="small"
                     type="text"
-                    className="chart-preview-section__spec-button"
+                    className={`chart-preview-section__spec-button ${activeTab === "spec" ? " is-active" : ""}`}
                     icon={<FileTextOutlined />}
                     onClick={() => setActiveTab("spec")}
                 />
@@ -423,7 +436,7 @@ const SQLTab = (props = {}) => {
                     <Button
                         size="small"
                         type="text"
-                        className="chart-preview-section__spec-button"
+                        className={`chart-preview-section__spec-button ${activeTab === "dashboard" ? " is-active" : ""}`}
                         icon={<AppstoreOutlined />}
                         onClick={() => setActiveTab("dashboard")}
                     />
@@ -434,7 +447,7 @@ const SQLTab = (props = {}) => {
                     <Button
                         size="small"
                         type="text"
-                        className="chart-preview-section__spec-button"
+                        className={`chart-preview-section__spec-button ${activeTab === "activity" ? " is-active" : ""}`}
                         icon={<ClusterOutlined />}
                         onClick={() => setActiveTab("activity")}
                     />

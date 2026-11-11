@@ -11,6 +11,7 @@ import com.google.gson.JsonParser;
 import com.helicalinsight.scheduling.utils.TemplateReplacer2;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 
+import com.helicalinsight.efw.parameters.HcrParameterEvaluator;
 import com.helicalinsight.admin.model.HIResource;
 import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.adhoc.jreport.HCRHelper;
@@ -175,6 +176,9 @@ public class HCRScheduler implements Job, ISchedule {
         String[] theTotalFormats = formats.substring(1, formats.length() - 1).replace("\"", "").split(",");
         //logger.error("The parameters:  " + parametersJSON);
         JsonObject formData = HCRHelper.prepareFormDataForHCRParameters(parametersJSON, prepareFormDataForHCRExportReport(hcrFileName, hcrDirectory, theTotalFormats));
+        JsonObject scheduleOptions = GsonUtility.optJsonObject(json, "ScheduleOptions");
+        String parameterTimeZone = scheduleOptions == null ? null : GsonUtility.optString(scheduleOptions, "timeZone");
+        HcrParameterEvaluator.carryScheduleContext(formData, parametersJSON, parameterTimeZone);
         List<String> resourceUrl = new ArrayList<>();
         resourceUrl.add(loginFirstUrl);
         resourceUrl.add(finalUrl);

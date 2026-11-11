@@ -681,6 +681,15 @@ def _try_collapse_range(
     return None
 
 
+def _is_negated(node: exp.Expression, negated: bool = False) -> bool:
+    """True when SQL used NOT.
+
+    sqlglot stores ``IS NOT NULL`` on ``Is.negate``. ``NOT IN`` / ``NOT BETWEEN``
+    are often a ``Not`` wrapper, and older trees use ``not``.
+    """
+    return bool(negated or node.args.get("negate") or node.args.get("not"))
+
+
 def _parse_predicate(
     node: exp.Expression,
     parsed: ParsedQuery,
@@ -727,10 +736,10 @@ def _parse_predicate(
         return _parse_between(node, parsed, for_having=for_having, join_op=join_op, negated=False, raw=raw)
 
     if isinstance(node, exp.In):
-        return _parse_in(node, parsed, for_having=for_having, join_op=join_op, negated=bool(node.args.get("not")), raw=raw)
+        return _parse_in(node, parsed, for_having=for_having, join_op=join_op, negated=_is_negated(node), raw=raw)
 
     if isinstance(node, exp.Is):
-        return _parse_is(node, parsed, for_having=for_having, join_op=join_op, negated=bool(node.args.get("not")), raw=raw)
+        return _parse_is(node, parsed, for_having=for_having, join_op=join_op, negated=_is_negated(node), raw=raw)
 
     if isinstance(node, (exp.Like, exp.ILike)):
         return _parse_like(node, parsed, for_having=for_having, join_op=join_op, raw=raw)
@@ -784,7 +793,7 @@ def _parse_between(
     )
     low = _literal_value(node.args.get("low"), parsed)
     high = _literal_value(node.args.get("high"), parsed)
-    ui = "IS_NOT_BETWEEN" if negated or node.args.get("not") else "IS_BETWEEN"
+    ui = "IS_NOT_BETWEEN" if _is_negated(node, negated) else "IS_BETWEEN"
     return FilterItem(
         column=col_ref,
         ui_condition=ui,
@@ -812,7 +821,7 @@ def _parse_in(
         node.this, parsed
     )
     values = [_literal_value(v, parsed) for v in node.expressions]
-    ui = "IS_NOT_ONE_OF" if negated or node.args.get("not") else "IS_ONE_OF"
+    ui = "IS_NOT_ONE_OF" if _is_negated(node, negated) else "IS_ONE_OF"
     return FilterItem(
         column=col_ref,
         ui_condition=ui,
@@ -840,9 +849,8 @@ def _parse_is(
         node.this, parsed
     )
     nullish = isinstance(node.expression, exp.Null)
-    is_negated = negated or bool(node.args.get("not"))
     if nullish:
-        ui = "IS_NOT_NULL" if is_negated else "IS_NULL"
+        ui = "IS_NOT_NULL" if _is_negated(node, negated) else "IS_NULL"
     else:
         ui = "CUSTOM"
     return FilterItem(

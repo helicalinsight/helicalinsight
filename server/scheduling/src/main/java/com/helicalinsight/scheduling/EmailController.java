@@ -33,6 +33,7 @@ import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EmailException;
 import com.helicalinsight.efw.exceptions.FormValidationException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.parameters.HcrParameterEvaluator;
 import com.helicalinsight.efw.utility.ApplicationSettings;
 import com.helicalinsight.efw.utility.FileUtils;
 import com.helicalinsight.efw.utility.JaxbUtils;
@@ -205,6 +206,7 @@ public class EmailController {
                 JsonObject reportJson = GsonUtility.parseString(reportParam, JsonObject.class);
                 JsonObject hcrJsonData = HCRHelper.prepareFormDataForHCRExportReport(hcrReportFile, hcrDirectory, totalFormats);
                 JsonObject formData = HCRHelper.prepareFormDataForHCRParameters(reportJson, hcrJsonData);
+                HcrParameterEvaluator.carryScheduleContext(formData, reportJson, null);
                 formData.addProperty("emailExportName", reportName);
                 IHCRGenerator generator = (IHCRGenerator) ApplicationContextAccessor.getBean(JsonUtils.getHCRGeneratorType());
                 JsonObject responseJson = generator.generateHCReport(formData);

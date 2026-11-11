@@ -1,4 +1,3 @@
-
 {
   "analyticalOperationsCatalog": {
     "version": "1.0",
@@ -7,8 +6,7 @@
         "operation": "trend",
         "category": "temporal_analysis",
         "description": "Compare a measure across time to identify trajectory, velocity, and pattern changes.",
-        "requiredInputs": ["measure", "timeDimension"],
-        "optionalInputs": ["dimensions", "filters", "interval", "baseline"],
+        "inputs": ["measure", "timeDimension", "dimensions", "filters", "interval", "baseline"],
         "execution": {
           "method": "sql",
           "logic": "Aggregate the measure into ordered time intervals and calculate changes between observations."
@@ -22,8 +20,7 @@
         "operation": "period_comparison",
         "category": "temporal_analysis",
         "description": "Compare the current period with a previous period, including MoM, QoQ, YoY, or custom date ranges.",
-        "requiredInputs": ["measure", "timeDimension", "currentPeriod", "comparisonPeriod"],
-        "optionalInputs": ["dimensions", "filters"],
+        "inputs": ["measure", "timeDimension", "currentPeriod", "comparisonPeriod", "dimensions", "filters"],
         "execution": {
           "method": "sql",
           "logic": "Calculate the measure for both periods and return absolute and percentage differences."
@@ -37,8 +34,7 @@
         "operation": "segment",
         "category": "dimensional_analysis",
         "description": "Break a measure down by a valid dimension to evaluate categorical splits.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["additionalDimensions", "filters", "timeRange"],
+        "inputs": ["measure", "dimensions", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Group records by dimension members and calculate the selected measure."
@@ -52,8 +48,7 @@
         "operation": "decompose",
         "category": "metric_analysis",
         "description": "Break a measure into its registered components or additive sub-metrics.",
-        "requiredInputs": ["measure"],
-        "optionalInputs": ["dimensions", "filters", "timeRange"],
+        "inputs": ["measure", "dimensions", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Resolve the registered decomposition definition and calculate its component measures."
@@ -67,8 +62,7 @@
         "operation": "contribution",
         "category": "dimensional_analysis",
         "description": "Identify dimensions or entities contributing most to a measure change or total volume.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["comparisonPeriods", "filters", "topN"],
+        "inputs": ["measure", "dimensions", "comparisonPeriods", "filters", "topN"],
         "execution": {
           "method": "sql",
           "logic": "Calculate group values, shares of the overall total, and contributions to change when comparison periods are provided."
@@ -82,8 +76,7 @@
         "operation": "distribution",
         "category": "statistical_analysis",
         "description": "Analyze the distribution and spread of a measure across dimension members or numeric value bins.",
-        "requiredInputs": ["measure"],
-        "optionalInputs": ["dimension", "binDefinition", "filters", "percentiles"],
+        "inputs": ["measure", "dimensions", "binDefinition", "filters", "percentiles"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Calculate frequencies, quantiles, spread, and distribution statistics at the declared observation grain."
@@ -97,8 +90,7 @@
         "operation": "reason_analysis",
         "category": "diagnostics",
         "description": "Analyze registered reason codes or explanatory categorical dimensions to understand business outcomes.",
-        "requiredInputs": ["outcomeMeasure", "reasonDimension"],
-        "optionalInputs": ["dimensions", "filters", "timeRange"],
+        "inputs": ["outcomeMeasure", "reasonDimension", "dimensions", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Group outcome counts or rates by reason category and rank the categories."
@@ -112,8 +104,7 @@
         "operation": "mix_analysis",
         "category": "variance_analysis",
         "description": "Determine whether changes in dimensional composition or volume mix contributed to an aggregate measure change.",
-        "requiredInputs": ["measure", "dimension", "comparisonPeriods"],
-        "optionalInputs": ["additionalDimensions", "filters"],
+        "inputs": ["measure", "dimensions", "comparisonPeriods", "filters"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Separate changes associated with group proportions from changes in group-level values using a documented decomposition method."
@@ -127,8 +118,7 @@
         "operation": "outlier_detection",
         "category": "statistical_analysis",
         "description": "Identify dimension members with unusually high or low values relative to an appropriate cohort baseline.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["baselineDefinition", "method", "threshold", "minimumSampleSize"],
+        "inputs": ["measure", "dimensions", "baselineDefinition", "method", "threshold", "minimumSampleSize"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Calculate a suitable baseline and flag group values that meet the selected outlier criterion."
@@ -142,8 +132,7 @@
         "operation": "ranking",
         "category": "dimensional_analysis",
         "description": "Order entities from highest to lowest to isolate top performers and underperforming laggards.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["topN", "filters", "timeRange"],
+        "inputs": ["measure", "dimensions", "topN", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Aggregate by dimension, order by the selected measure, and assign ranks."
@@ -157,8 +146,7 @@
         "operation": "pareto_analysis",
         "category": "contribution_analysis",
         "description": "Identify the smallest set of dimension members accounting for a selected share of a total.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["targetContributionPercentage", "filters", "timeRange"],
+        "inputs": ["measure", "dimensions", "targetContributionPercentage", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Rank groups by contribution and calculate cumulative contribution percentages."
@@ -172,8 +160,7 @@
         "operation": "concentration_risk",
         "category": "risk_analysis",
         "description": "Measure dependency on a small number of accounts, suppliers, destinations, or other entities.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["topN", "concentrationThreshold", "comparisonPeriods"],
+        "inputs": ["measure", "dimensions", "topN", "concentrationThreshold", "comparisonPeriods"],
         "execution": {
           "method": "sql",
           "logic": "Calculate top-N shares and, where appropriate, a concentration index from entity-level contributions."
@@ -187,8 +174,7 @@
         "operation": "benchmark_comparison",
         "category": "performance_analysis",
         "description": "Compare actual performance against targets, SLAs, budgets, peer groups, or baselines.",
-        "requiredInputs": ["measure", "benchmark"],
-        "optionalInputs": ["dimensions", "timeRange", "tolerance"],
+        "inputs": ["measure", "benchmark", "dimensions", "timeRange", "tolerance"],
         "execution": {
           "method": "sql",
           "logic": "Align actual and benchmark values and calculate absolute and relative deviations."
@@ -202,8 +188,7 @@
         "operation": "variance_waterfall",
         "category": "variance_analysis",
         "description": "Show sequential positive and negative changes bridging an initial state to a final total or target.",
-        "requiredInputs": ["startingValue", "endingValue", "changeComponents"],
-        "optionalInputs": ["comparisonPeriods", "dimensions"],
+        "inputs": ["startingValue", "endingValue", "changeComponents", "comparisonPeriods", "dimensions"],
         "execution": {
           "method": "sql",
           "logic": "Calculate change components and order them to reconcile the initial value to the final value."
@@ -217,8 +202,7 @@
         "operation": "gap_analysis",
         "category": "performance_analysis",
         "description": "Quantify shortfalls or surpluses between actual performance and defined goals or expectations.",
-        "requiredInputs": ["actualMeasure", "targetMeasure"],
-        "optionalInputs": ["dimensions", "timeRange", "tolerance"],
+        "inputs": ["actualMeasure", "targetMeasure", "dimensions", "timeRange", "tolerance"],
         "execution": {
           "method": "sql",
           "logic": "Calculate actual minus target and classify the gap according to the business objective."
@@ -232,8 +216,7 @@
         "operation": "cumulative_aggregation",
         "category": "temporal_analysis",
         "description": "Calculate running totals, cumulative progress, YTD, or MTD accumulations.",
-        "requiredInputs": ["measure", "timeDimension"],
-        "optionalInputs": ["accumulationWindow", "dimensions", "filters"],
+        "inputs": ["measure", "timeDimension", "accumulationWindow", "dimensions", "filters"],
         "execution": {
           "method": "sql",
           "logic": "Aggregate in time order and calculate the running value within the specified partition and reset boundary."
@@ -247,8 +230,7 @@
         "operation": "cohort_analysis",
         "category": "temporal_analysis",
         "description": "Compare lifecycle behavior and performance among groups sharing a defined inception event.",
-        "requiredInputs": ["entityIdentifier", "cohortDefinition", "targetMeasure"],
-        "optionalInputs": ["followUpPeriod", "dimensions", "filters"],
+        "inputs": ["entityIdentifier", "cohortDefinition", "targetMeasure", "followUpPeriod", "dimensions", "filters"],
         "execution": {
           "method": "sql",
           "logic": "Assign entities to cohorts and compare their metrics across consistent elapsed-time windows."
@@ -262,8 +244,7 @@
         "operation": "funnel_conversion",
         "category": "process_analysis",
         "description": "Analyze stage-by-stage conversion, velocity, and drop-off across sequential workflows.",
-        "requiredInputs": ["processModel", "orderedStages", "entityIdentifier"],
-        "optionalInputs": ["timeDimension", "dimensions", "filters"],
+        "inputs": ["processModel", "orderedStages", "entityIdentifier", "timeDimension", "dimensions", "filters"],
         "execution": {
           "method": "process_engine",
           "logic": "Determine eligible entities at each stage and calculate stage counts, transition rates, drop-offs, and elapsed times where available."
@@ -277,8 +258,7 @@
         "operation": "churn_retention",
         "category": "lifecycle_analysis",
         "description": "Measure attrition, repeat activity, and retention across defined time windows.",
-        "requiredInputs": ["entityIdentifier", "activityDefinition", "timeDimension"],
-        "optionalInputs": ["cohortDefinition", "retentionWindow", "dimensions"],
+        "inputs": ["entityIdentifier", "activityDefinition", "timeDimension", "cohortDefinition", "retentionWindow", "dimensions"],
         "execution": {
           "method": "sql",
           "logic": "Identify active entities and repeat activity within defined windows, applying an explicit churn rule."
@@ -292,8 +272,7 @@
         "operation": "correlation_analysis",
         "category": "statistical_analysis",
         "description": "Evaluate statistical association between two or more continuous measures.",
-        "requiredInputs": ["numericMeasures"],
-        "optionalInputs": ["dimensions", "timeRange", "method"],
+        "inputs": ["numericMeasures", "dimensions", "timeRange", "method"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Calculate suitable association statistics at a compatible observation grain."
@@ -307,8 +286,7 @@
         "operation": "elasticity_sensitivity",
         "category": "sensitivity_analysis",
         "description": "Measure the responsiveness of an outcome relative to changes in an input driver.",
-        "requiredInputs": ["outcomeMeasure", "inputMeasure"],
-        "optionalInputs": ["model", "scenarioRange", "dimensions"],
+        "inputs": ["outcomeMeasure", "inputMeasure", "model", "scenarioRange", "dimensions"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Estimate a suitable elasticity or sensitivity measure using a defined model or controlled scenario."
@@ -322,8 +300,7 @@
         "operation": "ratio_rate_analysis",
         "category": "metric_analysis",
         "description": "Compute normalized unit economics, efficiency ratios, margins, and rates.",
-        "requiredInputs": ["numeratorMeasure", "denominatorMeasure"],
-        "optionalInputs": ["dimensions", "timeRange", "filters"],
+        "inputs": ["numeratorMeasure", "denominatorMeasure", "dimensions", "timeRange", "filters"],
         "execution": {
           "method": "sql",
           "logic": "Calculate the registered ratio or rate using compatible populations, units, and aggregation grains."
@@ -337,8 +314,7 @@
         "operation": "utilization_capacity",
         "category": "operational_analysis",
         "description": "Compare actual utilization or throughput with a defined capacity limit.",
-        "requiredInputs": ["actualMeasure", "capacityMeasure"],
-        "optionalInputs": ["dimensions", "timeRange", "filters"],
+        "inputs": ["actualMeasure", "capacityMeasure", "dimensions", "timeRange", "filters"],
         "execution": {
           "method": "sql",
           "logic": "Calculate utilization rates and remaining capacity from compatible actual and capacity measures."
@@ -352,8 +328,7 @@
         "operation": "cross_tabulation",
         "category": "dimensional_analysis",
         "description": "Analyze intersections of two categorical dimensions across a shared measure.",
-        "requiredInputs": ["dimensionA", "dimensionB"],
-        "optionalInputs": ["measure", "filters", "timeRange"],
+        "inputs": ["dimensionA", "dimensionB", "measure", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Group by both dimensions and calculate counts or the selected measure."
@@ -367,8 +342,7 @@
         "operation": "seasonality_cycle",
         "category": "temporal_analysis",
         "description": "Identify recurring patterns across calendar cycles.",
-        "requiredInputs": ["measure", "timeDimension"],
-        "optionalInputs": ["cycleType", "dimensions", "timeRange"],
+        "inputs": ["measure", "timeDimension", "cycleType", "dimensions", "timeRange"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Aggregate by the relevant calendar position and evaluate repeated patterns across cycles."
@@ -382,8 +356,7 @@
         "operation": "velocity_acceleration",
         "category": "temporal_analysis",
         "description": "Measure the rate of change and acceleration of a metric over time.",
-        "requiredInputs": ["measure", "timeDimension"],
-        "optionalInputs": ["interval", "dimensions", "smoothingMethod"],
+        "inputs": ["measure", "timeDimension", "interval", "dimensions", "smoothingMethod"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Calculate successive changes per unit time and changes in those rates."
@@ -397,8 +370,7 @@
         "operation": "frequency_recency",
         "category": "entity_analysis",
         "description": "Group entities by how recently and how frequently defined activities occur.",
-        "requiredInputs": ["entityIdentifier", "activityDate"],
-        "optionalInputs": ["asOfDate", "frequencyWindow", "dimensions"],
+        "inputs": ["entityIdentifier", "activityDate", "asOfDate", "frequencyWindow", "dimensions"],
         "execution": {
           "method": "sql",
           "logic": "Calculate time since the most recent activity and activity frequency within the defined window."
@@ -412,8 +384,7 @@
         "operation": "percentile_tiering",
         "category": "statistical_analysis",
         "description": "Classify entities into quartiles, deciles, or custom tiers based on their relative metric values.",
-        "requiredInputs": ["measure", "dimension"],
-        "optionalInputs": ["numberOfTiers", "tierBoundaries", "filters", "timeRange"],
+        "inputs": ["measure", "dimensions", "numberOfTiers", "tierBoundaries", "filters", "timeRange"],
         "execution": {
           "method": "sql",
           "logic": "Calculate percentile ranks or quantile boundaries and assign entities to the requested tiers."
@@ -427,8 +398,7 @@
         "operation": "threshold_alerting",
         "category": "monitoring",
         "description": "Identify measures or entities that breach configured thresholds, SLAs, or control limits.",
-        "requiredInputs": ["measure", "thresholdRule"],
-        "optionalInputs": ["dimension", "timeRange", "severityRules"],
+        "inputs": ["measure", "thresholdRule", "dimensions", "timeRange", "severityRules"],
         "execution": {
           "method": "sql",
           "logic": "Evaluate the metric against registered threshold rules and classify the result."
@@ -442,8 +412,7 @@
         "operation": "anomaly_detection",
         "category": "statistical_analysis",
         "description": "Identify unexpected spikes, drops, or patterns relative to an appropriate baseline.",
-        "requiredInputs": ["measure", "timeDimension"],
-        "optionalInputs": ["dimensions", "baselineModel", "sensitivity", "seasonality"],
+        "inputs": ["measure", "timeDimension", "dimensions", "baselineModel", "sensitivity", "seasonality"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Compare observed values with expected values from a suitable baseline or anomaly model."
@@ -457,8 +426,7 @@
         "operation": "root_cause_drilldown",
         "category": "diagnostics",
         "description": "Traverse valid dimensional hierarchies to investigate drivers of a high-level metric or variance.",
-        "requiredInputs": ["measure", "dimensionHierarchy", "targetCondition"],
-        "optionalInputs": ["comparisonPeriod", "filters", "maximumDepth"],
+        "inputs": ["measure", "dimensionHierarchy", "targetCondition", "comparisonPeriod", "filters", "maximumDepth"],
         "execution": {
           "method": "sql",
           "logic": "Rank relevant groups at each hierarchy level, select meaningful branches, and continue until the stopping criteria are met."
@@ -472,8 +440,7 @@
         "operation": "basket_affinity",
         "category": "association_analysis",
         "description": "Find items or events that frequently co-occur within the same transaction or defined unit.",
-        "requiredInputs": ["observationIdentifier", "itemOrEvent"],
-        "optionalInputs": ["minimumSupport", "minimumConfidence", "minimumLift"],
+        "inputs": ["observationIdentifier", "itemOrEvent", "minimumSupport", "minimumConfidence", "minimumLift"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Calculate co-occurrence counts and association-rule statistics within the defined observation unit."
@@ -487,8 +454,7 @@
         "operation": "aging_backlog",
         "category": "operational_analysis",
         "description": "Categorize open items by elapsed time since creation or entry into a defined state.",
-        "requiredInputs": ["entityIdentifier", "startDate", "currentStatus"],
-        "optionalInputs": ["asOfDate", "agingBuckets", "dimensions"],
+        "inputs": ["entityIdentifier", "startDate", "currentStatus", "asOfDate", "agingBuckets", "dimensions"],
         "execution": {
           "method": "sql",
           "logic": "Calculate elapsed age for eligible open items and aggregate counts or amounts into defined buckets."
@@ -502,8 +468,7 @@
         "operation": "forecasting_run_rate",
         "category": "predictive_analysis",
         "description": "Estimate future period totals using current pace, recent run rates, and historical patterns.",
-        "requiredInputs": ["measure", "timeDimension", "forecastHorizon"],
-        "optionalInputs": ["currentPeriodProgress", "seasonality", "historicalPeriods"],
+        "inputs": ["measure", "timeDimension", "forecastHorizon", "currentPeriodProgress", "seasonality", "historicalPeriods"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Estimate a run-rate projection or apply a validated forecasting method appropriate to the data."
@@ -517,8 +482,7 @@
         "operation": "what_if_scenario",
         "category": "decision_support",
         "description": "Model how a target metric changes under hypothetical input values or operational scenarios.",
-        "requiredInputs": ["targetMeasure", "scenarioParameters", "calculationModel"],
-        "optionalInputs": ["baselineScenario", "constraints", "parameterRanges"],
+        "inputs": ["targetMeasure", "scenarioParameters", "calculationModel", "baselineScenario", "constraints", "parameterRanges"],
         "execution": {
           "method": "statistical_engine",
           "logic": "Recalculate the target metric for each scenario using registered formulas, assumptions, and constraints."

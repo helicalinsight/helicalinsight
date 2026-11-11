@@ -7,6 +7,7 @@ from typing import Any, Optional
 
 from helicalbi.common import app_config
 from helicalbi.core.ConfigLoader import ConfigLoader
+from helicalbi.prompt.token_format import prepare_prompt_inputs
 from helicalbi.integration.TokenUsageExtractor import TokenUsageExtractor
 from helicalbi.model.TimeConsumed import TimeConsumed
 from helicalbi.model.TokenUsage import TokenUsage
@@ -66,6 +67,33 @@ def log_prompt(prompt_or_text: Any, inputs: Any = None) -> None:
         "%s\nLLM Prompt:\n%s\n%s",
         _BORDER,
         prompt_text,
+        _BORDER,
+    )
+
+
+def _message_text(message: Any) -> str:
+    content = getattr(message, "content", message)
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(str(item.get("text") or item.get("content") or ""))
+            else:
+                parts.append(str(item))
+        return "\n".join(part for part in parts if part)
+    return str(content if content is not None else "")
+
+
+def log_llm_output(message: Any) -> None:
+    """Log the model reply at INFO, immediately after the prompt, when enabled."""
+    if not _should_log_llm_activity():
+        return
+    logger.info(
+        "%s\nLLM Output:\n%s\n%s",
+        _BORDER,
+        _message_text(message),
         _BORDER,
     )
 
@@ -148,6 +176,58 @@ def _record_invoke_metrics(state: Optional[dict], usage: TokenUsage, elapsed_sec
     merge_time_consumed(state, TimeConsumed(llm_seconds=round(elapsed_seconds, 3)))
 
 
+_PROSE_FIELDS = {"final_answer", "answer", "analysis", "insight"}
+
+
+def _completion_text(message: Any) -> str:
+    content = getattr(message, "content", message)
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.append(str(item.get("text") or ""))
+        content = "\n".join(part for part in parts if part)
+    text = str(content or "").strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    return text
+
+
+def _prose_as_model(parser: Any, text: str) -> Any:
+    """Use plain sentences when a prose field was not wrapped in JSON."""
+    if not text or text[0] in "{[":
+        return None
+    model = getattr(parser, "pydantic_object", None)
+    fields = getattr(model, "model_fields", None)
+    if not isinstance(fields, dict):
+        return None
+    prose_names = [
+        name
+        for name, field in fields.items()
+        if name in _PROSE_FIELDS and field.annotation is str
+    ]
+    if not prose_names:
+        return None
+    for name, field in fields.items():
+        if field.is_required() and name not in prose_names:
+            return None
+    try:
+        parsed = model.model_validate({name: text for name in prose_names})
+    except Exception:
+        return None
+    logger.info(
+        "Structured output was prose; stored it as %s (%s chars)",
+        ",".join(prose_names),
+        len(text),
+    )
+    return parsed
+
+
 def invoke_structured(
     prompt: Any,
     llm: Any,
@@ -157,10 +237,12 @@ def invoke_structured(
     state: Optional[dict] = None,
 ) -> tuple[Any, TokenUsage]:
     """Run ``prompt | llm | parser`` and return the parsed result plus token usage."""
+    inputs = prepare_prompt_inputs(inputs)
     log_prompt(prompt, inputs)
     started = time.perf_counter()
     ai_message = (prompt | llm).invoke(inputs)
     elapsed = time.perf_counter() - started
+    log_llm_output(ai_message)
     usage = get_token_usage_factory(provider).from_ai_message(ai_message)
     _record_invoke_metrics(state, usage, elapsed)
     if _should_log_llm_activity():
@@ -171,7 +253,12 @@ def invoke_structured(
             usage.total_tokens,
             elapsed,
         )
-    parsed = parser.invoke(ai_message)
+    try:
+        parsed = parser.invoke(ai_message)
+    except Exception:
+        parsed = _prose_as_model(parser, _completion_text(ai_message))
+        if parsed is None:
+            raise
     return parsed, usage
 
 
@@ -186,6 +273,7 @@ def invoke_llm(
     started = time.perf_counter()
     ai_message = llm.invoke(inputs)
     elapsed = time.perf_counter() - started
+    log_llm_output(ai_message)
     usage = get_token_usage_factory(provider).from_ai_message(ai_message)
     _record_invoke_metrics(state, usage, elapsed)
     if _should_log_llm_activity():

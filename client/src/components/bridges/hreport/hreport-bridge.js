@@ -20,6 +20,7 @@ import {
     updateCustomChart,
     updateCustomCondition,
     updateFieldAlias,
+    updateAnchorDate,
     updateFilter,
     updateFilterAlias,
     updateOrderBy,
@@ -36,6 +37,13 @@ import {
 import { getTableTree } from '../../hi-reports/utils/utilities';
 import { checkReportsAvailable, getReportById, getUserState } from './utils';
 import { resolveHreportSelectedType } from './viz-type-map';
+import {
+    compareObjects,
+    defaultAnchor,
+    getDateFromValue,
+    getRelativeAnchor,
+    getRelativeDateFromValue,
+} from '../../../utils/filter-utils';
 
 function getHreportInfo(reportModel = {}) {
     const {
@@ -265,11 +273,11 @@ function createHReportBridge(props = {}) {
     }
 
     function addReport() {
-        dispatch(addNewReport({ reportId, isInstantReport: true }));
+        dispatch(addNewReport({ reportId, isInstantReport: true, undoRedoAction: true }));
     }
 
     function addInitialReport() {
-        dispatch(loadIntialReport({ reportId, isInstantReport: true }));
+        dispatch(loadIntialReport({ reportId, isInstantReport: true, undoRedoAction: true }));
     }
 
     function isObject(obj) {
@@ -381,46 +389,47 @@ function createHReportBridge(props = {}) {
             ...fieldToAdd,
             ...(field.geographicType ? { geographicType: field.geographicType } : {}),
             ...(defaultFunction ? { defaultFunction } : {}),
+            undoRedoAction: true,
         }))
         if (field.order) {
-            dispatch(updateOrderBy({ id: fieldId, key: field.order }))
+            dispatch(updateOrderBy({ id: fieldId, key: field.order, undoRedoAction: true }))
         }
         if (!field.custom) {
             if (field.databaseFunction && isString(field.databaseFunction)) {
                 addDBFuncToField(fieldId, field.databaseFunction)
             }
             if (field.alias) {
-                dispatch(updateFieldAlias({ id: fieldId, alias: field.alias }))
+                dispatch(updateFieldAlias({ id: fieldId, alias: field.alias, undoRedoAction: true }))
             }
         }
         if (field.aggregate) {
-            dispatch(updateAggregations({ id: fieldId, key: field.aggregate, group: "aggregate" }))
+            dispatch(updateAggregations({ id: fieldId, key: field.aggregate, group: "aggregate", undoRedoAction: true }))
             // InstantBI applies aggregate after addFieldToCanvas; clear the default
             // discrete floatingType so COUNT/SUM measures behave as continuous.
-            dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "" }))
+            dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "", undoRedoAction: true }))
         }
         if (!field.aggregate) {
-            dispatch(updateAggregations({ id: fieldId, key: [], group: "aggregate" }))
+            dispatch(updateAggregations({ id: fieldId, key: [], group: "aggregate", undoRedoAction: true }))
             // Group-by fields are dimensions. Numeric parts such as YEAR() are
             // cleared to continuous when the database function is saved.
             if (field.groupBy) {
-                dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "discrete" }))
+                dispatch(toggleFloating({ id: fieldId, reportId, floatingType: "discrete", undoRedoAction: true }))
             }
         }
         if (field.fetchAndHide) {
-            dispatch(updateCanvasField({ id: fieldId, key: "hiddenIncludeInResultSet" }));
+            dispatch(updateCanvasField({ id: fieldId, key: "hiddenIncludeInResultSet", undoRedoAction: true }));
         }
         if (field.groupBy) {
-            dispatch(updateAggregations({ id: fieldId, key: ['db.generic.groupBy.group'], group: "groupBy" }))
+            dispatch(updateAggregations({ id: fieldId, key: ['db.generic.groupBy.group'], group: "groupBy", undoRedoAction: true }))
         }
         if (!field.groupBy) {
-            dispatch(updateAggregations({ id: fieldId, key: [], group: "groupBy" }))
+            dispatch(updateAggregations({ id: fieldId, key: [], group: "groupBy", undoRedoAction: true }))
         }
     }
 
     function removeFieldFromReport(fieldId) {
         const field = getFieldById(fieldId);
-        dispatch(removeFieldFromCanvas({ field }))
+        dispatch(removeFieldFromCanvas({ field, undoRedoAction: true }))
     }
 
     function addFieldsToReport(fields, tables, addedAs) {
@@ -464,12 +473,56 @@ function createHReportBridge(props = {}) {
     function updateFilterCondition(filterId, condition) {
         const allConditions = getAllFilterConditions();
         if (allConditions.includes(condition)) {
-            dispatch(changeFilterCondition({ uid: filterId, condition }))
+            dispatch(changeFilterCondition({ uid: filterId, condition, undoRedoAction: true }))
         }
     }
 
     function updateFilterValues(filterId, value) {
-        dispatch(changeFilterValue({ value, uid: filterId, reportId }));
+        dispatch(changeFilterValue({ value, uid: filterId, reportId, undoRedoAction: true }));
+    }
+
+    function mergeAnchor(base, extra) {
+        const next = { ...base };
+        if (!extra || typeof extra !== "object") return next;
+        Object.keys(extra).forEach((key) => {
+            if (extra[key] !== undefined) next[key] = extra[key];
+        });
+        return next;
+    }
+
+    function dispatchRelativeAnchor(filterId, tokens) {
+        const created = getFilterById(filterId) || {};
+        const list = Array.isArray(tokens) ? tokens : [tokens];
+        const isRange = list.length > 1;
+        let anchorDateData = mergeAnchor(defaultAnchor(), created.anchor);
+        if (isRange && list[1] === "to_date") {
+            const parts = getDateFromValue(list[0], created, 1, true);
+            if (parts && typeof parts === "object") {
+                anchorDateData = mergeAnchor(anchorDateData, { ...getRelativeAnchor(parts), active: 6 });
+            }
+        } else if (isRange) {
+            const first = getDateFromValue(list[0], created, 1, true);
+            const second = getDateFromValue(list[1], created, 2, true);
+            const anchorA = first && typeof first === "object" ? getRelativeAnchor(first) : null;
+            const anchorB = second && typeof second === "object" ? getRelativeAnchor(second) : null;
+            if (anchorA && anchorB) {
+                anchorDateData = mergeAnchor(anchorDateData, compareObjects(anchorA, anchorB));
+            } else if (anchorA) {
+                anchorDateData = mergeAnchor(anchorDateData, anchorA);
+            }
+        } else {
+            const parts = getDateFromValue(list[0], created, 1, true);
+            if (parts && typeof parts === "object") {
+                anchorDateData = mergeAnchor(anchorDateData, getRelativeAnchor(parts));
+            }
+        }
+        const concrete = getRelativeDateFromValue(list, { ...created, anchor: anchorDateData });
+        dispatch(updateAnchorDate({
+            uid: filterId,
+            reportId,
+            value: concrete,
+            anchorDateData,
+        }));
     }
 
     function addFilters(tables = []) {
@@ -482,26 +535,34 @@ function createHReportBridge(props = {}) {
                 if (filterField.databaseFunction) {
                     addFieldToReport(filterField, filterId, filterColumn, "column")
                     const field = getFieldById(filterId);
-                    dispatch(createFilter({ ...field, uid: filterId, reportId, active: false }));
+                    dispatch(createFilter({ ...field, uid: filterId, reportId, active: false, undoRedoAction: true }));
                     removeFieldFromReport(filterId)
                 } else {
-                    dispatch(createFilter({ ...filterColumn, uid: filterId, columnID: filterField.id, from: "metadata", active: false }))
+                    dispatch(createFilter({ ...filterColumn, uid: filterId, columnID: filterField.id, from: "metadata", active: false, undoRedoAction: true }))
                 }
                 const filter = getFilterById(filterId);
-                if (!filter.datePart) {
+                if (filter.datePart) {
+                    if (["IS_ONE_OF", "IS_NOT_ONE_OF"].includes(condition)) {
+                        dispatch(updateFilter({ ...filter, dateValuesType: "select", condition, reportId, undoRedoAction: true }))
+                    } else {
+                        updateFilterCondition(filterId, condition)
+                    }
+                } else {
                     updateFilterCondition(filterId, condition)
                 }
 
                 if (filterField.customCondition) {
-                    dispatch(updateCustomCondition({ uid: filterId, customCondition: filterField.customCondition }))
+                    dispatch(updateCustomCondition({ uid: filterId, customCondition: filterField.customCondition, undoRedoAction: true }))
                 }
 
-                if (filterField.values) {
+                if (filterField.isRelative && filterField.values) {
+                    dispatchRelativeAnchor(filterId, filterField.values)
+                } else if (filterField.values) {
                     updateFilterValues(filterId, filterField.values)
                 }
 
                 if (filterField.alias) {
-                    dispatch(updateFilterAlias({ uid: filterId, alias: filterField.alias, reportId }))
+                    dispatch(updateFilterAlias({ uid: filterId, alias: filterField.alias, reportId, undoRedoAction: true }))
                 }
 
                 // Keep InstantBI Adhoc flags so SQL expression bounds are not quoted.
@@ -518,6 +579,7 @@ function createHReportBridge(props = {}) {
                                 : {}),
                             uid: filterId,
                             reportId,
+                            undoRedoAction: true,
                         }));
                     }
                     eventUpdater({
@@ -544,7 +606,7 @@ function createHReportBridge(props = {}) {
             const activeReport = getCurrentReport();
             if (activeReport) {
                 if (activeReport.hreportLoading) {
-                    dispatch(setHReportLoading({ reportId, loading: false }))
+                    dispatch(setHReportLoading({ reportId, loading: false, undoRedoAction: true }))
                 }
                 clearInterval(interval);
             }
@@ -577,18 +639,18 @@ function createHReportBridge(props = {}) {
 
     function updateVFTemplate() {
         if (vfTemplate) {
-            dispatch(updateCustomChart({ code: vfTemplate }));
+            dispatch(updateCustomChart({ code: vfTemplate, undoRedoAction: true }));
         }
     }
 
     function changeSelectedVizType(vizType, clear = false) {
         const selectedType = resolveHreportSelectedType(vizType);
         if (selectedType) {
-            dispatch(updateSelectedType({ selectedType }))
+            dispatch(updateSelectedType({ selectedType, undoRedoAction: true }))
         }
 
         if (!vizType && clear) {
-            dispatch(updateSelectedType({ selectedType: "Table" }))
+            dispatch(updateSelectedType({ selectedType: "Table", undoRedoAction: true }))
         }
     }
 
@@ -596,7 +658,7 @@ function createHReportBridge(props = {}) {
         const currentReport = getCurrentReport();
         const allMark = currentReport?.marksList?.find((item) => item?.value === "_all_");
         if (allMark && subVizType) {
-            dispatch(updateSubVizType({ value: allMark.value, name: subVizType, id: allMark?.id }))
+            dispatch(updateSubVizType({ value: allMark.value, name: subVizType, id: allMark?.id, undoRedoAction: true }))
         }
     }
 
@@ -607,7 +669,7 @@ function createHReportBridge(props = {}) {
     function applyDualAxis() {
         const currentReport = getCurrentReport();
         if (!currentReport?.combine) {
-            dispatch(toggleCombineCharts({ reportId }));
+            dispatch(toggleCombineCharts({ reportId, undoRedoAction: true }));
         }
         const marks = currentReport?.marksList || [];
         let measureIndex = 0;
@@ -625,6 +687,7 @@ function createHReportBridge(props = {}) {
                 name: resolveDualViz(item.viz),
                 id,
                 seriesColor: resolveCombinedSeriesColor(item.color, measureIndex),
+                undoRedoAction: true,
             }));
             measureIndex += 1;
         });
@@ -654,25 +717,25 @@ function createHReportBridge(props = {}) {
     }
 
     function updateMetadataForReport(reportMetadata) {
-        dispatch(loadMetadata(reportMetadata));
+        dispatch(loadMetadata({ ...reportMetadata, undoRedoAction: true }));
     }
 
     function updateHreportFilters(filters = []) {
         if (!filters.length) return;
 
-        dispatch(loadReportFilters({ reportId, filters }));
+        dispatch(loadReportFilters({ reportId, filters, undoRedoAction: true }));
     }
 
     function updateLimitBy(limitBy) {
         if (limitBy !== null && limitBy !== undefined) {
-            dispatch(changeOptions({ sample: "sample", limitBy, prependTableNameToAlias: false }));
+            dispatch(changeOptions({ sample: "sample", limitBy, prependTableNameToAlias: false, undoRedoAction: true }));
         }
     }
 
     function updateFilterExpression(filterExpression = []) {
         if (Array.isArray(filterExpression) && filterExpression.length) {
-            dispatch(changeEditorContent({ id: "pre-fetch", value: `setFilterExpression(${filterExpression.map(item => `"${item}"`).join(', ')})` }))
-            dispatch(applyReportScripts())
+            dispatch(changeEditorContent({ id: "pre-fetch", value: `setFilterExpression(${filterExpression.map(item => `"${item}"`).join(', ')})`, undoRedoAction: true }))
+            dispatch(applyReportScripts({ undoRedoAction: true }))
         }
         return;
     }

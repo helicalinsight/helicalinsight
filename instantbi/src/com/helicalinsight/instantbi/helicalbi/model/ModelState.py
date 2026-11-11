@@ -74,3 +74,5 @@ class ModelState(MessagesState):
     viz_model: dict
     viz_form_data: dict
     rm_cols_in_filter: bool
+    parameter_functions: dict
+    relative_dates: dict

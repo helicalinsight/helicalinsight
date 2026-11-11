@@ -50,11 +50,14 @@ public class MetadataProvider implements IService {
             validateGlobalOrEFWD(formJson);
             dataSourceType = formJson.get("type").getAsString();
         } else {
-             metadataFileName = formJson.get("metadataFileName").getAsString();
+            metadataFileName = formJson.get("metadataFileName").getAsString();
             location = formJson.get("location").getAsString();
             if (formJson.has("newLocation")) {
-                location = formJson.get("newLocation").getAsString();
-                formJson.addProperty("location", location);
+                String newLocation = formJson.get("newLocation").getAsString();
+                if (StringUtils.isNotBlank(newLocation)) {
+                    location = newLocation;
+                    formJson.addProperty("location", location);
+                }
             }
             HIResource metadataResource = serviceDB.getResourceByUrl(location + "/" + metadataFileName);
             if (metadataResource == null) {
@@ -90,8 +93,6 @@ public class MetadataProvider implements IService {
 
         return jsonResult.toString();
     }
-
-
 
     private void validateGlobalOrEFWD(@NotNull JsonObject formData) {
 

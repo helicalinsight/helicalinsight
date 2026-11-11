@@ -38,7 +38,7 @@ When the Java `streamResponse` setting is on, the client POSTs `/interactive?str
 
 Abort is **stop only**. `chat_graph_memory.add_node` still runs only after a successful complete.
 
-The same contract is used by `/data-insight` and `/convert-dashboard`.
+The same contract is used by `/data-insight`.
 
 ---
 

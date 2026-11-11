@@ -5,6 +5,7 @@ from helicalbi.sql_agent.prompt.insight_prompts import (
     THINK_SUCCESS_PROMPT_FORMATTED,
 )
 from helicalbi.sql_agent.prompt.plan_prompts import (
+    CAPABILITY_PICK_PROMPT,
     THINK_FLAT_SQL_PLAN_RULES,
     THINK_QUESTION_SYSTEM,
     _THINK_QUESTION_SYSTEM,
@@ -19,6 +20,7 @@ from helicalbi.sql_agent.prompt.synthesis_prompts import THINK_FINAL_ANSWER_PROM
 
 __all__ = [
     "AUTO_MODE_PROMPT",
+    "CAPABILITY_PICK_PROMPT",
     "THINK_QUESTION_SYSTEM",
     "_THINK_QUESTION_SYSTEM",
     "THINK_FLAT_SQL_PLAN_RULES",

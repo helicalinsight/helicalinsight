@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any, Mapping, Optional, Sequence
 
@@ -10,6 +11,8 @@ from helicalbi.sql_agent.constants import (
     ADDITIVITY_NON_ADDITIVE_LABELS,
     ADDITIVITY_SEMI_ADDITIVE,
     APPLICABLE_NAME_KEYS,
+    CAP_KEY_AI_CONTEXT,
+    CAP_KEY_AI_CONTEXT_SNAKE,
     CAP_KEY_APPLICABLE_TO,
     CAP_KEY_APPLICABLE_TO_SNAKE,
     CAP_KEY_CAPABILITY,
@@ -74,6 +77,8 @@ from helicalbi.sql_agent.constants import (
     USE_TYPE_KEYS,
 )
 from helicalbi.sql_agent.strategy.text_utils import compact
+
+logger = logging.getLogger(__name__)
 
 
 def _unique_labels(names: Sequence[Any]) -> list[str]:
@@ -304,6 +309,53 @@ class OperationNameCanonicalizer:
         return ""
 
 
+def capability_ai_context(cap: Mapping[str, Any]) -> dict[str, str]:
+    """Read a capability's aiContext the same way a dimension or measure stores it."""
+    raw = cap.get(CAP_KEY_AI_CONTEXT) or cap.get(CAP_KEY_AI_CONTEXT_SNAKE) or {}
+    if not isinstance(raw, Mapping):
+        raw = {}
+    synonyms = raw.get("synonyms", cap.get("synonyms", ""))
+    if isinstance(synonyms, (list, tuple)):
+        synonyms = ", ".join(
+            str(part).strip() for part in synonyms if str(part).strip()
+        )
+    examples = (
+        raw.get("examples")
+        or raw.get("example")
+        or cap.get("examples")
+        or cap.get("example")
+        or ""
+    )
+    instructions = raw.get("instructions", cap.get("instructions", ""))
+    return {
+        "instructions": str(instructions or "").strip(),
+        "synonyms": str(synonyms or "").strip(),
+        "examples": str(examples or "").strip(),
+    }
+
+
+def capability_ai_context_line(cap: Mapping[str, Any]) -> str:
+    """Compact aiContext text, empty when the capability has none."""
+    ai = capability_ai_context(cap)
+    bits = [
+        f"{key}: {ai[key]}"
+        for key in ("instructions", "synonyms", "examples")
+        if ai[key]
+    ]
+    if not bits:
+        return ""
+    return "aiContext: {" + "; ".join(bits) + "}"
+
+
+def capability_synonyms(cap: Mapping[str, Any]) -> list[str]:
+    text = capability_ai_context(cap)["synonyms"]
+    return [
+        part.strip()
+        for part in re.split(SYNONYM_SPLIT_PATTERN, text)
+        if part.strip()
+    ]
+
+
 class DiagnosticCapabilityMatcher:
     """Return capabilities whose applicable measures (or name) match the question."""
 
@@ -355,8 +407,8 @@ class DiagnosticCapabilityMatcher:
                         ]
                 if app.lower() in metrics or self._mention.mentioned(app, text, extras):
                     hit_measures.append(app)
-            name_hit = bool(cap_name) and (
-                cap_name.lower() in text.lower() or self._mention.mentioned(cap_name, text)
+            name_hit = self._mention.mentioned(
+                cap_name, text, capability_synonyms(cap)
             )
             if not hit_measures and not name_hit:
                 continue
@@ -364,6 +416,106 @@ class DiagnosticCapabilityMatcher:
             copied[CAP_KEY_MATCHED_MEASURES] = hit_measures
             matched.append(copied)
         return matched
+
+
+class DiagnosticCapabilityPicker:
+    """Ask the LLM to choose one capability when the shortlist has several."""
+
+    def pick(
+        self,
+        question: str,
+        capabilities: Optional[Sequence[Mapping[str, Any]]],
+        *,
+        state: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        candidates = [dict(cap) for cap in (capabilities or []) if isinstance(cap, Mapping)]
+        if len(candidates) < 2:
+            return {"capabilities": candidates, "reason": "", "source": "only_candidate"}
+        try:
+            from helicalbi.sql_agent.llm import invoke_agent_model
+            from helicalbi.sql_agent.models import DiagnosticCapabilityPick
+            from helicalbi.sql_agent.prompt.plan_prompts import CAPABILITY_PICK_PROMPT
+
+            parsed = invoke_agent_model(
+                CAPABILITY_PICK_PROMPT,
+                {
+                    "question": str(question or "").strip(),
+                    "candidates": self._candidate_block(candidates),
+                },
+                DiagnosticCapabilityPick,
+                state=state,
+            )
+        except Exception:
+            logger.exception(
+                "Diagnostic capability pick failed; keeping %d shortlisted capabilities",
+                len(candidates),
+            )
+            return {"capabilities": candidates, "reason": "", "source": "shortlist"}
+        name, reason = self._choice_fields(parsed)
+        chosen = self._by_name(name, candidates)
+        if chosen is None:
+            logger.warning(
+                "Diagnostic capability pick %r is not in the shortlist; keeping all %d",
+                name,
+                len(candidates),
+            )
+            return {"capabilities": candidates, "reason": "", "source": "shortlist"}
+        logger.info("Think mode picked diagnostic capability %s", chosen.get(CAP_KEY_CAPABILITY))
+        return {"capabilities": [chosen], "reason": reason, "source": "llm"}
+
+    @staticmethod
+    def _choice_fields(parsed: Any) -> tuple[str, str]:
+        if isinstance(parsed, Mapping):
+            return (
+                str(parsed.get(CAP_KEY_CAPABILITY) or "").strip(),
+                str(parsed.get("reason") or "").strip(),
+            )
+        return (
+            str(getattr(parsed, "capability", "") or "").strip(),
+            str(getattr(parsed, "reason", "") or "").strip(),
+        )
+
+    @staticmethod
+    def _by_name(name: str, capabilities: Sequence[Mapping[str, Any]]) -> Optional[dict[str, Any]]:
+        wanted = compact(name)
+        if not wanted:
+            return None
+        for cap in capabilities:
+            if compact(cap.get(CAP_KEY_CAPABILITY)) == wanted:
+                return dict(cap)
+        return None
+
+    @staticmethod
+    def _candidate_block(capabilities: Sequence[Mapping[str, Any]]) -> str:
+        blocks: list[str] = []
+        for cap in capabilities:
+            name = str(cap.get(CAP_KEY_CAPABILITY) or "").strip() or "(unnamed)"
+            lines = [f"- {name}"]
+            applicable = iter_applicable_measures(
+                cap.get(CAP_KEY_APPLICABLE_TO) or cap.get(CAP_KEY_APPLICABLE_TO_SNAKE)
+            )
+            mentioned = [
+                str(item).strip()
+                for item in (cap.get(CAP_KEY_MATCHED_MEASURES) or [])
+                if str(item).strip()
+            ]
+            uses = [ref["name"] for ref in iter_diagnostic_uses(cap.get(CAP_KEY_USES)) if ref.get("name")]
+            if applicable:
+                lines.append("  applicable measures: " + ", ".join(applicable))
+            if mentioned:
+                lines.append("  measures mentioned in the question: " + ", ".join(mentioned))
+            if uses:
+                lines.append("  uses: " + ", ".join(uses))
+            ai_line = capability_ai_context_line(cap)
+            if ai_line:
+                lines.append(f"  {ai_line}")
+            for key in ("description", "purpose", "when", "summary"):
+                text = str(cap.get(key) or "").strip()
+                if text:
+                    lines.append(f"  {key}: {text}")
+                    break
+            blocks.append("\n".join(lines))
+        return "\n".join(blocks)
 
 
 class DiagnosticUseResolver:
@@ -619,6 +771,7 @@ _RESOLVER = DiagnosticUseResolver()
 _FORMULAS = FormulaComponentExtractor()
 _EXPANDER = DecomposeMeasureExpander()
 _TRAITS = MeasureTraitGuidance()
+_PICKER = DiagnosticCapabilityPicker()
 
 
 def measure_mentioned(name: str, text: str, extra_phrases: Sequence[str] = ()) -> bool:
@@ -660,6 +813,21 @@ def match_diagnostic_capabilities(
         metric_names=metric_names,
         synonyms_for=synonyms_for,
     )
+
+
+def pick_diagnostic_capability(
+    question: str,
+    capabilities: Optional[Sequence[Mapping[str, Any]]],
+    *,
+    state: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Choose one shortlisted capability with the LLM.
+
+    A shortlist of zero or one is returned unchanged. When the model names a
+    shortlisted capability, only that capability is returned (``source`` ``llm``).
+    A failed call or an unknown name keeps the shortlist (``source`` ``shortlist``).
+    """
+    return _PICKER.pick(question, capabilities, state=state)
 
 
 def resolve_diagnostic_uses(

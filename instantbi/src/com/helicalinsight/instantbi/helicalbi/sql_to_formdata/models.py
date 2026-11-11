@@ -57,6 +57,7 @@ class FilterItem:
     custom_sql: str | None = None
     used_columns: list[ColumnRef] = field(default_factory=list)
     raw_sql: str = ""
+    is_relative: bool = False
 
 
 @dataclass

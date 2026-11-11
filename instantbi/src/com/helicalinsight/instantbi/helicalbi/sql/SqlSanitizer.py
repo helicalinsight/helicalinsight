@@ -4,6 +4,7 @@ import re
 import sqlglot
 
 from helicalbi.common.DialectMapper import resolve_sqlglot_dialect
+from helicalbi.sql.exclusion_predicate import _collapse_not_expr_in
 
 logger = logging.getLogger(__name__)
 
@@ -53,12 +54,14 @@ def extract_sql(sql, dialect):
 
     for candidate in candidates:
         try:
-            return sqlglot.transpile(
+            rendered = sqlglot.transpile(
                 candidate,
                 identify=True,
                 read=final_dialect,
                 write=final_dialect,
             )[0]
+            # sqlglot prints NOT IN as "NOT expr IN (...)". Keep "expr NOT IN (...)".
+            return _collapse_not_expr_in(rendered, final_dialect or dialect)
         except sqlglot.errors.ParseError:
             logger.error(
                 "SQL parse candidate failed for dialect=%s",
@@ -139,7 +142,11 @@ def format_sql(sql, dialect=None, pretty=False):
             read=final_dialect,
             write=final_dialect,
         )[0]
-        return strip_sql_markdown(pretty_sql or "")
+        # Pretty-print emits "NOT expr IN (...)". Put NOT IN back on the expression.
+        return _collapse_not_expr_in(
+            strip_sql_markdown(pretty_sql or ""),
+            final_dialect or dialect,
+        )
     except Exception:
         logger.error(
             "SQL pretty-print failed; returning normalized SQL",

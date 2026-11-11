@@ -48,6 +48,9 @@ def synthesizer_node(state: AgentState) -> Dict[str, Any]:
             },
             SynthesizerOutput,
             state=state,
+            format_instructions=(
+                'JSON only. {"final_answer":"The main takeaway, then the key figures."}'
+            ),
         )
         answer = (parsed.final_answer or "").strip()
     else:

@@ -1445,6 +1445,7 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                     newItem.isNameEditable = false;
                     newItem.isSaved = true;
                     newItem.parameterList = [];
+                    newItem.enableLimit = true;
                 } else {
                     newItem.name = `Parameter${newItem.id}`;
                     newItem.config = '';

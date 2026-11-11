@@ -39,6 +39,7 @@ from helicalbi.sql_agent.strategy_tree import (
     load_analytical_operations,
     match_diagnostic_capabilities,
     merge_custom_operations,
+    pick_diagnostic_capability,
     measure_mentioned,
     measure_trait_guidance,
     operations_for_diagnostic_uses,
@@ -492,7 +493,7 @@ def _apply_measure_traits(indexer: Any, matched: List[Dict[str, Any]], use_plan:
 
 
 def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]:
-    """Match diagnostic capabilities and score analytical operations for the question."""
+    """Match diagnostic capabilities, pick one with the LLM, then score operations."""
     """Select analytical operations from analytical_strategy.json to guide deep-dive question framing."""
     question = str(state.get("question") or "")
     diag_caps = list(state.get("diagnostic_capabilities") or [])
@@ -503,6 +504,9 @@ def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]
     use_plan: List[Dict[str, str]] = []
     allowed = list(state.get("allowed_names") or [])
     grounding_pack = str(state.get("grounding_pack") or "")
+    pick_source = ""
+    pick_reason = ""
+    shortlisted_names: List[str] = []
     if flat_sql and diag_caps:
         measures: List[str] = []
         dimensions: List[str] = []
@@ -516,6 +520,19 @@ def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]
             diag_caps,
             synonyms_for=_synonym_lookup(indexer),
         )
+        shortlisted_names = [
+            str(cap.get("capability") or "").strip()
+            for cap in matched
+            if str(cap.get("capability") or "").strip()
+        ]
+        choice = pick_diagnostic_capability(
+            question,
+            matched,
+            state=state if isinstance(state, dict) else None,
+        )
+        matched = list(choice.get("capabilities") or [])
+        pick_source = str(choice.get("source") or "")
+        pick_reason = str(choice.get("reason") or "").strip()
         use_plan = resolve_diagnostic_uses(
             matched,
             operations=operations_catalog,
@@ -579,6 +596,10 @@ def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]
             f"Using applicable measures and declared uses ({use_summary}). "
             f"Analytical strategies: {', '.join(op_names)}."
         )
+        if pick_source == "llm" and shortlisted_names:
+            reason = f"{reason} Chosen from shortlist: {', '.join(shortlisted_names)}."
+            if pick_reason:
+                reason = f"{reason} {pick_reason}"
     else:
         reason = (
             f"Selected {len(op_names)} analytical operation(s) from catalog: "
@@ -595,6 +616,8 @@ def select_analytical_operations_node(state: PlanContextState) -> Dict[str, Any]
                 stage="plan_graph",
                 result={
                     "operations": op_names,
+                    "shortlisted_capabilities": shortlisted_names,
+                    "capability_pick_source": pick_source,
                     "matched_capabilities": [
                         str(cap.get("capability") or "") for cap in matched
                     ],

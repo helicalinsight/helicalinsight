@@ -1,6 +1,6 @@
 # Known chat models per LangChain provider package.
 # Used by the utility endpoint to list selectable models for a package.
-# Extend this catalog when adding new providers or model IDs.
+# A model typed in InstantBI Settings is appended here when that provider is saved.
 
 langchain-openai:
   - gpt-4.1

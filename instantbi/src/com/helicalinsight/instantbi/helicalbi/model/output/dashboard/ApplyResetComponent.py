@@ -15,8 +15,9 @@ class ApplyResetComponent:
     """Skeleton for one apply-reset control on the dashboard grid."""
 
     kind = Kind.APPLY_RESET
+    width = 2
 
-    def __init__(self, *, x: int = 0, y: int = 0, w: int = 1, h: int = 1, item_id: str = "") -> None:
+    def __init__(self, *, x: int = 0, y: int = 0, w: int = width, h: int = 1, item_id: str = "") -> None:
         self.id = item_id or f"item-{''.join(secrets.choice(_SUFFIX) for _ in range(5))}"
         self.x = int(x)
         self.y = int(y)

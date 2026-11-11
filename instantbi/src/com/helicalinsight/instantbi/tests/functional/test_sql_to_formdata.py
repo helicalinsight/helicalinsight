@@ -466,29 +466,11 @@ class TestILikeFilter:
         LIMIT 100
         """
         form_data = _form_data(sql)
-        filters = form_data["filters"]
-        assert len(filters) == 2
-        for filt in filters:
-            assert "databaseFunction" not in filt
-            assert filt["column"] == {
-                "name": "sampletraveldata.public.travel_details.travel_date",
-                "id": "2859",
-            }
-            assert filt["alias"] == "travel_date"
-            assert filt["label"] == "travel_date"
-            value = str((filt.get("values") or [""])[0])
-            assert "TIMESTAMP_TRUNC" not in value.upper()
-            assert "DATETRUNC" in value.upper() or "DATE_TRUNC" in value.upper()
-            assert "QUARTER" in value.upper()
-            assert "CURRENT_DATE" in value.upper()
-        assert filters[0]["condition"] == "CUSTOM"
-        assert filters[0]["customCondition"] == ">="
-        assert filters[0]["isCustomValue"] is True
-        assert filters[0]["encloseInQuotes"] is False
-        assert filters[1]["condition"] == "CUSTOM"
-        assert filters[1]["customCondition"] == "<"
-        assert filters[1]["isCustomValue"] is True
-        assert filters[1]["encloseInQuotes"] is False
+        # Comparison bounds are condition CUSTOM and are omitted from the
+        # prepared data model.
+        assert not form_data.get("filters")
+        assert "customFilterExpression" not in form_data
+        assert "filterExpression" not in form_data
 
     def test_like_contains_matches_ilike_wire_shape(self):
         sql = """
@@ -545,16 +527,10 @@ class TestTextFilterConditions:
             condition="EQUALS", values=["Ahmed Haider"]
         )
 
-    def test_not_equals(self):
-        assert self._filter(
-            "employee_details.employee_name <> 'Ahmed Haider'"
-        ) == _base_filter(
-            condition="CUSTOM",
-            customCondition="<>",
-            values=["Ahmed Haider"],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
+    def test_not_equals_custom_is_omitted(self):
+        form = _form_data(_employee_sql("employee_details.employee_name <> 'Ahmed Haider'"))
+        assert not form.get("filters")
+        assert "filterExpression" not in form
 
     def test_contains(self):
         assert self._filter(
@@ -615,27 +591,25 @@ class TestTextFilterConditions:
         assert self._filter(
             "employee_details.employee_name IS NULL"
         ) == _base_filter(
-            condition="CUSTOM",
-            customCondition="IS NULL",
+            condition="IS_NULL",
             encloseInQuotes=False,
         )
 
-    
-    def test_custom(self):
-        filt = self._filter("employee_details.employee_name ~ 'Haider'")
-        assert filt["condition"] == "CUSTOM"
-        assert filt["mode"] == "custom"
-        assert filt["isCustomValue"] is True
-        assert filt["alias"] == "Employee Name"
-        assert filt["values"]
-        assert "Haider" in str(filt.get("customCondition") or "") or "Haider" in str(
-            filt.get("values") or ""
+    def test_is_not_null(self):
+        assert self._filter(
+            "employee_details.employee_name IS NOT NULL"
+        ) == _base_filter(
+            condition="IS_NOT_NULL",
+            encloseInQuotes=False,
         )
 
-    def test_complex_like_is_custom_and_keeps_original_values(self):
-        filt = self._filter("employee_details.employee_name LIKE '%Hai%der%'")
-        assert filt["condition"] == "CUSTOM"
-        assert any("%" in str(v) for v in filt["values"])
+    def test_custom_is_omitted(self):
+        form = _form_data(_employee_sql("employee_details.employee_name ~ 'Haider'"))
+        assert not form.get("filters")
+
+    def test_complex_like_custom_is_omitted(self):
+        form = _form_data(_employee_sql("employee_details.employee_name LIKE '%Hai%der%'"))
+        assert not form.get("filters")
 
 
 def _cost_sql(where: str) -> str:
@@ -679,50 +653,16 @@ class TestNumericFilterConditions:
             condition="EQUALS", values=[100]
         )
 
-    def test_not_equals(self):
-        assert self._filter("travel_details.travel_cost <> 100") == _base_numeric(
-            condition="CUSTOM",
-            customCondition="<>",
-            values=[100],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
-
-    def test_is_greater_than(self):
-        assert self._filter("travel_details.travel_cost > 100") == _base_numeric(
-            condition="CUSTOM",
-            customCondition=">",
-            values=[100],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
-
-    def test_is_greater_than_or_equal_to(self):
-        assert self._filter("travel_details.travel_cost >= 100") == _base_numeric(
-            condition="CUSTOM",
-            customCondition=">=",
-            values=[100],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
-
-    def test_is_less_than(self):
-        assert self._filter("travel_details.travel_cost < 100") == _base_numeric(
-            condition="CUSTOM",
-            customCondition="<",
-            values=[100],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
-
-    def test_is_less_than_or_equal_to(self):
-        assert self._filter("travel_details.travel_cost <= 100") == _base_numeric(
-            condition="CUSTOM",
-            customCondition="<=",
-            values=[100],
-            isCustomValue=True,
-            encloseInQuotes=False,
-        )
+    def test_comparison_custom_filters_are_omitted(self):
+        for where in (
+            "travel_details.travel_cost <> 100",
+            "travel_details.travel_cost > 100",
+            "travel_details.travel_cost >= 100",
+            "travel_details.travel_cost < 100",
+            "travel_details.travel_cost <= 100",
+        ):
+            form = _form_data(_cost_sql(where))
+            assert not form.get("filters"), where
 
     def test_is_one_of(self):
         assert self._filter(
@@ -828,19 +768,19 @@ class TestNumericFilterConditions:
 
     def test_is_null(self):
         assert self._filter("travel_details.travel_cost IS NULL") == _base_numeric(
-            condition="CUSTOM",
-            customCondition="IS NULL",
+            condition="IS_NULL",
             encloseInQuotes=False,
         )
 
+    def test_is_not_null(self):
+        assert self._filter("travel_details.travel_cost IS NOT NULL") == _base_numeric(
+            condition="IS_NOT_NULL",
+            encloseInQuotes=False,
+        )
 
-    def test_custom(self):
-        filt = self._filter("travel_details.travel_cost IS DISTINCT FROM 0")
-        assert filt["condition"] == "CUSTOM"
-        assert filt["mode"] == "custom"
-        assert filt["isCustomValue"] is True
-        assert filt["alias"] == "Travel Cost"
-        assert filt["values"]
+    def test_custom_is_omitted(self):
+        form = _form_data(_cost_sql("travel_details.travel_cost IS DISTINCT FROM 0"))
+        assert not form.get("filters")
 
 
 class TestUnmappedFunctionRawColumn:
@@ -1570,8 +1510,10 @@ class TestHavingFoldedIntoFilters:
         assert having_item["values"] == [20, 50]
         assert having_item["isCustomValue"] is True
         assert having_item["encloseInQuotes"] is False
-        assert having_item["function"] == "db.generic.aggregate.count"
-        assert         having_item["column"] == {
+        assert having_item["aggregate"] is True
+        assert having_item["aggregateList"] == ["db.generic.aggregate.count"]
+        assert "function" not in having_item
+        assert having_item["column"] == {
             "name": "sampletraveldata.public.travel_details.travel_id",
             "id": "1064",
         }
@@ -1579,6 +1521,51 @@ class TestHavingFoldedIntoFilters:
         assert "Travel Type" not in aliases
         assert "Travel Count" not in aliases
         assert "groupBy" not in form_data.get("functions", {})
+
+    def test_having_is_not_null_keeps_negation(self):
+        form_data = _form_data(
+            """
+            SELECT
+              travel_details.destination AS "Client Destination",
+              COUNT(travel_details.travel_id) AS "Total Travel Count"
+            FROM travel_details
+            GROUP BY travel_details.destination
+            HAVING COUNT(travel_details.travel_id) IS NOT NULL
+            LIMIT 100
+            """
+        )
+        having_item = form_data["filters"][0]
+        assert having_item["condition"] == "IS_NOT_NULL"
+        assert "customCondition" not in having_item
+        assert "values" not in having_item
+        assert having_item["aggregate"] is True
+        assert having_item["aggregateList"] == ["db.generic.aggregate.count"]
+        assert "function" not in having_item
+
+    def test_having_is_null_stays_is_null(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.destination AS "Client Destination"
+            FROM travel_details
+            GROUP BY travel_details.destination
+            HAVING COUNT(travel_details.travel_id) IS NULL
+            """
+        )
+        having_item = form_data["filters"][0]
+        assert having_item["condition"] == "IS_NULL"
+        assert "customCondition" not in having_item
+
+    def test_where_is_not_null_keeps_negation(self):
+        form_data = _form_data(
+            """
+            SELECT travel_details.destination AS "Client Destination"
+            FROM travel_details
+            WHERE travel_details.destination IS NOT NULL
+            """
+        )
+        where_item = form_data["filters"][0]
+        assert where_item["condition"] == "IS_NOT_NULL"
+        assert "customCondition" not in where_item
 
     def test_include_parts_keeps_having_before_fold(self):
         form_data = sql_to_form_data(
@@ -1627,11 +1614,10 @@ class TestFilterExpression:
                 OR SUM(travel_details.travelled_by) > 10
             """
         )
-        assert form_data["filterExpression"] == [
-            "destination OR source",
-            "sum_travel_cost OR sum_travelled_by",
-        ]
+        # HAVING comparisons are condition CUSTOM and are omitted.
+        assert form_data["filterExpression"] == ["destination OR source"]
         assert form_data["customFilterExpression"] == " ${0} OR ${1} "
+        assert [item.get("aggregate") for item in form_data["filters"]] == [None, None]
 
     def test_having_only_uses_empty_where_slot(self):
         form_data = _form_data(
@@ -1646,10 +1632,8 @@ class TestFilterExpression:
                 OR SUM(travel_details.travelled_by) > 10
             """
         )
-        assert form_data["filterExpression"] == [
-            "",
-            "sum_travel_cost OR sum_travelled_by",
-        ]
+        assert not form_data.get("filters")
+        assert "filterExpression" not in form_data
         assert "customFilterExpression" not in form_data
 
     def test_single_where_omits_operator(self):
@@ -1674,7 +1658,8 @@ class TestFilterExpression:
             HAVING SUM(travel_details.travel_cost) > 100
             """
         )
-        assert form_data["filterExpression"] == ["", "sum_travel_cost"]
+        assert not form_data.get("filters")
+        assert "filterExpression" not in form_data
 
 
 class TestCaseWhenRawUnquoted:
@@ -1714,5 +1699,205 @@ class TestCaseWhenRawUnquoted:
         assert _is_raw_fn(dbf)
         assert '"' not in dbf
         assert "CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 END" in dbf
+
+
+PARAMETER_FUNCTIONS = {
+    "functions": [
+        {"name": "today", "unit": "DAYS", "boundary": "DAY", "offset": 0, "direction": "NONE", "acceptsModifier": True},
+        {"name": "tomorrow", "unit": "DAYS", "boundary": "DAY", "offset": 1, "direction": "NEXT", "acceptsModifier": False},
+        {"name": "yesterday", "unit": "DAYS", "boundary": "DAY", "offset": 1, "direction": "LAST", "acceptsModifier": False},
+        {"name": "month", "unit": "MONTHS", "boundary": "MONTH", "offset": 0, "direction": "NONE", "acceptsModifier": True},
+        {"name": "year", "unit": "YEARS", "boundary": "YEAR", "offset": 0, "direction": "NONE", "acceptsModifier": True},
+        {"name": "quarter", "unit": "MONTHS", "multiplier": 3, "boundary": "QUARTER", "offset": 0, "direction": "NONE", "acceptsModifier": True},
+        {"name": "to_date", "boundary": "NOW", "direction": "LAST", "acceptsModifier": False, "inheritsUnit": True},
+    ]
+}
+
+
+def _relative(*filters: dict) -> dict:
+    return {"filters": list(filters)}
+
+
+class TestRelativeDateFilters:
+    def test_between_current_date_becomes_relative_tokens(self):
+        sql = """
+        SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date BETWEEN DATE_TRUNC('year', CURRENT_DATE) - INTERVAL '1 year'
+          AND CURRENT_DATE
+        """
+        form_data = _form_data(
+            sql,
+            relative_dates=_relative({
+                "column": "travel_details.travel_date",
+                "condition": "IS_BETWEEN",
+                "values": ["year-1", "today"],
+            }),
+        )
+        filt = form_data["filters"][0]
+        assert filt["isRelative"] is True
+        assert filt["condition"] == "IS_BETWEEN"
+        assert filt["values"] == ["year-1", "today"]
+
+    def test_comparison_pair_survives_as_today_tokens(self):
+        sql = """
+        SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date >= CURRENT_DATE - INTERVAL '1 day'
+          AND travel_details.travel_date <= CURRENT_DATE
+        """
+        form_data = _form_data(
+            sql,
+            relative_dates=_relative({
+                "column": "travel_date",
+                "condition": "IS_BETWEEN",
+                "values": ["today-1", "today"],
+            }),
+        )
+        filt = form_data["filters"][0]
+        assert filt["isRelative"] is True
+        assert filt["condition"] == "IS_BETWEEN"
+        assert filt["values"] == ["today-1", "today"]
+
+    def test_extract_year_in_current_and_next_year_is_relative(self):
+        sql = """
+        SELECT "travel_details"."travel_medium" AS "Travel Medium",
+               EXTRACT(YEAR FROM "travel_details"."travel_date") AS "Year",
+               SUM("travel_details"."travel_cost") AS "Travel Cost"
+        FROM "travel_details"
+        WHERE EXTRACT(YEAR FROM "travel_details"."travel_date") IN (
+            EXTRACT(YEAR FROM CURRENT_DATE),
+            EXTRACT(YEAR FROM CURRENT_DATE) + 1
+        )
+        GROUP BY "travel_details"."travel_medium",
+                 EXTRACT(YEAR FROM "travel_details"."travel_date")
+        LIMIT 100
+        """
+        form_data = _form_data(
+            sql,
+            relative_dates=_relative({
+                "column": "travel_details.travel_date",
+                "condition": "IS_ONE_OF",
+                "values": ["year", "year+1"],
+            }),
+        )
+        filt = form_data["filters"][0]
+        assert filt["isRelative"] is True
+        assert filt["condition"] == "IS_ONE_OF"
+        assert filt["values"] == ["year", "year+1"]
+        assert filt["alias"] == "Year"
+        assert "travel_date" in filt["databaseFunction"].lower()
+        assert [col["alias"] for col in form_data["columns"]] == [
+            "Travel Medium",
+            "Travel Cost",
+        ]
+        assert form_data["limitBy"] == 100
+
+    def test_year_to_current_date_uses_to_date(self):
+        sql = """
+        SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date BETWEEN DATE_TRUNC('year', CURRENT_DATE) AND CURRENT_DATE
+        """
+        form_data = _form_data(
+            sql,
+            relative_dates=_relative({
+                "column": "travel_details.travel_date",
+                "condition": "IS_BETWEEN",
+                "values": ["year", "to_date"],
+            }),
+        )
+        assert form_data["filters"][0]["values"] == ["year", "to_date"]
+        assert form_data["filters"][0]["isRelative"] is True
+
+    def test_without_detected_filters_comparison_bounds_stay_omitted(self):
+        sql = """
+        SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date >= CURRENT_DATE - INTERVAL '1 day'
+          AND travel_details.travel_date <= CURRENT_DATE
+        """
+        form_data = _form_data(sql, parameter_functions=PARAMETER_FUNCTIONS)
+        assert "filters" not in form_data or form_data["filters"] == []
+
+    def test_single_comparison_stays_on_the_data_model(self):
+        sql = """
+        SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+        FROM travel_details
+        WHERE travel_details.travel_date >= CURRENT_DATE
+        """
+        form_data = _form_data(
+            sql,
+            relative_dates=_relative({
+                "column": "travel_details.travel_date",
+                "condition": "IS_GREATER_THAN_OR_EQUAL_TO",
+                "values": ["today"],
+            }),
+        )
+        filt = form_data["filters"][0]
+        assert filt["isRelative"] is True
+        assert filt["condition"] == "IS_GREATER_THAN_OR_EQUAL_TO"
+        assert filt["values"] == ["today"]
+        assert "customCondition" not in filt
+
+    def test_hreport_presets_for_each_part(self):
+        cases = [
+            ("EQUALS", ["yesterday"], ["yesterday"]),
+            ("EQUALS", ["tomorrow"], ["tomorrow"]),
+            ("EQUALS", ["day"], ["today"]),
+            ("EQUALS", ["anchor_year"], ["anchor_year"]),
+            ("IS_BETWEEN", ["quarter", "to_date"], ["quarter", "to_date"]),
+            ("IS_BETWEEN", ["month-3", "month-1"], ["month-3", "month-1"]),
+            ("IS_BETWEEN", ["hour", "to_date"], ["hour", "to_date"]),
+            ("IS_NOT_BETWEEN", ["year-1", "year-1"], ["year-1", "year-1"]),
+            ("IN_RANGE", ["today+1", "today+3"], ["today+1", "today+3"]),
+            ("IS_NOT_ONE_OF", ["minute", "minute+1"], ["minute", "minute+1"]),
+            ("NOT_EQUALS", ["second"], ["second"]),
+            ("EQUALS", ["tomorrow+2"], ["tomorrow"]),
+        ]
+        for condition, raw, expected in cases:
+            sql = """
+            SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            WHERE travel_details.travel_date = CURRENT_DATE
+            """
+            if condition in ("IS_BETWEEN", "IS_NOT_BETWEEN", "IN_RANGE"):
+                sql = """
+                SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+                FROM travel_details
+                WHERE travel_details.travel_date BETWEEN CURRENT_DATE AND CURRENT_DATE
+                """
+            elif condition == "IS_NOT_ONE_OF":
+                sql = """
+                SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+                FROM travel_details
+                WHERE travel_details.travel_date NOT IN (CURRENT_DATE, CURRENT_DATE)
+                """
+            form_data = _form_data(
+                sql,
+                relative_dates=_relative({
+                    "column": "travel_date",
+                    "condition": condition,
+                    "values": raw,
+                }),
+            )
+            filt = form_data["filters"][0]
+            assert filt["isRelative"] is True, condition
+            assert filt["condition"] == condition, condition
+            assert filt["values"] == expected, condition
+
+        unsupported = _form_data(
+            """
+            SELECT SUM(travel_details.travel_cost) AS "Travel Cost"
+            FROM travel_details
+            WHERE travel_details.travel_date = CURRENT_DATE
+            """,
+            relative_dates=_relative({
+                "column": "travel_date",
+                "condition": "EQUALS",
+                "values": ["week"],
+            }),
+        )
+        assert unsupported["filters"][0].get("isRelative") is not True
 
 
