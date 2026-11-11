@@ -14,6 +14,7 @@ import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.exceptions.HCRException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.parameters.HcrParameterEvaluator;
 import com.helicalinsight.efw.utility.FileUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.PropertiesFileReader;
@@ -175,6 +176,9 @@ public class EnhancedHCRScheduler extends HCRScheduler {
 			// logger.error("The parameters: " + parametersJSON);
 			JsonObject hcrJsonData = HCRHelper.prepareFormDataForHCRExportReport(hcrFileName, hcrDirectory, theTotalFormats);
 			JsonObject formData = HCRHelper.prepareFormDataForHCRParameters(parametersJSON,hcrJsonData);
+			JsonObject scheduleOptions = GsonUtility.optJsonObject(json, "ScheduleOptions");
+			String parameterTimeZone = scheduleOptions == null ? null : GsonUtility.optString(scheduleOptions, "timeZone");
+			HcrParameterEvaluator.carryScheduleContext(formData, parametersJSON, parameterTimeZone);
 			logger.debug("formData :" + formData);
 			List<String> resourceUrl = new ArrayList<>();
 			resourceUrl.add(loginFirstUrl);

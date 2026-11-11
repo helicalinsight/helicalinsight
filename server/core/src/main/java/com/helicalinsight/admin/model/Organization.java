@@ -70,12 +70,10 @@ public class Organization implements Serializable {
     
     @OneToMany(mappedBy = "organization", cascade = CascadeType.REMOVE)
     @LazyCollection(LazyCollectionOption.TRUE)
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<Role> roles;
     
     @OneToMany(mappedBy = "organization", cascade = CascadeType.REMOVE)
     @LazyCollection(LazyCollectionOption.TRUE)
-    @org.hibernate.annotations.Cache(usage = CacheConcurrencyStrategy.READ_WRITE)
     private List<User> users;
     
     @OneToMany(mappedBy = "orgId", cascade = CascadeType.REMOVE)

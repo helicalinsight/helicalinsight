@@ -220,7 +220,6 @@ public class DataSourceSecurityUtility {
 
     public static void isDataSourceAuthenticatedFromTemp(JsonObject formJson) {
         
-        String dir = GsonUtility.optString(formJson, "dir");
         String accessLevel = GsonUtility.optString(formJson, "access");
         
         String tempFileName = null;
@@ -230,11 +229,12 @@ public class DataSourceSecurityUtility {
             tempFileName =  GsonUtility.optString(efwd, "file");
         }
         
-        if ( StringUtils.isBlank(dir) || "null".equals(dir)) {
-        	authenticateTempReport(tempFileName, accessLevel);
-        	return ;
+        if(isSavedDatasource(tempFileName)){
+        	authenticateSavedReport(tempFileName, accessLevel);
         }
-        authenticateSavedReport(tempFileName, accessLevel);
+        else {
+        	authenticateTempReport(tempFileName, accessLevel);
+        }
     }
     
     private static void authenticateTempReport(String tempFileName, String accessLevel) {
@@ -362,5 +362,13 @@ public class DataSourceSecurityUtility {
         return true;
 
 
+    }
+    
+    public static final boolean isSavedDatasource(String datasourceId) {
+    	
+    	if ( StringUtils.isBlank(datasourceId)) return false;
+    	
+    	 return datasourceId.replace("hi_hcr_db.efwd","").matches("\\d+") 
+    			 || datasourceId.replace("hi_hcr_db","").matches("\\d+");
     }
 }

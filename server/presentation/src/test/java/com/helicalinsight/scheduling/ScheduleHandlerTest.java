@@ -54,6 +54,7 @@ import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.admin.service.ResourceTypeServiceDB;
 import com.helicalinsight.admin.service.UserService;
 import com.helicalinsight.admin.utils.ResourceDTOMapper;
+import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.utility.JsonUtils;
@@ -82,6 +83,8 @@ import com.helicalinsight.scheduling.service.SchedulesService;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ScheduleHandlerTest {
+	
+	String baseUrl = ApplicationProperties.getInstance().getDomain();
 
 	@Test
 	public void testWrite_a1()
@@ -621,8 +624,8 @@ public class ScheduleHandlerTest {
 			verify(mocks.jobParameterService).addJobParameter(same(secondParameter));
 			assertEquals(1, calls.constructed().size());
 			EnhancedScheduleProcessCall process = calls.constructed().get(0);
-			verify(process).scheduleSpecificJob(same(withUser), eq(""));
-			verify(process).scheduleSpecificJob(same(withoutUser), eq(""));
+			verify(process).scheduleSpecificJob(same(withUser), eq(baseUrl));
+			verify(process).scheduleSpecificJob(same(withoutUser), eq(baseUrl));
 
 			ArgumentCaptor<HIResource> savedResults = ArgumentCaptor.forClass(HIResource.class);
 			verify(mocks.serviceDb, times(2)).addHIResource(savedResults.capture());
@@ -690,7 +693,7 @@ public class ScheduleHandlerTest {
 			assertNull(schedule.getCreatedBy());
 			verify(mocks.userService, never()).findUser(anyInt());
 			verify(mocks.scheduleService).addSchedule(same(schedule));
-			verify(calls.constructed().get(0)).scheduleSpecificJob(same(schedule), eq(""));
+			verify(calls.constructed().get(0)).scheduleSpecificJob(same(schedule), eq(baseUrl));
 			verify(mocks.context, never()).addLog(any(), any());
 			verify(mocks.serviceDb, never()).addHIResource(any());
 			verifyNoInteractions(mocks.shareHandler, mocks.folderImportHandler);

@@ -58,9 +58,12 @@ def _to_wire_filter(item: FilterItem, parsed: ParsedQuery, meta: dict, idx: int)
     _apply_database_function_or_custom(wire, item, meta)
 
     if item.ui_condition == "CUSTOM":
-        return _as_custom_filter(wire, item, list(item.values or []))
-
-    return _apply_condition_transform(wire, item)
+        wire = _as_custom_filter(wire, item, list(item.values or []))
+    else:
+        wire = _apply_condition_transform(wire, item)
+    if item.is_relative:
+        wire["isRelative"] = True
+    return wire
 
 
 def _apply_database_function_or_custom(wire: dict[str, Any], item, meta: dict) -> dict[str, Any]:
@@ -150,17 +153,27 @@ def _same_filter_select_expr(sel, item: FilterItem) -> bool:
 
 
 def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
-    """Map UI conditions to Adhoc executeQuery wire.
+    """Map UI conditions to the report data model.
 
-    Adhoc ``SqlQueryUtilities.condition`` only accepts EQUALS / IS_ONE_OF /
-    IN_RANGE / NOT_IN_RANGE / CUSTOM. Comparison and other ops that carry a
-    ``customCondition`` must therefore emit ``condition: CUSTOM``.
+    Comparisons that Adhoc executes through ``customCondition`` are emitted as
+    ``condition: CUSTOM`` and later dropped from the prepared data model.
+    ``IS_NULL`` and ``IS_NOT_NULL`` stay as editor conditions; getFilters.js
+    rewrites those to CUSTOM only when it builds the query.
 
     SQL expression bounds (e.g. ``DATE_TRUNC(...)``) need ``isCustomValue`` and
     ``encloseInQuotes: false`` so Adhoc does not quote them as string literals.
     """
     ui = item.ui_condition
     values = list(item.values)
+
+    if item.is_relative:
+        # hreport resolves these tokens from the relative list. They must stay
+        # the editor condition, including >= and <>, which are otherwise CUSTOM.
+        wire["values"] = values
+        wire["encloseInQuotes"] = False
+        wire.pop("customCondition", None)
+        wire.pop("isCustomValue", None)
+        return wire
 
     if ui == "EQUALS":
         wire["values"] = values
@@ -224,16 +237,14 @@ def _apply_condition_transform(wire: dict, item: FilterItem) -> dict:
         wire["values"] = values
         return wire
 
-    if ui == "IS_NULL":
-        wire["condition"] = "CUSTOM"
-        wire["customCondition"] = "IS NULL"
+    if ui in ("IS_NULL", "IS_NOT_NULL"):
+        # Editor conditions. getFilters.js turns these into CUSTOM only when
+        # it builds the executeQuery payload. The data model must keep the
+        # UI name so the report shows "Is Null" / "Is Not Null".
+        wire["condition"] = ui
         wire["encloseInQuotes"] = False
-        return wire
-
-    if ui == "IS_NOT_NULL":
-        wire["condition"] = "CUSTOM"
-        wire["customCondition"] = "IS NOT NULL"
-        wire["encloseInQuotes"] = False
+        wire.pop("customCondition", None)
+        wire.pop("values", None)
         return wire
 
     return _as_custom_filter(wire, item, values)

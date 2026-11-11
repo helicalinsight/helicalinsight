@@ -7,14 +7,9 @@ import com.helicalinsight.adhoc.genericsql.SqlQueryUtilities;
 import com.helicalinsight.adhoc.metadata.jaxb.DatabaseFunctions;
 import com.helicalinsight.adhoc.metadata.jaxb.DriverClass;
 import com.helicalinsight.adhoc.metadata.jaxb.Metadata;
-import com.helicalinsight.adhoc.service.HIMetadataResourceServiceDB;
-import com.helicalinsight.admin.model.HIResource;
-import com.helicalinsight.admin.service.HIResourceServiceDB;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.efw.AppStatistics;
-import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.exceptions.RequiredParameterIsNullException;
-import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.serviceframework.IComponent;
 import com.helicalinsight.efw.utility.JaxbUtils;
 import com.helicalinsight.efw.utility.JsonUtils;
@@ -48,7 +43,6 @@ public class DatabaseAggregateFunctionListProvider implements IComponent {
      */
     public String executeComponent(String formData) {
         JsonObject formJson = JsonParser.parseString(formData).getAsJsonObject();
-
         validate(formJson);
 
         String location = null;

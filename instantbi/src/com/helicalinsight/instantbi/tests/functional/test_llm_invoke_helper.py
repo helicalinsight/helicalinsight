@@ -5,7 +5,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from helicalbi.common import app_config
-from helicalbi.common.LlmInvokeHelper import log_prompt, merge_token_usage, read_time_consumed
+from helicalbi.common.LlmInvokeHelper import (
+    log_llm_output,
+    log_prompt,
+    merge_token_usage,
+    read_time_consumed,
+)
 from helicalbi.model.TokenUsage import TokenUsage
 
 
@@ -32,6 +37,19 @@ class TestLlmActivityLogging:
             log_prompt("SELECT 1 FROM t")
         assert "LLM Prompt:" in caplog.text
         assert "SELECT 1 FROM t" in caplog.text
+
+    def test_log_llm_output_skipped_when_disabled(self, caplog):
+        app_config.show_llm_activity = False
+        with caplog.at_level(logging.INFO, logger="helicalbi.common.LlmInvokeHelper"):
+            log_llm_output(type("Msg", (), {"content": '{"ok": true}'})())
+        assert "LLM Output:" not in caplog.text
+
+    def test_log_llm_output_emitted_when_enabled(self, caplog):
+        app_config.show_llm_activity = True
+        with caplog.at_level(logging.INFO, logger="helicalbi.common.LlmInvokeHelper"):
+            log_llm_output(type("Msg", (), {"content": '{"ok": true}'})())
+        assert "LLM Output:" in caplog.text
+        assert '{"ok": true}' in caplog.text
 
     def test_merge_token_usage_skipped_when_disabled(self, caplog):
         app_config.show_llm_activity = False
@@ -68,6 +86,7 @@ class TestLlmActivityLogging:
             invoke_llm(llm, "hello")
 
         assert "LLM Prompt:" not in caplog.text
+        assert "LLM Output:" not in caplog.text
         assert "LLM invoke:" not in caplog.text
         llm.invoke.assert_called_once_with("hello")
 
@@ -76,7 +95,9 @@ class TestLlmActivityLogging:
 
         app_config.show_llm_activity = True
         llm = MagicMock()
-        llm.invoke.return_value = MagicMock()
+        message = MagicMock()
+        message.content = '{"required_tables":["travel_details"]}'
+        llm.invoke.return_value = message
         usage_factory = MagicMock()
         usage_factory.from_ai_message.return_value = TokenUsage(
             input_tokens=3, output_tokens=2, total_tokens=5
@@ -91,6 +112,9 @@ class TestLlmActivityLogging:
 
         assert "LLM Prompt:" in caplog.text
         assert "hello" in caplog.text
+        assert "LLM Output:" in caplog.text
+        assert '{"required_tables":["travel_details"]}' in caplog.text
+        assert caplog.text.index("LLM Prompt:") < caplog.text.index("LLM Output:")
         assert "LLM invoke:" in caplog.text
         assert "total=5" in caplog.text
 

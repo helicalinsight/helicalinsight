@@ -82,7 +82,7 @@ import {
   getFieldDisplayName,
   modifyFilters,
 } from "../utils/utilities";
-import { validateReportName } from "./utils/helperMethods";
+import { shouldUpdateHreportDocumentTitle, validateReportName } from "./utils/helperMethods";
 
 const { Text } = Typography;
 
@@ -326,7 +326,7 @@ const HelicalReports = (props) => {
       }
     });
     return () => {
-      if (!isInstantBICreateMode && !isDashboardCreateMode) {
+      if (!isInstantBICreateMode && !isDashboardCreateMode && !isInstantBIOpenMode) {
         dispatch(removeReport({ id: reportId }))
       }
       localStorage.removeItem("hreport_active_report");
@@ -450,19 +450,32 @@ const HelicalReports = (props) => {
         // handleURLExport(reportId, parameters.print)
         handleURLExport(reportId, "xls")
       } else {
-        let activeReport = reports.find((report) => report.id === reportId);
-        if (activeReport) {
-          let modifiedState = modifyFilters(activeReport, parameters);
-          if (props.mode === 'filter') {
-            const { filters: mFltrs = [] } = modifiedState;
-            const { filters: aFltrs = [] } = activeReport;
-            if (!isEqual(mFltrs, aFltrs)) {
+        if (["instant-bi-create", "instant-bi-open"].includes(props.mode)) {
+          let activeReport = reports.find((report) => report.id === reportId);
+          if (props.reportId) {
+            const instantReport = reports.find((report) => report.id === props.reportId);
+            if (instantReport) {
+              activeReport = instantReport;
+            }
+          }
+          if (activeReport) {
+            let modifiedState = modifyFilters(activeReport, parameters);
+            generateReport({ ...modifiedState, loadState: true, isPrintMode, user, mode: props.mode }, dispatch, getApi);
+          }
+        } else {
+          let activeReport = reports.find((report) => report.id === reportId);
+          if (activeReport) {
+            let modifiedState = modifyFilters(activeReport, parameters);
+            console.log({ modifiedState, parameters, activeReport, props, reportId })
+            if (props.mode === 'filter') {
+              const { filters: mFltrs = [] } = modifiedState;
+              const { filters: aFltrs = [] } = activeReport;
+              if (!isEqual(mFltrs, aFltrs)) {
+                generateReport({ ...modifiedState, loadState: true, isPrintMode, user }, dispatch, getApi);
+              }
+            } else {
               generateReport({ ...modifiedState, loadState: true, isPrintMode, user }, dispatch, getApi);
             }
-          } else if (["instant-bi-create", "instant-bi-open"].includes(props.mode)) {
-            generateReport({ ...modifiedState, loadState: true, isPrintMode, user, mode: props.mode }, dispatch, getApi);
-          } else {
-            generateReport({ ...modifiedState, loadState: true, isPrintMode, user }, dispatch, getApi);
           }
         }
 
@@ -504,7 +517,7 @@ const HelicalReports = (props) => {
     }
   }, [activeReportId]);
   useEffect(() => {
-    if (reportName && !["open", "dashboard", "filter", "instant-bi-create", "instant-bi-open", "dashboard-create"].includes(props.mode)) {
+    if (reportName && shouldUpdateHreportDocumentTitle(props.mode)) {
       document.title = `${reportName} | HI:Helical-Report`;
     }
   }, [reportName]);
@@ -547,7 +560,7 @@ const HelicalReports = (props) => {
   }, [savedLayout]);
 
   useEffect(() => {
-    if (isInstantBICreateMode) {
+    if (isInstantBICreateMode || isInstantBIOpenMode) {
       if (props.reportId) {
         if (typeof props.renderEditingArea === "function") {
           renderEditingArea(props.reportId);
@@ -557,7 +570,7 @@ const HelicalReports = (props) => {
         }
       }
     }
-  }, [isInstantBICreateMode, props.reportId])
+  }, [isInstantBICreateMode, isInstantBIOpenMode, props.reportId])
 
   useEffect(() => {
     !isTestMode && !activeReport?.selectedType === "MapChart" && setResizing(isWindowResizing)
@@ -1365,8 +1378,12 @@ const HelicalReports = (props) => {
   }
 
   function renderFilters(reportId) {
+    const otherProps = {}
+    if (isInstantBIOpenMode || props.openModeFilters) {
+      otherProps.mode = "open"
+    }
     props.renderFilters(
-      <Filters reportId={reportId} getApi={getApi} />
+      <Filters reportId={reportId} getApi={getApi} {...otherProps} />
     )
   }
 

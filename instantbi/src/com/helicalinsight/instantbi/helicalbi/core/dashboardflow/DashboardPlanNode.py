@@ -13,7 +13,10 @@ from helicalbi.model.DashboardLayoutState import DashboardLayoutState
 from helicalbi.model.output.dashboard.DashboardConfig import default_dashboard_config
 from helicalbi.model.output.dashboard.DashboardLayout import DashboardPlan
 from helicalbi.prompt.DashboardLayoutPrompt import dashboard_plan_prompt_string
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.LayoutTemplates import load_decision_table
 
 logger = logging.getLogger(__name__)
@@ -40,7 +43,7 @@ class DashboardPlanNode:
                 template=dashboard_plan_prompt_string + format_instruction_string,
                 input_variables=["username", "domain", "topics", "viz_types", "chat_context"],
                 partial_variables={
-                    "format_instructions": parser.get_format_instructions(),
+                    "format_instructions": brief_format_instructions(parser.pydantic_object),
                     "decision_table": load_decision_table(),
                 },
             )

@@ -3,10 +3,8 @@
 import json
 from unittest.mock import MagicMock, patch
 
-from helicalbi.controller.convert_dashboard import ConvertDashboardTurn
-from helicalbi.controller.data_insight import DataInsightTurn
+from helicalbi.controller.data_insight import DataInsightServiceTurn, DataInsightTurn
 from helicalbi.controller.interactive import InteractiveTurn
-from helicalbi.controller.sse import SseEventWriter
 
 
 def _parse_events(chunks):
@@ -254,7 +252,9 @@ class TestInteractiveTurn:
         assert exec_calls["n"] == 2
         assert sql_graph.invoke.call_count == 2
         assert seen_queries == ["Show sales", "Show sales"]
-        rewrite_prompt = sql_graph.invoke.call_args_list[1].args[0]["query"]
+        retry_state = sql_graph.invoke.call_args_list[1].args[0]
+        assert retry_state["query"] == "Show sales"
+        rewrite_prompt = retry_state["sql_retry_context"]
         assert "Show sales" in rewrite_prompt
         assert "Previous SQL that failed" in rewrite_prompt
         assert "Unknown column x" in rewrite_prompt
@@ -442,7 +442,7 @@ class TestDataInsightTurn:
             response = MagicMock()
             usage = MagicMock()
             usage.model_dump.return_value = {"total_tokens": 4}
-            if "Supporting questions and their insights" in text:
+            if "Supporting insights:" in text:
                 response.content = "Pick Employee 2 [1]. Cancellations are rare [2]."
             elif "What is total travel cost by employee?" in text:
                 response.content = "Employee 2 spent 9850."
@@ -491,55 +491,257 @@ class TestDataInsightTurn:
         assert buffered["insight"] == "Pick Employee 2 [1]. Cancellations are rare [2]."
 
 
-class TestConvertDashboardTurn:
-    def test_stream_maps_graph_nodes_to_activity(self):
+class TestDataInsightServiceTurn:
+    def test_runs_form_data_through_fetch_data_without_sql_lookup(self):
+        form_data = {
+            "location": "TestFold",
+            "metadataFileName": "Metadata_1.metadata",
+            "columns": [{"column": "travel.travel_cost", "alias": "Travel Cost"}],
+        }
         payload = {
             "input": {
-                "chatid": "c1",
+                "user_question": "What were sales by region?",
                 "sessionCookie": "cookie",
                 "username": "alice",
-                "items": [{"id": "seq-1", "sql": "SELECT 1"}],
+                "chatid": "t-service",
+                "chat_seq_id": "1",
+                "last_chats": [{"question": "earlier travel question"}],
+                "formData": json.dumps(form_data),
             }
         }
-        graph = MagicMock()
-        graph.invoke.return_value = {
-            "items": [{"id": "seq-1"}],
-            "dashboard_config": {"theme": "default"},
-            "templateId": "t",
-            "layout": [],
-        }
+        llm_response = MagicMock()
+        llm_response.content = "Travel cost is concentrated in a few categories."
+        usage = MagicMock()
+        usage.model_dump.return_value = {"total_tokens": 5}
 
-        def stream_updates(state, stream_mode="updates"):
-            yield {"CollectContext": {"items": [{"id": "seq-1"}]}}
-            yield {"PlanSummary": {"dashboard_config": {"theme": "default"}}}
-            yield {"SelectFilters": {}}
-            yield {"MakeLayout": {"layout": [], "templateId": "t"}}
+        current_sql = (
+            "SELECT SUM(travel_cost) AS travel_cost FROM travel "
+            "WHERE travel_year = 2018"
+        )
+        call_order = []
 
-        graph.stream.side_effect = stream_updates
+        def generate_query(**kwargs):
+            call_order.append("generateQuery")
+            return {"status": 1, "response": {"query": current_sql}}
+
+        def fetch_data(**kwargs):
+            call_order.append("fetchData")
+            return {
+                "status": 1,
+                "response": {"data": [{"Travel Cost": 120}], "metadata": []},
+            }
+
+        app_mock = MagicMock()
+        app_mock.generate_query.side_effect = generate_query
+        app_mock.fetch_data.side_effect = fetch_data
+        app_mock.invoke_llm.return_value = (llm_response, usage)
 
         with patch(
-            "helicalbi.controller.convert_dashboard.dashboard_layout_graph", graph
+            "helicalbi.controller.data_insight.app", return_value=app_mock
         ), patch(
-            "helicalbi.controller.convert_dashboard.bind_request_identity",
+            "helicalbi.controller.data_insight.audit_llm_usage_async"
+        ) as audit, patch(
+            "helicalbi.controller.data_insight.bind_request_identity",
             return_value=("cookie", "alice", 1, 1),
         ), patch(
-            "helicalbi.controller.convert_dashboard.collect_items",
-            return_value=[{"id": "seq-1", "sql": "SELECT 1"}],
+            "helicalbi.controller.data_insight.resolve_role_profile",
+            return_value={},
         ), patch(
-            "helicalbi.controller.convert_dashboard.resolve_request_id",
+            "helicalbi.controller.data_insight.resolve_sql_from_request",
+            side_effect=AssertionError("SQL should not be resolved for formData insight"),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_request_id",
             return_value=None,
         ):
-            buffered = ConvertDashboardTurn(payload).run()
-            events = _parse_events(list(ConvertDashboardTurn(payload).stream()))
+            buffered = DataInsightServiceTurn(payload).run()
 
-        messages = [item["data"]["message"] for item in events if item["event"] == "progress"]
-        assert messages == [
-            "Collecting your visualizations…",
-            "Planning the dashboard…",
-            "Selecting filters…",
-            "Generating the layout…",
-            "Dashboard is ready.",
-        ]
-        complete = [item for item in events if item["event"] == "complete"][0]
-        assert complete["data"]["items"] == buffered["items"]
-        assert SseEventWriter().begin().startswith("event: begin")
+        app_mock.execute_query.assert_not_called()
+        app_mock.generate_query.assert_called_once()
+        app_mock.fetch_data.assert_called_once()
+        assert call_order == ["generateQuery", "fetchData"]
+        assert app_mock.generate_query.call_args.kwargs["form_data"] == form_data
+        assert app_mock.fetch_data.call_args.kwargs["form_data"] == form_data
+        prompt = app_mock.invoke_llm.call_args.args[1]
+        assert "What were sales by region?" in prompt
+        assert current_sql in prompt
+        assert "travel_year = 2018" in prompt
+        assert "Travel Cost" in prompt
+        assert "metadataFileName" not in prompt
+        assert "earlier travel question" not in prompt
+        assert "Chat history: []" in prompt
+        assert buffered["insight"] == "Travel cost is concentrated in a few categories."
+        assert audit.call_args.kwargs["endpoint"] == "/data-insight-service"
+        assert audit.call_args.kwargs["chat_id"] is None
+        assert audit.call_args.kwargs["chat_seq_id"] is None
+
+    def test_saved_report_form_data_explains_think_steps_from_memory(self):
+        from helicalbi.common.ChatGraphMemory import chat_graph_memory
+
+        chat_graph_memory.clear("t-think-form")
+        chat_graph_memory.add_node(
+            "t-think-form",
+            "1",
+            {"sql": "", "user_query": "Which employee should I pick?"},
+        )
+        chat_graph_memory.add_node(
+            "t-think-form",
+            "1-1",
+            {
+                "sql": "SELECT cost FROM travel",
+                "dialect": "postgres",
+                "user_query": "What is total travel cost by employee?",
+                "domain": ["Travel"],
+                "topics": ["Cost"],
+            },
+        )
+        payload = {
+            "input": {
+                "inputString": "Which employee should I pick?",
+                "sessionCookie": "cookie",
+                "username": "alice",
+                "chatid": "t-think-form",
+                "chat_seq_id": "1",
+                "md_location": "/meta",
+                "md_file_name": "metadata.json",
+                "formData": json.dumps({
+                    "input": "Which employee should I pick?",
+                    "location": "0806",
+                    "fileName": "Instant_1.instant",
+                    "think": True,
+                }),
+            }
+        }
+
+        def invoke_side_effect(_llm, prompt):
+            text = str(prompt)
+            response = MagicMock()
+            usage = MagicMock()
+            usage.model_dump.return_value = {"total_tokens": 4}
+            if "Supporting insights:" in text:
+                response.content = "Employee 2 spent the most."
+            else:
+                response.content = "Employee 2 spent 9850."
+            return response, usage
+
+        app_mock = MagicMock()
+        app_mock.execute_query.return_value = {
+            "status": 1,
+            "response": {"data": [{"cost": 9850}], "metadata": []},
+        }
+        app_mock.invoke_llm.side_effect = invoke_side_effect
+
+        try:
+            with patch(
+                "helicalbi.controller.data_insight.app", return_value=app_mock
+            ), patch(
+                "helicalbi.controller.data_insight.audit_llm_usage_async"
+            ) as audit, patch(
+                "helicalbi.controller.data_insight.bind_request_identity",
+                return_value=("cookie", "alice", 1, 1),
+            ), patch(
+                "helicalbi.controller.data_insight.resolve_role_profile",
+                return_value={},
+            ), patch(
+                "helicalbi.controller.data_insight.resolve_request_id",
+                return_value=None,
+            ), patch(
+                "helicalbi.controller.data_insight.add_insight"
+            ):
+                buffered = DataInsightServiceTurn(payload).run()
+        finally:
+            chat_graph_memory.clear("t-think-form")
+
+        app_mock.fetch_data.assert_not_called()
+        app_mock.generate_query.assert_not_called()
+        app_mock.execute_query.assert_called_once()
+        assert "travel" in app_mock.execute_query.call_args.kwargs["sql"].lower()
+        assert buffered["insight"] == "Employee 2 spent the most."
+        assert audit.call_args.kwargs["endpoint"] == "/data-insight"
+        assert audit.call_args.kwargs["chat_id"] == "t-think-form"
+        assert audit.call_args.kwargs["chat_seq_id"] == "1"
+
+    def test_missing_form_data_returns_error(self):
+        payload = {
+            "input": {
+                "user_question": "What were sales by region?",
+                "sessionCookie": "cookie",
+                "username": "alice",
+                "thread_id": "t-service",
+            }
+        }
+        app_mock = MagicMock()
+        with patch(
+            "helicalbi.controller.data_insight.app", return_value=app_mock
+        ), patch(
+            "helicalbi.controller.data_insight.audit_llm_usage_async"
+        ), patch(
+            "helicalbi.controller.data_insight.bind_request_identity",
+            return_value=("cookie", "alice", 1, 1),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_role_profile",
+            return_value={},
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_sql_from_request",
+            side_effect=AssertionError("SQL should not be resolved for formData insight"),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_request_id",
+            return_value=None,
+        ):
+            buffered = DataInsightServiceTurn(payload).run()
+
+        app_mock.generate_query.assert_not_called()
+        app_mock.fetch_data.assert_not_called()
+        app_mock.execute_query.assert_not_called()
+        assert buffered["insight"] == ""
+        assert "formData is required" in buffered["error"]
+
+    def test_continues_when_generate_query_fails(self):
+        form_data = {
+            "location": "TestFold",
+            "metadataFileName": "Metadata_1.metadata",
+            "columns": [{"column": "travel.travel_cost", "alias": "Travel Cost"}],
+        }
+        payload = {
+            "input": {
+                "user_question": "What was total travel spend for 2015?",
+                "sessionCookie": "cookie",
+                "username": "alice",
+                "formData": form_data,
+            }
+        }
+        llm_response = MagicMock()
+        llm_response.content = "Travel spend is about 13.67 million."
+        usage = MagicMock()
+        usage.model_dump.return_value = {"total_tokens": 5}
+
+        app_mock = MagicMock()
+        app_mock.generate_query.side_effect = RuntimeError("generateQuery unavailable")
+        app_mock.fetch_data.return_value = {
+            "status": 1,
+            "response": {"data": [{"Travel Cost": 13670000}], "metadata": []},
+        }
+        app_mock.invoke_llm.return_value = (llm_response, usage)
+
+        with patch(
+            "helicalbi.controller.data_insight.app", return_value=app_mock
+        ), patch(
+            "helicalbi.controller.data_insight.audit_llm_usage_async"
+        ), patch(
+            "helicalbi.controller.data_insight.bind_request_identity",
+            return_value=("cookie", "alice", 1, 1),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_role_profile",
+            return_value={},
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_sql_from_request",
+            side_effect=AssertionError("SQL should not be resolved for formData insight"),
+        ), patch(
+            "helicalbi.controller.data_insight.resolve_request_id",
+            return_value=None,
+        ):
+            buffered = DataInsightServiceTurn(payload).run()
+
+        app_mock.fetch_data.assert_called_once()
+        prompt = app_mock.invoke_llm.call_args.args[1]
+        assert "metadataFileName" in prompt
+        assert buffered["insight"] == "Travel spend is about 13.67 million."

@@ -22,6 +22,10 @@ from helicalbi.sql_agent.database.schema_indexer import (
     tokenize,
 )
 from helicalbi.sql_agent.strategy.catalog import custom_operations_from_source
+from helicalbi.sql_agent.strategy.diagnostics import (
+    capability_ai_context_line,
+    capability_synonyms,
+)
 from helicalbi.sql_agent.strategy_tree import (
     iter_applicable_measures,
     iter_diagnostic_uses,
@@ -155,6 +159,11 @@ class SemanticLayerIndexer:
             match = False
             if cap_name and cap_name in q:
                 match = True
+            for synonym in capability_synonyms(cap):
+                label = synonym.lower()
+                if len(label) >= 3 and label in q:
+                    match = True
+                    break
             for app in applicable:
                 if app in m_set or app in q:
                     match = True
@@ -233,7 +242,11 @@ class SemanticLayerIndexer:
                 c_uses = ", ".join(
                     ref["name"] for ref in iter_diagnostic_uses(cap.get("uses"))
                 )
-                lines.append(f"- {c_name} (applicable to measures: {c_app}; uses: {c_uses})")
+                ai_line = capability_ai_context_line(cap)
+                ai_suffix = f"; {ai_line}" if ai_line else ""
+                lines.append(
+                    f"- {c_name} (applicable to measures: {c_app}; uses: {c_uses}{ai_suffix})"
+                )
         return self._append_custom_strategies("\n".join(lines))
 
     def topic_catalog(self) -> List[Dict[str, Any]]:
@@ -361,7 +374,11 @@ class SemanticLayerIndexer:
                 c_uses = ", ".join(
                     ref["name"] for ref in iter_diagnostic_uses(cap.get("uses"))
                 )
-                lines.append(f"  capability {c_name}: applicable to measures [{c_app}], uses [{c_uses}]")
+                ai_line = capability_ai_context_line(cap)
+                ai_suffix = f", {ai_line}" if ai_line else ""
+                lines.append(
+                    f"  capability {c_name}: applicable to measures [{c_app}], uses [{c_uses}]{ai_suffix}"
+                )
         text = "\n".join(lines)
         limit = max(0, int(max_chars or 0))
         return text[:limit] if limit else text
@@ -958,8 +975,7 @@ def _build_chunks(model_data: dict[str, Any], prepared: dict[str, Any]) -> List[
         if not name:
             continue
         description = str(op.get("description") or "").strip()
-        required = ", ".join(op.get("requiredInputs") or [])
-        optional = ", ".join(op.get("optionalInputs") or [])
+        inputs = ", ".join(op.get("inputs") or [])
         preconditions = ", ".join(op.get("preconditions") or [])
         limitations = ", ".join(op.get("limitations") or [])
         logic = str((op.get("execution") or {}).get("logic") or "").strip()
@@ -974,8 +990,7 @@ def _build_chunks(model_data: dict[str, Any], prepared: dict[str, Any]) -> List[
                 prompt=(
                     f"CUSTOM ANALYTICAL STRATEGY {name}\n"
                     f"  description: {description}\n"
-                    f"  required inputs: {required}\n"
-                    f"  optional inputs: {optional}\n"
+                    f"  inputs: {inputs}\n"
                     f"  preconditions: {preconditions}\n"
                     f"  limitations: {limitations}\n"
                     f"  execution: {logic}"

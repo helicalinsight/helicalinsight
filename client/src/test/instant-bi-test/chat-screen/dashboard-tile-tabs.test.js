@@ -59,11 +59,11 @@ jest.mock('../../../components/hi-instant-bi/components/chat-screen/chat-typing-
 
 jest.mock('../../../components/hi-instant-bi/utils/instant-bi-requests', () => ({
     __esModule: true,
-    loadInstantBIDataInsight: jest.fn(),
+    loadChartDataInsight: jest.fn(),
 }));
 
 const DashboardTileTabs = require('../../../components/hi-instant-bi/components/chat-screen/dashboard-tile-tabs').default;
-const { loadInstantBIDataInsight } = require('../../../components/hi-instant-bi/utils/instant-bi-requests');
+const { loadChartDataInsight } = require('../../../components/hi-instant-bi/utils/instant-bi-requests');
 
 const liveHreport = {
     id: 'hr-1',
@@ -87,6 +87,7 @@ const tileReportInfo = {
         instant_item: {
             question: 'Why is travel cost high?',
             chat_seq_id: '3-1',
+            subject: { file: 'sales.metadata', dir: 'agents' },
             chat_response: {
                 viz: { vf_title: 'Cost', chart_name: 'bar' },
                 sql: { raw_sql: 'SELECT a, SUM(b) FROM t GROUP BY a' },
@@ -124,9 +125,10 @@ const createLiveMockStore = ({
     dashboardVariables = {},
     applyDashboardFilters = 'initial',
     enableApplyButton = true,
+    hreports = [liveHreport],
 } = {}) => {
     const initialState = {
-        hreport: { present: { reports: [liveHreport] } },
+        hreport: { present: { reports: hreports } },
         dashboard: { present: { dashboardVariables, refreshReports: 0 } },
         designer: {
             present: {
@@ -171,8 +173,8 @@ const renderTile = (store, props = {}) =>
 
 describe('DashboardTileTabs', () => {
     beforeEach(() => {
-        loadInstantBIDataInsight.mockClear();
-        loadInstantBIDataInsight.mockReturnValue({ abort: jest.fn() });
+        loadChartDataInsight.mockClear();
+        loadChartDataInsight.mockReturnValue({ abort: jest.fn() });
         mockChartViewProps.current = null;
     });
 
@@ -188,22 +190,22 @@ describe('DashboardTileTabs', () => {
         const store = createMockStore();
         const { container } = renderTile(store, { hreportId: null, reportInfo: {} });
         expect(container.firstChild).toBeNull();
-        expect(loadInstantBIDataInsight).not.toHaveBeenCalled();
+        expect(loadChartDataInsight).not.toHaveBeenCalled();
     });
 
     test('clicking the trigger calls data insight with tile + chat context', () => {
         const store = createMockStore();
         renderTile(store);
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
-        expect(loadInstantBIDataInsight).toHaveBeenCalledTimes(1);
-        const args = loadInstantBIDataInsight.mock.calls[0][0];
+        expect(loadChartDataInsight).toHaveBeenCalledTimes(1);
+        const args = loadChartDataInsight.mock.calls[0][0];
         expect(args).toMatchObject({
-            reportId: 'ib-1',
+            reportId: expect.any(String),
             chatSequenceId: '3-1',
             userInput: 'Why is travel cost high?',
-            chatId: 'chat-1',
-            useLoadChatPayload: false,
+            chatId: 'hr-1',
             skipDispatch: true,
+            hreport: liveHreport,
         });
         expect(args.agent).toEqual({ file: 'sales.metadata', dir: 'agents' });
         expect(args.existingChatResponse.sql).toEqual({
@@ -218,7 +220,7 @@ describe('DashboardTileTabs', () => {
         const store = createMockStore();
         renderTile(store);
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
-        const { onComplete } = loadInstantBIDataInsight.mock.calls[0][0];
+        const { onComplete } = loadChartDataInsight.mock.calls[0][0];
         onComplete({ success: true, insight: 'Costs rose sharply.' });
         await waitFor(() => expect(screen.getByTestId('data-insight-section')).toBeTruthy());
         expect(screen.getByText('Costs rose sharply.')).toBeTruthy();
@@ -227,7 +229,7 @@ describe('DashboardTileTabs', () => {
 
     test('abort button stops loading and aborts the request', () => {
         const abort = jest.fn();
-        loadInstantBIDataInsight.mockReturnValue({ abort });
+        loadChartDataInsight.mockReturnValue({ abort });
         const store = createMockStore();
         renderTile(store);
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
@@ -237,11 +239,20 @@ describe('DashboardTileTabs', () => {
         expect(screen.queryByTestId('ib-data-insight-loading-bar')).toBeNull();
     });
 
-    test('missing IB chat context blocks the call with a notification', () => {
-        const store = createMockStore({ ibReports: [] });
-        renderTile(store);
+    test('missing chat context blocks the call with a notification', () => {
+        const store = createMockStore();
+        renderTile(store, {
+            reportInfo: {
+                file: {
+                    ...tileReportInfo.file,
+                    instant_item: {
+                        chat_response: tileReportInfo.file.instant_item.chat_response,
+                    },
+                },
+            },
+        });
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
-        expect(loadInstantBIDataInsight).not.toHaveBeenCalled();
+        expect(loadChartDataInsight).not.toHaveBeenCalled();
         const notified = store.dispatch.mock.calls
             .map(([action]) => action)
             .filter((action) => action && typeof action === 'object');
@@ -250,12 +261,26 @@ describe('DashboardTileTabs', () => {
 
     test('unmount aborts an in-flight insight request', () => {
         const abort = jest.fn();
-        loadInstantBIDataInsight.mockReturnValue({ abort });
+        loadChartDataInsight.mockReturnValue({ abort });
         const store = createMockStore();
         const { unmount } = renderTile(store);
         fireEvent.click(screen.getByTestId('data-insight-play-btn'));
         unmount();
         expect(abort).toHaveBeenCalledTimes(1);
+    });
+
+    test('shows the open-mode filter control when the tile report has filters', () => {
+        const store = createLiveMockStore({
+            hreports: [{ ...liveHreport, filters: [{ id: 'f1' }] }],
+        });
+        const { container } = renderTile(store, { isOpenMode: true });
+
+        expect(
+            container.querySelector('.chart-preview-section__hreport-filter-button-open')
+        ).toBeTruthy();
+        expect(
+            container.querySelector('.chart-preview-section__go-to-hreport-filter-button')
+        ).toBeNull();
     });
 
     test('applies changed dashboard filters only after Apply', () => {

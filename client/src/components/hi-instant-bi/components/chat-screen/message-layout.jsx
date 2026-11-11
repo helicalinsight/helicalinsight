@@ -12,7 +12,7 @@ import HIIcon from '../../../common/icons/hi-icons'
 import notify from '../../../hi-notifications/notify'
 import InstantBITooltip from '../../instant-bi-tooltip-title'
 import { cleanSQL, getInstantBIAgentSubject, resolveInstantBiSql } from '../../utils/common-utils'
-import { loadInstantBIDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import { loadChartDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
 import IBSpace from '../ib-space/ib-space'
 import InstantChartView from "./chart-view"
 import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
@@ -149,6 +149,10 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     ? (Array.isArray(loadedMetadata) ? loadedMetadata : [])
     : metadata;
   const resolvedFullChatResponse = effectiveLoadedChatResponse || fullChatResponse;
+  const chartHreportId = resolvedFullChatResponse?.hreportId;
+  const liveHreport = useSelector((state) =>
+    (state.hreport?.present?.reports || []).find((report) => report.id === chartHreportId)
+  );
   const sqlDetails = resolvedFullChatResponse?.sql || {}
   const vizDetails = resolvedFullChatResponse?.viz || {}
   const chartSettings = vizDetails?.settings || {}
@@ -235,7 +239,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     dataInsightAbortedRef.current = false;
     setIsLoadingDataInsight(true);
     setDataInsightTrail([]);
-    dataInsightApiRef.current = loadInstantBIDataInsight({
+    dataInsightApiRef.current = loadChartDataInsight({
+      hreport: liveHreport,
       dispatch,
       reportId,
       chatSequenceId,
@@ -311,6 +316,7 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
   const tabsProps = {
     ...getSharedChatTabsShell({
       isOpenMode,
+      isEditMode,
       hasMessage,
       showMaximizeButton,
       isMaximized,

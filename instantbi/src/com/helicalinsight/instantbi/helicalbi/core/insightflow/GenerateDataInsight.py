@@ -1,4 +1,3 @@
-import json
 import logging
 
 from helicalbi.common.ChatManager import add_insight, get_last_insight
@@ -6,6 +5,7 @@ from helicalbi.common.LlmInvokeHelper import invoke_llm
 from helicalbi.common.configuration import llm
 from helicalbi.model.DataInsightState import DataInsightState
 from helicalbi.prompt.DataInsightPrompt import data_insight_prompt_formatted
+from helicalbi.prompt.token_format import to_token
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
 
 logger = logging.getLogger(__name__)
@@ -49,10 +49,10 @@ class GenerateDataInsight:
                     username=username,
                     user_question=user_question,
                     sql=state.get("sql", ""),
-                    userProfile=json.dumps(user_profile, default=str),
-                    domain=json.dumps(selected_domain, default=str),
-                    topics=json.dumps(selected_topics, default=str),
-                    sample_data=json.dumps(sample_data, default=str),
+                    userProfile=to_token(user_profile),
+                    domain=to_token(selected_domain),
+                    topics=to_token(selected_topics),
+                    sample_data=to_token(sample_data),
                     last_chats=prev_responses,
                 ),
                 state=state,

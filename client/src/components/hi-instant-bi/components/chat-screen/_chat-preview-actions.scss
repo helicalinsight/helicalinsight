@@ -1,0 +1,45 @@
+$chat-preview-action-size: 20px;
+$chat-preview-action-icon-color: #3e4557;
+$chat-preview-action-icon-hover-color: #1890ff;
+
+@mixin chat-preview-action($right: 0, $bottom: 0) {
+  position: absolute;
+  right: $right;
+  bottom: $bottom;
+  z-index: 10;
+  width: $chat-preview-action-size;
+  height: $chat-preview-action-size;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s ease-in-out;
+
+  .anticon {
+    font-size: 12px;
+    color: $chat-preview-action-icon-color;
+  }
+
+  &:hover .anticon {
+    color: $chat-preview-action-icon-hover-color;
+  }
+
+  &.is-active {
+    .anticon {
+      color: $chat-preview-action-icon-hover-color;
+    }
+  }
+}
+
+@mixin chat-preview-action-visible {
+  visibility: visible;
+  transition: opacity 0.3s ease-in-out;
+  opacity: 1;
+}

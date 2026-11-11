@@ -647,12 +647,12 @@ def _summary_insight(source: dict[str, Any]) -> dict[str, str]:
 
 
 def _apply_reset_origin(filters: list[dict[str, Any]]) -> tuple[int, int]:
-    """Place the 1x1 apply-reset control on the first filter row, to the right of those filters."""
+    """Place the apply-reset control on the first filter row, to the right of those filters."""
     row_y = min(int(entry.get("y") or 0) for entry in filters)
     row = [entry for entry in filters if int(entry.get("y") or 0) == row_y]
     right = max(int(entry.get("x") or 0) + int(entry.get("w") or 1) for entry in row)
     row_h = max(int(entry.get("h") or 1) for entry in row)
-    if right + 1 <= GRID_COLUMNS:
+    if right + ApplyResetComponent.width <= GRID_COLUMNS:
         return right, row_y
     return 0, row_y + row_h
 

@@ -7,6 +7,16 @@ class SynthesizerOutput(BaseModel):
     final_answer: str = Field(description="User-facing answer to the original question.")
 
 
+class DiagnosticCapabilityPick(BaseModel):
+    """One diagnostic capability chosen from a think-mode shortlist."""
+
+    capability: str = Field(description="Exact capability name from the shortlist.")
+    reason: str = Field(
+        default="",
+        description="Why this capability fits the question better than the others.",
+    )
+
+
 class DashboardChartSpec(BaseModel):
     """One planned chart or lookup the execute phase should build."""
 

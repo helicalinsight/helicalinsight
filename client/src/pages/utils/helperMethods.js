@@ -1,3 +1,17 @@
+const HREPORT_TITLE_EXCLUDED_MODES = [
+    "open",
+    "dashboard",
+    "filter",
+    "instant-bi",
+    "instant-bi-create",
+    "instant-bi-open",
+    "dashboard-create",
+    "dashboard-instant-filter",
+]
+
+export const shouldUpdateHreportDocumentTitle = (mode) =>
+    !HREPORT_TITLE_EXCLUDED_MODES.includes(mode)
+
 export const validateReportName = (name) => {
     if(name.length < 3){
         return 'Report name should be atleast 3 characters long'

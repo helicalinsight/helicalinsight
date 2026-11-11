@@ -79,11 +79,12 @@ class TestGenerateSemanticHint:
         ]
         hint = generate_semantic_hint(metadata)
         assert "Table: employee_details (Employees)" in hint
-        assert "employee_id" in hint
-        assert "Description: PK" in hint
-        assert "employee_name" in hint
-        assert "Description: Full name" in hint
+        assert "employee_details.employee_id" in hint
+        assert "PK" in hint
+        assert "employee_details.employee_name" in hint
+        assert "Full name" in hint
         assert "Columns:" in hint
+        assert "Description:" not in hint
 
     def test_handles_missing_optional_fields(self):
         hint = generate_semantic_hint([{"database_table": "t", "columns": []}])
@@ -131,13 +132,13 @@ class TestGenerateSemanticHint:
                 }
             ]
         )
-        assert "hierarchy: travel_date" in hint
-        assert "level: YEAR" in hint
-        assert "aiContext:" in hint
+        assert "YEAR (travel_details.travel_date)" in hint
+        assert "aiContext:" not in hint
         assert "Year of travel." in hint
-        assert "measure: Cost by Cancellation" in hint
-        assert "computed formula: sum(travel_details.travel_cost) filter status=Yes" in hint
-        assert "type: Number" in hint
+        assert "EXTRACT(YEAR from travel_details.travel_date)" in hint
+        assert '"Cost by Cancellation"' in hint or "Cost by Cancellation" in hint
+        assert "sum(travel_details.travel_cost) filter status=Yes" in hint
+        assert "number column" in hint
         assert "Yes means cancelled." in hint
 
 

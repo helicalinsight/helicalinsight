@@ -10,6 +10,7 @@ import yaml
 
 from helicalbi.core.ConfigLoader import ConfigLoader
 from helicalbi.service.utility.exception.UtilityError import UtilityError
+from helicalbi.service.utility.UtilityService import UtilityService
 from helicalbi.service.utility.provider.LlmConfigProvider import LlmConfigProvider
 from helicalbi.service.utility.provider.ModelCatalogProvider import ModelCatalogProvider
 from helicalbi.service.utility.provider._helpers import deep_merge, mask_secrets
@@ -55,6 +56,99 @@ class TestModelCatalogProvider:
         )
         assert "gemini-2.5-flash" in models
         assert ModelCatalogProvider().has_package("langchain-google-vertexai")
+
+    def test_add_model_appends_new_id_and_skips_duplicates(self, tmp_path, monkeypatch):
+        catalog_path = tmp_path / "llm_models_catalog.yaml"
+        catalog_path.write_text(
+            "# header\n\n"
+            "langchain-openai:\n"
+            "  - gpt-4.1-mini\n\n"
+            "langchain-anthropic:\n"
+            "  - claude-haiku-4-5\n",
+            encoding="utf-8",
+        )
+
+        def resolve(path="llm_config.yaml"):
+            if path == "llm_models_catalog.yaml":
+                return str(catalog_path)
+            return str(tmp_path / path)
+
+        monkeypatch.setattr(ConfigLoader, "resolve_path", staticmethod(resolve))
+        provider = ModelCatalogProvider()
+
+        assert provider.add_model("langchain-openai", "test") is True
+        text = catalog_path.read_text(encoding="utf-8")
+        assert text.lstrip().startswith("# header")
+        assert "  - test\n\nlangchain-anthropic:" in text
+        assert provider.list_models_for_package("langchain-openai") == [
+            "gpt-4.1-mini",
+            "test",
+        ]
+        assert provider.add_model("langchain-openai", " test ") is False
+
+    def test_add_model_creates_unknown_package(self, tmp_path, monkeypatch):
+        catalog_path = tmp_path / "llm_models_catalog.yaml"
+        catalog_path.write_text("langchain-openai:\n  - gpt-4.1-mini\n", encoding="utf-8")
+
+        def resolve(path="llm_config.yaml"):
+            if path == "llm_models_catalog.yaml":
+                return str(catalog_path)
+            return str(tmp_path / path)
+
+        monkeypatch.setattr(ConfigLoader, "resolve_path", staticmethod(resolve))
+        provider = ModelCatalogProvider()
+
+        assert provider.add_model("langchain-custom", "my-model") is True
+        assert provider.list_models_for_package("langchain-custom") == ["my-model"]
+        assert "gpt-4.1-mini" in provider.list_models_for_package("langchain-openai")
+
+    def test_add_model_uses_hyphenated_catalog_key(self, tmp_path, monkeypatch):
+        catalog_path = tmp_path / "llm_models_catalog.yaml"
+        catalog_path.write_text("langchain-openai:\n  - gpt-4.1-mini\n", encoding="utf-8")
+
+        def resolve(path="llm_config.yaml"):
+            if path == "llm_models_catalog.yaml":
+                return str(catalog_path)
+            return str(tmp_path / path)
+
+        monkeypatch.setattr(ConfigLoader, "resolve_path", staticmethod(resolve))
+        provider = ModelCatalogProvider()
+
+        assert provider.add_model("langchain_openai", "gpt-test") is True
+        assert provider.list_models_for_package("langchain-openai") == [
+            "gpt-4.1-mini",
+            "gpt-test",
+        ]
+        assert "langchain_openai" not in catalog_path.read_text(encoding="utf-8")
+
+
+class TestUtilityServiceCatalog:
+    def test_upsert_registers_typed_model(self):
+        llm = MagicMock()
+        llm.upsert_provider.return_value = {"provider": "openai"}
+        catalog = MagicMock()
+        service = UtilityService(llm_provider=llm, catalog_provider=catalog)
+
+        service.upsert_llm_provider(
+            {
+                "provider": "openai",
+                "package": "langchain-openai",
+                "model": "test",
+            }
+        )
+
+        catalog.add_model.assert_called_once_with("langchain-openai", "test")
+
+    def test_change_model_registers_model_using_provider_package(self):
+        llm = MagicMock()
+        llm.change_model.return_value = {"provider": "openai", "model": "test"}
+        llm.get_provider.return_value = {"package": "langchain-openai"}
+        catalog = MagicMock()
+        service = UtilityService(llm_provider=llm, catalog_provider=catalog)
+
+        service.change_model("test", provider="openai")
+
+        catalog.add_model.assert_called_once_with("langchain-openai", "test")
 
 
 class TestLlmConfigProvider:

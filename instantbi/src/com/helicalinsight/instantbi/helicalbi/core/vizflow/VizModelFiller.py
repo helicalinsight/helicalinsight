@@ -78,6 +78,8 @@ class VizModelFiller:
                 dialect=state.get("dialect") or None,
                 viz_update=viz_update,
                 rm_cols_in_filter=state.get("rm_cols_in_filter", True),
+                parameter_functions=state.get("parameter_functions") or None,
+                relative_dates=state.get("relative_dates") or None,
             )
 
             state["viz_model"] = viz_model.model_dump()

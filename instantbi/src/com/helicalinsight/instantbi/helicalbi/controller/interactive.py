@@ -98,6 +98,7 @@ class InteractiveTurn:
         self.chat_seq_id = self.user_input["chat_seq_id"]
         self.request_id = resolve_request_id(self.payload, self.user_input)
         self.rm_cols_in_filter = resolve_rm_cols_in_filter(self.payload, self.user_input)
+        self.parameter_functions = self.user_input.get("parameterFunctions") or None
         self.actual_md: dict[str, Any] = {}
         self.reporter = ActivityReporter(self.user_query)
         self.walk = GraphWalk(self.reporter, self.request_id)
@@ -218,6 +219,7 @@ class InteractiveTurn:
             thread_id=self.thread_id,
             last_chats=last_chats,
             rm_cols_in_filter=self.rm_cols_in_filter,
+            parameter_functions=self.parameter_functions,
         )
         self.config = graph_invoke_config(self.thread_id, self.chat_seq_id)
         logger.info(
@@ -275,7 +277,8 @@ class InteractiveTurn:
 
         def _regenerate(work: dict[str, Any], prompt: str) -> dict[str, Any]:
             original = self.user_query
-            work["query"] = prompt
+            work["query"] = original
+            work["sql_retry_context"] = prompt
             work["skip"] = False
             self.result = work
             for _ in self._run_sql_generator():
@@ -315,6 +318,7 @@ class InteractiveTurn:
             chat_seq_id=self.chat_seq_id,
             request_started=self.request_started,
             rm_cols_in_filter=self.rm_cols_in_filter,
+            parameter_functions=self.parameter_functions,
         )
 
     def _mark_aborted(self) -> None:
@@ -469,6 +473,7 @@ def register(flask_app) -> None:
                     request_started=request_started,
                     last_chats_fallback=user_input.get("last_chats", []),
                     rm_cols_in_filter=rm_cols_in_filter,
+                    parameter_functions=user_input.get("parameterFunctions") or None,
                 )
 
         except RequestAborted:

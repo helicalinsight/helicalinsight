@@ -6,6 +6,7 @@ import java.util.function.BiConsumer;
 
 import org.springframework.stereotype.Component;
 
+import com.helicalinsight.efw.io.ZipEntryPathGuard;
 import com.helicalinsight.export.exception.ZipResourceException;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -54,6 +55,7 @@ public class ZipUtils {
 		if (!zipFile.getFile().exists() || !zipFile.isValidZipFile()) {
 			throw new ZipResourceException("Invalid Zip file provided (or) Zip File corrupted.");
 		}
+		ZipEntryPathGuard.assertEntriesStayWithin(zipFile, new File(dir));
 		List<FileHeader> headers = zipFile.getFileHeaders();
 		int total = headers != null ? headers.size() : 0;
 		if (total == 0) {

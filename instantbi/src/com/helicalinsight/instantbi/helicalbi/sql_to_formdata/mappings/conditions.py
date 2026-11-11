@@ -25,8 +25,8 @@ CONDITION_WIRE_MAP = {
     "IS_NOT_BETWEEN": {"condition": "CUSTOM", "customCondition": "NOT BETWEEN"},
     "IN_RANGE": {"condition": "IN_RANGE", "values_type": "array"},
     "NOT_IN_RANGE": {"condition": "NOT_IN_RANGE", "values_type": "array"},
-    "IS_NULL": {"condition": "CUSTOM", "customCondition": "IS NULL", "values": "deleted"},
-    "IS_NOT_NULL": {"condition": "CUSTOM", "customCondition": "IS NOT NULL", "values": "deleted"},
+    "IS_NULL": {"condition": "IS_NULL", "values": "deleted"},
+    "IS_NOT_NULL": {"condition": "IS_NOT_NULL", "values": "deleted"},
     "CUSTOM": {"condition": "CUSTOM", "customCondition": "user-defined", "mode": "custom"},
     "ALL": {"condition": "EQUALS", "valuesMode": "all"},
 }

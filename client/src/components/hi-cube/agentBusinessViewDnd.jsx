@@ -8,23 +8,32 @@ export const AGENT_CUBE_FIELD_DND_TYPE = "agentCubeField";
 export const METADATA_ROW_CHILD_DND_TYPE = "metadataRowChild";
 export const ANALYTICAL_OPERATION_DND_TYPE = "analyticalOperation";
 
+const DRAGGING_OPERATION_CLASS = "is-dragging-analytical-operation";
+
+const blockStrategyTooltip = () => {
+  document.body.classList.add(DRAGGING_OPERATION_CLASS);
+};
+
+const releaseStrategyTooltip = () => {
+  document.body.classList.remove(DRAGGING_OPERATION_CLASS);
+};
+
 export function AnalyticalOperationDragSource({ operation, children }) {
   const canDrag = Boolean(operation?.operation);
   const [, drag] = useDrag(
     () => ({
       type: ANALYTICAL_OPERATION_DND_TYPE,
-      item: () => ({
-        key: `op-${operation.operation}`,
-        operation: operation.operation,
-        category: operation.category || "",
-        description: operation.description || "",
-        requiredInputs: Array.isArray(operation.requiredInputs)
-          ? operation.requiredInputs
-          : [],
-        optionalInputs: Array.isArray(operation.optionalInputs)
-          ? operation.optionalInputs
-          : [],
-      }),
+      item: () => {
+        blockStrategyTooltip();
+        return {
+          key: `op-${operation.operation}`,
+          operation: operation.operation,
+          category: operation.category || "",
+          description: operation.description || "",
+          inputs: Array.isArray(operation.inputs) ? operation.inputs : [],
+        };
+      },
+      end: releaseStrategyTooltip,
       canDrag: () => canDrag,
     }),
     [operation, canDrag],

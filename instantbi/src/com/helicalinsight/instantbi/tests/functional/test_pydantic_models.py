@@ -38,6 +38,10 @@ class TestUpdateRephrase:
         with pytest.raises(ValidationError):
             UpdateRephrase(action="rewrite", viz_query="v", sql_query="s")
 
+    def test_blank_action_means_none(self):
+        model = UpdateRephrase(action="", viz_query="total travel cost", sql_query="total travel cost")
+        assert model.action == "none"
+
 
 class TestTokenUsage:
     @pytest.fixture
@@ -688,6 +692,20 @@ class TestKpiSchema:
             "What is the count of meetings per employee?",
         ]
 
+    def test_coerces_one_string_and_drops_the_empty_example(self):
+        parsed = KpiSchema.model_validate({"answer": "What is total travel cost?", "reason": ""})
+        assert parsed.answer == ["What is total travel cost?"]
+        copied = KpiSchema.model_validate(
+            {
+                "answer": [
+                    "Question about one measure",
+                    "Question about that measure by one dimension",
+                ],
+                "reason": "",
+            }
+        )
+        assert copied.answer == []
+
 
 class TestDomainTopicReason:
     def test_accepts_lists(self):
@@ -815,6 +833,27 @@ class TestTableResponse:
         )
         assert parsed.required_tables == ["travel_details", "meeting_details"]
 
+    def test_coerces_table_objects_to_names(self):
+        from helicalbi.model.output.TableResponse import get_table_response_model
+
+        model = get_table_response_model()
+        parsed = model.model_validate(
+            {
+                "required_tables": [
+                    {
+                        "table": "travel_details",
+                        "columns": ["travel_cost"],
+                        "join_condition": "meet_cancellation_status",
+                    },
+                    {
+                        "table": "meeting_details",
+                        "columns": ["meet_cancellation_status"],
+                    },
+                ]
+            }
+        )
+        assert parsed.required_tables == ["travel_details", "meeting_details"]
+
 
 class TestOptionalPromptReason:
     def test_sql_gen_omits_reason_field_when_flag_enabled(self, monkeypatch):
@@ -861,19 +900,22 @@ class TestOptionalPromptReason:
         assert "do not use a JOIN" in final_sql_prompt
 
     def test_final_sql_prompt_prefers_join_over_nested_having_subquery(self):
-        from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+        from helicalbi.prompt.FinalSqlPrompt import render_final_sql_prompt
 
-        assert "JOINs preferred over nested subqueries" in final_sql_prompt
-        assert "Do NOT write nested scalar subqueries in WHERE or HAVING" in (
-            final_sql_prompt
+        prompt = render_final_sql_prompt("above average by group")
+        assert "JOINs preferred over nested subqueries" in prompt
+        assert "Do NOT write nested scalar subqueries in WHERE or HAVING" in prompt
+        assert "above/below average by group" in prompt
+        assert "JOINs preferred over nested subqueries" not in render_final_sql_prompt(
+            "total travel cost"
         )
-        assert "above/below average by group" in final_sql_prompt
 
     def test_sql_prompts_forbid_star_and_count_star(self):
         from helicalbi.prompt.DetectColumnPrompt import detect_column_prompt_string
         from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
 
         assert "Never use * or COUNT(*)" in detect_column_prompt_string
+        assert "Dialect: {dialect}" in detect_column_prompt_string
         assert "Never use SELECT * or COUNT(*)" in final_sql_prompt
         assert "COUNT(DISTINCT column)" in final_sql_prompt or "COUNT(DISTINCT" in final_sql_prompt
 
@@ -885,6 +927,29 @@ class TestOptionalPromptReason:
         assert "Avoid regex" in final_sql_prompt
         assert "~*" in final_sql_prompt
         assert "provided database functions list" in final_sql_prompt
+
+    def test_final_sql_prompt_uses_date_extraction_not_cast(self):
+        from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt, render_final_sql_prompt
+
+        prompt = render_final_sql_prompt(
+            "this year and last year between 2024-01-01 and 2024-12-31"
+        )
+        assert "Filter values that are database functions" in prompt
+        assert "EXTRACT(YEAR FROM" in prompt
+        assert "Do not replace a date or time function with CAST" in prompt
+        assert "Date ranges" in prompt
+        assert "BETWEEN '2024-01-01' AND '2024-12-31'" in prompt
+        assert "IN (date1, date2)" in prompt
+        assert "Relative periods" in prompt
+        assert "CURRENT_DATE - 1" in prompt or "CURRENT_DATE minus 1 year" in prompt
+        assert "EXTRACT(YEAR FROM CURRENT_DATE) - 1" in prompt
+        assert "Relative periods" not in render_final_sql_prompt("total travel cost")
+        assert 'FROM "t"' not in final_sql_prompt
+        assert '"date_col"' not in final_sql_prompt
+        assert "<date_column>" in prompt
+        assert "A slot is not a name" in final_sql_prompt
+        assert "original table name and an alias" in final_sql_prompt
+        assert "FROM <table> <alias>" in final_sql_prompt
 
     def test_chat_response_omits_reason_fields_when_flag_enabled(self, monkeypatch):
         from helicalbi.common import app_config

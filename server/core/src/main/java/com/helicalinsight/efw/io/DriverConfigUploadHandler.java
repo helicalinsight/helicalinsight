@@ -146,6 +146,7 @@ public class DriverConfigUploadHandler implements IUpload {
 	private final void decompress(String zipFilePath) throws ZipException {
 		ZipFile zipFile = new ZipFile(zipFilePath);
 		if (zipFile.getFile().exists() && zipFile.isValidZipFile()) {
+			ZipEntryPathGuard.assertEntriesStayWithin(zipFile, new File(DATA_PATH));
 			zipFile.extractAll(DATA_PATH);
 		} else {
 			throw new EfwServiceException("Invalid Zip file provided (or) Zip File corrupted.");

@@ -42,21 +42,27 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
         String inputParam = payload.getInputParam();
         String formData = payload.getFormData();
         String subjectString = payload.getSubjectString();
-        String downstreamEndpoint = payload.getDownstreamEndpoint();
+        final String downstreamEndpoint = insightServiceEndpoint(payload.getDownstreamEndpoint());
         try {
             Callable<JsonObject> bodyPreparer = () -> {
                 JsonObject js = new JsonObject();
                 JsonObject userInput = new JsonObject();
 
-                String input;
+                String input = null;
+                String decodedFormData = null;
                 JsonObject formDataJson = null;
                 if (StringUtils.isNotBlank(formData)) {
-                    String decodedFormData = InstantBIUtils.getEncodedElseNormal(formData);
+                    decodedFormData = InstantBIUtils.getEncodedElseNormal(formData);
                     formDataJson = GsonUtility.parseString(decodedFormData, JsonObject.class);
-                    input = formDataJson.get("input").getAsString();
-                } else if (StringUtils.isNotBlank(inputParam)) {
+                    if (formDataJson != null && formDataJson.has("input")
+                            && formDataJson.get("input").isJsonPrimitive()) {
+                        input = formDataJson.get("input").getAsString();
+                    }
+                }
+                if (StringUtils.isBlank(input) && StringUtils.isNotBlank(inputParam)) {
                     input = inputParam;
-                } else {
+                }
+                if (StringUtils.isBlank(input)) {
                     throw new EfwServiceException("input or formData is required");
                 }
 
@@ -86,11 +92,14 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
                 if (StringUtils.isNotBlank(insights)) {
                     userInput.addProperty("insights", insights);
                 }
+                if ("/data-insight-service".equals(downstreamEndpoint) && StringUtils.isNotBlank(decodedFormData)) {
+                    userInput.addProperty("formData", decodedFormData);
+                }
 
                 js.add("input", userInput);
                 return js;
             };
-            if (InstantBIUtils.isStreamResponseEnabled() && "/data-insight".equals(downstreamEndpoint)) {
+            if (InstantBIUtils.isStreamResponseEnabled() && "/data-insight-service".equals(downstreamEndpoint)) {
                 new InstantBIStreamSession(response, InstantBIUtils.resolveRequestId(request))
                         .forwardFromPython(downstreamEndpoint, bodyPreparer.call());
                 return;
@@ -116,6 +125,13 @@ public class AiDataInsightServiceImpl implements IInstantBIService {
         } catch (Exception exception) {
             ControllerUtils.handleFailure(response, ControllerUtils.isAjax(request), exception);
         }
+    }
+
+    private static String insightServiceEndpoint(String endpoint) {
+        if ("/data-insight".equals(endpoint)) {
+            return "/data-insight-service";
+        }
+        return endpoint;
     }
 
     private void populateUserInputFromReportState(JsonObject userInput, JsonObject formDataJson, String chatSeqId) {

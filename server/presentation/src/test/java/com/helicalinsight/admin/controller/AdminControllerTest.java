@@ -1,7 +1,9 @@
 package com.helicalinsight.admin.controller;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.JsonElement;
 import org.junit.Assert;
@@ -31,6 +33,7 @@ import com.google.gson.JsonArray;
 import com.helicalinsight.test.utility.TestUtility;
 
 import jakarta.servlet.ServletException;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 @WebAppConfiguration
@@ -372,22 +375,15 @@ public class AdminControllerTest {
 		Assert.assertEquals("Profile added successfully.", message);
 	}
 
-	@Test(expected = ServletException.class)
+	@Test
 	public void testStepoAddDuplicateProfile() throws Exception {
 		JSONObject formData = new JSONObject();
 		formData.accumulate("name", "test");
 		formData.accumulate("value", "test");
 		formData.accumulate("id", userId.toString());
 
-		MockHttpServletRequestBuilder mockHttpServletRequestBuilder = MockMvcRequestBuilders.get("/admin/profiles");
-		Map<String, String> map = new HashMap<>();
-		map.put("formData", formData.toString());
-		map.put("action", "add");
-		RequestBuilder builder = TestUtility.getMockHttpServletRequestBuilder(mockHttpServletRequestBuilder, map);
-
-		this.mockMvc.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
-				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1))
-				.andExpect(MockMvcResultMatchers.jsonPath("$.response.message").value("Profile added successfully."));
+		assertProfileRequestFails(profileRequest("add", null, formData), "Profile already exists for the user");
+		Assert.assertEquals(1, countNamed(listProfiles(userId), "test"));
 	}
 
 	@Test
@@ -432,6 +428,128 @@ public class AdminControllerTest {
 		this.mockMvc.perform(builder).andExpect(MockMvcResultMatchers.status().isOk())
 				.andExpect(MockMvcResultMatchers.jsonPath("$.status").value(1))
 				.andExpect(MockMvcResultMatchers.jsonPath("$.response.message").value("Profile successfully deleted"));
+	}
+
+	@Test
+	public void testSteprsUniquenessSameNameOtherUser() throws Exception {
+		Assert.assertNotNull(userWithoutOrgId);
+		Integer firstId = null;
+		Integer secondId = null;
+		try {
+			firstId = addProfile("sharedName", "first", userId);
+			secondId = addProfile("sharedName", "second", userWithoutOrgId);
+			Assert.assertEquals(1, countNamed(listProfiles(userId), "sharedName"));
+			Assert.assertEquals(1, countNamed(listProfiles(userWithoutOrgId), "sharedName"));
+		} finally {
+			deleteProfileQuietly(firstId);
+			deleteProfileQuietly(secondId);
+		}
+	}
+
+	@Test
+	public void testSteprsUniquenessRenameCollision() throws Exception {
+		Integer alphaId = null;
+		Integer betaId = null;
+		try {
+			alphaId = addProfile("alpha", "alphaValue", userId);
+			betaId = addProfile("beta", "betaValue", userId);
+			JSONObject formData = new JSONObject();
+			formData.accumulate("name", "alpha");
+			formData.accumulate("value", "betaValue");
+			formData.accumulate("id", userId.toString());
+			assertProfileRequestFails(profileRequest("update", betaId.toString(), formData),
+					"Profile already exists for the user");
+			Assert.assertEquals("betaValue", profileValue(listProfiles(userId), "beta"));
+			Assert.assertEquals(1, countNamed(listProfiles(userId), "alpha"));
+			Assert.assertEquals(1, countNamed(listProfiles(userId), "beta"));
+		} finally {
+			deleteProfileQuietly(betaId);
+			deleteProfileQuietly(alphaId);
+		}
+	}
+
+	@Test
+	public void testSteprsUniquenessValueOnlyUpdate() throws Exception {
+		Integer alphaId = null;
+		try {
+			alphaId = addProfile("alpha", "oldValue", userId);
+			updateProfile(alphaId, "alpha", "newValue", userId);
+			Assert.assertEquals("newValue", profileValue(listProfiles(userId), "alpha"));
+			Assert.assertEquals(1, countNamed(listProfiles(userId), "alpha"));
+		} finally {
+			deleteProfileQuietly(alphaId);
+		}
+	}
+
+	@Test
+	public void testSteprsUniquenessRenameToUnusedName() throws Exception {
+		Integer alphaId = null;
+		try {
+			alphaId = addProfile("alpha", "alphaValue", userId);
+			updateProfile(alphaId, "gamma", "alphaValue", userId);
+			Assert.assertEquals(0, countNamed(listProfiles(userId), "alpha"));
+			Assert.assertEquals("alphaValue", profileValue(listProfiles(userId), "gamma"));
+		} finally {
+			deleteProfileQuietly(alphaId);
+		}
+	}
+
+	@Test
+	public void testSteprsCacheProfileDoesNotDropUsers() throws Exception {
+		Set<Integer> beforeIds = userIds(listUsers());
+		Assert.assertTrue(beforeIds.contains(userId));
+		Integer probeId = null;
+		try {
+			probeId = addProfile("cacheProbe", "probeValue", userId);
+			JSONArray afterAdd = listUsers();
+			Assert.assertEquals(beforeIds, userIds(afterAdd));
+			assertNamedValue(profilesOf(afterAdd, userId), "cacheProbe", "probeValue");
+
+			updateProfile(probeId, "cacheProbeEdited", "editedValue", userId);
+			JSONArray afterEdit = listUsers();
+			Assert.assertEquals(beforeIds, userIds(afterEdit));
+			assertNamedValue(profilesOf(afterEdit, userId), "cacheProbeEdited", "editedValue");
+			JSONArray listed = listProfiles(userId);
+			Assert.assertEquals(1, countNamed(listed, "cacheProbeEdited"));
+			Assert.assertEquals(0, countNamed(listed, "cacheProbe"));
+
+			deleteProfile(probeId);
+			probeId = null;
+			JSONArray afterDelete = listUsers();
+			Assert.assertEquals(beforeIds, userIds(afterDelete));
+			Assert.assertTrue(userIds(afterDelete).contains(userId));
+			Assert.assertEquals(0, countNamed(profilesOf(afterDelete, userId), "cacheProbeEdited"));
+			Assert.assertEquals(0, countNamed(listProfiles(userId), "cacheProbeEdited"));
+		} finally {
+			deleteProfileQuietly(probeId);
+		}
+	}
+
+	@Test
+	public void testSteprsUpdateRejectsInvalidProfileId() throws Exception {
+		Integer alphaId = null;
+		try {
+			alphaId = addProfile("alpha", "keptValue", userId);
+			JSONObject formData = profileForm("alpha", "changedValue", userId);
+			assertProfileRequestFails(profileRequest("update", null, formData), "Profile Id cannot be null");
+			for (String invalidId : new String[] { "", "  ", "abc", "12.5", "-1" }) {
+				assertProfileRequestFails(profileRequest("update", invalidId, formData), "Profile Id cannot be null");
+			}
+			Assert.assertEquals("keptValue", profileValue(listProfiles(userId), "alpha"));
+
+			// isNumeric accepts this digit string, then Integer.parseInt throws NumberFormatException.
+			try {
+				this.mockMvc.perform(profileRequest("update", "9999999999999", formData));
+				Assert.fail("A profile id above Integer.MAX_VALUE should fail");
+			} catch (Exception ex) {
+				String text = exceptionText(ex);
+				Assert.assertTrue(text, text.contains("NumberFormatException"));
+				Assert.assertFalse(text, text.contains("FormValidationException"));
+			}
+			Assert.assertEquals("keptValue", profileValue(listProfiles(userId), "alpha"));
+		} finally {
+			deleteProfileQuietly(alphaId);
+		}
 	}
 
 	@Test
@@ -647,5 +765,175 @@ public class AdminControllerTest {
 		Assert.assertEquals("Invalid Email address.", message);
 	}
 
+	private int addProfile(String name, String value, int ownerId) throws Exception {
+		MvcResult result = this.mockMvc.perform(profileRequest("add", null, profileForm(name, value, ownerId)))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		JSONObject object = JSONObject.fromObject(result.getResponse().getContentAsString());
+		Assert.assertEquals(result.getResponse().getContentAsString(), 1, object.getInt("status"));
+		JSONObject response = object.getJSONObject("response");
+		Assert.assertEquals("Profile added successfully.", response.getString("message"));
+		return response.getInt("id");
+	}
+
+	private void updateProfile(int profileId, String name, String value, int ownerId) throws Exception {
+		MvcResult result = this.mockMvc
+				.perform(profileRequest("update", String.valueOf(profileId), profileForm(name, value, ownerId)))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		JSONObject object = JSONObject.fromObject(result.getResponse().getContentAsString());
+		Assert.assertEquals(result.getResponse().getContentAsString(), 1, object.getInt("status"));
+		Assert.assertEquals("Profile updated successfully",
+				object.getJSONObject("response").getString("message"));
+	}
+
+	private void deleteProfile(int profileId) throws Exception {
+		Map<String, String> map = new HashMap<>();
+		map.put("action", "delete");
+		map.put("id", String.valueOf(profileId));
+		MvcResult result = this.mockMvc.perform(profileRequest(map)).andExpect(MockMvcResultMatchers.status().isOk())
+				.andReturn();
+		JSONObject object = JSONObject.fromObject(result.getResponse().getContentAsString());
+		Assert.assertEquals(1, object.getInt("status"));
+		Assert.assertEquals("Profile successfully deleted", object.getJSONObject("response").getString("message"));
+	}
+
+	private void deleteProfileQuietly(Integer profileId) {
+		if (profileId == null) {
+			return;
+		}
+		try {
+			deleteProfile(profileId);
+		} catch (Exception ignored) {
+			// Cleanup should not hide the assertion that failed first.
+		}
+	}
+
+	private JSONArray listProfiles(int ownerId) throws Exception {
+		Map<String, String> map = new HashMap<>();
+		map.put("userId", String.valueOf(ownerId));
+		MvcResult result = this.mockMvc.perform(profileRequest(map)).andExpect(MockMvcResultMatchers.status().isOk())
+				.andReturn();
+		JSONObject body = JSONObject.fromObject(result.getResponse().getContentAsString());
+		return asArray(body.get("profile"));
+	}
+
+	private JSONArray listUsers() throws Exception {
+		MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get("/admin/users");
+		Map<String, String> map = new HashMap<>();
+		map.put("formData", "{}");
+		MvcResult result = this.mockMvc.perform(TestUtility.getMockHttpServletRequestBuilder(request, map))
+				.andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+		JSONObject body = JSONObject.fromObject(result.getResponse().getContentAsString());
+		return asArray(body.get("users"));
+	}
+
+	private RequestBuilder profileRequest(String action, String id, JSONObject formData) {
+		Map<String, String> map = new HashMap<>();
+		if (action != null) {
+			map.put("action", action);
+		}
+		if (id != null) {
+			map.put("id", id);
+		}
+		if (formData != null) {
+			map.put("formData", formData.toString());
+		}
+		return profileRequest(map);
+	}
+
+	private RequestBuilder profileRequest(Map<String, String> map) {
+		MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get("/admin/profiles");
+		return TestUtility.getMockHttpServletRequestBuilder(request, map);
+	}
+
+	private static JSONObject profileForm(String name, String value, int ownerId) {
+		JSONObject formData = new JSONObject();
+		formData.accumulate("name", name);
+		formData.accumulate("value", value);
+		formData.accumulate("id", String.valueOf(ownerId));
+		return formData;
+	}
+
+	private void assertProfileRequestFails(RequestBuilder builder, String messagePart) throws Exception {
+		try {
+			this.mockMvc.perform(builder);
+			Assert.fail("Expected a failure containing: " + messagePart);
+		} catch (Exception ex) {
+			String text = exceptionText(ex);
+			Assert.assertTrue(text, text.contains(messagePart));
+		}
+	}
+
+	private static String exceptionText(Throwable ex) {
+		StringBuilder text = new StringBuilder();
+		Throwable current = ex;
+		while (current != null) {
+			text.append(current.getClass().getName()).append(": ").append(current.getMessage()).append('\n');
+			current = current.getCause();
+		}
+		return text.toString();
+	}
+
+	private static JSONArray asArray(Object value) {
+		if (value == null || value instanceof net.sf.json.JSONNull) {
+			return new JSONArray();
+		}
+		if (value instanceof JSONArray) {
+			return (JSONArray) value;
+		}
+		if (value instanceof JSONObject) {
+			JSONArray array = new JSONArray();
+			array.add(value);
+			return array;
+		}
+		return new JSONArray();
+	}
+
+	private static Set<Integer> userIds(JSONArray users) {
+		Set<Integer> ids = new HashSet<>();
+		for (int i = 0; i < users.size(); i++) {
+			ids.add(users.getJSONObject(i).getInt("id"));
+		}
+		return ids;
+	}
+
+	private static JSONArray profilesOf(JSONArray users, int ownerId) {
+		for (int i = 0; i < users.size(); i++) {
+			JSONObject user = users.getJSONObject(i);
+			if (user.getInt("id") == ownerId) {
+				return asArray(user.get("profiles"));
+			}
+		}
+		Assert.fail("User " + ownerId + " is missing from the user list");
+		return new JSONArray();
+	}
+
+	private static int countNamed(JSONArray rows, String name) {
+		int count = 0;
+		for (int i = 0; i < rows.size(); i++) {
+			if (name.equals(rows.getJSONObject(i).getString("name"))) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+	private static void assertNamedValue(JSONArray rows, String name, String value) {
+		Assert.assertEquals(value, profileValue(rows, name));
+		Assert.assertEquals(1, countNamed(rows, name));
+	}
+
+	private static String profileValue(JSONArray rows, String name) {
+		String value = null;
+		int matches = 0;
+		for (int i = 0; i < rows.size(); i++) {
+			JSONObject row = rows.getJSONObject(i);
+			if (name.equals(row.getString("name"))) {
+				matches++;
+				value = row.getString("value");
+			}
+		}
+		Assert.assertEquals(1, matches);
+		return value;
+	}
 
 }

@@ -122,10 +122,8 @@ public class InstantBIStreamSession {
     JsonObject wrapComplete(String endpoint, JsonObject pythonPayload) {
         String raw = pythonPayload.toString();
         JsonObject prepared;
-        if ("/data-insight".equals(endpoint)) {
+        if ("/data-insight".equals(endpoint) || "/data-insight-service".equals(endpoint)) {
             prepared = InstantBIUtils.prepareDataInsightResponse(raw);
-        } else if ("/convert-dashboard".equals(endpoint)) {
-            prepared = InstantBIUtils.prepareConvertDashboardResponse(raw);
         } else {
             prepared = InstantBIUtils.prepareResponse("", raw, null);
         }

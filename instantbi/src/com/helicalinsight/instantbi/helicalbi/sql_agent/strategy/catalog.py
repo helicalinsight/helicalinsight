@@ -14,6 +14,8 @@ from helicalbi.sql_agent.constants import (
     ANALYTICAL_CATALOG_PATH,
     ANALYTICAL_KEY_OPERATIONS,
     ANALYTICAL_KEY_WRAPPER,
+    INPUT_TOOLTIP_PATH,
+    INPUT_TOOLTIPS_KEY,
     API_OPERATION_LIST_FIELDS,
     CATALOG_KEY_DEFAULT_STRATEGY,
     CATALOG_KEY_STRATEGIES,
@@ -90,6 +92,7 @@ def load_strategy_catalog(path: str = "") -> dict[str, Any]:
 def clear_strategy_catalog_cache() -> None:
     """Drop the LRU cache (tests / hot-reload)."""
     load_strategy_catalog.cache_clear()
+    load_input_tooltips.cache_clear()
 
 
 def list_strategies(catalog: Optional[Mapping[str, Any]] = None) -> Dict[str, dict[str, Any]]:
@@ -128,6 +131,27 @@ def load_analytical_operations(path: Optional[str] = None) -> list[dict[str, Any
     return operations_from_catalog_payload(data)
 
 
+@lru_cache(maxsize=ANALYTICAL_CATALOG_CACHE_SIZE)
+def load_input_tooltips(path: Optional[str] = None) -> dict[str, str]:
+    """Input-name help text merged into the analytical-operations API response."""
+    tooltip_path = Path(path) if path else INPUT_TOOLTIP_PATH
+    if not tooltip_path.is_file():
+        return {}
+    with tooltip_path.open(encoding=JSON_ENCODING) as handle:
+        data = json.load(handle)
+    section = data.get(INPUT_TOOLTIPS_KEY) if isinstance(data, Mapping) else None
+    if not isinstance(section, Mapping):
+        section = data if isinstance(data, Mapping) else {}
+    tooltips: dict[str, str] = {}
+    for key, value in section.items():
+        name = str(key).strip()
+        text = str(value or "").strip()
+        if not name or not text or name == INPUT_TOOLTIPS_KEY:
+            continue
+        tooltips[name] = text
+    return tooltips
+
+
 def list_analytical_operations_for_api(
     path: Optional[str] = None,
 ) -> list[dict[str, Any]]:
@@ -145,11 +169,22 @@ def list_analytical_operations_for_api(
             ).strip(),
         }
         for field in API_OPERATION_LIST_FIELDS:
+            if field == "inputs":
+                entry[field] = operation_input_names(op)
+                continue
             entry[field] = [
                 str(item).strip()
                 for item in (op.get(field) or [])
                 if str(item).strip()
             ]
+        execution = op.get("execution")
+        if isinstance(execution, Mapping):
+            entry["execution"] = {
+                "method": str(execution.get("method") or "").strip(),
+                "logic": str(execution.get("logic") or "").strip(),
+            }
+        else:
+            entry["execution"] = {"method": "", "logic": ""}
         operations.append(entry)
     return operations
 
@@ -158,6 +193,34 @@ def _text_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return [str(item).strip() for item in value if str(item).strip()]
+
+
+# One breakdown slot. Older catalogs used these as separate names.
+_INPUT_NAME_ALIASES = {
+    "dimension": "dimensions",
+    "additionaldimensions": "dimensions",
+}
+
+
+def operation_input_names(entry: Any) -> list[str]:
+    """Single input list. Older required/optional lists are merged."""
+    if not isinstance(entry, Mapping):
+        return []
+    raw = _text_list(entry.get("inputs"))
+    if not raw:
+        raw = _text_list(entry.get("requiredInputs")) + _text_list(
+            entry.get("optionalInputs")
+        )
+    names: list[str] = []
+    seen: set[str] = set()
+    for item in raw:
+        canon = _INPUT_NAME_ALIASES.get(item.lower(), item)
+        key = canon.lower()
+        if not canon or key in seen:
+            continue
+        seen.add(key)
+        names.append(canon)
+    return names
 
 
 def is_custom_operation(entry: Any) -> bool:
@@ -184,8 +247,7 @@ def normalize_custom_operation(entry: Mapping[str, Any]) -> Optional[dict[str, A
             or CUSTOM_OPERATION_TYPE
         ),
         OPERATION_DESCRIPTION_KEY: str(entry.get(OPERATION_DESCRIPTION_KEY) or "").strip(),
-        "requiredInputs": _text_list(entry.get("requiredInputs")),
-        "optionalInputs": _text_list(entry.get("optionalInputs")),
+        "inputs": operation_input_names(entry),
         "preconditions": _text_list(entry.get("preconditions")),
         "limitations": _text_list(entry.get("limitations")),
         "outputFields": _text_list(entry.get("outputFields")),

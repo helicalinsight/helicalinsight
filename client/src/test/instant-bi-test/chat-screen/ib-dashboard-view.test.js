@@ -86,11 +86,16 @@ const dashboardModel = {
   items: [{ id: "tile-1" }],
 };
 
+const activeReport = {
+  subject: { model: { file: "sales.metadata", dir: "agents" } },
+};
+
 const renderView = (store, active) => (
   <Provider store={store}>
     <IBDashboardView
       dashboardModel={dashboardModel}
       dispatch={store.dispatch}
+      activeReport={activeReport}
       planMessageId="message-1"
       active={active}
     />
@@ -108,6 +113,9 @@ describe("IBDashboardView", () => {
 
     await waitFor(() => expect(screen.getByTestId("hi-dashboard-designer")).toBeTruthy());
     expect(assembleInstantDashboardCreateConfig).toHaveBeenCalledTimes(1);
+    expect(assembleInstantDashboardCreateConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ activeReport })
+    );
     expect(store.getState().designer.present.gridItemsData).toEqual([{ id: "Dashboard A" }]);
 
     rerender(renderView(store, false));

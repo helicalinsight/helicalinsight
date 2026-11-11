@@ -1,5 +1,5 @@
 import { Button, Drawer } from "antd";
-import { cloneDeep, filter, isEqual } from "lodash-es";
+import { cloneDeep, isEqual } from "lodash-es";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import requests from "../../../base/requests";
@@ -12,17 +12,17 @@ import {
 import notify from "../../hi-notifications/notify";
 import { hcrDSParameter, hcrDSQuery } from "../hcr-constants";
 import {
+  getErrorMessage
+} from "../hcrCanvas/hcrCanvasPaneHelperMethods";
+import {
   getHcrParameterFilters,
   getPreviewFormData,
   handleUrlParamsFilters,
   updateDateRangeFilterValues,
+  updateHCRRelativeDateFilters,
   validateNodes,
 } from "../hcrHelperMethods";
 import HcrFilters from "./hcrFilters";
-import {
-  getErrorMessage,
-  handleStreamResponse,
-} from "../hcrCanvas/hcrCanvasPaneHelperMethods";
 
 const HCRFiltersDrawer = ({
   hcrFiltersDrawerStatus,
@@ -40,7 +40,7 @@ const HCRFiltersDrawer = ({
   reportKey,
   subDataSets = [],
   tableStyles = [],
-  maybeFetchJrxml=() => { }
+  maybeFetchJrxml = () => { }
 }) => {
   const dispatch = useDispatch();
   const Notify = notify(dispatch);
@@ -92,7 +92,7 @@ const HCRFiltersDrawer = ({
     reqFilters = checkRelativeDateFilter(reqFilters, urlParameters);
     reqFilters = updateDateRangeFilterValues(reqFilters);
     setFilters(reqFilters);
-    setParametersReviewFn(reqFilters);
+    setParametersReviewFn(updateHCRRelativeDateFilters(reqFilters));
   }, [parameters, JSON.stringify(urlParameters)]);
 
   useEffect(() => {
@@ -146,7 +146,7 @@ const HCRFiltersDrawer = ({
       dispatch,
       canvasProperties,
     });
-    filters = updateDateRangeFilterValues(filters);
+    filters = updateHCRRelativeDateFilters(updateDateRangeFilterValues(filters));
     setAppliedFilters(cloneDeep(filters));
     if (isValid) {
       if (!isPreviewing) {
@@ -235,3 +235,4 @@ const HCRFiltersDrawer = ({
   );
 };
 export { HCRFiltersDrawer };
+

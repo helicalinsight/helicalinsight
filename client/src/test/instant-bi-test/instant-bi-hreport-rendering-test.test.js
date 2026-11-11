@@ -86,8 +86,10 @@ describe("Hreport visualisation test in instant bi", () => {
       },
     });
     const appProps = { store, reportProps };
+    document.title = "HI: Instant";
     await waitFor(() => render(<App {...appProps} />));
 
     expect(screen.queryByTestId(/table-value-Agent-0/i)).toBeTruthy();
+    expect(document.title).toBe("HI: Instant");
   });
 });

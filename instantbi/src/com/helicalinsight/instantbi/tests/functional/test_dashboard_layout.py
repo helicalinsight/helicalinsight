@@ -55,7 +55,7 @@ class TestDashboardLayoutModels:
 
 
 class TestLayoutTemplates:
-    def test_catalog_loads_all_ascii_layout_files(self):
+    def test_catalog_loads_all_layouts(self):
         from helicalbi.prompt.LayoutTemplates import (
             KNOWN_TEMPLATE_IDS,
             load_decision_table,
@@ -781,7 +781,7 @@ class TestConvertDashboardGraphStages:
         assert "html" not in button
         assert "export" not in button
         assert button["id"].startswith("item-")
-        assert button["layout"]["w"] == 1
+        assert button["layout"]["w"] == 2
         assert button["layout"]["h"] == 1
         assert button["layout"]["i"] == button["id"]
         assert button["layout"]["static"] is False

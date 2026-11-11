@@ -66,6 +66,8 @@ public class HIJasperQueryExecuter implements IComponent {
             dataSourceType = efwdJson.get("type").getAsString();
             EnhancedQueryExecutor queryExecutor;
             if (!"sql.adhoc".equals(dataSourceType)) {
+            	efwdJson.addProperty("access", DataSourceSecurityUtility.EXECUTE);
+            	DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(efwdJson);
                 queryExecutor = new EnhancedQueryExecutor(efwdJson.toString(), applicationProperties);
                 connectionPart = queryExecutor.getConnectionPartFromTemp();
                 String dialectOfDatabase = getDialect(efwdJson, connectionPart);
@@ -81,6 +83,7 @@ public class HIJasperQueryExecuter implements IComponent {
                     }
                 }else{
                     formData.addProperty("query", query);
+                    formData.addProperty("hasStoredProcedure", GsonUtility.optBooleanValue(connectionDetails, "hasStoredProcedure", false));
                     hibernateProcessedQuery = ViewLabelsRetrievalComponent.query(formData, dialectOfDatabase, maxRows.toString());
                 }
 

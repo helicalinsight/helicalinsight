@@ -55,6 +55,7 @@ import {
 import HcrParameterDrawer from "./hcrParameterDrawer.jsx";
 import HcrSidebar from "./hcrSidebar.jsx";
 import LoadingBar from "../common/components/hi-loading-bar.jsx";
+import QuerySettings from "../common/components/query-settings.jsx";
 const { Paragraph, Title, Text } = Typography;
 
 const hcrSidebarWidth = 16.4;
@@ -530,6 +531,21 @@ function CannedReports({
                       />
                     </Tooltip>
                   </div>
+                  <QuerySettings
+                    disabled={!reqQuery}
+                    enableLimit={reqQuery?.enableLimit !== false}
+                    onEnableLimitChange={(checked) => {
+                      if (!reqQuery) return;
+                      dispatch(
+                        hcrActions.handleEditingDsPaneItem({
+                          dataSourcePane: selectedDS.dataSourcePane,
+                          itemId: reqQuery.id,
+                          key: "enableLimit",
+                          value: checked,
+                        }),
+                      );
+                    }}
+                  />
                 </div>
               </div>
               <div style={{ background: "white" }}>

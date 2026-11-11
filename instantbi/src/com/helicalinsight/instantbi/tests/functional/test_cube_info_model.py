@@ -1170,15 +1170,14 @@ class TestSelectionFieldPropagation:
         }
 
         hint = generate_semantic_hint(result)
-        assert "dimension: Booking Platform" in hint
-        assert "aiContext:" in hint
+        assert "Booking Platform (travel_details.booking_platform)" in hint
+        assert "aiContext:" not in hint
+        assert "Description:" not in hint
         assert "Platform used to book travel." in hint
-        assert "hierarchy: travel_date" in hint
-        assert "level: YEAR" in hint
         assert "EXTRACT(YEAR from travel_details.travel_date)" in hint
-        assert "measure: Cost by Cancellation" in hint
+        assert "Cost by Cancellation" in hint
         assert "Cancelled meetings use Yes or No." in hint
-        assert "type: Number" in hint
+        assert "number column" in hint
 
 
 class TestVizColumnContext:

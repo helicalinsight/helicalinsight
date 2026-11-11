@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.helicalinsight.datasource.GsonUtility;
 
@@ -37,8 +38,10 @@ final class FiltersJsonValidator {
                         "" + "but is empty");
             }*/
 
-            JsonArray filters = formData.getAsJsonArray("filters");
-            validate(container, filters);
+            JsonArray filters = jsonArray(formData, "filters");
+            if (filters != null) {
+                validate(container, filters);
+            }
         }
 
         if (formData.has("customHavingExpression") || formData.has("having")) {
@@ -53,11 +56,28 @@ final class FiltersJsonValidator {
                         "" + "but is empty");
             }*/
 
-            JsonArray having = formData.getAsJsonArray("having");
-            JsonArray alteredJson = functionsJsonValidator.validateFunctionNameAndColumns(having, true);
-            formData.remove("having");
-            GsonUtility.accumulate(formData,"having", alteredJson);
+            JsonArray having = jsonArray(formData, "having");
+            if (having != null) {
+                JsonArray alteredJson = functionsJsonValidator.validateFunctionNameAndColumns(having, true);
+                formData.remove("having");
+                GsonUtility.accumulate(formData, "having", alteredJson);
+            }
         }
+    }
+
+    /**
+     * A custom filter or having expression can be present without its array.
+     * {@code getAsJsonArray} then returns null and iteration throws.
+     */
+    private static JsonArray jsonArray(JsonObject formData, String key) {
+        if (!formData.has(key)) {
+            return null;
+        }
+        JsonElement element = formData.get(key);
+        if (element == null || element.isJsonNull() || !element.isJsonArray()) {
+            return null;
+        }
+        return element.getAsJsonArray();
     }
     /**
      * Validates the filters contained in the provided JSON array.

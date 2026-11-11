@@ -15,8 +15,11 @@ SQL_AGENT_DIR = Path(__file__).resolve().parent
 STRATEGIES_DIR = SQL_AGENT_DIR / "strategies"
 DASHBOARD_CATALOG_FILENAME = "dashboard_strategies.json"
 ANALYTICAL_CATALOG_FILENAME = "analytical_strategy.json"
+INPUT_TOOLTIP_FILENAME = "input_tooltip.json"
 CATALOG_PATH = STRATEGIES_DIR / DASHBOARD_CATALOG_FILENAME
 ANALYTICAL_CATALOG_PATH = STRATEGIES_DIR / ANALYTICAL_CATALOG_FILENAME
+INPUT_TOOLTIP_PATH = STRATEGIES_DIR / INPUT_TOOLTIP_FILENAME
+INPUT_TOOLTIPS_KEY = "inputTooltips"
 JSON_ENCODING = "utf-8"
 
 STRATEGY_CATALOG_CACHE_SIZE = 4
@@ -102,6 +105,8 @@ CHART_QUESTION_TEMPLATE = "{question} — {title}"
 # Capability / diagnostic JSON field names
 # --------------------------------------------------------------------------------------
 CAP_KEY_CAPABILITY = "capability"
+CAP_KEY_AI_CONTEXT = "aiContext"
+CAP_KEY_AI_CONTEXT_SNAKE = "ai_context"
 CAP_KEY_APPLICABLE_TO = "applicableTo"
 CAP_KEY_APPLICABLE_TO_SNAKE = "applicable_to"
 CAP_KEY_USES = "uses"
@@ -152,6 +157,7 @@ USE_INPUT_RESERVED_KEYS = frozenset({
     "type",
     "kind",
     "key",
+    "inputs",
     "requiredInputs",
     "optionalInputs",
 })
@@ -174,9 +180,10 @@ OPERATION_DECOMPOSE = "decompose"
 
 # Fields copied into the public analytical operations projection (order preserved).
 API_OPERATION_LIST_FIELDS = (
-    "requiredInputs",
-    "optionalInputs",
+    "inputs",
+    "preconditions",
     "outputFields",
+    "limitations",
     "dashboardVisualizations",
 )
 

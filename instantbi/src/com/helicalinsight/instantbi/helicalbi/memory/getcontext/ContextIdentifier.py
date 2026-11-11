@@ -6,7 +6,7 @@ from langchain_core.prompts import PromptTemplate
 
 logger = logging.getLogger(__name__)
 
-from helicalbi.common.LlmInvokeHelper import log_prompt
+from helicalbi.common.LlmInvokeHelper import log_llm_output, log_prompt
 from helicalbi.memory.getcontext.ContextClass import GraphState
 
 
@@ -55,6 +55,7 @@ Output JSON:
     }
     log_prompt(prompt, invoke_inputs)
     response = chain.invoke(invoke_inputs)
+    log_llm_output(response)
 
     result = _parse_llm_json(
         response.content if hasattr(response, "content") else str(response)

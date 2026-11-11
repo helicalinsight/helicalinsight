@@ -25,6 +25,8 @@ class VizFormDataResolver:
         formatted_sql: str,
         raw_sql: str,
         rm_cols_in_filter: bool,
+        parameter_functions: dict | None = None,
+        relative_dates: dict | None = None,
         thread_id: Any = None,
         chat_seq_id: Any = None,
     ) -> dict[str, Any]:
@@ -42,6 +44,8 @@ class VizFormDataResolver:
                 metadata=session.actual_md,
                 catalog=session.metadata_fun_ref,
                 rm_cols_in_filter=rm_cols_in_filter,
+                parameter_functions=parameter_functions,
+                relative_dates=relative_dates,
             )
             if form_data is None:
                 form_data = self._data_model.build(

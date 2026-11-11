@@ -9,7 +9,7 @@ logging:
   file: "logs/instantbi_app.log"      # Rotating log file (Docker: hi-repository/System/Logs/instantbi_app.log)
   error_file: "logs/instantbi_error.log"  # ERROR+ only (Docker: hi-repository/System/Logs/instantbi_error.log)
   backup_days: 14           # Number of daily log files to retain
-  show_llm_activity: false  # Log rendered LLM prompts and invoke/token activity
+  show_llm_activity: false  # Log rendered LLM prompts, model output, and invoke/token activity
   show_llm_activity_details: false  # Include think-mode path (domains/topics/tables/strategy/questions/nodes) in API response
   show_endpoint_log: false   # Log HTTP endpoint request payloads
   show_api_call_log: false   # Log HI service API request/response payloads
@@ -28,6 +28,10 @@ api_cache:
 
 sql:
   default_limit: 100        # Default row limit appended to generated SQL queries
+  autocorrect: false        # Rewrite SQL when a column is on the wrong table or the join does not match the join API
+
+prompt:
+  schema_chunk_size: 50     # Tables or columns sent to the model in one call
 
 kpi:
   suggestion_query: "Suggest few Measurable and timebound KPIS"  # Default KPI suggestion prompt; overridden by model JSON "suggestion_query" when present

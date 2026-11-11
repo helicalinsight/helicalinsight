@@ -10,7 +10,10 @@ from helicalbi.common.JsonToPara import is_bare_minimum_config
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.DomainTopicReason import get_domain_topic_reason_model
 from helicalbi.prompt.DomainTopicPrompt import personification, domain_topic_prompt_string
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.service.modelservice.ModelLayerHelper import ModelLayerHelper
 from helicalbi.service.modelservice.InformationProvider import InformationProvider
 
@@ -64,7 +67,7 @@ class FindDomainAndTopics:
             template=domain_topic_prompt_string + format_instruction_string,
             input_variables=["domain_topic_string", "semantic_string", "business_logic", "mps",
                              "user_query,personification,last_chats","messages"],
-            partial_variables={"format_instructions": parser.get_format_instructions()},
+            partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
         )
         response, _ = invoke_structured(
             prompt,

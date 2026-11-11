@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import sqlglot
@@ -88,6 +89,63 @@ def _tables_and_aliases(tree: exp.Expression) -> Tuple[List[str], Dict[str, str]
             aliases[_norm(alias)] = name
         aliases[key] = name
     return physical, aliases
+
+
+_EXAMPLE_SLOT = re.compile(r"<[A-Za-z_][^>]*>")
+
+
+def sql_disallowed_names(
+    sql: str,
+    allowed_tables: Optional[Set[str]] = None,
+    allowed_columns: Optional[Set[str]] = None,
+    dialect: Optional[str] = None,
+) -> Optional[str]:
+    """Return an error when SQL copies prompt samples or leaves the provided tables.
+
+    ``allowed_tables`` empty skips the table check, so a missing plan does not
+    reject every statement. The sample column ``date_col`` is rejected unless
+    that column is actually in ``allowed_columns``.
+    """
+    cleaned = strip_sql_markdown(sql or "").strip()
+    if not cleaned:
+        return None
+    if _EXAMPLE_SLOT.search(cleaned):
+        return (
+            "SQL contains an example slot such as <table> or <date_column>. "
+            "Replace every slot with a table or column from the provided columns."
+        )
+
+    try:
+        tree = _parse_sql(cleaned, dialect)
+    except sqlglot.errors.ParseError:
+        return None
+
+    allowed_table_keys = {_norm(name) for name in (allowed_tables or []) if str(name).strip()}
+    allowed_column_keys = {_norm(name) for name in (allowed_columns or []) if str(name).strip()}
+    physical, _aliases = _tables_and_aliases(tree)
+    if allowed_table_keys:
+        unknown = [name for name in physical if _norm(name) not in allowed_table_keys]
+        if unknown:
+            allowed_list = ", ".join(
+                sorted({str(name).strip() for name in allowed_tables if str(name).strip()})
+            )
+            bad = ", ".join(sorted(set(unknown)))
+            return (
+                f"SQL uses table(s) not in the provided columns: {bad}. "
+                f"Use only these tables: {allowed_list}."
+            )
+
+    for column in tree.find_all(exp.Column):
+        col_name = column.name
+        if not col_name or _norm(col_name) != "date_col":
+            continue
+        if "date_col" in allowed_column_keys:
+            continue
+        return (
+            "SQL uses the example column date_col. "
+            "Use the date column named in the provided columns."
+        )
+    return None
 
 
 def sql_has_subquery(sql: str, dialect: Optional[str] = None) -> bool:

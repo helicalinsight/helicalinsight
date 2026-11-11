@@ -7,7 +7,10 @@ from helicalbi.common.LlmInvokeHelper import invoke_structured
 from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.UpdateRephrase import UpdateRephrase
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.prompt.UpdateRephrasePrompt import update_rephrase_prompt
 
 logger = logging.getLogger(__name__)
@@ -25,7 +28,7 @@ class UpdateIntentRephrase:
         prompt = PromptTemplate(
             template=update_rephrase_prompt + format_instruction_string,
             input_variables=["current_user_query", "chat_history"],
-            partial_variables={"format_instructions": parser.get_format_instructions()},
+            partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
         )
         logger.info("UpdateIntentRephrase started query_len=%s", len(user_query))
         response: UpdateRephrase

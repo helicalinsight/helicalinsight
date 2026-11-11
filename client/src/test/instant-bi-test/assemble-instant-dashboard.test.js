@@ -1,5 +1,10 @@
 import "regenerator-runtime/runtime";
-import { assembleInstantDashboardConfig, sanitizeDashboardSvg } from "../../components/hi-instant-bi/utils/assemble-instant-dashboard";
+import {
+  assembleInstantDashboardConfig,
+  assembleInstantDashboardCreateConfig,
+  createDashboardCreateItem,
+  sanitizeDashboardSvg,
+} from "../../components/hi-instant-bi/utils/assemble-instant-dashboard";
 
 describe("assembleInstantDashboardConfig", () => {
   test("builds skeletal text tiles from layout, not reports", () => {
@@ -129,5 +134,74 @@ describe("assembleInstantDashboardConfig", () => {
   test("drops unsafe LLM svg scripts", () => {
     expect(sanitizeDashboardSvg('<svg onload="alert(1)"></svg>')).toBe("");
     expect(sanitizeDashboardSvg('<svg viewBox="0 0 8 8"><rect width="8" height="8"/></svg>')).toContain("<svg");
+  });
+
+  test("stores the instant BI agent subject in every inline instant item", () => {
+    const reportModel = {
+      viz_model: { properties: { title: "Bookings" } },
+    };
+    const subject = { file: "sales.metadata", dir: "agents" };
+    const config = assembleInstantDashboardCreateConfig({
+      dashboardModel: {
+        items: [
+          {
+            kind: "instant",
+            chat_sequence_id: 1,
+            component_id: "tile-1",
+            title: "Bookings",
+            layout: { x: 0, y: 0, w: 6, h: 4 },
+          },
+          {
+            kind: "instant.filter",
+            chat_sequence_id: 1,
+            component_id: "filter-1",
+            sourceItemId: "tile-1",
+            layout: { x: 6, y: 0, w: 3, h: 1 },
+          },
+        ],
+      },
+      steps: [
+        {
+          index: 1,
+          chat_seq_id: "1_1",
+          report_model: reportModel,
+        },
+      ],
+      questionsHistory: [
+        {
+          chat_seq_id: 1,
+          hreportId: "hr-1",
+          chat_response: { report_model: reportModel },
+        },
+      ],
+      activeReport: {
+        subject: { model: subject },
+      },
+    });
+    const chart = config.gridItemsData.find(
+      (item) => item.compType === "dashboard-create-component"
+    );
+    const filter = config.gridItemsData.find(
+      (item) => item.compType === "filter-component"
+    );
+    expect(chart.reportInfo.file.instant_item.subject).toEqual(subject);
+    expect(filter.reportInfo.file.instant_item.subject).toEqual(subject);
+  });
+
+  test("embeds report model interactions in the inline dashboard file", () => {
+    const reportModel = {
+      viz_model: { id: "m1" },
+      interactions: {
+        selectedType: "Chart",
+        filters: [{ uid: "f1", field: "sales" }],
+      },
+    };
+    const { gridItem } = createDashboardCreateItem({
+      dashboardItem: { kind: "instant", component_id: "tile-1" },
+      reportModel,
+      theme: {},
+    });
+    expect(gridItem.compType).toBe("dashboard-create-component");
+    expect(gridItem.reportInfo.file.report_model).toEqual(reportModel);
   });
 });

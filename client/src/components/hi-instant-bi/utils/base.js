@@ -1,5 +1,11 @@
 import { isEmpty, isEqual, pickBy } from "lodash";
 import { getInstantBIAgentSubject, getInstantBIMetadataForReport } from "./common-utils";
+import {
+  applyHreportInteractionsToReportModel,
+  getReportModelInteractions,
+  mergeReportModelInteractions,
+  normalizeReportModelInteractions,
+} from "./report-model-interactions";
 export const getSaveData = ({ saveFileInfo, searchValue, dispatch }) => {
   // isHrReport: true,
   // columns: [
@@ -256,9 +262,11 @@ const getAllHreports = (dispatch) => {
   return reports
 }
 
-const getHreportDiffData = (activeReport = {}, dispatch) => {
+const getHreportDiffData = (activeReport = {}, dispatch, availableHreports = null) => {
   const returnObj = {};
-  const hreports = getAllHreports(dispatch);
+  const hreports = Array.isArray(availableHreports)
+    ? availableHreports
+    : getAllHreports(dispatch);
   if (!hreports?.length) return returnObj;
 
   const { hreportInteractions = {} } = activeReport || {}
@@ -274,17 +282,15 @@ const getHreportDiffData = (activeReport = {}, dispatch) => {
         ...returnObj[id],
         selectedType: report.selectedType,
         subVizType: allMark?.subVizType,
-        filters: hreportInteraction?.filters?.length ?
-          hreportInteraction.filters.map((fltr) => {
-            const hreportFilter = report?.filters?.find((filter) => filter.uid === fltr.uid) || null;
-            if (hreportFilter) {
-              delete hreportFilter.valuesList;
-              hreportFilter.active = false;
-              return hreportFilter
-            }
-            return null
-          }).filter(Boolean)
-          : []
+      }
+      if (Array.isArray(hreportInteraction?.filters)) {
+        returnObj[id].filters = hreportInteraction.filters.map((fltr) => {
+          const hreportFilter = report?.filters?.find((filter) => filter.uid === fltr.uid) || null;
+          if (hreportFilter) {
+            return { ...hreportFilter, valuesList: [], active: false }
+          }
+          return null
+        }).filter(Boolean)
       }
     }
   }
@@ -325,6 +331,8 @@ const THINK_SAVE_OMIT_KEYS = [
   "fullChatResponse",
 ];
 
+const SAVE_OMIT_KEYS = [...THINK_SAVE_OMIT_KEYS, "data_insight"];
+
 const omitKeysDeep = (value, keys, { skipKeys = ["data"] } = {}) => {
   if (Array.isArray(value)) {
     return value.map((item) => omitKeysDeep(item, keys, { skipKeys }));
@@ -352,6 +360,130 @@ const slimLlmActivityDetailsForSave = (details) => {
   return next;
 };
 
+const pickReportModel = (...models) =>
+  models.find(
+    (model) => model && typeof model === "object" && Object.keys(model).length
+  ) || {};
+
+const getFilterKey = (filter = {}) => filter?.uid || "";
+
+const mergeLiveHreportFilters = (interactions = {}, hreport = null) => {
+  const filters = interactions?.filters;
+  const liveFilters = hreport?.filters;
+  if (
+    !Array.isArray(filters) ||
+    !filters.length ||
+    !Array.isArray(liveFilters) ||
+    !liveFilters.length
+  ) {
+    return interactions;
+  }
+  return {
+    ...interactions,
+    filters: filters.map((filter) => {
+      const key = getFilterKey(filter);
+      if (!key) return filter;
+      const liveFilter = liveFilters.find((item) => getFilterKey(item) === key);
+      if (!liveFilter) return filter;
+      return {
+        ...filter,
+        ...liveFilter,
+        valuesList: [],
+        active: false,
+      };
+    }),
+  };
+};
+
+const resolveSavedInteractions = (
+  reportModel,
+  hreportId,
+  interactionsById = {},
+  legacyInteractions = {},
+  hreport = null
+) => {
+  const fromModel = getReportModelInteractions(
+    reportModel,
+    legacyInteractions[hreportId]
+  );
+  const live = normalizeReportModelInteractions(interactionsById[hreportId]);
+  const interactions = Object.keys(live).length
+    ? mergeReportModelInteractions(fromModel, live)
+    : fromModel;
+  return mergeLiveHreportFilters(interactions, hreport);
+};
+
+const saveStepWithInteractions = (step, interactionsById, legacyInteractions, hreports = []) => {
+  const slimStep = slimThinkStepForSave(step);
+  const chatResponse = slimStep.chat_response;
+  const sourceReportModel = pickReportModel(
+    chatResponse?.report_model,
+    step.report_model,
+    step.reportModel,
+    step.fullChatResponse?.report_model
+  );
+  const hreportId = slimStep.hreportId
+    || chatResponse?.hreportId
+    || step.hreportId
+    || "";
+  const liveHreport = hreports.find((report) => report.id === hreportId) || null;
+  const interactions = resolveSavedInteractions(
+    sourceReportModel,
+    hreportId,
+    interactionsById,
+    legacyInteractions,
+    liveHreport
+  );
+  const reportModel = applyHreportInteractionsToReportModel(
+    sourceReportModel,
+    interactions
+  );
+  if (!chatResponse || !reportModel || !Object.keys(reportModel).length) {
+    return slimStep;
+  }
+  return {
+    ...slimStep,
+    chat_response: {
+      ...chatResponse,
+      report_model: reportModel,
+    },
+  };
+};
+
+const saveResponseWithInteractions = (response, interactionsById, legacyInteractions, hreports = []) => {
+  const hreportId = response.hreportId
+    || response.chat_response?.hreportId
+    || response.chatResponse?.hreportId
+    || response.fullChatResponse?.hreportId
+    || "";
+  const sourceReportModel = pickReportModel(
+    response.report_model,
+    response.chat_response?.report_model,
+    response.chatResponse?.report_model,
+    response.fullChatResponse?.report_model
+  );
+  const liveHreport = hreports.find((report) => report.id === hreportId) || null;
+  const interactions = resolveSavedInteractions(
+    sourceReportModel,
+    hreportId,
+    interactionsById,
+    legacyInteractions,
+    liveHreport
+  );
+  const reportModel = applyHreportInteractionsToReportModel(
+    sourceReportModel,
+    interactions
+  );
+  if (!reportModel || !Object.keys(reportModel).length) return response;
+  const next = { ...response, report_model: reportModel };
+  ["chat_response", "chatResponse", "fullChatResponse"].forEach((key) => {
+    if (response[key]?.report_model) {
+      next[key] = { ...response[key], report_model: reportModel };
+    }
+  });
+  return next;
+};
+
 export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, dispatch }) => {
   const {
     reportInfo = {},
@@ -375,6 +507,8 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
     chat_sequence_id: msg.chatSequenceId,
     input: msg.userInput
   }))
+  const hreports = getAllHreports(dispatch);
+  const interactionsById = getHreportDiffData(activeReport, dispatch, hreports);
 
   const chat_responses = botMessages.map(msg => {
     const loaded = (activeReport.loadedChatResponses || {})[msg.chatSequenceId] || {};
@@ -419,7 +553,9 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
         chat_sequence_id: msg.chatSequenceId,
         is_think_plan: true,
         asked_questions: msg.askedQuestions || [],
-        question_history: (msg.questionHistory || []).map(slimThinkStepForSave),
+        question_history: (msg.questionHistory || []).map((step) =>
+          saveStepWithInteractions(step, interactionsById, hreportInteractions, hreports)
+        ),
         cited_question_indexes: msg.citedQuestionIndexes || [],
         opening_insight: openingInsight,
         plan: msg.plan || {},
@@ -427,10 +563,13 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
         llm_activity_details: slimLlmActivityDetailsForSave(
           msg.llmActivityDetails || chatResponseForSave.llm_activity_details || null
         ),
-      }, THINK_SAVE_OMIT_KEYS);
+      }, SAVE_OMIT_KEYS);
     }
 
-    return omitKeysDeep(saved, THINK_SAVE_OMIT_KEYS);
+    return omitKeysDeep(
+      saveResponseWithInteractions(saved, interactionsById, hreportInteractions, hreports),
+      SAVE_OMIT_KEYS
+    );
   })
 
   const modelSubject = getInstantBIAgentSubject(activeReport) || {};
@@ -450,11 +589,10 @@ export const getInsantBISaveData = ({ activeReport = {}, saveFileInfo = {}, disp
       subject,
       ...stateRest,
       activeChatId: activeChatID,
-      hreportInteractions: getHreportDiffData(activeReport, dispatch)
     }
   }
   if (saveFileInfo.uuid) {
     data.uuid = saveFileInfo.uuid
   }
-  return omitKeysDeep(data, THINK_SAVE_OMIT_KEYS);
+  return omitKeysDeep(data, SAVE_OMIT_KEYS);
 }

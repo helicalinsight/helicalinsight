@@ -111,7 +111,15 @@
   }
 }
 
-.instantbi-settings-editor__developer {
+.hi-config-instantbi-panel .instantbi-settings-editor__developer {
+  .ui-form-generator-section {
+    border: 1px solid #d9d9d9 !important;
+    border-radius: 4px;
+    padding-right: 12px;
+    padding-bottom: 4px;
+    padding-left: 12px;
+  }
+
   .ui-form-generator-section__title {
     font-weight: 400;
   }

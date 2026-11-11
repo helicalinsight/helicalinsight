@@ -234,6 +234,184 @@ describe("getInsantBISaveData", () => {
     expect(savedThink.dashboard_model).toEqual({ title: "Dash" });
   });
 
+  it("it should persist interactions inside report models and omit the legacy map", () => {
+    const activeReport = buildActiveReportForSave();
+    activeReport.hreportInteractions = {
+      "hr-1": { filters: [{ uid: "f1" }] },
+    };
+    activeReport.chats[0].messageList[1].fullChatResponse.hreportId = "hr-1";
+    activeReport.chats[0].messageList[1].fullChatResponse.report_model = {
+      viz_model: { id: "m1" },
+    };
+    const dispatch = (thunk) => {
+      if (typeof thunk === "function") {
+        return thunk(jest.fn(), () => ({
+          hreport: {
+            present: {
+              reports: [
+                {
+                  id: "hr-1",
+                  selectedType: "Chart",
+                  marksList: [{ value: "_all_", subVizType: "line" }],
+                  filters: [
+                    { uid: "f1", field: "sales", valuesList: [1], active: true },
+                  ],
+                },
+              ],
+            },
+          },
+        }));
+      }
+      return undefined;
+    };
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch,
+    });
+    const savedResponse = saveData.state.chat_responses[0];
+    expect(saveData.state).not.toHaveProperty("hreportInteractions");
+    expect(savedResponse.report_model.interactions).toEqual({
+      selectedType: "Chart",
+      subVizType: "line",
+      filters: [{ uid: "f1", field: "sales", valuesList: [], active: false }],
+    });
+    expect(activeReport.chats[0].messageList[1].fullChatResponse).not.toHaveProperty(
+      "report_model.interactions"
+    );
+  });
+
+  it("it should migrate legacy interactions into the saved report model", () => {
+    const activeReport = buildActiveReportForSave();
+    activeReport.hreportInteractions = {
+      "hr-legacy": { selectedType: "Table" },
+    };
+    activeReport.chats[0].messageList[1].fullChatResponse.hreportId = "hr-legacy";
+    activeReport.chats[0].messageList[1].fullChatResponse.report_model = {
+      viz_model: { id: "m1" },
+    };
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch: mockDispatch,
+    });
+    const savedResponse = saveData.state.chat_responses[0];
+    expect(saveData.state).not.toHaveProperty("hreportInteractions");
+    expect(savedResponse.report_model.interactions).toEqual({
+      selectedType: "Table",
+    });
+  });
+
+  it("it should merge model filters with live interaction filters on save", () => {
+    const activeReport = buildActiveReportForSave();
+    activeReport.hreportInteractions = {
+      "hr-merge": { filters: [{ uid: "f2" }] },
+    };
+    const message = activeReport.chats[0].messageList[1].fullChatResponse;
+    message.hreportId = "hr-merge";
+    message.report_model = {
+      viz_model: { id: "m1" },
+      interactions: {
+        filters: [{ uid: "f1", field: "region", valuesList: [], active: false }],
+      },
+    };
+    const dispatch = (thunk) => {
+      if (typeof thunk === "function") {
+        return thunk(jest.fn(), () => ({
+          hreport: {
+            present: {
+              reports: [
+                {
+                  id: "hr-merge",
+                  selectedType: "Chart",
+                  marksList: [{ value: "_all_", subVizType: "line" }],
+                  filters: [{ uid: "f2", field: "sales", valuesList: [1] }],
+                },
+              ],
+            },
+          },
+        }));
+      }
+      return undefined;
+    };
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch,
+    });
+    expect(saveData.state.chat_responses[0].report_model.interactions).toEqual({
+      selectedType: "Chart",
+      subVizType: "line",
+      filters: [
+        { uid: "f1", field: "region", valuesList: [], active: false },
+        { uid: "f2", field: "sales", valuesList: [], active: false },
+      ],
+    });
+  });
+
+  it("it should update saved model filters from the live hreport on save", () => {
+    const activeReport = buildActiveReportForSave();
+    const message = activeReport.chats[0].messageList[1].fullChatResponse;
+    message.hreportId = "hr-live";
+    message.report_model = {
+      viz_model: { id: "m1" },
+      interactions: {
+        filters: [
+          {
+            uid: "f1",
+            field: "sales",
+            values: ["USA"],
+            valuesList: [],
+            active: false,
+          },
+        ],
+      },
+    };
+    const dispatch = (thunk) => {
+      if (typeof thunk === "function") {
+        return thunk(jest.fn(), () => ({
+          hreport: {
+            present: {
+              reports: [
+                {
+                  id: "hr-live",
+                  filters: [
+                    {
+                      uid: "f1",
+                      field: "sales",
+                      condition: "IS_ONE_OF",
+                      values: ["India"],
+                      valuesList: [{ display: "India", value: "India" }],
+                      active: true,
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        }));
+      }
+      return undefined;
+    };
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch,
+    });
+    expect(saveData.state.chat_responses[0].report_model.interactions).toEqual({
+      filters: [
+        {
+          uid: "f1",
+          field: "sales",
+          condition: "IS_ONE_OF",
+          values: ["India"],
+          valuesList: [],
+          active: false,
+        },
+      ],
+    });
+  });
+
   it("it should exclude runtime metadata & loaded chat cache from state", () => {
     const saveData = getInsantBISaveData({
       activeReport: buildActiveReportForSave(),
@@ -250,6 +428,76 @@ describe("getInsantBISaveData", () => {
     expect(saveData.state.subject).toEqual({
       model: { dir: "agents", file: "sales.metadata" },
     });
+  });
+
+  it("does not persist Explain This Chart insight in saved chat responses", () => {
+    const activeReport = buildActiveReportForSave();
+    const botMessage = activeReport.chats[0].messageList[1];
+    botMessage.fullChatResponse.data_insight = {
+      insight: "East leads revenue.",
+      token_usage: { total_tokens: 42 },
+    };
+    botMessage.dataInsight = "East leads revenue.";
+    botMessage.dataInsightTokenUsage = { total_tokens: 42 };
+    activeReport.loadedChatResponses[1] = {
+      ...activeReport.loadedChatResponses[1],
+      data_insight: {
+        insight: "Cached explanation.",
+        token_usage: { total_tokens: 7 },
+      },
+    };
+
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch: mockDispatch,
+    });
+    const savedResponse = saveData.state.chat_responses[0];
+
+    expect(savedResponse).not.toHaveProperty("data_insight");
+    expect(savedResponse).not.toHaveProperty("dataInsight");
+    expect(JSON.stringify(saveData.state.chat_responses)).not.toContain("data_insight");
+    expect(JSON.stringify(saveData.state.chat_responses)).not.toContain("East leads revenue.");
+    expect(JSON.stringify(saveData.state.chat_responses)).not.toContain("Cached explanation.");
+  });
+
+  it("does not persist Explain This Chart insight inside think step responses", () => {
+    const activeReport = buildActiveReportForSave();
+    activeReport.chats[0].messageList.push({
+      isUser: false,
+      userInput: "Explain the investigation",
+      chatSequenceId: 2,
+      isThinkPlan: true,
+      askedQuestions: ["Q1"],
+      questionHistory: [
+        {
+          index: 1,
+          question: "Q1",
+          chat_seq_id: "2_1",
+          chat_response: {
+            summary: { insight: "Answer" },
+            data_insight: {
+              insight: "Nested explanation.",
+              token_usage: { total_tokens: 3 },
+            },
+          },
+        },
+      ],
+      fullChatResponse: {
+        data_insight: { insight: "Plan explanation." },
+      },
+    });
+
+    const saveData = getInsantBISaveData({
+      activeReport,
+      saveFileInfo: { reportName: "MyReport", location: "reports" },
+      dispatch: mockDispatch,
+    });
+    const serialized = JSON.stringify(saveData.state.chat_responses);
+
+    expect(serialized).not.toContain("data_insight");
+    expect(serialized).not.toContain("Nested explanation.");
+    expect(serialized).not.toContain("Plan explanation.");
   });
 });
 
@@ -542,6 +790,88 @@ describe("instantBIReducer LOAD_IB_REPORT_DATA", () => {
     const textMessage = botMessages.find((message) => message.chatSequenceId === 2);
     expect(chartMessage.fullChatResponse.hreportId).toBeDefined();
     expect(textMessage.fullChatResponse).not.toHaveProperty("hreportId");
+  });
+});
+
+describe("instantBIReducer UPDATE_HREPORT_INITIAL_INTERACTION", () => {
+  it("it should update report models and keep earlier model filters", () => {
+    const initialReportModel = {
+      viz_model: { id: "m1" },
+      interactions: {
+        filters: [{ uid: "f0", field: "region", valuesList: [], active: false }],
+      },
+    };
+    const initialState = {
+      ...initialStates.instantBIInitialState,
+      reports: [
+        {
+          id: "report-1",
+          active: true,
+          activeChatID: "chat-1",
+          hreportInteractions: {},
+          chats: [
+            {
+              chatID: "chat-1",
+              messageList: [
+                {
+                  id: "bot-1",
+                  isUser: false,
+                  chatSequenceId: 1,
+                  fullChatResponse: {
+                    hreportId: "hr-1",
+                    report_model: initialReportModel,
+                  },
+                },
+              ],
+            },
+          ],
+          loadedChatResponses: {
+            1: {
+              hreportId: "hr-1",
+              report_model: initialReportModel,
+            },
+          },
+        },
+      ],
+    };
+    let state = instantBIReducer(initialState, {
+      type: actionTypes.UPDATE_HREPORT_INITIAL_INTERACTION,
+      payload: {
+        reportId: "report-1",
+        hreportId: "hr-1",
+        event: "change_viz",
+        data: { selectedType: "Chart", subVizType: "line", dualaxis: false },
+      },
+    });
+    state = instantBIReducer(state, {
+      type: actionTypes.UPDATE_HREPORT_INITIAL_INTERACTION,
+      payload: {
+        reportId: "report-1",
+        hreportId: "hr-1",
+        event: "add_filter",
+        data: { uid: "f1", field: "sales" },
+      },
+    });
+    const expectedInteractions = {
+      selectedType: "Chart",
+      subVizType: "line",
+      dualaxis: false,
+      filters: [
+        { uid: "f0", field: "region", valuesList: [], active: false },
+        { uid: "f1", field: "sales" },
+      ],
+    };
+    const report = state.reports[0];
+    expect(report.hreportInteractions["hr-1"]).toEqual({
+      ...expectedInteractions,
+      filters: [{ uid: "f1", field: "sales" }],
+    });
+    expect(
+      report.chats[0].messageList[0].fullChatResponse.report_model.interactions
+    ).toEqual(expectedInteractions);
+    expect(report.loadedChatResponses[1].report_model.interactions).toEqual(
+      expectedInteractions
+    );
   });
 });
 
@@ -938,7 +1268,10 @@ describe("loadInstantBiHreports", () => {
               {
                 index: 1,
                 question: "Q1",
-                report_model: { viz_model: { id: "m1" } },
+                report_model: {
+                  viz_model: { id: "m1" },
+                  interactions: { selectedType: "Antcharts" },
+                },
                 fullChatResponse: {
                   hreportId: "hr-step-1",
                   report_model: { viz_model: { id: "m1" } },
@@ -959,17 +1292,39 @@ describe("loadInstantBiHreports", () => {
             report_model: { viz_model: { id: "m2" } },
           },
         ],
-        hreportInteractions: {
-          "hr-step-1": { selectedType: "Antcharts" },
-        },
+        hreportInteractions: {},
       },
     });
     const calls = createHReportBridge.mock.calls.map(([props]) => props);
     expect(calls.map((props) => props.reportId)).toEqual(["hr-step-1", "hr-fast"]);
-    expect(calls[0].reportModel).toEqual({ viz_model: { id: "m1" } });
+    expect(calls[0].reportModel).toEqual({
+      viz_model: { id: "m1" },
+      interactions: { selectedType: "Antcharts" },
+    });
     expect(calls[0].interactions).toEqual({ selectedType: "Antcharts" });
     expect(calls[1].reportModel).toEqual({ viz_model: { id: "m2" } });
     expect(calls[1].interactions).toEqual({});
+  });
+
+  it("should fall back to legacy dashboard interactions for older files", async () => {
+    const dispatch = makeDispatch();
+    await loadInstantBiHreports({
+      dispatch,
+      reportState: {
+        chat_responses: [
+          {
+            chat_sequence_id: 1,
+            hreportId: "hr-legacy",
+            report_model: { viz_model: { id: "m2" } },
+          },
+        ],
+        hreportInteractions: {
+          "hr-legacy": { selectedType: "Table" },
+        },
+      },
+    });
+    const calls = createHReportBridge.mock.calls.map(([props]) => props);
+    expect(calls[0].interactions).toEqual({ selectedType: "Table" });
   });
 
   it("should rehydrate slim steps with hoisted hreportIds", async () => {
@@ -1030,6 +1385,27 @@ describe("loadInstantBiHreports", () => {
 });
 
 describe("buildInstantBIInteractiveChatFormData", () => {
+  it("should send the chart fetchData formData with explain", () => {
+    const chartForm = {
+      location: "TestFold",
+      metadataFileName: "Metadata_1.metadata",
+      columns: [{ alias: "Travel Cost" }],
+    };
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Explain this chart",
+        chatId: "chat-1",
+        chatSequenceId: "1",
+        nestedFormData: chartForm,
+      })
+    ).toEqual({
+      input: "Explain this chart",
+      chatid: "chat-1",
+      chat_sequence_id: "1",
+      formData: chartForm,
+    });
+  });
+
   it("should not include nested formData when not provided", () => {
     expect(
       buildInstantBIInteractiveChatFormData({

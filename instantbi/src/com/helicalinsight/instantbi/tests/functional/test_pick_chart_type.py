@@ -155,6 +155,91 @@ def test_ordered_dimension_one_measure_picks_line():
     assert _pick_chart_type(_md(("travel_date", "date"), ("cost", "numeric"))) == "line"
 
 
+def test_only_date_datetime_or_time_columns_pick_calendar():
+    """Calendar requires the catalog shape: 1 dimension and 0-1 measures."""
+    assert _pick_chart_type(_md(("travel_date", "date"))) == "calendar"
+    assert (
+        _pick_chart_type(_md(("when", "timestamp with time zone")))
+        == "calendar"
+    )
+    assert (
+        _pick_chart_type(_md(("start", {"java.sql.Date": True})))
+        == "calendar"
+    )
+    assert (
+        _pick_chart_type(
+            _md(("travel_date", "date")),
+            dimension_count=1,
+            measure_count=1,
+        )
+        == "calendar"
+    )
+
+
+def test_multiple_temporal_columns_do_not_pick_calendar():
+    picked = _pick_chart_type(
+        _md(
+            ("travel_date", "date"),
+            ("booked_at", "datetime"),
+            ("depart_time", "time"),
+        )
+    )
+    assert picked != "calendar"
+    assert picked == "table"
+
+
+def test_date_with_another_type_does_not_pick_calendar():
+    picked = _pick_chart_type(_md(("travel_date", "date"), ("region", "text")))
+    assert picked != "calendar"
+
+
+def test_calendar_year_phrase_does_not_pick_calendar_for_category_breakdown():
+    """'calendar year' is a period. Travel type + count stays a bar."""
+    metadata = _md(("Travel Type", "text"), ("count_travel_id", "numeric"))
+    questions = (
+        "Total Travel by Booking Platform (Last Complete Calendar Year)",
+        "most recent complete calendar year",
+        "Volume by Travel Type for the last complete calendar year",
+        "Total Travel by Payment mode",
+    )
+    for question in questions:
+        picked = _pick_chart_type(
+            metadata,
+            dimension_count=1,
+            measure_count=1,
+            user_query=question,
+        )
+        assert picked == "bar", question
+        assert picked != "calendar"
+
+
+def test_explicit_calendar_chart_still_requires_temporal_columns():
+    assert (
+        _pick_chart_type(
+            _md(("travel_date", "date")),
+            user_query="show this as a calendar chart",
+        )
+        == "calendar"
+    )
+    assert (
+        _pick_chart_type(
+            _md(("Travel Type", "text"), ("Total Travel", "numeric")),
+            user_query="show this as a calendar chart",
+        )
+        == "bar"
+    )
+
+
+def test_named_chart_overrides_all_temporal_columns():
+    assert (
+        _pick_chart_type(
+            _md(("travel_date", "date")),
+            user_query="show this as a table",
+        )
+        == "table"
+    )
+
+
 def test_ordered_dimension_two_measures_picks_line_family_not_table():
     picked = _pick_chart_type(
         _md(("travel_date", "date"), ("sales", "numeric"), ("cost", "numeric"))

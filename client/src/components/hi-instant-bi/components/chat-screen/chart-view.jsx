@@ -18,7 +18,8 @@ const InstantChartView = (props = {}) => {
         isOpenMode,
         vizType,
         dashboardMode = false,
-        extraProps = {}
+        extraProps = {},
+        openModeFilters = false
     } = props || {}
     const { hreportId, error, hreportLoading } = fullChatResponse || {}
     const liveHreport = useSelector((state) =>
@@ -76,6 +77,7 @@ const InstantChartView = (props = {}) => {
                     reportId={hreportId}
                     renderEditingArea={props.renderEditingArea}
                     renderFilters={props.renderFilters}
+                    openModeFilters={openModeFilters}
                     {...extraProps}
                 />
             </div>}

@@ -14,6 +14,7 @@ import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
+import com.helicalinsight.efw.parameters.HcrParameterEvaluator;
 import com.helicalinsight.efw.services.FontService;
 import com.helicalinsight.efw.utility.JsonUtils;
 import com.helicalinsight.efw.utility.PropertiesFileReader;
@@ -209,6 +210,7 @@ public class HCRUtils {
         JsonObject designerProps2 = defaultJson.getAsJsonObject("formData").getAsJsonObject("designerProperties");
         if (designerProps == null) formData.add("designerProperties", designerProps2);
         else copyDefault(designerProps2, designerProps);
+        HcrParameterEvaluator.resolve(formData);
         return formData;
     }
 

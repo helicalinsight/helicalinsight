@@ -36,6 +36,7 @@ class FastResultPayloadBuilder:
         chat_seq_id: Any,
         request_started: float,
         rm_cols_in_filter: bool = True,
+        parameter_functions: dict | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         if (
             "sql_result" in result
@@ -59,6 +60,8 @@ class FastResultPayloadBuilder:
             formatted_sql=formatted_sql,
             raw_sql=raw_sql,
             rm_cols_in_filter=rm_cols_in_filter,
+            parameter_functions=parameter_functions or result.get("parameter_functions"),
+            relative_dates=result.get("relative_dates") or None,
             thread_id=thread_id,
             chat_seq_id=chat_seq_id,
         )

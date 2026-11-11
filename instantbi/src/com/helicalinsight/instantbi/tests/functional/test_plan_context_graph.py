@@ -593,8 +593,7 @@ def test_custom_strategy_type_is_loaded_and_prompted():
         "type": "custom",
         "category": "custom",
         "description": "Compare fare to a target.",
-        "requiredInputs": ["measure", "benchmark"],
-        "optionalInputs": ["timeDimension"],
+        "inputs": ["measure", "benchmark", "timeDimension"],
         "preconditions": ["A target exists."],
         "limitations": ["Do not invent a benchmark."],
         "execution": {"method": "sql", "logic": "Subtract target from actual."},
@@ -635,7 +634,7 @@ def test_custom_strategy_type_is_loaded_and_prompted():
     assert [op["operation"] for op in chosen] == ["fare gap"]
     block = analytical_operations_prompt_block(chosen)
     assert "fare gap (custom): Compare fare to a target." in block
-    assert "required inputs: measure, benchmark" in block
+    assert "inputs: measure, benchmark, timeDimension" in block
     assert "preconditions: A target exists." in block
     assert "limitations: Do not invent a benchmark." in block
     assert "execution: Subtract target from actual." in block
@@ -674,8 +673,8 @@ def test_diagnostic_capabilities_object_shaped_uses_and_applicable_to():
     ops = list_analytical_operations_for_api()
     assert any(op["operation"] == "trend" for op in ops)
     trend = next(op for op in ops if op["operation"] == "trend")
-    assert "measure" in trend["requiredInputs"]
-    assert "timeDimension" in trend["requiredInputs"]
+    assert "measure" in trend["inputs"]
+    assert "timeDimension" in trend["inputs"]
 
     cap = {
         "capability": "Successful Meeting diagnosis",
@@ -710,6 +709,34 @@ def test_diagnostic_capabilities_object_shaped_uses_and_applicable_to():
         diagnostic_capabilities=[cap],
     )
     assert "trend" in {op["operation"] for op in selected}
+
+
+def test_diagnostic_capability_ai_context_matches_and_prompts():
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.strategy_tree import diagnostic_capabilities_prompt_block
+
+    cap = {
+        "capability": "Travel Cost Analysis",
+        "aiContext": {
+            "instructions": "Explain the change in travel spend.",
+            "synonyms": "travel spend review, cost investigation",
+            "examples": "Why did travel cost rise?",
+        },
+        "applicableTo": [{"measure": "Travel Cost"}],
+        "uses": ["trend"],
+    }
+    indexer = SemanticLayerIndexer()
+    indexer.index_model({"diagnosticCapabilities": [cap]}, {})
+    matches = indexer.matching_diagnostic_capabilities(
+        "Run a travel spend review for last year"
+    )
+    assert len(matches) == 1
+    assert matches[0]["aiContext"]["synonyms"] == "travel spend review, cost investigation"
+
+    block = diagnostic_capabilities_prompt_block([cap])
+    assert "aiContext: {instructions: Explain the change in travel spend." in block
+    assert "synonyms: travel spend review, cost investigation" in block
+    assert "examples: Why did travel cost rise?" in block
 
 
 def test_hierarchy_level_deduplication_across_tables():
@@ -1196,6 +1223,130 @@ def test_think_mode_locks_misspelled_question_to_configured_trend():
     assert len(kept) == 1
     assert kept[0]["operation"] == "trend"
     assert kept[0]["measure_hints"] == ["Successful Meeting Rate"]
+
+
+def _travel_cost_capability_model():
+    return {
+        "modelName": "travel",
+        "diagnosticCapabilities": [
+            {
+                "capability": "cost_split",
+                "description": "Break travel cost into segments.",
+                "applicableTo": ["Travel Cost"],
+                "uses": [
+                    {
+                        "analyticalOperation": "segment",
+                        "measure": "Travel Cost",
+                        "dimension": "Client Destination",
+                    }
+                ],
+            },
+            {
+                "capability": "cost_change",
+                "description": "Explain how travel cost moves over time.",
+                "applicableTo": ["Travel Cost"],
+                "uses": [
+                    {
+                        "analyticalOperation": "trend",
+                        "measure": "Travel Cost",
+                        "timeDimension": "YEAR",
+                    }
+                ],
+            },
+        ],
+        "measures": [{"measureName": "Travel Cost"}],
+        "cube_info": [
+            {
+                "name": "travel",
+                "dimensions": [
+                    {"dimensionName": "Client Destination"},
+                    {"dimensionName": "YEAR"},
+                ],
+                "measures": [],
+            }
+        ],
+    }
+
+
+def test_pick_diagnostic_capability_skips_llm_for_a_single_candidate():
+    from helicalbi.sql_agent.strategy_tree import pick_diagnostic_capability
+
+    cap = {"capability": "ratio_diagnosis", "applicableTo": ["Meeting Cancellation Rate"]}
+    choice = pick_diagnostic_capability("Why is the meeting cancellation rate high?", [cap])
+    assert choice["source"] == "only_candidate"
+    assert choice["capabilities"][0]["capability"] == "ratio_diagnosis"
+    assert choice["reason"] == ""
+
+
+def test_think_mode_llm_picks_one_shortlisted_capability(monkeypatch):
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+
+    class _Pick:
+        capability = "cost_change"
+        reason = "The question asks how cost changed over time."
+
+    def fake_invoke(template, inputs, model, **kwargs):
+        assert "How has Travel Cost changed" in inputs["question"]
+        assert "cost_change" in inputs["candidates"]
+        assert "cost_split" in inputs["candidates"]
+        assert "applicable measures: Travel Cost" in inputs["candidates"]
+        assert model.__name__ == "DiagnosticCapabilityPick"
+        return _Pick()
+
+    monkeypatch.setattr("helicalbi.sql_agent.llm.invoke_agent_model", fake_invoke)
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(_travel_cost_capability_model(), {})
+    result = select_analytical_operations_node(
+        {
+            "question": "How has Travel Cost changed over the year?",
+            "flat_sql": True,
+            "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+            "session": {"semantic_indexer": indexer},
+            "allowed_names": ["Travel Cost"],
+            "grounding_pack": "TOPIC Travel",
+            "activity_trace": [],
+        }
+    )
+    assert [cap["capability"] for cap in result["matched_diagnostic_capabilities"]] == ["cost_change"]
+    assert result["selected_operations"] == ["trend"]
+    trace = result["activity_trace"][-1]
+    assert trace["result"]["shortlisted_capabilities"] == ["cost_split", "cost_change"]
+    assert trace["result"]["capability_pick_source"] == "llm"
+    assert trace["result"]["matched_capabilities"] == ["cost_change"]
+    assert "Picked capability 'cost_change'" in trace["reason"]
+    assert "Chosen from shortlist: cost_split, cost_change." in trace["reason"]
+    assert "how cost changed over time" in trace["reason"]
+
+
+def test_think_mode_keeps_shortlist_when_capability_pick_fails(monkeypatch):
+    from helicalbi.sql_agent.database.semantic_indexer import SemanticLayerIndexer
+    from helicalbi.sql_agent.nodes.plan_graph import select_analytical_operations_node
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("llm down")
+
+    monkeypatch.setattr("helicalbi.sql_agent.llm.invoke_agent_model", boom)
+    indexer = SemanticLayerIndexer()
+    indexer.index_model(_travel_cost_capability_model(), {})
+    result = select_analytical_operations_node(
+        {
+            "question": "How has Travel Cost changed over the year?",
+            "flat_sql": True,
+            "diagnostic_capabilities": indexer.diagnostic_capabilities(),
+            "session": {"semantic_indexer": indexer},
+            "allowed_names": ["Travel Cost"],
+            "grounding_pack": "TOPIC Travel",
+            "activity_trace": [],
+        }
+    )
+    assert [cap["capability"] for cap in result["matched_diagnostic_capabilities"]] == [
+        "cost_split",
+        "cost_change",
+    ]
+    assert result["activity_trace"][-1]["result"]["capability_pick_source"] == "shortlist"
+    assert "segment" in result["selected_operations"]
+    assert "trend" in result["selected_operations"]
 
 
 

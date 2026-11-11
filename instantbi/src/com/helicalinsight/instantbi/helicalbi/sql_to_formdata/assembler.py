@@ -116,6 +116,8 @@ def assemble_form_data(
     metadata_file_name: str = "",
     include_parts: bool = False,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
+    relative_dates: dict | None = None,
 ) -> dict[str, Any]:
     """
     Build formData from ParsedQuery using independent parts, then merge.
@@ -128,6 +130,10 @@ def assemble_form_data(
     if parsed.dialect and not meta.get("dialect"):
         meta["dialect"] = parsed.dialect
 
+    if relative_dates:
+        from .relative_dates import apply_relative_dates
+
+        parsed.where_filters = apply_relative_dates(parsed.where_filters, relative_dates)
     columns = build_columns(parsed, meta)
     filters = build_filters(parsed, meta)
     having = build_having(parsed, meta)
@@ -270,6 +276,8 @@ def sql_to_form_data(
     metadata: dict | None = None,
     include_parts: bool = False,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
+    relative_dates: dict | None = None,
 ) -> dict[str, Any]:
     """
     End-to-end: getFunctions → catalog (dialect from reference) → parse SQL → assemble formData.
@@ -311,6 +319,8 @@ def sql_to_form_data(
         metadata_file_name=metadata_file_name,
         include_parts=include_parts,
         rm_cols_in_filter=rm_cols_in_filter,
+        parameter_functions=parameter_functions,
+        relative_dates=relative_dates,
     )
 
 
@@ -348,6 +358,57 @@ def fold_having_into_filters(form_data: dict[str, Any] | None) -> dict[str, Any]
     if extra:
         filters.extend(extra)
         payload["filters"] = filters
+    return _drop_custom_filters(payload)
+
+
+def _is_custom_condition(item: Any) -> bool:
+    if isinstance(item, dict) and item.get("isRelative"):
+        return False
+    return isinstance(item, dict) and str(item.get("condition") or "").strip().upper() == "CUSTOM"
+
+
+def _drop_custom_filters(payload: dict[str, Any]) -> dict[str, Any]:
+    """Drop filters the report editor cannot apply.
+
+    ``condition: CUSTOM`` is an executeQuery fallback (unmatched SQL, or an
+    operator that was not mapped to a UI condition). Those objects are removed
+    from the prepared data model, and the filter expressions are rebuilt from
+    what remains. ``IS_NULL`` / ``IS_NOT_NULL`` are editor conditions and stay.
+    """
+    filters = payload.get("filters")
+    if not isinstance(filters, list) or not any(_is_custom_condition(item) for item in filters):
+        return payload
+
+    kept = [item for item in filters if not _is_custom_condition(item)]
+    where_items = [
+        item for item in kept if not (isinstance(item, dict) and item.get("aggregate"))
+    ]
+    having_items = [
+        item for item in kept if isinstance(item, dict) and item.get("aggregate")
+    ]
+    for idx, item in enumerate(where_items):
+        if isinstance(item, dict):
+            item["id"] = idx
+    for idx, item in enumerate(having_items):
+        if isinstance(item, dict):
+            item["id"] = idx
+
+    combined = where_items + having_items
+    if combined:
+        payload["filters"] = combined
+    else:
+        payload.pop("filters", None)
+
+    if where_items:
+        payload["customFilterExpression"] = _build_indexed_expression(where_items)
+    else:
+        payload.pop("customFilterExpression", None)
+
+    expr = _build_filter_expression(where_items, having_items)
+    if expr is not None:
+        payload["filterExpression"] = expr
+    else:
+        payload.pop("filterExpression", None)
     return payload
 
 

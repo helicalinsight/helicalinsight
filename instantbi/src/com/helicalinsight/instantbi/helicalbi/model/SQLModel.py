@@ -3,6 +3,7 @@ from langgraph.graph import MessagesState
 
 class SQLModel(MessagesState):
     query: str
+    sql_retry_context: str
     metadata: dict
     location: str
     metadata_file_name: str
@@ -32,6 +33,8 @@ class SQLModel(MessagesState):
     query_plan: dict
     final_sql: str
     sql_reason: str
+    parameter_functions: dict
+    relative_dates: dict
     filters: dict
     groupby: dict
     model_file_name:str

@@ -2,6 +2,7 @@ package com.helicalinsight.stream;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -45,8 +46,15 @@ public class SseStreamSession implements StreamSession {
 
 	@Override
 	public void error(Throwable t) {
-			send(new StreamEvent("error", t.getMessage()));
-			complete();
+		send(new StreamEvent(EventType.ERROR.value(), errorText(t)));
+		complete();
+	}
+
+	static String errorText(Throwable t) {
+		if (t.getCause() != null) {
+			return ExceptionUtils.getRootCauseMessage(t);
+		}
+		return t.getMessage();
 	}
 
 	public SseEmitter getEmitter() {

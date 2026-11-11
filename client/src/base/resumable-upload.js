@@ -94,22 +94,6 @@ const parseJsonMaybe = (data) => {
   return {};
 };
 
-const normalizeTargetUrl = (url) => {
-  if (!url) return "";
-  let t = String(url).trim();
-  const q = t.indexOf("?");
-  if (q >= 0) t = t.substring(0, q);
-  if (!t.startsWith("/") && !t.startsWith("http")) t = `/${t}`;
-  try {
-    if (t.startsWith("http")) {
-      t = new URL(t).pathname;
-    }
-  } catch (e) {
-    /* keep */
-  }
-  return t;
-};
-
 const emitProgress = (onUploadProgress, loaded, total, phase = "uploading") => {
   if (typeof onUploadProgress !== "function") return;
   onUploadProgress({
@@ -237,7 +221,7 @@ export const runResumableUpload = async ({
 
   const rid = requestId || hiAxios.requestId || uuidv4();
   hiAxios.requestId = rid;
-  const prepareUrl = normalizeTargetUrl(targetUrl);
+  const prepareUrl = targetUrl;
 
   const originalAbort = hiAxios.abort.bind(hiAxios);
   hiAxios.abort = (prop) => {

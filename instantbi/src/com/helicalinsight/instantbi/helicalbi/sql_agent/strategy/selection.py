@@ -40,6 +40,7 @@ from helicalbi.sql_agent.constants import (
 )
 from helicalbi.sql_agent.strategy.catalog import get_strategy, list_strategies, load_strategy_catalog
 from helicalbi.sql_agent.strategy.diagnostics import (
+    capability_synonyms,
     iter_applicable_measures,
     measure_mentioned,
 )
@@ -229,8 +230,8 @@ class StrategySelector:
             applicable = iter_applicable_measures(
                 cap.get(CAP_KEY_APPLICABLE_TO) or cap.get(CAP_KEY_APPLICABLE_TO_SNAKE)
             )
-            cap_name = str(cap.get(CAP_KEY_CAPABILITY) or "").strip().lower()
-            if (cap_name and cap_name in q_lower) or any(
+            cap_name = str(cap.get(CAP_KEY_CAPABILITY) or "").strip()
+            if measure_mentioned(cap_name, q_lower, capability_synonyms(cap)) or any(
                 measure_mentioned(app, q_lower) for app in applicable
             ):
                 return dict(cap)

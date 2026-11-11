@@ -68,6 +68,19 @@ class TestTablesFromQueryPlan:
         }
         assert tables_from_query_plan(query_plan, ["travel_details"]) == ["travel_details"]
 
+    def test_reads_tables_from_select_when_column_list_is_empty(self):
+        query_plan = {
+            "columnName": [],
+            "selectColumnName": [
+                "meeting_details.client_name",
+                "travel_details.travel_id",
+            ],
+        }
+        assert tables_from_query_plan(query_plan) == [
+            "meeting_details",
+            "travel_details",
+        ]
+
 
 class TestPreviousSqlFilter:
     def test_drops_sql_with_unknown_tables(self):

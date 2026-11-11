@@ -53,7 +53,7 @@ const HIInstantBIModule = (props) => {
     isDroppable: true,
     compactType: null,
     preventCollision: true,
-    rowHeight: height > 680 ? 1 : 0.7,
+    rowHeight: height > 680 ? isOpenMode ? 0.5 : 1 : 0.7,
     colWidth: 1,
     margin: [5, 10],
     containerPadding: [1, 1],

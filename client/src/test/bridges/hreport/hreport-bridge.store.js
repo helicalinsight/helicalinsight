@@ -64,6 +64,17 @@ const actionCreators = {
     }),
     changeFilterCondition: jest.fn((payload) => ({ type: 'CHANGE_FILTER_CONDITION', payload })),
     changeFilterValue: jest.fn((payload) => ({ type: 'CHANGE_FILTER_VALUE', payload })),
+    updateAnchorDate: jest.fn((payload) => {
+        const report = latestReport();
+        if (report && payload?.anchorDateData) {
+            report.filters = report.filters.map((filter) =>
+                filter.uid === payload.uid
+                    ? { ...filter, anchor: payload.anchorDateData, values: payload.value, dateValuesType: 'datePicker' }
+                    : filter
+            );
+        }
+        return { type: 'UPDATE_ANCHOR_DATE', payload };
+    }),
     updateFilterAlias: jest.fn((payload) => ({ type: 'UPDATE_FILTER_ALIAS', payload })),
     updateFilter: jest.fn((payload) => {
         const report = latestReport();
@@ -84,6 +95,9 @@ const actionCreators = {
     toggleFloating: jest.fn((payload) => ({ type: 'TOGGLE_FLOATING', payload })),
     loadReportFilters: jest.fn((payload) => ({ type: 'LOAD_REPORT_FILTERS', payload })),
     changeOptions: jest.fn((payload) => ({ type: 'CHANGE_OPTIONS', payload })),
+    changeEditorContent: jest.fn((payload) => ({ type: 'CHANGE_EDITOR_CONTENT', payload })),
+    applyReportScripts: jest.fn((payload) => ({ type: 'APPLY_REPORT_SCRIPTS', payload })),
+    updateCanvasField: jest.fn((payload) => ({ type: 'UPDATE_CANVAS_FIELD', payload })),
 };
 
 const bridgeUtils = {

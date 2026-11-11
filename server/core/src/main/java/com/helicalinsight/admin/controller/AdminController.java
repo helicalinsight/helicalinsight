@@ -41,6 +41,7 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This controller handles the following activities
@@ -434,10 +435,9 @@ public class AdminController {
 
     @NotNull
     private String updateProfile(JSONObject formDataJson, String profileId) {
-        Profile profileObj;
-        String result;
-        Integer profileUpdateId;
-        if (profileId != null && profileId.length() > 0) {
+        
+        Integer profileUpdateId ;
+        if (StringUtils.isNotBlank(profileId) && StringUtils.isNumeric(profileId)) {
             profileUpdateId = Integer.parseInt(profileId);
         } else {
             throw new FormValidationException("Profile Id cannot be null");
@@ -448,13 +448,11 @@ public class AdminController {
         String profileName = formDataJson.getString("name");
 
         String profileValue = formDataJson.getString("value");
-        profileObj = profileService.getProfile(profileUpdateId);
+        Profile profileObj = profileService.getProfile(profileUpdateId);
         Integer userId = profileObj.getUser_id();
         String profile_name = profileObj.getProfile_name();
         if (!profile_name.equals(profileName)) {
-            List<Profile> profileList = profileService.getProfileListByNameAndUserId(profileName, userId);
-            if (AdminUtils.checkForDuplicateProfile(profileService, profileName, userId) && profileList != null &&
-                    profileList.size() > 1) {
+            if (AdminUtils.checkForDuplicateProfile(profileService, profileName, userId) ) {
                 throw new OperationFailedException("Profile already exists for the user");
             }
         }
@@ -462,8 +460,8 @@ public class AdminController {
         profileObj.setProfile_name(profileName);
         profileObj.setProfile_value(profileValue);
         profileService.edit(profileObj);
-        result = "Profile updated successfully";
-        return result;
+        
+        return  "Profile updated successfully";
     }
 
     @NotNull

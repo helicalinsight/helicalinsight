@@ -1006,8 +1006,8 @@ class TestDataInsight:
 
         assert resp.status_code == 200
         prompt = mock_invoke.call_args[0][1]
-        assert '"id": 9' in prompt
-        assert '"id": 10' not in prompt
+        assert "9,90" in prompt
+        assert "10,100" not in prompt
 
     def test_passes_user_profile_to_llm_prompt(self, app_module, flask_client, session_auth):
         llm_response, usage = self._llm_insight_response()
@@ -1038,8 +1038,7 @@ class TestDataInsight:
 
         assert resp.status_code == 200
         prompt = mock_invoke.call_args[0][1]
-        assert '"name": "dept"' in prompt
-        assert '"value": "sales"' in prompt
+        assert "2,dept,sales" in prompt
 
     def test_stream_emits_activity_then_complete_matching_json(
         self, app_module, flask_client, session_auth
@@ -1368,6 +1367,48 @@ class TestSqlToReportModel:
         assert mock_convert.call_args.kwargs["metadata_dir"] == "/meta"
         assert mock_convert.call_args.kwargs["metadata_file_name"] == "metadata.json"
 
+    def test_default_chart_table(self, flask_client, session_auth):
+        form_data = {
+            "columns": [
+                {
+                    "column": {"name": "t.region", "id": "1"},
+                    "alias": "region",
+                    "floatingType": "discrete",
+                },
+                {
+                    "column": {"name": "t.amount", "id": "2"},
+                    "alias": "amount",
+                    "aggregate": True,
+                    "floatingType": "continuous",
+                },
+            ],
+        }
+        with patch(
+            "helicalbi.controller.sql_to_report_model.sql_to_form_data", return_value=form_data
+        ):
+            resp = flask_client.post(
+                "/sql-to-report-model",
+                json={
+                    "input": {
+                        "sql": "SELECT region, SUM(amount) FROM t GROUP BY region",
+                        "location": "/meta",
+                        "metadataFileName": "metadata.json",
+                        "defaultChart": "table",
+                        "sessionCookie": session_auth["sessionCookie"],
+                        "username": session_auth["username"],
+                    }
+                },
+            )
+
+        assert resp.status_code == 200
+        chart = json.loads(resp.data)["report_model"]["viz_model"]["chart"]
+        shelves = json.loads(resp.data)["report_model"]["viz_model"]["data"]
+        assert chart["mark"] == "Table"
+        assert chart["viz"] == ""
+        assert chart["dualaxis"] is False
+        assert shelves["rows"] == ["region"]
+        assert shelves["columns"] == ["amount"]
+
     def test_missing_sql_returns_error(self, flask_client, session_auth):
         resp = flask_client.post(
             "/sql-to-report-model",
@@ -1510,74 +1551,6 @@ class TestUpdateMemory:
 
 
 # ---------------------------------------------------------------------------
-# /getSemanticData
-# ---------------------------------------------------------------------------
-class TestGetSemanticData:
-    def test_delegates_to_transform_json(self, app_module, flask_client, session_auth):
-        payload = {
-            "input": {
-                "location": "/dir",
-                "fileName": "meta.json",
-                "sessionCookie": session_auth["sessionCookie"], "username": session_auth["username"],
-                "tables": ["t1", "t2"],
-            }
-        }
-        with patch.object(
-            app_module,
-            "transform_json",
-            return_value={"metadata": {"domain": [""]}, "semantic_layer": []},
-        ) as mock_transform:
-            resp = flask_client.post("/getSemanticData", json=payload)
-
-        assert resp.status_code == 200
-        body = json.loads(resp.data)
-        assert body == {"metadata": {"domain": [""]}, "semantic_layer": []}
-
-        mock_transform.assert_called_once_with(
-            session_auth["sessionCookie"], "meta.json", "/dir", ["t1", "t2"]
-        )
-
-    def test_returns_model_error_payload_on_failure(
-        self, app_module, flask_client, session_auth
-    ):
-        payload = {
-            "input": {
-                "location": "/dir",
-                "fileName": "meta.json",
-                "sessionCookie": session_auth["sessionCookie"],
-                "username": session_auth["username"],
-            }
-        }
-        with patch.object(
-            app_module,
-            "transform_json",
-            side_effect=RuntimeError("metadata unavailable"),
-        ):
-            resp = flask_client.post("/getSemanticData", json=payload)
-
-        assert resp.status_code == 200
-        body = json.loads(resp.data)
-        assert body["semantic_layer"] == []
-        assert body["error"] == ["metadata unavailable"]
-
-    def test_tables_param_defaults_to_empty_list(
-        self, app_module, flask_client, session_auth
-    ):
-        payload = {
-            "input": {
-                "location": "/dir",
-                "fileName": "meta.json",
-                "sessionCookie": session_auth["sessionCookie"], "username": session_auth["username"],
-            }
-        }
-        with patch.object(
-            app_module, "transform_json", return_value={"ok": True}
-        ) as mock_transform:
-            flask_client.post("/getSemanticData", json=payload)
-        mock_transform.assert_called_once_with(session_auth["sessionCookie"], "meta.json", "/dir", [])
-
-
-# ---------------------------------------------------------------------------
 # /utility/*
 # ---------------------------------------------------------------------------
 class TestUtilityConfig:
@@ -1625,162 +1598,15 @@ class TestUtilityConfig:
         assert body["count"] > 0
         first = body["operations"][0]
         assert first.get("operation")
-        assert "requiredInputs" in first
-        assert "optionalInputs" in first
-
-
-# ---------------------------------------------------------------------------
-# /convert-dashboard
-# ---------------------------------------------------------------------------
-class TestConvertDashboard:
-    def test_returns_layout_parts_not_efwdd(self, flask_client, session_auth):
-        graph_result = {
-            "items": [
-                {
-                    "component_id": "ab12CD34",
-                    "report_model": {
-                        "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
-                        "data_model": None,
-                    },
-                    "kind": "viz",
-                    "title": "Cost",
-                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                }
-            ],
-            "dashboard_config": {"theme": "default"},
-            "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
-        }
-        graph_mock = MagicMock()
-        graph_mock.invoke.return_value = graph_result
-        with patch(
-            "helicalbi.controller.convert_dashboard.dashboard_layout_graph", graph_mock
-        ):
-            resp = flask_client.post(
-                "/convert-dashboard",
-                json={
-                    "input": {
-                        "chatid": "c1",
-                        "sessionCookie": session_auth["sessionCookie"],
-                        "username": session_auth["username"],
-                        "items": [
-                            {
-                                "id": "seq-3",
-                                "sql": "SELECT region FROM t",
-                                "viz": {"chart_name": "bar", "vf_template": "function(){}"},
-                            }
-                        ],
-                    }
-                },
-            )
-
-        assert resp.status_code == 200
-        body = json.loads(resp.data)
-        assert "items" in body
-        assert "metadata" not in body
-        assert "gridItemsData" not in body
-        assert "sql_parts" not in (body["items"][0] or {})
-        assert body["items"][0]["layout"]["w"] == 6
-        assert "dashboard_model" not in body["items"][0]
-        assert "viz" not in body["items"][0]
-        invoked = graph_mock.invoke.call_args[0][0]["items"][0]
-        assert "sql_parts" not in invoked
-        assert "vf_template" not in (invoked.get("viz") or {})
-        graph_mock.invoke.assert_called_once()
-
-    def test_stream_emits_activity_then_complete_matching_json(
-        self, flask_client, session_auth
-    ):
-        graph_result = {
-            "items": [
-                {
-                    "component_id": "ab12CD34",
-                    "report_model": {
-                        "viz_model": {"chart": {"viz": "Bar", "mark": "Chart"}},
-                        "data_model": None,
-                    },
-                    "kind": "viz",
-                    "title": "Cost",
-                    "layout": {"x": 0, "y": 2, "w": 6, "h": 4},
-                }
-            ],
-            "dashboard_config": {"theme": "default"},
-            "templateId": "t1",
-            "layout": [{"itemId": "seq-3", "x": 0, "y": 2, "w": 6, "h": 4}],
-        }
-        graph_mock = MagicMock()
-        graph_mock.invoke.return_value = graph_result
-
-        def stream_updates(state, stream_mode="updates"):
-            yield {"CollectContext": {"items": graph_result["items"]}}
-            yield {"PlanSummary": {"dashboard_config": graph_result["dashboard_config"]}}
-            yield {"SelectFilters": {}}
-            yield {
-                "MakeLayout": {
-                    "layout": graph_result["layout"],
-                    "templateId": graph_result["templateId"],
-                }
-            }
-
-        graph_mock.stream.side_effect = stream_updates
-        payload = {
-            "input": {
-                "chatid": "c1",
-                "sessionCookie": session_auth["sessionCookie"],
-                "username": session_auth["username"],
-                "items": [
-                    {
-                        "id": "seq-3",
-                        "sql": "SELECT region FROM t",
-                        "viz": {"chart_name": "bar", "vf_template": "function(){}"},
-                    }
-                ],
-            }
-        }
-        with patch(
-            "helicalbi.controller.convert_dashboard.dashboard_layout_graph", graph_mock
-        ):
-            json_resp = flask_client.post("/convert-dashboard", json=payload)
-            json_body = json.loads(json_resp.get_data())
-            stream_resp, events = post_and_parse_sse(
-                flask_client, "/convert-dashboard", payload
-            )
-
-        assert stream_resp.mimetype == "text/event-stream"
-        assert "Connection" not in stream_resp.headers
-        assert events[0]["event"] == "begin"
-        messages = [
-            item["data"]["message"]
-            for item in events
-            if item["event"] == "progress"
-        ]
-        assert messages == [
-            "Collecting your visualizations…",
-            "Planning the dashboard…",
-            "Selecting filters…",
-            "Generating the layout…",
-            "Dashboard is ready.",
-        ]
-        complete = [item for item in events if item["event"] == "complete"]
-        assert len(complete) == 1
-        assert complete[0]["data"] == json_body
-        graph_mock.invoke.assert_called_once()
-        graph_mock.stream.assert_called_once()
-
-    def test_missing_items_returns_error(self, flask_client, session_auth):
-        resp = flask_client.post(
-            "/convert-dashboard",
-            json={
-                "input": {
-                    "chatid": "missing",
-                    "sessionCookie": session_auth["sessionCookie"],
-                    "username": session_auth["username"],
-                    "items": [],
-                }
-            },
-        )
-        assert resp.status_code == 200
-        body = json.loads(resp.data)
-        assert "No visualizations" in body["error"]
+        assert "inputs" in first
+        assert "measure" in first["inputs"]
+        tooltips = body.get("inputTooltips")
+        assert isinstance(tooltips, dict)
+        assert tooltips.get("measure")
+        trend = next(op for op in body["operations"] if op["operation"] == "trend")
+        assert trend["preconditions"]
+        assert "timePeriod" in trend["outputFields"]
+        assert trend["execution"]["logic"]
 
 
 # ---------------------------------------------------------------------------

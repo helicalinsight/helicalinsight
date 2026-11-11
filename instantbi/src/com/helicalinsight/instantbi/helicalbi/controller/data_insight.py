@@ -29,6 +29,7 @@ from helicalbi.common import app_config
 from helicalbi.common.auth import bind_request_identity, resolve_role_profile
 from helicalbi.common.configuration import llm
 from helicalbi.controller.sse import respond
+from helicalbi.prompt.token_format import to_token
 from helicalbi.prompt.DataInsightPrompt import (
     data_insight_prompt_formatted,
     data_insight_summary_prompt_formatted,
@@ -36,6 +37,57 @@ from helicalbi.prompt.DataInsightPrompt import (
 from helicalbi.prompt.ErrorPrompt import error_prompt_formatted
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_form_data(payload: dict[str, Any], user_input: dict[str, Any]) -> Any:
+    """Read the report definition sent for ``fetchData``."""
+    raw = user_input.get("formData", user_input.get("form_data"))
+    if raw is None:
+        raw = payload.get("formData", payload.get("form_data"))
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return None
+        try:
+            raw = json.loads(text)
+        except json.JSONDecodeError:
+            return text
+    if raw in (None, "", {}, []):
+        return None
+    return raw
+
+
+def _is_think_plan_form(form_data: Any) -> bool:
+    """Think-plan Explain sets ``think: true`` so this body is not an hreport."""
+    return isinstance(form_data, dict) and form_data.get("think") is True
+
+
+def _is_chart_fetch_form(form_data: Any) -> bool:
+    """Adhoc ``fetchData`` document, as opposed to a saved Instant report reference."""
+    if not isinstance(form_data, dict) or _is_think_plan_form(form_data):
+        return False
+    return bool(form_data.get("metadataFileName")) or "columns" in form_data
+
+
+def _is_saved_report_form(form_data: Any) -> bool:
+    """``{input, location, fileName}`` used to reload a saved Instant report.
+
+    Think-mode Explain posts this wrapper with ``think: true``. It is not a
+    chart definition, and running it through ``fetchData`` drops the
+    supporting-question queries.
+    """
+    if _is_think_plan_form(form_data):
+        return True
+    if not isinstance(form_data, dict) or _is_chart_fetch_form(form_data):
+        return False
+    file_name = form_data.get("fileName") or form_data.get("file")
+    location = form_data.get("location")
+    question = form_data.get("input")
+    return bool(
+        isinstance(file_name, str) and file_name.strip()
+        and isinstance(location, str) and location.strip()
+        and isinstance(question, str)
+    )
 
 
 def _parse_step_insights(user_input: dict[str, Any]) -> list[dict[str, Any]]:
@@ -238,10 +290,10 @@ def _generate_data_insight_from_rows(
             username=username,
             user_question=user_question,
             sql=sql,
-            userProfile=json.dumps(user_profile, default=str),
-            domain=json.dumps(selected_domain, default=str),
-            topics=json.dumps(selected_topics, default=str),
-            sample_data=json.dumps(sample_data, default=str),
+            userProfile=to_token(user_profile),
+            domain=to_token(selected_domain),
+            topics=to_token(selected_topics),
+            sample_data=to_token(sample_data),
             last_chats=last_chats,
         ),
     )
@@ -253,12 +305,34 @@ def _generate_data_insight_from_rows(
     return insight, usage.model_dump(exclude_none=True)
 
 
+def _sql_from_generate_query(api_response: Any) -> str:
+    """Read the SQL string from a ``generateQuery`` service payload."""
+    if not isinstance(api_response, dict):
+        return ""
+    if api_response.get("status") not in (None, 1):
+        return ""
+    response = api_response.get("response")
+    if isinstance(response, str):
+        return response.strip()
+    if not isinstance(response, dict):
+        return ""
+    for key in ("query", "sql", "finalQuery", "generatedQuery"):
+        value = response.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
 class DataInsightTurn:
     """One data-insight request. ``run()`` returns JSON; ``stream()`` yields SSE."""
 
-    def __init__(self, payload: dict[str, Any]) -> None:
+    def __init__(self, payload: dict[str, Any], *, from_form_data: bool = False) -> None:
         self.payload = payload or {}
         self.user_input = self.payload.get("input", self.payload)
+        self.from_form_data = from_form_data
+        self.audit_endpoint = (
+            "/data-insight-service" if from_form_data else "/data-insight"
+        )
         (
             self.session_cookie,
             self.username,
@@ -266,8 +340,12 @@ class DataInsightTurn:
             _org_id,
         ) = bind_request_identity(self.payload, self.user_input)
         self.profile = resolve_role_profile(self.payload, self.user_input)
-        self.thread_id = self.user_input.get("thread_id", self.user_input.get("chatid", ""))
-        self.chat_seq_id = self.user_input.get("chat_seq_id")
+        if from_form_data:
+            self.thread_id = ""
+            self.chat_seq_id = None
+        else:
+            self.thread_id = self.user_input.get("thread_id", self.user_input.get("chatid", ""))
+            self.chat_seq_id = self.user_input.get("chat_seq_id")
         self.user_question = (
             self.user_input.get("user_question")
             or self.user_input.get("userQuestion")
@@ -278,17 +356,38 @@ class DataInsightTurn:
         self.md_file_name = self.user_input.get("md_file_name", self.user_input.get("mdFileName", ""))
         self.model = self.user_input.get("model")
         self.insights = _parse_step_insights(self.user_input)
+        self.form_data = (
+            _parse_form_data(self.payload, self.user_input) if from_form_data else None
+        )
+        if from_form_data and _is_saved_report_form(self.form_data):
+            # Opened think plans post the Instant file reference, not a chart.
+            # Explain those from hydrated chat memory (each supporting query).
+            logger.info(
+                "Ignoring saved-report formData for data insight; using chat memory"
+            )
+            self.from_form_data = False
+            self.form_data = None
+            self.audit_endpoint = "/data-insight"
+            self.thread_id = self.user_input.get(
+                "thread_id", self.user_input.get("chatid", "")
+            )
+            self.chat_seq_id = self.user_input.get("chat_seq_id")
+            from_form_data = False
         self.sql = (
             ""
-            if self.insights
+            if self.insights or from_form_data
             else resolve_sql_from_request(
                 self.user_input, self.thread_id, self.chat_seq_id, context="data-insight"
             )
         )
-        self.last_chats = self.user_input.get("last_chats", [])
-        self.memory = _resolve_memory_for_data_insight(
-            self.user_input, self.thread_id, self.chat_seq_id
-        )
+        if from_form_data:
+            self.last_chats = []
+            self.memory = {"domain": [], "topics": []}
+        else:
+            self.last_chats = self.user_input.get("last_chats", [])
+            self.memory = _resolve_memory_for_data_insight(
+                self.user_input, self.thread_id, self.chat_seq_id
+            )
         self.request_id = resolve_request_id(self.payload, self.user_input)
         self.reporter = ActivityReporter(self.user_question)
         self.to_send: Dict[str, Any] = {}
@@ -333,13 +432,19 @@ class DataInsightTurn:
         if self.request_id:
             request_cancellation.register(self.request_id)
         ensure_not_aborted(self.request_id)
-        self._resolve_metadata()
+        if not self.from_form_data:
+            self._resolve_metadata()
         if self.insights:
             self.reporter.generating_insight()
             yield
             self._build_summary_from_insights()
             self.reporter.insight_generated()
             yield
+            return
+        if self.from_form_data:
+            if not self.form_data:
+                raise RuntimeError("formData is required for data insight service.")
+            yield from self._iter_single_insight()
             return
         think_steps = _think_child_seq_ids(self.thread_id, self.chat_seq_id)
         if think_steps:
@@ -350,11 +455,14 @@ class DataInsightTurn:
         yield from self._iter_single_insight()
 
     def _iter_single_insight(self) -> Iterator[None]:
-        if not self.sql:
+        if self.from_form_data:
+            if not self.form_data:
+                raise RuntimeError("formData is required for data insight service.")
+        elif not self.sql:
             raise RuntimeError("No SQL found for data insight request.")
         self.reporter.executing_sql()
         yield
-        api_response = self._execute_query()
+        api_response = self._fetch_form_data() if self.from_form_data else self._execute_query()
         ensure_not_aborted(self.request_id)
         self.reporter.received_data()
         yield
@@ -435,6 +543,52 @@ class DataInsightTurn:
             request_id=self.request_id or str(self.thread_id),
         )
 
+    def _fetch_form_data(self) -> dict[str, Any]:
+        self._resolve_current_query()
+        ensure_not_aborted(self.request_id)
+        return app().fetch_data(
+            session_cookie=self.session_cookie,
+            form_data=self.form_data,
+            request_id=self.request_id or str(self.thread_id),
+        )
+
+    def _resolve_current_query(self) -> None:
+        """Load the chart's current SQL so the insight follows live filters.
+
+        ``generateQuery`` runs before ``fetchData``. The user question can still
+        describe an earlier request (for example 2015) after the chart filter changed.
+        """
+        try:
+            api_response = app().generate_query(
+                session_cookie=self.session_cookie,
+                form_data=self.form_data,
+                request_id=self.request_id or str(self.thread_id),
+            )
+        except Exception:
+            logger.exception(
+                "generateQuery failed before data-insight fetchData; continuing without SQL"
+            )
+            return
+        sql = _sql_from_generate_query(api_response)
+        if not sql:
+            response = api_response.get("response") if isinstance(api_response, dict) else None
+            logger.warning(
+                "generateQuery returned no SQL for data insight response_type=%s",
+                type(response).__name__,
+            )
+            return
+        self.sql = sql
+        logger.info("Resolved current query for data insight via generateQuery")
+
+    def _query_context(self) -> str:
+        if self.sql:
+            return self.sql
+        if self.form_data is None:
+            return ""
+        if isinstance(self.form_data, str):
+            return self.form_data
+        return json.dumps(self.form_data, default=str)
+
     def _build_insight(self, api_response: dict[str, Any]) -> None:
         if api_response.get("status") != 1:
             sql_error = api_response.get("response", "SQL execution failed.")
@@ -459,7 +613,7 @@ class DataInsightTurn:
         insight, token_usage = _generate_data_insight_from_rows(
             username=self.username,
             user_question=self.user_question,
-            sql=self.sql,
+            sql=self._query_context(),
             sample_data=data_rows,
             thread_id=self.thread_id,
             profile=self.profile,
@@ -518,7 +672,7 @@ class DataInsightTurn:
             self.error_message,
         )
         audit_llm_usage_async(
-            endpoint="/data-insight",
+            endpoint=self.audit_endpoint,
             user_id=self.user_id,
             session_cookie=self.session_cookie,
             user_query=self.user_question,
@@ -530,6 +684,16 @@ class DataInsightTurn:
         )
 
 
+class DataInsightServiceTurn(DataInsightTurn):
+    """Explain-chart insight from report formData.
+
+    Calls adhoc ``generateQuery`` for the current SQL, then ``fetchData`` for rows.
+    """
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        super().__init__(payload, from_form_data=True)
+
+
 def register(flask_app) -> None:
     @flask_app.route("/data-insight", methods=["POST"])
     def data_insight():
@@ -537,3 +701,12 @@ def register(flask_app) -> None:
         data = request.get_json()
         log_endpoint_input("/data-insight", data)
         return respond(DataInsightTurn(data))
+
+
+def register_service(flask_app) -> None:
+    @flask_app.route("/data-insight-service", methods=["POST"])
+    def data_insight_service():
+        """Resolve the current query, run formData through fetchData, and generate an insight."""
+        data = request.get_json()
+        log_endpoint_input("/data-insight-service", data)
+        return respond(DataInsightServiceTurn(data))

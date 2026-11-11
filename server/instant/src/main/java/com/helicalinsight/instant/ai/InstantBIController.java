@@ -4,7 +4,6 @@ import com.helicalinsight.efw.controllerutils.StatusValidator;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.instant.ai.payload.AgentDashboardPayload;
 import com.helicalinsight.instant.ai.payload.ChatContextPayload;
-import com.helicalinsight.instant.ai.payload.ConvertDashboardPayload;
 import com.helicalinsight.instant.ai.payload.DataInsightPayload;
 import com.helicalinsight.instant.ai.payload.InteractiveChatPayload;
 import com.helicalinsight.instant.ai.payload.LlmUsageAuditPayload;
@@ -103,7 +102,7 @@ public class InstantBIController {
             HttpServletResponse response) throws IOException {
         validateStatus();
         InstantBIServiceFactory.getDataInsightService()
-                .execute(new DataInsightPayload(chatSeqId, chatid, inputParam, formData, subjectString, "/data-insight"),
+                .execute(new DataInsightPayload(chatSeqId, chatid, inputParam, formData, subjectString, "/data-insight-service"),
                         request, response);
     }
 
@@ -119,21 +118,6 @@ public class InstantBIController {
         validateStatus();
         InstantBIServiceFactory.getDataInsightService()
                 .execute(new DataInsightPayload(chatSeqId, chatid, inputParam, formData, subjectString, "/instant-to-hr"),
-                        request, response);
-    }
-
-    @RequestMapping("/convert-dashboard")
-    public void convertDashboard(
-            @RequestParam(value = "chatid", required = false) String chatid,
-            @RequestParam(value = "items", required = false) String items,
-            @RequestParam(value = "subject", required = false) String subjectString,
-            @RequestParam(value = "formData", required = false) String formData,
-            @RequestParam(value = "input", required = false) String inputParam,
-            HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
-        validateStatus();
-        InstantBIServiceFactory.getConvertDashboardService()
-                .execute(new ConvertDashboardPayload(chatid, items, subjectString, formData, inputParam),
                         request, response);
     }
 

@@ -68,6 +68,7 @@ from helicalbi.sql_agent.constants import (
 )
 from helicalbi.sql_agent.strategy.catalog import list_strategies
 from helicalbi.sql_agent.strategy.diagnostics import (
+    capability_ai_context_line,
     diagnostic_field_scope,
     iter_applicable_measures,
     iter_diagnostic_uses,
@@ -164,8 +165,7 @@ class AnalyticalPromptBuilder:
                     ANALYTICAL_PROMPT_CUSTOM_DETAIL.format(label=label, value=text)
                 )
 
-        add("required inputs", op.get("requiredInputs"))
-        add("optional inputs", op.get("optionalInputs"))
+        add("inputs", op.get("inputs"))
         add("preconditions", op.get("preconditions"))
         add("limitations", op.get("limitations"))
         add("output fields", op.get("outputFields"))
@@ -204,6 +204,9 @@ class DiagnosticPromptBuilder:
             if uses:
                 line += DIAGNOSTIC_PROMPT_USES.format(uses=", ".join(uses))
             lines.append(line)
+            ai_line = capability_ai_context_line(cap)
+            if ai_line:
+                lines.append(f"  {ai_line}")
             lines.append(DIAGNOSTIC_PROMPT_RULE)
         return "\n".join(lines)
 
@@ -233,6 +236,9 @@ class DiagnosticPromptBuilder:
                     targets=", ".join(targets) or THINK_PROMPT_UNSPECIFIED,
                 )
             )
+            ai_line = capability_ai_context_line(cap)
+            if ai_line:
+                lines.append(f"  {ai_line}")
             for trait in cap.get(CAP_KEY_MEASURE_TRAITS) or []:
                 if not isinstance(trait, Mapping):
                     continue

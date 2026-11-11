@@ -62,6 +62,7 @@ def test_retries_until_success_and_restores_query():
         assert "Total travel cost" in prompt
         assert "Previous SQL that failed" in prompt
         assert state["query"] == "Total travel cost"
+        assert state["sql_retry_context"] == prompt
         state["sql"] = f"SELECT retry_{calls['regen']}"
         return state
 

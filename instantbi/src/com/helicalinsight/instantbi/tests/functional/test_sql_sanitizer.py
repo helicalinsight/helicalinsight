@@ -1,7 +1,7 @@
 """Functional tests for ``helicalbi.sql.SqlSanitizer.extract_sql``."""
 import pytest
 
-from helicalbi.sql.SqlSanitizer import extract_sql, normalize_sql_identifier_escapes
+from helicalbi.sql.SqlSanitizer import extract_sql, format_sql, normalize_sql_identifier_escapes
 
 
 pytestmark = pytest.mark.functional
@@ -41,6 +41,16 @@ class TestExtractSql:
         result = extract_sql(sql, "postgres")
         assert '\\"' not in result
         assert "CASE" in result.upper()
+
+    def test_pretty_sql_uses_not_in_keyword(self):
+        sql = (
+            'SELECT EXTRACT(YEAR FROM "travel_details"."travel_date") AS "Year" '
+            'FROM "travel_details" '
+            'WHERE EXTRACT(YEAR FROM "travel_details"."travel_date") NOT IN (2015)'
+        )
+        result = format_sql(sql, dialect="postgresql", pretty=True)
+        assert 'EXTRACT(YEAR FROM "travel_details"."travel_date") NOT IN (2015)' in result
+        assert "NOT EXTRACT" not in result
 
     @pytest.mark.parametrize("dialect", ["mysql", "sqlite", "postgres"])
     def test_supports_multiple_dialects(self, dialect):

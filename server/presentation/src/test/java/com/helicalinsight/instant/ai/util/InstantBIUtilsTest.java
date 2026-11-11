@@ -159,45 +159,6 @@ public class InstantBIUtilsTest {
     }
 
     @Test
-    public void prepareConvertDashboardResponsePassesLayoutParts() {
-        String botResponse = "{\"items\":[{\"id\":\"seq-3\"}],\"layout\":[{\"itemId\":\"seq-3\",\"x\":0,\"y\":2,\"w\":6,\"h\":4}],\"theme\":{\"color\":\"#1677ff\"}}";
-        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
-        assertEquals("seq-3", response.getAsJsonArray("items").get(0).getAsJsonObject().get("id").getAsString());
-        assertEquals("seq-3", response.getAsJsonArray("layout").get(0).getAsJsonObject().get("itemId").getAsString());
-        assertEquals("#1677ff", response.getAsJsonObject("theme").get("color").getAsString());
-        assertFalse(response.has("gridItemsData"));
-        assertTrue(response.has("items"));
-    }
-
-    @Test
-    public void prepareConvertDashboardResponsePassesTemplateId() {
-        String botResponse = "{\"layout\":[],\"templateId\":\"executive-kpi-first\"}";
-        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
-        assertEquals("executive-kpi-first", response.get("templateId").getAsString());
-    }
-
-    @Test
-    public void prepareConvertDashboardResponsePassesDecorations() {
-        String botResponse = "{\"layout\":[],\"decorations\":[{\"kind\":\"separator\",\"w\":12,\"h\":1}]}";
-        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
-        assertEquals("separator", response.getAsJsonArray("decorations").get(0).getAsJsonObject().get("kind").getAsString());
-    }
-
-    @Test
-    public void prepareConvertDashboardResponseOmitsMetadata() {
-        String botResponse = "{\"layout\":[],\"metadata\":{\"tables\":{\"t\":{\"alias\":\"t\"}}}}";
-        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse(botResponse);
-        assertFalse(response.has("metadata"));
-        assertTrue(response.has("layout"));
-    }
-
-    @Test
-    public void prepareConvertDashboardResponseIncludesPythonError() {
-        JsonObject response = InstantBIUtils.prepareConvertDashboardResponse("{\"error\":\"No visualizations were provided\"}");
-        assertEquals("No visualizations were provided", response.get("error").getAsString());
-    }
-
-    @Test
     public void prepareSqlToReportModelResponsePassesReportModel() {
         String botResponse = "{\"report_model\":{\"data_model\":{\"columns\":[{\"alias\":\"region\"}],\"sql\":\"SELECT region FROM t\"},\"viz_model\":{\"chart\":{\"viz\":\"Bar\"}}}}";
         JsonObject response = InstantBIUtils.prepareSqlToReportModelResponse(botResponse);
@@ -273,6 +234,7 @@ public class InstantBIUtilsTest {
             assertEquals("session-1", input.get("reportId").getAsString());
             assertFalse(input.has("mode"));
             assertFalse(input.has("rm_cols_in_filter"));
+            assertTrue(input.getAsJsonObject("parameterFunctions").get("functions").isJsonArray());
         }
     }
 

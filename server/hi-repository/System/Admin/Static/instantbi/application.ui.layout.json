@@ -16,6 +16,7 @@
           "fields": [
             {
               "name": "suggestion_query",
+              "path": "kpi.suggestion_query",
               "label": "Suggestion query",
               "type": "textarea",
               "span": 24,
@@ -41,6 +42,7 @@
           "fields": [
             {
               "name": "enable_llm_usage_audit",
+              "path": "feature_flags.enable_llm_usage_audit",
               "label": "Enable LLM usage audit",
               "type": "boolean",
               "control": "tick",
@@ -48,6 +50,7 @@
             },
             {
               "name": "hide_prompt_reason",
+              "path": "feature_flags.hide_prompt_reason",
               "label": "Hide prompt reason",
               "type": "boolean",
               "control": "tick",
@@ -55,6 +58,7 @@
             },
             {
               "name": "enable_cache",
+              "path": "feature_flags.enable_cache",
               "label": "Enable cache",
               "type": "boolean",
               "control": "tick",
@@ -62,6 +66,7 @@
             },
             {
               "name": "enable_streaming",
+              "path": "feature_flags.enable_streaming",
               "label": "Enable streaming",
               "type": "boolean",
               "control": "tick",
@@ -69,6 +74,7 @@
             },
             {
               "name": "enable_memory",
+              "path": "feature_flags.enable_memory",
               "label": "Enable memory",
               "type": "boolean",
               "control": "tick",
@@ -82,7 +88,7 @@
       "key": "sql_cache",
       "title": "sql / api_cache",
       "level": 0,
-      "description": "Default row limit for generated SQL queries, and in-memory cache size for HI service API responses.",
+      "description": "Default row limit, SQL autocorrect, schema chunk size, and in-memory cache size for HI service API responses.",
       "sections": [
         {
           "key": "sql_fields",
@@ -91,10 +97,29 @@
           "fields": [
             {
               "name": "default_limit",
+              "path": "sql.default_limit",
               "label": "Default SQL limit",
               "type": "number",
               "span": 12,
               "min": 1
+            },
+            {
+              "name": "schema_chunk_size",
+              "path": "prompt.schema_chunk_size",
+              "label": "Schema chunk size",
+              "type": "number",
+              "span": 12,
+              "min": 1,
+              "description": "Tables or columns sent to the model in one call."
+            },
+            {
+              "name": "autocorrect",
+              "path": "sql.autocorrect",
+              "label": "SQL autocorrect",
+              "type": "boolean",
+              "control": "tick",
+              "span": 12,
+              "description": "Rewrite SQL when a column is on the wrong table or the join does not match the join API."
             }
           ]
         },
@@ -105,6 +130,7 @@
           "fields": [
             {
               "name": "api_cache_enabled",
+              "path": "api_cache.enabled",
               "label": "API cache enabled",
               "type": "boolean",
               "control": "tick",
@@ -112,6 +138,7 @@
             },
             {
               "name": "api_cache_max_entries",
+              "path": "api_cache.max_entries",
               "label": "API cache max entries",
               "type": "number",
               "span": 12,

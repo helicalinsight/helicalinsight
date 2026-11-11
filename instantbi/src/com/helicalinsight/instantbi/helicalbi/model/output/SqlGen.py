@@ -7,7 +7,7 @@ def get_sql_gen_model():
   """Pydantic model for final SQL generation LLM output."""
   return create_model(
       "SqlGen",
-      sql=(str, Field(description="Provide the sql using the above information. Never use SELECT * or COUNT(*); always use explicit column names.")),
+      sql=(str, Field(description="SQL. FROM and JOIN use the original table name plus an alias.")),
       **reason_field_kwargs("Your reason for sql"),
       __base__=BaseModel,
       __doc__="Extracted information from the prompt.",

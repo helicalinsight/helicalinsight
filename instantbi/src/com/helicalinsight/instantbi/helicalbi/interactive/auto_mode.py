@@ -9,7 +9,7 @@ import logging
 import re
 from typing import Any, Mapping, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from helicalbi.interactive.constants import (
     AUTO_THINK_AGGREGATE_PATTERN,
@@ -24,7 +24,10 @@ from helicalbi.interactive.modes import (
     is_auto_mode,
     resolve_interactive_mode_from_input,
 )
-from helicalbi.sql_agent.prompt import AUTO_MODE_PROMPT
+from helicalbi.sql_agent.prompt.routing_prompts import (
+    AUTO_MODE_FORMAT_INSTRUCTIONS,
+    AUTO_MODE_PROMPT,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +39,24 @@ class InteractiveModeChoice(BaseModel):
         default="simple",
         description="simple, moderate, or complex.",
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def unwrap_properties_instance(cls, value: Any) -> Any:
+        """Accept {"properties": {"mode": "fast", ...}} when those values are real.
+
+        A schema echo keeps mode as an object with type/description, and is rejected.
+        """
+        if isinstance(value, dict) and not isinstance(value.get("mode"), str):
+            props = value.get("properties")
+            if isinstance(props, dict) and isinstance(props.get("mode"), str):
+                return props
+        return value
+
+
+def _schema_echo(exc: BaseException) -> bool:
+    text = str(exc)
+    return "properties" in text or "Failed to parse" in text or "Field required" in text
 
 
 def heuristic_interactive_mode(question: str) -> str:
@@ -55,6 +76,27 @@ def heuristic_interactive_mode(question: str) -> str:
     return INTERACTIVE_MODE_FAST
 
 
+_AUTO_MODE_RETRY_PROMPT = """Your previous reply was not a choice.
+Question:
+{question}
+
+{format_instructions}
+"""
+
+
+def _read_choice(parsed: Any) -> str:
+    chosen = str(getattr(parsed, "mode", "") or "").strip().lower()
+    if chosen in {INTERACTIVE_MODE_FAST, INTERACTIVE_MODE_THINK}:
+        logger.info(
+            "Auto mode classified question as %s complexity=%s reason=%s",
+            chosen,
+            getattr(parsed, "complexity", ""),
+            getattr(parsed, "reason", ""),
+        )
+        return chosen
+    return ""
+
+
 def classify_interactive_mode(
     question: str,
     *,
@@ -66,21 +108,45 @@ def classify_interactive_mode(
         from helicalbi.sql_agent.llm import invoke_agent_model
 
         runner = invoke or invoke_agent_model
-        parsed = runner(
-            AUTO_MODE_PROMPT,
-            {"question": str(question or "").strip()},
-            InteractiveModeChoice,
+        call = dict(
+            format_instructions=AUTO_MODE_FORMAT_INSTRUCTIONS,
         )
-        chosen = str(getattr(parsed, "mode", "") or "").strip().lower()
-        if chosen in {INTERACTIVE_MODE_FAST, INTERACTIVE_MODE_THINK}:
-            logger.info(
-                "Auto mode classified question as %s complexity=%s reason=%s",
-                chosen,
-                getattr(parsed, "complexity", ""),
-                getattr(parsed, "reason", ""),
+        try:
+            parsed = runner(
+                AUTO_MODE_PROMPT,
+                {"question": str(question or "").strip()},
+                InteractiveModeChoice,
+                **call,
             )
+        except TypeError:
+            parsed = runner(
+                AUTO_MODE_PROMPT,
+                {"question": str(question or "").strip()},
+                InteractiveModeChoice,
+            )
+        chosen = _read_choice(parsed)
+        if chosen:
             return chosen
-    except Exception:
+    except Exception as exc:
+        if _schema_echo(exc):
+            try:
+                from helicalbi.sql_agent.llm import invoke_agent_model
+
+                runner = invoke or invoke_agent_model
+                parsed = runner(
+                    _AUTO_MODE_RETRY_PROMPT,
+                    {"question": str(question or "").strip()},
+                    InteractiveModeChoice,
+                    format_instructions=AUTO_MODE_FORMAT_INSTRUCTIONS,
+                )
+                chosen = _read_choice(parsed)
+                if chosen:
+                    return chosen
+            except Exception:
+                logger.exception(
+                    "Auto mode classifier failed; using heuristic=%s", fallback
+                )
+                return fallback
         logger.exception("Auto mode classifier failed; using heuristic=%s", fallback)
     return fallback
 

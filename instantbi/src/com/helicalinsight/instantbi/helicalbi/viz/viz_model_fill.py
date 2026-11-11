@@ -25,6 +25,8 @@ from helicalbi.model.output.viz.VizModel import (
 )
 from helicalbi.viz._chart_selection import (
     _MEASURE_TOKENS,
+    all_selected_columns_temporal,
+    calendar_shape_met,
     infer_chart_shape,
     possible_chart_options,
 )
@@ -507,12 +509,22 @@ def _user_asked_for_map(user_query: str) -> bool:
     return bool(_MAP_REQUEST_RE.search(user_query or ""))
 
 
+# "calendar year" is a date period. It is not a request for a Calendar chart.
+_CALENDAR_PERIOD_RE = re.compile(
+    r"\bcalendars?\s+(?:years?|months?|quarters?|weeks?|days?)\b",
+    re.IGNORECASE,
+)
+
+
 def _chart_named_in_query(user_query: str) -> Optional[str]:
     query = (user_query or "").lower()
     if not query:
         return None
+    # Keep "calendar chart" / "calendar heatmap". Drop "calendar year".
+    calendar_query = _CALENDAR_PERIOD_RE.sub(" ", query)
     for alias, name in _QUERY_CHART_ALIASES:
-        if re.search(rf"\b{alias}\b", query):
+        haystack = calendar_query if name == "calendar" else query
+        if re.search(rf"\b{re.escape(alias)}\b", haystack):
             resolved = resolve_chart_name(name)
             if resolved:
                 return resolved
@@ -632,8 +644,14 @@ def _pick_chart_type(
 
     Maps are used only when the question names a map. Extra grouping
     columns become a table, or a grid table when aggregates are present.
+    A calendar is suggested when every selected column is a date, datetime,
+    or time and the calendar shape is met: 1 dimension and 0-1 measures.
     """
     requested = _chart_named_in_query(user_query)
+    # A Calendar chart needs every selected column to be date, datetime, or time.
+    # A date filter or the phrase "calendar year" does not qualify a category.
+    if requested == "calendar" and not all_selected_columns_temporal(data_types):
+        requested = None
     if viz_update:
         if requested:
             return requested
@@ -647,6 +665,8 @@ def _pick_chart_type(
         dims, measures = dimension_count, measure_count
     else:
         dims, measures, ordered = infer_chart_shape(data_types)
+    if all_selected_columns_temporal(data_types) and calendar_shape_met(dims, measures):
+        return "calendar"
     ordered = _detect_ordered(
         data_types,
         ordered=ordered,
@@ -950,6 +970,8 @@ def _try_sql_to_form_data(
     metadata: dict[str, Any] | None = None,
     catalog: Any = None,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
+    relative_dates: dict | None = None,
 ) -> Optional[dict[str, Any]]:
     """Run sql_to_formdata when metadata refs are available; else None.
 
@@ -983,6 +1005,8 @@ def _try_sql_to_form_data(
             metadata=metadata,
             catalog=_as_function_catalog(catalog),
             rm_cols_in_filter=rm_cols_in_filter,
+            parameter_functions=parameter_functions,
+            relative_dates=relative_dates,
         )
         logger.info(
             "viz_model_fill: sql_to_formdata ok columns=%s filters=%s",
@@ -1046,6 +1070,8 @@ def _resolve_shelves(
     md_file_name: str = "",
     dialect: str | None = None,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
+    relative_dates: dict | None = None,
 ) -> tuple[list[str], list[str], Optional[dict[str, Any]]]:
     """Prefer sql_to_formdata for rows/columns shelves."""
     result_fields = extract_result_field_names(data_types)
@@ -1056,6 +1082,8 @@ def _resolve_shelves(
         md_file_name=md_file_name,
         dialect=dialect,
         rm_cols_in_filter=rm_cols_in_filter,
+        parameter_functions=parameter_functions,
+        relative_dates=relative_dates,
     )
 
     if form_data is not None:
@@ -1106,6 +1134,8 @@ def build_viz_model(
     dialect: str | None = None,
     viz_update: bool = False,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
+    relative_dates: dict | None = None,
 ) -> tuple[VizModel, str, dict[str, Any]]:
     """Build a VizModel and related viz context.
 
@@ -1123,6 +1153,8 @@ def build_viz_model(
         md_file_name=md_file_name,
         dialect=dialect,
         rm_cols_in_filter=rm_cols_in_filter,
+        parameter_functions=parameter_functions,
+        relative_dates=relative_dates,
     )
     pick_kwargs = {
         "viz_hint": viz_hint,

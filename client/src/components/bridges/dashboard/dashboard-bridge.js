@@ -1,4 +1,7 @@
 import createHReportBridge from "../hreport/hreport-bridge";
+import { getReportModelInteractions } from "../../hi-instant-bi/utils/report-model-interactions";
+import { getReportById } from "../hreport/utils";
+import { isEmpty } from "lodash";
 
 export const DASHBOARD_CREATE_TILE = "dashboard-create-component";
 
@@ -68,15 +71,23 @@ function createIBDashboardBridge({
     }
     const item = pending[index];
     const hreportId = itemHreportId(item);
+    const isReportPresent = getReportById(dispatch, hreportId);
+    if (!isEmpty(isReportPresent)) {
+      resolve(processNext(index + 1));
+      return;
+    }
+    const reportModel = itemReportModel(item);
     const bridge = createHReportBridge({
       dispatch,
-      reportModel: itemReportModel(item),
+      reportModel,
       reportId: hreportId,
       reportMetadata,
-      interactions: interactionsById[item.reportInfo?.dashboardItemId]
+      interactions: getReportModelInteractions(
+        reportModel,
+        interactionsById[item.reportInfo?.dashboardItemId]
         || interactionsById[item.reportInfo?.component_id]
         || interactionsById[hreportId]
-        || {},
+      ),
       onComplete: (status, report) => {
         onItemUpdate(report);
         resolve(processNext(index + 1));

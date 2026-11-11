@@ -27,6 +27,7 @@ class FastTurnStateBuilder:
         thread_id: Any,
         last_chats: list,
         rm_cols_in_filter: bool = True,
+        parameter_functions: dict | None = None,
     ) -> dict[str, Any]:
         cube = session.cube_info_prepared if session.use_cube_info_flow else {}
         state: dict[str, Any] = {
@@ -49,6 +50,7 @@ class FastTurnStateBuilder:
             "model_location": session.location,
             "dialect": session.metadata_fun_ref["reference"],
             "rm_cols_in_filter": rm_cols_in_filter,
+            "parameter_functions": parameter_functions or {},
         }
         for key in CUBE_INFO_STATE_KEYS:
             state[key] = self._default_for(key, cube.get(key))

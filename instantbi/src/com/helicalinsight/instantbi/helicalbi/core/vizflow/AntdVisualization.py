@@ -10,7 +10,10 @@ from helicalbi.common.configuration import llm
 from helicalbi.model.ModelState import ModelState
 from helicalbi.model.output.viz.VizResponse import get_ant_visualization_response_model
 from helicalbi.prompt.AntdVizPrompt import antd_viz_prompt
-from helicalbi.prompt.FormatInstruction import format_instruction_string
+from helicalbi.prompt.FormatInstruction import (
+    brief_format_instructions,
+    format_instruction_string,
+)
 from helicalbi.viz.ChatDefinition import format_chart_selection_guide
 
 logger = logging.getLogger(__name__)
@@ -74,7 +77,7 @@ class AntdVisualization:
                                  "data_types", "chart_selection_guide",
                                  "column_format_strings", "column_ai_instructions",
                                  "column_viz_context"],
-                partial_variables={"format_instructions": parser.get_format_instructions()},
+                partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
             )
             response, _ = invoke_structured(
                 prompt,

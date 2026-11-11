@@ -24,6 +24,7 @@ from helicalbi.sql_agent.constants import (
 from helicalbi.sql_agent.strategy.catalog import load_analytical_operations
 from helicalbi.sql_agent.strategy.diagnostics import (
     canonical_operation_name,
+    capability_synonyms,
     iter_applicable_measures,
     iter_diagnostic_uses,
     measure_mentioned,
@@ -91,9 +92,10 @@ class AnalyticalOperationSelector:
             applicable = iter_applicable_measures(
                 cap.get(CAP_KEY_APPLICABLE_TO) or cap.get(CAP_KEY_APPLICABLE_TO_SNAKE)
             )
-            cap_name = str(cap.get(CAP_KEY_CAPABILITY) or "").strip().lower()
+            cap_name = str(cap.get(CAP_KEY_CAPABILITY) or "").strip()
+            name_hit = measure_mentioned(cap_name, text, capability_synonyms(cap))
             applicable_hit = any(measure_mentioned(app, text) for app in applicable)
-            if (cap_name and cap_name in text) or applicable_hit or not applicable:
+            if name_hit or applicable_hit or not applicable:
                 for ref in iter_diagnostic_uses(cap.get(CAP_KEY_USES)):
                     canonical = canonical_operation_name(ref["name"], operations)
                     boosted.add(canonical or ref["name"].strip().lower())

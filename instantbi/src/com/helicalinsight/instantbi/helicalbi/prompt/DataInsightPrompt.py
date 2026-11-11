@@ -1,70 +1,37 @@
 from langchain_core.prompts import PromptTemplate
 
 data_insight_prompt = """
-You are a business analyst writing a short insight for a non-technical business user in Instant BI.
+Write 2–4 sentences for a business user. Follow the current query and the result sample when they differ from the question.
+Do not invent numbers. Do not mention SQL, tables, columns, metadata, or file names.
+No headings or labels.
 
-Context (use this only to understand the analysis — do not repeat it in technical form):
 User: {username}
-User question: {user_question}
-SQL: {sql}
-User profile: {userProfile}
-Selected domain: {domain}
-Selected topics: {topics}
-Result sample: {sample_data}
+Question: {user_question}
+Query: {sql}
+Profile: {userProfile}
+Domain: {domain}
+Topics: {topics}
+Sample: {sample_data}
 Chat history: {last_chats}
-
-Task:
-Write a concise, natural-language insight that summarizes what the results show and why that matters to the business.
-
-Requirements:
-- Write 2–4 short sentences in clear, conversational business language.
-- Sound like a helpful colleague, not a system, database, or generated report.
-- You may use the user's name only if it feels natural; do not force a greeting.
-- Summarize the main business takeaway from the result sample. Do not invent numbers, trends, or rankings that are not clearly supported.
-- Translate any domain, topic, table, or field names into everyday language.
-- When useful, end with one simple next question or decision the user might consider.
-- Do not mention SQL, queries, metadata, tables, columns, schemas, joins, semantic layers, cubes, APIs, charts, prompts, or other implementation details.
-- Do not expose internal field names, file names, or system terminology.
-- Do not use headings, bullet points, numbered lists, or labels such as "Insight:", "Summary:", "Attention:", or "Action:".
-- Do not use marketing slogans or formulaic persuasion frameworks.
-- Keep a consistent, professional, friendly tone and easy-to-read wording.
 """
 
 data_insight_prompt_formatted = PromptTemplate.from_template(data_insight_prompt)
 
 data_insight_summary_prompt = """
-You are a business analyst writing a short explanation for a non-technical business user in Instant BI.
+Answer the original question in 2–5 sentences using the insights below.
+Lead with the answer. After a claim, add [1] or [2] for the supporting question that backs it.
+Do not invent numbers or indexes. Do not mention SQL, tables, columns, or metadata.
 
-The user asked an original question. Supporting questions were investigated and each produced an insight.
-Write one explanation that answers the original question using those insights.
-
-Original question:
+Question:
 {user_question}
 
-Original-question insight (may be empty):
+Original insight:
 {original_insight}
 
-Supporting questions and their insights:
+Supporting insights:
 {numbered_insights}
 
 User: {username}
-
-Task:
-Write a concise, natural-language explanation of what the investigation shows and why that matters.
-
-Requirements:
-- Lead with the answer to the original question.
-- Ground every claim in the supporting insights. Do not invent numbers, trends, or rankings.
-- After key claims, add inline markers like [1] or [2] that match the supporting question numbers above.
-- Cite only the supporting questions that actually support each claim; do not invent indexes.
-- Prefer markers next to decisive figures or recommendations, not on every sentence.
-- Write 2–5 short sentences in clear, conversational business language. Optional short markdown bullets are allowed.
-- Sound like a helpful colleague, not a system, database, or generated report.
-- Translate any domain, topic, table, or field names into everyday language.
-- Do not mention SQL, queries, metadata, tables, columns, schemas, joins, semantic layers, cubes, APIs, charts, prompts, or other implementation details.
-- Do not expose internal field names, file names, or system terminology.
-- Do not use headings or labels such as "Insight:", "Summary:", "Attention:", or "Action:".
-- Keep a consistent, professional, friendly tone and easy-to-read wording.
 """
 
 data_insight_summary_prompt_formatted = PromptTemplate.from_template(data_insight_summary_prompt)

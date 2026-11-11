@@ -54,20 +54,16 @@
     min-height: 0;
     height: 100%;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
-  .diagnostic-section-note {
-    margin: 0 0 10px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #8c8c8c;
-  }
-
-  .business-view-empty {
+  .diagnostic-capabilities-pane > div.business-view-empty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin: auto;
     padding: 48px 24px;
     text-align: center;
 
@@ -150,7 +146,6 @@
       .cube-field-info-icon {
         color: #8c8c8c;
         font-size: 12px;
-        cursor: help;
         flex-shrink: 0;
       }
     }
@@ -373,7 +368,7 @@
     margin-bottom: 0;
     border: 1px solid #f0f0f0;
     border-radius: 6px;
-    background: #fafafa;
+    background: #fff;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -387,6 +382,8 @@
     padding: 6px 8px;
     user-select: none;
     flex-shrink: 0;
+    background: #fafafa;
+    border-bottom: 1px solid #f0f0f0;
   }
 
   .diagnostic-operations-catalog-title {
@@ -399,50 +396,73 @@
     color: #262626;
   }
 
-  .diagnostic-operations-count {
-    margin-left: auto;
-    font-size: 12px;
-  }
-
   .diagnostic-operations-catalog-body {
     display: flex;
     flex-direction: column;
     min-height: 0;
     flex: 1;
-    padding: 0 8px 8px;
+    padding: 0;
+    background: #fff;
   }
 
-  .diagnostic-operations-filter {
-    margin-bottom: 6px;
+  .diagnostic-operations-filter-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    margin-left: auto;
+    color: #bfbfbf;
+
+    &.active {
+      color: #1890ff;
+    }
+  }
+
+  .diagnostic-operations-filter-dropdown {
+    width: 188px;
+    padding: 8px;
+    background: #fff;
+    border-radius: 2px;
+    box-shadow:
+      0 3px 6px -4px rgba(0, 0, 0, 0.12),
+      0 6px 16px 0 rgba(0, 0, 0, 0.08),
+      0 9px 28px 8px rgba(0, 0, 0, 0.05);
   }
 
   .diagnostic-operations-error {
-    margin: 0 0 6px;
+    margin: 0;
+    padding: 6px 8px;
     font-size: 12px;
     color: #cf1322;
+    border-bottom: 1px solid #f0f0f0;
   }
 
   .diagnostic-operations-list {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0;
     flex: 1 1 auto;
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    background: #fff;
   }
 
   .diagnostic-operation-group-title {
     display: flex;
     align-items: center;
     gap: 4px;
-    margin-bottom: 2px;
+    margin-bottom: 0;
+    padding: 6px 8px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
     font-size: 11px;
     font-weight: 600;
     color: #8c8c8c;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    text-transform: none;
+    letter-spacing: normal;
     cursor: pointer;
     user-select: none;
 
@@ -496,24 +516,26 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
-    margin: 0 0 6px 16px;
+    gap: 0;
+    margin: 0;
   }
 
   .analytical-operation-drag-source {
     display: block;
     width: 100%;
-    cursor: grab;
+    cursor: pointer;
   }
 
   .diagnostic-operation-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 4px 8px;
+    padding: 6px 8px 6px 24px;
+    cursor: pointer;
     border: none;
-    border-radius: 4px;
-    background: transparent;
+    border-bottom: 1px solid #f0f0f0;
+    border-radius: 0;
+    background: #fff;
     font-size: 12px;
     color: #262626;
     min-width: 0;
@@ -525,8 +547,7 @@
     }
 
     &:hover {
-      background: rgba(24, 144, 255, 0.08);
-      color: #1890ff;
+      background: #fafafa;
     }
   }
 
@@ -591,9 +612,17 @@
   }
 
   .diagnostic-input-slot-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     color: #595959;
     line-height: 1.3;
+  }
+
+  .diagnostic-input-slot-info {
+    color: #8c8c8c;
+    font-size: 12px;
   }
 
   .diagnostic-input-values {
@@ -612,22 +641,36 @@
       box-shadow: none;
     }
 
-    .ant-input {
+    .ant-input,
+    .diagnostic-input-suggest {
       flex: 1 1 72px;
       min-width: 72px;
+    }
+
+    .ant-input {
       padding: 0 2px;
       background: transparent;
+    }
+
+    .diagnostic-input-suggest {
+      .ant-select-selector {
+        height: 22px !important;
+        padding: 0 2px !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+
+      .ant-select-selection-search-input,
+      .ant-input {
+        height: 22px !important;
+      }
     }
   }
 
   .diagnostic-input-chip {
     margin: 0;
     max-width: 100%;
-  }
-
-  .diagnostic-input-required-mark {
-    margin-left: 2px;
-    color: #cf1322;
   }
 }
 
@@ -652,9 +695,17 @@
   }
 
   .diagnostic-input-slot-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     color: #595959;
     line-height: 1.3;
+  }
+
+  .diagnostic-input-slot-info {
+    color: #8c8c8c;
+    font-size: 12px;
   }
 
   .diagnostic-input-values {
@@ -680,5 +731,52 @@
 
   .diagnostic-input-chip {
     margin: 0;
+  }
+}
+
+body.is-dragging-analytical-operation .diagnostic-operation-tooltip-overlay {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.diagnostic-operation-tooltip-overlay {
+  max-width: 560px;
+  cursor: pointer;
+
+  .ant-tooltip-inner {
+    max-width: 560px;
+    cursor: pointer;
+  }
+}
+
+.diagnostic-operation-tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 520px;
+  cursor: pointer;
+
+  .diagnostic-operation-tooltip-description {
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
+    margin-bottom: 2px;
+  }
+
+  .diagnostic-operation-tooltip-row {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    column-gap: 12px;
+    align-items: start;
+  }
+
+  .diagnostic-operation-tooltip-label {
+    white-space: nowrap;
+  }
+
+  .diagnostic-operation-tooltip-value {
+    white-space: normal;
+    overflow: visible;
+    word-break: break-word;
   }
 }

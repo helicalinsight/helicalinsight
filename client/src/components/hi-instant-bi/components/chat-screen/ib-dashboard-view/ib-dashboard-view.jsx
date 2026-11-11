@@ -1,4 +1,3 @@
-import { ExportOutlined } from "@ant-design/icons";
 import { Typography } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -8,10 +7,7 @@ import {
   storeFiltersList,
 } from "../../../../../redux/actions/dashboard-designer.actions";
 import { HIDashboardDesigner } from "../../../../hi-dashboard-designer";
-import InstantBITooltip from "../../../instant-bi-tooltip-title";
-import { assembleInstantDashboardCreateConfig, getGridItemsFiltersSettings } from "../../../utils/assemble-instant-dashboard";
-import { getInstantBIMetadataForReport } from "../../../utils/common-utils";
-import { persistConvertDashboardSeed } from "../../../utils/convert-sql-to-hr-save";
+import { assembleInstantDashboardCreateConfig } from "../../../utils/assemble-instant-dashboard";
 import { INSTANT_EDIT_MODE } from "../../../utils/save-instant-dashboard";
 import "./ib-dashboard-view.scss";
 import { useSelector } from "react-redux";
@@ -37,27 +33,6 @@ const IBDashboardView = ({
   const items = Array.isArray(dashboardModel?.items) ? dashboardModel.items : [];
   const hasContent = items.length > 0;
 
-  const handleExploreDashboard = () => {
-    if (typeof dispatch !== "function" || !hasContent) return;
-    const dashboardConfig = assembleInstantDashboardCreateConfig({
-      dashboardModel,
-      steps,
-      theme: dashboardModel.theme || {},
-      questionsHistory,
-      isStatic: false,
-      reports
-    });
-    const gridItemsFiltersInfo = getGridItemsFiltersSettings(dashboardConfig.gridItemsData, reports);
-    const subject = getInstantBIMetadataForReport(activeReport) || {};
-    persistConvertDashboardSeed(
-      { ...dashboardConfig, designerMode: INSTANT_EDIT_MODE },
-      { subject },
-      reports,
-      gridItemsFiltersInfo
-    );
-    window.open(`${window.baseURL}#/dashboard-designer`);
-  };
-
   useEffect(() => {
     if (!active || typeof dispatch !== "function" || !hasContent) {
       setStartedFor(null);
@@ -69,7 +44,8 @@ const IBDashboardView = ({
       steps,
       theme: dashboardModel.theme || {},
       questionsHistory,
-      reports
+      reports,
+      activeReport
     });
     dispatch(storeDashboardConfig({ ...config, designerMode: INSTANT_EDIT_MODE }));
     dispatch(setPreviewMode(true));
@@ -105,17 +81,6 @@ const IBDashboardView = ({
     <div className="ib-dashboard-view" data-testid="ib-dashboard-view" key={`ib-dashboard-view-${planMessageId}`}>
       <div className="ib-dashboard-view__header" data-testid="ib-dashboard-view-title">
         <Text strong>{dashboardModel.title || "Dashboard"}</Text>
-        {!isOpenMode && <InstantBITooltip title="Explore this dashboard">
-          <button
-            type="button"
-            className="ib-dashboard-view__explore-btn"
-            onClick={handleExploreDashboard}
-            data-testid="ib-dashboard-view-explore"
-            aria-label="Explore this dashboard"
-          >
-            <ExportOutlined />
-          </button>
-        </InstantBITooltip>}
       </div>
       <div className="ib-dashboard-view__designer">
         {active && startedFor === planMessageId ? (

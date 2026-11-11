@@ -1,3 +1,5 @@
+@import "./chat-preview-actions";
+
 .ib-dashboard-tile-tabs {
   display: flex;
   flex-direction: column;
@@ -22,184 +24,31 @@
     }
 
     &__data-insight-fab {
-      position: absolute;
-      right: 0;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+      @include chat-preview-action(10px);
     }
 
     &__go-to-hreport-filter-button {
-      position: absolute;
-      right: 90px;
-      ;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
+      @include chat-preview-action(100px);
+    }
 
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+    &__hreport-filter-button-open {
+      @include chat-preview-action(28px);
     }
 
     &__go-to-hreport-button {
-      position: absolute;
-      right: 30px;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+      @include chat-preview-action(40px);
     }
 
     &__trigger-button {
-      position: absolute;
-      right: 60px;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+      @include chat-preview-action(70px);
     }
 
     &__sql-button {
-      position: absolute;
-      right: 10px;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+      @include chat-preview-action(10px);
     }
 
     &__spec-button {
-      position: absolute;
-      right: 40px;
-      bottom: 0;
-      z-index: 10;
-      width: 20px;
-      height: 20px;
-      border: none;
-      border-radius: 50%;
-      padding: 0;
-      background: #fff;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      visibility: hidden;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
-
-      .anticon {
-        font-size: 12px;
-        color: #3e4557;
-      }
-
-      &:hover .anticon {
-        color: #1890ff;
-      }
+      @include chat-preview-action(40px);
     }
 
 
@@ -297,7 +146,7 @@
       height: 100%;
     }
 
-    .chart-wrapper{
+    .chart-wrapper {
       height: 100%;
     }
   }
@@ -308,14 +157,14 @@
     .chart-preview-section__data-insight-fab,
     .ib-think-final__data-insight-fab,
     .ib-think-plan__data-insight-fab,
+    .ib-think-plan__explore-dashboard-fab,
     .chart-preview-section__go-to-hreport-button,
     .chart-preview-section__trigger-button,
     .chart-preview-section__sql-button,
     .chart-preview-section__spec-button,
+    .chart-preview-section__hreport-filter-button-open,
     .chart-preview-section__go-to-hreport-filter-button {
-      visibility: visible;
-      transition: opacity 0.3s ease-in-out;
-      opacity: 1;
+      @include chat-preview-action-visible;
     }
   }
 }

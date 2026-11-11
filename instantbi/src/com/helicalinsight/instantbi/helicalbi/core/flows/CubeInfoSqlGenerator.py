@@ -63,10 +63,12 @@ class CubeInfoSqlGenerator:
             "dialect": state["dialect"],
             "dbname": state["dbname"],
             "thread_id": state["thread_id"],
+            "parameter_functions": state.get("parameter_functions") or {},
             "metadata_file_name": state["md_file_name"],
             "location": state["md_location"],
             "topics": state.get("topics") or [],
             "domain": state.get("domain") or [],
+            "sql_retry_context": state.get("sql_retry_context") or "",
         }
 
     @staticmethod
@@ -82,6 +84,7 @@ class CubeInfoSqlGenerator:
         merge_time_consumed(state, read_time_consumed(res))
         state["sql"] = extract_sql(res["final_sql"], state["dialect"])
         state["sql_reason"] = res.get("sql_reason", "") or ""
+        state["relative_dates"] = res.get("relative_dates") or {"filters": []}
         if "domain" in res:
             state["domain"] = res.get("domain") or []
         if "topics" in res:

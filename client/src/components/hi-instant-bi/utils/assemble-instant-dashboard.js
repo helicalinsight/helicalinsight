@@ -8,6 +8,7 @@ import { initialConfig } from "../../hi-dashboard-designer/utils/constants";
 import { DASHBOARD_CREATE_TILE, matchStepReportModel } from "../../bridges/dashboard/dashboard-bridge";
 import { parseCssColor, unwrapConvertDashboardResponse } from "./convert-sql-to-hr-save";
 import { INSTANT_EDIT_MODE } from "./save-instant-dashboard";
+import { getInstantBIAgentSubject } from "./common-utils";
 import { getFieldDisplayName } from "../../../utils/utilities";
 
 const escapeHtml = (value) =>
@@ -275,7 +276,7 @@ const getQuestionHistory = (questionsHistory = [], dashboardItem = {}) => {
   return questionsHistory.find((q) => q.chat_seq_id === chatSeqId) || {};
 }
 
-export const createDashboardCreateItem = ({ dashboardItem = {}, reportModel = {}, theme, questionsHistory = [] } = {}) => {
+export const createDashboardCreateItem = ({ dashboardItem = {}, reportModel = {}, theme, questionsHistory = [], subject } = {}) => {
   const id = getDashboardItemId(dashboardItem);
   const {
     report_model,
@@ -285,6 +286,14 @@ export const createDashboardCreateItem = ({ dashboardItem = {}, reportModel = {}
     ...restQHistory
   } = getQuestionHistory(questionsHistory, dashboardItem)
   const hreportId = restQHistory.hreportId || restQHistory?.chat_response?.hreportId || fullChatResponse?.hreportId || "";
+  const storedReportModel = report_model
+    || fullChatResponse?.report_model
+    || restQHistory?.chat_response?.report_model
+    || {};
+  const resolvedReportModel = Object.keys(reportModel || {}).length
+    ? reportModel
+    : storedReportModel;
+  const instantItem = subject ? { ...restQHistory, subject } : restQHistory;
   const model = dashboardItem || {};
   const box = model.layout || {};
   const position = layoutEntry({
@@ -321,7 +330,8 @@ export const createDashboardCreateItem = ({ dashboardItem = {}, reportModel = {}
         inline: true,
         dashboardItemId: id,
         title,
-        instant_item: restQHistory,
+        report_model: resolvedReportModel,
+        instant_item: instantItem,
       },
       hreportId,
     },
@@ -383,7 +393,7 @@ export const createDashboardOtherItem = ({ dashboardItem = {}, theme } = {}) => 
 };
 
 
-export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantItems = [], questionsHistory = [], index, reports = [] } = {}) => {
+export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantItems = [], questionsHistory = [], index, reports = [], subject } = {}) => {
   const id = `item-${dashboardItem?.component_id || dashboardItem?.itemId || nextItemId()}`;
   const model = dashboardItem || {};
   const { sourceItemId } = model || {};
@@ -398,6 +408,7 @@ export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantIt
         data,
         ...restQHistory
       } = getQuestionHistory(questionsHistory, sourceItem)
+      const instantItem = subject ? { ...restQHistory, subject } : restQHistory;
       const title = tileTitle(dashboardItem);
       const hreportId = restQHistory.hreportId || restQHistory?.chat_response?.hreportId || fullChatResponse?.hreportId || "";
 
@@ -438,7 +449,7 @@ export const createDashboardFilterItem = ({ dashboardItem = {}, theme, instantIt
             inline: true,
             dashboardItemId: id,
             title,
-            instant_item: restQHistory,
+            instant_item: instantItem,
           },
           hreportId,
         },
@@ -495,8 +506,9 @@ export const createDashboardApplyResetItem = ({ dashboardItem = {}, theme } = {}
   });
 };
 
-export const assembleInstantDashboardCreateConfig = ({ dashboardModel = {}, steps = [], theme, questionsHistory = [], isStatic = true, reports = [] } = {}) => {
+export const assembleInstantDashboardCreateConfig = ({ dashboardModel = {}, steps = [], theme, questionsHistory = [], isStatic = true, reports = [], activeReport = {} } = {}) => {
   const base = assembleInstantDashboardConfig({ payload: {}, items: [] });
+  const subject = getInstantBIAgentSubject(activeReport);
   const gridItemsData = [...base.gridItemsData];
   const layout = [...base.layout];
   const pushBuilt = (built) => {
@@ -517,7 +529,7 @@ export const assembleInstantDashboardCreateConfig = ({ dashboardModel = {}, step
       const { reportModel } = matchStepReportModel({ item: dashboardItem, steps, cursor });
       cursor += 1;
       if (reportModel && Object.keys(reportModel).length) {
-        pushBuilt(createDashboardCreateItem({ dashboardItem, reportModel, theme, questionsHistory, reports }));
+        pushBuilt(createDashboardCreateItem({ dashboardItem, reportModel, theme, questionsHistory, reports, subject }));
       } else {
         pushBuilt(createDashboardTextItem({ dashboardItem, theme }));
       }
@@ -528,7 +540,7 @@ export const assembleInstantDashboardCreateConfig = ({ dashboardModel = {}, step
       return
     }
     if (kind === "instant.filter") {
-      const filterGridItem = createDashboardFilterItem({ dashboardItem, theme, instantItems, questionsHistory, index, reports });
+      const filterGridItem = createDashboardFilterItem({ dashboardItem, theme, instantItems, questionsHistory, index, reports, subject });
       pushBuilt(filterGridItem);
       pushBuilt({
         gridItem: {

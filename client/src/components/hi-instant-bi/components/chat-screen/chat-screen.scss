@@ -1,3 +1,5 @@
+@import "./chat-preview-actions";
+
 .ib-chat-root-container {
   width: 100%;
   height: 100%;
@@ -312,184 +314,31 @@
               }
 
               &__data-insight-fab {
-                position: absolute;
-                right: 0;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
-
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+                @include chat-preview-action;
               }
 
               &__go-to-hreport-filter-button {
-                position: absolute;
-                right: 90px;
-                ;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
+                @include chat-preview-action(90px);
+              }
 
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+              &__hreport-filter-button-open {
+                @include chat-preview-action(28px);
               }
 
               &__go-to-hreport-button {
-                position: absolute;
-                right: 30px;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
-
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+                @include chat-preview-action(30px);
               }
 
               &__trigger-button {
-                position: absolute;
-                right: 60px;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
-
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+                @include chat-preview-action(60px);
               }
 
               &__sql-button {
-                position: absolute;
-                right: 10px;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
-
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+                @include chat-preview-action(10px);
               }
 
               &__spec-button {
-                position: absolute;
-                right: 40px;
-                bottom: 0;
-                z-index: 10;
-                width: 20px;
-                height: 20px;
-                border: none;
-                border-radius: 50%;
-                padding: 0;
-                background: #fff;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                visibility: hidden;
-                opacity: 0;
-                transition: opacity 0.3s ease-in-out;
-
-                .anticon {
-                  font-size: 12px;
-                  color: #3e4557;
-                }
-
-                &:hover .anticon {
-                  color: #1890ff;
-                }
+                @include chat-preview-action(40px);
               }
 
 
@@ -612,14 +461,14 @@
             .chart-preview-section__data-insight-fab,
             .ib-think-final__data-insight-fab,
             .ib-think-plan__data-insight-fab,
+            .ib-think-plan__explore-dashboard-fab,
             .chart-preview-section__go-to-hreport-button,
             .chart-preview-section__trigger-button,
             .chart-preview-section__sql-button,
             .chart-preview-section__spec-button,
+            .chart-preview-section__hreport-filter-button-open,
             .chart-preview-section__go-to-hreport-filter-button {
-              visibility: visible;
-              transition: opacity 0.3s ease-in-out;
-              opacity: 1;
+              @include chat-preview-action-visible;
             }
           }
 
@@ -1141,18 +990,19 @@
 
 // Open mode -- disable chatlevel scrol use page scroll only
 .hi-instant-bi--open-mode {
-  .react-grid-layout {
-    height: auto !important;
-    min-height: 100%;
-  }
+  // .react-grid-layout {
+  //   height: auto !important;
+  //   min-height: 100%;
+  // }
 
   .react-grid-item {
-    position: relative !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
+    // position: relative !important;
+    // top: 0 !important;
+    // left: 0 !important;
+    // width: 100% !important;
     // height: auto !important;
-    transform: none !important;
+    // transform: none !important;
+    border: none !important;
   }
 
   .ib-chat-root-container {
@@ -1200,42 +1050,22 @@
   gap: 4px;
 
   &__data-insight-fab {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 50%;
-    padding: 0;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-
-    .anticon {
-      font-size: 12px;
-      color: #3e4557;
-    }
-
-    &:hover .anticon {
-      color: #1890ff;
-    }
+    @include chat-preview-action(0px, -8px);
 
     &:disabled {
       cursor: default;
     }
   }
 
-  &:hover &__data-insight-fab {
-    visibility: visible;
-    opacity: 1;
+  &__explore-dashboard-fab {
+    @include chat-preview-action(30px, -8px);
+  }
+
+  &:hover &__data-insight-fab,
+  &:hover &__explore-dashboard-fab,
+  &:focus-within &__data-insight-fab,
+  &:focus-within &__explore-dashboard-fab {
+    @include chat-preview-action-visible;
   }
 }
 
@@ -1489,6 +1319,7 @@
 
 .ib-think-step.is-expanded {
   padding-bottom: 6px;
+  margin-bottom: 16px;
 
   &:hover .chart-preview-section__data-insight-fab {
     visibility: visible;
@@ -1582,33 +1413,7 @@
   }
 
   &__data-insight-fab {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    z-index: 10;
-    width: 20px;
-    height: 20px;
-    border: none;
-    border-radius: 50%;
-    padding: 0;
-    background: #fff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s ease-in-out;
-
-    .anticon {
-      font-size: 12px;
-      color: #3e4557;
-    }
-
-    &:hover .anticon {
-      color: #1890ff;
-    }
+    @include chat-preview-action;
 
     &:disabled {
       cursor: default;

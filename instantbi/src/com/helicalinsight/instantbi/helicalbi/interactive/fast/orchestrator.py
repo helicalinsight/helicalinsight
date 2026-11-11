@@ -55,6 +55,7 @@ class FastModeOrchestrator:
         request_started: float,
         last_chats_fallback: list | None = None,
         rm_cols_in_filter: bool = True,
+        parameter_functions: dict | None = None,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Return ``(to_send, result_state)``."""
         session = self._sessions.load(
@@ -82,6 +83,7 @@ class FastModeOrchestrator:
             thread_id=thread_id,
             last_chats=last_chats,
             rm_cols_in_filter=rm_cols_in_filter,
+            parameter_functions=parameter_functions,
         )
         config = graph_invoke_config(thread_id, chat_seq_id)
         logger.info(
@@ -118,6 +120,7 @@ class FastModeOrchestrator:
             chat_seq_id=chat_seq_id,
             request_started=request_started,
             rm_cols_in_filter=rm_cols_in_filter,
+            parameter_functions=parameter_functions,
         )
 
     def _run_intent(
@@ -163,7 +166,8 @@ class FastModeOrchestrator:
 
         def _regenerate_sql(work: dict[str, Any], prompt: str) -> dict[str, Any]:
             original = str(work.get("query") or user_query)
-            work["query"] = prompt
+            work["query"] = original
+            work["sql_retry_context"] = prompt
             work["skip"] = False
             work = self._run_sql_generator(work, use_cube_info_flow, config)
             work["query"] = original
@@ -206,6 +210,7 @@ def run_fast_mode(
     request_started: float,
     last_chats_fallback: list | None = None,
     rm_cols_in_filter: bool = True,
+    parameter_functions: dict | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Run the classic single-turn interactive pipeline.
 
@@ -224,4 +229,5 @@ def run_fast_mode(
         request_started=request_started,
         last_chats_fallback=last_chats_fallback,
         rm_cols_in_filter=rm_cols_in_filter,
+        parameter_functions=parameter_functions,
     )

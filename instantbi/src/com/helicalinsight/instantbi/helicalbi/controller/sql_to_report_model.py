@@ -30,36 +30,77 @@ def _data_types_from_form_data(form_data: dict[str, Any] | None) -> list[dict[st
     return types
 
 
-def _viz_model_from_sql(form_data: dict[str, Any] | None) -> dict[str, Any] | None:
+def _as_viz_dict(viz_model: Any) -> dict[str, Any] | None:
+    if viz_model is None:
+        return None
+    if hasattr(viz_model, "model_dump"):
+        dumped = viz_model.model_dump()
+    elif hasattr(viz_model, "dict"):
+        dumped = viz_model.dict()
+    elif isinstance(viz_model, dict):
+        dumped = viz_model
+    else:
+        return None
+    return dumped if isinstance(dumped, dict) else None
+
+
+def _force_table_chart(viz_model: dict[str, Any] | None) -> dict[str, Any]:
+    """Table is the getReport fallback when an older response only has a VF."""
+    model = dict(viz_model or {})
+    chart = dict(model.get("chart") or {})
+    chart["viz"] = ""
+    chart["mark"] = "Table"
+    chart["dualaxis"] = False
+    chart["measures"] = []
+    model["chart"] = chart
+    data = model.get("data")
+    if not isinstance(data, dict):
+        model["data"] = {"rows": [], "columns": []}
+    return model
+
+
+def _viz_model_from_sql(
+    form_data: dict[str, Any] | None,
+    *,
+    chart_type: str = "",
+) -> dict[str, Any] | None:
     """Derive VizModel shelves and chart type from SQL dimensions and measures."""
     data_types = _data_types_from_form_data(form_data)
     if not data_types:
-        return None
+        return _force_table_chart(None) if chart_type == "table" else None
     try:
-        viz_model, chart_type, _context = build_viz_model(data_types=data_types)
+        viz_model, resolved_chart, _context = build_viz_model(
+            data_types=data_types,
+            viz_hint=chart_type,
+            viz_update=bool(chart_type),
+        )
         logger.info(
             "SQL-to-report-model derived viz_model chart=%s fields=%s",
-            chart_type,
+            resolved_chart,
             len(data_types),
         )
-        if hasattr(viz_model, "model_dump"):
-            return viz_model.model_dump()
-        if hasattr(viz_model, "dict"):
-            return viz_model.dict()
-        return viz_model
+        dumped = _as_viz_dict(viz_model)
+        if chart_type == "table":
+            return _force_table_chart(dumped)
+        return dumped
     except Exception:
         logger.exception("SQL-to-report-model could not derive viz_model from SQL")
-        return None
+        return _force_table_chart(None) if chart_type == "table" else None
 
 
-def _to_report_model(form_data: dict[str, Any] | None, sql: str) -> dict[str, Any]:
+def _to_report_model(
+    form_data: dict[str, Any] | None,
+    sql: str,
+    *,
+    chart_type: str = "",
+) -> dict[str, Any]:
     payload = dict(form_data or {})
     if sql and "sql" not in payload:
         payload["sql"] = sql
     return ChatResponse.from_model_state(
         {
             "viz_form_data": payload,
-            "viz_model": _viz_model_from_sql(form_data),
+            "viz_model": _viz_model_from_sql(form_data, chart_type=chart_type),
             "sql": sql,
         }
     ).to_dict().get("report_model") or {"data_model": None, "viz_model": None}
@@ -81,15 +122,21 @@ def register(flask_app) -> None:
         metadata_file_name = str(
             user_input.get("metadataFileName") or user_input.get("metadata_file_name") or ""
         ).strip()
+        default_chart = str(
+            user_input.get("defaultChart") or user_input.get("default_chart") or ""
+        ).strip().lower()
+        if default_chart in {"grid", "data table"}:
+            default_chart = "table"
 
         to_send: Dict[str, Any] = {}
         try:
             logger.info(
-                "SQL-to-report-model request user=%s sql_len=%s location=%s file=%s",
+                "SQL-to-report-model request user=%s sql_len=%s location=%s file=%s chart=%s",
                 username,
                 len(sql),
                 location,
                 metadata_file_name,
+                default_chart or "auto",
             )
             if not sql:
                 raise RuntimeError("sql is required for sql-to-report-model request.")
@@ -105,7 +152,9 @@ def register(flask_app) -> None:
                 metadata_file_name=metadata_file_name,
                 session_cookie=session_cookie,
             )
-            to_send["report_model"] = _to_report_model(form_data, sql)
+            to_send["report_model"] = _to_report_model(
+                form_data, sql, chart_type=default_chart
+            )
             logger.info(
                 "SQL-to-report-model completed user=%s columns=%s location=%s file=%s",
                 username,

@@ -5,11 +5,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { refreshDashboard } from "../../../../redux/actions";
 import notify from "../../../hi-notifications/notify";
 import InstantBITooltip from "../../instant-bi-tooltip-title";
-import { cleanSQL, getHReportSelectedChartType, getInstantBIAgentSubject, resolveInstantBiSql } from "../../utils/common-utils";
-import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
+import { cleanSQL, getHReportSelectedChartType, resolveInstantBiSql } from "../../utils/common-utils";
+import { loadChartDataInsight } from "../../utils/instant-bi-requests";
 import InstantChartView from "./chart-view";
 import { PreviewTab, SemanticTab, SQLTab } from "./chat-tabs";
 import "./dashboard-tile-tabs.scss";
+import { v4 as uuidv4 } from "uuid";
 
 const resolveTileReportModel = (reportInfo = {}) =>
   reportInfo?.file?.report_model
@@ -120,44 +121,31 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
 
   const handleDataInsight = () => {
     if (isLoadingDataInsight || !dispatch) return;
-    let ibReport = null;
-    dispatch((_, getState) => {
-      ibReport = (getState().instantBI?.reports || []).find((report) => report.active) || null;
-    });
-    const reportId = ibReport?.id;
-    const chatId = ibReport?.activeChatID;
+    const reportId = uuidv4();
+    const chatId = hreportId;
     const chatSequenceId = instant_item?.chat_seq_id || instant_item?.chatSeqId || "";
-    const userInput = instant_item?.question || file?.title || "";
-    const agentSubject = getInstantBIAgentSubject(ibReport || {}) || {};
-    const info = ibReport?.reportInfo || {};
-    if (!reportId || !chatId || !chatSequenceId || !userInput || !agentSubject.file) {
+    const userInput = instant_item?.question || "";
+    const agentSubject = instant_item?.subject || {};
+    if (!chatId || !chatSequenceId || !userInput) {
       Notify?.error?.({
         type: "Frontend",
         message: "Unable to explain this chart: chat context is missing.",
       });
       return;
     }
-    if (!cleanedSql && !chat_response?.sql?.raw_sql) {
-      Notify?.error?.({
-        type: "Frontend",
-        message: "Unable to explain this chart: SQL is not available yet.",
-      });
-      return;
-    }
     dataInsightAbortedRef.current = false;
     setIsLoadingDataInsight(true);
     setDataInsightTrail([]);
-    const liveData = reports.find((report) => report.id === hreportId)?.reportData?.data || [];
-    dataInsightApiRef.current = loadInstantBIDataInsight({
+    const liveReport = reports.find((report) => report.id === hreportId);
+    const liveData = liveReport?.reportData?.data || [];
+    dataInsightApiRef.current = loadChartDataInsight({
+      hreport: liveReport,
       dispatch,
       reportId,
       chatSequenceId,
       userInput,
-      location: info.location,
-      fileName: info.uuid || (info.reportName && `${info.reportName}.instant`),
       chatId,
       agent: agentSubject,
-      useLoadChatPayload: false,
       existingChatResponse: {
         ...chat_response,
         sql: chat_response?.sql || (cleanedSql ? { raw_sql: cleanedSql } : {}),
@@ -221,7 +209,8 @@ const DashboardTileTabs = ({ hreportId, gridId = "", reportInfo = {}, parameter,
       cacheRefreshCount: refreshReports,
       // onChange
     },
-    filters: currentHReport?.filters
+    filters: currentHReport?.filters,
+    openModeFilters: true
   }
 
   const handleTabChange = (active) => {

@@ -7,180 +7,169 @@ _FINAL_SQL_REASON_LINE = (
 
 
 def _final_sql_important_block() -> str:
+    rules = (
+        "Use only the listed tables and columns. "
+        "Never copy a slot (<table>, <alias>, <column>, <date_column>). "
+        "Never write a table named t or a column named date_col unless listed. "
+        "FROM <table> <alias>. Qualify columns with the alias. "
+        "Never use SELECT * or COUNT(*)."
+    )
     if app_config.hide_prompt_reason:
-        return """#IMPORTANT
-Dont generate inappropriate sql other than provided table and column 
-Never invent tables from previous SQL — only use tables/columns listed above.
-Never use SELECT * or COUNT(*). Always use explicit column names (COUNT(column) / COUNT(DISTINCT column), never *).
+        return "#IMPORTANT\n" + rules + "\n"
+    return "#IMPORTANT\n" + _FINAL_SQL_REASON_LINE + rules + "\n"
+
+
+_DATE_FUNCTIONS = """
+Filter values that are database functions
+Use the listed {dialect} function, for example EXTRACT(YEAR FROM <alias>.<date_column>).
+<date_column> is a slot. Substitute the provided date column.
+Do not replace a date or time function with CAST(<alias>.<date_column> AS date).
 """
-    return f"""#IMPORTANT
-{_FINAL_SQL_REASON_LINE}Dont generate inappropriate sql other than provided table and column 
-Never invent tables from previous SQL — only use tables/columns listed above.
-Never use SELECT * or COUNT(*). Always use explicit column names (COUNT(column) / COUNT(DISTINCT column), never *).
+
+_DATE_RANGES = """
+Date ranges
+Write <alias>.<date_column> BETWEEN '2024-01-01' AND '2024-12-31'.
+Do not write that range as IN (date1, date2).
 """
 
+_RELATIVE_PERIODS = """
+Relative periods
+Filter the date column with BETWEEN, or with CURRENT_DATE and CURRENT_DATE minus 1 year.
+Do not write EXTRACT(YEAR FROM CURRENT_DATE) - 1 inside an IN list.
+"""
 
-final_sql_prompt="""
-You are an expert {dialect} SQL engineer.
+_EXCLUSIONS = """
+Exclusion filters
+When the user excludes a value, write NOT IN (...), including one value.
+Use <> or != for that exclusion only when {dialect} has no IN / NOT IN.
+"""
 
-Your job is to generate a valid SQL query using the provided columns.
-Use proper {dialect} syntax.
-Avoid regex operators or regex patterns such as ~, ~*, !~, !~*, RLIKE, SIMILAR TO, or character-class patterns like '^[aeiou]'.
-If a text/pattern function is needed, use only a matching function from the provided database functions list — never an ad-hoc regex expression in WHERE/HAVING.
-Donot add any new table and columns. Use the provided one only. 
-Return ONLY the SQL query.
-
-#COMPUTED MEASURES
-Some provided columns are computed measures defined by a formula (marked as
-"COMPUTED measure" or shown with a "formula:" / "computed formula:" in the
-descriptions or business metrics below).
-For these, DO NOT select them as a physical column (e.g. never write
-"table"."Measure Name"). Instead, translate the formula into a valid {dialect}
-SQL expression and alias it with the measure name.
-Examples: SUM(t.col) -> SUM("t"."col"); COUNT(distinct t.col) -> COUNT(DISTINCT "t"."col");
-COUNT(when t.col=Val) -> COUNT(CASE WHEN "t"."col" = 'Val' THEN 1 END).
-Use the physical table/column references named inside the formula, not the measure name.
-
-#MEASURE TRAITS
-When a measure includes grain, additivity, or business direction, follow them:
-Stay at that grain and do not join a finer-grain table that duplicates those rows.
-additive: SUM across dimensions at that grain is valid.
-non-additive: do not SUM the measure; compute it from its formula components inside each group.
-semi-additive: do not SUM across time; sum only across non-time dimensions.
-business direction negative: an increase is unfavorable. positive: a decrease is unfavorable.
-neutral: do not treat a change as good or bad.
-
-
-
-
------------------------------------------------------
-Provided columns
- {query_plan_json}
-
------------------------------------------------------
-Required column descriptions
-These are the full picked cube items arranged by table (dimensions, hierarchy
-levels, measures, and blank-column computed measures), including hierarchy and
-aiContext details. Do not expect or apply formatString here — formatting is
-handled later in visualization.
- {required_column_description}
-
------------------------------------------------------
-Default column/measure functions (use when aggregating or grouping)
- {required_functions}
-
------------------------------------------------------
-Column sort orders for ORDER BY
-Only dimension Ascending=ASC and Descending=DESC are listed.
-Ignore none/empty/Natural sorts. Do not ORDER BY measures (column or formula).
-If the section below says no sorts are configured, do not invent ORDER BY for
-all selected columns — omit ORDER BY unless the user explicitly asks to sort
-or rank. Prefer listed ordering when the user question does not request a
-different sort.
- {column_sort_orders}
-
------------------------------------------------------
-Use the below joins (do not invent new join other than this) ignore if empty
- {required_joins}
-If every column in the SELECT clause belongs to the same table, do not use a JOIN
-even if joins are provided above. Query that single table only.
-
------------------------------------------------------
+_AVERAGES = """
 JOINs preferred over nested subqueries
-Prefer JOIN / INNER JOIN / CROSS JOIN of pre-aggregated derived tables.
-Do NOT write nested scalar subqueries in WHERE or HAVING for
-above-average, below-average, top-N-vs-average, or similar comparisons
-(e.g. avoid HAVING SUM(x) > (SELECT AVG(...) FROM (SELECT SUM(x) ...))).
+Do NOT write nested scalar subqueries in WHERE or HAVING.
+For an above/below average by group question, join a grouped query to a query that computes the average.
+"""
 
-For "above/below average by group" style questions:
-1. Build one grouped derived table with the measures (reuse the provided
-   catalog joins inside it when multiple tables are required).
-2. Build a second derived table that computes AVG(...) of those grouped
-   measures (or other benchmark aggregates).
-3. JOIN them and filter with ON / WHERE using the joined average columns.
+final_sql_prompt = """
+You are an expert {dialect} SQL engineer. Write one query from the provided columns.
+A slot is not a name. Never write <table>, <alias>, <column>, or <date_column> into the SQL.
+Never write a table named t or a column named date_col unless that exact name is listed.
+Every base table uses its original table name and an alias: FROM <table> <alias>.
+Qualify every column with that alias. Never write FROM <alias> alone.
+Never use SELECT * or COUNT(*). For counts write COUNT(<alias>.<column>) or COUNT(DISTINCT <alias>.<column>).
+Avoid regex (~, ~*, !~, !~*, RLIKE, SIMILAR TO). Use a function from the provided database functions list.
+If every column in the SELECT clause belongs to the same table, do not use a JOIN.
+If a measure has a formula, expand that formula. Do not select the measure name as a column.
+Add limit {default_sql_limit}.
 
-Example shape (adapt names/joins to the provided schema):
-SELECT g."Dim", g."Measure", g."Other Measure"
-FROM (
-  SELECT "t"."dim" AS "Dim", SUM("t"."m") AS "Measure", COUNT("t"."id") AS "Other Measure"
-  FROM "t"
-  /* catalog joins here when needed */
-  GROUP BY "t"."dim"
-) g
-INNER JOIN (
-  SELECT AVG(s."Measure") AS "Avg Measure", AVG(s."Other Measure") AS "Avg Other Measure"
-  FROM (
-    SELECT "t"."dim" AS "Dim", SUM("t"."m") AS "Measure", COUNT("t"."id") AS "Other Measure"
-    FROM "t"
-    /* same catalog joins as above when needed */
-    GROUP BY "t"."dim"
-  ) s
-) a ON (
-  g."Measure" > a."Avg Measure"
-  AND g."Other Measure" > a."Avg Other Measure"
-)
-LIMIT {default_sql_limit}
+Columns
+{query_plan_json}
 
-Use HAVING only for simple literals or expressions that do not nest SELECT.
-Do not invent physical join keys beyond the provided joins list; derived-table
-JOIN/ON conditions may compare aggregated measure columns as shown above.
+Descriptions
+{required_column_description}
 
------------------------------------------------------
-Filtered domain / topics for this query
-Use only this selected domain/topic context (with mapped component id+name).
- {domain_context}
+Functions
+{required_functions}
 
+Sorts
+{column_sort_orders}
 
------------------------------------------------------
-Business metrics for required columns
- {required_metrics}
+Joins
+{required_joins}
 
+Domain
+{domain_context}
 
+Metrics
+{required_metrics}
 
-
-Generate the SQL request now based on the above details.  
-Never use SELECT * or COUNT(*). Always list explicit column names from the provided columns.
-Avoid regex operators/patterns (~, ~*, '^[aeiou]'). If a text/pattern function is needed, use only a matching function from the provided database functions list.
-For counts / "how many" questions, always write COUNT("table"."column") or COUNT(DISTINCT "table"."column") using a real schema column (prefer unique identifier / primary key). Never COUNT(*).
-Always use an alias for every selected column/expression in the SELECT clause.
-Prefer provided dimension/measure/hierarchy display names (alias labels) when available.
-If a SELECT alias is technical — underscore_separated / snake_case, camelCase, ALLCAPS,
-comma-separated tokens, or similar — replace it with a short business-friendly Title Case
-name (e.g. travel_cost → "Travel Cost", meetCancellationStatus → "Meet Cancellation Status").
-Do not leave raw underscore_separated or other machine-style names as the visible SELECT alias.
-Make sure syntactically proper query is generated. 
-Add limit always (limit {default_sql_limit})
-
-
-Previous sql generated: (Use this only when context is related.
-Ignore any previous SQL that uses tables/columns outside the provided columns list.)
-
- 
+Previous SQL
 {prev_sql}
 
-
------------------------------------------------------
-below is the chat history:
+Chat
 {last_chats}
 
-
------------------------------------------------------
-User Question:
+Question
 {user_question}
 
-
 {_final_sql_important_block}
+"""
 
- """
+
+def format_metrics_for_prompt(metrics: list) -> str:
+    """One SQL expression per measure. The table name is a header, not a field."""
+    grouped: dict[str, list[str]] = {}
+    order: list[str] = []
+    for metric in metrics or []:
+        if not isinstance(metric, dict):
+            continue
+        name = (
+            metric.get("metric")
+            or metric.get("measure_name")
+            or metric.get("column_alias")
+        )
+        name = str(name or "").strip()
+        if not name:
+            continue
+        tables = [str(table) for table in (metric.get("tables") or []) if table]
+        table = tables[0] if tables else str(metric.get("table_alias") or "").strip()
+        formula = str(metric.get("formula") or "").strip()
+        if not formula:
+            column = str(metric.get("column_name") or "").strip()
+            target = f"{table}.{column}" if table and column else column
+            agg = _sql_aggregator(metric.get("aggregator"))
+            if agg and target:
+                formula = f"{agg}({target})"
+            else:
+                formula = target
+        line = f"{name} = {formula}" if formula else name
+        if table not in grouped:
+            order.append(table)
+            grouped[table] = []
+        grouped[table].append(line)
+    blocks = []
+    for table in order:
+        lines = grouped[table]
+        if table:
+            blocks.append(table + "\n" + "\n".join(lines))
+        else:
+            blocks.append("\n".join(lines))
+    return "\n".join(blocks)
 
 
-def render_final_sql_prompt() -> str:
-    """Return the final-SQL prompt with live application-config substitutions.
+def _sql_aggregator(value) -> str:
+    return {
+        "sum": "SUM",
+        "count": "COUNT",
+        "avg": "AVG",
+        "average": "AVG",
+        "min": "MIN",
+        "max": "MAX",
+    }.get(str(value or "").strip().lower(), "")
 
-    ``hide_prompt_reason`` and ``default_sql_limit`` are read from
-    ``app_config`` at call time so Admin settings apply without a restart.
-    """
-    return final_sql_prompt.replace(
+
+def render_final_sql_prompt(question: str = "") -> str:
+    """Core SQL prompt, plus only the rule blocks this question needs."""
+    extra = _sections_for(question)
+    body = final_sql_prompt.replace(
         "{_final_sql_important_block}",
         _final_sql_important_block(),
     )
+    if not extra:
+        return body
+    return body.replace("\nQuestion\n", extra + "\nQuestion\n", 1)
+
+
+def _sections_for(question: str) -> str:
+    text = f" {str(question or '').lower()} "
+    parts = []
+    if any(word in text for word in ("year", "quarter", "month", "date", "today", "week")):
+        parts.append(_DATE_FUNCTIONS)
+        parts.append(_RELATIVE_PERIODS)
+    if any(word in text for word in ("between", "range", " from ", " to ")):
+        parts.append(_DATE_RANGES)
+    if any(word in text for word in ("not in", "except", "excluding", "other than", "exclude")):
+        parts.append(_EXCLUSIONS)
+    if any(word in text for word in ("average", "above", "below")):
+        parts.append(_AVERAGES)
+    return "".join(parts)

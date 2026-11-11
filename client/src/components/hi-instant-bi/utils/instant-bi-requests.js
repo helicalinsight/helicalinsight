@@ -1,5 +1,7 @@
+import { cloneDeep } from "lodash-es";
 import { v4 as uuidv4 } from "uuid";
 import requests from "../../../base/requests";
+import { generateReport } from "../../hi-reports/utils/base";
 import { uriConfig } from "../../../base/requests/instantbi.requests";
 import { fileBrowserActions } from "../../../redux/actions";
 import {
@@ -24,6 +26,10 @@ import { openMetadata } from "../../hi-reports/utils/base";
 import { IB_CHART_RENDER_ERROR } from "../components/ib-custom-chart";
 import { getInsantBISaveData } from "./base";
 import { getMetadataForHreport, loadInstantBiHreports } from "./common-utils";
+import {
+  applyHreportInteraction,
+  applyHreportInteractionsToChatPayload,
+} from "./report-model-interactions";
 
 const recommendationsRequestsByReportId = new Map();
 
@@ -397,14 +403,20 @@ const deliverParsedChatViaBridge = async ({
   if (parsedResponse.fullChatResponse) {
     parsedResponse.fullChatResponse.hreportId = hreportProps.reportId;
   }
+  const pendingInteractions = {};
 
   await new Promise((resolve) => {
     const bridge = createHReportBridge({
       dispatch,
       reportModel: parsedResponse?.fullChatResponse?.report_model || {},
       onComplete: () => {
+        const interactions = pendingInteractions[hreportProps.reportId] || {};
+        const messagePayload = applyHreportInteractionsToChatPayload(
+          parsedResponse,
+          interactions
+        );
         onAIMessage({
-          ...parsedResponse,
+          ...messagePayload,
           userInput,
           chatSequenceId,
         });
@@ -422,6 +434,12 @@ const deliverParsedChatViaBridge = async ({
         resolve();
       },
       eventUpdater: (e) => {
+        if (e?.hreportId) {
+          pendingInteractions[e.hreportId] = applyHreportInteraction(
+            pendingInteractions[e.hreportId],
+            e
+          );
+        }
         handleUpdateHreportEvent(activeReportId, e, dispatch);
       },
       ...hreportProps,
@@ -780,6 +798,7 @@ export const buildInstantBIChatRequestFormData = ({
   location,
   fileName,
   requestId,
+  think = false,
 }) => {
   const requestFormData = {
     chat_sequence_id: chatSequenceId,
@@ -787,6 +806,7 @@ export const buildInstantBIChatRequestFormData = ({
       input,
       location,
       fileName,
+      ...(think ? { think: true } : {}),
     },
   };
   if (requestId) {
@@ -803,6 +823,7 @@ const instantBIChatFormRequest = ({
   location,
   fileName,
   requestId,
+  think = false,
   successCB = () => { },
   errorCB = () => { },
   onProgress,
@@ -814,6 +835,7 @@ const instantBIChatFormRequest = ({
       location,
       fileName,
       requestId,
+      think,
     }),
     uri,
     callback: successCB,
@@ -837,6 +859,22 @@ export const shouldUseLoadChatPayload = ({
 
 export const shouldUseLoadChatPayloadForInsight = shouldUseLoadChatPayload;
 
+export const getChartFetchDataForm = (report, dispatch) => {
+  if (!report?.metadata || typeof dispatch !== "function") {
+    return Promise.resolve(null);
+  }
+  const built = generateReport(
+    { ...cloneDeep(report), getFormData: true },
+    dispatch,
+  );
+  if (!built || typeof built.then !== "function") {
+    return Promise.resolve(null);
+  }
+  return built.then((formData) => (
+    formData && typeof formData === "object" ? formData : null
+  )).catch(() => null);
+};
+
 export const instantDataInsightAPI = ({
   dispatch,
   useLoadChatPayload = false,
@@ -851,11 +889,14 @@ export const instantDataInsightAPI = ({
   sql,
   chatResponseItem,
   insights,
+  reportFormData,
+  think = false,
   successCB = () => { },
   errorCB = () => { },
   onProgress,
 }) => {
-  if (useLoadChatPayload) {
+  const chartForm = reportFormData && typeof reportFormData === "object" ? reportFormData : null;
+  if (useLoadChatPayload && !chartForm) {
     return instantBIChatFormRequest({
       dispatch,
       uri: uriConfig.instantDataInsight,
@@ -864,6 +905,7 @@ export const instantDataInsightAPI = ({
       location,
       fileName,
       requestId,
+      think,
       successCB,
       errorCB,
       onProgress,
@@ -881,6 +923,7 @@ export const instantDataInsightAPI = ({
     sql,
     chatResponseItem,
     insights,
+    nestedFormData: chartForm || undefined,
     successCB,
     errorCB,
     onProgress,
@@ -959,6 +1002,8 @@ export const loadInstantBIDataInsight = ({
   useLoadChatPayload = false,
   existingChatResponse = {},
   insights,
+  reportFormData,
+  think = false,
   skipDispatch = false,
   suppressErrorNotify = false,
   Notify,
@@ -998,6 +1043,8 @@ export const loadInstantBIDataInsight = ({
     chatId,
     agent,
     insights,
+    reportFormData,
+    think,
     onProgress,
     successCB: (response) => {
       if (abortedRef?.current) {
@@ -1058,6 +1105,45 @@ export const loadInstantBIDataInsight = ({
       onComplete({ success: false, aborted, error: err });
     },
   });
+};
+
+export const loadChartDataInsight = ({
+  hreport,
+  dispatch,
+  Notify,
+  onComplete = () => { },
+  ...rest
+}) => {
+  let request = null;
+  let cancelled = false;
+  getChartFetchDataForm(hreport, dispatch).then((reportFormData) => {
+    if (cancelled) {
+      onComplete({ success: false, aborted: true });
+      return;
+    }
+    if (!reportFormData) {
+      Notify?.error?.({
+        type: "Frontend",
+        message: "Unable to explain this chart: report data is not ready.",
+      });
+      onComplete({ success: false });
+      return;
+    }
+    request = loadInstantBIDataInsight({
+      ...rest,
+      dispatch,
+      Notify,
+      reportFormData,
+      useLoadChatPayload: false,
+      onComplete,
+    });
+  });
+  return {
+    abort: () => {
+      cancelled = true;
+      request?.abort?.();
+    },
+  };
 };
 
 export const buildInstantBIConvertChartFormData = ({
@@ -1351,36 +1437,3 @@ export const fetchRecommendationsAPI = ({
 
   return abortController;
 };
-
-export const collectConvertDashboardItems = (messageList = []) =>
-  (messageList || [])
-    .filter((message) => !message.isUser && message.fullChatResponse && !message.error && !message.isStreaming)
-    .map((message) => ({
-      id: message.chatSequenceId || message.id,
-      sql: message.sql || message.fullChatResponse?.sql?.raw_sql || "",
-      viz: message.fullChatResponse?.viz || {},
-      report_model: message.fullChatResponse?.report_model,
-    }));
-
-export const convertInstantBIDashboard = ({
-  dispatch,
-  chatId,
-  items,
-  subject,
-  input,
-  onProgress,
-  successCB = () => { },
-  errorCB = () => { },
-}) =>
-  requests.instantBI(dispatch).instantBIConvertDashboardRequest({
-    formData: {
-      chatid: chatId,
-      items,
-      subject,
-      input,
-    },
-    uri: uriConfig.instantConvertDashboard,
-    callback: successCB,
-    errback: errorCB,
-    onProgress,
-  });

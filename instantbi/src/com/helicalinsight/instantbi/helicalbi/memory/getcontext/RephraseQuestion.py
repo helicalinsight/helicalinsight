@@ -1,6 +1,6 @@
 from langchain_core.prompts import PromptTemplate
 
-from helicalbi.common.LlmInvokeHelper import log_prompt
+from helicalbi.common.LlmInvokeHelper import log_llm_output, log_prompt
 from helicalbi.memory.getcontext.ContextClass import GraphState
 from helicalbi.memory.getcontext.ContextHelper import format_chat_item_field
 
@@ -44,6 +44,7 @@ Return only the final rewritten query.
     }
     log_prompt(prompt, invoke_inputs)
     response = chain.invoke(invoke_inputs)
+    log_llm_output(response)
 
     final_query = response.content if hasattr(response, "content") else str(response)
     return {"final_query": final_query or None}

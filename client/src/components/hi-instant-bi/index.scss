@@ -7,7 +7,9 @@
   &--open-mode {
     height: auto !important;
     min-height: 100%;
-    overflow: visible !important;
+    // overflow: visible !important;
+    overflow-x: hidden !important;
+    // overflow-y: visible !important;
   }
 
   .hi-instant-bi-header {
@@ -47,8 +49,9 @@
 .hi-instant-bi-open-wrapper {
   height: auto;
   min-height: 100%;
-  overflow: visible;
+  overflow: hidden;
 }
+
 .json-data-viewer {
   width: 100%;
   overflow-x: auto;
@@ -236,7 +239,7 @@
       .ib-live-preview--kpi {
         height: 100%;
 
-        > div {
+        >div {
           display: flex;
           align-items: center;
           justify-content: center;
@@ -252,7 +255,7 @@
   align-items: center;
   justify-content: center;
 
-  > div {
+  >div {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -326,7 +329,7 @@
     min-height: 0;
     padding: 8px 0;
 
-    > div {
+    >div {
       height: auto;
     }
 
@@ -354,12 +357,12 @@
   align-items: center;
   justify-content: center;
 
-  > div {
+  >div {
     width: 100%;
     height: 100%;
   }
 
-  &--circular > div {
+  &--circular>div {
     display: flex;
     align-items: center;
     justify-content: center;

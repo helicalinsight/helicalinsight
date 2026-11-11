@@ -88,6 +88,7 @@ class ThinkModeOrchestrator:
         strategy_hint: Optional[str] = None,
         show_llm_activity_details: Optional[Any] = None,
         on_progress: Optional[ProgressCallback] = None,
+        parameter_functions: Optional[dict] = None,
         _create_and_store_plan=None,
         _run_dashboard_agent=None,
         _load_plan=None,
@@ -202,6 +203,7 @@ class ThinkModeOrchestrator:
             build_dashboard=BUILD_DASHBOARD,
             on_progress=on_progress,
             flat_sql=FLAT_SQL,
+            parameter_functions=parameter_functions,
         )
         abort.ensure()
         self._mark_plan_executed(
@@ -390,6 +392,7 @@ def run_think_mode(
     strategy_hint: Optional[str] = None,
     show_llm_activity_details: Optional[Any] = None,
     on_progress: Optional[ProgressCallback] = None,
+    parameter_functions: Optional[dict] = None,
     _create_and_store_plan=None,
     _run_dashboard_agent=None,
     _load_plan=None,
@@ -415,6 +418,7 @@ def run_think_mode(
         strategy_hint=strategy_hint,
         show_llm_activity_details=show_llm_activity_details,
         on_progress=on_progress,
+        parameter_functions=parameter_functions,
         _create_and_store_plan=_create_and_store_plan,
         _run_dashboard_agent=_run_dashboard_agent,
         _load_plan=_load_plan,

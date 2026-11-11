@@ -12,6 +12,8 @@ import {
     createFilter,
     changeFilterCondition,
     changeFilterValue,
+    updateAnchorDate,
+    updateFilter,
     updateFilterAlias,
     updateCustomCondition,
     updateCustomChart,
@@ -22,6 +24,10 @@ import {
     updateAggregations,
     toggleFloating,
     loadReportFilters,
+    changeOptions,
+    changeEditorContent,
+    applyReportScripts,
+    updateCanvasField,
 } from '../../../redux/actions/hreport.actions';
 import { checkReportsAvailable } from '../../../components/bridges/hreport/utils';
 import { saveDataBaseFunction } from '../../../components/hi-reports/hi-fields-area/utils/utilities';
@@ -33,6 +39,8 @@ jest.mock('../../../components/bridges/hreport/utils', () => require('./hreport-
 jest.mock('../../../components/hi-reports/hi-editing-area/utils/constants', () => ({
     conditions: {
         EQUALS: 'Equals',
+        IS_ONE_OF: 'Is one of',
+        IS_NOT_ONE_OF: 'Is not one of',
         CONTAINS: 'Contains',
         CUSTOM: 'Custom',
     },
@@ -87,6 +95,8 @@ function makeReportModel({
     mark = '',
     viz = '',
     vfTemplate = '',
+    limitBy = null,
+    filterExpression = [],
 } = {}) {
     const vf_template = vfTemplate ? (typeof btoa !== 'undefined' ? btoa(vfTemplate) : Buffer.from(vfTemplate, 'binary').toString('base64')) : '';
     return {
@@ -101,6 +111,8 @@ function makeReportModel({
             location,
             metadataFileName,
             filters,
+            limitBy,
+            filterExpression,
         },
     };
 }
@@ -130,6 +142,42 @@ async function initBridgeWithMetadata(extraProps = {}) {
     // helper for inline metadata path: reportModel is required, reportMetadata is provided
     // extraProps may contain reportModel overrides or reportMetadata
     return initBridgeWithModel(extraProps.reportModel, extraProps);
+}
+
+const undoableActionCreators = [
+    addNewReport,
+    loadIntialReport,
+    loadMetadata,
+    addFieldToCanvas,
+    removeFieldFromCanvas,
+    updateOrderBy,
+    updateFieldAlias,
+    createFilter,
+    changeFilterCondition,
+    changeFilterValue,
+    updateFilter,
+    updateFilterAlias,
+    updateCustomCondition,
+    updateCustomChart,
+    updateSelectedType,
+    updateSubVizType,
+    toggleCombineCharts,
+    setHReportLoading,
+    updateAggregations,
+    toggleFloating,
+    loadReportFilters,
+    changeOptions,
+    changeEditorContent,
+    applyReportScripts,
+    updateCanvasField,
+];
+
+function expectEveryActionPayloadToSkipUndoRedo() {
+    undoableActionCreators.forEach((actionCreator) => {
+        actionCreator.mock.calls.forEach(([payload]) => {
+            expect(payload).toEqual(expect.objectContaining({ undoRedoAction: true }));
+        });
+    });
 }
 
 beforeEach(() => {
@@ -189,7 +237,11 @@ describe('createHReportBridge - report registration', () => {
             reportMetadata: { metadata: { name: 'sales-meta' }, formData: {} },
         });
         expect(checkReportsAvailable).toHaveBeenCalledWith(dispatch);
-        expect(loadIntialReport).toHaveBeenCalledWith({ reportId: REPORT_ID, isInstantReport: true });
+        expect(loadIntialReport).toHaveBeenCalledWith({
+            reportId: REPORT_ID,
+            isInstantReport: true,
+            undoRedoAction: true,
+        });
         expect(addNewReport).not.toHaveBeenCalled();
     });
 
@@ -202,7 +254,11 @@ describe('createHReportBridge - report registration', () => {
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { tables: defaultTables() } },
         });
-        expect(addNewReport).toHaveBeenCalledWith({ reportId: REPORT_ID, isInstantReport: true });
+        expect(addNewReport).toHaveBeenCalledWith({
+            reportId: REPORT_ID,
+            isInstantReport: true,
+            undoRedoAction: true,
+        });
         expect(loadIntialReport).not.toHaveBeenCalled();
     });
 });
@@ -215,7 +271,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
         const reportMetadata = { metadata: { name: 'sales-meta' } };
         await initBridgeWithModel(reportModel, { reportMetadata });
 
-        expect(loadMetadata).toHaveBeenCalledWith(reportMetadata);
+        expect(loadMetadata).toHaveBeenCalledWith({ ...reportMetadata, undoRedoAction: true });
         expect(openMetadata).not.toHaveBeenCalled();
     });
 
@@ -234,6 +290,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             id: 'gen-1',
             alias: 'region',
             column: { id: 'col-region', name: 'region' },
+            undoRedoAction: true,
         });
     });
 
@@ -251,6 +308,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             id: 'gen-1',
             alias: 'revenue',
             column: { id: 'col-revenue', name: 'revenue' },
+            undoRedoAction: true,
         });
     });
 
@@ -273,7 +331,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
         });
 
         expect(addFieldToCanvas).toHaveBeenCalledWith(
-            expect.objectContaining({ addedAs: 'row', id: 'gen-1', alias: 'region' })
+            expect.objectContaining({ addedAs: 'row', id: 'gen-1', alias: 'region', undoRedoAction: true })
         );
     });
 
@@ -286,7 +344,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
 
-        expect(updateOrderBy).toHaveBeenCalledWith({ id: 'gen-1', key: 'asc' });
+        expect(updateOrderBy).toHaveBeenCalledWith({ id: 'gen-1', key: 'asc', undoRedoAction: true });
     });
 
     test('applies database function and alias for non custom fields', async () => {
@@ -309,7 +367,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             })
         );
         expect(payload.fields).toHaveLength(1);
-        expect(updateFieldAlias).toHaveBeenCalledWith({ id: 'gen-1', alias: 'Region Label' });
+        expect(updateFieldAlias).toHaveBeenCalledWith({ id: 'gen-1', alias: 'Region Label', undoRedoAction: true });
     });
 
     test('skips database function and alias handling for custom fields', async () => {
@@ -329,6 +387,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             alias: 'calc',
             column: { expr: 'a + b' },
             genre: 'custom-formula',
+            undoRedoAction: true,
         });
         expect(saveDataBaseFunction).not.toHaveBeenCalled();
         expect(updateFieldAlias).not.toHaveBeenCalled();
@@ -343,12 +402,23 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
 
-        expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: ['SUM'], group: 'aggregate' });
-        expect(updateAggregations).toHaveBeenCalledWith({ id: 'gen-1', key: [], group: 'groupBy' });
+        expect(updateAggregations).toHaveBeenCalledWith({
+            id: 'gen-1',
+            key: ['SUM'],
+            group: 'aggregate',
+            undoRedoAction: true,
+        });
+        expect(updateAggregations).toHaveBeenCalledWith({
+            id: 'gen-1',
+            key: [],
+            group: 'groupBy',
+            undoRedoAction: true,
+        });
         expect(toggleFloating).toHaveBeenCalledWith({
             id: 'gen-1',
             reportId: REPORT_ID,
             floatingType: '',
+            undoRedoAction: true,
         });
     });
 
@@ -370,6 +440,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             id: 'gen-1',
             reportId: REPORT_ID,
             floatingType: 'discrete',
+            undoRedoAction: true,
         });
     });
 
@@ -410,6 +481,7 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
             id: 'gen-1',
             reportId: REPORT_ID,
             floatingType: '',
+            undoRedoAction: true,
         });
         expect(toggleFloating).not.toHaveBeenCalledWith(
             expect.objectContaining({ floatingType: 'discrete' })
@@ -438,7 +510,11 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
         });
 
         // tables have no col-unknown nor alias does-not-exist, getColumnFromMetadataTables returns {}
-        expect(addFieldToCanvas).toHaveBeenCalledWith({ addedAs: 'column', id: 'gen-1' });
+        expect(addFieldToCanvas).toHaveBeenCalledWith({
+            addedAs: 'column',
+            id: 'gen-1',
+            undoRedoAction: true,
+        });
         expect(updateOrderBy).not.toHaveBeenCalled();
     });
 
@@ -455,6 +531,35 @@ describe('createHReportBridge - init with inline reportMetadata', () => {
 });
 
 describe('createHReportBridge - filters', () => {
+    async function initFilterWithDatePart(condition, datePart = 'individual') {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    {
+                        alias: 'order_date',
+                        column: { id: 'col-date', name: 'order_date' },
+                        ...(datePart ? { datePart } : {}),
+                    },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            detailedColumns: [makeDetailed('order_date', 'col-date')],
+            filters: [
+                {
+                    alias: 'order_date',
+                    column: { id: 'col-date', name: 'order_date' },
+                    condition,
+                    values: ['2024'],
+                },
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+    }
+
     test('creates a metadata filter with condition, values and alias', async () => {
         const reportModel = makeReportModel({
             detailedColumns: [makeDetailed('region', 'col-region')],
@@ -473,20 +578,69 @@ describe('createHReportBridge - filters', () => {
                 columnID: 'col-region',
                 from: 'metadata',
                 alias: 'region', // from tables column alias
+                undoRedoAction: true,
             })
         );
-        expect(changeFilterCondition).toHaveBeenCalledWith({ uid: 'gen-1', condition: 'EQUALS' });
+        expect(changeFilterCondition).toHaveBeenCalledWith({
+            uid: 'gen-1',
+            condition: 'EQUALS',
+            undoRedoAction: true,
+        });
         expect(changeFilterValue).toHaveBeenCalledWith({
             value: ['EMEA'],
             uid: 'gen-1',
             reportId: REPORT_ID,
+            undoRedoAction: true,
         });
         // updateFilterAlias uses filterField.alias which is Zone (filter's alias)
         expect(updateFilterAlias).toHaveBeenCalledWith({
             uid: 'gen-1',
             alias: 'Zone',
             reportId: REPORT_ID,
+            undoRedoAction: true,
         });
+    });
+
+    test.each(['IS_ONE_OF', 'IS_NOT_ONE_OF'])(
+        'uses select date values for date-part filters with %s',
+        async (condition) => {
+            await initFilterWithDatePart(condition);
+
+            expect(updateFilter).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    uid: 'gen-1',
+                    columnID: 'col-date',
+                    datePart: 'individual',
+                    dateValuesType: 'select',
+                    condition,
+                    reportId: REPORT_ID,
+                    undoRedoAction: true,
+                })
+            );
+            expect(changeFilterCondition).not.toHaveBeenCalled();
+        }
+    );
+
+    test('keeps the regular condition update for date-part filters outside IS_ONE_OF variants', async () => {
+        await initFilterWithDatePart('EQUALS');
+
+        expect(changeFilterCondition).toHaveBeenCalledWith({
+            uid: 'gen-1',
+            condition: 'EQUALS',
+            undoRedoAction: true,
+        });
+        expect(updateFilter).not.toHaveBeenCalled();
+    });
+
+    test('keeps the regular condition update for non-date-part IS_ONE_OF filters', async () => {
+        await initFilterWithDatePart('IS_ONE_OF', null);
+
+        expect(changeFilterCondition).toHaveBeenCalledWith({
+            uid: 'gen-1',
+            condition: 'IS_ONE_OF',
+            undoRedoAction: true,
+        });
+        expect(updateFilter).not.toHaveBeenCalled();
     });
 
     test('ignores unknown filter conditions', async () => {
@@ -519,15 +673,19 @@ describe('createHReportBridge - filters', () => {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
 
-        expect(changeFilterCondition).toHaveBeenCalledWith({ uid: 'gen-1', condition: 'CUSTOM' });
+        expect(changeFilterCondition).toHaveBeenCalledWith({
+            uid: 'gen-1',
+            condition: 'CUSTOM',
+            undoRedoAction: true,
+        });
         expect(updateCustomCondition).toHaveBeenCalledWith({
             uid: 'gen-1',
             customCondition: 'region = "EMEA"',
+            undoRedoAction: true,
         });
     });
 
     test('preserves isCustomValue and encloseInQuotes for SQL expression bounds', async () => {
-        const { updateFilter } = require('./hreport-bridge.store').actionCreators;
         const reportModel = makeReportModel({
             detailedColumns: [makeDetailed('order_date', 'col-date')],
             filters: [
@@ -549,6 +707,7 @@ describe('createHReportBridge - filters', () => {
         expect(updateCustomCondition).toHaveBeenCalledWith({
             uid: 'gen-1',
             customCondition: '>=',
+            undoRedoAction: true,
         });
         expect(updateFilter).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -556,8 +715,41 @@ describe('createHReportBridge - filters', () => {
                 reportId: REPORT_ID,
                 isCustomValue: true,
                 encloseInQuotes: false,
+                undoRedoAction: true,
             })
         );
+        expect(updateAnchorDate).not.toHaveBeenCalled();
+    });
+
+    test('dispatches the relative anchor for an isRelative filter', async () => {
+        const reportModel = makeReportModel({
+            detailedColumns: [makeDetailed('travel_date', 'col-date')],
+            filters: [
+                {
+                    alias: 'travel_date',
+                    column: { id: 'col-date', name: 'travel_date' },
+                    condition: 'IS_BETWEEN',
+                    isRelative: true,
+                    values: ['year-1', 'today'],
+                },
+            ],
+        });
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(changeFilterValue).not.toHaveBeenCalled();
+        expect(updateAnchorDate).toHaveBeenCalledWith(expect.objectContaining({
+            uid: 'gen-1',
+            reportId: REPORT_ID,
+            anchorDateData: expect.objectContaining({
+                relativePart: 'year',
+                value: 1,
+                direction: 'last',
+                active: 3,
+                isAnchor: false,
+            }),
+        }));
     });
 
     test('adds db-function backed filters as temporary columns then removes them', async () => {
@@ -572,7 +764,7 @@ describe('createHReportBridge - filters', () => {
         });
 
         expect(addFieldToCanvas).toHaveBeenCalledWith(
-            expect.objectContaining({ addedAs: 'column', id: 'gen-1' })
+            expect.objectContaining({ addedAs: 'column', id: 'gen-1', undoRedoAction: true })
         );
         expect(saveDataBaseFunction).toHaveBeenCalledTimes(1);
         expect(saveDataBaseFunction.mock.calls[0][0].editingField).toEqual(
@@ -583,10 +775,12 @@ describe('createHReportBridge - filters', () => {
                 uid: 'gen-1',
                 reportId: REPORT_ID,
                 functionsDefinition: 'YEAR',
+                undoRedoAction: true,
             })
         );
         expect(removeFieldFromCanvas).toHaveBeenCalledWith({
             field: expect.objectContaining({ id: 'gen-1' }),
+            undoRedoAction: true,
         });
 
         const report = store.ensureReport(REPORT_ID);
@@ -651,7 +845,11 @@ describe('createHReportBridge - filters', () => {
             interactions,
         });
 
-        expect(loadReportFilters).toHaveBeenCalledWith({ reportId: REPORT_ID, filters: interactions.filters });
+        expect(loadReportFilters).toHaveBeenCalledWith({
+            reportId: REPORT_ID,
+            filters: interactions.filters,
+            undoRedoAction: true,
+        });
         expect(createFilter).not.toHaveBeenCalled();
     });
 });
@@ -665,7 +863,7 @@ describe('createHReportBridge - viz types and marks', () => {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
 
-        expect(updateCustomChart).toHaveBeenCalledWith({ code: '<vf>chart</vf>' });
+        expect(updateCustomChart).toHaveBeenCalledWith({ code: '<vf>chart</vf>', undoRedoAction: true });
     });
 
     test('maps mark and sub viz types', async () => {
@@ -681,8 +879,9 @@ describe('createHReportBridge - viz types and marks', () => {
             value: '_all_',
             name: 'bar',
             id: 'mark-all-id',
+            undoRedoAction: true,
         });
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'Card' });
+        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'Card', undoRedoAction: true });
     });
 
     test('maps InstantBI Grid Table picker label to S2Chart', async () => {
@@ -693,7 +892,7 @@ describe('createHReportBridge - viz types and marks', () => {
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'S2Chart' });
+        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'S2Chart', undoRedoAction: true });
     });
 
     test('maps InstantBI Maps picker label to MapChart', async () => {
@@ -704,7 +903,7 @@ describe('createHReportBridge - viz types and marks', () => {
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'MapChart' });
+        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'MapChart', undoRedoAction: true });
     });
 
     test('stamps geographicType from geographicRoles onto the map dimension', async () => {
@@ -751,11 +950,13 @@ describe('createHReportBridge - viz types and marks', () => {
                 addedAs: 'row',
                 geographicType: 'city',
                 column: expect.objectContaining({ id: '1071' }),
+                undoRedoAction: true,
             })
         );
         expect(updateFieldAlias).toHaveBeenCalledWith({
             id: 'gen-2',
             alias: 'Client Destination',
+            undoRedoAction: true,
         });
         const measureCall = addFieldToCanvas.mock.calls.find(
             ([payload]) => payload.column && payload.column.id === '1072'
@@ -802,21 +1003,30 @@ describe('createHReportBridge - viz types and marks', () => {
             eventUpdater,
         });
 
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'GridChart' });
-        expect(toggleCombineCharts).toHaveBeenCalledWith({ reportId: REPORT_ID });
+        expect(updateSelectedType).toHaveBeenCalledWith({
+            selectedType: 'GridChart',
+            undoRedoAction: true,
+        });
+        expect(toggleCombineCharts).toHaveBeenCalledWith({
+            reportId: REPORT_ID,
+            undoRedoAction: true,
+        });
         expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
             value: 'sales',
             name: 'bar',
             seriesColor: '#5B8FF9',
+            undoRedoAction: true,
         }));
         expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
             value: 'cost',
             name: 'line',
             seriesColor: '#E8684A',
+            undoRedoAction: true,
         }));
         expect(addFieldToCanvas).toHaveBeenCalledWith(expect.objectContaining({
             defaultFunction: 'db.generic.aggregate.sum',
             column: expect.objectContaining({ id: 'col-sales' }),
+            undoRedoAction: true,
         }));
         expect(eventUpdater).toHaveBeenCalledWith(expect.objectContaining({
             event: 'change_viz',
@@ -865,11 +1075,13 @@ describe('createHReportBridge - viz types and marks', () => {
             value: 'sales',
             name: 'bar',
             seriesColor: '#5B8FF9',
+            undoRedoAction: true,
         }));
         expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({
             value: 'cost',
             name: 'line',
             seriesColor: '#5AD8A6',
+            undoRedoAction: true,
         }));
     });
 
@@ -900,8 +1112,13 @@ describe('createHReportBridge - viz types and marks', () => {
             reportMetadata: { metadata: { name: 'sales-meta' } },
             interactions,
         });
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'Table' });
-        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({ name: 'line' }));
+        expect(updateSelectedType).toHaveBeenCalledWith({
+            selectedType: 'Table',
+            undoRedoAction: true,
+        });
+        expect(updateSubVizType).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'line', undoRedoAction: true })
+        );
     });
 
     test('does not map unknown chart types', async () => {
@@ -941,7 +1158,10 @@ describe('createHReportBridge - viz types and marks', () => {
         });
 
         expect(updateSubVizType).not.toHaveBeenCalled();
-        expect(updateSelectedType).toHaveBeenCalledWith({ selectedType: 'Card' });
+        expect(updateSelectedType).toHaveBeenCalledWith({
+            selectedType: 'Card',
+            undoRedoAction: true,
+        });
 
         store.bridgeUtils.getReportById.mockImplementation(originalImpl);
     });
@@ -954,7 +1174,9 @@ describe('createHReportBridge - viz types and marks', () => {
         await initBridgeWithModel(reportModel, {
             reportMetadata: { metadata: { name: 'sales-meta' } },
         });
-        expect(updateSubVizType).toHaveBeenCalledWith(expect.objectContaining({ name: 'bar' }));
+        expect(updateSubVizType).toHaveBeenCalledWith(
+            expect.objectContaining({ name: 'bar', undoRedoAction: true })
+        );
     });
 });
 
@@ -998,7 +1220,11 @@ describe('createHReportBridge - hreport loading poller', () => {
         jest.advanceTimersByTime(2000);
 
         expect(setHReportLoading).toHaveBeenCalledTimes(1);
-        expect(setHReportLoading).toHaveBeenCalledWith({ reportId: REPORT_ID, loading: false });
+        expect(setHReportLoading).toHaveBeenCalledWith({
+            reportId: REPORT_ID,
+            loading: false,
+            undoRedoAction: true,
+        });
 
         jest.advanceTimersByTime(6000);
         expect(setHReportLoading).toHaveBeenCalledTimes(1);
@@ -1034,7 +1260,7 @@ describe('createHReportBridge - init with metadataInfo (async load)', () => {
         );
         expect(loadMetadata).not.toHaveBeenCalled();
         expect(addFieldToCanvas).toHaveBeenCalledWith(
-            expect.objectContaining({ addedAs: 'column', alias: 'region' })
+            expect.objectContaining({ addedAs: 'column', alias: 'region', undoRedoAction: true })
         );
         expect(generateReport).toHaveBeenCalled();
     });
@@ -1107,6 +1333,162 @@ describe('createHReportBridge - init with metadataInfo (async load)', () => {
         await flushPromises();
         expect(openMetadata).toHaveBeenCalledWith({ location: '', metadataFileName: '' }, dispatch);
         expect(generateReport).toHaveBeenCalled();
+    });
+});
+
+describe('createHReportBridge - undoRedoAction flag', () => {
+    test('marks metadata, field, filter, viz, options and editor actions as non-undoable', async () => {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    { alias: 'region', column: { id: 'col-region', name: 'region' } },
+                    { alias: 'revenue', column: { id: 'col-revenue', name: 'revenue' } },
+                    { alias: 'order_date', column: { id: 'col-date', name: 'order_date' } },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            columns: ['region', 'revenue'],
+            detailedColumns: [
+                makeDetailed('region', 'col-region'),
+                makeDetailed('revenue', 'col-revenue', {
+                    aggregate: true,
+                    aggregateList: ['SUM'],
+                    order: 'asc',
+                }),
+                makeDetailed('order_date', 'col-date', {
+                    hidden: true,
+                    includeInResultset: true,
+                }),
+            ],
+            groupBy: [{ column: 'region' }],
+            filters: [
+                {
+                    alias: 'region',
+                    column: { id: 'col-region', name: 'region' },
+                    condition: 'EQUALS',
+                    values: ['EMEA'],
+                },
+                {
+                    alias: 'order_date',
+                    column: { id: 'col-date', name: 'order_date' },
+                    condition: 'CUSTOM',
+                    customCondition: '>=',
+                    isCustomValue: true,
+                    encloseInQuotes: false,
+                    values: ['CURRENT_DATE'],
+                },
+            ],
+            vfTemplate: '<vf>chart</vf>',
+            mark: 'KPI',
+            viz: 'bar',
+            limitBy: 50,
+            filterExpression: ['region = "EMEA"'],
+        });
+
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expectEveryActionPayloadToSkipUndoRedo();
+        expect(loadIntialReport).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(updateCanvasField).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(changeOptions).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(changeEditorContent).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(applyReportScripts).toHaveBeenCalledWith({ undoRedoAction: true });
+        expect(addNewReport).not.toHaveBeenCalled();
+        expect(removeFieldFromCanvas).not.toHaveBeenCalled();
+        expect(loadReportFilters).not.toHaveBeenCalled();
+        expect(toggleCombineCharts).not.toHaveBeenCalled();
+    });
+
+    test('marks interaction filters and dual-axis actions as non-undoable', async () => {
+        store.reset([
+            {
+                id: 't1',
+                children: [
+                    { alias: 'region', column: { id: 'col-region', name: 'region' } },
+                    { alias: 'sales', column: { id: 'col-sales', name: 'sales' } },
+                    { alias: 'cost', column: { id: 'col-cost', name: 'cost' } },
+                ],
+            },
+        ]);
+        const reportModel = makeReportModel({
+            columns: ['region'],
+            rows: ['sales', 'cost'],
+            mark: 'Grid Chart',
+            viz: 'Bar',
+            detailedColumns: [
+                makeDetailed('region', 'col-region'),
+                makeDetailed('sales', 'col-sales', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+                makeDetailed('cost', 'col-cost', {
+                    aggregate: true,
+                    aggregateList: ['db.generic.aggregate.sum'],
+                }),
+            ],
+        });
+        reportModel.viz_model.chart.dualaxis = true;
+        reportModel.viz_model.chart.measures = [
+            { field: 'sales', viz: 'Bar' },
+            { field: 'cost', viz: 'Line' },
+        ];
+        const interactions = {
+            filters: [{ uid: 'f1', column: 'col-region', condition: 'EQUALS' }],
+        };
+
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+            interactions,
+        });
+
+        expectEveryActionPayloadToSkipUndoRedo();
+        expect(loadReportFilters).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(toggleCombineCharts).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(updateSubVizType).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(updateSelectedType).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(createFilter).not.toHaveBeenCalled();
+    });
+
+    test('marks report registration and loading reset actions as non-undoable', async () => {
+        store.ensureReport('existing-report');
+        const reportModel = makeReportModel({});
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+        });
+
+        expect(addNewReport).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
+        expect(loadIntialReport).not.toHaveBeenCalled();
+
+        const [, , successCallback] = generateReport.mock.calls[0];
+        successCallback();
+        store.ensureReport(REPORT_ID).hreportLoading = true;
+        jest.advanceTimersByTime(2000);
+
+        expect(setHReportLoading).toHaveBeenCalledWith(
+            expect.objectContaining({ undoRedoAction: true })
+        );
     });
 });
 

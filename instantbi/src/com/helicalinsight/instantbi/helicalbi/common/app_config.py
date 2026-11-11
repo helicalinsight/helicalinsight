@@ -185,6 +185,12 @@ def __getattr__(name: str):  # noqa: N807
         "api_cache_max_entries": lambda: max(1, int(_api_cache().get("max_entries", 100))),
         # sql
         "default_sql_limit":     lambda: int(_raw.get("sql", {}).get("default_limit", 100)),
+        "sql_autocorrect":       lambda: _flag_bool(
+            _raw.get("sql", {}).get("autocorrect"), False
+        ),
+        "schema_chunk_size":     lambda: max(
+            1, int(_raw.get("prompt", {}).get("schema_chunk_size", 50))
+        ),
         # dashboard
         "dashboard_max_sub_questions": lambda: max(
             1, int(_raw.get("dashboard", {}).get("max_sub_questions", 5))

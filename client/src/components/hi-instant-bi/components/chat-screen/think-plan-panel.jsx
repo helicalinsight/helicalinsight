@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { Tabs, Typography } from "antd";
-import { AppstoreOutlined, ClusterOutlined, DashboardOutlined, HistoryOutlined } from "@ant-design/icons";
+import { ConsoleSqlOutlined, DashboardOutlined, DatabaseOutlined, ExportOutlined, EyeOutlined, HistoryOutlined } from "@ant-design/icons";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import InstantBITooltip from "../../instant-bi-tooltip-title";
@@ -17,6 +17,7 @@ import ChatTypingText from "./chat-typing-text";
 import LoadingBar from "../../../common/components/hi-loading-bar";
 import notify from "../../../hi-notifications/notify";
 import { getInstantBIAgentSubject } from "../../utils/common-utils";
+import { exploreInstantDashboard } from "../../utils/explore-instant-dashboard";
 import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
 import { useDashboardView } from "./dashboard-view-coordinator";
 
@@ -44,6 +45,7 @@ const ThinkPlanPanel = ({
   dataInsight = "",
 }) => {
   const streamResponse = useSelector((state) => Boolean(state.app.applicationSettingsData?.streamResponse));
+  const reports = useSelector((state) => state.hreport?.present?.reports || []);
   const items = useMemo(() => {
     if ((questionHistory || []).length) return questionHistory;
     return (askedQuestions || []).map((question, index) => ({
@@ -69,7 +71,7 @@ const ThinkPlanPanel = ({
       ...(items.length ? { question_history: items } : {}),
     },
   );
-  const [planView, setPlanView] = useState(null);
+  const [planView, setPlanView] = useState("preview");
   const [citationFocus, setCitationFocus] = useState({ index: null, nonce: 0 });
   const {
     activeDashboardViewId,
@@ -153,8 +155,19 @@ const ThinkPlanPanel = ({
     setIsLoadingDataInsight(false);
   };
 
+  const handleExploreDashboard = () => {
+    if (typeof dispatch !== "function") return;
+    exploreInstantDashboard({
+      dashboardModel: resolvedDashboardModel,
+      steps: questionHistory,
+      questionsHistory: items,
+      reports,
+      activeReport,
+    });
+  };
+
   const handleDataInsight = () => {
-    if (!isOpenMode || isLoadingDataInsight || !dispatch) return;
+    if (!(isOpenMode || isEditMode) || isLoadingDataInsight || !dispatch) return;
     const reportId = activeReport?.id;
     const activeChatID = activeReport?.activeChatID;
     const reportInfo = activeReport?.reportInfo || {};
@@ -178,7 +191,8 @@ const ThinkPlanPanel = ({
       fileName: reportInfo?.uuid || (reportInfo?.reportName && `${reportInfo.reportName}.instant`),
       chatId: activeChatID,
       agent: agentSubject,
-      useLoadChatPayload: Boolean(isOpenMode),
+      useLoadChatPayload: Boolean(isOpenMode || isEditMode),
+      think: true,
       existingChatResponse: {},
       Notify,
       abortedRef: dataInsightAbortedRef,
@@ -245,7 +259,20 @@ const ThinkPlanPanel = ({
 
   return (
     <div className="ib-think-plan" data-testid="ib-think-plan">
-      {isOpenMode ? (
+      {canViewDashboard && !isOpenMode ? (
+        <InstantBITooltip title="Explore this dashboard">
+          <button
+            type="button"
+            className="ib-think-plan__explore-dashboard-fab"
+            data-testid="ib-think-plan-explore-dashboard"
+            onClick={handleExploreDashboard}
+            aria-label="Explore this dashboard"
+          >
+            <ExportOutlined />
+          </button>
+        </InstantBITooltip>
+      ) : null}
+      {(isOpenMode || isEditMode) && !isDashboardViewActive ? (
         <InstantBITooltip title="Explain">
           <button
             type="button"
@@ -253,6 +280,7 @@ const ThinkPlanPanel = ({
             data-testid="ib-think-plan-data-insight-btn"
             onClick={handleDataInsight}
             disabled={isLoadingDataInsight}
+            aria-label="Explain this dashboard"
           >
             <AISparklesIcon />
           </button>
@@ -262,41 +290,18 @@ const ThinkPlanPanel = ({
         <>
           <div className="ib-think-plan__toolbar">
             <div className={`ib-think-plan__toolbar-actions${planView ? " is-open" : ""}`}>
-              {streamResponse && !isOpenMode ? (
-                <InstantBITooltip title="Workings">
-                  <button
-                    type="button"
-                    className={`ib-think-plan__icon-btn${planView === "workings" ? " is-active" : ""}`}
-                    onClick={() => handleTabChange("workings")}
-                    data-testid="ib-think-plan-workings"
-                    aria-pressed={planView === "workings"}
-                  >
-                    <HistoryOutlined />
-                  </button>
-                </InstantBITooltip>
-              ) : null}
-              <InstantBITooltip title="Dashboard Model">
+              <InstantBITooltip title="Preview">
                 <button
                   type="button"
-                  className={`ib-think-plan__icon-btn${planView === "dashboard" ? " is-active" : ""}`}
-                  onClick={() => handleTabChange("dashboard")}
-                  data-testid="ib-think-plan-dashboard-model"
-                  aria-pressed={planView === "dashboard"}
+                  className={`ib-think-plan__icon-btn${planView === "preview" ? " is-active" : ""}`}
+                  onClick={() => handleTabChange("preview")}
+                  data-testid="ib-think-plan-preview"
+                  aria-pressed={planView === "preview"}
                 >
-                  <AppstoreOutlined />
+                  <EyeOutlined />
                 </button>
               </InstantBITooltip>
-              <InstantBITooltip title="Activity Details">
-                <button
-                  type="button"
-                  className={`ib-think-plan__icon-btn${planView === "activity" ? " is-active" : ""}`}
-                  onClick={() => handleTabChange("activity")}
-                  data-testid="ib-think-plan-activity-details"
-                  aria-pressed={planView === "activity"}
-                >
-                  <ClusterOutlined />
-                </button>
-              </InstantBITooltip>
+
               {canViewDashboard ? (
                 <InstantBITooltip title="View Dashboard">
                   <button
@@ -310,6 +315,41 @@ const ThinkPlanPanel = ({
                   </button>
                 </InstantBITooltip>
               ) : null}
+              <InstantBITooltip title="Activity Details">
+                <button
+                  type="button"
+                  className={`ib-think-plan__icon-btn${planView === "activity" ? " is-active" : ""}`}
+                  onClick={() => handleTabChange("activity")}
+                  data-testid="ib-think-plan-activity-details"
+                  aria-pressed={planView === "activity"}
+                >
+                  <DatabaseOutlined />
+                </button>
+              </InstantBITooltip>
+              <InstantBITooltip title="Dashboard Model">
+                <button
+                  type="button"
+                  className={`ib-think-plan__icon-btn${planView === "dashboard" ? " is-active" : ""}`}
+                  onClick={() => handleTabChange("dashboard")}
+                  data-testid="ib-think-plan-dashboard-model"
+                  aria-pressed={planView === "dashboard"}
+                >
+                  <ConsoleSqlOutlined />
+                </button>
+              </InstantBITooltip>
+              {streamResponse && !isOpenMode && !isEditMode ? (
+                <InstantBITooltip title="Workings">
+                  <button
+                    type="button"
+                    className={`ib-think-plan__icon-btn${planView === "workings" ? " is-active" : ""}`}
+                    onClick={() => handleTabChange("workings")}
+                    data-testid="ib-think-plan-workings"
+                    aria-pressed={planView === "workings"}
+                  >
+                    <HistoryOutlined />
+                  </button>
+                </InstantBITooltip>
+              ) : null}
             </div>
           </div>
           <div className="ib-think-plan__tabs">
@@ -319,7 +359,7 @@ const ThinkPlanPanel = ({
               renderTabBar={() => <></>}
               animated={false}
             >
-              {streamResponse && !isOpenMode ? (
+              {streamResponse && !isOpenMode && !isEditMode ? (
                 <Tabs.TabPane key="workings" tab="">
                   <div className="ib-think-plan__inspector" data-testid="ib-think-plan-inspector-workings">
                     {Array.isArray(activityTrail) && activityTrail.length ? (

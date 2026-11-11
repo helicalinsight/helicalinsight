@@ -136,7 +136,8 @@ export const queryTestConstant = [
                             "parameters": [
                                 {
                                     "parameter": {
-                                        "default": 2,
+                                        "default": "",
+                                        "value": 2,
                                         "name": "dim_id",
                                         "type": "Numeric",
                                         openQuote: "'",
@@ -427,7 +428,8 @@ export const queryTestConstant = [
                             "parameters": [
                                 {
                                     "parameter": {
-                                        "default": "2000-01-01",
+                                        "default": "",
+                                        "value": "2000-01-01",
                                         "name": "startdate",
                                         "type": "String",
                                         openQuote: '',
@@ -436,7 +438,8 @@ export const queryTestConstant = [
                                 },
                                 {
                                     "parameter": {
-                                        "default": "2020-01-01",
+                                        "default": "",
+                                        "value": "2020-01-01",
                                         "name": "enddate",
                                         "type": "String",
                                         openQuote: '',

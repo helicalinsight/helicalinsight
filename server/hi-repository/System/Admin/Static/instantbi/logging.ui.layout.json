@@ -16,6 +16,7 @@
           "fields": [
             {
               "name": "level",
+              "path": "logging.level",
               "label": "Log level",
               "type": "select",
               "span": 12,
@@ -30,6 +31,7 @@
             },
             {
               "name": "backup_days",
+              "path": "logging.backup_days",
               "label": "Backup days",
               "type": "number",
               "span": 12,
@@ -38,6 +40,7 @@
             },
             {
               "name": "file",
+              "path": "logging.file",
               "label": "Log file",
               "type": "text",
               "span": 12,
@@ -45,6 +48,7 @@
             },
             {
               "name": "error_file",
+              "path": "logging.error_file",
               "label": "Error log file",
               "type": "text",
               "span": 12,
@@ -59,6 +63,7 @@
           "fields": [
             {
               "name": "show_llm_activity",
+              "path": "logging.show_llm_activity",
               "label": "Show LLM activity",
               "type": "boolean",
               "control": "tick",
@@ -67,6 +72,7 @@
             },
             {
               "name": "show_llm_activity_details",
+              "path": "logging.show_llm_activity_details",
               "label": "Show LLM activity details",
               "type": "boolean",
               "control": "tick",
@@ -75,6 +81,7 @@
             },
             {
               "name": "show_endpoint_log",
+              "path": "logging.show_endpoint_log",
               "label": "Show endpoint log",
               "type": "boolean",
               "control": "tick",
@@ -83,6 +90,7 @@
             },
             {
               "name": "show_api_call_log",
+              "path": "logging.show_api_call_log",
               "label": "Show API call log",
               "type": "boolean",
               "control": "tick",
@@ -91,6 +99,7 @@
             },
             {
               "name": "app_debug",
+              "path": "app.debug",
               "label": "App debug",
               "type": "boolean",
               "control": "tick",

@@ -52,7 +52,8 @@ def _to_having(item, parsed: ParsedQuery, meta: dict, idx: int) -> dict:
         "condition": item.ui_condition or "CUSTOM",
     }
     if item.aggregate:
-        wire["function"] = item.aggregate
+        wire["aggregate"] = True
+        wire["aggregateList"] = [item.aggregate]
     _apply_database_function_or_custom(wire, item, meta)
 
     return _apply_condition_transform(wire, item)

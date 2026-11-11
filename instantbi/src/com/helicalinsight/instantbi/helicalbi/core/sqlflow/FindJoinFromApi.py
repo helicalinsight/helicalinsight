@@ -34,30 +34,26 @@ def _parse_query_plan(query_plan) -> dict:
     return query_plan
 
 
-def _select_clause_refs(query_plan) -> List[str]:
-    """Column refs that belong in SELECT; fall back to the full plan list.
-
-    Join API payloads should use projected SELECT columns, not WHERE / HAVING
-    / JOIN-key-only columns. ``selectColumnName`` is that subset when present.
-    """
-    plan = _parse_query_plan(query_plan)
-    refs = plan.get("selectColumnName")
-    if isinstance(refs, list) and any(str(item).strip() for item in refs):
-        return [str(item).strip() for item in refs if str(item).strip()]
-    refs = plan.get("columnName") or []
+def _named_refs(plan: dict, key: str) -> List[str]:
+    refs = plan.get(key)
     if not isinstance(refs, list):
         return []
     return [str(item).strip() for item in refs if str(item).strip()]
 
 
-def _plan_columns_by_table(query_plan) -> Dict[str, List[str]]:
-    """Map table -> ordered bare column names from the SELECT clause.
+def _select_clause_refs(query_plan) -> List[str]:
+    """Column refs that belong in SELECT; fall back to the full plan list."""
+    plan = _parse_query_plan(query_plan)
+    refs = _named_refs(plan, "selectColumnName")
+    if refs:
+        return refs
+    return _named_refs(plan, "columnName")
 
-    Only qualified ``table.column`` references contribute, since bare columns
-    can't be attributed to a specific table for join-key selection.
-    """
+
+def _refs_by_table(refs: List[str]) -> Dict[str, List[str]]:
+    """Map table -> ordered bare column names. Bare names are skipped."""
     mapping: Dict[str, List[str]] = {}
-    for raw_ref in _select_clause_refs(query_plan):
+    for raw_ref in refs:
         table_name, col_name = split_table_column_ref(raw_ref)
         if not table_name or not col_name:
             continue
@@ -67,10 +63,30 @@ def _plan_columns_by_table(query_plan) -> Dict[str, List[str]]:
     return mapping
 
 
+def _plan_columns_by_table(query_plan) -> Dict[str, List[str]]:
+    """Tables used anywhere in the plan, with SELECT columns preferred.
+
+    A filter column on a second table still has to be joined. Tables that
+    already have a SELECT column keep those projected columns so a join key
+    used only in WHERE is not sent in their place.
+    """
+    plan = _parse_query_plan(query_plan)
+    selected = _refs_by_table(_named_refs(plan, "selectColumnName"))
+    used = _refs_by_table(_named_refs(plan, "columnName"))
+    if not used:
+        return selected
+    merged: Dict[str, List[str]] = {}
+    for table_name, columns in used.items():
+        merged[table_name] = selected.get(table_name) or columns
+    for table_name, columns in selected.items():
+        merged.setdefault(table_name, columns)
+    return merged
+
+
 def _join_tables_from_select(
     query_plan, required_tables: Optional[List[str]] = None
 ) -> List[str]:
-    """Tables that own SELECT-clause columns, optionally limited to known tables."""
+    """Tables referenced by the query plan, optionally limited to known tables."""
     known_lookup = {str(table) for table in (required_tables or []) if table}
     tables: List[str] = []
     for table_name in _plan_columns_by_table(query_plan):
@@ -153,12 +169,20 @@ class FindJoinFromApi:
         metadata_name = state["metadata_file_name"]
         location = state["location"]
         required_tables = state["required_tables"] or []
-        table_names = _join_tables_from_select(state.get("query_plan"), required_tables)
+        cube_tables = [
+            str(cube.get("database_table"))
+            for cube in iter_cube_entries(cube_metadata or [])
+            if cube.get("database_table")
+        ]
+        # A qualified column may belong to a cube table FindTables did not pick.
+        table_names = _join_tables_from_select(
+            state.get("query_plan"), cube_tables or required_tables
+        )
         if not table_names:
             table_names = required_tables
         if len(table_names) <= 1:
             logger.info(
-                "Skipping join fetch: SELECT clause uses a single table (or none)"
+                "Skipping join fetch: query plan uses a single table (or none)"
             )
             state["hi_sql"] = json.dumps({})
             state["required_joins"] = ""
@@ -191,13 +215,56 @@ class FindJoinFromApi:
         state["required_joins"] = dummy_sql
         return state
 
+    def refresh_joins(self, state: SQLModel, qualified_columns: Optional[List[str]] = None) -> str:
+        """Call the join API again for these qualified columns and store the join."""
+        refs = [str(ref).strip() for ref in (qualified_columns or []) if str(ref).strip()]
+        tables: List[str] = []
+        for ref in refs:
+            table_name, _column_name = split_table_column_ref(ref)
+            if table_name and table_name not in tables:
+                tables.append(table_name)
+        previous = str(state.get("required_joins") or "")
+        if len(tables) <= 1:
+            return previous
+        plan = {"columnName": refs, "selectColumnName": refs}
+        try:
+            output = self.fetch_sql(
+                state.get("session_cookie"),
+                state.get("metadata_file_name"),
+                state.get("location"),
+                tables,
+                state.get("cube_metadata"),
+                state.get("dbname") or "",
+                plan,
+            ) or {}
+        except Exception:
+            logger.exception("Join API recheck failed for tables=%s", tables)
+            return previous
+        if is_join_api_error(output):
+            logger.warning(
+                "Join API recheck returned an error for tables=%s: %s",
+                tables,
+                output.get("message") or output.get("className") or output,
+            )
+            return previous
+        query = output.get("query", "") or ""
+        joins = self.extract_full_joins(query, state.get("dialect")) if query else []
+        join_text = "\n".join(joins) if joins else ""
+        if not join_text:
+            return previous
+        output["required_joins"] = join_text
+        state["hi_sql"] = json.dumps(output)
+        state["required_joins"] = join_text
+        logger.info("Join API recheck tables=%s", tables)
+        return join_text
+
     def fetch_sql(self, session_cookie: str, metadata, location, tables=None,
                   cube_metadata=None, dbname="", query_plan=None) -> dict:
         tables = tables or []
         columns = []
         plan_columns_by_table = _plan_columns_by_table(query_plan)
         seen_cols = set()
-        # Send every SELECT-clause column so generateQuery joins only those tables.
+        # Send a column from every plan table, including filter-only tables.
         for table_name in tables:
             for column_name in plan_columns_by_table.get(table_name) or []:
                 key = (table_name, column_name)
@@ -211,7 +278,7 @@ class FindJoinFromApi:
         select_tables = {table_name for table_name, _ in seen_cols}
         if columns and len(select_tables) <= 1:
             logger.info(
-                "Skipping join fetch: SELECT clause columns belong to a single table"
+                "Skipping join fetch: plan columns belong to a single table"
             )
             return {}
 

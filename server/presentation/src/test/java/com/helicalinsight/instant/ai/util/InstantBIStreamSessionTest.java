@@ -1,7 +1,6 @@
 package com.helicalinsight.instant.ai.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -51,19 +50,8 @@ public class InstantBIStreamSessionTest {
         InstantBIStreamSession session = new InstantBIStreamSession(mock(HttpServletResponse.class), "req");
         JsonObject python = new JsonObject();
         python.addProperty("insight", "summary");
-        JsonObject wrapped = session.wrapComplete("/data-insight", python);
+        JsonObject wrapped = session.wrapComplete("/data-insight-service", python);
         assertEquals("summary", wrapped.getAsJsonObject("response").get("insight").getAsString());
-    }
-
-    @Test
-    public void wrapCompleteUsesConvertDashboardEnvelope() {
-        InstantBIStreamSession session = new InstantBIStreamSession(mock(HttpServletResponse.class), "req");
-        JsonObject python = new JsonObject();
-        python.add("layout", new com.google.gson.JsonArray());
-        python.addProperty("templateId", "t1");
-        JsonObject wrapped = session.wrapComplete("/convert-dashboard", python);
-        assertEquals("t1", wrapped.getAsJsonObject("response").get("templateId").getAsString());
-        assertFalse(wrapped.getAsJsonObject("response").has("metadata"));
     }
 
     @Test
@@ -160,7 +148,7 @@ public class InstantBIStreamSessionTest {
                 + "event: progress\ndata: {\"stage\":\"execute\",\"status\":\"started\",\"message\":\"Executing SQL...\"}\n\n"
                 + "event: complete\ndata: {\"insight\":\"ok\",\"token_usage\":{\"total_tokens\":1}}\n\n";
         AtomicBoolean sawStreamQuery = new AtomicBoolean(false);
-        server.createContext("/data-insight", exchange -> {
+        server.createContext("/data-insight-service", exchange -> {
             sawStreamQuery.set(exchange.getRequestURI().getQuery() != null
                     && exchange.getRequestURI().getQuery().contains("stream=true"));
             byte[] bytes = sse.getBytes(StandardCharsets.UTF_8);
@@ -183,7 +171,7 @@ public class InstantBIStreamSessionTest {
             try (MockedStatic<JsonUtils> jsonUtils = mockStatic(JsonUtils.class)) {
                 jsonUtils.when(JsonUtils::newGetSettingsJson).thenReturn(settings);
                 InstantBIStreamSession session = new InstantBIStreamSession(response, "req-forward");
-                session.forwardFromPython("/data-insight", new JsonObject());
+                session.forwardFromPython("/data-insight-service", new JsonObject());
             }
 
             String text = output.toString();

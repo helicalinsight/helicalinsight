@@ -22,7 +22,9 @@ import java.io.Serializable;
  */
 
 @Entity
-@Table(name = "profile")
+@Table(name = "profile", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_profile_name_user_id", columnNames = {"profile_name", "user_id"})
+})
 public class Profile implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -63,7 +65,7 @@ public class Profile implements Serializable {
      * profile field's as fetch type is eager
      */
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = true, insertable = false, updatable = false)
     /**
      * user object  for join profile table with user table

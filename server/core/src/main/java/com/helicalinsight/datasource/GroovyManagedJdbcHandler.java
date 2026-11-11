@@ -27,6 +27,7 @@ import com.helicalinsight.admin.dto.PlainConnDTO;
 import com.helicalinsight.admin.model.EFWDConnGroovy;
 import com.helicalinsight.datasource.helper.EfwDatasourceHelper;
 import com.helicalinsight.datasource.utils.EFWDDBHandler;
+import com.helicalinsight.efw.components.DataSourceSecurityUtility;
 import com.helicalinsight.efw.components.EfwdDataSourceHandler;
 import com.helicalinsight.efw.exceptions.EfwException;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
@@ -66,6 +67,7 @@ public class GroovyManagedJdbcHandler extends EfwdDataSourceHandler {
 		if (globalId.isBlank()) {
 			throw new EfwServiceException("You do not have privileges to access the global connections.");
 		}
+		DataSourceSecurityUtility.isGlobalAccessible(globalId, DataSourceSecurityUtility.EXECUTE);
 		ObjectNode freshReq = JsonNodeFactory.instance.objectNode();
 		freshReq.put("globalId", globalId);
 		freshReq.put("id", globalId);
