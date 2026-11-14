@@ -38,7 +38,7 @@ def staticDataSources = '''[ {
 def supportedArray = ["Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
                       "Postgresql", "IBM Db2", "Access", "Sqlite", "Teradata", "Mariadb", "Hive", "Informix", "Presto", "Derby", "Dremio",
                       "Snowflake","Elasticsearch","Trino","Google Bigquery","Amazon Dynamodb","Amazon Redshift","Celerdata","Yugabyte",
-                      "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Ξ Add Driver Ξ"]
+                      "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Mongodb","Ξ Add Driver Ξ"]
 
 def virtualStaticDs = '''{
 "name": "Virtual Datasource",
@@ -168,7 +168,7 @@ driverListArray.each {
 
         for (int i = 0; i < clonedSupportedFilesObject.size(); i++) {
             JSONObject object = clonedSupportedFilesObject.getJSONObject(i);
-            if (object.containsValue(findDbName) || object.containsValue("Mongodb")) {
+            if (object.containsValue(findDbName)) {
 
                 clonedSupportedFilesObject.remove(i);
 
@@ -191,6 +191,11 @@ driverListArray.each {
             String replacedValue = findDbName.replace(modifiedMiddlewareName.substring(0, 1).toUpperCase() + modifiedMiddlewareName.substring(1), "").trim();
             modelJson.name = replacedValue.substring(0, 1).toUpperCase() + replacedValue.substring(1)
 
+        } else if (findDbName.equals("Mongodb") || findDbName.equals("Helical Mongodb")) {
+            modelJson.categoryName = "No SQL & Big Data"
+            modelJson.categoryType = "nosql_bigdata"
+            modelJson.type = "global.jdbc"
+            modelJson.dataSourceProvider = "noSql"
         } else {
             modelJson.categoryName = "RDBMS"
             modelJson.categoryType = "rdbms"

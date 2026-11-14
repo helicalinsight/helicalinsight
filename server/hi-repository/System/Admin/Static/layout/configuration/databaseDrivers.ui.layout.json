@@ -45,6 +45,15 @@
                                             "span":  24,
                                             "description":  "Default JDBC URL template.",
                                             "rows":  2
+                                        },
+                                        {
+                                            "name":  "mongodb",
+                                            "path":  "com.helical.mongodb.MongoJdbcDriver",
+                                            "label":  "MongoDB URL",
+                                            "type":  "textarea",
+                                            "span":  24,
+                                            "description":  "Default JDBC URL template.",
+                                            "rows":  2
                                         }
                                     ]
                      }
