@@ -268,7 +268,6 @@ class GetColumnNames:
         user_query = state["query"]
         table_names = state["required_tables"]
         # required_examples = state["required_examples"]
-        required_synonyms = state["required_synonyms"]
         last_chats = state["last_chats"]
         cube_metadata = state["cube_metadata"]
         model_data = {
@@ -291,8 +290,7 @@ class GetColumnNames:
         parser = PydanticOutputParser(pydantic_object=get_column_response_model())
         prompt = PromptTemplate(
             template=detect_column_prompt_string + format_instruction_string,
-            input_variables=["user_query", "required_synonyms", "last_chats",
-                             "table_column_description", "dialect"],
+            input_variables=["user_query", "last_chats", "table_column_description", "dialect"],
             partial_variables={"format_instructions": brief_format_instructions(parser.pydantic_object)},
         )
         plans = []
@@ -323,7 +321,6 @@ class GetColumnNames:
                 parser,
                 {
                     "user_query": user_query,
-                    "required_synonyms": required_synonyms,
                     "last_chats": last_chats,
                     "table_column_description": table_column_description,
                     "dialect": state.get("dialect") or "",

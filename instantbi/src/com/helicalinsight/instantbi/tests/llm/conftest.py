@@ -130,3 +130,15 @@ def llm_mode() -> str:
 def _apply_travle_llm_test_env():
     """Load Travle_Agent test config (base URL, cookie, OpenAI key) into env."""
     apply_llm_test_env()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _prompt_live_llm_config(llm_mode):
+    """When the suite runs live, collect provider settings in the browser first."""
+    if llm_mode != "live":
+        return
+    if os.environ.get("HELICALBI_LLM_CONFIG_PROMPT", "1").strip() == "0":
+        return
+    from tests.llm.llm_config_prompt import prompt_llm_config
+
+    prompt_llm_config()

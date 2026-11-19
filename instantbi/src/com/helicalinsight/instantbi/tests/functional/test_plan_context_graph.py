@@ -718,8 +718,8 @@ def test_diagnostic_capability_ai_context_matches_and_prompts():
     cap = {
         "capability": "Travel Cost Analysis",
         "aiContext": {
+            "description": "travel spend review, cost investigation",
             "instructions": "Explain the change in travel spend.",
-            "synonyms": "travel spend review, cost investigation",
             "examples": "Why did travel cost rise?",
         },
         "applicableTo": [{"measure": "Travel Cost"}],
@@ -731,12 +731,24 @@ def test_diagnostic_capability_ai_context_matches_and_prompts():
         "Run a travel spend review for last year"
     )
     assert len(matches) == 1
-    assert matches[0]["aiContext"]["synonyms"] == "travel spend review, cost investigation"
+    assert matches[0]["aiContext"]["description"] == "travel spend review, cost investigation"
 
     block = diagnostic_capabilities_prompt_block([cap])
-    assert "aiContext: {instructions: Explain the change in travel spend." in block
-    assert "synonyms: travel spend review, cost investigation" in block
+    assert "aiContext: {description: travel spend review, cost investigation" in block
+    assert "instructions: Explain the change in travel spend." in block
     assert "examples: Why did travel cost rise?" in block
+
+    legacy = {
+        "capability": "Travel Cost Analysis",
+        "aiContext": {"synonyms": "travel spend review"},
+        "applicableTo": [{"measure": "Travel Cost"}],
+        "uses": ["trend"],
+    }
+    legacy_matches = SemanticLayerIndexer()
+    legacy_matches.index_model({"diagnosticCapabilities": [legacy]}, {})
+    assert len(
+        legacy_matches.matching_diagnostic_capabilities("Run a travel spend review")
+    ) == 1
 
 
 def test_hierarchy_level_deduplication_across_tables():

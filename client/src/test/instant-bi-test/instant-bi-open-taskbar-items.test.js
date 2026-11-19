@@ -16,7 +16,7 @@ describe("getInstantBIOpenTaskbarItems", () => {
     jest.clearAllMocks();
   });
 
-  it("it should return cacheTime and Refresh dropdown taskbar items", () => {
+  it("should return cacheTime and Refresh dropdown taskbar items", () => {
     const items = getInstantBIOpenTaskbarItems({
       dispatch: mockDispatch,
       file,
@@ -29,21 +29,49 @@ describe("getInstantBIOpenTaskbarItems", () => {
       title: "Refresh",
       dropdown: true,
     });
-    expect(items[1].menu).toHaveLength(1);
+    expect(items[1].menu).toHaveLength(2);
     expect(items[1].menu[0]).toMatchObject({
+      title: "Cache",
+      key: "cache",
+    });
+    expect(items[1].menu[1]).toMatchObject({
       title: "Current Report",
       key: "currentReport",
     });
   });
 
-  it ("it should reload current report when current report callback is invoked", () => {
+  it("should invoke onCacheRefresh when cache callback is invoked", () => {
+    const onCacheRefresh = jest.fn();
+    const items = getInstantBIOpenTaskbarItems({
+      dispatch: mockDispatch,
+      file,
+      reportId,
+      setFileInfo: mockSetFileInfo,
+      onCacheRefresh,
+    });
+    items[1].menu[0].callback();
+    expect(onCacheRefresh).toHaveBeenCalledTimes(1);
+    expect(fetchInstantBIReportAPI).not.toHaveBeenCalled();
+  });
+
+  it("should not throw when cache callback is invoked without onCacheRefresh", () => {
     const items = getInstantBIOpenTaskbarItems({
       dispatch: mockDispatch,
       file,
       reportId,
       setFileInfo: mockSetFileInfo,
     });
-    items[1].menu[0].callback();
+    expect(() => items[1].menu[0].callback()).not.toThrow();
+  });
+
+  it("should reload current report when current report callback is invoked", () => {
+    const items = getInstantBIOpenTaskbarItems({
+      dispatch: mockDispatch,
+      file,
+      reportId,
+      setFileInfo: mockSetFileInfo,
+    });
+    items[1].menu[1].callback();
     expect(fetchInstantBIReportAPI).toHaveBeenCalledTimes(1);
     expect(fetchInstantBIReportAPI).toHaveBeenCalledWith({
       dispatch: mockDispatch,

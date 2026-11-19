@@ -899,6 +899,35 @@ class TestOptionalPromptReason:
         )
         assert "do not use a JOIN" in final_sql_prompt
 
+    def test_final_sql_prompt_states_clause_rules_in_sql_order(self):
+        from helicalbi.prompt.FinalSqlPrompt import final_sql_prompt
+
+        clauses = [
+            "SELECT\n",
+            "Title Case",
+            "Do not apply formatString",
+            "non-additive: do not SUM",
+            "semi-additive: do not SUM across time",
+            "FROM\n",
+            "JOIN\n",
+            "Do not invent a join",
+            "Do not join a finer-grain table",
+            "WHERE\n",
+            "write NOT IN",
+            "HAVING\n",
+            "Do NOT write nested scalar subqueries in WHERE or HAVING",
+            "above/below average by group",
+            "ORDER BY\n",
+            "Ignore Natural",
+            "Do not ORDER BY a measure",
+            "LIMIT\n",
+            "Ignore previous SQL that uses tables or columns outside the provided list",
+        ]
+        positions = [final_sql_prompt.find(text) for text in clauses]
+        missing = [text for text, position in zip(clauses, positions) if position < 0]
+        assert not missing, missing
+        assert positions == sorted(positions)
+
     def test_final_sql_prompt_prefers_join_over_nested_having_subquery(self):
         from helicalbi.prompt.FinalSqlPrompt import render_final_sql_prompt
 
@@ -906,7 +935,7 @@ class TestOptionalPromptReason:
         assert "JOINs preferred over nested subqueries" in prompt
         assert "Do NOT write nested scalar subqueries in WHERE or HAVING" in prompt
         assert "above/below average by group" in prompt
-        assert "JOINs preferred over nested subqueries" not in render_final_sql_prompt(
+        assert "JOINs preferred over nested subqueries" in render_final_sql_prompt(
             "total travel cost"
         )
 
@@ -916,6 +945,24 @@ class TestOptionalPromptReason:
 
         assert "Never use * or COUNT(*)" in detect_column_prompt_string
         assert "Dialect: {dialect}" in detect_column_prompt_string
+        assert "Name: business name" in detect_column_prompt_string
+        assert "Column: one physical table.column" in detect_column_prompt_string
+        assert "Formula: stored expression" in detect_column_prompt_string
+        assert "Sort: stored sort" in detect_column_prompt_string
+        assert "copy its metric formula" not in detect_column_prompt_string
+        assert "Do not add a column that is not in the list." in detect_column_prompt_string
+        assert (
+            "If a column is derived from a formula or database function, "
+            "put that formula along with the column name."
+        ) in detect_column_prompt_string
+        assert (
+            "pickedDimensions are dimension names from the Dimensions section "
+            "or alias labels, never quoted SQL."
+        ) in detect_column_prompt_string
+        assert (
+            "pickedMetrics are measure names from the Measures section "
+            "or alias labels, never quoted SQL."
+        ) in detect_column_prompt_string
         assert "Never use SELECT * or COUNT(*)" in final_sql_prompt
         assert "COUNT(DISTINCT column)" in final_sql_prompt or "COUNT(DISTINCT" in final_sql_prompt
 
@@ -936,13 +983,13 @@ class TestOptionalPromptReason:
         )
         assert "Filter values that are database functions" in prompt
         assert "EXTRACT(YEAR FROM" in prompt
-        assert "Do not replace a date or time function with CAST" in prompt
         assert "Date ranges" in prompt
         assert "BETWEEN '2024-01-01' AND '2024-12-31'" in prompt
         assert "IN (date1, date2)" in prompt
         assert "Relative periods" in prompt
         assert "CURRENT_DATE - 1" in prompt or "CURRENT_DATE minus 1 year" in prompt
         assert "EXTRACT(YEAR FROM CURRENT_DATE) - 1" in prompt
+        assert "Absolute calendar year" in prompt
         assert "Relative periods" not in render_final_sql_prompt("total travel cost")
         assert 'FROM "t"' not in final_sql_prompt
         assert '"date_col"' not in final_sql_prompt
@@ -950,6 +997,18 @@ class TestOptionalPromptReason:
         assert "A slot is not a name" in final_sql_prompt
         assert "original table name and an alias" in final_sql_prompt
         assert "FROM <table> <alias>" in final_sql_prompt
+
+    def test_final_sql_prompt_literal_year_uses_catalog_formula_not_between(self):
+        from helicalbi.prompt.FinalSqlPrompt import render_final_sql_prompt
+
+        prompt = render_final_sql_prompt(
+            "What is the total travel cost for the year 2026"
+        )
+        assert "Absolute calendar year" in prompt
+        assert "from Descriptions, Metrics, or Functions" in prompt
+        assert "Do not rewrite that filter as a date-column BETWEEN range" in prompt
+        assert "EXTRACT(YEAR FROM <alias>.<date_column>) = <year>" not in prompt
+        assert "Relative periods" not in prompt
 
     def test_chat_response_omits_reason_fields_when_flag_enabled(self, monkeypatch):
         from helicalbi.common import app_config

@@ -69,9 +69,129 @@ class TestGetTableColDescription:
             }
         ]
         result = get_table_col_description(cube_metadata, ["travel_details"])
-        assert "travel_details.destination_id" in result
-        assert "platform (travel_details.booking_platform)" in result
-        assert "destination_count (travel_details.destination_id)" in result
+        assert "Name: platform" in result
+        assert "Column: travel_details.booking_platform" in result
+        assert "Name: destination_count" in result
+        assert "Column: travel_details.destination_id" in result
+
+    def test_catalog_uses_headings_and_leaves_formulas_out(self):
+        cube_metadata = [
+            {
+                "database_table": "travel_details",
+                "columns": [
+                    {
+                        "column_name": "travel_date",
+                        "dimension_name": "Journey Date",
+                        "semantic_type": "Datetime",
+                        "description": "Date of the trip.",
+                        "synonyms": ["travel date"],
+                    }
+                ],
+                "measures": [
+                    {
+                        "column_name": "Current Year Travel Cost",
+                        "measure_name": "Current Year Travel Cost",
+                        "is_computed": True,
+                        "semantic_type": "Currency",
+                        "formula": (
+                            "SUM(CASE WHEN EXTRACT(YEAR FROM travel_details.travel_date)"
+                            "=EXTRACT(YEAR FROM CURRENT_DATE) THEN travel_details.travel_cost "
+                            "ELSE 0 END)"
+                        ),
+                        "ai_context": {
+                            "instructions": "Travel cost in the current calendar year.",
+                        },
+                    }
+                ],
+            }
+        ]
+        result = get_table_col_description(cube_metadata, ["travel_details"])
+        assert "Name: Journey Date" in result
+        assert "Column: travel_details.travel_date" in result
+        assert "Type: Datetime" in result
+        assert "Use: Date of the trip." in result
+        assert "Also: travel date" in result
+        assert "Name: Current Year Travel Cost" in result
+        assert "Columns: travel_details.travel_date, travel_details.travel_cost" in result
+        assert "Formula: SUM(CASE WHEN EXTRACT(YEAR FROM travel_details.travel_date)" in result
+        assert "Use: Travel cost in the current calendar year." in result
+        assert "Column: travel_details.Current Year Travel Cost" not in result
+        assert "|" not in result
+
+    def test_topic_components_are_the_column_catalog(self):
+        from helicalbi.common.cube_info.topics import topic_mappings_from_domain
+
+        model = {
+            "cube": [
+                {
+                    "dimensions": [
+                        {
+                            "dimensionName": "Year",
+                            "semanticType": "Number",
+                            "columnName": "travel_details.travel_date",
+                            "columnId": "14016",
+                            "formula": "EXTRACT(YEAR FROM travel_details.travel_date)",
+                            "sort": "Natural",
+                            "aiContext": {
+                                "instructions": "Group by calendar year.",
+                                "synonyms": "travel year",
+                                "examples": "Travel cost by year",
+                            },
+                        },
+                        {
+                            "dimensionName": "Secret",
+                            "columnName": "travel_details.secret_col",
+                            "columnId": "9",
+                        },
+                    ],
+                    "measures": [
+                        {
+                            "measureName": "Cost Incurred",
+                            "semanticType": "Currency",
+                            "columnName": "travel_details.travel_cost",
+                            "columnId": "14023",
+                            "formula": "Sum(travel_details.travel_cost)",
+                            "aggregator": "Sum",
+                        }
+                    ],
+                }
+            ],
+            "domain": [
+                {
+                    "domain_name": "Corporate Travel Management",
+                    "topics": [
+                        {
+                            "topic": "Travel",
+                            "components": [
+                                {"id": "14016", "name": "Year"},
+                                {"id": "14023", "name": "Cost Incurred"},
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        result = get_table_col_description(
+            [
+                {
+                    "database_table": "travel_details",
+                    "columns": [{"column_name": "secret_col"}],
+                }
+            ],
+            ["travel_details"],
+            model_data={"topic_mappings": topic_mappings_from_domain(model)},
+        )
+        assert "Name: Year" in result
+        assert "Column: travel_details.travel_date" in result
+        assert "Formula: EXTRACT(YEAR FROM travel_details.travel_date)" in result
+        assert "Sort: Natural" in result
+        assert "Use: Group by calendar year." in result
+        assert "Also: travel year" in result
+        assert "Examples: Travel cost by year" in result
+        assert "Name: Cost Incurred" in result
+        assert "Column: travel_details.travel_cost" in result
+        assert "Formula: Sum(travel_details.travel_cost)" in result
+        assert "secret_col" not in result
 
 
 class TestGetTableSelectionDescription:

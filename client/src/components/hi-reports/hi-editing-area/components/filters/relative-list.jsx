@@ -84,7 +84,7 @@ const RelativeList = props => {
     }
     const applyChanges = () => {
         let dateNow = isAnchor ? anchorDate : moment()._d
-        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
+        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart, active)
         if (range) {
             try {
                 let anchorDateData = {
@@ -144,7 +144,7 @@ const RelativeList = props => {
         // setAnchorStr(moment(anchorDate).format("YYYY-MM-DD HH:mm:ss"))
     }
     let dateNow = isAnchor ? anchorDate : moment()._d
-    const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
+    const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart, active)
     let dateValue = "01"
     if (!range) {
         dateValue = createEffectedDate(dateNow, value, part, direction, toolTipFormat, relativePart, "start")

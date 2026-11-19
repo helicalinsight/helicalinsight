@@ -18,7 +18,7 @@ import notify from "../components/hi-notifications/notify";
 import HILayout from "../layouts/hi-layout";
 import { appActions, fileBrowserActions } from "../redux/actions";
 import { AGENT_INTERACT_ACTION } from "../components/hi-fileBrowser/constants";
-import { addNewIBReport, changeIBReport, loadInitialIBReport, removeIBReport, updateInstantBIMode } from "../redux/actions/instant-bi.actions";
+import { addNewIBReport, changeIBReport, loadInitialIBReport, removeIBReport, updateCacheRefreshStatus, updateInstantBIMode } from "../redux/actions/instant-bi.actions";
 import { routesUrl } from "../app/constants";
 
 
@@ -148,6 +148,9 @@ const HIInstantBI = (props) => {
         file,
         reportId,
         setFileInfo: props.setFileInfo,
+        onCacheRefresh: () => {
+          dispatch(updateCacheRefreshStatus())
+        }
       })
     );
   }, [reportName, isInstantOpenFile, file, reportId]);

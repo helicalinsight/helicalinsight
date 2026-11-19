@@ -16,6 +16,7 @@ const EditFolderForm = ({
   setOnDrawerSubmit,
   setLoading,
   action,
+  inputRef,
 }) => {
   const [form] = Form.useForm();
   const clickedContextRecord = useSelector(
@@ -112,7 +113,7 @@ const EditFolderForm = ({
               }),
             ]}
           >
-            <Input ref={editForm} />
+            <Input ref={inputRef || editForm} />
           </Form.Item>
           <Row>
             <Form.Item name="isPublic" valuePropName="checked">

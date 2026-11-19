@@ -1,11 +1,16 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { Provider } from "react-redux";
+import { createStore } from "redux";
 import {
   ChartView,
   parseBackendErrorMessage,
 } from "../../components/hi-instant-bi/utils/common-utils";
+import InstantChartView from "../../components/hi-instant-bi/components/chat-screen/chart-view";
+import { updateCacheRefreshStatus } from "../../redux/actions/instant-bi.actions";
+import instantBIReducer from "../../redux/reducers/instant-bi.reducer";
+import initialStates from "../../redux/reducers/initialStates";
 
 jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => {
   const React = require("react");
@@ -30,10 +35,14 @@ jest.mock("../../components/hi-instant-bi/components/ib-custom-chart", () => {
   };
 });
 
+const mockHelicalReportsProps = { current: null };
 jest.mock("../../pages", () => {
   const React = require("react");
   return {
-    HelicalReports: () => <div data-testid="ib-custom-chart" />,
+    HelicalReports: (props) => {
+      mockHelicalReportsProps.current = props;
+      return <div data-testid="ib-custom-chart" />;
+    },
   };
 });
 
@@ -114,6 +123,68 @@ describe("ChartView", () => {
     await waitFor(() =>
       expect(screen.getByTestId("ib-custom-chart")).toBeInTheDocument(),
     );
+  });
+});
+
+describe("InstantChartView cache refresh", () => {
+  const chartViewProps = {
+    fullChatResponse: { hreportId: "hr-cache" },
+    vizType: "Chart",
+  };
+
+  const createCacheRefreshStore = () => {
+    const rootReducer = (
+      state = {
+        hreport: { present: { reports: [] } },
+        instantBI: initialStates.instantBIInitialState,
+      },
+      action,
+    ) => ({
+      ...state,
+      instantBI: instantBIReducer(state.instantBI, action),
+    });
+    return createStore(rootReducer);
+  };
+
+  const renderView = (store) => (
+    <Provider store={store}>
+      <InstantChartView {...chartViewProps} />
+    </Provider>
+  );
+
+  beforeEach(() => {
+    mockHelicalReportsProps.current = null;
+  });
+
+  it("should not flag the initial render as a cache refresh", () => {
+    const store = createCacheRefreshStore();
+    render(renderView(store));
+
+    expect(mockHelicalReportsProps.current.cacheRefresh).toBe(false);
+    expect(mockHelicalReportsProps.current.cacheRefreshCount).toBe(0);
+  });
+
+  it("should forward a one-shot cache refresh and the refresh count", () => {
+    const store = createCacheRefreshStore();
+    const { rerender } = render(renderView(store));
+
+    act(() => {
+      store.dispatch(updateCacheRefreshStatus());
+    });
+
+    expect(mockHelicalReportsProps.current.cacheRefresh).toBe(true);
+    expect(mockHelicalReportsProps.current.cacheRefreshCount).toBe(1);
+
+    rerender(renderView(store));
+    expect(mockHelicalReportsProps.current.cacheRefresh).toBe(false);
+    expect(mockHelicalReportsProps.current.cacheRefreshCount).toBe(1);
+
+    act(() => {
+      store.dispatch(updateCacheRefreshStatus());
+    });
+
+    expect(mockHelicalReportsProps.current.cacheRefresh).toBe(true);
+    expect(mockHelicalReportsProps.current.cacheRefreshCount).toBe(2);
   });
 });
 

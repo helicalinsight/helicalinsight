@@ -8,6 +8,7 @@ from ..functions_catalog import to_wire_database_function_expression
 from ..mappings.conditions import CONDITION_WIRE_MAP
 from ..mappings.types import infer_data_type
 from ..metadata import (
+    expression_uses_star_call,
     resolve_host_column_from_used,
     resolve_wire_column,
     to_raw_database_function,
@@ -98,6 +99,14 @@ def _apply_database_function_or_custom(wire: dict[str, Any], item, meta: dict) -
     # Fallback: original SQL expression (parser-kept), not the alias rendering.
     expr = (item.database_function_sql or item.custom_sql or "").strip()
     if not expr:
+        return wire
+    if expression_uses_star_call(expr):
+        wire["column"] = to_raw_database_function(expr)
+        wire["custom"] = True
+        wire.pop("databaseFunction", None)
+        wire.pop("aggregate", None)
+        wire.pop("aggregateList", None)
+        wire["usedColumns"] = used
         return wire
     if used:
         host = resolve_host_column_from_used(used, meta, column=item.column)

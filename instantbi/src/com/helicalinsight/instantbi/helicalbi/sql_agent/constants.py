@@ -246,7 +246,7 @@ DIRECTION_NEUTRAL = "neutral"
 TRAIT_NOTE_SEPARATOR = "; "
 
 TRAIT_GRAIN_NOTE = "stay at grain '{grain}' and do not join a finer-grain table that duplicates those rows"
-TRAIT_NON_ADDITIVE_NOTE = "do not SUM this measure; compute it from its formula components inside each group"
+TRAIT_NON_ADDITIVE_NOTE = "do not SUM this measure; copy its stored formula exactly as written"
 TRAIT_SEMI_ADDITIVE_NOTE = "do not SUM this measure across time; sum only across non-time dimensions"
 TRAIT_ADDITIVE_NOTE = "SUM is valid across dimensions at this grain"
 TRAIT_NEGATIVE_NOTE = "an increase is unfavorable"

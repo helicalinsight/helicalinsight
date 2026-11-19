@@ -1111,24 +1111,25 @@ export const getMinMaxValues = (data, dispatch) => {
     })
 };
 
-export const getRelativeDateRange = (dateNow, value, part, direction, toolTipFormat, relativePart) => {
+export const getRelativeDateRange = (dateNow, value, part, direction, toolTipFormat, relativePart, active) => {
     let startOffset = 0, endOffset = 0, endType = "end"
     const numericValue = Number(value)
+    const isPresetSinglePeriod = [2, 3].includes(Number(active))
     if (direction === "last") {
         if (value === "toDate") {
             endType = "now"
         } else if (numericValue > 1) {
             startOffset = numericValue - 1
-        } else {
+        } else if (numericValue === 1 && isPresetSinglePeriod) {
             startOffset = 1
             endOffset = 1
         }
     } else if (direction === "next") {
         if (numericValue > 1) {
             endOffset = numericValue - 1
-        } else {
+        } else if (numericValue === 1 && isPresetSinglePeriod) {
             startOffset = 1
-            endOffset = numericValue
+            endOffset = 1
         }
     }
     return [
@@ -1138,7 +1139,7 @@ export const getRelativeDateRange = (dateNow, value, part, direction, toolTipFor
 }
 
 export const getRelativeDate = (filter) => {
-    const { anchor: { isAnchor, anchorDate, value, direction, part, relativePart }, condition, dataType, datePart, mapping } = filter || {}
+    const { anchor: { isAnchor, anchorDate, value, direction, part, relativePart, active }, condition, dataType, datePart, mapping } = filter || {}
     let displayDateFunc = datePart, valueDateFunc = datePart
     if (mapping && mapping.DisplayDBFunction && mapping.DisplayDBFunction.functionName) {
         let val = mapping.DisplayDBFunction.functionName
@@ -1152,7 +1153,7 @@ export const getRelativeDate = (filter) => {
     let isRange = rangeConditions.includes(condition);
     let dateNow = isAnchor ? anchorDate : moment()._d
     if (isRange) {
-        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart)
+        const [startValue, endValue] = getRelativeDateRange(dateNow, value, part, direction, toolTipFormat, relativePart, active)
         const [startDate, endDate] = changeRangeDateTime(startValue, endValue, filter)
         return {
             ...filter,
@@ -1308,7 +1309,8 @@ export const prepareRelativeOptionFromAnchor = (data = {}) => {
         relativePart = "",
         value = 0,
         direction = "",
-        isAnchor
+        isAnchor,
+        active
     } = anchor;
     // if(isAnchor) return actualValue;
     if (!relativePart && !matchDateStr(actualValue)) return actualValue;
@@ -1325,14 +1327,24 @@ export const prepareRelativeOptionFromAnchor = (data = {}) => {
     }
     let relativeOption = relativePart;
     if (relativePart === "day") relativeOption = "today";
+
     if (isRange) {
+        if (isAnchor) {
+            relativeOption = 'anchor_' + relativeOption;
+        }
         if (index === 1) {
-            if (isAnchor) {
-                relativeOption = 'anchor_' + relativeOption;
+            if (direction === "next") {
+                if (active === 4) {
+                    return relativeOption
+                }
             }
-            if (direction === "next" && value > 1) {
-                relativeOption += operator + 1
-                return relativeOption
+            if (direction === "last") {
+                if (active === 5) {
+                    if (numericValue > 1) {
+                        relativeOption += operator + (numericValue - 1);
+                    }
+                    return relativeOption
+                }
             }
             if (operator) {
                 relativeOption += operator + numericValue;
@@ -1340,12 +1352,27 @@ export const prepareRelativeOptionFromAnchor = (data = {}) => {
             return relativeOption;
         }
         if (index === 2) {
-            if (direction === "last" && value > 1) {
-                relativeOption += operator + 1
-                return relativeOption
+            if (direction === "next") {
+                if (active === 4) {
+                    if (numericValue > 1) {
+                        relativeOption += operator + (numericValue - 1);
+                    }
+                    return relativeOption
+                }
             }
+            if (direction === "last") {
+                if (active === 5) {
+                    return relativeOption
+                }
+            }
+
+            if (operator) {
+                relativeOption += operator + numericValue;
+            }
+            return relativeOption;
         }
     }
+
     if (operator) {
         relativeOption += operator + numericValue;
     }
@@ -1397,7 +1424,7 @@ export const updateFilterAnchorDate = (anchor, parameters, filterName) => {
     return newAnchor;
 }
 
-export const updateRelativeDateAnchor = (filter, parameters = {}, isRange) => {
+export const updateRelativeDateAnchor = (filter, parameters = {}, isRange, addTempAnchors = false) => {
     let value = parameters[getFieldDisplayName(filter)];
     if (!value) return filter;
     let { anchor = {} } = filter || {};
@@ -1424,6 +1451,9 @@ export const updateRelativeDateAnchor = (filter, parameters = {}, isRange) => {
                 if (checkIsObject(tempAnchor1) && checkIsObject(tempAnchor2)) {
                     const anchorResult = compareObjects(tempAnchor1, tempAnchor2)
                     filter.anchor = { ...anchor, ...anchorResult }
+                    if (addTempAnchors) {
+                        filter.relativeDateAnchors = [tempAnchor1, tempAnchor2]
+                    }
                 }
             }
         }
@@ -1461,13 +1491,13 @@ export const isDateFilter = (filter) => {
     return checkIsValidDateFilter(filter) && filter?.dateValuesType !== "select"
 }
 
-export const checkRelativeDateFilter = (filters = [], parameters) => {
+export const checkRelativeDateFilter = (filters = [], parameters, addTempAnchors = false) => {
     if (!filters?.length) return filters
     return filters?.map((filter) => {
         if (checkIsValidDateFilter(filter)) {
             const { values: filterValues, condition } = filter || {}
             let isRange = rangeConditions.includes(condition);
-            filter = updateRelativeDateAnchor(filter, parameters, isRange);
+            filter = updateRelativeDateAnchor(filter, parameters, isRange, addTempAnchors);
             const newValues = getRelativeDateFromValue(filterValues, filter);
             filter = { ...filter, values: newValues }
         }

@@ -831,6 +831,12 @@ const instantBIReducer = (
       });
     }
 
+    case actionTypes.UPDATE_CACHE_REFRESH_STATUS: {
+      return produce(state, (draft) => {
+        draft.refreshReports = (draft.refreshReports || 0) + 1;
+      })
+    }
+
 
     default:
       return { ...state };

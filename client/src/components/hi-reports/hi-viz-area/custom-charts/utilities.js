@@ -265,10 +265,12 @@ export const getAntdColorProperties = (formatColor, report, { rows = [], columns
     return colorConfig;
 }
 
-export const getAntdPropertiesConfig = (props = {}) => {
-    const { data = [], metadata, marksList = [], fields, report = {}, themeColors = [] } = props || {}
-    let canvasFields = fields.filter((field) => !field.hiddenIncludeInResultSet);
-    const { legend: { legendPosition }, formatColor, bar, axisRange, card, labels } = report?.reportData?.properties || {}
+export const getAntdPropertiesConfig = (props = {}, subVizType = '') => {
+    const { data = [], metadata, marksList = [], fields = [], report = {}, themeColors = [] } = props || {}
+    let canvasFields = (fields || []).filter((field) => !field.hiddenIncludeInResultSet);
+    const properties = report?.reportData?.properties || props?.properties || {};
+    const { legend = {}, formatColor = {}, bar = {}, axisRange = {}, card = {}, labels = {} } = properties;
+    const { legendPosition } = legend || {};
     let labelsColor = isEmpty(labels?.labelsColor) ? null : getHTMLColorFormat(labels?.labelsColor);
     let { chartData: filteredData, rows, columns, schema, colorField, sizeField, detailField, labelField, shapeField } =
         getFieldInfo({ data, metadata, fields: canvasFields, marksList, axisRange });
@@ -362,6 +364,22 @@ export const getAntdPropertiesConfig = (props = {}) => {
     }
     if (themeColors.length) {
         returnValue.theme = 'custom-theme'
+    }
+    if (subVizType && typeof subVizType === "string") {
+        const type = subVizType.toLowerCase();
+        if (type.includes("stack")) {
+            returnValue.isStack = true;
+        }
+        if (type.includes("group")) {
+            returnValue.isGroup = true;
+        }
+        if (type.includes("percent")) {
+            returnValue.isPercent = true;
+            returnValue.isStack = true;
+        }
+        if (type.includes("doughnut") || type.includes("donut")) {
+            returnValue.innerRadius = 0.6;
+        }
     }
     return returnValue;
 }
@@ -476,7 +494,7 @@ export const getPropertiesConfig = (type = '', report = {}, subVizType, otherPro
 
     switch (type) {
         case "antd":
-            return getAntdPropertiesConfig(report)
+            return getAntdPropertiesConfig(report, subVizType)
         case 'muze':
             return getMuzeChartPropertiesConfig(report, subVizType, otherProps)
         case 'table':

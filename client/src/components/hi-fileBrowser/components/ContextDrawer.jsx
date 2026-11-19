@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect, useState } from "react";
+import React, { useMemo, useEffect, useRef, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fileBrowserActions } from "../../../redux/actions";
 import requests from "../../../base/requests";
@@ -16,6 +16,7 @@ const ContextDrawer = () => {
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [onDrawerSubmit, setOnDrawerSubmit] = useState(false);
   const [loading, setLoading] = useState(false);
+  const renameInputRef = useRef(null);
   const onCancelClick = () => {
     setLoading(false)
     setDrawerVisible(false)
@@ -136,6 +137,7 @@ const ContextDrawer = () => {
           setOnDrawerSubmit={setOnDrawerSubmit}
           setLoading={setLoading}
           action={"rename"}
+          inputRef={renameInputRef}
         />
       ),
       "Save File": <SaveFileForm onCancelClick={onCancelClick} />,
@@ -165,7 +167,7 @@ const ContextDrawer = () => {
   return (
     <React.Fragment>
       {clickedContextMenuItem && drawerVisible && (
-        <Drawer
+        <Drawer 
         data-testid = "hi-file-browser"
           title={drawerTitle}
           placement="right"
@@ -175,6 +177,11 @@ const ContextDrawer = () => {
           }}
           zIndex={1005}
           visible={drawerVisible}
+          afterVisibleChange={(visible) => {
+            if (visible && clickedContextMenuItem === "Rename" && renameInputRef.current) {
+              renameInputRef.current.focus();
+            }
+          }}
           destroyOnClose={true}
           width={400}
           extra={

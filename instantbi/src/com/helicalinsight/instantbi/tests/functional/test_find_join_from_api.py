@@ -83,6 +83,16 @@ class TestResolveJoinColumn:
         }
         assert _resolve_join_column(cube, ["travel_cost"]) == "travel_cost"
 
+    def test_skips_computed_measure_label(self):
+        cube = {
+            "database_table": "travel_details",
+            "columns": [{"column_name": "travel_id"}],
+            "measures": [
+                {"column_name": "Cost by Cancellation", "is_computed": True},
+            ],
+        }
+        assert _resolve_join_column(cube, ["Cost by Cancellation"]) == "travel_id"
+
 
 class TestFetchSqlUsesPlanColumns:
     def test_join_payload_uses_plan_column(self):
@@ -354,6 +364,163 @@ class TestJoinApiUsesSelectClause:
             "travel_details",
             "employee",
         ]
+
+    def test_omits_computed_measure_names_and_formula_text(self):
+        """Custom labels and formulas are not physical columns.
+
+        generateQuery rejects them as non-custom column names and aborts the
+        request. A table that only lists a computed measure still needs one
+        real column so the join can be built.
+        """
+        cubes = [
+            {
+                "database_table": "travel_details",
+                "unique_identifier_of_table": "travel_id",
+                "columns": [
+                    {"column_name": "travel_id"},
+                    {"column_name": "travel_cost"},
+                ],
+                "measures": [
+                    {
+                        "column_name": "Cost by Cancellation",
+                        "measure_name": "Cost by Cancellation",
+                        "is_computed": True,
+                        "formula": "sum(travel_details.travel_cost)",
+                    }
+                ],
+            },
+            {
+                "database_table": "employee",
+                "columns": [
+                    {"column_name": "emp_name"},
+                    {"column_name": "emp_id"},
+                ],
+            },
+        ]
+        query_plan = {
+            "columnName": [
+                "travel_details.travel_cost",
+                "travel_details.Cost by Cancellation",
+                "travel_details.sum(travel_cost)",
+                "employee.emp_name",
+            ],
+            "selectColumnName": [
+                "travel_details.Cost by Cancellation",
+                "employee.emp_name",
+            ],
+        }
+
+        with patch(
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={"response": {"query": "SELECT 1"}},
+        ) as mock_api:
+            FindJoinFromApi().fetch_sql(
+                "cookie",
+                "md.json",
+                "/",
+                tables=["travel_details", "employee"],
+                cube_metadata=cubes,
+                dbname="demo",
+                query_plan=query_plan,
+            )
+
+        service_json = mock_api.call_args.kwargs["service_json"]
+        form_data = json.loads(service_json["formData"])
+        column_names = {col["column"]["name"] for col in form_data["columns"]}
+        assert column_names == {
+            "demo.travel_details.travel_cost",
+            "demo.employee.emp_name",
+        }
+        assert all(col.get("custom") is not True for col in form_data["columns"])
+
+    def test_uses_a_physical_column_when_select_is_only_a_computed_measure(self):
+        cubes = [
+            {
+                "database_table": "travel_details",
+                "unique_identifier_of_table": "travel_id",
+                "columns": [{"column_name": "travel_id"}],
+                "measures": [
+                    {
+                        "column_name": "Cost by Cancellation",
+                        "is_computed": True,
+                        "formula": "sum(travel_details.travel_cost)",
+                    }
+                ],
+            },
+            {
+                "database_table": "employee",
+                "columns": [{"column_name": "emp_id"}],
+            },
+        ]
+        query_plan = {
+            "columnName": [
+                "travel_details.Cost by Cancellation",
+                "employee.emp_id",
+            ],
+            "selectColumnName": [
+                "travel_details.Cost by Cancellation",
+                "employee.emp_id",
+            ],
+        }
+
+        with patch(
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={"response": {"query": "SELECT 1"}},
+        ) as mock_api:
+            FindJoinFromApi().fetch_sql(
+                "cookie",
+                "md.json",
+                "/",
+                tables=["travel_details", "employee"],
+                cube_metadata=cubes,
+                dbname="demo",
+                query_plan=query_plan,
+            )
+
+        service_json = mock_api.call_args.kwargs["service_json"]
+        form_data = json.loads(service_json["formData"])
+        column_names = {col["column"]["name"] for col in form_data["columns"]}
+        assert column_names == {
+            "demo.travel_details.travel_id",
+            "demo.employee.emp_id",
+        }
+
+    def test_keeps_physical_column_names_that_contain_spaces(self):
+        cubes = [
+            {
+                "database_table": "LSC_Infra",
+                "columns": [{"column_name": "Bill Qty"}],
+            },
+            {
+                "database_table": "employee",
+                "columns": [{"column_name": "emp_id"}],
+            },
+        ]
+        query_plan = {
+            "selectColumnName": ['LSC_Infra."Bill Qty"', "employee.emp_id"],
+        }
+
+        with patch(
+            "helicalbi.core.sqlflow.FindJoinFromApi.fetch_service_api",
+            return_value={"response": {"query": "SELECT 1"}},
+        ) as mock_api:
+            FindJoinFromApi().fetch_sql(
+                "cookie",
+                "md.json",
+                "/",
+                tables=["LSC_Infra", "employee"],
+                cube_metadata=cubes,
+                dbname="demo",
+                query_plan=query_plan,
+            )
+
+        service_json = mock_api.call_args.kwargs["service_json"]
+        form_data = json.loads(service_json["formData"])
+        column_names = {col["column"]["name"] for col in form_data["columns"]}
+        assert column_names == {
+            "demo.LSC_Infra.Bill Qty",
+            "demo.employee.emp_id",
+        }
 
     def test_raises_when_generate_query_returns_status_zero(self):
         from helicalbi.api.HttpCallService import ServiceApiError

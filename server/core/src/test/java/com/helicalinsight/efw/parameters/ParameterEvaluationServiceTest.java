@@ -102,6 +102,116 @@ public class ParameterEvaluationServiceTest {
         assertEquals(false, form.has(HcrParameterEvaluator.ANCHORS));
     }
 
+    @Test
+    public void hcrRangeSiblingParamsHonorRelativeBoundEndOfPeriod() {
+        JsonObject form = rangeSiblingForm("year-1", "year+2", true);
+        JsonObject start = form.getAsJsonObject("designerProperties").getAsJsonArray("parameters").get(0).getAsJsonObject();
+        JsonObject end = form.getAsJsonObject("designerProperties").getAsJsonArray("parameters").get(1).getAsJsonObject();
+        JsonObject connection = form.getAsJsonObject("connectionDetails");
+
+        HcrParameterEvaluator.resolve(form, service, CLOCK);
+
+        assertEquals("2025-01-01", start.get("defaultExpression").getAsString());
+        assertEquals("2028-12-31", end.get("defaultExpression").getAsString());
+        assertEquals("2025-01-01", connection.get("StartDate").getAsString());
+        assertEquals("2028-12-31", connection.get("EndDate").getAsString());
+    }
+
+    @Test
+    public void hcrRangeSiblingParamsWithoutRelativeBoundKeepStartOfPeriod() {
+        JsonObject form = rangeSiblingForm("year-1", "year+2", false);
+        JsonObject start = form.getAsJsonObject("designerProperties").getAsJsonArray("parameters").get(0).getAsJsonObject();
+        JsonObject end = form.getAsJsonObject("designerProperties").getAsJsonArray("parameters").get(1).getAsJsonObject();
+
+        HcrParameterEvaluator.resolve(form, service, CLOCK);
+
+        assertEquals("2025-01-01", start.get("defaultExpression").getAsString());
+        assertEquals("2028-01-01", end.get("defaultExpression").getAsString());
+    }
+
+    @Test
+    public void equalsYearWithoutRelativeBoundStaysStartOfYear() {
+        JsonObject form = new JsonObject();
+        form.addProperty(HcrParameterEvaluator.TIME_ZONE, "Asia/Kolkata");
+        JsonObject connection = new JsonObject();
+        connection.addProperty("OrderDate", "year");
+        form.add("connectionDetails", connection);
+        JsonObject parameter = new JsonObject();
+        parameter.addProperty("name", "OrderDate");
+        parameter.addProperty("className", "java.lang.String");
+        parameter.addProperty("valueFormat", "YYYY-MM-DD");
+        parameter.addProperty("defaultExpression", "year");
+        JsonArray parameters = new JsonArray();
+        parameters.add(parameter);
+        JsonObject designer = new JsonObject();
+        designer.add("parameters", parameters);
+        form.add("designerProperties", designer);
+
+        HcrParameterEvaluator.resolve(form, service, CLOCK);
+
+        assertEquals("2026-01-01", parameter.get("defaultExpression").getAsString());
+        assertEquals("2026-01-01", connection.get("OrderDate").getAsString());
+    }
+
+    @Test
+    public void sizeOneCollectionWithRelativeBoundEndUsesEndOfPeriod() {
+        JsonObject form = new JsonObject();
+        form.addProperty(HcrParameterEvaluator.TIME_ZONE, "Asia/Kolkata");
+        JsonObject connection = new JsonObject();
+        JsonArray endValues = new JsonArray();
+        endValues.add("year+2");
+        connection.add("EndDate", endValues);
+        form.add("connectionDetails", connection);
+        JsonObject end = new JsonObject();
+        end.addProperty("name", "EndDate");
+        end.addProperty("className", "java.util.Collection");
+        end.addProperty("valueFormat", "YYYY-MM-DD");
+        end.addProperty(HcrParameterEvaluator.RELATIVE_BOUND, "end");
+        end.add("defaultExpression", endValues.deepCopy());
+        JsonArray parameters = new JsonArray();
+        parameters.add(end);
+        JsonObject designer = new JsonObject();
+        designer.add("parameters", parameters);
+        form.add("designerProperties", designer);
+
+        HcrParameterEvaluator.resolve(form, service, CLOCK);
+
+        assertEquals("2028-12-31", end.getAsJsonArray("defaultExpression").get(0).getAsString());
+        assertEquals("2028-12-31", connection.getAsJsonArray("EndDate").get(0).getAsString());
+    }
+
+    private static JsonObject rangeSiblingForm(String startToken, String endToken, boolean withBound) {
+        JsonObject form = new JsonObject();
+        form.addProperty(HcrParameterEvaluator.TIME_ZONE, "Asia/Kolkata");
+        JsonObject connection = new JsonObject();
+        connection.addProperty("StartDate", startToken);
+        connection.addProperty("EndDate", endToken);
+        form.add("connectionDetails", connection);
+        JsonObject start = new JsonObject();
+        start.addProperty("name", "StartDate");
+        start.addProperty("className", "java.lang.String");
+        start.addProperty("valueFormat", "YYYY-MM-DD");
+        start.addProperty("defaultExpression", startToken);
+        start.addProperty("value", startToken);
+        JsonObject end = new JsonObject();
+        end.addProperty("name", "EndDate");
+        end.addProperty("className", "java.lang.String");
+        end.addProperty("valueFormat", "YYYY-MM-DD");
+        end.addProperty("defaultExpression", endToken);
+        end.addProperty("value", endToken);
+        if (withBound) {
+            start.addProperty(HcrParameterEvaluator.RELATIVE_BOUND, "start");
+            end.addProperty(HcrParameterEvaluator.RELATIVE_BOUND, "end");
+        }
+        JsonArray parameters = new JsonArray();
+        parameters.add(start);
+        parameters.add(end);
+        JsonObject designer = new JsonObject();
+        designer.add("parameters", parameters);
+        form.add("designerProperties", designer);
+        return form;
+    }
+
     private String eval(String raw, String pattern, boolean rangeEnd, boolean singleValue, String anchor) {
         EvaluationRequest request = singleValue
                 ? EvaluationRequest.single(ZONE, CLOCK, pattern)

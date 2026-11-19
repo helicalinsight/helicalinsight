@@ -48,6 +48,15 @@ def test_think_prompts_contents():
     assert _THINK_QUESTION_SYSTEM == THINK_QUESTION_SYSTEM
     assert "Think investigation" in THINK_QUESTION_SYSTEM
     assert "one flat SELECT" in THINK_FLAT_SQL_PLAN_RULES
+    assert "Prefer existing calculated metrics over inventing formulas." in CONTEXT_PLAN_PROMPT
+    assert (
+        "compute it from its formula components inside each segment or period"
+        in CONTEXT_PLAN_PROMPT
+    )
+    assert (
+        "compute it from its formula components inside each segment or period"
+        in THINK_FLAT_SQL_PLAN_RULES
+    )
     assert "one flat SELECT" in THINK_FLAT_SQL_GENERATION
     assert "CURRENT_DATE and CURRENT_DATE - 1 year" in THINK_FLAT_SQL_GENERATION
     assert "EXTRACT(YEAR FROM ...) = ..." not in THINK_FLAT_SQL_GENERATION

@@ -684,7 +684,7 @@ const HCRFlowchart = ({
             dispatch(hcrActions.hcrDeleteNodes(selectedCells.map(cell => cell.id)));
           } else {
             let nodes = getFlowChartNodes({ flowchartInstance });
-            dispatch(hcrActions.storeHcrDiagramNodesData(nodes));
+            dispatch(hcrActions.storeHcrDiagramNodesData({ nodes, deleteAction: true }));
 
             const nodeIds = nodes.map(({ id }) => id)
             const filteredViewTabIds = tabViews.filter((tab) => !nodeIds.includes(tab.id) && tab.id !== hcrCanvasViews.CANVAS).map(({ id }) => id)

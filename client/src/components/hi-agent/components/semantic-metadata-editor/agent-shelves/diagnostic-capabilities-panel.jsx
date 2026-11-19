@@ -249,24 +249,45 @@ const normalizeUseEntry = (entry, idx, operationsByName = {}) => {
   };
 };
 
+const CAPABILITY_AI_CONTEXT_FIELDS = [
+  {
+    fieldName: "description",
+    label: "Description",
+    placeholder: "Phrases that refer to this capability, e.g. travel spend review, cost investigation",
+  },
+  {
+    fieldName: "instructions",
+    label: "Instructions",
+    placeholder: "How the semantic model should use this capability",
+  },
+  {
+    fieldName: "example",
+    label: "Examples",
+    placeholder: "Question template, e.g. Why did travel cost rise?",
+  },
+];
+
 const emptyAiContext = () => ({
+  description: "",
   instructions: "",
-  synonyms: "",
   examples: "",
 });
 
-/** Same shape dimensions and measures persist: instructions, synonyms, examples. */
+const textList = (value) =>
+  Array.isArray(value)
+    ? value.map((part) => String(part || "").trim()).filter(Boolean).join(", ")
+    : String(value || "");
+
+/** Capability aiContext: description, instructions, examples. Older synonyms map to description. */
 const readAiContext = (item = {}) => {
   const ai =
     item.aiContext && typeof item.aiContext === "object" && !Array.isArray(item.aiContext)
       ? item.aiContext
       : {};
-  const synonyms = ai.synonyms ?? item.synonyms ?? "";
+  const description = ai.description ?? item.description ?? ai.synonyms ?? item.synonyms ?? "";
   return {
+    description: textList(description),
     instructions: String(ai.instructions ?? item.instructions ?? ""),
-    synonyms: Array.isArray(synonyms)
-      ? synonyms.map((part) => String(part || "").trim()).filter(Boolean).join(", ")
-      : String(synonyms || ""),
     examples: String(
       ai.examples ?? ai.example ?? item.examples ?? item.example ?? "",
     ),
@@ -274,14 +295,14 @@ const readAiContext = (item = {}) => {
 };
 
 const aiDraftFromContext = (aiContext = {}) => ({
+  description: aiContext.description || "",
   instructions: aiContext.instructions || "",
-  synonyms: aiContext.synonyms || "",
   example: aiContext.examples || "",
 });
 
 const aiContextFromDraft = (draft = {}) => ({
+  description: draft.description || "",
   instructions: draft.instructions || "",
-  synonyms: draft.synonyms || "",
   examples: draft.example || draft.examples || "",
 });
 
@@ -517,6 +538,7 @@ function CapabilityNameMenu({ capability, onChangeAi, onDelete }) {
               onMouseDown={(event) => event.stopPropagation()}
             >
               <AgentAiContextTree
+                fields={CAPABILITY_AI_CONTEXT_FIELDS}
                 draft={aiDraftFromContext(capability.aiContext || emptyAiContext())}
                 onDraftChange={(next) => onChangeAi?.(aiContextFromDraft(next))}
                 clearFieldTooltip="Clear field values"

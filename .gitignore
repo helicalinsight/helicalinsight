@@ -157,3 +157,4 @@ server/stop.bat
 server/debug-start.bat
 server/debug-stop.bat
 server/start-all.bat
+/instantbi/.cursor/skills

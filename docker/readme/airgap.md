@@ -70,7 +70,7 @@ Ship to the client:
 
 ## What the airgap `hiee` image includes
 
-- Base: `tomcat:11.0.25-jdk25-temurin-noble` (Ubuntu 24.04, full Temurin JDK 25, Tomcat 11)
+- Base: `tomcat:11.0.27-jdk25-temurin-noble` (Ubuntu 24.04, full Temurin JDK 25, Tomcat 11)
 - Chrome-for-Testing + chromedriver from `storage.googleapis.com/chrome-for-testing-public` for the image arch (`linux64` / `linux-arm64`), stored as fixed `/tmp/chrome.zip` and `/tmp/chromedriver.zip`. On unsupported arches (e.g. `ppc64le`) Chrome bake is skipped with a warning.
 - Chrome runtime libraries
 - Baked `/entrypoint.airgap.sh` (slim Compose mount of `entrypoint.sh` is unused)

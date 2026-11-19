@@ -25,7 +25,7 @@ Two stages.
 
 **1. Builder** (`eclipse-temurin:25-jdk-noble`)
 
-- Downloads Apache Tomcat **11.0.25** into `/opt/tomcat11`.
+- Downloads Apache Tomcat **11.0.27** into `/opt/tomcat11`.
 - Copies `hi/hi-ee.war` and unpacks it.
 - Runs `jdeps` on `WEB-INF/classes` + `WEB-INF/lib` to list the Java modules the application actually uses (`deps.info`).
 - Runs `jlink` to produce a stripped custom JRE at `/myjre` (debug symbols, man pages, and headers removed; zip-9 compression).

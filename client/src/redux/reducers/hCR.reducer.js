@@ -1412,9 +1412,19 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                                 }
                             });
                         }
-                        nodeData.repeat = menuKeyPath[0];
-                        if (menuKeyPath.length < 4) {
-                            nodeData[menuKeyPath[0]] = "header"
+                        if (selectedNodes?.length) {
+                            const allNodes = reqPane.hcrDiagramNodesData;
+                            selectedNodes.forEach((selectedNode) => {
+                                const reqNode = allNodes.find(
+                                    (node) => node.id === selectedNode.id
+                                );
+                                reqNode.repeat = menuKeyPath[0];
+                            })
+                        } else {
+                            nodeData.repeat = menuKeyPath[0];
+                            if (menuKeyPath.length < 4) {
+                                nodeData[menuKeyPath[0]] = "header"
+                            }
                         }
                     }
                 }
@@ -1766,12 +1776,32 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
         case actionTypes.HCR_DIAGRAM_NODES_DATA: {
             return produce(state, (draft) => {
                 const reqPane = getReqPane(draft);
-                reqPane.hcrDiagramNodesData = [...action.payload];
+                if (Array.isArray(action.payload)) {
+                    reqPane.hcrDiagramNodesData = [...action.payload];
+                } else {
+                    if (!Array.isArray(action.payload) && typeof action.payload === "object" && action.payload !== null) {
+                        reqPane.hcrDiagramNodesData = [...(action.payload.nodes || [])];
+                        if (action.payload?.deleteAction) {
+                            if (reqPane.hcrDiagramNodesData?.length === 0) {
+                                reqPane.subDataSets = []
+                            }
+                            const advancedComponents = reqPane.hcrDiagramNodesData.filter((node) => ["advancedTable", "crosstabv2"].includes(node.category));
+                            if (advancedComponents?.length) {
+                                const advCompsSelectedQueryIds = advancedComponents.map((node) => node.selectedQueryID).filter((id) => id);
+                                reqPane.subDataSets = reqPane.subDataSets.filter((subDataset) => advCompsSelectedQueryIds.includes(subDataset.id))
+                            } else {
+                                reqPane.subDataSets = []
+                            }
+                        }
+                    }
+                }
+
             });
         }
         case actionTypes.HCR_DELETE_NODE:
             return produce(state, (draft) => {
                 const reqPane = getReqPane(draft);
+                const nodeToDelete = reqPane.hcrDiagramNodesData.find((node) => node.id === action.payload.nodeId);
                 reqPane.hcrDiagramNodesData = reqPane?.hcrDiagramNodesData?.filter(
                     (node) => (node.id !== action.payload.nodeId)
                 );
@@ -1786,7 +1816,9 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 }
 
                 reqPane.tableStyles = reqPane.tableStyles.filter((style) => style.tableId !== action.payload.nodeId)
-
+                if (["advancedTable", "crosstabv2"].includes(nodeToDelete?.category) && nodeToDelete?.selectedQueryID && reqPane?.subDataSets?.length) {
+                    reqPane.subDataSets = reqPane.subDataSets.filter((subDataset) => subDataset.id !== nodeToDelete.selectedQueryID)
+                }
                 // reqPane.hcrDiagramNodesData = reqPane.hcrDiagramNodesData.map((node) => {
                 //     if (node.category === "advancedTable") {
                 //         for (let cellId in node.cells) {
@@ -1803,6 +1835,7 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
         case actionTypes.HCR_DELETE_NODES:
             return produce(state, (draft) => {
                 const reqPane = getReqPane(draft);
+                const nodesToDelete = reqPane.hcrDiagramNodesData.filter((node) => action.payload.includes(node.id));
                 reqPane.hcrDiagramNodesData = reqPane?.hcrDiagramNodesData?.filter(
                     (node) => !action.payload.includes(node.id)
                 )
@@ -1823,6 +1856,12 @@ export const hcrReducer = (state = initialStates.hcrInitialState, action) => {
                 reqPane.tableStyles = reqPane.tableStyles.filter((style) => !action.payload.includes(style.tableId))
                 reqPane.tableStyles = reqPane.tableStyles.filter((style) => !action.payload.includes(style.crosstabId))
                 reqPane.hcrDiagramNodesData = updateElementsWithStyles(prevTableStyles, reqPane.tableStyles, reqPane.hcrDiagramNodesData);
+
+                nodesToDelete.forEach((node) => {
+                    if (["advancedTable", "crosstabv2"].includes(node?.category) && node?.selectedQueryID && reqPane?.subDataSets?.length) {
+                        reqPane.subDataSets = reqPane.subDataSets.filter((subDataset) => subDataset.id !== node.selectedQueryID)
+                    }
+                })
 
 
                 // reqPane.hcrDiagramNodesData = reqPane.hcrDiagramNodesData.map((node) => {
