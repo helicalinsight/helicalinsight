@@ -25,9 +25,12 @@ public final class HcrParameterEvaluator {
     public static final String TIME_ZONE = "parameterTimeZone";
     public static final String ANCHORS = "parameterAnchors";
     public static final String ANCHOR_PREFIX = "__anchor__";
+    public static final String RELATIVE_BOUND = "relativeBound";
 
     private static final Logger logger = LoggerFactory.getLogger(HcrParameterEvaluator.class);
     private static final String JASPER_DATE_TIME = "dd-MM-yyyy HH:mm:ss";
+    private static final String BOUND_START = "start";
+    private static final String BOUND_END = "end";
 
     private HcrParameterEvaluator() {
     }
@@ -98,38 +101,39 @@ public final class HcrParameterEvaluator {
         String name = parameter.get("name").getAsString();
         String pattern = outputPattern(parameter);
         String anchor = anchorDate(parameter, anchors, name);
-        resolveField(service, parameter, "defaultExpression", pattern, zone, clock, anchor);
-        resolveField(service, parameter, "value", pattern, zone, clock, anchor);
+        String relativeBound = GsonUtility.optString(parameter, RELATIVE_BOUND);
+        resolveField(service, parameter, "defaultExpression", pattern, zone, clock, anchor, relativeBound);
+        resolveField(service, parameter, "value", pattern, zone, clock, anchor, relativeBound);
         if (parameter.has(name)) {
-            resolveField(service, parameter, name, pattern, zone, clock, anchor);
+            resolveField(service, parameter, name, pattern, zone, clock, anchor, relativeBound);
         }
         if (connectionDetails != null && connectionDetails.has(name)) {
-            resolveField(service, connectionDetails, name, pattern, zone, clock, anchor);
+            resolveField(service, connectionDetails, name, pattern, zone, clock, anchor, relativeBound);
         }
     }
 
     private static void resolveField(ParameterEvaluationService service, JsonObject object, String key, String pattern,
-            ZoneId zone, Clock clock, String anchor) {
+            ZoneId zone, Clock clock, String anchor, String relativeBound) {
         if (!object.has(key) || object.get(key).isJsonNull()) {
             return;
         }
-        object.add(key, resolveValue(service, object.get(key), pattern, zone, clock, anchor));
+        object.add(key, resolveValue(service, object.get(key), pattern, zone, clock, anchor, relativeBound));
     }
 
     private static JsonElement resolveValue(ParameterEvaluationService service, JsonElement element, String pattern,
-            ZoneId zone, Clock clock, String anchor) {
+            ZoneId zone, Clock clock, String anchor, String relativeBound) {
         if (element.isJsonArray()) {
-            return resolveArray(service, element.getAsJsonArray(), pattern, zone, clock, anchor);
+            return resolveArray(service, element.getAsJsonArray(), pattern, zone, clock, anchor, relativeBound);
         }
         if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
-            EvaluationRequest request = EvaluationRequest.single(zone, clock, pattern).withAnchor(anchor);
+            EvaluationRequest request = requestForScalar(relativeBound, zone, clock, pattern).withAnchor(anchor);
             return new JsonPrimitive(service.evaluate(element.getAsString(), request));
         }
         return element;
     }
 
     private static JsonArray resolveArray(ParameterEvaluationService service, JsonArray source, String pattern,
-            ZoneId zone, Clock clock, String anchor) {
+            ZoneId zone, Clock clock, String anchor, String relativeBound) {
         JsonArray resolved = new JsonArray();
         for (int index = 0; index < source.size(); index++) {
             JsonElement item = source.get(index);
@@ -137,15 +141,27 @@ public final class HcrParameterEvaluator {
                 resolved.add(item);
                 continue;
             }
-            EvaluationRequest request = requestFor(source.size(), index, zone, clock, pattern).withAnchor(anchor);
+            EvaluationRequest request = requestFor(source.size(), index, zone, clock, pattern, relativeBound)
+                    .withAnchor(anchor);
             resolved.add(service.evaluate(item.getAsString(), request));
         }
         return resolved;
     }
 
-    private static EvaluationRequest requestFor(int size, int index, ZoneId zone, Clock clock, String pattern) {
+    private static EvaluationRequest requestForScalar(String relativeBound, ZoneId zone, Clock clock, String pattern) {
+        if (BOUND_END.equals(relativeBound)) {
+            return EvaluationRequest.rangeEnd(zone, clock, pattern);
+        }
+        if (BOUND_START.equals(relativeBound)) {
+            return EvaluationRequest.rangeStart(zone, clock, pattern);
+        }
+        return EvaluationRequest.single(zone, clock, pattern);
+    }
+
+    private static EvaluationRequest requestFor(int size, int index, ZoneId zone, Clock clock, String pattern,
+            String relativeBound) {
         if (size == 1) {
-            return EvaluationRequest.single(zone, clock, pattern);
+            return requestForScalar(relativeBound, zone, clock, pattern);
         }
         if (index == 0) {
             return EvaluationRequest.rangeStart(zone, clock, pattern);

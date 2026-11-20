@@ -35,7 +35,7 @@ class SqlTools:
             dialect = ctx.dialect or ""
             dialect_line = (
                 f"Dialect: {dialect}. Use this dialect's date function for a year, "
-                "quarter, or month filter. Do not replace that function with CAST.\n"
+                "quarter, or month filter.\n"
                 if dialect
                 else ""
             )

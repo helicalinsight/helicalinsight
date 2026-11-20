@@ -34,7 +34,6 @@ _CORRECTION_PROMPT = """
 Rewrite the SQL so each column comes from the table that stores it.
 Dialect: {dialect}
 A year, quarter, or month filter uses this dialect's date function.
-Do not rewrite that filter as CAST of a date range.
 When a join is listed, use that join and keep every table alias, including an alias used only in ON. Do not invent a join key.
 A column that exists on no table must be replaced with a similar column of the same table. Do not keep that column.
 Keep the same filters, groups, and measures.

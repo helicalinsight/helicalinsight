@@ -110,6 +110,6 @@ def test_prompts_prefer_not_in_for_exclusions():
     prompt = render_final_sql_prompt("excluding 2015")
     assert "write NOT IN" in prompt
     assert "no IN / NOT IN" in prompt
-    assert "write NOT IN" not in render_final_sql_prompt("total travel cost")
+    assert "write NOT IN" in render_final_sql_prompt("total travel cost")
     assert "NOT IN (...)" in THINK_FLAT_SQL_GENERATION
     assert "does not support NOT IN" in THINK_FLAT_SQL_GENERATION

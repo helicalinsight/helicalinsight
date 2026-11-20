@@ -311,7 +311,7 @@ def _format_semantic_column_line(
     if semantic_type and str(semantic_type).lower() not in (meaning or "").lower():
         sentences.append(f"It is a {str(semantic_type).lower()} column.")
     if formula:
-        sentences.append(f"Use {formula}.")
+        sentences.append(f"Use this formula exactly as written: {formula}.")
     agg = str(aggregator or "").strip()
     if agg and agg.lower() != "calculated":
         sentences.append(f"Aggregate with {agg}.")

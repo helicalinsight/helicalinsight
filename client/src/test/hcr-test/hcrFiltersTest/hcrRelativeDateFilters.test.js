@@ -1,6 +1,9 @@
 import {
+    getHcrParameterFilters,
     getPreviewFormData,
     handleHcrFilterChange,
+    handleUrlParamsFilters,
+    updateDateRangeFilterValues,
     updateHCRRelativeDateFilters,
 } from "../../../components/hi-canned-reports/hcrHelperMethods";
 import { anchorConstant } from "../../../utils/filter-utils";
@@ -64,6 +67,42 @@ function buildPreviewFormData(filters) {
     });
 }
 
+function makeRelativeRangeParameters() {
+    return {
+        menu: [
+            {
+                id: "start-date",
+                name: "startdate",
+                type: "java.lang.String",
+                canvasValues: {
+                    filterType: "Date and Time Range",
+                    multipleType: false,
+                    isChecked: false,
+                    defaultValue: "year-1",
+                    start: "startdate",
+                    end: "enddate",
+                    displayFormat: "YYYY-MM-DD HH:mm:ss",
+                    valueFormat: "YYYY-MM-DD HH:mm:ss",
+                },
+            },
+            {
+                id: "end-date",
+                name: "enddate",
+                type: "java.lang.String",
+                canvasValues: {
+                    filterType: "Date and Time",
+                    multipleType: false,
+                    isChecked: true,
+                    disabled: true,
+                    defaultValue: "year+2",
+                    displayFormat: "YYYY-MM-DD HH:mm:ss",
+                    valueFormat: "YYYY-MM-DD HH:mm:ss",
+                },
+            },
+        ],
+    };
+}
+
 function applyFilterChange({ value, filter, prevFilters }) {
     let updatedFilters;
     handleHcrFilterChange({
@@ -119,6 +158,42 @@ describe("HCR relative date filters", () => {
             const result = updateHCRRelativeDateFilters([filter]);
 
             expect(result[0].values).toEqual(["month-1"]);
+        });
+
+        test("uses the preserved anchor for each range endpoint", () => {
+            const filter = {
+                uid: "range-1",
+                condition: "IN_RANGE",
+                dataType: "date",
+                values: ["2024-01-01", "2026-01-01"],
+                anchor: {
+                    anchorDate: ANCHOR_DATE,
+                    relativePart: "year",
+                    part: "years",
+                    value: 2,
+                    direction: "next",
+                },
+                relativeDateAnchors: [
+                    {
+                        anchorDate: ANCHOR_DATE,
+                        relativePart: "year",
+                        part: "years",
+                        value: 1,
+                        direction: "last",
+                    },
+                    {
+                        anchorDate: ANCHOR_DATE,
+                        relativePart: "year",
+                        part: "years",
+                        value: 2,
+                        direction: "next",
+                    },
+                ],
+            };
+
+            const result = updateHCRRelativeDateFilters([filter]);
+
+            expect(result[0].values).toEqual(["year-1", "year+2"]);
         });
 
         test("returns filters without anchors or non-date filters unchanged", () => {
@@ -247,6 +322,60 @@ describe("HCR relative date filters", () => {
             expect(result[0].anchor).toBe(anchor);
             expect(result[1].values).toEqual(["2024-04-01"]);
             expect(result[2].values).toEqual(["2024-06-30"]);
+        });
+
+        test("clears preserved range anchors when the range changes", () => {
+            const filter = {
+                uid: "range-1",
+                condition: "IN_RANGE",
+                dataType: "date",
+                dateValuesType: "datePicker",
+                range: ["startdate", "enddate"],
+                anchor: {
+                    anchorDate: ANCHOR_DATE,
+                    relativePart: "month",
+                    value: 1,
+                    direction: "last",
+                },
+            };
+            const prevFilters = [
+                {
+                    uid: "range-1",
+                    values: ["2024-01-01", "2024-03-31"],
+                    relativeDateAnchors: [{ value: 1 }, { value: 2 }],
+                },
+                { uid: "start", label: "startdate", values: ["2024-01-01"] },
+                { uid: "end", label: "enddate", values: ["2024-03-31"] },
+            ];
+
+            const result = applyFilterChange({
+                value: ["2024-04-01", "2024-06-30"],
+                filter,
+                prevFilters,
+            });
+
+            expect(result[0]).not.toHaveProperty("relativeDateAnchors");
+        });
+    });
+
+    describe("handleUrlParamsFilters", () => {
+        test("clears preserved range anchors when url parameters override values", () => {
+            const filters = [
+                {
+                    label: "startdate",
+                    condition: "IN_RANGE",
+                    values: ["2024-01-01", "2024-12-31"],
+                    relativeDateAnchors: [{ value: 1 }, { value: 2 }],
+                },
+            ];
+
+            const result = handleUrlParamsFilters({
+                urlParams: { startdate: ["2024-04-01", "2024-06-30"] },
+                reqFilters: filters,
+            });
+
+            expect(result[0].values).toEqual(["2024-04-01", "2024-06-30"]);
+            expect(result[0]).not.toHaveProperty("relativeDateAnchors");
         });
     });
 
@@ -378,6 +507,31 @@ describe("HCR relative date filters", () => {
             ]);
 
             expect(formData).not.toHaveProperty("parameterAnchors");
+        });
+
+        test("keeps the configured relative expressions for both range endpoints", () => {
+            const filters = getHcrParameterFilters({
+                parameters: makeRelativeRangeParameters(),
+                hcrDiagramNodesData: [],
+            });
+            const startDateFilter = filters.find(
+                (filter) => filter.label === "startdate"
+            );
+
+            expect(startDateFilter.relativeDateAnchors).toHaveLength(2);
+
+            const processedFilters = updateHCRRelativeDateFilters(
+                updateDateRangeFilterValues(filters)
+            );
+            const formData = buildPreviewFormData(processedFilters);
+            const parameters = formData.designerProperties.parameters;
+
+            expect(parameters.find((parameter) => parameter.name === "startdate").value).toBe(
+                "year-1"
+            );
+            expect(parameters.find((parameter) => parameter.name === "enddate").value).toBe(
+                "year+2"
+            );
         });
     });
 });

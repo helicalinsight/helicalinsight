@@ -14,6 +14,7 @@ import {
   HCR_TABLE_DATA_CELL_HEIGHT,
   HCR_TABLE_DATA_CELL_WIDTH,
   hcrCanvasViews,
+  hcrDSQuery,
   hcrTableBandOrder,
   hcrTableBandsTypes,
   hcrTableStyleNameReferences,
@@ -1943,6 +1944,27 @@ export const getHCRCrosstabLayoutOptions = (layoutOptions = {}, allowed = "cell"
   }
 
   return options;
+}
+
+export const getHCRAdvanceComponentQueryMenu = (activeTab = {}, queryId) => {
+  let { dsPaneTypes = [], subDataSets = [] } = activeTab || {};
+  let querySelectMenu = [];
+  subDataSets = subDataSets?.filter((subDS) => subDS.id !== queryId) || [];
+
+  const queriesMenu = dsPaneTypes
+    ?.find((ele) => ele.dataSourcePane === hcrDSQuery)
+    ?.menu?.filter(
+      (ele) =>
+        ele.executeQueryData?.data.length ||
+        ele.executeQueryData?.field.length,
+    ) || [];
+
+  querySelectMenu = queriesMenu;
+  if (subDataSets?.length) {
+    querySelectMenu = querySelectMenu.filter((query) => !subDataSets.some((subDS) => subDS.id === query.id));
+  }
+
+  return querySelectMenu;
 }
 
 

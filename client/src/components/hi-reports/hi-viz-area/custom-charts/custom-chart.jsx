@@ -15,10 +15,20 @@ import GridTable from "../s2-charts/s2chart";
 import { buildGridTableReport } from "../s2-charts/build-grid-table-report";
 import '../table/table.scss'
 import { registerAntdTheme } from "../ant-charts/ant-utils";
+import KPICard from "../card/kpi-card";
+import MapChart from "../map-chart/map-chart";
 
 const MuzeCharts = {
     Muze, Canvas, Layer, ...MuzeConfig, muze
 }
+
+
+const TrendCard = (props) => {
+    const marksList = (props.marksList || []).map((mark) => ({ ...mark, subVizType: "trend" }));
+    return <KPICard {...props} marksList={marksList} />;
+};
+
+
 
 const CustomChart = (props) => {
     const dispatch = useDispatch();
@@ -36,10 +46,29 @@ const CustomChart = (props) => {
         registerAntdTheme({ colors: themeColors });
     }
     const scope = {
-        components: { ...MapCharts, ...Plots, ...AntdComponents, ...MuzeCharts, GridTable },
+        components: {
+            ...MapCharts,
+            ...Plots,
+            ...AntdComponents,
+            ...MuzeCharts,
+            GridTable,
+            // Helical Insight Visualizations & Wrappers
+            KPI: KPICard,
+            Trend: TrendCard,
+            Map: MapChart,
+        },
         data,
         report: { ...props, dispatch },
-        helperFunctions: { getTooltip, getPropertiesConfig, enableInteractivity, getGridChartLabels, getTableColumns, getGridChartConfig, changePageSize, buildGridTableReport }
+        helperFunctions: {
+            getTooltip,
+            getPropertiesConfig,
+            enableInteractivity,
+            getGridChartLabels,
+            getTableColumns,
+            getGridChartConfig,
+            changePageSize,
+            buildGridTableReport
+        }
     };
     const { title = {}, subTitle = {}, format = {} } = report?.reportData?.properties || {};
     const reportForInteractiveMode = { properties, fields, reportData: report?.reportData }

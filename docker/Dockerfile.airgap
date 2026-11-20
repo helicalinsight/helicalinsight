@@ -7,7 +7,7 @@
 # Multi-arch: TARGETARCH selects linux64 (amd64) or linux-arm64 (arm64).
 # No registry access required at runtime.
 
-FROM tomcat:11.0.25-jdk25-temurin-noble
+FROM tomcat:11.0.27-jdk25-temurin-noble
 
 ARG TARGETARCH
 ARG CHROME_VERSION=154.0.8037.92

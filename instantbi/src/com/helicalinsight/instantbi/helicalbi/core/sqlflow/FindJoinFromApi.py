@@ -96,53 +96,112 @@ def _join_tables_from_select(
     return tables
 
 
+_FORMULA_CHARS = set("()/*+,=<>")
+
+
+def _has_formula_chars(name: str) -> bool:
+    return any(char in name for char in _FORMULA_CHARS)
+
+
+def _physical_columns(cube: dict) -> tuple:
+    """Physical column names, and whether the cube lists any column at all.
+
+    Computed measure labels are not physical columns. ``generateQuery`` rejects
+    them with IllegalColumnNameException when they are sent as ordinary columns.
+    """
+    names: set = set()
+    catalog_known = False
+    if not isinstance(cube, dict):
+        return names, catalog_known
+    for bucket in ("columns", "measures"):
+        for item in cube.get(bucket) or []:
+            if not isinstance(item, dict):
+                continue
+            col_name = str(item.get("column_name") or "").strip()
+            if not col_name:
+                continue
+            catalog_known = True
+            if item.get("is_computed"):
+                continue
+            names.add(col_name)
+    return names, catalog_known
+
+
+def _is_join_api_column(name: str, physical: set, catalog_known: bool) -> bool:
+    """True when generateQuery can accept this name as a non-custom column."""
+    candidate = str(name or "").strip()
+    if not candidate:
+        return False
+    if catalog_known:
+        return candidate in physical
+    if _has_formula_chars(candidate) or " " in candidate:
+        return False
+    return True
+
+
 def _resolve_join_column(cube: dict, plan_columns: Optional[List[str]] = None) -> Optional[str]:
     """Resolve a join column for a cube.
 
     Preference order:
       1. ``unique_identifier_of_table`` (explicit join/PK column)
-      2. a column referenced by the query plan for this table
+      2. a physical column referenced by the query plan for this table
       3. the first ``columns[].column_name`` as a final fallback
     """
     if not isinstance(cube, dict):
         return None
     uid = cube.get("unique_identifier_of_table")
-    if uid and str(uid).strip():
+    if uid and str(uid).strip() and not _has_formula_chars(str(uid).strip()):
         return str(uid).strip()
 
+    physical, catalog_known = _physical_columns(cube)
     if plan_columns:
-        known_columns = _cube_column_names(cube)
         for col_name in plan_columns:
             candidate = str(col_name).strip()
-            if not candidate:
-                continue
-            # Prefer plan columns that exist in the cube; otherwise trust the
-            # qualified reference the plan already attributed to this table.
-            if not known_columns or candidate in known_columns:
+            if _is_join_api_column(candidate, physical, catalog_known):
                 return candidate
 
-    columns = cube.get("columns")
-    if columns is None or not isinstance(columns, list) or not columns:
-        return None
-    first_col = columns[0]
-    if not isinstance(first_col, dict):
-        return None
-    col_name = first_col.get("column_name")
-    if col_name and str(col_name).strip():
-        return str(col_name).strip()
+    for item in cube.get("columns") or []:
+        if not isinstance(item, dict) or item.get("is_computed"):
+            continue
+        col_name = str(item.get("column_name") or "").strip()
+        if col_name and not _has_formula_chars(col_name):
+            return col_name
     return None
 
 
-def _cube_column_names(cube: dict) -> set:
-    """Collect column_name values from a cube's columns and measures."""
-    names: set = set()
-    for bucket in ("columns", "measures"):
-        for item in cube.get(bucket) or []:
-            if isinstance(item, dict):
-                col_name = item.get("column_name")
-                if col_name and str(col_name).strip():
-                    names.add(str(col_name).strip())
-    return names
+def _join_columns_for_table(
+    cube: dict, preferred: List[str], also_used: List[str]
+) -> List[str]:
+    """Physical columns to send for one table.
+
+    SELECT columns win when they are real columns. A computed measure label or
+    a pasted formula is left out. If that removes every preferred column, use
+    another physical column the plan already named, then the table key.
+    """
+    cube = cube if isinstance(cube, dict) else {}
+    physical, catalog_known = _physical_columns(cube)
+    chosen: List[str] = []
+    for name in preferred:
+        candidate = str(name).strip()
+        if _is_join_api_column(candidate, physical, catalog_known) and candidate not in chosen:
+            chosen.append(candidate)
+    if chosen:
+        return chosen
+    for name in also_used:
+        candidate = str(name).strip()
+        if _is_join_api_column(candidate, physical, catalog_known):
+            return [candidate]
+    if not cube:
+        return []
+    fallback = _resolve_join_column(cube, None)
+    if not fallback:
+        return []
+    uid = str(cube.get("unique_identifier_of_table") or "").strip()
+    if _is_join_api_column(fallback, physical, catalog_known) or (
+        fallback == uid and not _has_formula_chars(fallback)
+    ):
+        return [fallback]
+    return []
 
 
 class FindJoinFromApi:
@@ -262,11 +321,37 @@ class FindJoinFromApi:
                   cube_metadata=None, dbname="", query_plan=None) -> dict:
         tables = tables or []
         columns = []
+        plan = _parse_query_plan(query_plan)
         plan_columns_by_table = _plan_columns_by_table(query_plan)
+        used_by_table = _refs_by_table(_named_refs(plan, "columnName"))
+        cubes_by_table = {
+            str(cube.get("database_table")): cube
+            for cube in iter_cube_entries(cube_metadata or [])
+            if cube.get("database_table")
+        }
         seen_cols = set()
-        # Send a column from every plan table, including filter-only tables.
+        # Send a physical column from every plan table, including filter-only
+        # tables. Computed measure labels and formula text are not column names.
         for table_name in tables:
-            for column_name in plan_columns_by_table.get(table_name) or []:
+            preferred = plan_columns_by_table.get(table_name) or []
+            chosen = _join_columns_for_table(
+                cubes_by_table.get(table_name) or {},
+                preferred,
+                used_by_table.get(table_name) or [],
+            )
+            omitted = [
+                str(name).strip()
+                for name in preferred
+                if str(name).strip() and str(name).strip() not in chosen
+            ]
+            if omitted:
+                logger.warning(
+                    "Join API omitted non-physical columns for %s: %s; using %s",
+                    table_name,
+                    omitted,
+                    chosen,
+                )
+            for column_name in chosen:
                 key = (table_name, column_name)
                 if key in seen_cols:
                     continue

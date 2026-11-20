@@ -210,4 +210,11 @@ export const updateHreportInitialInteraction = (data) => {
     type: actionTypes.UPDATE_HREPORT_INITIAL_INTERACTION,
     payload: data
   }
-} 
+}
+
+export const updateCacheRefreshStatus = (data) => {
+  return {
+    type: actionTypes.UPDATE_CACHE_REFRESH_STATUS,
+    payload: data
+  }
+}

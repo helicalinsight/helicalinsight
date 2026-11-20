@@ -1662,6 +1662,84 @@ class TestFilterExpression:
         assert "filterExpression" not in form_data
 
 
+class TestCountStarRaw:
+    """COUNT(*) is not a column aggregate. The call is kept as RAW(COUNT(*))."""
+
+    def test_count_star_with_year_and_quarter(self):
+        form_data = _form_data(
+            """
+            SELECT
+              EXTRACT(YEAR FROM "travel_details"."travel_date") AS "year",
+              EXTRACT(QUARTER FROM "travel_details"."travel_date") AS "quarter",
+              COUNT(*) AS "Number Of Travels",
+              SUM("travel_details"."travel_cost") AS "Total Travel Cost"
+            FROM "travel_details"
+            WHERE
+              EXTRACT(YEAR FROM "travel_details"."travel_date") = 2026
+            GROUP BY
+              "year",
+              "quarter"
+            ORDER BY
+              "year" ASC,
+              "quarter" ASC
+            LIMIT 100
+            """
+        )
+        travels = _column_by_alias(form_data, "Number Of Travels")
+        assert travels["column"] == "RAW(COUNT(*))"
+        assert travels["custom"] is True
+        assert "aggregate" not in travels
+        assert "aggregateList" not in travels
+
+        cost = _column_by_alias(form_data, "Total Travel Cost")
+        assert cost["aggregate"] is True
+        assert cost["aggregateList"] == ["db.generic.aggregate.sum"]
+        assert str(cost["column"]["name"]).endswith("travel_details.travel_cost")
+
+        quarter = _column_by_alias(form_data, "quarter")
+        assert "QUARTER" in str(quarter.get("databaseFunction") or "").upper()
+        assert quarter.get("order") == "asc"
+        aliases = [col.get("alias") for col in form_data["columns"]]
+        assert "year" not in aliases
+        assert [item["column"] for item in form_data["functions"]["groupBy"]] == ["quarter"]
+
+        year_filter = form_data["filters"][0]
+        assert year_filter["alias"] == "year"
+        assert year_filter["condition"] == "EQUALS"
+        assert year_filter["values"] == [2026]
+        assert "YEAR" in str(year_filter["databaseFunction"]).upper()
+        assert form_data["limitBy"] == 100
+
+
+class TestColumnlessPredicate:
+    """A comparison with no table column must not become alias ``custom``."""
+
+    def test_year_of_current_date_is_omitted(self):
+        form_data = _form_data(
+            """
+            SELECT
+              "meeting_details"."client_name" AS "Client Name",
+              "meeting_details"."meet_cancellation_status" AS "Meet Cancellation Status"
+            FROM "meeting_details"
+            WHERE EXTRACT(YEAR FROM CURRENT_DATE) = 2026
+              AND "meet_cancellation_status" = 'Yes'
+            LIMIT 100
+            """
+        )
+        assert [item.get("alias") for item in form_data["filters"]] == [
+            "Meet Cancellation Status"
+        ]
+        assert form_data["filters"][0]["condition"] == "EQUALS"
+        assert form_data["filters"][0]["values"] == ["Yes"]
+        assert form_data["filters"][0]["column"]["name"].endswith(
+            "meeting_details.meet_cancellation_status"
+        )
+        assert form_data["filterExpression"] == ["Meet Cancellation Status"]
+        assert "custom" not in form_data["filterExpression"][0].lower()
+        assert all(item.get("alias") != "custom" for item in form_data["filters"])
+        assert [col.get("alias") for col in form_data["columns"]] == ["Client Name"]
+
+
 class TestCaseWhenRawUnquoted:
     """CASE WHEN → RAW must omit identifier escapes (Helical blanks quoted CASE)."""
 
@@ -1699,6 +1777,50 @@ class TestCaseWhenRawUnquoted:
         assert _is_raw_fn(dbf)
         assert '"' not in dbf
         assert "CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 END" in dbf
+
+    def test_raw_case_replaces_table_alias_with_physical_name(self):
+        """td/md/ed in RAW must become travel_details/meeting_details/employee_details."""
+        form_data = _form_data(
+            """
+            SELECT
+              "td"."booking_platform" AS "Booking Platform",
+              SUM(CASE WHEN "md"."meet_cancellation_status" = 'Yes' THEN 1 ELSE 0 END) AS "Total Cancelled",
+              SUM(CASE WHEN "md"."meet_cancellation_status" <> 'Yes' THEN 1 ELSE 0 END) AS "Total Not Cancelled"
+            FROM "travel_details" AS "td"
+            INNER JOIN "employee_details" AS "ed"
+              ON (
+                "ed"."employee_id" = "td"."travelled_by"
+              )
+            INNER JOIN "meeting_details" AS "md"
+              ON (
+                "ed"."employee_id" = "md"."meeting_by"
+              )
+            GROUP BY
+              "td"."booking_platform"
+            """
+        )
+        platform = _column_by_alias(form_data, "Booking Platform")
+        assert str(platform["column"]["name"]).endswith("travel_details.booking_platform")
+
+        cancelled = _column_by_alias(form_data, "Total Cancelled")
+        dbf = str(cancelled["databaseFunction"])
+        assert _is_raw_fn(dbf)
+        assert '"' not in dbf
+        assert "md." not in dbf.lower()
+        assert "td." not in dbf.lower()
+        assert (
+            "CASE WHEN meeting_details.meet_cancellation_status = 'Yes' THEN 1 ELSE 0 END"
+            in dbf
+        )
+        assert "sampletraveldata.public.meeting_details.meet_cancellation_status" in (
+            cancelled.get("usedColumns") or []
+        )
+
+        kept = _column_by_alias(form_data, "Total Not Cancelled")
+        kept_dbf = str(kept["databaseFunction"])
+        assert _is_raw_fn(kept_dbf)
+        assert "md." not in kept_dbf.lower()
+        assert "meeting_details.meet_cancellation_status <> 'Yes'" in kept_dbf
 
 
 PARAMETER_FUNCTIONS = {

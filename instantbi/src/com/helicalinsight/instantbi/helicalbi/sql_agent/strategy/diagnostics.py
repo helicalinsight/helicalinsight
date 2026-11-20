@@ -310,14 +310,17 @@ class OperationNameCanonicalizer:
 
 
 def capability_ai_context(cap: Mapping[str, Any]) -> dict[str, str]:
-    """Read a capability's aiContext the same way a dimension or measure stores it."""
+    """Read a capability aiContext. Description is matched the same way synonyms were."""
     raw = cap.get(CAP_KEY_AI_CONTEXT) or cap.get(CAP_KEY_AI_CONTEXT_SNAKE) or {}
     if not isinstance(raw, Mapping):
         raw = {}
-    synonyms = raw.get("synonyms", cap.get("synonyms", ""))
-    if isinstance(synonyms, (list, tuple)):
-        synonyms = ", ".join(
-            str(part).strip() for part in synonyms if str(part).strip()
+    description = raw.get(
+        "description",
+        raw.get("synonyms", cap.get("description", cap.get("synonyms", ""))),
+    )
+    if isinstance(description, (list, tuple)):
+        description = ", ".join(
+            str(part).strip() for part in description if str(part).strip()
         )
     examples = (
         raw.get("examples")
@@ -328,8 +331,8 @@ def capability_ai_context(cap: Mapping[str, Any]) -> dict[str, str]:
     )
     instructions = raw.get("instructions", cap.get("instructions", ""))
     return {
+        "description": str(description or "").strip(),
         "instructions": str(instructions or "").strip(),
-        "synonyms": str(synonyms or "").strip(),
         "examples": str(examples or "").strip(),
     }
 
@@ -339,7 +342,7 @@ def capability_ai_context_line(cap: Mapping[str, Any]) -> str:
     ai = capability_ai_context(cap)
     bits = [
         f"{key}: {ai[key]}"
-        for key in ("instructions", "synonyms", "examples")
+        for key in ("description", "instructions", "examples")
         if ai[key]
     ]
     if not bits:
@@ -348,7 +351,8 @@ def capability_ai_context_line(cap: Mapping[str, Any]) -> str:
 
 
 def capability_synonyms(cap: Mapping[str, Any]) -> list[str]:
-    text = capability_ai_context(cap)["synonyms"]
+    """Phrases from the capability description, matched the same way synonyms were."""
+    text = capability_ai_context(cap)["description"]
     return [
         part.strip()
         for part in re.split(SYNONYM_SPLIT_PATTERN, text)

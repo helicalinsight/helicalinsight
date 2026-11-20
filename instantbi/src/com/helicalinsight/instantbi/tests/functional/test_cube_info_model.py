@@ -1397,7 +1397,10 @@ class TestDomainTopicIdMapping:
                 "domain_context": "Domain: Sales Order",
             },
         )
-        assert "Domain: Sales Order" in description
-        assert "Topic: Sales" in description
-        assert "Cost by Cancellation" in description
-        assert "travel_cost" in description
+        assert "Name: Cost by Cancellation" in description
+        assert (
+            "Columns: travel_details.travel_cost, meeting_details.meet_cancellation_status"
+            in description
+        )
+        assert "Name: travel_cost" in description
+        assert "Column: travel_details.travel_cost" in description

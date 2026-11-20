@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -175,6 +176,14 @@ def used_column_fq_names(
             seen.add(fq)
             names.append(fq)
     return names
+
+
+_STAR_CALL = re.compile(r"\(\s*(?:DISTINCT\s+)?\*\s*\)", re.IGNORECASE)
+
+
+def expression_uses_star_call(expr: str) -> bool:
+    """True for ``COUNT(*)`` / ``COUNT(DISTINCT *)`` and other ``fn(*)`` calls."""
+    return bool(_STAR_CALL.search(expr or ""))
 
 
 def to_raw_database_function(expr: str) -> str:

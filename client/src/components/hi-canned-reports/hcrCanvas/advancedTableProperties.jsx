@@ -27,11 +27,12 @@ import {
   hcrTableBandOrder,
   hcrTableBandsTypes
 } from "../hcr-constants";
-import { getAdvancedTableConfig, getInitialGroupData, getTableDefaultStyles, hcrCanvasPaneHelperMethods } from "./hcrCanvasPaneHelperMethods";
+import { getAdvancedTableConfig, getHCRAdvanceComponentQueryMenu, getInitialGroupData, getTableDefaultStyles, hcrCanvasPaneHelperMethods } from "./hcrCanvasPaneHelperMethods";
 import CommonProperties from "./hcrTable/commonProperties";
 import NodeAlignment from "./nodeAlignment";
 import NodeColorPicker from "./nodeColorPicker";
 import ElementProperties from "./elementProperties";
+import notify from "../../hi-notifications/notify";
 const { getHcrPropertyTooltipInfo } = hcrCanvasPaneHelperMethods;
 
 const tableCellColors = [
@@ -174,6 +175,10 @@ export default function AdvancedTableProperties({
     const { field } = executeQueryData || {};
     fields = field || [];
   }
+
+  const Notify = notify(dispatch);
+
+
   useEffect(() => {
     const availableFieldNames = fields.map((field) => field.name);
     const validFields = selectedFields.filter((field) =>
@@ -449,13 +454,12 @@ export default function AdvancedTableProperties({
   };
 
   const handleQueryChange = (value) => {
-    let otherProperties = {};
-    const subDataSet = subDataSets.find((ds) => ds.id === value);
-    if (subDataSet) {
-      otherProperties.selectedFields = subDataSet.selectedFields || [];
-      otherProperties.selectedGroupFields = subDataSet.selectedGroupFields || [];
+    if (value === mainQuery) {
+      return Notify.warning({
+        message: "This Dataset is currently used as main dataset. Please assign a separate dataset for Table.",
+      });
     }
-    onPropertyChange({ key: "selectedQueryID", value }, otherProperties);
+    onPropertyChange({ key: "selectedQueryID", value });
   }
 
   const renderTooltipContent = () => {
@@ -475,6 +479,8 @@ export default function AdvancedTableProperties({
       </div>
     );
   };
+
+  const querySelectMenu = getHCRAdvanceComponentQueryMenu(activeTab, selectedQueryID)
 
   return (
     <>
@@ -503,12 +509,10 @@ export default function AdvancedTableProperties({
             </div>
             <Select
               value={selectedQueryID}
-              options={queriesMenu
-                .filter((query) => query.id !== mainQuery)
-                .map((query) => ({
-                  label: query.name,
-                  value: query.id,
-                }))}
+              options={querySelectMenu.map((query) => ({
+                label: query.name,
+                value: query.id,
+              }))}
               onChange={(value) => handleQueryChange(value)}
               placeholder="Please select query"
               allowClear={!selectedQueryID ? false : true}

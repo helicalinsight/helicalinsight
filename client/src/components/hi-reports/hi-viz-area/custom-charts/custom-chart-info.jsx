@@ -1,6 +1,7 @@
-import { CloseOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { Drawer, Tooltip } from 'antd';
-import React from 'react';
+import { CheckOutlined, CloseOutlined, CopyOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Button, Drawer, message, Tooltip } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { copyToClipboard } from '../../../common/json-editor';
 import { reportInfo } from './utilities';
 
 const initialInfo = {
@@ -24,11 +25,13 @@ const CustomChartInfo = () => {
                 <h3>Access Variables</h3>
                 <p>VF has access to the following variables:</p>
                 <ul>
-                    <li><b>data:</b> The current report's data.</li>
+                     <li><b>data:</b> The current report's data.</li>
                     <li><b>report:</b> The current active report which contains all the data about the current report. <InfoIcon onClick={() => { setInfo({ title: "Report Info", open: true, active: "report" }) }} /></li>
                     <li><b>components:</b> This contains all the components that you can use. <InfoIcon onClick={() => { setInfo({ title: "Components Info", open: true, active: "components" }) }} /></li>
                     <li><b>helperFunctions:</b> This contains helper functions to enhance chart creation. In below examples it is shown how you can utilise these helper functions. <InfoIcon onClick={() => { setInfo({ title: "Helper Functions Info", open: true, active: "helperFunctions" }) }} /></li>
                 </ul>
+                <p><code>data=&#123;data&#125;</code> passes the VF <code>data</code> variable to a component's <code>data</code> prop. The name before <code>=</code> is the prop; the value inside braces is the JavaScript variable. For example, <code>&lt;Line data=&#123;data&#125; /&gt;</code> gives the Line chart the report rows. In a config object, <code>data,</code> is shorthand for <code>data: data</code>.</p>
+                <p>Report-aware charts such as <code>Visualization</code> and <code>Point</code> read their axes from the report's Columns and Rows assignments. Low-level plots such as <code>Line</code>, <code>Bar</code>, and <code>Scatter</code> need explicit <code>xField</code> and <code>yField</code> values, and those names must match keys in each data row.</p>
             </CustomDiv>
             <CustomDiv>
                 <h3>Examples</h3>
@@ -36,34 +39,35 @@ const CustomChartInfo = () => {
                 <CustomDiv>
                     <h4>Chart Example</h4>
                     <p>This example creates a Line chart using the data present in the report.</p>
-                    <pre className="custom-chart-code">
-                        {moreChartExample}
-                    </pre>
+                    <CodeExample title="Chart" code={moreChartExample} />
                 </CustomDiv>
                 <CustomDiv>
                     <h4>Grid Chart Example</h4>
                     <p>This example demonstrates how to use the Muze library for visualization.</p>
-                    <pre className="custom-chart-code">
-                        {gridChartExample}
-                    </pre>
+                    <CodeExample title="Grid Chart" code={gridChartExample} />
                 </CustomDiv>
                 <CustomDiv>
                     <h4>Table Example</h4>
                     <p>This example shows how to create a custom table.</p>
-                    <pre className="custom-chart-code">
-                        {tableExample}
-                    </pre>
+                    <p>Ant Design Table uses <code>dataSource</code> for its rows; <code>getTableColumns(report)</code> builds column definitions from report metadata.</p>
+                    <CodeExample title="Table" code={tableExample} />
                 </CustomDiv>
                 <CustomDiv>
                     <h4>GridTable Example</h4>
                     <p>This example demonstrates a Grid Table. This is a simple example of grid table.</p>
-                    <pre className="custom-chart-code">
-                        {gridTableExample}
-                    </pre>
-                    <p>If you want to customize grid table by adding data or fields, then you can use this example : </p>
-                    <pre className="custom-chart-code">
-                        {gridTableCustomizationExample}
-                    </pre>
+                    <CodeExample title="GridTable" code={gridTableExample} />
+                    <p>If you want to customize grid table by adding data or fields, then you can use this example:</p>
+                    <CodeExample title="GridTable Customization" code={gridTableCustomizationExample} />
+                </CustomDiv>
+                <CustomDiv>
+                    <h4>Maps Example</h4>
+                    <p>This example renders a point map using the geographic fields and properties configured in the report.</p>
+                    <CodeExample title="Maps" code={mapVariantExample} />
+                </CustomDiv>
+                <CustomDiv>
+                    <h4>Card Example</h4>
+                    <p>This example creates a KPI card using the report data.</p>
+                    <CodeExample title="Card" code={kpiCardExample} />
                 </CustomDiv>
             </CustomDiv>
             <CustomDiv>
@@ -92,6 +96,50 @@ const CustomChartInfo = () => {
 }
 
 export default CustomChartInfo
+
+const CodeExample = ({ title, code }) => {
+    const [copied, setCopied] = useState(false);
+    const copyTimerRef = useRef(null);
+
+    useEffect(() => () => clearTimeout(copyTimerRef.current), []);
+
+    const handleCopy = async (event) => {
+        event.stopPropagation();
+        try {
+            await copyToClipboard(code);
+            setCopied(true);
+            clearTimeout(copyTimerRef.current);
+            copyTimerRef.current = setTimeout(() => setCopied(false), 2500);
+        } catch {
+            message.error(`Failed to copy ${title} example`);
+        }
+    };
+
+    return (
+        <div style={{ position: "relative" }}>
+            <Tooltip title={copied ? "Copied to clipboard" : `Copy ${title} example`}>
+                <Button
+                    type="text"
+                    size="small"
+                    aria-label={copied ? `${title} example copied` : `Copy ${title} example`}
+                    icon={copied ? <CheckOutlined /> : <CopyOutlined />}
+                    onClick={handleCopy}
+                    style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        zIndex: 1,
+                        color: copied ? "#52c41a" : "#efeeee",
+                        background: "#333"
+                    }}
+                />
+            </Tooltip>
+            <pre className="custom-chart-code" style={{ paddingTop: 40 }}>
+                {code}
+            </pre>
+        </div>
+    );
+};
 
 const ReportInfo = () => {
     return (
@@ -136,8 +184,37 @@ const ComponentsInfo = () => (
             <li>Heatmap</li>
             <li>Radar etc.</li>
         </ul>
-        <p>Similarly you have all other components access. You can get these components from vf's <b>components</b> instance. For eg.</p>
-        <code>const {'{'} Bar, Line, Area, AutoComplete, ...rest {'}'} = components</code>
+       
+        
+        <h3>Additional Ant Design Plots Components.</h3>
+       
+        <ul>
+            <li>Box, Bullet, Column, Funnel, Histogram, Liquid, Gauge</li>
+            <li>Progress, RingProgress, Rose, Chord, Scatter</li>
+            <li>TinyArea, TinyColumn, TinyLine, DualAxes, Waterfall</li>
+            <li>WordCloud, Sunburst, Stock, RadialBar, Sankey, Treemap</li>
+            <li>Violin, Venn, CirclePacking, Facet, Mix, MultiView, BidirectionalBar</li>
+        </ul>
+        <h3>Card Components.</h3>
+        <ul>
+            <li>KPI</li>
+            <li>Trend</li>
+            <li>Card</li>
+        </ul>
+       
+        <h3>HI Report-aware Components.</h3>
+        <ul>
+            <li>Charts: <code>Visualization</code>, <code>Point</code>, <code>WordCloudChart</code>, <code>Relation</code>, <code>CalendarHeatMap</code>, <code>AntProgress</code>, <code>StackedRose</code>, <code>Doughnut</code>, <code>Arc</code>, <code>WaterfallChart</code>, and <code>RadarChart</code>.</li>
+            <li>Maps: <code>Map</code>, <code>MapLine</code>, <code>MapPoint</code>, and <code>MapHeatmap</code>.</li>
+            <li>Tables: Ant Design <code>Table</code> and HI S2 <code>GridTable</code>.</li>
+        </ul>
+       
+       
+       
+      
+       
+        <p>Similarly, all other supported components are available through VF's <b>components</b> instance. For example:</p>
+        <code>const {'{'} Bar, Line, Area, AutoComplete, KPI, ...rest {'}'} = components</code>
     </div>
 );
 
@@ -169,16 +246,19 @@ const HelperFunctionsInfo = () => {
                 This function is use to get the labels for Grid chart, it require 1 parameter , i.e report, and will plot labels for Grid Chart VF if label field is present in marks. You need to use this function in The Component under layers.
                 <code>getGridChartLabels(report)</code><br /><br />
 
+                <li><b>getGridChartConfig:</b> This function creates the Muze data model for grid charts from the report fields and data.</li>
+                It returns a promise that resolves to the data model. See the Grid Chart Example for usage.<br /><br />
+                <li><b>getGridChartSortConfig:</b> This function is for Grid chart VF only, it gets you the configuration required for generating Grid Chart.</li>
+                This function retruns a promise containing configuration for Grid Chart and you can use this in function body.It accepts  3 parameters, <b>report</b>, <b>data</b> and <b>schema</b>(this is optional, and should be used when you are providng static data to the vf).< br />
+                <code>getGridChartSortConfig(report,data).then((dm) {'=>' + 'console.log(dm)'}).catch(e {'=>'} console.log(e))</code>
+                <br />
+                <b>Note:</b> <code>getGridChartSortConfig</code> is not exposed in <code>helperFunctions</code>; use the exposed <code>getGridChartConfig(report, data)</code> helper to create the grid chart data model.<br /><br />
+
                 <li><b>getTableColumns:</b> This function gets you the columns and rows of the report for table visualization in VF.</li>
                 This function is used to retrive the columns and rows of the report and can only be used to Table VF reoprts.It requires only one parameter. Then you have to use this variable in the Component's configuration< br />
                 <code>const columns = getTableColumns(report)</code>
                 <br /><br />
 
-
-                <li><b>getGridChartSortConfig:</b> This function is for Grid chart VF only, it gets you the configuration required for generating Grid Chart.</li>
-                This function retruns a promise containing configuration for grid chart and you can use this in function body.It accepts  3 parameters, <b>report</b>, <b>data</b> and <b>schema</b>(this is optional, and should be used when you are providng static data to the vf).< br />
-                <code>getGridChartSortConfig(report,data).then((dm) {'=>' + 'console.log(dm)'}).catch(e {'=>'} console.log(e))</code>
-                <br /><br />
 
                 <li><b>changePageSize:</b> This function is used in the vf table report , it controls the page size. The usage example is given in the examples info for table.</li>
                 <br /><br />
@@ -260,21 +340,17 @@ const gridChartExample = `function DemoMuzeChart() {
     if (!carsDm) return null;
     let height = report.chartAreaHeight;
     let width = report.chartAreaWidth;
-
     const sideEffectMap = SideEffects.config()
         .for(["lasso-selection"])
         .on(["brush"])
         .create();
-
     const behaviourConfig = Behaviours.config()
         .for(["brush"])
         .on(["dataSelection"])
         .dissociateFrom(["select", "click"])
         .create();
-
     const otherProps = { dataModel: carsDm, canvasRef }
     enableInteractivity("muze", report, otherProps)
-
     return (
         <Muze
             data={carsDm}
@@ -374,8 +450,19 @@ const gridTableCustomizationExample = `function CreateGridTable() {
     }
     let newMetadata = [...report.metadata]
     newMetadata[0] = tempMetadata
-    let gridTableProps = { ...report, data: newData, fields: [...report.fields, ...newFields], metadata: newMetadata }
+    let gridTableProps = { ...report, data: newData, fields: [...report.fields, ...newFields], metadata: newMetadata
+}
     return (
         <GridTable {...gridTableProps} />
     )
+}`
+
+const kpiCardExample = `function DrawKPICard() {
+    const { KPI } = components;
+    return <KPI {...report} data={data} />;
+}`
+
+const mapVariantExample = `function DrawMapPoint() {
+    const { MapPoint } = components;
+    return <MapPoint {...report} data={data} />;
 }`

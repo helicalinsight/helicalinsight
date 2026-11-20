@@ -119,8 +119,10 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
         if (ele.uid !== filter.uid) {
           if (ele.label === filter.range?.[0]) {
             ele.values = [value[0]];
+            delete ele.relativeDateAnchors;
           } else if (ele.label === filter.range?.[1]) {
             ele.values = [value[1]];
+            delete ele.relativeDateAnchors;
           }
         } else {
           // ele.values = value;
@@ -133,6 +135,7 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
 
           if (isValidDateFilter(filter)) {
             ele.anchor = filter.anchor;
+            delete ele.relativeDateAnchors;
           }
         }
         return { ...ele };
@@ -187,15 +190,28 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
 };
 
 export const updateHCRRelativeDateFilters = (filters) => {
-  return filters.map((filter) => {
+  const filtersWithRelativeValue = filters.map((filter) => {
     if (isValidDateFilter(filter)) {
       if (filter.anchor) {
         const { values = [], anchor = {} } = filter || {};
         return {
           ...filter,
-          values: getRelativeDateValues({ anchorDateData: anchor }, values, filter),
+          values: getRelativeDateValues({ anchorDateData: anchor, relativeDateAnchors: filter.relativeDateAnchors }, values, filter),
         }
       }
+      return filter;
+    }
+    return filter;
+  })
+  const rangeFilters = filtersWithRelativeValue.filter((filter) => filter.condition === "IN_RANGE") || [];
+  return filtersWithRelativeValue.map((filter) => {
+    if (filter.condition === "IN_RANGE") return filter;
+    const connectedFilterWithRange = rangeFilters.find((rangeFilter) => rangeFilter.range?.includes(filter.label));
+    if (connectedFilterWithRange) {
+      const { range = [] } = connectedFilterWithRange || {};
+      const [start, end] = range;
+      if (start === filter.label) filter.values = [connectedFilterWithRange.values[0]];
+      if (end === filter.label) filter.values = [connectedFilterWithRange.values[1]];
       return filter;
     }
     return filter;
@@ -649,7 +665,7 @@ export const getHcrParameterFilters = ({ parameters, hcrDiagramNodesData }) => {
     filterParameters[label] = values;
     paraArr.push(obj);
   });
-  paraArr = checkRelativeDateFilter(paraArr, filterParameters);
+  paraArr = checkRelativeDateFilter(paraArr, filterParameters, true);
 
   return paraArr;
 };
@@ -3405,12 +3421,24 @@ export const getPreviewFormData = ({
     });
   }
 
+  // IN_RANGE UI filter holds range: [startName, endName]; Jasper start/end are sibling filters.
+  const rangeBoundByLabel = {};
+  filters.forEach((f) => {
+    if (f?.condition === "IN_RANGE" && Array.isArray(f.range) && f.range.length >= 2) {
+      if (f.range[0]) rangeBoundByLabel[f.range[0]] = "start";
+      if (f.range[1]) rangeBoundByLabel[f.range[1]] = "end";
+    }
+  });
+
   filters.forEach((filter) => {
     const filObj = {
       name: filter.label,
       className: filter.className,
       expressionType: "simpleText",
     };
+    if (rangeBoundByLabel[filter.label]) {
+      filObj.relativeBound = rangeBoundByLabel[filter.label];
+    }
     const isAnchor = filter?.anchor?.isAnchor || false;
     const anchorLabel = `${anchorConstant}${filter.label}`;
     if (filter.condition !== "IN_RANGE") {
@@ -4262,6 +4290,7 @@ export const handleUrlParamsFilters = ({ urlParams, reqFilters = [] }) => {
             fil.values = [entry[1]];
           }
         }
+        delete fil.relativeDateAnchors;
         return true;
       }
       return false;
@@ -4561,6 +4590,7 @@ export const updateDateRangeFilterValues = (filters = []) => {
       let [startValue, endValue] = rangeFilterAssociatedWithFltr.values;
       if (start === filterName) fltr.values = [startValue];
       if (end === filterName) fltr.values = [endValue];
+      fltr.anchor = rangeFilterAssociatedWithFltr.anchor;
     }
     return fltr;
   });

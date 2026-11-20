@@ -24,17 +24,51 @@ def _sqlglot_dialect(dialect: str | None, catalog: FunctionCatalog | None = None
     return resolve_sqlglot_dialect(raw) or "postgres"
 
 
-def _expr_sql_for_wire(node: exp.Expression, dialect: str) -> str:
+def _expr_sql_for_wire(
+    node: exp.Expression,
+    dialect: str,
+    table_aliases: dict[str, str] | None = None,
+) -> str:
     """Serialize expression for formData without identifier quote escapes.
 
     Helical ``quotes.xml`` treats ``"`` / `` ` `` as identifier escapes. Quoted
     identifiers inside ``RAW(CASE …)`` cause Adhoc to blank the CASE body, so
     wire custom expressions must stay unquoted (string literals keep quotes).
+
+    SQL table aliases (``md.col``) are rewritten to the physical table
+    (``meeting_details.col``). Adhoc resolves RAW against real table names.
     """
     cloned = node.copy()
+    _replace_table_aliases(cloned, table_aliases)
     for ident in cloned.find_all(exp.Identifier):
         ident.set("quoted", False)
     return cloned.sql(dialect=dialect)
+
+
+def _wire_sql(node: exp.Expression, parsed: ParsedQuery) -> str:
+    return _expr_sql_for_wire(node, parsed.dialect, parsed.table_aliases)
+
+
+def _replace_table_aliases(
+    node: exp.Expression,
+    table_aliases: dict[str, str] | None,
+) -> None:
+    """Rewrite ``td.col`` → ``travel_details.col`` on column qualifiers."""
+    if not table_aliases:
+        return
+    by_lower = {
+        str(alias).lower(): physical
+        for alias, physical in table_aliases.items()
+        if alias and physical
+    }
+    for col in list(node.find_all(exp.Column)):
+        table = col.table
+        if not table:
+            continue
+        physical = table_aliases.get(table) or by_lower.get(table.lower())
+        if not physical or physical.lower() == table.lower():
+            continue
+        col.set("table", exp.to_identifier(physical, quoted=False))
 
 
 def parse_sql(
@@ -337,6 +371,19 @@ def _parse_select_expr(
     cat = _catalog(parsed)
     if _is_aggregate_expr(expr, cat):
         fn_name = _agg_fn_name(expr)
+        # COUNT(*) / COUNT(DISTINCT *) is not a column aggregate. Keep the call
+        # intact so the wire can emit RAW(COUNT(*)).
+        if _call_uses_star(filter_node or expr):
+            raw = _wire_sql(filter_node or expr, parsed)
+            if not alias:
+                alias = f"{fn_name.lower()}_star"
+            item = SelectItem(
+                alias=alias,
+                is_custom=True,
+                custom_expression=raw,
+                raw_sql=raw,
+            )
+            return _with_row_distinct(item, cat) if row_distinct else item
         aggregates, inner = _stack_aggregates(expr, cat)
         if outer_distinct:
             distinct_key = cat.aggregate_key("DISTINCT")
@@ -351,7 +398,7 @@ def _parse_select_expr(
         custom = False
         custom_expr = None
         used_cols: list[ColumnRef] = []
-        raw = _expr_sql_for_wire(filter_node or expr, parsed.dialect)
+        raw = _wire_sql(filter_node or expr, parsed)
         inner = _unwrap_paren(inner)
 
         if isinstance(inner, exp.Column):
@@ -359,7 +406,7 @@ def _parse_select_expr(
         elif isinstance(inner, exp.Case):
             # COUNT(CASE WHEN …) — keep full CASE as custom/RAW, not CASE().
             custom = True
-            custom_expr = _expr_sql_for_wire(inner, parsed.dialect)
+            custom_expr = _wire_sql(inner, parsed)
             used_cols = _collect_column_refs(inner, parsed)
             inner_col = _find_column(inner)
             if inner_col:
@@ -371,17 +418,17 @@ def _parse_select_expr(
             if inner_col:
                 col_ref = _column_ref(inner_col, parsed)
             if db_fn:
-                db_fn_sql = _expr_sql_for_wire(inner, parsed.dialect)
+                db_fn_sql = _wire_sql(inner, parsed)
                 fn_def = cat.functions_definition(db_fn)
                 used_cols = _collect_column_refs(inner, parsed)
             else:
                 # Unknown nested fn → custom column (selectRaw); aggregate wraps it.
                 custom = True
-                custom_expr = _expr_sql_for_wire(inner, parsed.dialect)
+                custom_expr = _wire_sql(inner, parsed)
                 used_cols = _collect_column_refs(inner, parsed)
         elif inner is not None:
             custom = True
-            custom_expr = _expr_sql_for_wire(inner, parsed.dialect)
+            custom_expr = _wire_sql(inner, parsed)
             used_cols = _collect_column_refs(inner, parsed)
 
         if filter_node is not None:
@@ -409,7 +456,16 @@ def _parse_select_expr(
 
     # Non-aggregate database function: CONCAT(...), LENGTH(CAST(CONCAT(...) AS VARCHAR)), YEAR(col), ...
     if isinstance(expr, exp.Func):
-        raw = _expr_sql_for_wire(expr, parsed.dialect)
+        if _call_uses_star(expr):
+            raw = _wire_sql(expr, parsed)
+            item = SelectItem(
+                alias=alias or f"{expr.sql_name().lower()}_star",
+                is_custom=True,
+                custom_expression=raw,
+                raw_sql=raw,
+            )
+            return _with_row_distinct(item, cat) if row_distinct else item
+        raw = _wire_sql(expr, parsed)
         db_fn = _build_db_fn(expr, parsed)
         inner_col = _find_column(expr)
         col_ref = _column_ref(inner_col, parsed) if inner_col else None
@@ -444,12 +500,12 @@ def _parse_select_expr(
         item = SelectItem(
             alias=alias or col_ref.name,
             column=col_ref,
-            raw_sql=_expr_sql_for_wire(expr, parsed.dialect),
+            raw_sql=_wire_sql(expr, parsed),
         )
         return _with_row_distinct(item, cat) if row_distinct else item
 
     # Custom / complex expression (CASE, arithmetic, …)
-    raw = _expr_sql_for_wire(expr, parsed.dialect)
+    raw = _wire_sql(expr, parsed)
     item = SelectItem(
         alias=alias or "custom",
         is_custom=True,
@@ -469,6 +525,16 @@ def _build_db_fn(expr: exp.Expression, parsed: ParsedQuery) -> dict | None:
         table_alias=parsed.table_alias or parsed.table_name or "",
         table_aliases=parsed.table_aliases,
     )
+
+
+def _call_uses_star(node: exp.Expression | None) -> bool:
+    """True when a call argument is ``*`` (``COUNT(*)``, ``COUNT(DISTINCT *)``)."""
+    if node is None or isinstance(node, exp.Star):
+        return False
+    for child in node.walk():
+        if child is not node and isinstance(child, exp.Star):
+            return True
+    return False
 
 
 def _find_column(node: exp.Expression) -> exp.Column | None:
@@ -576,7 +642,34 @@ def _flatten_predicates(
             right[0].operator = "OR"
         return left + right
 
-    return [_parse_predicate(node, parsed, for_having=for_having, join_op=join_op)]
+    item = _parse_predicate(node, parsed, for_having=for_having, join_op=join_op)
+    return [_columnless_predicate_as_custom(item, node)]
+
+
+def _columnless_predicate_as_custom(item: FilterItem, node: exp.Expression) -> FilterItem:
+    """Drop comparisons that do not reference a table column.
+
+    ``EXTRACT(YEAR FROM CURRENT_DATE) = 2026`` has no host column. Wiring it as
+    ``alias: "custom"`` makes QueryGenerator emit ``"custom" = 2026``, and
+    PostgreSQL reports ``column "custom" does not exist``. Mark the predicate
+    CUSTOM so the prepared data model omits it.
+    """
+    if item.ui_condition in ("ALL", "CUSTOM"):
+        return item
+    if item.column is not None or item.used_columns:
+        return item
+    if any(isinstance(child, exp.Column) for child in node.walk()):
+        return item
+    return replace(
+        item,
+        column=None,
+        ui_condition="CUSTOM",
+        values=[],
+        used_columns=[],
+        database_function=None,
+        database_function_sql="",
+        custom_sql=item.raw_sql or item.custom_sql,
+    )
 
 
 _LOWER_BOUNDS = ("IS_GREATER_THAN", "IS_GREATER_THAN_OR_EQUAL_TO")
@@ -697,7 +790,7 @@ def _parse_predicate(
     for_having: bool,
     join_op: str,
 ) -> FilterItem:
-    raw = _expr_sql_for_wire(node, parsed.dialect)
+    raw = _wire_sql(node, parsed)
 
     # sqlglot often represents NOT IN / IS NOT NULL as Not(In(...)) / Not(Is(...))
     if isinstance(node, exp.Not):
@@ -928,6 +1021,9 @@ def _side_column_meta(
 
     expr, _ = _peel_filter(side)
 
+    if _call_uses_star(expr):
+        return None, None, None, None, _wire_sql(expr, parsed), []
+
     if _is_aggregate_expr(expr, cat):
         stacked, inner = _stack_aggregates(expr, cat)
         aggregate = "_".join(stacked) if stacked else None
@@ -939,7 +1035,7 @@ def _side_column_meta(
                 col_ref = _column_ref(inner_col, parsed)
             db_fn = _build_db_fn(inner, parsed)
             # Always keep SQL so filters/having can fall back to custom on catalog miss.
-            db_fn_sql = _expr_sql_for_wire(inner, parsed.dialect)
+            db_fn_sql = _wire_sql(inner, parsed)
             used_cols = _collect_column_refs(inner, parsed)
         elif isinstance(inner, exp.Column):
             col_ref = _column_ref(inner, parsed)
@@ -955,7 +1051,7 @@ def _side_column_meta(
             col_ref = _column_ref(inner_col, parsed)
         db_fn = _build_db_fn(expr, parsed)
         # Always keep SQL so filters/having can fall back to custom on catalog miss.
-        db_fn_sql = _expr_sql_for_wire(expr, parsed.dialect)
+        db_fn_sql = _wire_sql(expr, parsed)
         used_cols = _collect_column_refs(expr, parsed)
         return None, col_ref, db_fn, alias, db_fn_sql, used_cols
 

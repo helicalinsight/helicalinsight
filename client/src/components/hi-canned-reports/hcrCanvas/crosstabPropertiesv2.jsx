@@ -13,7 +13,7 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { hcrActions } from "../../../redux/actions";
 import { hcrCrosstabMeasuresAggregateFns, hcrDSQuery } from "../hcr-constants";
-import { getCrosstabDefaultStyles, hcrCanvasPaneHelperMethods, NoDataTemplate, getCrosstabConfigV2, getHCRCrosstabLayoutOptions } from "./hcrCanvasPaneHelperMethods";
+import { getCrosstabDefaultStyles, hcrCanvasPaneHelperMethods, NoDataTemplate, getCrosstabConfigV2, getHCRCrosstabLayoutOptions, getHCRAdvanceComponentQueryMenu } from "./hcrCanvasPaneHelperMethods";
 import CommonProperties from "./hcrTable/commonProperties";
 import NodeBorders from "./nodeBorder";
 import NodePadding from "./nodePadding";
@@ -21,6 +21,7 @@ import { InfoCircleOutlined } from "@ant-design/icons";
 import { cloneDeep, isEmpty, isEqual } from "lodash";
 import { useFieldSelection } from "../../../hooks/useHCRFieldsSelection";
 import ElementProperties from "./elementProperties";
+import notify from "../../hi-notifications/notify";
 const { getHcrPropertyTooltipInfo } = hcrCanvasPaneHelperMethods;
 
 const normalizeTotalPosition = (position) => {
@@ -137,6 +138,8 @@ const CrosstabPropertiesV2 = ({
           ele.executeQueryData?.field.length,
       ) || [];
   const selectedQuery = queriesMenu?.find((ele) => ele.id === selectedQueryID);
+  const Notify = notify(dispatch);
+
 
   let fields = [];
   if (selectedQuery) {
@@ -285,12 +288,12 @@ const CrosstabPropertiesV2 = ({
   };
 
   const handleQueryChange = (value) => {
-    let otherProperties = {};
-    const subDataSet = subDataSets.find((ds) => ds.id === value);
-    if (subDataSet) {
-      otherProperties.selectedFields = subDataSet.selectedFields || [];
+    if (value === mainQuery) {
+      return Notify.warning({
+        message: "This Dataset is currently used as main dataset. Please assign a separate dataset for Crosstab.",
+      });
     }
-    onPropertyChange({ key: "selectedQueryID", value }, otherProperties);
+    onPropertyChange({ key: "selectedQueryID", value });
   }
 
   const handleApply = () => {
@@ -414,6 +417,8 @@ const CrosstabPropertiesV2 = ({
     );
   };
 
+  const querySelectMenu = getHCRAdvanceComponentQueryMenu(activeTab, selectedQueryID)
+
   return (
     <React.Fragment>
       <Collapse
@@ -442,12 +447,10 @@ const CrosstabPropertiesV2 = ({
             <Select
               // label={getHcrPropertyTooltipInfo({ label: "Query", tooltip: tooltip_query })}
               value={selectedQueryID}
-              options={queriesMenu
-                .filter((query) => query.id !== mainQuery)
-                .map((query) => ({
-                  label: query.name,
-                  value: query.id,
-                }))}
+              options={querySelectMenu.map((query) => ({
+                label: query.name,
+                value: query.id,
+              }))}
               // width={"100%"}
               style={{ width: "100%" }}
               onChange={(value) => handleQueryChange(value)}

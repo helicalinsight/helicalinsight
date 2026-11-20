@@ -246,13 +246,12 @@ def _column_id_name(item: dict[str, Any]) -> tuple[str, str]:
 
 
 def _dbf_compatible(column: dict[str, Any], predicate: dict[str, Any]) -> bool:
-    left = _dbf_key(column)
-    right = _dbf_key(predicate)
-    if left == right:
-        return True
-    if not left or not right:
-        return False
-    return left.split("(", 1)[0] == right.split("(", 1)[0]
+    """Same expression, not merely the same function name.
+
+    ``EXTRACT(YEAR FROM travel_date)`` and ``EXTRACT(QUARTER FROM travel_date)``
+    both start with ``extract(`` but they are different fields.
+    """
+    return _dbf_key(column) == _dbf_key(predicate)
 
 
 def _dbf_key(item: dict[str, Any]) -> str:

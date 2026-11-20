@@ -466,7 +466,6 @@ const HelicalReports = (props) => {
           let activeReport = reports.find((report) => report.id === reportId);
           if (activeReport) {
             let modifiedState = modifyFilters(activeReport, parameters);
-            console.log({ modifiedState, parameters, activeReport, props, reportId })
             if (props.mode === 'filter') {
               const { filters: mFltrs = [] } = modifiedState;
               const { filters: aFltrs = [] } = activeReport;

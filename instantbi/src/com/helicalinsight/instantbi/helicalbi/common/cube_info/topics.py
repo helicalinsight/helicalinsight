@@ -102,6 +102,11 @@ def _component_record_from_item(item: dict, name_key: str) -> Optional[dict]:
     formula = _formula_from_cube_item(item)
     if formula:
         record["formula"] = formula
+    sort_value = item.get("sort")
+    if sort_value in (None, ""):
+        sort_value = item.get("sortOrder") if item.get("sortOrder") not in (None, "") else item.get("sort_order")
+    if sort_value not in (None, ""):
+        record["sort"] = sort_value
     ai_context = _ai_context_payload(item)
     if ai_context:
         record["aiContext"] = ai_context
@@ -209,6 +214,7 @@ def resolve_topic_component(
             "hierarchyName",
             "levelName",
             "formula",
+            "sort",
             "aiContext",
         ):
             if key in resolved and resolved[key] not in (None, ""):

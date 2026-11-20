@@ -1,22 +1,210 @@
 import json
 import logging
+import re
 from typing import Any
 
 from helicalbi.common.JsonToPara import (
-    generate_bare_minimum_context,
+    _text_items,
+    format_table_column_ref,
     generate_compact_table_catalog,
-    generate_semantic_hint,
-    is_bare_minimum_config,
     iter_cube_entries,
     split_table_column_ref,
     unquote_identifier,
 )
-from helicalbi.common.CubeInfoModel import (
-    format_topic_mappings_compact,
-    format_topic_mappings_for_prompt,
-)
+from helicalbi.common.CubeInfoModel import format_topic_mappings_compact
 
 logger = logging.getLogger(__name__)
+
+_QUALIFIED_COLUMN = re.compile(
+    r"""([A-Za-z_][\w]*)\s*\.\s*("[^"]+"|`[^`]+`|[A-Za-z_][\w]*)"""
+)
+
+
+def _heading_sentence(text: str) -> str:
+    value = " ".join(str(text or "").split())
+    if value and value[-1] not in ".!?":
+        value += "."
+    return value
+
+
+def _formula_column_refs(formula: str) -> list[str]:
+    refs: list[str] = []
+    seen: set[str] = set()
+    for table_name, column_name in _QUALIFIED_COLUMN.findall(formula or ""):
+        ref = f"{table_name}.{unquote_identifier(column_name)}"
+        if ref in seen:
+            continue
+        seen.add(ref)
+        refs.append(ref)
+    return refs
+
+
+def _field_name(item: dict) -> str:
+    for key in ("dimension_name", "measure_name", "alias_name", "name", "column_name"):
+        value = str(item.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _is_computed_field(item: dict) -> bool:
+    return bool(item.get("is_computed") or item.get("kind") == "computed_measure")
+
+
+def _is_measure_field(item: dict, bucket: str) -> bool:
+    if bucket == "measures" or _is_computed_field(item):
+        return True
+    return item.get("kind") in ("measure", "computed_measure") or bool(item.get("measure_name"))
+
+
+def _qualified_column(table_name: str, physical: str) -> str:
+    physical = str(physical or "").strip()
+    if not physical:
+        return ""
+    if "." in physical:
+        owner, column_name = physical.rsplit(".", 1)
+        return format_table_column_ref(
+            unquote_identifier(owner), unquote_identifier(column_name)
+        )
+    if table_name:
+        return format_table_column_ref(table_name, physical)
+    return physical
+
+
+def _context_dict(item: dict) -> dict:
+    context = item.get("ai_context") or item.get("aiContext") or {}
+    return context if isinstance(context, dict) else {}
+
+
+def _render_catalog_field(item: dict, table_name: str) -> str:
+    """One catalog field. Headings name each value for the column picker."""
+    if not isinstance(item, dict):
+        return ""
+    name = _field_name(item)
+    if not name:
+        return ""
+    metric = item.get("metric") if isinstance(item.get("metric"), dict) else {}
+    formula = str(item.get("formula") or metric.get("formula") or "").strip()
+    physical = str(item.get("column_name") or item.get("columnName") or "").strip()
+    computed = _is_computed_field(item) or (not physical and bool(formula))
+    lines = [f"Name: {name}"]
+    if computed:
+        refs = _formula_column_refs(formula)
+        if refs:
+            lines.append("Columns: " + ", ".join(refs))
+    else:
+        qualified = _qualified_column(table_name, physical)
+        if qualified:
+            lines.append(f"Column: {qualified}")
+    semantic_type = str(item.get("semantic_type") or item.get("semanticType") or "").strip()
+    if semantic_type:
+        lines.append(f"Type: {semantic_type}")
+    if formula:
+        lines.append(f"Formula: {formula}")
+    sort_value = item.get("sort")
+    if sort_value in (None, ""):
+        sort_value = item.get("sort_order") if item.get("sort_order") not in (None, "") else item.get("sortOrder")
+    if sort_value not in (None, ""):
+        lines.append(f"Sort: {sort_value}")
+    context = _context_dict(item)
+    use = _heading_sentence(context.get("instructions") or item.get("description") or "")
+    if use and use.lower().strip(".!?") != name.lower():
+        lines.append(f"Use: {use}")
+    also = []
+    seen_also = {name.lower()}
+    for label in _text_items(context.get("synonyms")) + _text_items(item.get("synonyms")):
+        key = label.lower()
+        if key in seen_also:
+            continue
+        seen_also.add(key)
+        also.append(label)
+    if also:
+        lines.append("Also: " + ", ".join(also))
+    examples = _text_items(context.get("examples"))
+    if examples:
+        lines.append("Examples: " + ", ".join(examples))
+    return "\n".join(lines)
+
+
+def _mappings_have_components(topic_mappings) -> bool:
+    for entry in topic_mappings or []:
+        if not isinstance(entry, dict):
+            continue
+        for component in entry.get("components") or []:
+            if isinstance(component, dict) and (component.get("name") or component.get("columnName")):
+                return True
+    return False
+
+
+def _component_tables(component: dict) -> set[str]:
+    tables: set[str] = set()
+    column_name = str(component.get("columnName") or component.get("column_name") or "")
+    if "." in column_name:
+        tables.add(unquote_identifier(column_name.rsplit(".", 1)[0]))
+    table_name = str(component.get("tableName") or "").strip()
+    if table_name:
+        tables.add(table_name)
+    metric = component.get("metric") if isinstance(component.get("metric"), dict) else {}
+    formula = str(component.get("formula") or metric.get("formula") or "")
+    for ref in _formula_column_refs(formula):
+        tables.add(ref.split(".", 1)[0])
+    return tables
+
+
+def format_column_selection_catalog(
+    cubes, topic_mappings=None, table_names=None
+) -> str:
+    """Column-picker catalog: one headed block per dimension or measure.
+
+    Selected topic components are the catalog when the model JSON named them.
+    Otherwise the cube columns are the metadata fallback.
+    """
+    dimensions: list[str] = []
+    measures: list[str] = []
+    seen: set[str] = set()
+    allowed_tables = {str(table) for table in (table_names or []) if table}
+
+    def _add(item: dict, table_name: str, bucket: str) -> None:
+        block = _render_catalog_field(item, table_name)
+        if not block:
+            return
+        name = _field_name(item).lower()
+        if name in seen:
+            return
+        seen.add(name)
+        if _is_measure_field(item, bucket):
+            measures.append(block)
+        else:
+            dimensions.append(block)
+
+    if _mappings_have_components(topic_mappings):
+        for entry in topic_mappings or []:
+            if not isinstance(entry, dict):
+                continue
+            for component in entry.get("components") or []:
+                if not isinstance(component, dict):
+                    continue
+                if allowed_tables:
+                    tables = _component_tables(component)
+                    if tables and not tables.intersection(allowed_tables):
+                        continue
+                kind = str(component.get("kind") or "")
+                bucket = "measures" if kind in ("measure", "computed_measure") else "columns"
+                _add(component, "", bucket)
+    else:
+        for cube in iter_cube_entries(cubes or []):
+            table_name = str(cube.get("database_table") or "")
+            for column in cube.get("columns") or []:
+                _add(column, table_name, "columns")
+            for measure in cube.get("measures") or []:
+                _add(measure, table_name, "measures")
+
+    parts: list[str] = []
+    if dimensions:
+        parts.append("Dimensions\n" + "\n\n".join(dimensions))
+    if measures:
+        parts.append("Measures\n" + "\n\n".join(measures))
+    return "\n\n".join(parts)
 
 
 def get_tables_and_columns_by_topics(topics: list, topic_table: dict):
@@ -33,10 +221,11 @@ def get_table_col_description(
     model_data=None,
     domain_context=None,
 ):
+    """Headed dimension and measure catalog for the column-selection prompt."""
+    del user_query, domain_context
     cube_metadata = cube_metadata or []
     table_names = table_names or []
     all_cubes = list(iter_cube_entries(cube_metadata))
-    bare_minimum = is_bare_minimum_config(model_data) if model_data else False
 
     if table_names:
         reduced_cubes = [
@@ -49,30 +238,15 @@ def get_table_col_description(
     if not reduced_cubes:
         reduced_cubes = all_cubes
 
-    if bare_minimum or not table_names:
-        schema = generate_bare_minimum_context(user_query, reduced_cubes)
-    else:
-        schema = generate_semantic_hint(reduced_cubes)
-
     model_data = model_data or {}
-    domain_block = (
-        domain_context
-        or model_data.get("domain_context")
-        or ""
-    )
     topic_mappings = model_data.get("topic_mappings") or []
-    topic_block = format_topic_mappings_for_prompt(topic_mappings)
-    parts: list[str] = []
-    if domain_block and topic_block and topic_block in domain_block:
-        parts.append(str(domain_block).strip())
-    else:
-        if domain_block:
-            parts.append(str(domain_block).strip())
-        if topic_block:
-            parts.append(topic_block)
-    if schema:
-        parts.append(schema)
-    return "\n\n".join(part for part in parts if part)
+    if _mappings_have_components(topic_mappings):
+        return format_column_selection_catalog(
+            [],
+            topic_mappings,
+            table_names=table_names or None,
+        )
+    return format_column_selection_catalog(reduced_cubes, [])
 
 
 def get_table_selection_description(
@@ -310,12 +484,12 @@ def _format_column_detail(meta: dict) -> str:
     if formula:
         if meta.get("is_computed") or kind == "computed_measure":
             parts.append(
-                "COMPUTED measure - this is NOT a physical column; implement the "
-                "following formula as a SQL expression and alias it with the "
+                "COMPUTED measure - this is NOT a physical column. Copy this "
+                "formula into the SQL exactly as written and alias it with the "
                 f"measure name: {formula}"
             )
         else:
-            parts.append(f"formula: {formula}")
+            parts.append(f"formula (use exactly as written): {formula}")
     synonyms = meta.get("synonyms") or []
     if synonyms:
         parts.append(

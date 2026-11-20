@@ -12,7 +12,8 @@ THINK_FLAT_SQL_GENERATION = (
     "If this question cannot be answered without a subquery, answer only the "
     "part that is a single grouped or filtered SELECT. "
     "Measure traits: stay at the measure grain from the semantic context and do not join a finer-grain table that duplicates those rows. "
-    "If additivity is non-additive, do not SUM that measure; aggregate its formula inputs and compute the ratio in the SELECT. "
+    "When a metric or measure has a formula, copy that formula into the SELECT exactly as written. Do not rewrite it. "
+    "If additivity is non-additive and no formula is stored, do not SUM that measure; aggregate its formula inputs and compute the ratio in the SELECT. "
     "If semi-additive, do not sum across time. If additive, SUM at the measure grain."
 )
 

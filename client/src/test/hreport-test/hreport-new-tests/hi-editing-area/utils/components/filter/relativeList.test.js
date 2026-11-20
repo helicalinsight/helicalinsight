@@ -144,117 +144,119 @@ describe('to test getDateFromValue', () => {
 });
 
 describe('to test prepareRelativeOptionFromAnchor', () => {
-  test('default data object', () => {
-    const result = prepareRelativeOptionFromAnchor();
-    expect(result).toEqual(undefined);
+  const prepare = (anchor, options = {}) =>
+    prepareRelativeOptionFromAnchor({ anchor, ...options });
+
+  test('returns undefined when no data is provided', () => {
+    expect(prepareRelativeOptionFromAnchor()).toBeUndefined();
   });
 
-  test('anchor with direction "last"', () => {
-    const data = {
-      anchor: { relativePart: "month", value: 5, direction: "last" }
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('month-5');
+  describe('non-range expressions', () => {
+    test('uses a negative offset for the last direction', () => {
+      expect(prepare({ relativePart: "month", value: 5, direction: "last" })).toBe("month-5");
+    });
+
+    test('uses a positive offset for the next direction', () => {
+      expect(prepare({ relativePart: "week", value: 3, direction: "next" })).toBe("week+3");
+    });
+
+    test('maps the day relative part to today', () => {
+      expect(prepare({ relativePart: "day" })).toBe("today");
+    });
+
+    test('preserves the actual value when relative date information is missing', () => {
+      expect(
+        prepare(
+          { relativePart: "", value: 2, direction: "last" },
+          { actualValue: "12-12-2020" }
+        )
+      ).toBe("12-12-2020");
+    });
   });
 
-  test('anchor with direction "next"', () => {
-    const data = {
-      anchor: { relativePart: "week", value: 3, direction: "next" }
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('week+3');
-  });
+  describe('range expressions', () => {
+    test('custom next range starts at the current period', () => {
+      const anchor = { relativePart: "year", value: 2, direction: "next", active: 4 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year+1");
+    });
 
-  test('anchor with relativePart "day"', () => {
-    const data = {
-      anchor: { relativePart: "day" }
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('today');
-  });
+    test('custom last range ends at the current period', () => {
+      const anchor = { relativePart: "year", value: 2, direction: "last", active: 5 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year-1");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year");
+    });
 
-  test('isRange true and index 1', () => {
-    const data = {
-      anchor: { relativePart: "year", value: 1 },
-      isRange: true,
-      index: 1
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('year');
-  });
+    test('single custom next range selects the current period', () => {
+      const anchor = { relativePart: "year", value: 1, direction: "next", active: 4 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year");
+    });
 
-  test('isRange true and index 1 and direction is next', () => {
-    const data = {
-      anchor: { relativePart: "month", value: 1, direction: 'next' },
-      isRange: true,
-      index: 1
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('month+1');
-  });
+    test('single custom last range selects the current period', () => {
+      const anchor = { relativePart: "year", value: 1, direction: "last", active: 5 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year");
+    });
 
-  test('isRange false and index 2', () => {
-    const data = {
-      anchor: { relativePart: "year", value: 1 },
-      isRange: false,
-      index: 2
-    };
-    const result = prepareRelativeOptionFromAnchor(data);
-    expect(result).toEqual('year');
-  });
+    test('preset next range selects the adjacent period', () => {
+      const anchor = { relativePart: "year", value: 1, direction: "next", active: 2 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year+1");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year+1");
+    });
 
-  test('isRange is false and index is 1', () => {
-    const data = {
-      anchor: { relativePart: "day", value: 5, direction: "last" },
-      isRange: false,
-      index: 1
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe("today-5");
-  });
+    test('preset last range selects the adjacent period', () => {
+      const anchor = { relativePart: "year", value: 1, direction: "last", active: 3 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year-1");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year-1");
+    });
 
-  test(' isRange is true, index is 1, and direction is next', () => {
-    const data = {
-      anchor: { relativePart: "quarter", value: 3, direction: "next" },
-      isRange: true,
-      index: 1
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe("quarter+1");
-  });
+    test('this period returns the current period for both bounds', () => {
+      const anchor = { relativePart: "year", value: 0 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year");
+    });
 
-  test('isRange is true, index is 2, and direction is last', () => {
-    const data = {
-      anchor: { relativePart: "month", value: 2, direction: "last" },
-      isRange: true,
-      index: 2
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe("month-1");
-  });
+    test.each([
+      ["month", "month", "month+1"],
+      ["week", "week", "week+1"],
+      ["quarter", "quarter", "quarter+1"],
+    ])("custom next %s range includes the current period", (relativePart, start, end) => {
+      const anchor = { relativePart, value: 2, direction: "next", active: 4 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe(start);
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe(end);
+    });
 
-  test('isRange is false, index is 2 and isAnchor true with actual value', () => {
-    const data = {
-      anchor: { relativePart: "month", value: 2, direction: "last", isAnchor: true },
-      isRange: true,
-      index: 2,
-      actualValue: 2020
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe("month-1");
-  });
+    test.each([
+      ["month", "month-1", "month"],
+      ["week", "week-1", "week"],
+      ["quarter", "quarter-1", "quarter"],
+    ])("custom last %s range includes the current period", (relativePart, start, end) => {
+      const anchor = { relativePart, value: 2, direction: "last", active: 5 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe(start);
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe(end);
+    });
 
-  test('isRange is true, index is 2 and value is toDate', () => {
-    const data = {
-      anchor: { relativePart: "month", value: "toDate", direction: "last" },
-      isRange: true,
-      index: 2,
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe('to_date');
-  });
+    test('custom day range uses today with inclusive bounds', () => {
+      const anchor = { relativePart: "day", value: 2, direction: "next", active: 4 };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("today");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("today+1");
+    });
 
-  test('relative date is not there and actual date doesnt match pattern', () => {
-    const data = {
-      anchor: { relativePart: "", value: 2, direction: "last" },
-      actualValue: '12-12-2020'
-    };
-    expect(prepareRelativeOptionFromAnchor(data)).toBe('12-12-2020');
+    test('returns relative part and to_date for year to date', () => {
+      const anchor = { relativePart: "month", value: "toDate", direction: "last" };
+      expect(prepare(anchor, { isRange: true, index: 1 })).toBe("month");
+      expect(prepare(anchor, { isRange: true, index: 2 })).toBe("to_date");
+    });
+
+    test('applies the anchor prefix to custom range bounds', () => {
+      const nextAnchor = { relativePart: "year", value: 2, direction: "next", active: 4, isAnchor: true };
+      const lastAnchor = { relativePart: "year", value: 2, direction: "last", active: 5, isAnchor: true };
+      expect(prepare(nextAnchor, { isRange: true, index: 1 })).toBe("anchor_year");
+      expect(prepare(nextAnchor, { isRange: true, index: 2 })).toBe("anchor_year+1");
+      expect(prepare(lastAnchor, { isRange: true, index: 1 })).toBe("anchor_year-1");
+      expect(prepare(lastAnchor, { isRange: true, index: 2 })).toBe("anchor_year");
+    });
   });
 })
 
@@ -527,6 +529,16 @@ describe("getRelativeAnchor", () => {
 })
 
 describe('test updateRelativeDateAnchor', () => {
+  const createRangeFilter = () => ({
+    label: "travel_date",
+    dataType: "dateTime",
+    condition: "IN_RANGE",
+    datePart: "individual",
+    values: ["year-1", "year+2"],
+    anchor: {},
+  });
+  const rangeParameters = { travel_date: ["year-1", "year+2"] };
+
   it('should return correct relative date anchor', () => {
     const filter = updateRelativeDateAnchor(relativeDateFilter, {}, false)
     const { anchor } = filter[0]
@@ -542,6 +554,54 @@ describe('test updateRelativeDateAnchor', () => {
       part: "months"
     }
     expect(expectedResult).toEqual(anchor)
+  })
+
+  it('should store temporary anchors for each range endpoint when addTempAnchors is true', () => {
+    const filter = updateRelativeDateAnchor(createRangeFilter(), rangeParameters, true, true)
+
+    expect(filter.relativeDateAnchors).toHaveLength(2)
+    expect(filter.relativeDateAnchors[0]).toMatchObject({
+      relativePart: "year",
+      part: "years",
+      value: 1,
+      direction: "last",
+    })
+    expect(filter.relativeDateAnchors[1]).toMatchObject({
+      relativePart: "year",
+      part: "years",
+      value: 2,
+      direction: "next",
+    })
+  })
+
+  it('should not store temporary anchors by default', () => {
+    const filter = updateRelativeDateAnchor(createRangeFilter(), rangeParameters, true)
+
+    expect(filter).not.toHaveProperty("relativeDateAnchors")
+  })
+})
+
+describe('test checkRelativeDateFilter addTempAnchors flag', () => {
+  const createRangeFilter = () => ({
+    label: "travel_date",
+    dataType: "dateTime",
+    condition: "IN_RANGE",
+    datePart: "individual",
+    values: ["year-1", "year+2"],
+    anchor: {},
+  });
+  const rangeParameters = { travel_date: ["year-1", "year+2"] };
+
+  it('should add temporary range anchors when requested', () => {
+    const filters = checkRelativeDateFilter([createRangeFilter()], rangeParameters, true)
+
+    expect(filters[0].relativeDateAnchors).toHaveLength(2)
+  })
+
+  it('should not add temporary range anchors by default', () => {
+    const filters = checkRelativeDateFilter([createRangeFilter()], rangeParameters)
+
+    expect(filters[0]).not.toHaveProperty("relativeDateAnchors")
   })
 })
 
@@ -697,7 +757,7 @@ describe('test parseExpression', () => {
 describe('test getRelativeDateRange', () => {
   const dateNow = moment('2026-11-05')
   const format = 'YYYY-MM-DD'
-  const getRange = (value, direction) => getRelativeDateRange(dateNow, value, 'years', direction, format, 'year').map(date => date.format(format))
+  const getRange = (value, direction, active, part = 'years', relativePart = 'year') => getRelativeDateRange(dateNow, value, part, direction, format, relativePart, active).map(date => date.format(format))
 
   test('next N years includes the current year', () => {
     expect(getRange(2, 'next')).toEqual(['2026-01-01', '2027-12-31'])
@@ -709,9 +769,23 @@ describe('test getRelativeDateRange', () => {
     expect(getRange(3, 'last')).toEqual(['2024-01-01', '2026-12-31'])
   })
 
-  test('single next and previous year remain adjacent years', () => {
-    expect(getRange(1, 'next')).toEqual(['2027-01-01', '2027-12-31'])
-    expect(getRange(1, 'last')).toEqual(['2025-01-01', '2025-12-31'])
+  test('single next and previous preset period selects the adjacent period', () => {
+    expect(getRange(1, 'next', 2)).toEqual(['2027-01-01', '2027-12-31'])
+    expect(getRange(1, 'last', 3)).toEqual(['2025-01-01', '2025-12-31'])
+  })
+
+  test('single next and previous custom period selects the current period', () => {
+    expect(getRange(1, 'next', 4)).toEqual(['2026-01-01', '2026-12-31'])
+    expect(getRange(1, 'last', 5)).toEqual(['2026-01-01', '2026-12-31'])
+  })
+
+  test('single next and previous preset month, week and quarter select the adjacent period', () => {
+    expect(getRange(1, 'next', 2, 'months', 'month')).toEqual(['2026-12-01', '2026-12-31'])
+    expect(getRange(1, 'last', 3, 'months', 'month')).toEqual(['2026-10-01', '2026-10-31'])
+    expect(getRange(1, 'next', 2, 'weeks', 'week')).toEqual(['2026-11-08', '2026-11-14'])
+    expect(getRange(1, 'last', 3, 'weeks', 'week')).toEqual(['2026-10-25', '2026-10-31'])
+    expect(getRange(1, 'next', 2, 'quarters', 'quarter')).toEqual(['2027-01-01', '2027-03-31'])
+    expect(getRange(1, 'last', 3, 'quarters', 'quarter')).toEqual(['2026-07-01', '2026-09-30'])
   })
 
   test('year to date ends at the anchor date', () => {

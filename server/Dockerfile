@@ -1,6 +1,6 @@
 FROM eclipse-temurin:25-jdk-noble AS tomcat
 
-ARG TOMCAT_VERSION=11.0.25
+ARG TOMCAT_VERSION=11.0.27
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \

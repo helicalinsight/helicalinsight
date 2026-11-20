@@ -1,3 +1,5 @@
+import re
+
 from helicalbi.common import app_config
 
 _FINAL_SQL_REASON_LINE = (
@@ -23,7 +25,6 @@ _DATE_FUNCTIONS = """
 Filter values that are database functions
 Use the listed {dialect} function, for example EXTRACT(YEAR FROM <alias>.<date_column>).
 <date_column> is a slot. Substitute the provided date column.
-Do not replace a date or time function with CAST(<alias>.<date_column> AS date).
 """
 
 _DATE_RANGES = """
@@ -34,32 +35,61 @@ Do not write that range as IN (date1, date2).
 
 _RELATIVE_PERIODS = """
 Relative periods
-Filter the date column with BETWEEN, or with CURRENT_DATE and CURRENT_DATE minus 1 year.
+When the question means a period relative to today (this year, current year, last year, prior year, YTD),
+filter the date column with BETWEEN, or with CURRENT_DATE and CURRENT_DATE minus 1 year.
 Do not write EXTRACT(YEAR FROM CURRENT_DATE) - 1 inside an IN list.
 """
 
-_EXCLUSIONS = """
-Exclusion filters
-When the user excludes a value, write NOT IN (...), including one value.
-Use <> or != for that exclusion only when {dialect} has no IN / NOT IN.
-"""
-
-_AVERAGES = """
-JOINs preferred over nested subqueries
-Do NOT write nested scalar subqueries in WHERE or HAVING.
-For an above/below average by group question, join a grouped query to a query that computes the average.
+_ABSOLUTE_YEAR = """
+Absolute calendar year
+When the question names a literal year, filter with the year formula or dialect date function
+from Descriptions, Metrics, or Functions. Copy that expression exactly and compare it to the year value.
+Do not rewrite that filter as a date-column BETWEEN range.
 """
 
 final_sql_prompt = """
 You are an expert {dialect} SQL engineer. Write one query from the provided columns.
 A slot is not a name. Never write <table>, <alias>, <column>, or <date_column> into the SQL.
-Never write a table named t or a column named date_col unless that exact name is listed.
+Never write a table named t or a column named date_col unless listed.
+Use only the listed tables and columns.
+Never use SELECT * or COUNT(*).
+
+SELECT
+Alias every selected expression with the dimension, measure, or hierarchy display name.
+A snake_case, camelCase, or ALLCAPS alias becomes Title Case.
+For a count write COUNT(<alias>.<column>) or COUNT(DISTINCT <alias>.<column>).
+When a metric or a measure has a formula, copy that formula into the SQL exactly as written. Do not rewrite, simplify, or re-aggregate it. Do not select the measure name as a column.
+Do not apply formatString. Formatting is done in visualization.
+additive: SUM across dimensions at that grain is valid.
+non-additive: do not SUM the measure. Compute it from its formula components inside each group.
+semi-additive: do not SUM across time. Sum only across non-time dimensions.
+
+FROM
 Every base table uses its original table name and an alias: FROM <table> <alias>.
 Qualify every column with that alias. Never write FROM <alias> alone.
-Never use SELECT * or COUNT(*). For counts write COUNT(<alias>.<column>) or COUNT(DISTINCT <alias>.<column>).
-Avoid regex (~, ~*, !~, !~*, RLIKE, SIMILAR TO). Use a function from the provided database functions list.
+
+JOIN
+Use only the joins provided below. Do not invent a join.
 If every column in the SELECT clause belongs to the same table, do not use a JOIN.
-If a measure has a formula, expand that formula. Do not select the measure name as a column.
+Stay at the measure grain. Do not join a finer-grain table that duplicates those rows.
+
+WHERE
+When the user excludes a value, write NOT IN (...), including one value.
+Use <> or != for that exclusion only when {dialect} has no IN / NOT IN.
+Avoid regex (~, ~*, !~, !~*, RLIKE, SIMILAR TO). Use a function from the provided database functions list.
+
+HAVING
+Use HAVING only for a simple literal.
+Do NOT write nested scalar subqueries in WHERE or HAVING.
+JOINs preferred over nested subqueries.
+For an above/below average by group question, join a grouped query to a query that computes the average.
+
+ORDER BY
+Only a dimension sort of Ascending (ASC) or Descending (DESC) is used.
+Ignore Natural. Do not ORDER BY a measure.
+If no sort is configured, omit ORDER BY unless the question asks for a ranking.
+
+LIMIT
 Add limit {default_sql_limit}.
 
 Columns
@@ -84,6 +114,8 @@ Metrics
 {required_metrics}
 
 Previous SQL
+Use this only when it is related.
+Ignore previous SQL that uses tables or columns outside the provided list.
 {prev_sql}
 
 Chat
@@ -160,16 +192,43 @@ def render_final_sql_prompt(question: str = "") -> str:
     return body.replace("\nQuestion\n", extra + "\nQuestion\n", 1)
 
 
+_RELATIVE_PERIOD_MARKERS = (
+    "this year",
+    "current year",
+    "last year",
+    "prior year",
+    "previous year",
+    "ytd",
+    "pytd",
+    "this month",
+    "last month",
+    "this quarter",
+    "last quarter",
+    "this week",
+    "last week",
+    "today",
+    "yesterday",
+)
+
+
+def _has_absolute_year(text: str) -> bool:
+    return bool(re.search(r"\b(?:year\s+)?(?:19|20)\d{2}\b", text))
+
+
+def _has_relative_period(text: str) -> bool:
+    return any(marker in text for marker in _RELATIVE_PERIOD_MARKERS)
+
+
 def _sections_for(question: str) -> str:
     text = f" {str(question or '').lower()} "
     parts = []
-    if any(word in text for word in ("year", "quarter", "month", "date", "today", "week")):
+    date_words = ("year", "quarter", "month", "date", "today", "week")
+    if any(word in text for word in date_words) or _has_absolute_year(text):
         parts.append(_DATE_FUNCTIONS)
+    if _has_absolute_year(text):
+        parts.append(_ABSOLUTE_YEAR)
+    if _has_relative_period(text):
         parts.append(_RELATIVE_PERIODS)
     if any(word in text for word in ("between", "range", " from ", " to ")):
         parts.append(_DATE_RANGES)
-    if any(word in text for word in ("not in", "except", "excluding", "other than", "exclude")):
-        parts.append(_EXCLUSIONS)
-    if any(word in text for word in ("average", "above", "below")):
-        parts.append(_AVERAGES)
     return "".join(parts)

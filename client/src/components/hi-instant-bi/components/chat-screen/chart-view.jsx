@@ -1,5 +1,5 @@
 import { Typography } from 'antd';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { HelicalReports } from '../../../../pages';
 import { getHReportVizInfo, getVizHeight, parseBackendErrorMessage } from '../../utils/common-utils';
@@ -25,6 +25,9 @@ const InstantChartView = (props = {}) => {
     const liveHreport = useSelector((state) =>
         (state.hreport?.present?.reports || []).find((report) => report.id === hreportId)
     );
+    const refreshReports = useSelector((state) => state.instantBI?.refreshReports);
+    const prevRefresh = useRef(refreshReports);
+
     const { selectedType: liveSelectedType, subVizType: liveSubVizType } = getHReportVizInfo(
         hreportId,
         liveHreport ? [liveHreport] : [],
@@ -35,6 +38,10 @@ const InstantChartView = (props = {}) => {
     let vizHeight = getVizHeight(effectiveVizType, fullChatResponse, vizOptions);
 
     const hasVfError = String(error || "").trim();
+
+    useEffect(() => {
+        prevRefresh.current = refreshReports;
+    }, [refreshReports]);
 
     useEffect(() => {
         if (hasVfError) onPreviewError?.(true);
@@ -79,6 +86,8 @@ const InstantChartView = (props = {}) => {
                     renderFilters={props.renderFilters}
                     openModeFilters={openModeFilters}
                     {...extraProps}
+                    cacheRefresh={refreshReports !== prevRefresh.current}
+                    cacheRefreshCount={refreshReports}
                 />
             </div>}
         </div>

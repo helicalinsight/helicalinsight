@@ -1223,8 +1223,9 @@ export function AgentAiContextTree({
 	clearFieldTooltip,
 	openKey,
 	onOpenKeyChange,
+	fields,
 }) {
-	const aiFields = getAgentAiContextFields();
+	const aiFields = fields || getAgentAiContextFields();
 	const [rootExpanded, setRootExpanded] = useState(false);
 
 	return (

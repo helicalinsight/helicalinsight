@@ -38,7 +38,7 @@ export const checkForDisplayDBMonthFunction = (condition, filter, notify, dispat
 }
 
 export const getRelativeDateValues = (data, values, filter) => {
-    const { anchorDateData = {} } = data || {};
+    const { anchorDateData = {}, relativeDateAnchors = [] } = data || {};
     let {
         anchorDate,
         isAnchor,
@@ -51,7 +51,8 @@ export const getRelativeDateValues = (data, values, filter) => {
         part
     } = anchorDateData;
     const isRange = rangeConditions.includes(filter?.condition)
-    if (relativePart) {
+    const hasRelativeDateAnchors = relativeDateAnchors.some(anchor => anchor && typeof anchor === "object")
+    if (relativePart || hasRelativeDateAnchors) {
         let newAnchor = {
             anchorDate,
             isAnchor,
@@ -63,7 +64,11 @@ export const getRelativeDateValues = (data, values, filter) => {
             nextInput,
             part
         }
-        return values.map((value, _i) => prepareRelativeOptionFromAnchor({ anchor: newAnchor, isRange: isRange, actualValue: value, index: _i + 1 }))
+        return values.map((value, _i) => {
+            const valueAnchor = relativeDateAnchors[_i]
+            const anchor = valueAnchor && typeof valueAnchor === "object" ? valueAnchor : newAnchor
+            return prepareRelativeOptionFromAnchor({ anchor, isRange: isRange, actualValue: value, index: _i + 1 })
+        })
     }
     return values;
 }

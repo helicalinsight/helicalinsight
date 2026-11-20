@@ -8,6 +8,7 @@ from typing import Any
 
 from ..functions_catalog import to_wire_database_function_expression
 from ..metadata import (
+    expression_uses_star_call,
     resolve_host_column_from_used,
     resolve_wire_column,
     to_raw_database_function,
@@ -65,6 +66,18 @@ def _to_wire_column(item: SelectItem, meta: dict) -> dict:
     custom_expr = (item.custom_expression or "").strip()
     if item.is_custom or dbf_sql:
         expr = dbf_sql or custom_expr or (item.raw_sql or "").strip() or item.alias
+        if expression_uses_star_call(expr):
+            wire = {
+                "column": to_raw_database_function(expr),
+                "alias": item.alias,
+                "custom": True,
+                "usedColumns": used,
+            }
+            if item.hidden:
+                wire["hidden"] = True
+                if item.include_in_resultset:
+                    wire["includeInResultset"] = True
+            return wire
         if used:
             host = resolve_host_column_from_used(used, meta, column=item.column)
             if host:

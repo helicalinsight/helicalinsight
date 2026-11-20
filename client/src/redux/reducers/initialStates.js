@@ -356,6 +356,7 @@ const instantBIInitialState = {
     previewShelf: false,
     chatShelf: true,
   },
+  refreshReports: 0,
 };
 
 export const getIBInitialReportState = ({ active }) => {

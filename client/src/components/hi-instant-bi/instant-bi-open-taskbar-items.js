@@ -1,18 +1,26 @@
 import { FieldTimeOutlined, ReloadOutlined, SyncOutlined } from "@ant-design/icons";
 import { fetchInstantBIReportAPI } from "./utils/instant-bi-requests";
 
-const getInstantBIOpenTaskbarItems = ({ dispatch, file, reportId, setFileInfo }) => [
+const getInstantBIOpenTaskbarItems = ({ dispatch, file, reportId, setFileInfo, onCacheRefresh = () => { } }) => [
   {
     title: "cacheTime",
     key: "cacheTime",
     icon: <FieldTimeOutlined />,
-    callback: () => {},
+    callback: () => { },
   },
   {
     title: "Refresh",
     icon: <SyncOutlined />,
     dropdown: true,
     menu: [
+      {
+        title: "Cache",
+        key: "cache",
+        icon: <SyncOutlined />,
+        callback: () => {
+          onCacheRefresh()
+        },
+      },
       {
         title: "Current Report",
         key: "currentReport",
