@@ -81,4 +81,21 @@ public class HIRecycleBinGlobalConnectionDeleteHandlerTest {
 			flatFileUtils.verify(() -> FlatFileDeleteUtils.deleteRequestedFolders("703"));
 		}
 	}
+	@Test
+	public void handleRecycleBinDtoWithForceUsesForceAwareDeletion() {
+		RecycleBinDTO bin = new RecycleBinDTO();
+		bin.setRecycleBinId(83L);
+		bin.setResourceId(704);
+
+		when(gConnectionService.deleteGlobalConnections(704, true)).thenReturn(true);
+
+		try (MockedStatic<FlatFileDeleteUtils> flatFileUtils = mockStatic(FlatFileDeleteUtils.class)) {
+			assertTrue(handler.handle(bin, new HashMap<>(), true));
+
+			verify(gConnectionService).deleteGlobalConnections(704, true);
+			verify(recycleBinService).delete(83L);
+			flatFileUtils.verify(() -> FlatFileDeleteUtils.deleteRequestedFolders("704"));
+		}
+	}
+
 }

@@ -68,10 +68,10 @@ public class RecycleBinPurgePlanner {
 		}
 
 		purgeAllResources(byType.getOrDefault(RecycleBinType.HI_RESOURCE_DB, List.of()), deleteStatusMap, completed,force);
-		purgeType(byType.get(RecycleBinType.HI_EFWD_CONNECTION), deleteStatusMap, completed);
-		purgeType(byType.get(RecycleBinType.DS_GLOBAL_CONNECTIONS), deleteStatusMap, completed);
-		purgeType(byType.get(RecycleBinType.H_USERS), deleteStatusMap, completed);
-		purgeType(byType.get(RecycleBinType.ORGANIZATION), deleteStatusMap, completed);
+		purgeType(byType.get(RecycleBinType.HI_EFWD_CONNECTION), deleteStatusMap, completed, force);
+		purgeType(byType.get(RecycleBinType.DS_GLOBAL_CONNECTIONS), deleteStatusMap, completed, force);
+		purgeType(byType.get(RecycleBinType.H_USERS), deleteStatusMap, completed, force);
+		purgeType(byType.get(RecycleBinType.ORGANIZATION), deleteStatusMap, completed, force);
 
 		return completed;
 	}
@@ -167,16 +167,16 @@ public class RecycleBinPurgePlanner {
 		}
 	}
 
-	private void purgeType(List<RecycleBinDTO> bins, Map<Long, Boolean> deleteStatusMap, Set<Long> completed) {
+	private void purgeType(List<RecycleBinDTO> bins, Map<Long, Boolean> deleteStatusMap, Set<Long> completed, boolean force) {
 		if (bins == null || bins.isEmpty()) {
 			return;
 		}
 		for (RecycleBinDTO bin : bins) {
-			purgeOne(bin, deleteStatusMap, completed);
+			purgeOne(bin, deleteStatusMap, completed, force);
 		}
 	}
 
-	private void purgeOne(RecycleBinDTO bin, Map<Long, Boolean> deleteStatusMap, Set<Long> completed) {
+	private void purgeOne(RecycleBinDTO bin, Map<Long, Boolean> deleteStatusMap, Set<Long> completed, boolean force) {
 		Long binId = bin.getRecycleBinId();
 
 		if (Boolean.TRUE.equals(deleteStatusMap.get(binId))) {
@@ -192,7 +192,7 @@ public class RecycleBinPurgePlanner {
 		try {
 			requiresNewTx.execute(_ -> {
 				RecycleBinHandler handler = RecycleBinHandlerFactory.getHandler(bin.getType().name(), "delete");
-				handler.handle(bin, deleteStatusMap);
+				handler.handle(bin, deleteStatusMap, force);
 				return null;
 			});
 			completed.add(binId);
