@@ -111,12 +111,14 @@ public class DatabaseConnectionFactory implements IConnectionFactory {
             String userName ;
             String password;
             String driverName ;
+            String database;
 
             if(efwdJson.has("jdbcUrl")){
                 jdbcUrl = efwdJson.get("jdbcUrl").getAsString();
                 userName = GsonUtility.optString(efwdJson, "userName");
                 password = GsonUtility.optString(efwdJson, "password");
                 driverName = efwdJson.get("driverName").getAsString();
+                database = GsonUtility.optString(efwdJson, "database");
 
             }else{
                 JsonObject datad=efwdJson.get("data").getAsJsonObject();
@@ -124,6 +126,7 @@ public class DatabaseConnectionFactory implements IConnectionFactory {
                 userName = GsonUtility.optString(datad, "userName");
                 password = GsonUtility.optString(datad, "password");
                 driverName = datad.get("driverName").getAsString();
+                database = GsonUtility.optString(datad, "database");
             }
 
             driverConnection.setDriverClass(driverName);
@@ -131,6 +134,7 @@ public class DatabaseConnectionFactory implements IConnectionFactory {
             SqlJdbcHandler sqlJdbcHandler = new SqlJdbcHandler();
 
             EfwdConnection efwdConnection = sqlJdbcHandler.getEfwdConnection(jdbcUrl, userName, password, driverName);
+            efwdConnection.setDatabase(database);
 
             if (logger.isDebugEnabled()) {
                 logger.debug("EFWD details are" + efwdConnection);
@@ -248,6 +252,7 @@ public class DatabaseConnectionFactory implements IConnectionFactory {
 
             JsonObject data = efwdJson.has("data") ? efwdJson.getAsJsonObject("data") : efwdJson;
 
+              String database = GsonUtility.optString(data, "database");
             String jdbcUrl = data.get("jdbcUrl").getAsString();
             String userName = GsonUtility.optString(data, "userName");
             String password = GsonUtility.optString(data, "password");
@@ -258,6 +263,7 @@ public class DatabaseConnectionFactory implements IConnectionFactory {
             SqlJdbcHandler sqlJdbcHandler = new SqlJdbcHandler();
 
             EfwdConnection efwdConnection = sqlJdbcHandler.getEfwdConnection(jdbcUrl, userName, password, driverName);
+            efwdConnection.setDatabase(database);
 
             if (logger.isDebugEnabled()) {
                 logger.debug("EFWD details are" + efwdConnection);

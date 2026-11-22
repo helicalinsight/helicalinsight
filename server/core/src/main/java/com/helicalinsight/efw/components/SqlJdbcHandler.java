@@ -70,6 +70,9 @@ public class SqlJdbcHandler extends EfwdDataSourceHandler {
         jdbcConnection.put("userName", connectionData.path("userName").asText());
         jdbcConnection.put("password", connectionData.path("password").asText());
         jdbcConnection.put("driverName", connectionData.path("driverName").asText());
+        if (connectionData.has("database")) {
+            jdbcConnection.put("database", connectionData.path("database").asText());
+        }
         if (connection.has("databaseDialect")) {
             jdbcConnection.put("databaseDialect", connection.path("databaseDialect").asText());
         }
