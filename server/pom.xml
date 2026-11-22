@@ -211,7 +211,12 @@
 	<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
-		</dependency>		
+		</dependency>
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-jdbc</artifactId>
+            <version>3.0.5</version>
+        </dependency>		
 		
 		
 		<dependency>
