@@ -38,7 +38,7 @@ def staticDataSources = '''[ {
 def supportedArray = ["Oracle", "Mysql", "Apache Drill", "Microsoft Sqlserver",
                       "Postgresql", "IBM Db2", "Access", "Sqlite", "Teradata", "Mariadb", "Hive", "Informix", "Presto", "Derby", "Dremio",
                       "Snowflake","Elasticsearch","Trino","Google Bigquery","Amazon Dynamodb","Amazon Redshift","Celerdata","Yugabyte",
-                      "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Ξ Add Driver Ξ"]
+                      "Duckdb","Sap Db","Firebirdsql","API","Flatfile","Flatfile csv","Flatfile excel","Flatfile json","Flatfile aws","Flatfile Google spreadsheet","Flatfile parquet","Flatfile azure blobstorage" ,"Flatfile cloudfare r2","Flatfile GCS","Flatfile tsv","Athena","Mongodb","Ξ Add Driver Ξ"]
 
 def virtualStaticDs = '''{
 "name": "Virtual Datasource",
