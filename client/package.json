@@ -73,7 +73,7 @@
     "js-cookie": "3.0.1",
     "jsonata": "1.8.5",
     "leaflet": "^1.9.4",
-    "liquidjs": "^9.42.0",
+    "liquidjs": "^10.27.1",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
     "merge-dirs": "0.2.1",
