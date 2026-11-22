@@ -267,6 +267,8 @@ const CustomIcon = ({ name }) => {
     case "Microsoft Azure":
       return <MicrosoftAzureIcon />;
     case "Mongodb":
+    case "MongoDB":
+    case "MongoDb":
       return <HelicalMongodbIcon />;
     case "Mysql":
       return <MySQLIcon />;
