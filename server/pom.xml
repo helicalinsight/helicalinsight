@@ -83,6 +83,7 @@
 
 		<calcite.version>1.39.0</calcite.version>
 		<mongo.java.driver>3.12.10</mongo.java.driver>
+                <mongodb.jdbc.version>2.2.3</mongodb.jdbc.version>
 
 		<groovy.version>5.0.1</groovy.version>
 		<cas.client.version>4.1.1</cas.client.version>
@@ -211,7 +212,12 @@
 	<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongo-java-driver</artifactId>
-		</dependency>		
+		</dependency>
+        <dependency>
+                        <groupId>org.mongodb</groupId>
+                        <artifactId>mongodb-jdbc</artifactId>
+                        <version>${mongodb.jdbc.version}</version>
+               </dependency>
 		
 		
 		<dependency>
