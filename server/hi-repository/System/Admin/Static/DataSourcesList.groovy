@@ -23,8 +23,8 @@ def staticDataSources = '''[ {
 "url": "mongodb://{{hostName}}:{{port}}/{{database}}",
 "parameters": {
 "port": "27017",
-"hostName": "localhost",
-"database": "database",
+"hostName": "helical",
+"database": "helicalsight",
 "collection":"collection",
 "sslPort":"3345"
 },
