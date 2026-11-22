@@ -22,7 +22,7 @@ export const getDatasourceGetContentsResponse = (formData) => {
           driver: "org.apache.hive.jdbc.HiveDriver",
           available: "true",
           parameters: {
-            port: "10001",
+            port: "27017",
             hostName: "localhost",
             database: "database",
           },
