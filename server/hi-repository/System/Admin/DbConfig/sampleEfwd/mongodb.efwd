@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<EFWD mandatory="true">
+<!--
+  ============================================================
+  MongoDB (Native) — Sample EFWD Configuration
+  Driver type: nosql.mongodb
+  ============================================================
+
+  HOW TO CONFIGURE THE CONNECTION
+  --------------------------------
+  Edit the <Connection> block below:
+
+  1. Local / self-hosted MongoDB (no auth):
+       <Url>mongodb://localhost:27017/your_database</Url>
+       Leave <User> and <Pass> empty.
+
+  2. Local / self-hosted MongoDB (with auth):
+       <Url>mongodb://localhost:27017/your_database</Url>
+       <User>your_username</User>
+       <Pass>your_password</Pass>
+
+  3. MongoDB Atlas (cloud) — embed credentials in the URI,
+     leave <User> and <Pass> empty:
+       <Url>mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/your_database?retryWrites=true&amp;w=majority</Url>
+
+  HOW TO WRITE A QUERY
+  ----------------------
+  Each <DataMap> Query is a JSON object with these fields:
+
+    collection  (required) — name of the MongoDB collection
+    filter      (optional) — MongoDB filter document,   default: {} (all documents)
+    projection  (optional) — fields to include/exclude, default: all fields
+    sort        (optional) — sort order
+    limit       (optional) — max rows returned,         default: 10000
+
+  Use map_id=1 or map_id=2 in your report request to select a DataMap.
+  ============================================================
+-->
+    <DataSources>
+        <!--
+          Replace the Url, User, and Pass values for your environment.
+          For Atlas, put the full mongodb+srv:// URI in Url and leave User/Pass empty.
+        -->
+        <Connection id="1" type="nosql.mongodb">
+            <Driver>com.helical.mongodb.MongoDriver</Driver>
+            <Url>mongodb://localhost:27017/your_database</Url>
+            <User>your_username</User>
+            <Pass>your_password</Pass>
+        </Connection>
+    </DataSources>
+    <DataMaps>
+
+        <!-- DataMap 1: return all documents in a collection (map_id=1) -->
+        <DataMap id="1" connection="1" type="nosql.mongodb">
+            <Name>getAllDocuments</Name>
+            <Query>
+                <![CDATA[
+                    {
+                        "collection": "your_collection",
+                        "filter":     {},
+                        "limit":      1000
+                    }
+                ]]>
+            </Query>
+        </DataMap>
+
+        <!-- DataMap 2: filtered, projected, sorted results (map_id=2) -->
+        <DataMap id="2" connection="1" type="nosql.mongodb">
+            <Name>getFilteredDocuments</Name>
+            <Query>
+                <![CDATA[
+                    {
+                        "collection": "your_collection",
+                        "filter":     {"status": "active"},
+                        "projection": {"_id": 0, "name": 1, "amount": 1, "status": 1},
+                        "sort":       {"amount": -1},
+                        "limit":      500
+                    }
+                ]]>
+            </Query>
+        </DataMap>
+
+    </DataMaps>
+</EFWD>
