@@ -361,6 +361,15 @@
         <intercept-url pattern="/visualizeAdhoc" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
         <intercept-url pattern="/exportResource*" access="hasAnyRole('ROLE_ADMIN')"/>
         <intercept-url pattern="/importResource*" access="hasAnyRole('ROLE_ADMIN')"/>
+
+        <!-- Secure the legacy /d/ prefixed service endpoints. These map to the same
+             controllers as their non /d/ counterparts but were not covered by any
+             intercept-url pattern, so unauthenticated requests fell through to permit. -->
+        <intercept-url pattern="/d/fileSystemOperations*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/d/getResources*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/d/getSolutionResources*" access="hasAnyRole('ROLE_USER','ROLE_ADMIN','ROLE_VIEWER')"/>
+        <intercept-url pattern="/d/listDataSources*" access="hasAnyRole('ROLE_ADMIN','ROLE_USER')"/>
+        <intercept-url pattern="/d/**" access="denyAll"/>
         <!--  JWT -->
         <intercept-url pattern="/rest/*" access="permitAll"/>
         <!-- <form-login login-page="/login"
