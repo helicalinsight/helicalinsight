@@ -25,13 +25,14 @@ public class ApplicationCacheStartStopListener implements ServletContextListener
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationCacheStartStopListener.class);
     private static final ApplicationProperties INSTANCE = ApplicationProperties.getInstance();
-    private ApplicationWatcherUtils watcherUtils = new ApplicationWatcherUtils(Paths.get(INSTANCE.getSolutionDirectory()));
+    private ApplicationWatcherUtils watcherUtils;
 
     @Autowired
     private FileBrowserContext fileBrowserContext;
 
     @Override
     public void contextInitialized(ServletContextEvent servletContextEvent) {
+        watcherUtils = new ApplicationWatcherUtils(Paths.get(INSTANCE.getSolutionDirectory()));
         if (JsonUtils.isFileBrowserCacheEnabled()) {
             AutowireCapableBeanFactory autowireCapableBeanFactory = WebApplicationContextUtils.getRequiredWebApplicationContext(servletContextEvent.getServletContext()).getAutowireCapableBeanFactory();
             autowireCapableBeanFactory.autowireBean(this);
