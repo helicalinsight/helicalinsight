@@ -7,13 +7,15 @@ import com.google.gson.JsonSyntaxException;
 import com.helicalinsight.datasource.GsonUtility;
 import com.helicalinsight.datasource.nosql.NoSQLLoader;
 import com.helicalinsight.efw.exceptions.EfwServiceException;
-import com.mongodb.*;
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import org.bson.Document;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 
 /**
@@ -23,28 +25,18 @@ import java.util.List;
 
 @Component("com.helicalinsight.nosql.mongo")
 @Scope("prototype")
-@Deprecated
 public class MongoDrillLoader extends NoSQLLoader {
     @Override
     public boolean loadToMiddleWare(JsonObject formDataJson) {
         JsonObject mongo = new JsonObject();
-        String username = formDataJson.get("userName").getAsString();
-        String password = formDataJson.get("password").getAsString();
+        String username = GsonUtility.optString(formDataJson, "userName");
+        String password = GsonUtility.optString(formDataJson, "password");
         String jdbcUrl = GsonUtility.optString(formDataJson, "jdbcUrl");
-        String host = getHostPort(jdbcUrl, true);
-        String port = getHostPort(jdbcUrl, false);
-        String storageName = formDataJson.get("name").getAsString();
-        String theId = formDataJson.get("theId").getAsString();
+        String storageName = GsonUtility.optString(formDataJson, "name");
+        String theId = GsonUtility.optString(formDataJson, "theId");
         mongo.addProperty("type", "mongo");
 
-        String connectionString = null;
-        if (username.isEmpty() || password.isEmpty()) {
-
-            connectionString = "mongodb://" + host + ":" + port;
-        } else {
-            connectionString = "mongodb://" + username + ":" + password + "@" + host + ":" + port + "/?authMechanism=SCRAM-SHA-1";
-        }
-        mongo.addProperty("connection", connectionString);
+        mongo.addProperty("connection", addCredentials(jdbcUrl, username, password));
         mongo.addProperty("enabled", true);
 
         String drillStorageUrl = DrillCsvDataSourceCreator.getUrlOfDrill();
@@ -69,20 +61,22 @@ public class MongoDrillLoader extends NoSQLLoader {
         return true;
     }
 
-    private String getHostPort(String uri, boolean isHost) {
-        String splitArray[] = uri.split(":");
-        if (splitArray.length >= 3) {
-            if (isHost)
-                return splitArray[1].replace("//", "");
-            else
-                return splitArray[2].substring(0, splitArray[2].indexOf("/"));
+    static String addCredentials(String uri, String username, String password) {
+        if (StringUtils.isBlank(uri) || StringUtils.isBlank(username) || uri.contains("@")) {
+            return uri;
         }
-        return "";
+        int schemeEnd = uri.indexOf("://");
+        if (schemeEnd < 0) {
+            return uri;
+        }
+        String encodedUsername = URLEncoder.encode(username, StandardCharsets.UTF_8).replace("+", "%20");
+        String encodedPassword = URLEncoder.encode(password, StandardCharsets.UTF_8).replace("+", "%20");
+        return uri.substring(0, schemeEnd + 3) + encodedUsername + ":" + encodedPassword + "@"
+                + uri.substring(schemeEnd + 3);
     }
 
     @Override
     public boolean testConnection(JsonObject formData) {
-        String host = GsonUtility.optString(formData, "host");
         String uri = GsonUtility.optString(formData,"jdbcUrl");
         String database = GsonUtility.optString(formData,"database");
         String username = GsonUtility.optString(formData,"userName");
@@ -90,195 +84,66 @@ public class MongoDrillLoader extends NoSQLLoader {
         if (StringUtils.isEmpty(database)) {
             database = GsonUtility.optString(formData,"databaseName");
         }
-        MongoModel mongoModel = new MongoModel();
-        String splitArray[] = uri.split(":");
-        if (splitArray.length >= 3) {
-            String hostName = splitArray[1].replace("//", "");
-            String port = splitArray[2].substring(0, splitArray[2].indexOf("/"));
-            mongoModel.setHost(hostName + ":" + port);
-            mongoModel.setUri(uri);
-        }
-
-        int timeout = GsonUtility.optInt(formData, "timeOut");
-        int maxWait = GsonUtility.optInt(formData, "maxWait");
-        String authMechanism = GsonUtility.optString(formData,"authMechanism");
-        mongoModel.setDatabase(database);
-        mongoModel.setUsername(username);
-        mongoModel.setPassword(password);
-        mongoModel.setAuthMechanism(authMechanism);
-        mongoModel.setTimeout(timeout);
-        mongoModel.setMaxWait(maxWait);
-        return mongoModel.testConnection();
+        return MongoModel.testConnection(uri, database, username, password,
+                GsonUtility.optString(formData,"authMechanism"),
+                GsonUtility.optInt(formData, "timeOut"),
+                GsonUtility.optInt(formData, "maxWait"));
     }
 }
 
 class MongoModel {
 
-    private String host;
-    private String uri;
-    private String database;
-    private String username;
-    private String password;
-    private int timeout;
-    private int maxWait;
-    private String authMechanism;
-
-    public String getHost() {
-        return host;
-    }
-
-    public void setHost(String host) {
-        this.host = host;
-    }
-
-    public String getUri() {
-        return uri;
-    }
-
-    public void setUri(String uri) {
-        this.uri = uri;
-    }
-
-    public String getDatabase() {
-        return database;
-    }
-
-    public void setDatabase(String database) {
-        this.database = database;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public int getTimeout() {
-        return timeout;
-    }
-
-    public void setTimeout(int timeout) {
-        this.timeout = timeout;
-    }
-
-    public int getMaxWait() {
-        return maxWait;
-    }
-
-    public void setMaxWait(int maxWait) {
-        this.maxWait = maxWait;
-    }
-
-    public String getAuthMechanism() {
-        return authMechanism;
-    }
-
-    public void setAuthMechanism(String authMechanism) {
-        this.authMechanism = authMechanism;
-    }
-
-    public String getSsl() {
-        return ssl;
-    }
-
-    public void setSsl(String ssl) {
-        this.ssl = ssl;
-    }
-
-    public String getKeyStorePath() {
-        return keyStorePath;
-    }
-
-    public void setKeyStorePath(String keyStorePath) {
-        this.keyStorePath = keyStorePath;
-    }
-
-    public String getKeyStorePassword() {
-        return keyStorePassword;
-    }
-
-    public void setKeyStorePassword(String keyStorePassword) {
-        this.keyStorePassword = keyStorePassword;
-    }
-
-
-    private String ssl;
-    private String keyStorePath;
-    private String keyStorePassword;
-
-    public boolean testConnection() {
-        List<MongoCredential> credentials = new ArrayList<>();
-        MongoClientOptions.Builder builder = MongoClientOptions.builder();
+    public static boolean testConnection(String uri, String database, String username, String password,
+                                         String authMechanism, int timeout, int maxWait) {
+        if (StringUtils.isBlank(uri)) {
+            throw new EfwServiceException("MongoDB URL is required");
+        }
         MongoClient mongo = null;
         try {
-            if ((username == null) || (password == null) || (authMechanism == null)) {
-                mongo = new MongoClient(host);
-                this.mongoDb = mongo.getDB(database);
-            } else {
-                List<ServerAddress> seeds = new ArrayList<>();
-                seeds.add(new ServerAddress(host));
-                if (authMechanism.equalsIgnoreCase("MongoCR")) {
-                    credentials.add(MongoCredential.createMongoCRCredential(username, database, password.toCharArray()));
-                } else if (authMechanism.equalsIgnoreCase("ScramSha1")) {
-                    credentials.add(MongoCredential.createScramSha1Credential(username, database, password.toCharArray()));
-                } else if (authMechanism.equalsIgnoreCase("Plain")) {
-                    credentials.add(MongoCredential.createPlainCredential(username, database, password.toCharArray()));
-                } else {
-                    credentials.add(MongoCredential.createCredential(username, database, password.toCharArray()));
-                }
-                if (ssl != null) {
-                    if (notNullOrBlank(keyStorePassword)) {
-                        System.setProperty("jakarta.net.ssl.trustStore", keyStorePath);
-                        System.setProperty("jakarta.net.ssl.trustStorePassword", keyStorePassword);
-                    }
-                    builder.sslEnabled(true).sslInvalidHostNameAllowed(true).build();
-                }
-                if (timeout > 0 && maxWait > 0) {
-                    builder.connectTimeout(timeout);
-                    builder.maxWaitTime(maxWait);
-                }
-                builder.socketKeepAlive(true);
-                MongoClientOptions mongoClientOptions = builder.build();
-                if (uri != null && uri.length() > 0) {
-                    MongoClientURI mongoURI = new MongoClientURI(uri);
-                    mongo = new MongoClient(mongoURI);
-                } else {
-                    mongo = new MongoClient(seeds, credentials, mongoClientOptions);
-                }
-                if (database.isEmpty()) {
-                    database = uri.substring(uri.lastIndexOf("/"));
-                }
-                this.mongoDb = mongo.getDB(database);
-
-                mongo.getAddress();
-                return this.mongoDb != null;
+            String connectionUri = MongoDrillLoader.addCredentials(uri, username, password);
+            connectionUri = addQueryParameter(connectionUri, "authMechanism", toMongoAuthMechanism(authMechanism));
+            connectionUri = addQueryParameter(connectionUri, "connectTimeoutMS", timeout > 0 ? String.valueOf(timeout) : null);
+            connectionUri = addQueryParameter(connectionUri, "waitQueueTimeoutMS", maxWait > 0 ? String.valueOf(maxWait) : null);
+            MongoClientURI clientUri = new MongoClientURI(connectionUri);
+            String selectedDatabase = StringUtils.isNotBlank(database) ? database : clientUri.getDatabase();
+            if (StringUtils.isBlank(selectedDatabase)) {
+                throw new EfwServiceException("MongoDB database is required");
             }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
 
+            mongo = new MongoClient(clientUri);
+            mongo.getDatabase(selectedDatabase).runCommand(new Document("ping", 1));
+            return true;
+        } catch (Exception e) {
+            throw new EfwServiceException("Unable to connect to MongoDB: " + e.getMessage());
+        } finally {
             if (mongo != null) {
                 mongo.close();
             }
         }
-        return false;
     }
 
-    private boolean notNullOrBlank(String trustStorePassword) {
-        return !((trustStorePassword == null) || (trustStorePassword.isEmpty()));
+    private static String toMongoAuthMechanism(String authMechanism) {
+        if ("MongoCR".equalsIgnoreCase(authMechanism)) {
+            return "MONGODB-CR";
+        }
+        if ("ScramSha1".equalsIgnoreCase(authMechanism)) {
+            return "SCRAM-SHA-1";
+        }
+        if ("ScramSha256".equalsIgnoreCase(authMechanism)) {
+            return "SCRAM-SHA-256";
+        }
+        if ("Plain".equalsIgnoreCase(authMechanism)) {
+            return "PLAIN";
+        }
+        return authMechanism;
     }
 
-    DB mongoDb;
+    private static String addQueryParameter(String uri, String name, String value) {
+        if (StringUtils.isBlank(uri) || StringUtils.isBlank(value) || uri.contains(name + "=")) {
+            return uri;
+        }
+        return uri + (uri.contains("?") ? "&" : "?") + name + "=" + value;
+    }
 
 }
 
