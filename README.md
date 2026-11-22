@@ -411,3 +411,77 @@ Helical Insight provides everything you need in one powerful platform.
 - YouTube: https://www.youtube.com/@HelicalInsight
 - Need help: support@helicalinsight.com
 - Report Issues: [GitHub Issues](https://github.com/helicalinsight/helicalinsight/issues)
+
+
+
+# MongoDB Driver Integration – Helical Insight
+
+## Overview
+
+This project extends the Helical Insight application by adding MongoDB
+database connectivity support.
+
+The MongoDB integration follows the existing database connectivity
+architecture of Helical Insight while preserving the functionality of
+the existing database drivers.
+
+## Changes Made
+
+The following changes were implemented:
+
+- Added the required MongoDB driver dependency.
+- Added MongoDB connection support to Helical Insight.
+- Added MongoDB connection configuration.
+- Added MongoDB connection validation/testing.
+- Integrated MongoDB with the existing database connectivity mechanism.
+- Added required MongoDB connection properties such as host, port,
+  database and authentication details.
+- Added appropriate error handling for MongoDB connection failures.
+- Ensured existing database connectivity functionality remains unaffected.
+
+## MongoDB Configuration
+
+The MongoDB connection can be configured using the following details:
+
+- Host: MongoDB server hostname or IP address
+- Port: MongoDB server port
+- Database: MongoDB database name
+- Username: MongoDB username, if authentication is enabled
+- Password: MongoDB password, if authentication is enabled
+
+For a local MongoDB installation, the default configuration is:
+
+Host: localhost
+Port: 27017
+
+## Steps to Configure MongoDB
+
+1. Install and start MongoDB.
+2. Start the Helical Insight application.
+3. Open the database connection configuration.
+4. Select MongoDB as the database type.
+5. Enter the MongoDB host and port.
+6. Enter the database name.
+7. Provide username and password if authentication is enabled.
+8. Test the connection.
+9. Save the connection after successful validation.
+10. Use the configured MongoDB connection within Helical Insight.
+
+## Testing
+
+The MongoDB integration was tested by:
+
+- Starting a MongoDB instance.
+- Creating a MongoDB database connection.
+- Testing the connection from Helical Insight.
+- Verifying successful connection handling.
+- Checking connection failure/error handling.
+- Verifying that existing database connections continue to work.
+
+## Technologies
+
+- Java
+- MongoDB
+- MongoDB Java Driver
+- Helical Insight
+- Maven
