@@ -71,7 +71,7 @@
     "jest-stare": "^2.5.1",
     "jest-watch-typeahead": "^2.2.2",
     "js-cookie": "3.0.1",
-    "jsonata": "1.8.5",
+    "jsonata": "1.8.9",
     "leaflet": "^1.9.4",
     "liquidjs": "^9.42.0",
     "lodash": "^4.17.21",
