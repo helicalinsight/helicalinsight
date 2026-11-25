@@ -1,5 +1,6 @@
 import qs from "qs";
 import { v4 as uuidv4 } from "uuid";
+import notify from "../components/hi-notifications/notify";
 import { waitForTicketEvents } from "./wait-ticket-events";
 import {
   abortError,
@@ -463,8 +464,9 @@ export const runResumableUpload = async ({
     if (importResult && importResult.status !== undefined && !importResult.status) {
       const fail = importResult.response || importResult;
       const msg = fail?.message || "Import failed";
-      // Pass Error so ImportFiles toasts once (plain objects are skipped — axios already notified).
-      if (typeof errback === "function") errback(new Error(msg));
+      notify(dispatch).error({ type: "Network Call", message: msg });
+      // Plain object: axios and ImportFiles toast Error values themselves.
+      if (typeof errback === "function") errback({ message: msg });
       return;
     }
     invokeSuccess(callback, importResult);

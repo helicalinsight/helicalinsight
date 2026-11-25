@@ -160,7 +160,8 @@ const hreportReducer = (state = intialState, action) => {
 					item.active = false;
 					return item;
 				});
-				let reportName = createTabTitle(draft.reports.map((report) => report.reportInfo.reportName));
+				let reportName = action?.payload?.reportName
+					|| createTabTitle(draft.reports.map((report) => report.reportInfo.reportName));
 				report.reportInfo.reportName = reportName;
 				draft.reports.push(report);
 				draft.baseStateReports.push(cloneDeep(report));
@@ -405,6 +406,41 @@ const hreportReducer = (state = intialState, action) => {
 					}
 					return report;
 				});
+			});
+		}
+		// The report JSON drawer reads the model stored here.
+		case actionTypes.SET_REPORT_SEMANTIC: {
+			const { reportId, semanticDetails } = action.payload || {};
+			return produce(state, (draft) => {
+				const report = draft.reports.find((item) => item.id === reportId);
+				if (report) report.instantSemantic = semanticDetails;
+			});
+		}
+		// Keep the tab, its name, and its metadata. Replace the chart state so old fields cannot stack.
+		case actionTypes.RESET_REPORT_CANVAS: {
+			const { reportId } = action.payload || {};
+			return produce(state, (draft) => {
+				const index = draft.reports.findIndex((report) => report.id === reportId);
+				if (index < 0) return;
+				const current = draft.reports[index];
+				const fresh = getIntialReportState({ active: current.active });
+				draft.reports[index] = {
+					...fresh,
+					id: current.id,
+					active: current.active,
+					mode: current.mode,
+					isInstantReport: current.isInstantReport,
+					reportInfo: current.reportInfo,
+					metadata: current.metadata,
+					metadataLoading: current.metadataLoading,
+					functions: current.functions,
+					databaseFunctions: current.databaseFunctions,
+					dateFunctions: current.dateFunctions,
+					database: current.database,
+					isCube: current.isCube,
+					cube: current.cube,
+					combine: false,
+				};
 			});
 		}
 		case actionTypes.UPDATE_AGGREGATIONS: {

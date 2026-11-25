@@ -28,6 +28,7 @@ import {
     changeEditorContent,
     applyReportScripts,
     updateCanvasField,
+    updateReportProperty,
 } from '../../../redux/actions/hreport.actions';
 import { checkReportsAvailable } from '../../../components/bridges/hreport/utils';
 import { saveDataBaseFunction } from '../../../components/hi-reports/hi-fields-area/utils/utilities';
@@ -1198,6 +1199,42 @@ describe('createHReportBridge - display report and completion', () => {
 
         successCallback();
         expect(onComplete).toHaveBeenCalledWith(true, expect.objectContaining({ id: REPORT_ID }));
+    });
+
+    test('turns the Visualization title on from the Instant BI chart title before the chart is drawn', async () => {
+        const reportModel = makeReportModel({});
+        reportModel.viz_model.properties = { title: 'Model title' };
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+            semanticDetails: { vizDetails: { vf_title: 'Travel data' } },
+            setChartTitle: true,
+        });
+
+        expect(updateReportProperty).toHaveBeenCalledWith({
+            properties: {
+                title: expect.objectContaining({
+                    show: true,
+                    value: 'Travel data',
+                    alignment: 'left',
+                    fontSize: 14,
+                    fontWeight: 600,
+                }),
+            },
+        });
+        expect(updateReportProperty.mock.invocationCallOrder[0]).toBeLessThan(
+            generateReport.mock.invocationCallOrder[0]
+        );
+    });
+
+    test('leaves the Visualization title alone unless Slash asked for it', async () => {
+        const reportModel = makeReportModel({});
+        reportModel.viz_model.properties = { title: 'Model title' };
+        await initBridgeWithModel(reportModel, {
+            reportMetadata: { metadata: { name: 'sales-meta' } },
+            semanticDetails: { vizDetails: { vf_title: 'Travel data' } },
+        });
+
+        expect(updateReportProperty).not.toHaveBeenCalled();
     });
 });
 

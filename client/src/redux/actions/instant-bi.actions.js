@@ -73,6 +73,14 @@ export const removeIBChatMessage = (data) => {
   }
 }
 
+export const clearIBChatMessages = (data) => {
+  // Payload is { reportId, activeChatID }. The reducer empties that chat only.
+  return {
+    type: actionTypes.CLEAR_IB_CHAT_MESSAGES,
+    payload: data
+  }
+}
+
 export const updateBIBotStatus = (data) => {
   return {
     type: actionTypes.UPDATE_IB_BOT_STATUS,

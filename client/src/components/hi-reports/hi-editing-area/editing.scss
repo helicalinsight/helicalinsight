@@ -3,6 +3,31 @@ $advanced-card-width: 250;
 .hr-editing-area {
   height: 100%;
   border: 1px solid #ddd;
+
+  &--slash {
+    overflow: hidden;
+
+    .hi-instant-bi--slash,
+    .ib-chat-root-container,
+    .instant-bi-chat-container {
+      height: 100%;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 0;
+      box-sizing: border-box;
+    }
+
+    .instant-bi-message-input,
+    .ib-chat-container,
+    .ib-chat-container--slash,
+    .ib-chat-container--slash-panel {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+  }
   .hr-selected-md-info {
     width: 100%;
     margin-bottom: 5px;
@@ -763,6 +788,17 @@ $advanced-card-width: 250;
 }
 
 .hi-hr-json-editor-drawer {
+  // Same type as the drawer title. The switch sits between the two labels.
+  .hi-hr-json-editor-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 22px;
+    color: rgba(0, 0, 0, 0.85);
+  }
+
   .ant-drawer-body {
     padding: 0;
     height: calc(100% - 55px);

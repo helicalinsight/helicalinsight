@@ -94,6 +94,9 @@ public class DriverConfigUploadHandler implements IUpload {
 			if (e instanceof RuntimeException) {
 				throw (RuntimeException) e;
 			}
+			if (e instanceof UnsafeArchiveEntryException) {
+				request.setAttribute("response", e.getMessage());
+			}
 			logger.error("Cannot able to write the file ", e);
 			return false;
 		}

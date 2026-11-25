@@ -1,6 +1,88 @@
 .ib-chat-container {
     margin: 0 auto;
     position: relative;
+
+    // Composer sits at the bottom of the chart-height panel; welcome stays centered above it.
+    &--slash {
+        display: flex;
+        flex-direction: column;
+        max-height: 100%;
+        justify-content: flex-end;
+
+        .ib-slash-welcome {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 0;
+            width: 100%;
+
+            h2 {
+                margin: 0;
+                font-weight: bold;
+            }
+
+            // Sits under the heading, above the report or dashboard line.
+            .ib-slash-welcome__role {
+                margin: 4px 0 0;
+                font-size: 14px;
+                line-height: 1.4;
+                font-weight: 500;
+            }
+
+            p {
+                display: block;
+                width: 100%;
+                margin: 8px 0 0;
+                font-size: 12px;
+                line-height: 1.4;
+            }
+        }
+
+        .search-section {
+            margin-top: auto;
+            margin-bottom: 0;
+        }
+    }
+
+    // Slash composer fills the editing column with square corners. Instant BI keeps the pill shape.
+    &--slash-panel {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+
+        .search-section,
+        .search-container,
+        .search-input-wrapper {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .search-input {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .search-container {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0;
+            padding: 6px 8px;
+            box-shadow: none;
+            border: 1px solid #d9d9d9;
+        }
+
+        .search-input-wrapper {
+            margin-bottom: 8px;
+        }
+    }
     // padding: 40px 20px;
     // background-color: #fafafa;
 
@@ -19,6 +101,16 @@
         }
          .search-container:hover {
             border: 1px solid #e5e5e5;
+        }
+
+        // Square composer for Slash. Declared after the pill so it wins in this mode.
+        .search-container--square {
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 0;
+            padding: 6px 8px;
+            box-shadow: none;
+            border: 1px solid #d9d9d9;
         }
 
         .no-border-shadow {

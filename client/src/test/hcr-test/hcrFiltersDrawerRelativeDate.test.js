@@ -17,6 +17,7 @@ jest.mock("react-redux", () => {
         hcrExportProperties: [],
     };
     return {
+        __mockPane: pane,
         useDispatch: () => jest.fn(),
         useSelector: (selector) =>
             selector({
@@ -147,7 +148,48 @@ describe("HCR filters drawer relative date handling", () => {
             filters
         );
         expect(hcrHelperMethods.updateHCRRelativeDateFilters).toHaveBeenCalledWith(
-            filters
+            filters,
+            {}
         );
+    });
+
+    test("passes URL parameters when applying preview filters", async () => {
+        const reactRedux = require("react-redux");
+        const pane = reactRedux.__mockPane;
+        const previousPreviewState = pane.isPreviewing;
+        const urlParameters = { startdate: "year+1", mode: "preview" };
+        const setAppliedFilters = jest.fn();
+
+        pane.isPreviewing = true;
+        hcrHelperMethods.handleUrlParamsFilters.mockImplementation(
+            ({ reqFilters }) => reqFilters
+        );
+
+        try {
+            render(
+                <HCRFiltersDrawer
+                    hcrFiltersDrawerStatus={false}
+                    flowchartInstance={{}}
+                    setIsPreviewLoading={jest.fn()}
+                    reportMode="view"
+                    setAppliedFilters={setAppliedFilters}
+                    urlParameters={urlParameters}
+                    setParametersReview={jest.fn()}
+                    queryTempuuidsMap={{ current: {} }}
+                    streamEnabled={false}
+                    setPreviewError={jest.fn()}
+                    reportKey="report-1"
+                />
+            );
+
+            await waitFor(() =>
+                expect(
+                    hcrHelperMethods.updateHCRRelativeDateFilters
+                ).toHaveBeenCalledWith(filters, urlParameters)
+            );
+        } finally {
+            pane.isPreviewing = previousPreviewState;
+            hcrHelperMethods.handleUrlParamsFilters.mockReset();
+        }
     });
 });

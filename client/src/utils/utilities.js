@@ -1,6 +1,7 @@
 import moment from "moment";
 import { fromJS } from "immutable";
 import _, { isEmpty } from "lodash";
+import qs from "qs";
 import types from "../constants/metadata";
 import produce from "immer";
 import { generateReport } from "../components/hi-reports/utils/base";
@@ -19,6 +20,23 @@ export const dataTypes = {
   DATETIME: "dateTime",
   BOOLEAN: "boolean",
   OTHER: "other",
+};
+
+export const updateHashFilterParameter = (hash, label, data) => {
+  const queryIndex = hash.indexOf("?");
+  const pathname = queryIndex >= 0 ? hash.slice(1, queryIndex) : hash.slice(1);
+  const currentSearch = qs.parse(
+    queryIndex >= 0 ? hash.slice(queryIndex + 1) : ""
+  );
+  if (data === undefined || data === null || (Array.isArray(data) && !data.length)) {
+    delete currentSearch[label];
+  } else {
+    currentSearch[label] = data;
+  }
+  const nextSearch = qs.stringify(currentSearch, {
+    arrayFormat: "repeat",
+  });
+  return `#${pathname}${nextSearch ? `?${nextSearch}` : ""}`;
 };
 
 export const filterPluginsData = (pluginsDataSource, value) => {

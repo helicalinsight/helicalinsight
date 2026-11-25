@@ -147,12 +147,16 @@ export const addFilter = (filtersList, fields) => {
 };
 
 export const getPropertyStyle = (data) => {
-  let { padding, fontSize, fontColor, alignment } = data;
+  let { padding, fontSize, fontColor, alignment, fontWeight } = data;
   return {
     padding: `${padding}px`,
     fontSize: `${fontSize}px`,
     textAlign: alignment,
+    // The title is a span inside a flex column. textAlign applies only when that span fills the row.
+    display: "block",
+    width: "100%",
     color: `rgba(${fontColor.r}, ${fontColor.g}, ${fontColor.b}, ${fontColor.a})`,
+    ...(fontWeight != null && fontWeight !== "" ? { fontWeight } : {}),
   };
 };
 

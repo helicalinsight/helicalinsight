@@ -62,7 +62,10 @@ const HiCard = (props) => {
 
   let color = "#000";
   let measure = markLayers?.length ? markLayers[0] : "";
-  let value = data?.reduce((a, item) => item[measure] + a, 0);
+  let value = data?.reduce(
+    (a, item) => typeof item[measure] === "number" ? item[measure] + a : item[measure],
+    0
+  );
   const chartRef = useRef(null);
   const heightConstant = 84;
 

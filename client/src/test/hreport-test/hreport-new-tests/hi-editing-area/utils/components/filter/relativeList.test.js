@@ -187,6 +187,18 @@ describe('to test prepareRelativeOptionFromAnchor', () => {
       expect(prepare(anchor, { isRange: true, index: 2 })).toBe("year");
     });
 
+    test('custom next range uses the full offset when factor is zero', () => {
+      const anchor = { relativePart: "year", value: 2, direction: "next", active: 4 };
+      expect(prepare(anchor, { isRange: true, index: 1, factor: 0 })).toBe("year");
+      expect(prepare(anchor, { isRange: true, index: 2, factor: 0 })).toBe("year+2");
+    });
+
+    test('custom last range uses the full offset when factor is zero', () => {
+      const anchor = { relativePart: "year", value: 2, direction: "last", active: 5 };
+      expect(prepare(anchor, { isRange: true, index: 1, factor: 0 })).toBe("year-2");
+      expect(prepare(anchor, { isRange: true, index: 2, factor: 0 })).toBe("year");
+    });
+
     test('single custom next range selects the current period', () => {
       const anchor = { relativePart: "year", value: 1, direction: "next", active: 4 };
       expect(prepare(anchor, { isRange: true, index: 1 })).toBe("year");

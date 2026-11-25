@@ -18,12 +18,12 @@ import Markdown from 'react-markdown'
 import { useSelector } from "react-redux"
 import remarkGfm from 'remark-gfm'
 import { changeReport } from "../../../../redux/actions/hreport.actions"
-import { getReportById } from "../../../bridges/hreport/utils"
+import { exploredSemanticPayload, getReportById } from "../../../bridges/hreport/utils"
 import LoadingBar from '../../../common/components/hi-loading-bar'
 import ChartIcon from "../../../common/icons/chart-icons"
 import "../../components/ib-chart-preferences.scss"
 import InstantBITooltip from '../../instant-bi-tooltip-title'
-import { getHReportSelectedChartType } from "../../utils/common-utils"
+import { getHReportSelectedChartType, getInstantBIAgentSubject } from "../../utils/common-utils"
 import { getReportModelInteractions } from "../../utils/report-model-interactions"
 import InstantBIResponseMetadata from '../instant-bi-response-metadata'
 import AISparklesIcon from './ai-sparkles-icon'
@@ -32,6 +32,8 @@ import InstantChartView from "./chart-view"
 import WorkBehindIcon from "./work-behind-icon"
 import { JsonEditorPanel } from "../../../common/json-editor"
 import { cloneDeep } from "lodash"
+import { useSlashMode, useSlashExploreOnActiveTab } from "../../slash/slash-mode";
+import { applyReportModelToActiveHreport, buildChatChartWithoutActivating, buildSemanticDetails } from "../../utils/instant-bi-requests";
 
 const { Text } = Typography
 
@@ -97,7 +99,8 @@ const RenderEditingArea = (props) => {
                     onClick={onClickGoToHreport}
                 />
             </InstantBITooltip>
-            <InstantBITooltip title="Change Visualization">
+            {/* Slash hides Change Visualization. Explore stays. */}
+            {!props.hideChartActions && <InstantBITooltip title="Change Visualization">
                 <Button
                     size="small"
                     type="text"
@@ -108,7 +111,7 @@ const RenderEditingArea = (props) => {
                         changeActiveReport()
                     }}
                 />
-            </InstantBITooltip>
+            </InstantBITooltip>}
             <Drawer
                 title={null}
                 placement="right"
@@ -162,6 +165,47 @@ const RenderFilters = (props) => {
     )
 }
 
+// Refactored out of PreviewTab so Slash can show the explanation without rendering the chart.
+export const DataInsightBody = ({
+    isLoadingDataInsight,
+    dataInsightTrail,
+    dataInsightContent,
+    handleAbortDataInsight,
+    hasDataInsightTokens,
+    dataInsightTokens,
+}) => {
+    if (!isLoadingDataInsight && !dataInsightContent) return null;
+    return (
+        <div
+            className="message-container__data-insight"
+            data-testid="data-insight-section"
+        >
+            {isLoadingDataInsight ? (
+                <div
+                    className="ib-data-insight-loading-bar"
+                    data-testid="ib-data-insight-loading-bar"
+                >
+                    <LoadingBar handleClick={handleAbortDataInsight} />
+                    <ChatTypingText
+                        lines={dataInsightTrail}
+                        fallback="Preparing your explanation…"
+                        active={isLoadingDataInsight}
+                    />
+                </div>
+            ) : (
+                <div className="message-container__data-insight-body">
+                    <Markdown remarkPlugins={[remarkGfm]}>
+                        {dataInsightContent}
+                    </Markdown>
+                    {hasDataInsightTokens && (
+                        <DataInsightTokenUsage tokens={dataInsightTokens} />
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const PreviewTab = (props = {}) => {
     const {
         showDataInsightButton,
@@ -189,6 +233,9 @@ const PreviewTab = (props = {}) => {
         extraProps = {},
         openModeFilters = false
     } = props || {};
+    // Dashboard tiles have no Slash provider, so this stays false there.
+    const slashMode = useSlashMode();
+    const exploreOnActiveTab = useSlashExploreOnActiveTab();
 
     const editingAreaRef = useRef(null);
     const filtersAreaRef = useRef(null);
@@ -210,13 +257,95 @@ const PreviewTab = (props = {}) => {
         filters = props.filters
     }
     const hasFilters = filters?.length > 0;
+    const hasReportModel = Object.keys(reportModel || {}).length > 0;
+    const [hostedChartId, setHostedChartId] = useState("");
+    const chartBuildStarted = useRef(false);
+    const reportModelRef = useRef(reportModel);
+    reportModelRef.current = reportModel;
+    // A message saved before the chat chart existed still needs a preview. Explore stays the icon already in this pane.
+    const chartReportId = hreportId || hostedChartId;
+
+    // Slash does not draw a chart in the message, so this preview report is not created.
+    useEffect(() => {
+        if (slashMode || hreportId || !exploreOnActiveTab || !hasReportModel || chartBuildStarted.current) return;
+        chartBuildStarted.current = true;
+        buildChatChartWithoutActivating({ dispatch, reportModel: reportModelRef.current }).then((nextId) => {
+            if (nextId) setHostedChartId(nextId);
+        });
+    }, [dispatch, exploreOnActiveTab, hasReportModel, hreportId, slashMode]);
 
     const handleGoToHreport = () => {
+        // In a Helical Report, Explore draws the chart on the tab that is open now.
+        if (exploreOnActiveTab) {
+            const model = fullChatResponse?.report_model || resolvedFullChatResponse?.report_model || reportModel;
+            applyReportModelToActiveHreport({
+                dispatch,
+                reportModel: model,
+                semanticDetails: buildSemanticDetails({
+                    vizDetails,
+                    reportModel: model,
+                    fullChatResponse,
+                    resolvedFullChatResponse,
+                    chatId: props.chatId || props.activeReport?.activeChatID,
+                    chatSequenceId: props.chatSequenceId,
+                    userInput: props.userInput,
+                    agent: getInstantBIAgentSubject(props.activeReport),
+                }),
+            });
+            return;
+        }
         if (hreportId) {
             const currentReport = getReportById(dispatch, hreportId);
             if (currentReport) {
                 const clonedReport = cloneDeep(currentReport);
-                clonedReport.reportInfo = { ...clonedReport.reportInfo, reportName: "Untitled 1" };
+                // The opened report is a real tab, not the hidden chat preview.
+                clonedReport.isInstantReport = false;
+                clonedReport.reportInfo = { ...clonedReport.reportInfo, reportName: clonedReport.reportInfo?.reportName || "Untitled 1" };
+                // A new window never runs the hreport bridge, so the clone carries the same semantic payload.
+                const openedModel = fullChatResponse?.report_model || resolvedFullChatResponse?.report_model || reportModel;
+                const openedSemantic = buildSemanticDetails({
+                    vizDetails,
+                    reportModel: openedModel,
+                    fullChatResponse,
+                    resolvedFullChatResponse,
+                    chatId: props.chatId || props.activeReport?.activeChatID,
+                    chatSequenceId: props.chatSequenceId,
+                    userInput: props.userInput,
+                    agent: getInstantBIAgentSubject(props.activeReport),
+                });
+                const storedSemantic = exploredSemanticPayload(openedSemantic);
+                if (Object.keys(storedSemantic).length) {
+                    clonedReport.instantSemantic = storedSemantic;
+                }
+                // Instant BI Explore writes the title onto the report it opens. The chat chart is not changed.
+                // Show is turned on. Text is the chat title, or the model title when the chat has none.
+                // The panel reads properties, and the drawn chart reads reportData.properties.
+                const modelTitle = openedModel?.viz_model?.properties?.title;
+                const exploredTitle = String(
+                    vizDetails?.vf_title
+                    || (typeof modelTitle === "string" ? modelTitle : "")
+                    || ""
+                ).trim();
+                if (exploredTitle) {
+                    const nextTitle = {
+                        ...(clonedReport.properties?.title || {}),
+                        show: true,
+                        value: exploredTitle,
+                    };
+                    clonedReport.properties = {
+                        ...(clonedReport.properties || {}),
+                        title: nextTitle,
+                    };
+                    if (clonedReport.reportData) {
+                        clonedReport.reportData = {
+                            ...clonedReport.reportData,
+                            properties: {
+                                ...(clonedReport.reportData.properties || {}),
+                                title: nextTitle,
+                            },
+                        };
+                    }
+                }
                 try {
                     localStorage.setItem('hreport_active_report', JSON.stringify({ activeHreport: clonedReport, fromInstantBI: true }));
                     const newUrl = window.baseURL + `#/helical-report`;
@@ -236,10 +365,26 @@ const PreviewTab = (props = {}) => {
         dispatch(changeReport({ id: hreportId }));
     }
 
-    if (!hreportId) {
+    // Refactored: Slash returns only the explanation. The chart stays out of this message.
+    if (slashMode) {
+        return (
+            <DataInsightBody
+                isLoadingDataInsight={isLoadingDataInsight}
+                dataInsightTrail={dataInsightTrail}
+                dataInsightContent={dataInsightContent}
+                handleAbortDataInsight={handleAbortDataInsight}
+                hasDataInsightTokens={hasDataInsightTokens}
+                dataInsightTokens={dataInsightTokens}
+            />
+        );
+    }
+
+    // Same preview pane while the chart report is created. The existing Explore icon appears with the chart.
+    if (!chartReportId) {
+        const chartIsBuilding = exploreOnActiveTab && hasReportModel;
         return (
             <div className="chart-preview-section chart-preview-section--empty">
-                {isPreviewLoading ? (
+                {(isPreviewLoading || chartIsBuilding) ? (
                     <WorkBehindIcon
                         active
                         lines={previewActivityTrail}
@@ -256,6 +401,10 @@ const PreviewTab = (props = {}) => {
         );
     }
 
+    // Instant BI chart preview. Slash returns above with only the explanation.
+    const chartResponse = chartReportId === hreportId
+        ? fullChatResponse
+        : { ...fullChatResponse, hreportId: chartReportId };
     return (
         <React.Fragment>
             <div className="chart-preview-section">
@@ -271,10 +420,10 @@ const PreviewTab = (props = {}) => {
                         </button>
                     </InstantBITooltip>
                 )}
-                {hreportId && hasFilters && (
+                {chartReportId && hasFilters && (
                     <RenderFilters filtersArea={filtersAreaRef.current} changeActiveReport={changeActiveReport} isOpenMode={isOpenMode} />
                 )}
-                {hreportId && !isOpenMode && (
+                {chartReportId && !isOpenMode && (
                     <RenderEditingArea editingArea={editingAreaRef.current} onClickGoToHreport={handleGoToHreport} changeActiveReport={changeActiveReport} />
                 )}
                 <InstantChartView
@@ -288,7 +437,7 @@ const PreviewTab = (props = {}) => {
                     className="chart-wrapper--message"
                     onPreviewError={setHasPreviewError}
                     backendError={resolvedFullChatResponse?.error}
-                    fullChatResponse={fullChatResponse}
+                    fullChatResponse={chartResponse}
                     renderEditingArea={(editingArea) => {
                         editingAreaRef.current = editingArea
                         setRenderCount(renderCount + 1)
@@ -298,41 +447,20 @@ const PreviewTab = (props = {}) => {
                         setRenderCount(renderCount + 1)
                     }}
                     isOpenMode={isOpenMode}
-                    vizType={getHReportSelectedChartType(hreportId, reports, selectedType)}
+                    vizType={getHReportSelectedChartType(chartReportId, reports, selectedType)}
                     dashboardMode={props.dashboardMode}
                     extraProps={extraProps}
                     openModeFilters={openModeFilters}
                 />
             </div>
-            {(isLoadingDataInsight || dataInsightContent) && (
-                <div
-                    className="message-container__data-insight"
-                    data-testid="data-insight-section"
-                >
-                    {isLoadingDataInsight ? (
-                        <div
-                            className="ib-data-insight-loading-bar"
-                            data-testid="ib-data-insight-loading-bar"
-                        >
-                            <LoadingBar handleClick={handleAbortDataInsight} />
-                            <ChatTypingText
-                                lines={dataInsightTrail}
-                                fallback="Preparing your explanation…"
-                                active={isLoadingDataInsight}
-                            />
-                        </div>
-                    ) : (
-                        <div className="message-container__data-insight-body">
-                            <Markdown remarkPlugins={[remarkGfm]}>
-                                {dataInsightContent}
-                            </Markdown>
-                            {hasDataInsightTokens && (
-                                <DataInsightTokenUsage tokens={dataInsightTokens} />
-                            )}
-                        </div>
-                    )}
-                </div>
-            )}
+            <DataInsightBody
+                isLoadingDataInsight={isLoadingDataInsight}
+                dataInsightTrail={dataInsightTrail}
+                dataInsightContent={dataInsightContent}
+                handleAbortDataInsight={handleAbortDataInsight}
+                hasDataInsightTokens={hasDataInsightTokens}
+                dataInsightTokens={dataInsightTokens}
+            />
         </React.Fragment>
     )
 }
@@ -513,6 +641,7 @@ const ChatTabs = (props = {}) => {
     const {
         hasMessage,
         showMaximizeButton,
+        showDataInsightButton,
         setIsMaximized,
         defaultTab,
         semanticLabel = "Semantic",
@@ -520,20 +649,64 @@ const ChatTabs = (props = {}) => {
         onTabChange,
         onPreviewActivate,
         previewFirst = true,
+        dispatch,
+        fullChatResponse,
+        resolvedFullChatResponse,
+        handleDataInsight,
+        dataInsightContent,
+        isLoadingDataInsight,
     } = props || {};
-    const initialTab = defaultTab || (previewFirst ? "preview" : "semantic");
+    // Slash replaces Preview and Maximize with Explore and Explain, and does not show the chart here.
+    const slashMode = useSlashMode();
+    const exploreOnActiveTab = useSlashExploreOnActiveTab();
+    // No Preview pane in Slash, so this key leaves the chart area empty until another icon is chosen.
+    const initialTab = slashMode ? "preview" : (defaultTab || (previewFirst ? "preview" : "semantic"));
     const [activeTab, setActiveTab] = useState(initialTab);
 
     useEffect(() => {
+        if (slashMode) return;
         if (defaultTab) {
             setActiveTab(defaultTab);
         }
-    }, [defaultTab]);
+    }, [defaultTab, slashMode]);
+
+    // Hosted Slash draws a Fast answer on the open report tab. The selected icon stays put.
+    const openExplore = () => {
+        const model = fullChatResponse?.report_model || resolvedFullChatResponse?.report_model;
+        if (exploreOnActiveTab) {
+            applyReportModelToActiveHreport({
+                dispatch,
+                reportModel: model,
+                semanticDetails: buildSemanticDetails({
+                    vizDetails: props.vizDetails,
+                    reportModel: model,
+                    fullChatResponse,
+                    resolvedFullChatResponse,
+                    chatId: props.chatId || props.activeReport?.activeChatID,
+                    chatSequenceId: props.chatSequenceId,
+                    userInput: props.userInput,
+                    agent: getInstantBIAgentSubject(props.activeReport),
+                }),
+            });
+        }
+    };
 
     const handleTabChange = (active) => {
         if (active === "maximize") {
             setIsMaximized?.(true);
             return;
+        }
+        // Explore draws on the open report and leaves the selected icon tab unchanged.
+        if (active === "explore") {
+            openExplore();
+            return;
+        }
+        if (active === "explain") {
+            if (!dataInsightContent && !isLoadingDataInsight) {
+                handleDataInsight?.();
+            }
+            // Slash already shows the explanation under the question. The icon only loads it.
+            if (slashMode) return;
         }
         setActiveTab(active);
         onTabChange?.(active);
@@ -547,11 +720,22 @@ const ChatTabs = (props = {}) => {
             <SemanticTab {...props} />
         </Tabs.TabPane>
     );
-    const previewPane = (
+    // Refactored the Slash icon row: Preview and Maximize are removed, Explore and Explain take their place.
+    const previewPane = !slashMode ? (
         <Tabs.TabPane tab={getTitle(<EyeOutlined />, "Preview")} key="preview">
             <PreviewTab {...props} setActiveTab={setActiveTab} />
         </Tabs.TabPane>
-    );
+    ) : null;
+    const explorePane = slashMode ? (
+        <Tabs.TabPane tab={getTitle(<ExportOutlined />, "Explore this chart.")} key="explore">
+            {null}
+        </Tabs.TabPane>
+    ) : null;
+    const explainPane = slashMode && showDataInsightButton ? (
+        <Tabs.TabPane tab={getTitle(<AISparklesIcon />, "Explain this chart")} key="explain">
+            {null}
+        </Tabs.TabPane>
+    ) : null;
     const sqlPane = (
         <Tabs.TabPane tab={getTitle(<ConsoleSqlOutlined />, "SQL")} key="sql">
             <SQLTab {...props} />
@@ -570,11 +754,13 @@ const ChatTabs = (props = {}) => {
             onChange={handleTabChange}
         >
             {
-                (hasMessage && showMaximizeButton) &&
+                (!slashMode && hasMessage && showMaximizeButton) &&
                 <Tabs.TabPane tab={getTitle(<FullscreenOutlined />, "Maximize")} key="maximize">
                     {null}
                 </Tabs.TabPane>
             }
+            {explorePane}
+            {explainPane}
             {previewFirst ? (
                 <>
                     {previewPane}

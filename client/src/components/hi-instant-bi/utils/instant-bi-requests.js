@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import requests from "../../../base/requests";
 import { generateReport } from "../../hi-reports/utils/base";
 import { uriConfig } from "../../../base/requests/instantbi.requests";
+import { applySlashMode } from "../slash/slash-mode";
 import { fileBrowserActions } from "../../../redux/actions";
 import {
   addIBRecommendations,
@@ -20,7 +21,9 @@ import {
   updateMetadataForHreport,
   updateRecommendationsVisibility
 } from "../../../redux/actions/instant-bi.actions";
+import { changeReport } from "../../../redux/actions/hreport.actions";
 import createHReportBridge from "../../bridges/hreport/hreport-bridge";
+import { hasSemanticEntries } from "../../bridges/hreport/utils";
 import notify from "../../hi-notifications/notify";
 import { openMetadata } from "../../hi-reports/utils/base";
 import { IB_CHART_RENDER_ERROR } from "../components/ib-custom-chart";
@@ -139,7 +142,7 @@ export const buildAgentConnectFormData = ({ path, title }) => {
   };
 };
 
-export const connectAgentToReport = ({ path, title, reportId, dispatch }) => {
+export const connectAgentToReport = ({ path, title, reportId, dispatch, recommendations = true }) => {
   if (!reportId) {
     return;
   }
@@ -151,6 +154,7 @@ export const connectAgentToReport = ({ path, title, reportId, dispatch }) => {
     activeReportId: reportId,
     dispatch,
     chatId,
+    recommendations,
   });
 };
 
@@ -383,6 +387,7 @@ const deliverParsedChatViaBridge = async ({
   onAIMessage,
   userInput,
   chatSequenceId,
+  deferHreportToExplore = false,
 }) => {
   if (parsedResponse.error) {
     onAIMessage({
@@ -394,6 +399,14 @@ const deliverParsedChatViaBridge = async ({
       chatSequenceId,
     });
     return;
+  }
+
+  // Remember the open tab before a Fast preview is created, then switch back to it.
+  let restoreReportId = null;
+  if (deferHreportToExplore) {
+    dispatch((_, getState) => {
+      restoreReportId = getState().hreport?.present?.activeReportId || null;
+    });
   }
 
   const hreportProps = {
@@ -415,6 +428,10 @@ const deliverParsedChatViaBridge = async ({
           parsedResponse,
           interactions
         );
+        if (restoreReportId) {
+          // Leave the open report as it is. Explore is what replaces that chart.
+          dispatch(changeReport({ id: restoreReportId }));
+        }
         onAIMessage({
           ...messagePayload,
           userInput,
@@ -423,6 +440,10 @@ const deliverParsedChatViaBridge = async ({
         resolve();
       },
       onError: () => {
+        // A failed answer only returns to the open tab. It does not clear the chart already there.
+        if (restoreReportId) {
+          dispatch(changeReport({ id: restoreReportId }));
+        }
         onAIMessage({
           botMessage: "",
           ...parsedResponse,
@@ -445,6 +466,10 @@ const deliverParsedChatViaBridge = async ({
       ...hreportProps,
     });
     bridge.init().catch(() => {
+      // Same as onError: restore the open tab and leave its current chart alone.
+      if (restoreReportId) {
+        dispatch(changeReport({ id: restoreReportId }));
+      }
       onAIMessage({
         botMessage: "",
         ...parsedResponse,
@@ -455,6 +480,132 @@ const deliverParsedChatViaBridge = async ({
       });
       resolve();
     });
+  });
+};
+
+// Builds the chart for the Slash preview only. The open report stays until Explore is clicked.
+export const buildChatChartWithoutActivating = ({ dispatch, reportModel }) => {
+  if (!reportModel || !Object.keys(reportModel).length) return Promise.resolve("");
+  return new Promise((resolve) => {
+    deliverParsedChatViaBridge({
+      parsedResponse: {
+        fullChatResponse: { report_model: reportModel },
+        error: "",
+      },
+      dispatch,
+      deferHreportToExplore: true,
+      onAIMessage: (payload) => resolve(payload?.fullChatResponse?.hreportId || ""),
+    });
+  });
+};
+
+const thinkStepReportModel = (step = {}) =>
+  step?.report_model
+  || step?.reportModel
+  || step?.fullChatResponse?.report_model
+  || step?.chat_response?.report_model
+  || {};
+
+const thinkStepTabTitle = (step = {}) => {
+  const title = String(
+    step?.title
+    || step?.vf_title
+    || step?.fullChatResponse?.viz?.vf_title
+    || step?.question
+    || "Report"
+  ).trim();
+  return title.slice(0, 80) || "Report";
+};
+
+// Each Think question with a chart becomes its own Helical Report tab.
+export const openThinkReportsAsTabs = async ({ dispatch, steps = [] }) => {
+  const modeled = (Array.isArray(steps) ? steps : []).filter((step) => {
+    const model = thinkStepReportModel(step);
+    return model && typeof model === "object" && Object.keys(model).length > 0;
+  });
+  for (const step of modeled) {
+    await new Promise((resolve) => {
+      const bridge = createHReportBridge({
+        dispatch,
+        reportModel: thinkStepReportModel(step),
+        visibleReportTab: true,
+        reportName: thinkStepTabTitle(step),
+        // These tabs are opened from Helical Report Slash, so the chart title is written here too.
+        setChartTitle: true,
+        reportMetadata: getMetadataForHreport(dispatch),
+        onComplete: () => resolve(),
+        onError: () => resolve(),
+      });
+      bridge.init().catch(() => resolve());
+    });
+  }
+};
+
+// Chart title, report model, and insight for the explored report. SQL and token usage stay in the chat.
+// Insight is not the chart title.
+export const buildSemanticDetails = ({
+  vizDetails,
+  reportModel,
+  fullChatResponse,
+  resolvedFullChatResponse,
+  insight,
+  chatId,
+  chatSequenceId,
+  userInput,
+  agent,
+} = {}) => {
+  const response = resolvedFullChatResponse || fullChatResponse || {};
+  const insightText = String(
+    insight
+    || response?.summary?.insight
+    || response?.data_insight?.insight
+    || ""
+  ).trim();
+  return {
+    vizDetails: hasSemanticEntries(vizDetails) ? vizDetails : (response.viz || {}),
+    reportModel: hasSemanticEntries(reportModel) ? reportModel : (response.report_model || {}),
+    ...(insightText ? { insight: insightText } : {}),
+    // Explain on the report canvas calls the insight API with these. They are omitted when the chat has none.
+    ...(String(chatId || "").trim() ? { chatId: String(chatId).trim() } : {}),
+    ...(String(chatSequenceId || "").trim() ? { chatSequenceId: String(chatSequenceId).trim() } : {}),
+    ...(String(userInput || "").trim() ? { userInput: String(userInput).trim() } : {}),
+    ...(hasSemanticEntries(agent) ? { agent } : {}),
+  };
+};
+
+// Explore in a Helical Report draws the chart on the tab that is active at click time.
+// reportId targets a specific tab (the JSON drawer). reportMetadata skips a refetch when the tab already has metadata.
+export const applyReportModelToActiveHreport = ({
+  dispatch,
+  reportModel,
+  semanticDetails = null,
+  reportId = null,
+  reportMetadata = null,
+}) => {
+  if (!reportModel || typeof reportModel !== "object" || Array.isArray(reportModel) || !Object.keys(reportModel).length) {
+    return Promise.resolve();
+  }
+  let activeHreportId = reportId || null;
+  if (!activeHreportId) {
+    dispatch((_, getState) => {
+      activeHreportId = getState().hreport?.present?.activeReportId || null;
+    });
+  }
+  if (!activeHreportId) return Promise.resolve();
+  return new Promise((resolve) => {
+    const bridge = createHReportBridge({
+      dispatch,
+      reportId: activeHreportId,
+      reuseActiveReport: true,
+      reportModel,
+      semanticDetails,
+      // Slash draws this chart on the open report, so the Visualization title is written with it.
+      setChartTitle: true,
+      reportMetadata: reportMetadata || getMetadataForHreport(dispatch),
+      onComplete: () => resolve({ error: false }),
+      onError: () => resolve({ error: true }),
+    });
+    bridge.init().catch(() => resolve({ error: true }));
   });
 };
 
@@ -542,6 +693,7 @@ const processThinkChatResponses = async ({
   chatSequenceId,
   onAIMessage,
   abortedRef,
+  deferHreportToExplore = false,
 }) => {
   try {
     for (let index = 0; index < chatResponses.length; index += 1) {
@@ -557,6 +709,7 @@ const processThinkChatResponses = async ({
         onAIMessage,
         userInput: step.subQuestion || formData.input,
         chatSequenceId: stepSeqId,
+        deferHreportToExplore,
       });
     }
   } finally {
@@ -602,7 +755,8 @@ export const instantBiChatAPI = ({
   activeReportId,
   chatSequenceId,
   chatId,
-  abortedRef
+  abortedRef,
+  deferHreportToExplore = false,
 }) => {
   dispatch(updateBIBotStatus({ status: true, reportId: activeReportId }))
   return instantBIInteractiveChatRequest({
@@ -613,12 +767,13 @@ export const instantBiChatAPI = ({
     chatId,
     chatSequenceId,
     mode: formData.mode,
+    environment: formData.environment,
     onProgress,
     successCB: async (res) => {
       const parsedResponse = parseInstantBIChatResponse(res);
       const { error, mode, chatResponses = [], ...fastParsed } = parsedResponse;
 
-      if (!error && !res.error) {
+      if (!error && !res.error && !deferHreportToExplore) {
         const hreportProps = {
           reportId: uuidv4(),
         };
@@ -658,6 +813,31 @@ export const instantBiChatAPI = ({
           });
           return;
         }
+        // Helical Report Slash shows the written answer only.
+        // Each chart model stays on the plan until Open reports in tabs is clicked.
+        if (deferHreportToExplore && (chatResponses || []).length) {
+          deliverThinkPlanMessage({
+            parsedResponse: {
+              ...parsedResponse,
+              questionHistory: chatResponses.map((step, index) => ({
+                index: index + 1,
+                question: step.subQuestion || "",
+                title: step.title || "",
+                analysis: step.analysis || "",
+                report_model: step.fullChatResponse?.report_model,
+                fullChatResponse: step.fullChatResponse,
+                chat_response: step.fullChatResponse,
+                chat_seq_id: step.stepChatSeqId || "",
+              })),
+            },
+            dispatch,
+            activeReportId,
+            formData,
+            chatSequenceId,
+            onAIMessage,
+          });
+          return;
+        }
         await processThinkChatResponses({
           chatResponses,
           dispatch,
@@ -666,6 +846,7 @@ export const instantBiChatAPI = ({
           chatSequenceId,
           onAIMessage,
           abortedRef,
+          deferHreportToExplore,
         });
         return;
       }
@@ -681,6 +862,7 @@ export const instantBiChatAPI = ({
           },
           userInput: formData.input,
           chatSequenceId,
+          deferHreportToExplore,
         });
       } else {
         dispatch(updateBIBotStatus({ status: false, reportId: activeReportId }))
@@ -720,6 +902,7 @@ export const buildInstantBIInteractiveChatFormData = ({
   requestId,
   nestedFormData,
   mode,
+  environment,
   sql,
   chatResponseItem,
   insights,
@@ -741,6 +924,11 @@ export const buildInstantBIInteractiveChatFormData = ({
   if (mode) {
     formData.mode = mode;
   }
+  if (environment) {
+    formData.environment = environment;
+  }
+  // When mode is Slash, force mode "Slash" and default environment to hreport.
+  Object.assign(formData, applySlashMode(formData));
   if (["think", "auto"].includes(String(mode || "").toLowerCase())) {
     formData.show_llm_activity_details = true;
   }
@@ -766,6 +954,7 @@ const instantBIInteractiveChatRequest = ({
   requestId,
   nestedFormData,
   mode,
+  environment,
   sql,
   chatResponseItem,
   insights,
@@ -782,6 +971,7 @@ const instantBIInteractiveChatRequest = ({
       requestId,
       nestedFormData,
       mode,
+      environment,
       sql,
       chatResponseItem,
       insights,

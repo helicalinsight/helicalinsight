@@ -20,7 +20,7 @@ const styles = {
 }
 
 const HIInstantBIModule = (props) => {
-  const { activeReport = {}, reportId, isMetadataPresent, connectMetadata = () => { } } = props || {};
+  const { activeReport = {}, reportId, isMetadataPresent, connectMetadata = () => { }, slashMode = false, environment, exploreOnActiveTab = false } = props || {};
   const [width, height] = useWindowSize();
   const [savedLayout, setSavedLayout] = useState(null);
   const [, offsetHeight] = useWindowSize();
@@ -74,7 +74,10 @@ const HIInstantBIModule = (props) => {
     activePreviewID,
     connectMetadata,
     isOpenMode,
-    isEditMode
+    isEditMode,
+    slashMode,
+    environment,
+    exploreOnActiveTab,
   }
 
   const handleShelf = (key) => {
@@ -94,6 +97,15 @@ const HIInstantBIModule = (props) => {
   //   if (chartListLoaded) return;
   //   fetchInstantBIChartList({ dispatch });
   // }, [chartListLoaded, dispatch]);
+
+  // Slash shows only the chat. Metadata, preview, and the grid stay off.
+  if (slashMode) {
+    return (
+      <Layout className="hi-instant-bi hi-instant-bi--slash">
+        <InstantBIChatScreen {...chatProps} />
+      </Layout>
+    );
+  }
 
   return (
     <Layout className={`hi-instant-bi hr-sidebar${isOpenMode ? " hi-instant-bi--open-mode" : ""}`}>

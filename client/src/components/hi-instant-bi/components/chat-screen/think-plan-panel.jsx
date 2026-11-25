@@ -17,8 +17,9 @@ import ChatTypingText from "./chat-typing-text";
 import LoadingBar from "../../../common/components/hi-loading-bar";
 import notify from "../../../hi-notifications/notify";
 import { getInstantBIAgentSubject } from "../../utils/common-utils";
-import { exploreInstantDashboard } from "../../utils/explore-instant-dashboard";
-import { loadInstantBIDataInsight } from "../../utils/instant-bi-requests";
+import { applyInstantDashboardToCanvas, exploreInstantDashboard } from "../../utils/explore-instant-dashboard";
+import { loadInstantBIDataInsight, openThinkReportsAsTabs } from "../../utils/instant-bi-requests";
+import { SLASH_ENVIRONMENT } from "../../slash/slash-mode";
 import { useDashboardView } from "./dashboard-view-coordinator";
 
 const { Text } = Typography;
@@ -43,6 +44,8 @@ const ThinkPlanPanel = ({
   plan = null,
   dashboardModel = null,
   dataInsight = "",
+  suppressEmbeddedDashboard = false,
+  environment = "",
 }) => {
   const streamResponse = useSelector((state) => Boolean(state.app.applicationSettingsData?.streamResponse));
   const reports = useSelector((state) => state.hreport?.present?.reports || []);
@@ -81,9 +84,17 @@ const ThinkPlanPanel = ({
 
   const canViewDashboard = Boolean(resolvedDashboardModel)
     && (questionHistory || []).some(hasDashboardTileModel);
+  // A Helical Report opens each Think chart as its own tab instead of a dashboard.
+  const openReportsInTabs = String(environment || "").toLowerCase() === SLASH_ENVIRONMENT;
+  const hasThinkCharts = (items || []).some(hasDashboardTileModel);
+  // Designer Slash keeps the written answer. The dashboard is not mounted inside the compact chat.
+  const showEmbeddedDashboard = canViewDashboard && !suppressEmbeddedDashboard && !openReportsInTabs;
+  // The button stays so the same click can draw the dashboard on the designer canvas.
+  // On a Helical Report the charts stay unopened until this designer icon is clicked.
+  const showViewDashboardButton = openReportsInTabs ? hasThinkCharts : canViewDashboard;
 
   const isDashboardViewActive = planView === "dashboardView"
-    && canViewDashboard
+    && showEmbeddedDashboard
     && activeDashboardViewId === planMessageId;
   const highlightClearRef = useRef(null);
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
@@ -93,6 +104,13 @@ const ThinkPlanPanel = ({
   const dataInsightAbortedRef = useRef(false);
   const Notify = notify(dispatch);
   useEffect(() => {
+    // Drop a leftover embedded dashboard so Slash keeps showing the written answer.
+    if (!suppressEmbeddedDashboard || planView !== "dashboardView") return;
+    deactivateDashboardView(planMessageId);
+    setPlanView(null);
+  }, [deactivateDashboardView, planMessageId, planView, suppressEmbeddedDashboard]);
+
+  useEffect(() => {
     if (planView !== "dashboardView") return;
     if (activeDashboardViewId !== planMessageId) {
       setPlanView(null);
@@ -101,6 +119,22 @@ const ThinkPlanPanel = ({
 
   const handleTabChange = (active) => {
     if (active === "dashboardView") {
+      if (openReportsInTabs) {
+        openThinkReportsAsTabs({ dispatch, steps: items });
+        return;
+      }
+      // Leave the compact chat unchanged. The bridge draws this dashboard on the designer canvas.
+      if (suppressEmbeddedDashboard) {
+        applyInstantDashboardToCanvas({
+          dispatch,
+          dashboardModel: resolvedDashboardModel,
+          steps: questionHistory,
+          questionsHistory: items,
+          reports,
+          activeReport,
+        });
+        return;
+      }
       if (planView === "dashboardView") {
         deactivateDashboardView(planMessageId);
         setPlanView(null);
@@ -302,8 +336,8 @@ const ThinkPlanPanel = ({
                 </button>
               </InstantBITooltip>
 
-              {canViewDashboard ? (
-                <InstantBITooltip title="View Dashboard">
+              {showViewDashboardButton ? (
+                <InstantBITooltip title={openReportsInTabs ? "Open reports in tabs" : "View Dashboard"}>
                   <button
                     type="button"
                     className={`ib-think-plan__icon-btn${planView === "dashboardView" ? " is-active" : ""}`}
@@ -385,7 +419,7 @@ const ThinkPlanPanel = ({
                   <JsonTab value={resolvedActivityDetails} emptyLabel="No LLM activity details available." />
                 </div>
               </Tabs.TabPane>
-              {canViewDashboard ? (
+              {showEmbeddedDashboard ? (
                 <Tabs.TabPane key="dashboardView" tab="">
                   <div className="ib-think-plan__inspector" data-testid="ib-think-plan-inspector-dashboard-view">
                     <IBDashboardView

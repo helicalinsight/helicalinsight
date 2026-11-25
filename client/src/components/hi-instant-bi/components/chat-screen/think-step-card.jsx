@@ -13,6 +13,7 @@ import InstantChartView from "./chart-view";
 import ChatTabs from "./chat-tabs";
 import { getSharedChatTabsShell } from "./chat-tabs-shared";
 import { buildSqlDetailsFallback, cleanText, collapsedQuestionLead, thinkStepSequenceId } from "./think-plan-helpers";
+import { useSlashExploreOnActiveTab } from "../../slash/slash-mode";
 
 const { Text } = Typography;
 
@@ -120,6 +121,7 @@ const ThinkStepCard = ({
   const dataInsightApiRef = useRef(null);
   const dataInsightAbortedRef = useRef(false);
   const previewHydratedRef = useRef(false);
+  const exploreOnActiveTab = useSlashExploreOnActiveTab();
   const Notify = notify(dispatch);
 
   useEffect(() => {
@@ -135,9 +137,10 @@ const ThinkStepCard = ({
   }, [expandSignal]);
 
   useEffect(() => {
-    // Auto-load Preview when the step has a report model ready.
+    // Hosted Slash waits for the Explore icon. Do not build the chart while the answer streams in.
     if (
-      previewHydratedRef.current
+      exploreOnActiveTab
+      || previewHydratedRef.current
       || isStreaming
       || isLoadingViz
       || hasViz

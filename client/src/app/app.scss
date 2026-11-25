@@ -111,6 +111,59 @@ h6 {
   height: #{$navbar-height};
   padding: 0 !important;
 }
+
+// Dashboard Slash floats over the designer. It does not take a column from the canvas.
+.hi-dashboard-slash-float {
+  position: fixed;
+  top: calc(#{$navbar-height} + 12px);
+  right: 12px;
+  bottom: 12px;
+  width: 18.5%;
+  min-width: 280px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+  box-sizing: border-box;
+
+  > * {
+    flex: 1 1 auto;
+    height: 100%;
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .height100percent,
+  .hi-instant-bi--slash,
+  .ib-chat-root-container,
+  .instant-bi-chat-container {
+    height: 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .instant-bi-message-input,
+  .ib-chat-container,
+  .ib-chat-container--slash,
+  .ib-chat-container--slash-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .ib-chat-container--slash {
+    height: 100% !important;
+  }
+}
 .hi-content-area {
   height: calc(100vh - #{$navbar-height});
   overflow: auto;
@@ -337,7 +390,6 @@ h6 {
   }
 }
 .hi-designer-module {
-  
   .hi-designer-preview-close {
     position: absolute;
     margin: 30px;

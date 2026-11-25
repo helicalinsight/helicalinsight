@@ -14,6 +14,7 @@ import {
 } from "@ant-design/icons";
 import { hreportRedo, hreportUndo, loadMetadata, loadReportData, setHReportLoading, setHreportSidebarLoading, setMetadataLoading, updatePreviewState, updateReportLayout } from "../../redux/actions/hreport.actions";
 import HIIcon from "../common/icons/hi-icons";
+import SlashIcon from "../common/icons/slash-icon";
 import { launchIntoFullscreen } from "../../utils/dom-utils";
 import { generateReport } from "./utils/base";
 import { exportReport } from "../../utils/utilities";
@@ -56,6 +57,8 @@ const getHrTaskBarItems = ({
   fullscreen,
   getDropdownOptions = () => { },
   onExportFormat,
+  slashOpen = false,
+  onToggleSlash = () => {},
 }) => {
   let { metadataShelf, fieldsAreaShelf, toolsAreaShelf } = layout;
   const handlePreviewClick = () => {
@@ -275,6 +278,19 @@ const getHrTaskBarItems = ({
       scText: "Y",
       scLocation: "HR",
       shortCut: "Ctrl+Y"
+    },
+    {
+      tooltip: "Slash",
+      dataTestId: "hi-hreport-slash-click",
+      // Shared Slash icon. Blue while the panel is open.
+      icon: (
+        <SlashIcon
+          className="taskbar-icon"
+          data-testid="hi-report-slash"
+          style={{ color: slashOpen ? "#1890ff" : "currentColor" }}
+        />
+      ),
+      callBack: onToggleSlash,
     },
   ];
 

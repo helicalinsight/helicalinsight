@@ -399,12 +399,21 @@ public class FileSystemOperationsController implements ApplicationContextAware {
             IUpload importOperationHandler = UploadClassFactory.getIUploadClass(type);
 
             if (type.equals("image")) {
+                String fileName = item.getName();
+                String suffix = FilenameUtils.getExtension(fileName);
+                if (suffix != null) {
+                    suffix = suffix.toLowerCase();
+                }
+                if (!JsonUtils.supportedImageExtensions.contains(suffix)) {
+                    throw new OperationFailedException(
+                            "Select a file only with extension " + JsonUtils.supportedImageExtensions);
+                }
+
                 HIResource destinationResource = serviceDB.getResourceByUrl(destination);
                 if (destinationResource == null) {
                     throw new ResourceNotFoundException("Resource named with " + destination + " not found");
                 }
 
-                String fileName = item.getName();
 
                 HIResourceImages entity = new HIResourceImages();
                 entity.setContent(getByteArrayFromDiskFileItem(item));
@@ -438,8 +447,7 @@ public class FileSystemOperationsController implements ApplicationContextAware {
             } else {
                 if (!importOperationHandler.processMultipartItem(request, (FileItem) item, destination,
                         extensionOfFileTypeToBeImported)) {
-                    JsonObject statusZeroJson = ControllerUtils.statusZeroJson("Error. The file "
-                            + "couldn't be imported" + " properly. Only Saved reports are importable.");
+                    JsonObject statusZeroJson = ControllerUtils.statusZeroJson(importFailureMessage(request));
                     ControllerUtils.handleSuccess(response, isAjax, statusZeroJson.toString());
                 } else {
                     Object unknown = request.getAttribute("message");
@@ -487,5 +495,14 @@ public class FileSystemOperationsController implements ApplicationContextAware {
             }
         }
         return null; // or handle the case where it's a form field
+    }
+
+    private static String importFailureMessage(HttpServletRequest request) {
+        Object reported = request.getAttribute("response");
+        String failureMessage = reported instanceof String ? ((String) reported).trim() : "";
+        if (StringUtils.isBlank(failureMessage)) {
+            return "Error. The file couldn't be imported properly. Only Saved reports are importable.";
+        }
+        return failureMessage;
     }
 }

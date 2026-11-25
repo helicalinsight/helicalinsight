@@ -62,6 +62,7 @@ jest.mock("../../../components/hi-notifications/notify", () => () => ({
 jest.mock("../../../components/hi-instant-bi/utils/explore-instant-dashboard", () => ({
   __esModule: true,
   exploreInstantDashboard: jest.fn(),
+  applyInstantDashboardToCanvas: jest.fn(),
 }));
 
 jest.mock("../../../components/hi-instant-bi/utils/instant-bi-requests", () => ({

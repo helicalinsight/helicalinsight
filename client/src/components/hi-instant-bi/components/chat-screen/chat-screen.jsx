@@ -9,6 +9,7 @@ import { appendActivityLine, buildChatActivityLines } from '../../utils/chat-act
 import { abortRecommendationsRequest, instantBiChatAPI } from '../../utils/instant-bi-requests';
 import "./chat-screen.scss";
 import MessageInputBoxNew, { resolveChatMode } from './message-input-box-new';
+import { applySlashMode, SlashExploreContext, SlashModeContext } from '../../slash/slash-mode';
 import MessageList from './message-list';
 import { thinkStepSequenceId } from './think-plan-helpers';
 
@@ -24,7 +25,10 @@ const InstantBIChatScreen = (props = {}) => {
         activeReport,
         connectMetadata,
         isOpenMode,
-        isEditMode
+        isEditMode,
+        slashMode = false,
+        environment,
+        exploreOnActiveTab = false,
     } = props || {}
 
     let apiRef = useRef(null);
@@ -290,11 +294,13 @@ const InstantBIChatScreen = (props = {}) => {
         const chatSequenceId = userMessages.length + 1;
         const newMessage = prepareIBChatNewMessage(message, true)
         dispatch(updateIBChatMessageList({ newMessage, activeChatID, reportId }))
+        // Interactive chat starts on auto and follows the mode the user selects. Slash is not the request mode.
         const resolvedMode = resolveChatMode(mode);
-        let formData = {
+        let formData = applySlashMode({
             input: message,
             mode: resolvedMode,
-        }
+            ...(slashMode && environment ? { environment } : {}),
+        });
         if (isMetadataPresent) {
             const model = getInstantBIAgentSubject(activeReport);
             if (model) {
@@ -397,6 +403,7 @@ const InstantBIChatScreen = (props = {}) => {
             chatId: activeChatID,
             chatSequenceId,
             abortedRef,
+            deferHreportToExplore: exploreOnActiveTab,
         })
         if (apiRef.current && placeholder) {
             apiRef.current.placeholderId = placeholder.id;
@@ -434,12 +441,17 @@ const InstantBIChatScreen = (props = {}) => {
     const chatContainerClassName = [
         'instant-bi-chat-container',
         isFullWidth ? 'instant-bi-chat-container--full-width' : '',
-        !messageList?.length ? 'instant-bi-chat-container--centered' : '',
+        !messageList?.length && !slashMode ? 'instant-bi-chat-container--centered' : '',
+        // Keep the Slash column at full width after a message is sent. The empty welcome is separate.
+        slashMode ? 'instant-bi-chat-container--slash' : '',
     ]
         .filter(Boolean)
         .join(' ');
 
+    // Children read slashMode from here instead of a prop on each component.
     return (
+        <SlashModeContext.Provider value={slashMode}>
+        <SlashExploreContext.Provider value={exploreOnActiveTab}>
         <div className='ib-chat-root-container'>
             <div className={chatContainerClassName}>
                 <div className='instant-bi-message-list'>
@@ -456,6 +468,7 @@ const InstantBIChatScreen = (props = {}) => {
                             isOpenMode,
                             isEditMode,
                             onShowThinkQuestion: handleShowThinkQuestion,
+                            environment,
                         }}
                         onClick={handleChangeRecommendation}
                     />
@@ -483,6 +496,7 @@ const InstantBIChatScreen = (props = {}) => {
                                 isFullWidth,
                                 activeReportId
                             }}
+                            environment={environment}
                             onAbortRequest={handleAbortRequest}
                             onAbortRecommendations={handleAbortRecommendations}
                             onClickRecommendation={handleChangeRecommendation}
@@ -500,6 +514,8 @@ const InstantBIChatScreen = (props = {}) => {
                 />
                 : null}
         </div>
+        </SlashExploreContext.Provider>
+        </SlashModeContext.Provider>
     )
 }
 

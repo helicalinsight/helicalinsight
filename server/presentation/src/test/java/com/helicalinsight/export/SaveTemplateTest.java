@@ -6,6 +6,8 @@ import static org.mockito.Mockito.mockStatic;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
@@ -13,6 +15,7 @@ import org.junit.Test;
 import org.mockito.MockedStatic;
 
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.helicalinsight.export.components.SaveTemplate;
 
 public class SaveTemplateTest {
@@ -26,44 +29,50 @@ public class SaveTemplateTest {
 
 	@Test
 	public void ut_a2_testExecuteComponent() throws IOException {
-		SaveTemplate saveTemplate = new SaveTemplate();
-		JsonObject formData = new JsonObject();
-		JsonObject template = new JsonObject();
-		JsonObject body = new JsonObject();
-		body.addProperty("script", "script");
-		template.add("body", body);
-		formData.add("template", template);
-		String json = formData.toString();
-		try {
-			String executeComponent = saveTemplate.executeComponent(json);
-			Assert.assertNotNull(executeComponent);
+		Path templatesDirectory = Files.createTempDirectory("save-template-test");
+		try (MockedStatic<ExportUtils> exportUtils = mockStatic(ExportUtils.class)) {
+			exportUtils.when(ExportUtils::getTemplatesDirectory).thenReturn(templatesDirectory.toString());
+			String executeComponent = new SaveTemplate().executeComponent(templateJson());
+			String templateId = JsonParser.parseString(executeComponent).getAsJsonObject().get("templateId")
+					.getAsString();
+			File jsonFile = new File(templatesDirectory.toFile(), templateId + ExportUtils.JSON_EXTENSION);
+			File jsFile = new File(templatesDirectory.toFile(), templateId + ExportUtils.JS_EXTENSION);
+			Assert.assertTrue(jsonFile.isFile());
+			Assert.assertTrue(jsFile.isFile());
 		} finally {
-			String folderPath = "/home/helical/Performance/hi/hi-repository/System/Reports/ExportTemplates";
-			File file = new File(folderPath);
-
+			deleteTemplates(templatesDirectory);
 		}
+		Assert.assertFalse(templatesDirectory.toFile().exists());
 	}
 
 	@Test(expected = RuntimeException.class)
 	public void ut_a3_testExecuteComponent() throws IOException {
-		SaveTemplate saveTemplate = new SaveTemplate();
+		Path templatesDirectory = Files.createTempDirectory("save-template-test");
+		try (MockedStatic<ExportUtils> exportUtils = mockStatic(ExportUtils.class);
+				MockedStatic<FileUtils> mockedStatic = mockStatic(FileUtils.class)) {
+			exportUtils.when(ExportUtils::getTemplatesDirectory).thenReturn(templatesDirectory.toString());
+			mockedStatic.when(() -> FileUtils.writeStringToFile(any(File.class), anyString(), anyString()))
+					.thenThrow(new IOException());
+			new SaveTemplate().executeComponent(templateJson());
+		} finally {
+			deleteTemplates(templatesDirectory);
+		}
+	}
+
+	private String templateJson() {
 		JsonObject formData = new JsonObject();
 		JsonObject template = new JsonObject();
 		JsonObject body = new JsonObject();
 		body.addProperty("script", "script");
 		template.add("body", body);
 		formData.add("template", template);
-		String json = formData.toString();
-		try (MockedStatic<FileUtils> mockedStatic = mockStatic(FileUtils.class)) {
-			mockedStatic.when(() -> FileUtils.writeStringToFile(any(File.class), anyString(), anyString()))
-					.thenThrow(new IOException());
-			String executeComponent = saveTemplate.executeComponent(json);
-			Assert.assertNotNull(executeComponent);
-		}finally {
-			String folderPath = "/home/helical/Performance/hi/hi-repository/System/Reports/ExportTemplates";
-			File file = new File(folderPath);
+		return formData.toString();
+	}
 
+	private void deleteTemplates(Path templatesDirectory) throws IOException {
+		File directory = templatesDirectory.toFile();
+		if (directory.exists()) {
+			FileUtils.deleteDirectory(directory);
 		}
-
 	}
 }

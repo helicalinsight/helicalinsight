@@ -1,4 +1,5 @@
 import {
+  CaretRightOutlined,
   InfoCircleOutlined,
   ReloadOutlined
 } from "@ant-design/icons"
@@ -12,19 +13,35 @@ import HIIcon from '../../../common/icons/hi-icons'
 import notify from '../../../hi-notifications/notify'
 import InstantBITooltip from '../../instant-bi-tooltip-title'
 import { cleanSQL, getInstantBIAgentSubject, resolveInstantBiSql } from '../../utils/common-utils'
-import { loadChartDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
+import { applyReportModelToActiveHreport, buildSemanticDetails, loadChartDataInsight, shouldUseLoadChatPayloadForInsight } from '../../utils/instant-bi-requests'
 import IBSpace from '../ib-space/ib-space'
 import InstantChartView from "./chart-view"
 import ChatScreenRecommendationSkeleton from './chat-screen-skeleton'
 import "./chat-screen.scss"
-import ChatTabs from "./chat-tabs"
+import ChatTabs, { DataInsightBody } from "./chat-tabs"
 import { getSharedChatTabsShell } from "./chat-tabs-shared"
+import { DASHBOARD_ENVIRONMENT, useSlashExploreOnActiveTab, useSlashMode } from "../../slash/slash-mode";
 import ThinkPlanPanel from "./think-plan-panel"
 import WorkBehindIcon from "./work-behind-icon"
 
 const { Text } = Typography
 
 const LOADED_CHAT_SOURCES = ["play-button", "auto-load", "scroll-load"];
+
+const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Fast answers one question, so [1] markers are not citations.
+const stripFastCitations = (text = "") => String(text || "").replace(/\s*\[\d+\]/g, "");
+
+const fastInsightBody = (text = "", title = "") => {
+  let body = stripFastCitations(text).trim();
+  const heading = String(title || "").trim();
+  if (!heading) return body;
+  const escaped = escapeRegExp(heading);
+  body = body.replace(new RegExp(`^#{1,6}\\s*${escaped}\\s*`, "i"), "");
+  body = body.replace(new RegExp(`^\\*\\*${escaped}\\*\\*\\s*`, "i"), "");
+  return body.trim();
+};
 
 export const DataInsightTokenUsage = ({ tokens = {} }) => {
   const [open, setOpen] = useState(false);
@@ -73,6 +90,97 @@ export const DataInsightTokenUsage = ({ tokens = {} }) => {
   );
 };
 
+const FastAnswer = ({
+  summary = "",
+  title = "",
+  question = "",
+  open = false,
+  onToggle = () => { },
+  chartClassName = "",
+  tabsProps = {},
+  maximized = false,
+  onCloseMaximized = () => { },
+  chartProps = {},
+  isLoadingDataInsight = false,
+  dataInsightTrail = [],
+  dataInsightContent = "",
+  handleAbortDataInsight = () => { },
+  hasDataInsightTokens = false,
+  dataInsightTokens = {},
+  showInlineChart = true,
+  expandedFooter = null,
+}) => {
+  const collapsedQuestion = String(title || question || "").trim() || "Chart";
+  // The chart keeps Explain's click handler. The text itself renders under the question.
+  const chartTabsProps = {
+    ...tabsProps,
+    dataInsightContent: "",
+    isLoadingDataInsight: false,
+    dataInsightTrail: [],
+  };
+  // Same explanation block Explain chart shows, placed under the question.
+  const dataInsight = (
+    <DataInsightBody
+      isLoadingDataInsight={isLoadingDataInsight}
+      dataInsightTrail={dataInsightTrail}
+      dataInsightContent={dataInsightContent}
+      handleAbortDataInsight={handleAbortDataInsight}
+      hasDataInsightTokens={hasDataInsightTokens}
+      dataInsightTokens={dataInsightTokens}
+    />
+  );
+  return (
+    <div className="message-container__bot-content ib-fast-answer">
+      {summary ? (
+        <div className="message-container__bot-markdown-renderer ib-fast-answer__summary">
+          <Markdown remarkPlugins={[remarkGfm]}>{summary}</Markdown>
+        </div>
+      ) : null}
+      <div className="ib-fast-answer__question">
+        <div className="ib-fast-answer__header">
+          <span className="ib-fast-answer__title">{collapsedQuestion}</span>
+          <button
+            type="button"
+            className="ib-think-step__handle"
+            onClick={onToggle}
+            aria-expanded={open}
+            aria-label={open ? (showInlineChart ? "Hide visualization" : "Collapse") : (showInlineChart ? "Show visualization" : "Expand")}
+            data-testid="ib-fast-viz-toggle"
+          >
+            <CaretRightOutlined className={`ib-think-step__caret${open ? " is-expanded" : ""}`} />
+          </button>
+        </div>
+        {open && showInlineChart ? (
+          <div className={chartClassName}>
+            <Row justify={"end"} className="instant-chart-tabs-row">
+              <ChatTabs {...chartTabsProps} />
+            </Row>
+            <Modal
+              title="Preview"
+              visible={maximized}
+              onCancel={onCloseMaximized}
+              width="95%"
+              style={{ top: 20 }}
+              footer={null}
+              wrapClassName="ib-chart-preview-modal"
+              destroyOnClose
+            >
+              <InstantChartView
+                className="chart-wrapper--modal"
+                {...chartProps}
+              />
+            </Modal>
+          </div>
+        ) : null}
+        {open && expandedFooter ? (
+          <div className="ib-fast-answer__icons">{expandedFooter}</div>
+        ) : null}
+        {dataInsight}
+      </div>
+    </div>
+  );
+};
+
 const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
   const streamResponse = useSelector((state) => Boolean(state.app.applicationSettingsData?.streamResponse));
   const {
@@ -101,11 +209,19 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     dataInsightTokenUsage = {},
     hreportLoading,
     onShowThinkQuestion,
+    environment,
   } = rest || {}
+  // Slash puts the bot icon above the bubble. Instant BI keeps it beside the row.
+  const slashMode = useSlashMode();
+  const exploreOnActiveTab = useSlashExploreOnActiveTab();
+  // Designer Slash keeps the written answer in the chat. View Dashboard draws on the canvas instead.
+  const dashboardSlash = slashMode && String(environment || "").toLowerCase() === DASHBOARD_ENVIRONMENT;
   const [activeTab, setActiveTab] = useState("preview"); // preview | data | sql
   const [isMaximized, setIsMaximized] = useState(false);
   const [hasPreviewError, setHasPreviewError] = useState(false);
   const [isLoadingDataInsight, setIsLoadingDataInsight] = useState(false);
+  // Instant BI Fast answers open the chart immediately. Slash stays closed until the triangle is clicked.
+  const [fastVizOpen, setFastVizOpen] = useState(!slashMode);
   const [dataInsightTrail, setDataInsightTrail] = useState([]);
   const messageRef = useRef(null);
   const dataInsightApiRef = useRef(null);
@@ -332,6 +448,8 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     resolvedVf,
     reportId,
     chatSequenceId,
+    chatId: activeChatID || "",
+    userInput: chatItem.userInput || userInput || "",
     resolvedData,
     id,
     chartSettings,
@@ -353,20 +471,23 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
     activeReport,
   }
 
+  const botAvatar = !chatItem.isUser ? (
+    <div data-testid="bot-message" className="message-container__avatar">
+      <HIIcon className="ib-chat-icon" name="hi-instant-bi-svg" />
+    </div>
+  ) : null;
+
   return (
     <div className="message-container" key={index} ref={messageRef}>
       <IBSpace space="8" className="message-container__row">
-        {!chatItem.isUser && (
-          <div data-testid="bot-message" className="message-container__avatar">
-            <HIIcon className="ib-chat-icon" name="hi-instant-bi-svg" />
-          </div>
-        )}
+        {!slashMode && botAvatar}
         <IBSpace
           stack="vertical"
           alignItem={chatItem.isUser ? "end" : "start"}
           className="message-container__body"
           data-testid="message-id"
         >
+          {slashMode && botAvatar}
           <Space
             className={messageBubbleClassName}
           >
@@ -385,36 +506,12 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
               ) : (
                 <Text type="secondary">Just a moment…</Text>
               )
-            ) : chatItem.isStreaming && chatItem.isThinkPlan ? (
-              <ThinkPlanPanel
-                questionHistory={chatItem.questionHistory || []}
-                askedQuestions={chatItem.askedQuestions || []}
-                openingInsight={chatItem.openingInsight || ""}
-                finalAnswer={chatItem.finalAnswer || ""}
-                citedQuestionIndexes={chatItem.citedQuestionIndexes || []}
-                activityTrail={chatItem.activityTrail || []}
-                userInput={chatItem.userInput || userInput}
-                planMessageId={chatItem.id}
-                planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
-                isOpenMode={isOpenMode}
-                isEditMode={isEditMode}
-                isStreaming
-                dispatch={dispatch}
-                activeReport={activeReport}
-                llmActivityDetails={chatItem.llmActivityDetails || null}
-                plan={chatItem.plan || null}
-                dashboardModel={chatItem.dashboardModel || null}
-                dataInsight={chatItem.dataInsight || chatItem.fullChatResponse?.data_insight?.insight || ""}
-                onShowQuestion={(question, index, stepItem) =>
-                  onShowThinkQuestion?.(question, index, chatItem, stepItem)
-                }
-              />
             ) : chatItem.isThinkPlan ? (
               <ThinkPlanPanel
                 questionHistory={chatItem.questionHistory || []}
                 askedQuestions={chatItem.askedQuestions || []}
                 openingInsight={chatItem.openingInsight || ""}
-                finalAnswer={chatItem.finalAnswer || resolvedText || ""}
+                finalAnswer={chatItem.finalAnswer || (chatItem.isStreaming ? "" : resolvedText) || ""}
                 citedQuestionIndexes={chatItem.citedQuestionIndexes || []}
                 activityTrail={chatItem.activityTrail || []}
                 userInput={chatItem.userInput || userInput}
@@ -422,11 +519,14 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                 planChatSequenceId={chatItem.chatSequenceId || chatSequenceId}
                 isOpenMode={isOpenMode}
                 isEditMode={isEditMode}
+                isStreaming={Boolean(chatItem.isStreaming)}
                 dispatch={dispatch}
                 activeReport={activeReport}
                 llmActivityDetails={chatItem.llmActivityDetails || null}
                 plan={chatItem.plan || null}
                 dashboardModel={chatItem.dashboardModel || null}
+                suppressEmbeddedDashboard={dashboardSlash}
+                environment={environment}
                 dataInsight={chatItem.dataInsight || chatItem.fullChatResponse?.data_insight?.insight || ""}
                 onShowQuestion={(question, index, stepItem) =>
                   onShowThinkQuestion?.(question, index, chatItem, stepItem)
@@ -443,45 +543,58 @@ const MessageLayout = ({ chatItem = {}, index, ...rest }) => {
                 />
               </div>
             ) : (
-              <div className="message-container__bot-content" >
-                <div className="message-container__bot-markdown-renderer">
-                  <Markdown remarkPlugins={[remarkGfm]}>
-                    {resolvedText}
-                  </Markdown>
-                </div>
-                <div
-                  className={`chart-container${hasMessage ? " chart-container--with-tabs" : ""
-                    }${hasPreviewError && activeTab === "preview"
-                      ? " chart-container--preview-error"
-                      : ""
-                    }`}
-                >
-                  <Row justify={"end"} className="instant-chart-tabs-row">
-                    <ChatTabs {...tabsProps} />
-                  </Row>
-                  <Modal
-                    title="Preview"
-                    visible={isMaximized && showMaximizeButton}
-                    onCancel={() => setIsMaximized(false)}
-                    width="95%"
-                    style={{ top: 20 }}
-                    footer={null}
-                    wrapClassName="ib-chart-preview-modal"
-                    destroyOnClose
-                  >
-                    <InstantChartView
-                      data={resolvedData}
-                      vf={resolvedVf}
-                      id={id}
-                      chartName={vizDetails?.chart_name}
-                      chartSettings={chartSettings}
-                      plotConfig={vizDetails?.plot_config}
-                      className="chart-wrapper--modal"
-                      fullChatResponse={fullChatResponse}
-                    />
-                  </Modal>
-                </div>
-              </div>
+              // Explore, Explain, and Semantic are not shown in Slash.
+              // Expanding the question already moves the chart and fills those report fields, and the explanation is under the question.
+              <FastAnswer
+                summary={fastInsightBody(resolvedText, vizDetails?.vf_title)}
+                title={vizDetails?.vf_title}
+                question={chatItem.userInput || userInput}
+                open={fastVizOpen}
+                onToggle={() => {
+                  const next = !fastVizOpen;
+                  // Slash expand draws the chart on the open report, the same action as Explore.
+                  if (next && slashMode && exploreOnActiveTab) {
+                    const model = resolvedFullChatResponse?.report_model || fullChatResponse?.report_model;
+                    applyReportModelToActiveHreport({
+                      dispatch,
+                      reportModel: model,
+                      semanticDetails: buildSemanticDetails({
+                        vizDetails,
+                        reportModel: model,
+                        fullChatResponse,
+                        resolvedFullChatResponse,
+                        insight: resolvedText || dataInsightContent,
+                        chatId: activeChatID,
+                        chatSequenceId,
+                        userInput: chatItem.userInput || userInput,
+                        agent: agentSubject,
+                      }),
+                    });
+                  }
+                  setFastVizOpen(next);
+                }}
+                showInlineChart={!slashMode}
+                expandedFooter={null}
+                chartClassName={`chart-container${hasMessage ? " chart-container--with-tabs" : ""}${hasPreviewError && activeTab === "preview" ? " chart-container--preview-error" : ""}`}
+                tabsProps={tabsProps}
+                isLoadingDataInsight={isLoadingDataInsight}
+                dataInsightTrail={dataInsightTrail}
+                dataInsightContent={dataInsightContent}
+                handleAbortDataInsight={handleAbortDataInsight}
+                hasDataInsightTokens={hasDataInsightTokens}
+                dataInsightTokens={dataInsightTokens}
+                maximized={isMaximized && showMaximizeButton}
+                onCloseMaximized={() => setIsMaximized(false)}
+                chartProps={{
+                  data: resolvedData,
+                  vf: resolvedVf,
+                  id,
+                  chartName: vizDetails?.chart_name,
+                  chartSettings,
+                  plotConfig: vizDetails?.plot_config,
+                  fullChatResponse,
+                }}
+              />
             )}
           </Space>
           <Space className="message-container__date-header">
@@ -498,6 +611,7 @@ export default React.memo(MessageLayout, (prev, next) => {
   const seq = prev.chatSequenceId;
   return (
     prev.chatItem === next.chatItem &&
+    prev.environment === next.environment &&
     prev.isFullWidth === next.isFullWidth &&
     prev.isOpenMode === next.isOpenMode &&
     prev.isEditMode === next.isEditMode &&

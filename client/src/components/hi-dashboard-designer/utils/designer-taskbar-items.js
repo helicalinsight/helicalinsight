@@ -13,9 +13,10 @@ import {
 import { designerRedo, designerUndo, resetDesignerState, setToggleToolsAreaShelf, toggleDashboardDrawer, toggleGridItemDrawer, updateGroupId } from "../../../redux/actions/dashboard-designer.actions";
 import { TaskbarIcon } from "../../common/custom-icons/CustomIcon";
 import { handleFullScreenClick } from "../../hi-reports/hr-taskbar-items";
+import SlashIcon from "../../common/icons/slash-icon";
 
 
-export const designerTaskbarItems = ({ isSaving, setRefresh, onSave, onSaveAs, dispatch, refs, designerPast, designerFuture, handleUndo, handleRedo, handleOpenJsonEditor = () => { } }) => {
+export const designerTaskbarItems = ({ isSaving, setRefresh, onSave, onSaveAs, dispatch, refs, designerPast, designerFuture, handleUndo, handleRedo, handleOpenJsonEditor = () => { }, slashOpen = false, onToggleSlash = () => { } }) => {
   let loadingItem = [];
   if (isSaving) {
     loadingItem = [
@@ -184,6 +185,19 @@ export const designerTaskbarItems = ({ isSaving, setRefresh, onSave, onSaveAs, d
       scLocation: "DD",
       icon: <FileTextOutlined className="taskbar-icon" />,
       callBack: handleOpenJsonEditor,
+    },
+    // Shared Slash icon, placed after the last dashboard action. Blue while the window is open.
+    {
+      tooltip: "Slash",
+      dataTestId: "hi-designer-slash-click",
+      icon: (
+        <SlashIcon
+          className="taskbar-icon"
+          data-testid="hi-designer-slash"
+          style={{ color: slashOpen ? "#1890ff" : "currentColor" }}
+        />
+      ),
+      callBack: onToggleSlash,
     },
   ];
 }

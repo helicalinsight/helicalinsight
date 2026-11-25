@@ -33,17 +33,30 @@ const DASHBOARD_STATE_PROTECTED_KEYS = [
     "maximizingStatus"
 ]
 
-const getDashboardEditableReportState = (dashboard) => cloneDeep(omit(dashboard, DASHBOARD_STATE_PROTECTED_KEYS));
+const getDashboardEditableReportState = (dashboard) =>
+    cloneDeep(omit(dashboard, [...DASHBOARD_STATE_PROTECTED_KEYS, "dashboardTitle"]));
 
-const getDashboardForViewer = (dashboard) => JSON.stringify(getDashboardEditableReportState(dashboard), null, 4);
+const getDashboardForViewer = (dashboard) => {
+    const editableState = getDashboardEditableReportState(dashboard);
+    if (typeof dashboard?.savedReportName === "string" && dashboard.savedReportName) {
+        editableState.dashboardTitle = dashboard.savedReportName;
+    }
+    return JSON.stringify(editableState, null, 4);
+};
 
 const mergeJSONIntoDashboard = (
     activeReport = {},
     parsedDashboardState = {},
-) => ({
-    ...cloneDeep(activeReport),
-    ...getDashboardEditableReportState(cloneDeep(parsedDashboardState)),
-});
+) => {
+    const mergedDashboard = {
+        ...cloneDeep(activeReport),
+        ...getDashboardEditableReportState(cloneDeep(parsedDashboardState)),
+    };
+    if (typeof parsedDashboardState.dashboardTitle === "string" && parsedDashboardState.dashboardTitle) {
+        mergedDashboard.savedReportName = parsedDashboardState.dashboardTitle;
+    }
+    return mergedDashboard;
+};
 
 
 export {

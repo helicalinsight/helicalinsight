@@ -65,6 +65,7 @@ import {
   parseHCRNodesData,
   reportViewHcrGenerateReport,
   updateDateRangeFilterValues,
+  updateHCRRelativeDateFilters,
   validateHcrName,
   validateNodes,
 } from "../components/hi-canned-reports/hcrHelperMethods";
@@ -1429,7 +1430,7 @@ const CannedReportsPage = (props) => {
               reqFilters: filters,
             });
           }
-          filters = updateDateRangeFilterValues(filters);
+          filters = updateHCRRelativeDateFilters(updateDateRangeFilterValues(filters));
           setAppliedFilters(filters);
           reportViewHcrGenerateReport({
             queries:

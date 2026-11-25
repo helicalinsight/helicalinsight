@@ -12,6 +12,21 @@ const HREPORT_TITLE_EXCLUDED_MODES = [
 export const shouldUpdateHreportDocumentTitle = (mode) =>
     !HREPORT_TITLE_EXCLUDED_MODES.includes(mode)
 
+export const getHreportSaveInputName = (reportInfo = {}) => {
+    const { location, uuid, reportName } = reportInfo;
+    if (uuid && location) {
+        return reportName;
+    }
+    if (
+        typeof reportName === "string" &&
+        reportName.trim() &&
+        !/^untitled(?:[\s_-]*\d+)?$/i.test(reportName.trim())
+    ) {
+        return reportName;
+    }
+    return "Report_1";
+};
+
 export const validateReportName = (name) => {
     if(name.length < 3){
         return 'Report name should be atleast 3 characters long'

@@ -21,6 +21,9 @@ export function JsonEditorPanel({
   editorClassName = "monaco-json-editor",
   iconClassName = "json-editor-panel-icon",
   active = true,
+  // Inactive editors hide the toolbar unless the caller still wants Find and Copy.
+  showToolbar = active,
+  showSave = true,
 }) {
   const editorRef = useRef(null);
   const toolbarActions = [
@@ -35,19 +38,23 @@ export function JsonEditorPanel({
       icon: SearchOutlined,
     },
     { title: "Copy JSON", onClick: onCopy, icon: CopyOutlined },
-    {
-      title: saveTitle,
-      onClick: onSave,
-      disabled: !hasUnsavedChanges,
-      showIndicator: hasUnsavedChanges,
-      icon: SaveOutlined,
-    },
+    ...(showSave
+      ? [
+          {
+            title: saveTitle,
+            onClick: onSave,
+            disabled: !hasUnsavedChanges,
+            showIndicator: hasUnsavedChanges,
+            icon: SaveOutlined,
+          },
+        ]
+      : []),
   ];
 
   return (
     <div className={className}>
       <div className={toolbarClassName}>
-        {active && toolbarActions.map(({ title, icon: Icon, ...actionProps }) => (
+        {showToolbar && toolbarActions.map(({ title, icon: Icon, ...actionProps }) => (
           <ToolbarIconButton key={title} title={title} {...actionProps}>
             <Icon className={iconClassName} />
           </ToolbarIconButton>

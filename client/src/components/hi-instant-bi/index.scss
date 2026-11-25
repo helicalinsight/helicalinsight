@@ -12,6 +12,12 @@
     // overflow-y: visible !important;
   }
 
+  // Chat-only Slash shell. Drop the grid padding so the chat uses the viewport.
+  &--slash {
+    height: 100%;
+    padding: 0;
+  }
+
   .hi-instant-bi-header {
     background-color: $hi-white;
     height: 10%;

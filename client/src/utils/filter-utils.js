@@ -1304,7 +1304,7 @@ export const compareObjects = (obj1, obj2) => {
 }
 
 export const prepareRelativeOptionFromAnchor = (data = {}) => {
-    const { anchor = {}, isRange = false, index = 1, actualValue } = data
+    const { anchor = {}, isRange = false, index = 1, actualValue, factor = 1 } = data
     const {
         relativePart = "",
         value = 0,
@@ -1341,7 +1341,7 @@ export const prepareRelativeOptionFromAnchor = (data = {}) => {
             if (direction === "last") {
                 if (active === 5) {
                     if (numericValue > 1) {
-                        relativeOption += operator + (numericValue - 1);
+                        relativeOption += operator + (numericValue - factor);
                     }
                     return relativeOption
                 }
@@ -1355,7 +1355,7 @@ export const prepareRelativeOptionFromAnchor = (data = {}) => {
             if (direction === "next") {
                 if (active === 4) {
                     if (numericValue > 1) {
-                        relativeOption += operator + (numericValue - 1);
+                        relativeOption += operator + (numericValue - factor);
                     }
                     return relativeOption
                 }

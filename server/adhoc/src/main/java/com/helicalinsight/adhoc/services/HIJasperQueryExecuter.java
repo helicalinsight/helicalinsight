@@ -17,11 +17,13 @@ import com.helicalinsight.datasource.DataSourceUtils;
 import com.helicalinsight.datasource.DriverConnection;
 import com.helicalinsight.datasource.EnhancedQueryExecutor;
 import com.helicalinsight.datasource.GsonUtility;
+import com.helicalinsight.datasource.PreviewLimit;
 import com.helicalinsight.efw.ApplicationProperties;
 import com.helicalinsight.efw.components.DataSourceSecurityUtility;
 import com.helicalinsight.efw.jasperintegration.JasperUtils;
 import com.helicalinsight.efw.serviceframework.IComponent;
 import com.helicalinsight.efw.utility.JsonUtils;
+import com.helicalinsight.efw.utility.Pair;
 
 /**
  * Handles the execution of Jasper queries and prepares field metadata.
@@ -54,9 +56,8 @@ public class HIJasperQueryExecuter implements IComponent {
         JsonObject connectionPart;
         String dataSourceType;
         String query;
-        String hibernateProcessedQuery;
+        String hibernateProcessedQuery = "";
         JsonObject formData = new JsonObject();
-        efwdJson.addProperty("maxRows", maxRows);
         if (efwdJson.has("temp_uuid") && !efwdJson.has("dir")) {
             efwdJson.addProperty("isTemp", true);
             // efwdJson.put("dir", TempDirectoryCleaner.getTempDirectory().getAbsolutePath());
@@ -70,26 +71,9 @@ public class HIJasperQueryExecuter implements IComponent {
             	DataSourceSecurityUtility.isDataSourceAuthenticatedFromTemp(efwdJson);
                 queryExecutor = new EnhancedQueryExecutor(efwdJson.toString(), applicationProperties);
                 connectionPart = queryExecutor.getConnectionPartFromTemp();
-                String dialectOfDatabase = getDialect(efwdJson, connectionPart);
                 query = queryExecutor.getQueryFromTemp();
-                if(connectionDetails.has("limit")){
-                    String limit = connectionDetails.get("limit").getAsString();
-                    if("full".equalsIgnoreCase(limit)){
-                        formData.addProperty("query", query);
-                        hibernateProcessedQuery=query;
-                    }else{
-                        formData.addProperty("query", query);
-                        hibernateProcessedQuery = ViewLabelsRetrievalComponent.query(formData, dialectOfDatabase, limit);
-                    }
-                }else{
-                    formData.addProperty("query", query);
-                    formData.addProperty("hasStoredProcedure", GsonUtility.optBooleanValue(connectionDetails, "hasStoredProcedure", false));
-                    hibernateProcessedQuery = ViewLabelsRetrievalComponent.query(formData, dialectOfDatabase, maxRows.toString());
-                }
-
-
-                    efwdJson.addProperty("processedLimitQuery", hibernateProcessedQuery);
-
+                Pair<String> driverDialectPair =  getDialect(efwdJson, connectionPart);
+                applyPreviewLimit(efwdJson, connectionDetails, formData, query, driverDialectPair);
             }
             queryExecutor = new EnhancedQueryExecutor(efwdJson.toString(), applicationProperties);
             dataSetJson = queryExecutor.getResultSetFromTemp();
@@ -118,7 +102,7 @@ public class HIJasperQueryExecuter implements IComponent {
         return dataSetJson;
     }
 
-    private String getDialect(JsonObject efwdJson, JsonObject connectionPart) {
+    private Pair<String> getDialect(JsonObject efwdJson, JsonObject connectionPart) {
         String dataSourceType;
         prepareEfwdJson(efwdJson, connectionPart);
         dataSourceType = efwdJson.get("type").getAsString();
@@ -127,7 +111,7 @@ public class HIJasperQueryExecuter implements IComponent {
         efwdJson.addProperty("access", DataSourceSecurityUtility.EXECUTE);
         DriverConnection driverConnection = (DriverConnection) ConnectionProviderFactory.getConnectionFromTemp(efwdJson, dataSourceType);
         String driverClass = driverConnection.getDriverClass();
-        return com.helicalinsight.adhoc.metadata.genericdb.MetadataUtils.dialectOfDatabase(driverClass);
+        return new Pair<>(driverClass, com.helicalinsight.adhoc.metadata.genericdb.MetadataUtils.dialectOfDatabase(driverClass));
     }
 
     private void prepareEfwdJson(JsonObject efwdJson, JsonObject connectionPart) {
@@ -205,6 +189,34 @@ public class HIJasperQueryExecuter implements IComponent {
         }
         field.addProperty("clazz", type);
         fieldArray.add(field);
+    }
+    
+    private void applyPreviewLimit(JsonObject efwdJson, JsonObject connectionDetails, JsonObject formData, String query, Pair<String> driverDialectPair) {
+        String requestedLimit = connectionDetails.has("limit") ? connectionDetails.get("limit").getAsString() : null;
+        
+        String driverClass = driverDialectPair.getLeft();
+        String dialectOfDatabase = driverDialectPair.getRight();
+        
+        PreviewLimit previewLimit = PreviewLimit.resolve(driverClass, requestedLimit, maxRows);
+        
+        efwdJson.addProperty("processedLimitQuery",query);
+        switch (previewLimit.kind()) {
+            case UNLIMITED:
+                break;
+            case STATEMENT:
+                efwdJson.addProperty("maxRows", previewLimit.rows());
+                break;
+            case SQL_WRAP:
+                formData.addProperty("query", query);
+                if (requestedLimit == null) {
+                	efwdJson.remove("maxRows");
+                    formData.addProperty("hasStoredProcedure",GsonUtility.optBooleanValue(connectionDetails, "hasStoredProcedure", false));
+                }
+                efwdJson.addProperty("processedLimitQuery", ViewLabelsRetrievalComponent.query(formData, dialectOfDatabase, Integer.toString(previewLimit.rows())));
+                break;
+            default:
+                break;
+        }
     }
 
     @Override

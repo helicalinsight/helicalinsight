@@ -427,6 +427,45 @@ describe('ChatTabs - Preview tab', () => {
         window.baseURL = prevBaseURL;
     });
 
+    test('sets the Visualization title on the report Explore opens from Instant BI', () => {
+        const prevBaseURL = window.baseURL;
+        const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+        window.baseURL = 'http://localhost';
+        localStorage.removeItem('hreport_active_report');
+        const report = {
+            id: 'hr-1',
+            properties: { title: { show: false, value: '' } },
+            reportData: { properties: { title: { show: false, value: '' } } },
+            reportInfo: { reportName: 'Untitled 1' },
+        };
+        const dispatch = jest.fn((action) => {
+            if (typeof action === 'function') {
+                action(dispatch, () => ({
+                    hreport: { present: { reports: [report] } },
+                }));
+            }
+        });
+        const { container } = renderChatTabs(baseProps({
+            dispatch,
+            vizDetails: { vf_title: 'Total Travel Cost', chart_name: 'Revenue Chart' },
+        }));
+
+        fireEvent.click(
+            container.querySelector('.chart-preview-section__go-to-hreport-button')
+        );
+
+        const stored = JSON.parse(localStorage.getItem('hreport_active_report'));
+        expect(stored.activeHreport.properties.title).toEqual(
+            expect.objectContaining({ show: true, value: 'Total Travel Cost' })
+        );
+        expect(stored.activeHreport.reportData.properties.title).toEqual(
+            expect.objectContaining({ show: true, value: 'Total Travel Cost' })
+        );
+        openSpy.mockRestore();
+        localStorage.removeItem('hreport_active_report');
+        window.baseURL = prevBaseURL;
+    });
+
     test('does not offer navigation when the response has no linked report id', () => {
         const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
         const { container } = renderChatTabs(

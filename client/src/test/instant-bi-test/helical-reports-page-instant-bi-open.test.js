@@ -11,6 +11,10 @@ jest.mock("react-redux", () => ({
   useSelector: (selector) => selector(mockState),
 }));
 
+jest.mock("react-router-dom", () => ({
+  useHistory: () => ({ replace: jest.fn() }),
+}));
+
 jest.mock("../../components", () => ({
   HINavbar: ({ children }) => children,
   HITabs: () => null,

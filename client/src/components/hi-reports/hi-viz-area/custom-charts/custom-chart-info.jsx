@@ -205,7 +205,7 @@ const ComponentsInfo = () => (
         <h3>HI Report-aware Components.</h3>
         <ul>
             <li>Charts: <code>Visualization</code>, <code>Point</code>, <code>WordCloudChart</code>, <code>Relation</code>, <code>CalendarHeatMap</code>, <code>AntProgress</code>, <code>StackedRose</code>, <code>Doughnut</code>, <code>Arc</code>, <code>WaterfallChart</code>, and <code>RadarChart</code>.</li>
-            <li>Maps: <code>Map</code>, <code>MapLine</code>, <code>MapPoint</code>, and <code>MapHeatmap</code>.</li>
+            <li>Maps: <code>Map</code>, which uses the report's selected map mark (point, line, or heatmap).</li>
             <li>Tables: Ant Design <code>Table</code> and HI S2 <code>GridTable</code>.</li>
         </ul>
        
@@ -462,7 +462,7 @@ const kpiCardExample = `function DrawKPICard() {
     return <KPI {...report} data={data} />;
 }`
 
-const mapVariantExample = `function DrawMapPoint() {
-    const { MapPoint } = components;
-    return <MapPoint {...report} data={data} />;
+const mapVariantExample = `function DrawMap() {
+    const { Map } = components;
+    return <Map {...report} data={data} />;
 }`

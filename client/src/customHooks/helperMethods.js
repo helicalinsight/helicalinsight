@@ -7,6 +7,8 @@ const { loginUrl, adminHomeUrl } = routesUrl;
 const { updateAppDetails, updateRoute } = appActions;
 const { URL_AUTHENTICATION, URL_AUTHENTICATION_FAILED } = actionTypes;
 
+export const getRoutePathname = (route = "") => route.split("?")[0];
+
 export function updateActiveRoute({ pathname, activeRoute, isAuthenticated, dispatch, history, nxtRoute, parameters }) {
 	if (isAuthenticated) {
 		if (pathname) {

@@ -30,6 +30,9 @@ import java.util.zip.ZipOutputStream;
 public class FileArchive {
 
     private static final Logger logger = LoggerFactory.getLogger(FileArchive.class);
+    private static final String UNZIP_FAILED = "Selected file to upload couldn't be unzipped.";
+
+    private net.lingala.zip4j.exception.ZipException unzipFailure;
 
     /**
      * Archives the files in fileArray as zipFile
@@ -119,6 +122,7 @@ public class FileArchive {
      * @return true if the operation is successful
      */
     public boolean unzip(String source, String destination, String password) {
+        unzipFailure = null;
         try {
             ZipFile zipFile = new ZipFile(source);
             if (zipFile.isEncrypted()) {
@@ -128,8 +132,23 @@ public class FileArchive {
             zipFile.extractAll(destination);
         } catch (net.lingala.zip4j.exception.ZipException e) {
             logger.error("ZipException", e);
+            unzipFailure = e;
             return false;
         }
         return true;
+    }
+
+    /**
+     * Reason from the last failed {@link #unzip(String, String, String)}.
+     * A path-guard rejection keeps its specific reason. Other zip failures stay generic.
+     */
+    public String unzipFailureMessage() {
+        if (unzipFailure instanceof UnsafeArchiveEntryException) {
+            String message = unzipFailure.getMessage();
+            if (message != null && !message.isEmpty()) {
+                return message;
+            }
+        }
+        return UNZIP_FAILED;
     }
 }

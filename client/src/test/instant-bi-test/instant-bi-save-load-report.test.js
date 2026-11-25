@@ -1,6 +1,7 @@
 import "regenerator-runtime/runtime";
 import { getInsantBISaveData } from "../../components/hi-instant-bi/utils/base";
 import { shouldUseLoadChatPayloadForInsight, buildInstantBIInteractiveChatFormData, parseInstantBIChatResponse } from "../../components/hi-instant-bi/utils/instant-bi-requests";
+import { SLASH_ENVIRONMENT, SLASH_MODE } from "../../components/hi-instant-bi/slash/slash-mode";
 import { loadInstantBiHreports, resolveInstantBiSql } from "../../components/hi-instant-bi/utils/common-utils";
 import createHReportBridge from "../../components/bridges/hreport/hreport-bridge";
 import instantBIReducer from "../../redux/reducers/instant-bi.reducer";
@@ -1434,6 +1435,23 @@ describe("buildInstantBIInteractiveChatFormData", () => {
       chat_sequence_id: 2,
       mode: "think",
       show_llm_activity_details: true,
+    });
+  });
+
+  it("should send Slash mode with the hreport environment", () => {
+    expect(
+      buildInstantBIInteractiveChatFormData({
+        input: "Show sales by region",
+        chatId: "chat-1",
+        chatSequenceId: 2,
+        mode: SLASH_MODE,
+      })
+    ).toEqual({
+      input: "Show sales by region",
+      chatid: "chat-1",
+      chat_sequence_id: 2,
+      mode: SLASH_MODE,
+      environment: SLASH_ENVIRONMENT,
     });
   });
 

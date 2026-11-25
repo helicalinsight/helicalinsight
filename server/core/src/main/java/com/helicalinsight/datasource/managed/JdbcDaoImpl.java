@@ -220,7 +220,8 @@ public class JdbcDaoImpl implements IJdbcDao {
             JdbcQueryExecutor jdbcQueryExecutor;
             logger.debug("limit :" + limit);
             if (limit != null) {
-                //statement.setMaxRows(limit);
+                statement.setMaxRows(limit);
+                statement.setFetchSize(limit);             
                 jdbcQueryExecutor = new HCRJdbcQueryExecutor(statement, sql);
             } else {
                 jdbcQueryExecutor = new JdbcQueryExecutor(statement, sql);

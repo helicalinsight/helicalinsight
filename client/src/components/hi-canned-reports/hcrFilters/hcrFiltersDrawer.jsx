@@ -113,7 +113,7 @@ const HCRFiltersDrawer = ({
       reqFilters = checkRelativeDateFilter(reqFilters, urlParameters);
       setFilters(reqFilters);
       if (isPreviewing) {
-        applyChanges(reqFilters);
+        applyChanges(reqFilters, urlParameters);
       }
     }
   }, [JSON.stringify(urlParameters)]);
@@ -135,7 +135,7 @@ const HCRFiltersDrawer = ({
     }
   };
 
-  function applyChanges(filters) {
+  function applyChanges(filters, urlParams = {}) {
     resetStream(true);
     const query =
       queries.menu.find((query) => query.id === selectedQueryId) || {};
@@ -146,7 +146,7 @@ const HCRFiltersDrawer = ({
       dispatch,
       canvasProperties,
     });
-    filters = updateHCRRelativeDateFilters(updateDateRangeFilterValues(filters));
+    filters = updateHCRRelativeDateFilters(updateDateRangeFilterValues(filters), urlParams);
     setAppliedFilters(cloneDeep(filters));
     if (isValid) {
       if (!isPreviewing) {
