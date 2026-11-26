@@ -15,6 +15,81 @@
   }
 }
 
+.hi-editing-area-container--explored {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.hr-explored-chart {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Explored chart chrome. The insight starts under the chart. Actions sit along the bottom.
+.hr-explored-insight {
+  position: relative;
+  flex: 0 0 auto;
+  // A long explanation scrolls here so the plot keeps most of the canvas.
+  max-height: 34%;
+  overflow: auto;
+  z-index: 2;
+  padding: 4px 8px 8px;
+  background: #fff;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.88);
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.hr-explored-icons {
+  position: absolute;
+  right: 8px;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &--bottom {
+    bottom: 8px;
+  }
+
+  &__fab {
+    border: none;
+    background: transparent;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #3e4557;
+
+    .anticon {
+      font-size: 12px;
+    }
+
+    &:hover,
+    &.is-active {
+      color: #1890ff;
+    }
+  }
+
+  &__fab {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
 .hi-report-container {
   border: none;
   width: 100%;

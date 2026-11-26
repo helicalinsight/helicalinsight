@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.zip.ZipEntry;
@@ -15,6 +16,8 @@ import java.util.zip.ZipOutputStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import com.helicalinsight.efw.utility.FontFileUtils;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
@@ -39,12 +42,15 @@ public class ZipEntryPathGuardTest {
 	public void traversalEntryIsRejectedAndWritesNothing() throws Exception {
 		File archive = archive("marker.crt", "../zipslip-marker.txt", "ok.txt");
 		File extractDir = extractDir("marker_user");
+		FileArchive fileArchive = new FileArchive();
 
-		assertFalse(new FileArchive().unzip(archive.getAbsolutePath(), extractDir.getAbsolutePath(), null));
+		assertFalse(fileArchive.unzip(archive.getAbsolutePath(), extractDir.getAbsolutePath(), null));
 
 		assertFalse(new File(extractDir.getParentFile(), "zipslip-marker.txt").exists());
 		assertFalse(new File(extractDir, "ok.txt").exists());
 		assertFalse(new File(extractDir, "zipslip-marker.txt").exists());
+		assertTrue(fileArchive.unzipFailureMessage().contains("parent path segment"));
+		assertTrue(fileArchive.unzipFailureMessage().contains("../zipslip-marker.txt"));
 	}
 
 	@Test
@@ -64,8 +70,11 @@ public class ZipEntryPathGuardTest {
 		File extractDir = extractDir("absolute_user");
 
 		assertGuardRejects(archive, extractDir);
-		assertFalse(new FileArchive().unzip(archive.getAbsolutePath(), extractDir.getAbsolutePath(), null));
+		FileArchive fileArchive = new FileArchive();
+		assertFalse(fileArchive.unzip(archive.getAbsolutePath(), extractDir.getAbsolutePath(), null));
 		assertFalse(new File(extractDir, "zipslip-abs-marker.txt").exists());
+		assertTrue(fileArchive.unzipFailureMessage().contains("absolute path"));
+		assertTrue(fileArchive.unzipFailureMessage().contains("/zipslip-abs-marker.txt"));
 	}
 
 	@Test
@@ -77,7 +86,24 @@ public class ZipEntryPathGuardTest {
 		File archive = archive("drive.crt", entryName);
 		File extractDir = extractDir("drive_user");
 		assertGuardRejects(archive, extractDir);
+		FileArchive fileArchive = new FileArchive();
+		assertFalse(fileArchive.unzip(archive.getAbsolutePath(), extractDir.getAbsolutePath(), null));
 		assertFalse(new File(extractDir, "zipslip-abs-marker.txt").exists());
+		assertTrue(fileArchive.unzipFailureMessage().contains("drive prefix"));
+		assertTrue(fileArchive.unzipFailureMessage().contains(entryName));
+	}
+
+	@Test
+	public void fontZipRejectionIncludesTheReason() throws Exception {
+		File archive = archive("font.zip", "../zipslip-marker.txt");
+		File fonts = new File(sandbox, "fonts");
+		try {
+			FontFileUtils.extractFontEntriesFromZip(archive, fonts, null);
+			fail("expected IOException");
+		} catch (IOException expected) {
+			assertTrue(expected.getMessage().contains("parent path segment"));
+			assertTrue(expected.getMessage().contains("../zipslip-marker.txt"));
+		}
 	}
 
 	@Test

@@ -234,6 +234,52 @@
   font-weight: 600;
 }
 
+// Refactored the semantic block for Slash: one field per line so words are not split across two columns.
+.ibm-root--stack {
+  padding-right: 0;
+
+  .ibm-pair-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .ibm-section-row,
+  .ibm-kv-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .ibm-section-label,
+  .ibm-kv-label {
+    width: auto;
+    min-width: 0;
+    white-space: normal;
+  }
+
+  .ibm-section-content,
+  .ibm-kv-value,
+  .ibm-pill,
+  .ibm-reason {
+    max-width: 100%;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .ibm-pills,
+  .ibm-token-inline,
+  .ibm-token-row,
+  .ibm-footer {
+    flex-wrap: wrap;
+  }
+
+  .ibm-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
 @media (max-width: 640px) {
   .ibm-pair-row {
     grid-template-columns: 1fr;

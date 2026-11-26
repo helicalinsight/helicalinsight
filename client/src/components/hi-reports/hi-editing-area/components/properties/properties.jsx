@@ -380,6 +380,12 @@ const HrProperties = (props) => {
     setPropertyItems(getPropertyItems(values));
     setKey(new Date());
   }, [
+    // An explored title can arrive after the chart data. Rebuild the form when it does.
+    title?.show,
+    title?.value,
+    title?.fontSize,
+    title?.alignment,
+    title?.fontWeight,
     formatDatatype,
     fieldId,
     report?.fields,

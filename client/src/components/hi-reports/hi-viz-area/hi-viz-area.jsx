@@ -1,11 +1,12 @@
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { Image, Skeleton, Tooltip } from "antd";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { useWindowSize } from "../../../customHooks/useWindowSize.js";
 import ErrorFallback from "../../../errorBoundry/ErrorFallback.jsx";
-import { loadReportData, setAbortRequest, setHReportEditLoading, setHReportLoading, setHreportStylesId, updateReportModal } from "../../../redux/actions/hreport.actions.js";
+import { loadReportData, setAbortRequest, setHReportEditLoading, setHReportLoading, setHreportStylesId, setReportSemantic, updateReportModal } from "../../../redux/actions/hreport.actions.js";
+import { exploredSemanticPayload } from "../../bridges/hreport/utils";
 import {
   getRelativeCacheTime,
   isOpenSource,
@@ -31,6 +32,7 @@ import HIReportModal from "./report-modal/hi-report-modal.jsx";
 import S2chart from "./s2-charts/s2chart.jsx";
 import TableContainer from "./table/table.jsx";
 import Toolbar from "./toolbar.jsx";
+import ExploredChartChrome from "./explored-chart-chrome.jsx";
 import KPICard from "./card/kpi-card.jsx";
 import Watermark from "./watermark/watermark.jsx";
 
@@ -40,6 +42,10 @@ const VizArea = (props) => {
   const chartAreaRef = useRef();
   const [containerHeight, setContainerHeight] = useState(10);
   const [containerWidth, setContainerWidth] = useState(10);
+  const [insightHeight, setInsightHeight] = useState(0);
+  const [explaining, setExplaining] = useState(false);
+  const [liveInsight, setLiveInsight] = useState("");
+  const explainRequestRef = useRef(null);
   const [offsetWidth, offsetHeight] = useWindowSize();
   // const [isAborted, setIsAborted] = useState(false);
   let { reportId, fieldsAreaShelf, parameters, activeDrillthroughId, isPrintMode, resizing, handleExport = () => { }, handlePrintExport = () => { }, downloadingInfoModal = null } = props;
@@ -87,8 +93,23 @@ const VizArea = (props) => {
     customChart,
     measures,
     reportModal,
-    tableFilters
+    tableFilters,
+    instantSemantic,
+    activeTool,
   } = report || {};
+  const exploredInsight = String(instantSemantic?.insight || "").trim();
+  const showExploredChrome = !isPrintMode && Boolean(instantSemantic?.reportModel || exploredInsight);
+  const explainChatId = String(instantSemantic?.chatId || "").trim();
+  const explainSequenceId = String(instantSemantic?.chatSequenceId || "").trim();
+  // Explain is skipped unless both ids were stored with the explored chart.
+  const canExplain = Boolean(explainChatId && explainSequenceId);
+  useEffect(() => {
+    setLiveInsight(exploredInsight);
+  }, [exploredInsight]);
+  useEffect(() => () => explainRequestRef.current?.abort?.(), []);
+  const handleInsightHeight = useCallback((height) => {
+    setInsightHeight((prev) => (prev === height ? prev : height));
+  }, []);
   useEffect(() => {
     if (drillDownList && drillDownList.length) {
       let modifiedState = modifyFilters(report, parameters);
@@ -160,19 +181,23 @@ const VizArea = (props) => {
   useEffect(() => {
     props.getLastModfified({ lastModified });
   }, [lastModified]);
-  let chartAreaHeight = containerHeight;
+  let availableHeight = containerHeight;
   let chartAreaWidth = containerWidth;
 
   if (["create", "edit"].includes(mode) && fieldsAreaShelf) {
-    chartAreaHeight = chartAreaHeight - 60;
+    availableHeight = availableHeight - 60;
   }
   if (reportModal) {
-    chartAreaHeight = offsetHeight - 160;
+    availableHeight = offsetHeight - 160;
     chartAreaWidth = offsetWidth - 160;
   }
+  // The insight is a row under the chart. The drawn chart uses the height that remains.
+  const chartAreaHeight = insightHeight > 0
+    ? Math.max(120, availableHeight - insightHeight)
+    : availableHeight;
 
   let hreportCustomStyles = {
-    height: chartAreaHeight,
+    height: availableHeight,
     overflow: "hidden"
   }
 
@@ -254,6 +279,41 @@ const VizArea = (props) => {
   }
 
   const Notify = notify(dispatch);
+  const handleExplain = () => {
+    if (!canExplain || explaining) return;
+    setExplaining(true);
+    // Loaded on click so the chart canvas does not import the chat request module at startup.
+    import("../../hi-instant-bi/utils/instant-bi-requests").then(({ loadChartDataInsight }) => {
+      explainRequestRef.current?.abort?.();
+      explainRequestRef.current = loadChartDataInsight({
+        hreport: report,
+        dispatch,
+        Notify,
+        reportId,
+        chatId: explainChatId,
+        chatSequenceId: explainSequenceId,
+        userInput: String(instantSemantic?.userInput || "").trim(),
+        agent: instantSemantic?.agent || {},
+        existingChatResponse: {},
+        // The result is written onto this report. The chat message keeps its own copy.
+        skipDispatch: true,
+        onComplete: (result) => {
+          setExplaining(false);
+          explainRequestRef.current = null;
+          const nextInsight = String(result?.insight || result?.response?.insight || "").trim();
+          if (!nextInsight) return;
+          setLiveInsight(nextInsight);
+          dispatch(setReportSemantic({
+            reportId,
+            semanticDetails: exploredSemanticPayload({
+              ...(instantSemantic || {}),
+              insight: nextInsight,
+            }),
+          }));
+        },
+      });
+    }).catch(() => setExplaining(false));
+  };
   const cssData = useMemo(
     () =>
       errorHandlingLiquidJs({
@@ -272,17 +332,17 @@ const VizArea = (props) => {
     const styleChildElement = document.getElementById(dynamicId);
 
     // fix for 6779
-    if (mode !== 'dashboard') {
-      let parentContainer = document.getElementById("hi-editing-area-container")
-      const styleElements = parentContainer.getElementsByTagName('style');
-      if (styleElements) {
-        for (const styleElement of styleElements) {
-          parentContainer.removeChild(styleElement);
+    // getElementsByTagName includes nested style tags, and removeChild throws unless the node is a direct child.
+    if (mode !== 'dashboard' && parent) {
+      Array.from(parent.children).forEach((child) => {
+        if (child.tagName === "STYLE" && String(child.id || "").startsWith("hreport-dynamic-css-")) {
+          child.remove();
         }
-      }
+      });
     }
+    if (!parent) return;
     if (cssData) {
-      if (parent.contains(styleChildElement)) {
+      if (styleChildElement && parent.contains(styleChildElement)) {
         parent.removeChild(styleChildElement);
       }
       parent.appendChild(styleElement);
@@ -427,10 +487,21 @@ const VizArea = (props) => {
       <div
         style={!isPrintMode ? hreportCustomStyles : { overflow: "visible", height: "100%" }}
         ref={chartAreaRef}
-        className="hi-editing-area-container"
+        className={`hi-editing-area-container${showExploredChrome ? " hi-editing-area-container--explored" : ""}`}
         id="hi-editing-area-container"
       >
-        {content}
+        {showExploredChrome ? (
+          <ExploredChartChrome
+            insight={liveInsight || exploredInsight}
+            explaining={explaining}
+            canExplain={canExplain}
+            onExplain={handleExplain}
+            onInsightHeight={handleInsightHeight}
+            activeTool={activeTool}
+          >
+            {content}
+          </ExploredChartChrome>
+        ) : content}
         {openSource ?
           <Watermark
             text={`Powered by ${metaInfo.productName}©${metaInfo.version}`}

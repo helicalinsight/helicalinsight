@@ -82,6 +82,8 @@ import { openMetadata } from "../components/hi-reports/utils/base";
 import useExportOptions from "../hooks/useExportOptions";
 import DashboardJsonEditor from "../components/hi-dashboard-designer/components/json-editor/dashboard-json-editor";
 import { loadReportsFromLocalStorage } from "../redux/actions/hreport.actions";
+import { Slash } from "../components/hi-instant-bi/slash";
+import { DASHBOARD_ENVIRONMENT } from "../components/hi-instant-bi/slash/slash-mode";
 
 const DashboardDesigner = (props) => {
   const gridItemsData = useSelector((state) =>
@@ -95,6 +97,9 @@ const DashboardDesigner = (props) => {
   const { getMenuOptions } = useExportOptions();
   const [refresh, setRefreshFn] = useState(new Date());
   const [openJSONEditor, setOpenJSONEditor] = useState(false);
+  // showSlash toggles the floating window. slashMounted stays true so the chat is not destroyed on the way back.
+  const [showSlash, setShowSlash] = useState(false);
+  const [slashMounted, setSlashMounted] = useState(false);
   const setRefresh = (date) => {
     dispatch(appActions.setShotCutCurrentLocation(""));
     setRefreshFn(date)
@@ -1070,7 +1075,13 @@ const DashboardDesigner = (props) => {
     handleUndo,
     handleRedo,
     setRefresh,
-    handleOpenJsonEditor: () => setOpenJSONEditor(true)
+    handleOpenJsonEditor: () => setOpenJSONEditor(true),
+    slashOpen: showSlash,
+    onToggleSlash: () => {
+      // Mount Slash on the first open and leave it mounted when the icon is clicked again.
+      setSlashMounted(true);
+      setShowSlash((open) => !open);
+    },
   });
 
   let content = (
@@ -1079,7 +1090,16 @@ const DashboardDesigner = (props) => {
         header={<HINavbar taskbar={taskbarItems} />}
         content={designerModule}
       />
-      <DashboardJsonEditor visible={openJSONEditor} onCloseDrawer={() => setOpenJSONEditor(false)} />
+      <DashboardJsonEditor visible={openJSONEditor} onCloseDrawer={() => setOpenJSONEditor(false)} setFileInfo={props.setFileInfo}/>
+      {slashMounted && (
+        <section
+          className="hi-dashboard-slash-float"
+          data-testid="hi-dashboard-slash"
+          style={{ display: showSlash ? "flex" : "none" }}
+        >
+          <Slash environment={DASHBOARD_ENVIRONMENT} />
+        </section>
+      )}
     </>
   );
 

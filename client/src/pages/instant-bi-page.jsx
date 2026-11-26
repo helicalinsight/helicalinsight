@@ -32,7 +32,7 @@ const createReportId = () => {
 };
 
 const HIInstantBI = (props) => {
-  let { mode, file, urlObj = {} } = props;
+  let { mode, file, urlObj = {}, slashMode = false, environment, exploreOnActiveTab = false } = props;
   let [reportId, setReportId] = useState("");
   const {
     activeReportId = '',
@@ -59,6 +59,11 @@ const HIInstantBI = (props) => {
 
   const dispatch = useDispatch();
   const [fileBrowserOptions, setFileBrowserOptions] = useState({});
+  // Slash stays mounted beside the report and shares the file browser flag.
+  // Show its dialog only when Slash opened it, so Connect to Metadata keeps
+  // the metadata and cube extensions instead of the semantic model extension.
+  const [instantFileBrowserOpen, setInstantFileBrowserOpen] = useState(false);
+  const showFileBrowser = useSelector((state) => state.fileBrowser.showFileBrowser);
   const isShareModalVisible = useSelector(
     (state) => state.fileBrowser.isShareModalVisible
   );
@@ -75,6 +80,12 @@ const HIInstantBI = (props) => {
       shareRef.current = false;
     }
   }, [isShareModalVisible]);
+
+  useEffect(() => {
+    if (!showFileBrowser) {
+      setInstantFileBrowserOpen(false);
+    }
+  }, [showFileBrowser]);
 
   useEffect(() => {
     if (isCreateMode) {
@@ -189,9 +200,10 @@ const HIInstantBI = (props) => {
   }, [activeReportId]);
 
   useEffect(() => {
-    if (!isEqual(urlObj, urlObjRef.current) && Object.keys(urlObj).length) {
+    // Slash query has mode and env, not a file. Skip the file-open effect.
+    if (!isEqual(urlObj, urlObjRef.current) && urlObj?.file) {
       urlObjRef.current = urlObj;
-      const fileArray = urlObj?.file.split(".");
+      const fileArray = urlObj.file.split(".");
       const extension = fileArray[fileArray.length - 1];
       if (extension === "metadata") {
         storeMetadata({
@@ -272,6 +284,8 @@ const HIInstantBI = (props) => {
       title: rec.title,
       reportId: activeReportId,
       dispatch,
+      // Slash must not call ai/recommendation/analyst.
+      recommendations: !slashMode,
     });
   };
 
@@ -292,6 +306,8 @@ const HIInstantBI = (props) => {
           title: editModeInfo.title,
           reportId,
           dispatch: thunkDispatch,
+          // Same analyst skip when an agent is opened into Slash.
+          recommendations: !slashMode,
         });
         thunkDispatch(appActions.setEditModeInfo(null));
       });
@@ -327,6 +343,7 @@ const HIInstantBI = (props) => {
       },
       extensionOptions: ["model"],
     });
+    setInstantFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
   const openInstantFileBrowser = () => {
@@ -352,6 +369,7 @@ const HIInstantBI = (props) => {
         ],
       },
     });
+    setInstantFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
 
@@ -391,6 +409,7 @@ const HIInstantBI = (props) => {
           ),
         },
       });
+      setInstantFileBrowserOpen(true);
       dispatch(fileBrowserActions.setShowFileBrowser(true));
     }
   };
@@ -408,9 +427,10 @@ const HIInstantBI = (props) => {
             cancelButtonText="Cancel"
             inputValue={reportName}
           />
-        ),
-      },
-    });
+          ),
+        },
+      });
+    setInstantFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
 
@@ -436,6 +456,9 @@ const HIInstantBI = (props) => {
     reports,
     isMetadataPresent,
     mode,
+    slashMode,
+    environment,
+    exploreOnActiveTab,
     connectMetadata: openFileBrowser
   }
 
@@ -445,7 +468,7 @@ const HIInstantBI = (props) => {
     <div className={isOpenMode ? "hi-instant-bi-open-wrapper" : "height100percent"}>
       <Skeleton loading={loading}>
         <HIInstantBIModule {...propsList} />
-        {<HIFileBrowser {...fileBrowserOptions} />}
+        {instantFileBrowserOpen && <HIFileBrowser {...fileBrowserOptions} />}
         {shareRef.current && (
           <ShareFinalModal
             shareOptions={{
@@ -485,6 +508,11 @@ const HIInstantBI = (props) => {
       />
     </HINavbar>
   );
+
+  // Slash has no navbar or report tabs. The chat module is the whole page.
+  if (slashMode) {
+    return instantBIModule;
+  }
 
   let content = <HILayout header={navbar} content={instantBIModule} />;
 

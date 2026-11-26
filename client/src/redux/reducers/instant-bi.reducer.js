@@ -275,6 +275,26 @@ const instantBIReducer = (
       })
     }
 
+    // Slash delete empties the active chat so Welcome to Slash shows again.
+    case actionTypes.CLEAR_IB_CHAT_MESSAGES: {
+      const { activeChatID = "", reportId } = action.payload || {};
+      return produce(state, (draft) => {
+        draft.reports = draft.reports.map((report) => {
+          if (report.id === reportId) {
+            report.chats = report.chats.map((chat) => {
+              if (chat.chatID === activeChatID) {
+                chat.messageList = []
+              }
+              return chat
+            })
+            report.botStatus = false
+            report.botMessage = ""
+          }
+          return report
+        })
+      })
+    }
+
     case actionTypes.UPDATE_IB_BOT_STATUS: {
       const { reportId, status, botMessage } = action.payload
       return produce(state, (draft) => {

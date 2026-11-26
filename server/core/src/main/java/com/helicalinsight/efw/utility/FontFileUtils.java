@@ -89,7 +89,7 @@ public final class FontFileUtils {
         try {
             FileArchive fileArchive = new FileArchive();
             if (!fileArchive.unzip(zipFile.getAbsolutePath(), tempDirectory.getAbsolutePath(), password)) {
-                throw new IOException("Selected file to upload couldn't be unzipped.");
+                throw new IOException(fileArchive.unzipFailureMessage());
             }
             collectFontFiles(tempDirectory, targetDirectory);
         } finally {

@@ -91,6 +91,7 @@ const actionCreators = {
     updateSubVizType: jest.fn((payload) => ({ type: 'UPDATE_SUB_VIZ_TYPE', payload })),
     toggleCombineCharts: jest.fn((payload) => ({ type: 'TOGGLE_COMBINE_CHARTS', payload })),
     setHReportLoading: jest.fn((payload) => ({ type: 'SET_HREPORT_LOADING', payload })),
+    setReportSemantic: jest.fn((payload) => ({ type: 'SET_REPORT_SEMANTIC', payload })),
     updateAggregations: jest.fn((payload) => ({ type: 'UPDATE_AGGREGATIONS', payload })),
     toggleFloating: jest.fn((payload) => ({ type: 'TOGGLE_FLOATING', payload })),
     loadReportFilters: jest.fn((payload) => ({ type: 'LOAD_REPORT_FILTERS', payload })),
@@ -98,9 +99,20 @@ const actionCreators = {
     changeEditorContent: jest.fn((payload) => ({ type: 'CHANGE_EDITOR_CONTENT', payload })),
     applyReportScripts: jest.fn((payload) => ({ type: 'APPLY_REPORT_SCRIPTS', payload })),
     updateCanvasField: jest.fn((payload) => ({ type: 'UPDATE_CANVAS_FIELD', payload })),
+    // Store the title on the report so the chart snapshot can read it, the same way the reducer does.
+    updateReportProperty: jest.fn((payload) => {
+        const report = latestReport();
+        if (report && payload?.properties) {
+            report.properties = { ...(report.properties || {}), ...payload.properties };
+        }
+        return { type: 'UPDATE_REPORT_PROPERTY', payload };
+    }),
 };
 
 const bridgeUtils = {
+    // This file replaces the bridge utils module, so the helper has to live on the mock too.
+    hasSemanticEntries: (value) =>
+        Boolean(value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length),
     checkReportsAvailable: jest.fn(() => state.reports.length > 0),
     getReportById: jest.fn((dispatchArg, reportId) =>
         state.reports.find((item) => item.id === reportId) || {}

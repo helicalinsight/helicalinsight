@@ -9,8 +9,13 @@ import { appActions, fileBrowserActions, hcrActions } from "../../redux/actions"
 import { hcrTabInitialState } from "../../redux/reducers/hCR.reducer";
 import {
   anchorConstant,
+  changeRangeDateTime,
+  checkIsValidDateFilter,
   checkRelativeDateFilter,
+  datePickerFormat,
   defaultAnchor,
+  getRelativeDateRange,
+  matchDateStr,
 } from "../../utils/filter-utils";
 import { uuid } from "../../utils/uuid";
 import TutorialInfo from "../common/hi-tutorial";
@@ -189,14 +194,21 @@ export const handleHcrFilterChange = ({ value, filter, setFilters }) => {
   }
 };
 
-export const updateHCRRelativeDateFilters = (filters) => {
+export const updateHCRRelativeDateFilters = (filters, urlParameters = {}) => {
   const filtersWithRelativeValue = filters.map((filter) => {
     if (isValidDateFilter(filter)) {
       if (filter.anchor) {
         const { values = [], anchor = {} } = filter || {};
+        const urlParamValues = urlParameters?.[filter.label];
+        let relativeDateFactor = 1;
+        if (urlParamValues) {
+          if (matchDateStr(urlParamValues?.[0] || urlParamValues?.[1])) {
+            relativeDateFactor = 0;
+          }
+        }
         return {
           ...filter,
-          values: getRelativeDateValues({ anchorDateData: anchor, relativeDateAnchors: filter.relativeDateAnchors }, values, filter),
+          values: getRelativeDateValues({ anchorDateData: anchor, relativeDateAnchors: filter.relativeDateAnchors, relativeDateFactor }, values, filter)
         }
       }
       return filter;
@@ -666,6 +678,22 @@ export const getHcrParameterFilters = ({ parameters, hcrDiagramNodesData }) => {
     paraArr.push(obj);
   });
   paraArr = checkRelativeDateFilter(paraArr, filterParameters, true);
+  paraArr = paraArr.map((p) => {
+    if (p.condition === "IN_RANGE" && checkIsValidDateFilter(p) && p.anchor?.relativePart) {
+      const { anchor = {} } = p || {};
+      const { isAnchor, anchorDate, value, part, relativePart, direction, active } = anchor || {}
+      const numericValue = parseInt(value);
+      let { toolTipFormat } = datePickerFormat(p, p.dataType)
+      let dateNow = isAnchor ? anchorDate : moment()._d
+      const [startValue, endValue] = getRelativeDateRange(dateNow, numericValue, part, direction, toolTipFormat, relativePart, active)
+      const [startDate, endDate] = changeRangeDateTime(startValue, endValue, p)
+      return {
+        ...p,
+        values: [startDate, endDate]
+      }
+    }
+    return p;
+  })
 
   return paraArr;
 };

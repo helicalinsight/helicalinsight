@@ -1,4 +1,9 @@
-import { shouldUpdateHreportDocumentTitle, validateReportName, validateDesignerName } from "../../../pages/utils/helperMethods";
+import {
+    getHreportSaveInputName,
+    shouldUpdateHreportDocumentTitle,
+    validateReportName,
+    validateDesignerName,
+} from "../../../pages/utils/helperMethods";
 
 describe('shouldUpdateHreportDocumentTitle', () => {
     test.each([
@@ -38,6 +43,40 @@ describe('validateReportName', () => {
 
     test('should return false if name contains valid characters and length is within limit', () => {
         expect(validateReportName('Valid-Name_1.2')).toBe(false);
+    });
+});
+
+describe('getHreportSaveInputName', () => {
+    test('uses the copied report-spec name before the report has been saved', () => {
+        expect(
+            getHreportSaveInputName({
+                reportName: 'Copied report',
+            })
+        ).toBe('Copied report');
+    });
+
+    test.each([
+        'Untitled',
+        'Untitled 1',
+        'Untitled1',
+        'Untitled 2',
+        'Untitled_12',
+        undefined,
+    ])(
+        'preserves the default name for a new report named %s',
+        (reportName) => {
+            expect(getHreportSaveInputName({ reportName })).toBe('Report_1');
+        }
+    );
+
+    test('uses the existing saved report name', () => {
+        expect(
+            getHreportSaveInputName({
+                location: '/reports',
+                uuid: 'report-id',
+                reportName: 'Saved report',
+            })
+        ).toBe('Saved report');
     });
 });
 

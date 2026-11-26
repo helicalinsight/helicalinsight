@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { CloseOutlined } from "@ant-design/icons";
-import { Drawer } from "antd";
+import { Drawer, Switch } from "antd";
 import { useDispatch, useSelector } from "react-redux";
 import {
   JsonEditorPanel,
@@ -37,8 +37,18 @@ const HrJsonEditor = ({ reportId, getApi }) => {
   );
   const [jsonText, setJsonText] = useState(EMPTY_JSON);
   const [hasUnsavedJsonChanges, setHasUnsavedJsonChanges] = useState(false);
+  const [reportModelText, setReportModelText] = useState(EMPTY_JSON);
+  const [hasUnsavedModelChanges, setHasUnsavedModelChanges] = useState(false);
+  // The header toggle swaps the editor between the report spec and the Instant BI report model.
+  const [showReportModel, setShowReportModel] = useState(false);
+  // An explored report opens on the model. A manual toggle is kept after that.
+  const viewChosenRef = useRef(false);
   const skipJsonSyncRef = useRef(false);
   const lastSerializedJsonRef = useRef("");
+  const skipModelSyncRef = useRef(false);
+  const lastSerializedModelRef = useRef("");
+  // Blocks the editor from clearing while the bridge rebuilds the report and drops semantic state.
+  const applyingModelRef = useRef(false);
   const hasMetadata = Boolean(activeReport?.metadata);
 
   useEffect(() => {
@@ -66,17 +76,47 @@ const HrJsonEditor = ({ reportId, getApi }) => {
     });
   }, [activeReport, hasUnsavedJsonChanges]);
 
+  const storedReportModel = activeReport?.instantSemantic?.reportModel;
+  const hasReportModel = Boolean(
+    storedReportModel
+    && typeof storedReportModel === "object"
+    && !Array.isArray(storedReportModel)
+    && Object.keys(storedReportModel).length,
+  );
+
+  useEffect(() => {
+    if (applyingModelRef.current || hasUnsavedModelChanges || skipModelSyncRef.current) {
+      return;
+    }
+    const nextModelText = hasReportModel
+      ? JSON.stringify(storedReportModel, null, 2)
+      : EMPTY_JSON;
+    if (nextModelText === lastSerializedModelRef.current) {
+      return;
+    }
+    skipModelSyncRef.current = true;
+    lastSerializedModelRef.current = nextModelText;
+    setReportModelText(nextModelText);
+    setHasUnsavedModelChanges(false);
+    requestAnimationFrame(() => {
+      skipModelSyncRef.current = false;
+    });
+  }, [storedReportModel, hasReportModel, hasUnsavedModelChanges]);
+
+  // A new report starts on the spec. The manual toggle is cleared with it.
+  useEffect(() => {
+    viewChosenRef.current = false;
+    setShowReportModel(false);
+  }, [reportId]);
+
+  // An explored report has a model, so the drawer opens on that model until the user switches it.
+  useEffect(() => {
+    if (viewChosenRef.current || !hasReportModel) return;
+    setShowReportModel(true);
+  }, [reportId, hasReportModel]);
+
   const handleCloseDrawer = () => {
     dispatch(changeEditingPane({ id: "1" }));
-  };
-
-  const handleCopyJson = async () => {
-    try {
-      await copyToClipboard(jsonText);
-      notifyFrontend(dispatch, "success", "Copied JSON to clipboard");
-    } catch {
-      notifyFrontend(dispatch, "error", "Failed to copy JSON");
-    }
   };
 
   const handleApplyJson = () => {
@@ -156,9 +196,95 @@ const HrJsonEditor = ({ reportId, getApi }) => {
     setHasUnsavedJsonChanges(true);
   };
 
+  const handleReportModelChange = (nextContent) => {
+    setReportModelText(nextContent ?? "");
+    setHasUnsavedModelChanges(true);
+  };
+
+  const reportMetadataFromReport = (report) => {
+    if (!report?.metadata?.tables) return null;
+    return {
+      metadata: report.metadata,
+      funcs: {
+        functions: report.functions,
+        databaseFunctions: report.databaseFunctions || {},
+      },
+      dateFunctions: report.dateFunctions,
+      isCube: report.isCube,
+      cube: report.cube,
+    };
+  };
+
+  // Rebuild the open report from the edited model. The spec Apply path stays separate.
+  const handleApplyReportModel = async () => {
+    let parsedModel;
+    try {
+      parsedModel = JSON.parse(reportModelText);
+    } catch (error) {
+      notifyFrontend(dispatch, "error", `Invalid JSON: ${error.message}`);
+      return;
+    }
+    if (
+      !parsedModel
+      || typeof parsedModel !== "object"
+      || Array.isArray(parsedModel)
+      || !Object.keys(parsedModel).length
+    ) {
+      notifyFrontend(dispatch, "error", "Report model must be a JSON object.");
+      return;
+    }
+
+    const serializedModel = JSON.stringify(parsedModel, null, 2);
+    applyingModelRef.current = true;
+    lastSerializedModelRef.current = serializedModel;
+    setReportModelText(serializedModel);
+    setHasUnsavedModelChanges(false);
+
+    try {
+      // Deferred so this drawer does not import the bridge while the bridge is still loading the editor.
+      const { applyReportModelToActiveHreport } = await import(
+        "../../../../hi-instant-bi/utils/instant-bi-requests"
+      );
+      const result = await applyReportModelToActiveHreport({
+        dispatch,
+        reportId,
+        reportModel: parsedModel,
+        reportMetadata: reportMetadataFromReport(activeReport),
+        semanticDetails: { reportModel: parsedModel },
+      });
+      if (result?.error) {
+        setHasUnsavedModelChanges(true);
+        notifyFrontend(dispatch, "error", "Failed to apply report model.");
+        return;
+      }
+      notifyFrontend(dispatch, "success", "Report model applied. Updating the report.");
+    } catch (error) {
+      setHasUnsavedModelChanges(true);
+      notifyFrontend(dispatch, "error", `Failed to apply report model: ${error.message}`);
+    } finally {
+      applyingModelRef.current = false;
+    }
+  };
+
+  const displayedJson = showReportModel ? reportModelText : jsonText;
+
   return (
     <Drawer
-      title="Report Spec"
+      title={(
+        <div className="hi-hr-json-editor-title">
+          <span>Report Spec</span>
+          <Switch
+            checked={showReportModel}
+            onChange={(checked) => {
+              viewChosenRef.current = true;
+              setShowReportModel(checked);
+            }}
+            disabled={!hasReportModel && !showReportModel}
+            data-testid="hi-hr-json-report-model-toggle"
+          />
+          <span>Report Model</span>
+        </div>
+      )}
       placement="right"
       width="45%"
       visible
@@ -172,12 +298,20 @@ const HrJsonEditor = ({ reportId, getApi }) => {
         data-testid="hi-hr-json-editor-drawer-body"
       >
         <JsonEditorPanel
-          value={jsonText}
-          onChange={handleJsonChange}
-          onSave={handleApplyJson}
-          onCopy={handleCopyJson}
-          hasUnsavedChanges={hasUnsavedJsonChanges}
-          saveTitle="Apply JSON"
+          value={displayedJson}
+          onChange={showReportModel ? handleReportModelChange : handleJsonChange}
+          onSave={showReportModel ? handleApplyReportModel : handleApplyJson}
+          onCopy={async () => {
+            try {
+              await copyToClipboard(displayedJson);
+              notifyFrontend(dispatch, "success", "Copied JSON to clipboard");
+            } catch {
+              notifyFrontend(dispatch, "error", "Failed to copy JSON");
+            }
+          }}
+          hasUnsavedChanges={showReportModel ? hasUnsavedModelChanges : hasUnsavedJsonChanges}
+          saveTitle={showReportModel ? "Apply Report Model" : "Apply JSON"}
+          showToolbar
         />
       </div>
     </Drawer>

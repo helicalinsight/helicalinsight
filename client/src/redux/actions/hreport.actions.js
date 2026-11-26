@@ -90,6 +90,13 @@ export const clearFiledsShelf = (data) => {
 		payload: data
 	};
 };
+// Clears one report's chart so the next Slash answer does not keep the previous fields.
+export const resetReportCanvas = (data) => {
+	return {
+		type: actionTypes.RESET_REPORT_CANVAS,
+		payload: data
+	};
+};
 export const removeFieldFromCanvas = (data) => {
 	return {
 		type: actionTypes.REMOVE_FIELD_FROM_CANVAS,
@@ -273,6 +280,13 @@ export const updateEditingField = (data) => {
 export const changeEditingPane = (data) => {
 	return {
 		type: actionTypes.CHANGE_EDITING_PANE,
+		payload: data
+	};
+};
+// Keeps the Instant BI report model on the report. The Semantic menu does not use this.
+export const setReportSemantic = (data) => {
+	return {
+		type: actionTypes.SET_REPORT_SEMANTIC,
 		payload: data
 	};
 };

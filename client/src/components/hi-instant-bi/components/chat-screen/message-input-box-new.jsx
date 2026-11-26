@@ -1,7 +1,7 @@
-import { LoadingOutlined, SendOutlined, BulbOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { LoadingOutlined, SendOutlined, BulbOutlined, ThunderboltOutlined, DeleteOutlined } from '@ant-design/icons';
 import { Select, Tooltip } from 'antd';
 import { useEffect, useState } from 'react';
-import { changeIBInputValue, updateInstantBILayout, updateRecommendationsVisibility } from '../../../../redux/actions/instant-bi.actions';
+import { changeIBInputValue, clearIBChatMessages, updateInstantBILayout, updateRecommendationsVisibility } from '../../../../redux/actions/instant-bi.actions';
 import BeatLoader from './beat-loader';
 import ChatSuggestions from './chat-suggestions';
 import "./message-input-box-new.scss";
@@ -10,6 +10,8 @@ import notify from '../../../hi-notifications/notify';
 import AiDisclaimer from './ai-disclaimer';
 import TutorialInfo from '../../../common/hi-tutorial';
 import { CustomIcon } from '../../../common/custom-icons/CustomIcon';
+import { getVizHeight } from '../../utils/common-utils';
+import { DASHBOARD_ENVIRONMENT, SLASH_ENVIRONMENT, useSlashMode } from '../../slash/slash-mode';
 
 const BrainIcon = (props = {}) => (
     <svg
@@ -93,10 +95,24 @@ const MessageInputBoxNew = (props = {}) => {
         onAbortRecommendations = () => { },
         isFullWidth,
         activeReportId,
+        activeReport,
         messages = [],
         chatMode = "auto",
         onChatModeChange = () => { },
+        environment,
     } = props || {}
+    const slashMode = useSlashMode();
+    // The second line names the assistant. The third line names report or dashboard designing.
+    const slashWelcomeLine = slashMode && {
+        [SLASH_ENVIRONMENT]: "I can help you with report designing.",
+        [DASHBOARD_ENVIRONMENT]: "I can help you with dashboard designing.",
+    }[String(environment || "").toLowerCase()];
+    // Slash stays read-only until a semantic model is connected.
+    const slashNeedsModel = slashMode && !isMetadataPresent;
+    // Empty Slash is sized like the hreport chart and shows Welcome to Slash.
+    const slashEmpty = slashMode && !messages?.length;
+    // Do not show autosuggestions in Slash, including after a model is connected.
+    const showSuggestions = (recommendationsVisible || loadingRecommendation) && !isEditMode && !slashMode;
     const [rows, setRows] = useState(1)
     const Notify = notify(dispatch);
     const setInputValue = (value) => {
@@ -126,6 +142,16 @@ const MessageInputBoxNew = (props = {}) => {
             dispatch(updateRecommendationsVisibility({ visible: false, reportId: activeReportId }))
             handleChangeRecommendation("")
         }
+    }
+    // Slash only. Stops a running request and removes every message in this chat.
+    const handleClearChat = () => {
+        if (botStatus) onAbortRequest()
+        const reportId = activeReport?.id || activeReportId
+        const activeChatID = activeReport?.activeChatID
+        if (reportId && activeChatID) {
+            dispatch(clearIBChatMessages({ reportId, activeChatID }))
+        }
+        setInputValue('')
     }
     const connectedAgentName = subject?.model?.file ?? subject?.agent?.file ?? metadata?.data?.modelName ?? "";
     const metadataContainer = (
@@ -221,8 +247,21 @@ const MessageInputBoxNew = (props = {}) => {
         }
     }, [inputValue])
 
+    // slash-panel marks this mode so the composer can be square. --slash is the empty welcome layout.
     return (
-        <div className="ib-chat-container">
+        <div
+            className={`ib-chat-container${slashMode ? " ib-chat-container--slash-panel" : ""}${slashEmpty ? " ib-chat-container--slash" : ""}`}
+            style={slashEmpty ? { height: `${getVizHeight("Chart")}rem`, width: "100%" } : undefined}
+        >
+              {slashEmpty && (
+                <div className="ib-slash-welcome">
+                    <h2>Welcome to Slash</h2>
+                    <p className="ib-slash-welcome__role">Your AI assistant</p>
+                    {slashWelcomeLine && (
+                        <p>{slashWelcomeLine}</p>
+                    )}
+                </div>
+              )}
               {botStatus ?
                 <Tooltip title={"click to abort this request"}>
                     <div className='instant-bi-beat-loader' onClick={() => onAbortRequest()}>
@@ -235,7 +274,7 @@ const MessageInputBoxNew = (props = {}) => {
                 <TutorialInfo elementKey="hi-instant-bi-editor-pane" placement="top">
                 <div
                     // className={`search-container ${isFullWidth ? "no-border-shadow" : ""}`}
-                    className={`search-container`}
+                    className={`search-container${slashMode ? " search-container--square" : ""}`}
                     data-testid="hi-instant-bi-editor-pane"
                 >
                     <div
@@ -246,14 +285,14 @@ const MessageInputBoxNew = (props = {}) => {
                         <textarea
                             type="text"
                             id="ib-search-input"
-                            placeholder="Ask anything about your data here..."
+                            placeholder={slashNeedsModel ? "Connect a semantic model to get started..." : slashMode ? "Ask about your data..." : "Ask anything about your data here..."}
                             value={inputValue}
                             onChange={handleChange}
                             rows={rows}
                             className="search-input"
                             // className={"search-input" + (!isMetadataPresent ? " input-box-disabled" : "")}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter" && !botStatus) {
+                                if (e.key === "Enter" && !botStatus && !slashNeedsModel) {
                                     if (e.shiftKey) {
                                         return;
                                     }
@@ -266,7 +305,7 @@ const MessageInputBoxNew = (props = {}) => {
                                     return;
                                 }
                             }}
-                            disabled={botStatus}
+                            disabled={botStatus || slashNeedsModel}
                         />
                         {/* {isFullWidth ? sendButtonContainer : null} */}
                     </div>
@@ -298,6 +337,19 @@ const MessageInputBoxNew = (props = {}) => {
                                 </span>
                             </InstantBITooltip>
                         </div>
+                        {slashMode && (
+                            <InstantBITooltip title="Clear chat">
+                                <button
+                                    type="button"
+                                    className="icon-button ib-metadata-button ib-slash-clear-chat"
+                                    onClick={handleClearChat}
+                                    data-testid="ib-slash-clear-chat"
+                                    aria-label="Clear chat"
+                                >
+                                    <DeleteOutlined />
+                                </button>
+                            </InstantBITooltip>
+                        )}
                         {sendButtonContainer}
                     </div>
 
@@ -310,11 +362,11 @@ const MessageInputBoxNew = (props = {}) => {
             </div>
 
             {messages?.length > 0 && (
-                <AiDisclaimer className="ib-ai-disclaimer--editor" />
+                <AiDisclaimer className="ib-ai-disclaimer--editor" slashMode={slashMode} />
             )}
 
             {/* chat suggestions */}
-            {((recommendationsVisible || loadingRecommendation) && !isEditMode) && (
+            {showSuggestions && (
                 <ChatSuggestions
                     {...{
                         loadingRecommendation,

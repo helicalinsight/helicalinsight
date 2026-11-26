@@ -87,6 +87,30 @@ describe("JsonEditorPanel", () => {
     );
   });
 
+  it("shows find and copy on a read-only view without save", () => {
+    render(
+      <JsonEditorPanel
+        value="{}"
+        onCopy={jest.fn()}
+        onSave={jest.fn()}
+        onChange={jest.fn()}
+        active={false}
+        showToolbar
+        showSave={false}
+      />,
+    );
+    expect(screen.getByLabelText("Find & Replace")).toBeInTheDocument();
+    expect(screen.getByLabelText("Copy JSON")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Save JSON")).not.toBeInTheDocument();
+    expect(screen.getByTestId("monaco-json-editor")).toHaveAttribute("readonly");
+  });
+
+  it("hides toolbar actions when the panel is inactive", () => {
+    render(<JsonEditorPanel value="{}" active={false} />);
+    expect(screen.queryByLabelText("Find & Replace")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Copy JSON")).not.toBeInTheDocument();
+  });
+
   it("it shoudk supports custom save title", () => {
     render(
       <JsonEditorPanel

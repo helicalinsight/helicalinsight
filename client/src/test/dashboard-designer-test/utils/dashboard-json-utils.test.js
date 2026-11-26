@@ -116,7 +116,8 @@ describe("getDashboardForViewer", () => {
             {
                 dashboardName: "Sales Dashboard",
                 gridItems: [{ id: "item-1", type: "chart" }],
-                layout: { columns: 12, rowHeight: 30 }
+                layout: { columns: 12, rowHeight: 30 },
+                dashboardTitle: "Q3 Overview"
             },
             null,
             4
@@ -132,6 +133,13 @@ describe("getDashboardForViewer", () => {
         DASHBOARD_STATE_PROTECTED_KEYS.forEach((protectedKey) => {
             expect(parsed).not.toHaveProperty(protectedKey);
         });
+    });
+
+    it("includes the saved dashboard name as dashboardTitle without exposing savedReportName", () => {
+        const parsed = JSON.parse(getDashboardForViewer(buildFullDashboard()));
+
+        expect(parsed.dashboardTitle).toBe("Q3 Overview");
+        expect(parsed).not.toHaveProperty("savedReportName");
     });
 
     it("produces valid, re-parseable JSON", () => {
@@ -199,6 +207,18 @@ describe("mergeJSONIntoDashboard", () => {
         const result = mergeJSONIntoDashboard(activeReport, parsedDashboardState);
 
         expect(result.gridItems).toEqual([{ id: "item-5" }]);
+    });
+
+    it("applies dashboardTitle from the spec as the active saved report name", () => {
+        const activeReport = { savedReportName: "" };
+
+        const result = mergeJSONIntoDashboard(activeReport, {
+            dashboardTitle: "AD Dash",
+            layout: { columns: 12 },
+        });
+
+        expect(result.savedReportName).toBe("AD Dash");
+        expect(result).not.toHaveProperty("dashboardTitle");
     });
 
     it("does not mutate either input argument", () => {

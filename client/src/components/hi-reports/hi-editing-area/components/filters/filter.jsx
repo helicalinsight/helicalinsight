@@ -297,7 +297,8 @@ const Filter = (props) => {
       style={{ width: isMouseHover ? "auto" : isReadOnly ? "auto" : "30px" }}
       onMouseLeave={() => setIsMouseHover(false)}
     >
-      {!isHCRFilter && searchConditions.includes(condition) && (
+      {/* {!isHCRFilter && searchConditions.includes(condition) && ( */}
+      {!isHCRFilter && searchConditions.includes(condition) && !isDateFilter(filter) && (
         <Button
           data-testid={`filters-search-icon-${reportId}-${uid}`}
           type="link"
@@ -396,7 +397,8 @@ const Filter = (props) => {
         <Card size="small" title={title} extra={editing ? null : header} className={className} style={{ background: filterBGColor }}>
           {active && (
             <div>
-              {showSearch && searchConditions.includes(condition) && (
+              {/* {showSearch && searchConditions.includes(condition) && ( */}
+              {showSearch && searchConditions.includes(condition) && !isDateFilter(filter) && (
                 <Input
                   data-testid={`filters-search-input-${reportId}-${uid}`}
                   value={search}

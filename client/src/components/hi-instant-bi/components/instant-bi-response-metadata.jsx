@@ -8,6 +8,7 @@ import {
   TableOutlined,
   TagsOutlined,
 } from "@ant-design/icons";
+import { useSlashMode } from "../slash/slash-mode";
 
 const PILL_MEASURE_SELECTOR = "[data-ibm-pill]";
 
@@ -264,7 +265,7 @@ const Pills = ({ items, kind, nowrap = false }) => {
   );
 };
 
-const PillSection = ({ label, items, kind }) => {
+const PillSection = ({ label, items, kind, stackLayout = false }) => {
   const [expanded, setExpanded] = useState(false);
   const [visibleCount, setVisibleCount] = useState(items.length);
   const contentRef = useRef(null);
@@ -309,6 +310,15 @@ const PillSection = ({ label, items, kind }) => {
   const hiddenCount = Math.max(0, items.length - visibleCount);
   const visibleItems = expanded ? items : items.slice(0, visibleCount);
   const canExpand = hiddenCount > 0 || expanded;
+
+  // Refactored the one-line pill row for Slash. Values wrap instead of being clipped to the column width.
+  if (stackLayout) {
+    return (
+      <MetadataRowSection label={label}>
+        <Pills items={items} kind={kind} />
+      </MetadataRowSection>
+    );
+  }
 
   return (
     <MetadataRowSection
@@ -516,6 +526,8 @@ const FooterCountStat = ({ count, singular, plural }) => (
 );
 
 const InstantBIResponseMetadata = ({ sqlDetails = {}, vizDetails = {}, tokenUsage = {} }) => {
+  // Slash stacks fields. Instant BI keeps the two-column semantic block.
+  const stackLayout = useSlashMode();
   const metadata = getInstantBIResponseMetadata({ sqlDetails, vizDetails, tokenUsage });
   const entries = Object.entries(metadata);
   if (!entries.length) return null;
@@ -531,7 +543,7 @@ const InstantBIResponseMetadata = ({ sqlDetails = {}, vizDetails = {}, tokenUsag
   const extraEntries = entries.filter(([key]) => !reservedKeys.has(key));
 
   return (
-    <div className="ibm-root">
+    <div className={`ibm-root${stackLayout ? " ibm-root--stack" : ""}`}>
       <div className="ibm-body">
         {isSqlInsight && (
           <>
@@ -543,6 +555,7 @@ const InstantBIResponseMetadata = ({ sqlDetails = {}, vizDetails = {}, tokenUsag
                     label={section.label}
                     items={section.items}
                     kind={section.kind}
+                    stackLayout={stackLayout}
                   />
                 ))}
               </div>

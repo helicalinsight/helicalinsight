@@ -74,7 +74,7 @@ public class DatabaseJarZipHandler implements IUpload {
                 FileArchive fileArchive = new FileArchive();
                 if (!fileArchive.unzip(destinationFile.getAbsolutePath(), tempFolder.getAbsolutePath(), password)) {
                     logger.error("Selected file to upload couldn't be unzipped. Aborting the process.");
-                    request.setAttribute("response", "Selected file to upload couldn't be unzipped.");
+                    request.setAttribute("response", fileArchive.unzipFailureMessage());
                     return false;
                 }
 

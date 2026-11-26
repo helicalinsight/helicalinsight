@@ -5,11 +5,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextRepository;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * This is sub class of spring framework's UsernamePasswordAuthenticationFilter,
@@ -40,13 +45,45 @@ public class PreAuthenticationFilter extends UsernamePasswordAuthenticationFilte
      */
     private String delimiter = ":";
 
+    /**
+     * Kept locally so a credential-bearing resource request can persist the
+     * security context and continue, instead of going through the login
+     * success handler.
+     */
+    private SecurityContextRepository securityContextRepository;
+
+    @Override
+    public void setSecurityContextRepository(SecurityContextRepository securityContextRepository) {
+        super.setSecurityContextRepository(securityContextRepository);
+        this.securityContextRepository = securityContextRepository;
+    }
+
     protected boolean requiresAuthentication(HttpServletRequest req, HttpServletResponse res) {
-        String username = req.getParameter("j_username");
-        String password = req.getParameter("j_password");
-        String organization = req.getParameter("j_organization");
-        return (username!=null && username!="") && (password!=null && password!="")? true:   super.requiresAuthentication(req, res);
+        if (hasCredentials(req)) {
+            return true;
+        }
+        return super.requiresAuthentication(req, res);
+    }
 
+    /**
+     * Either parameter pair is enough: {@code username}/{@code password}
+     * or {@code j_username}/{@code j_password}. A mix of the two names is
+     * accepted as well.
+     */
+    private boolean hasCredentials(HttpServletRequest req) {
+        String username = firstNonBlank(req.getParameter("username"), req.getParameter("j_username"));
+        String password = firstNonBlank(req.getParameter("password"), req.getParameter("j_password"));
+        return username != null && password != null;
+    }
 
+    private static String firstNonBlank(String primary, String alternate) {
+        if (primary != null && !primary.isEmpty()) {
+            return primary;
+        }
+        if (alternate != null && !alternate.isEmpty()) {
+            return alternate;
+        }
+        return null;
     }
         /**
          * override method which takes HttpServletRequest and HttpServletResponse
@@ -64,6 +101,36 @@ public class PreAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         logger.debug("Attempting for authentication. " + "username = " + request.getParameter("username") + ", " +
                 "password = " + request.getParameter("password"));
         return auth;
+    }
+
+    /**
+     * Credentials on a resource URL (for example
+     * {@code /workflow?...&username=...&password=...} or
+     * {@code /workflow?...&j_username=...&j_password=...})
+     * are not a login-form post. The success handler would otherwise send the
+     * browser to {@code /welcome} ("Login Success") and drop the requested
+     * URL. Persist the authentication and continue to that resource.
+     * A real login post (the configured login processing URL) still uses the
+     * success handler so a saved request or the default target is honored.
+     */
+    @Override
+    protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response,
+                                            FilterChain chain, Authentication authResult)
+            throws IOException, ServletException {
+        if (super.requiresAuthentication(request, response)) {
+            super.successfulAuthentication(request, response, chain, authResult);
+            return;
+        }
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authResult);
+        SecurityContextHolder.setContext(context);
+        if (this.securityContextRepository != null) {
+            this.securityContextRepository.saveContext(context, request, response);
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("Authenticated from request parameters; continuing to " + request.getRequestURI());
+        }
+        chain.doFilter(request, response);
     }
 
     /**

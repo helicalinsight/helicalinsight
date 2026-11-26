@@ -137,4 +137,46 @@ describe("getReportJsonFetchDecision", () => {
     expect(merged.fields).toHaveLength(1);
     expect(JSON.parse(serializeReportJson(merged)).id).toBeUndefined();
   });
+
+  it("serializes the saved report name and applies it without replacing report identity", () => {
+    const report = {
+      id: "report-1",
+      reportInfo: {
+        location: "",
+        uuid: "",
+        reportName: "Travel Data",
+      },
+    };
+
+    const serialized = JSON.parse(serializeReportJson(report));
+    const merged = mergeReportJsonIntoReport(
+      { ...report, reportInfo: { ...report.reportInfo, reportName: "Untitled 2" } },
+      serialized,
+    );
+
+    expect(serialized.reportName).toBe("Travel Data");
+    expect(serialized.reportInfo).toBeUndefined();
+    expect(merged.reportInfo).toEqual({
+      ...report.reportInfo,
+      reportName: "Travel Data",
+    });
+  });
+
+  it("does not allow a pasted name or reportInfo object to overwrite saved report identity", () => {
+    const merged = mergeReportJsonIntoReport(
+      {
+        reportInfo: { location: "/reports", uuid: "saved-report-1", reportName: "Current" },
+      },
+      {
+        reportName: "Pasted Name",
+        reportInfo: { location: "/other", uuid: "other-report", reportName: "Ignored" },
+      },
+    );
+
+    expect(merged.reportInfo).toEqual({
+      location: "/reports",
+      uuid: "saved-report-1",
+      reportName: "Current",
+    });
+  });
 });

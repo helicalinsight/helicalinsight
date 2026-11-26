@@ -6,6 +6,8 @@ import com.helicalinsight.datasource.GlobalDsGlobalIdFinder;
 import com.helicalinsight.efw.utility.JsonUtils;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -27,7 +29,8 @@ public class JdbcServiceImpl implements IJdbcService {
 
     @Autowired
     private IJdbcConnectionService jdbcConnectionService;
-    private Integer limit;
+    private final ThreadLocal<Integer> limit = new ThreadLocal<>();
+
 
     @Override
     public JsonObject execute(@NotNull String connectionsFile, Integer connectionId, String sql) {
@@ -50,8 +53,13 @@ public class JdbcServiceImpl implements IJdbcService {
              json=globalDsGlobalIdFinder.getDataSourceJson(connectionId);
          }
          Connection connection = this.jdbcConnectionService.getDatabaseConnection(json);
-         if (limit != null && (this.jdbcDao instanceof JdbcDaoImpl)) {
-             ((JdbcDaoImpl) this.jdbcDao).setLimit(limit);
+         Integer currentLimit = limit.get();
+         try {
+             if (currentLimit != null && jdbcDao instanceof JdbcDaoImpl) {
+                 ((JdbcDaoImpl) this.jdbcDao).setLimit(currentLimit);
+             }
+         } finally {
+             limit.remove();
          }
          
          return connection;
@@ -59,7 +67,7 @@ public class JdbcServiceImpl implements IJdbcService {
     
 
     public void setLimit(Integer limit) {
-        this.limit = limit;
+        this.limit.set(limit);
     }
     
     @Override

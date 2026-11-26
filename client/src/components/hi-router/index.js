@@ -29,6 +29,7 @@ import useApplicationSettingsCheckLayer from "../../customHooks/applicationSetti
 import ErrorBoundry from "../../errorBoundry/ErrorBoundry";
 import { HIResults } from "..";
 import { defaultRoutes, roleTypes, routesUrl } from "../../app/constants";
+import { readInstantBiSlashCheck, Slash } from "../hi-instant-bi/slash";
 import { appActions } from "../../redux/actions";
 
 const { Content } = Layout;
@@ -65,7 +66,9 @@ export const HIRoutes = () => {
   const activeRoute = useSelector((state) => state.app.activeRoute);
   const accessDeniedInfo = useSelector((state) => state.app.accessDeniedInfo);
   const location = useLocation();
-  const { pathname } = location;
+  const { pathname, search } = location;
+  // #/instant-bi?mode=slash&env=... renders Slash instead of the normal Instant BI page.
+  const slashCheck = readInstantBiSlashCheck(pathname, search, instantBIUrl);
   const store = useStore();
 
   const routesMap = useMemo(
@@ -174,7 +177,12 @@ export const HIRoutes = () => {
                       } ?`
                     }
                   />
-                  {React.cloneElement(component, { urlObj })}
+                  {item.url === instantBIUrl && slashCheck ? (
+                    // Slash is a code entry, not a navbar item. env comes from the check URL.
+                    <Slash environment={slashCheck.environment} urlObj={urlObj} />
+                  ) : (
+                    React.cloneElement(component, { urlObj })
+                  )}
                 </Route>
               );
             })}

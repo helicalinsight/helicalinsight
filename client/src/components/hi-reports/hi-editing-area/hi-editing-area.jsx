@@ -103,12 +103,11 @@ const EditingArea = (props) => {
   const dispatch = useDispatch();
   let { reportId, dashboardFilter, openFileBrowser, isFilterComponent = false, menuOptionsToRemove = [] } = props;
   const tutorialData = useSelector((state) => state.app.tutorialData);
-  let { activeTool, filters, mode, reportData, activeDrillthroughId = '', showAllVisualizations } = useSelector((state) => {
-    let activeReport = state.hreport.present.reports.find(
-      (report) => report.id === reportId
-    );
-    return activeReport;
-  });
+  // A report that is not in state yet must not crash the editor.
+  const selectedReport = useSelector((state) => (
+    state.hreport.present.reports.find((report) => report.id === reportId) || {}
+  ));
+  let { activeTool, filters = [], mode, reportData, activeDrillthroughId = '', showAllVisualizations } = selectedReport;
   const isDrillThroughReport = checkIfDrillThrough(dispatch, reportId, activeDrillthroughId)
 
   const filterMode = mode === "open" || mode === "filter";

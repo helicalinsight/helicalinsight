@@ -14,6 +14,7 @@ import { cloneDeep, isEmpty, isEqual } from "lodash-es";
 import { useEffect, useRef, useState } from "react";
 import { Responsive, WidthProvider } from "react-grid-layout";
 import { useDispatch, useSelector } from "react-redux";
+import { useHistory } from "react-router-dom";
 import { v4 as uuidv4 } from "uuid";
 import { HINavbar, HITabs } from "../components";
 import HIShortcuts from "../components/common/hi-shortcuts/HIShortcuts";
@@ -30,6 +31,9 @@ import FieldsArea from "../components/hi-reports/hi-fields-area/hi-fields-area";
 import "../components/hi-reports/hi-reports.scss";
 import VizArea from "../components/hi-reports/hi-viz-area/hi-viz-area";
 import { checkIfDrillThrough, clearGridChart, addFilter as dilldownFilter } from "../components/hi-reports/hi-viz-area/utils/utillities";
+import { dispatchExploredChartTitle } from "../components/bridges/hreport/hreport-bridge";
+import { Slash } from "../components/hi-instant-bi/slash";
+import { SLASH_ENVIRONMENT } from "../components/hi-instant-bi/slash/slash-mode";
 import getHrTaskBarItems, {
   handleFullScreenClick,
   toggleToolsAreaShelf,
@@ -81,8 +85,13 @@ import {
   exportReport,
   getFieldDisplayName,
   modifyFilters,
+  updateHashFilterParameter,
 } from "../utils/utilities";
-import { shouldUpdateHreportDocumentTitle, validateReportName } from "./utils/helperMethods";
+import {
+  getHreportSaveInputName,
+  shouldUpdateHreportDocumentTitle,
+  validateReportName,
+} from "./utils/helperMethods";
 
 const { Text } = Typography;
 
@@ -100,6 +109,7 @@ const isTestMode = process.env.NODE_ENV === "test";
 
 const HelicalReports = (props) => {
   const dispatch = useDispatch();
+  const history = useHistory();
   let { parameters = {} } = props;
   const paramsRef = useRef({});
   const fileInfoRef = useRef(props.file);
@@ -126,6 +136,11 @@ const HelicalReports = (props) => {
   let [invalidFile, setInValidFile] = useState(null);
   let [downloadingInfo, setDownloadingInfo] = useState(null);
   const [filebrowserOptions, setShowFb] = useState(false);
+  // Slash stays mounted on this page and uses the same file browser flag.
+  // Open this dialog only when the report page asked for it, so a semantic
+  // model connection does not leave Connect to Metadata on the model extension.
+  const [reportFileBrowserOpen, setReportFileBrowserOpen] = useState(false);
+  const showFileBrowser = useSelector((state) => state.fileBrowser.showFileBrowser);
   const [metadataFromSettings, setMetadataFromSettings] = useState(false);
   const [refs, setRefs] = useState({
     generate: generateRef,
@@ -141,6 +156,10 @@ const HelicalReports = (props) => {
     redo: redoRef,
   });
   const [resizing, setResizing] = useState(false)
+
+  useEffect(() => {
+    if (!showFileBrowser) setReportFileBrowserOpen(false);
+  }, [showFileBrowser]);
   let editModeInfo = useSelector((state) => state.app.editModeInfo);
   const isShareModalVisible = useSelector(
     (state) => state.fileBrowser.isShareModalVisible
@@ -149,6 +168,9 @@ const HelicalReports = (props) => {
     state.hreport.present.reports.filter((report) => !report.drillThroughId)
   );
   const activeReportId = useSelector((state) => state.hreport.present.activeReportId);
+  // Slash chart reports stay out of the tab the user is editing.
+  const activeIsInstantReport = reports.some((report) => report.id === activeReportId && report.isInstantReport);
+  const visibleActiveReportId = activeIsInstantReport && reportId ? reportId : activeReportId;
   const isSavingInProgress = useSelector((state) => state.hreport.present.isSavingInProgress);
   const sidebarLoading = useSelector((state) => state.hreport.present.sidebarLoading);
   const keysPressed = useSelector((state) => state.app.keysPressed);
@@ -170,6 +192,10 @@ const HelicalReports = (props) => {
     "chart-area": false,
   });
   const hiAxiosRef = useRef(null);
+  // showSlash toggles the panel. slashMounted stays true so the chat is not destroyed on the way back.
+  // Explore in this panel draws the chart on the open report tab.
+  const [showSlash, setShowSlash] = useState(false);
+  const [slashMounted, setSlashMounted] = useState(false);
   const [metadataChangeModalVisible, setMetadataChangeModalVisible] = useState(false);
   const [metadataToBeChange, setMetdataToBeChange] = useState(null)
   const isPrintMode = props?.parameters?.navigatorUserAgent === "print" && props?.parameters?.mode === "dashboard"
@@ -312,7 +338,33 @@ const HelicalReports = (props) => {
     }
     if (fromInstantBI) {
       if (activeHreport) {
-        dispatch(loadReportFromLocalStorage({ report: activeHreport }));
+        // Bind the page to the chart that Explore opened, not a new empty id.
+        const openedReport = { ...activeHreport, isInstantReport: false };
+        if (openedReport.id) setReportId(openedReport.id);
+        const openedTitle = openedReport.properties?.title || openedReport.reportData?.properties?.title || {};
+        // No dispatch yet: the report is not in the store. This only builds the fast-answer title.
+        const styledTitle = dispatchExploredChartTitle(null, openedTitle, openedTitle.value);
+        // Store that title on the report, then dispatch it once the report is active.
+        // updateReportProperty only updates the active report, which is why the load comes first.
+        const reportToOpen = styledTitle
+          ? {
+            ...openedReport,
+            properties: { ...(openedReport.properties || {}), title: styledTitle },
+            reportData: openedReport.reportData
+              ? {
+                ...openedReport.reportData,
+                properties: {
+                  ...(openedReport.reportData.properties || {}),
+                  title: styledTitle,
+                },
+              }
+              : openedReport.reportData,
+          }
+          : openedReport;
+        dispatch(loadReportFromLocalStorage({ report: reportToOpen }));
+        if (styledTitle) {
+          dispatchExploredChartTitle(dispatch, styledTitle, styledTitle.value);
+        }
       }
       localStorage.removeItem("hreport_active_report");
     }
@@ -504,7 +556,7 @@ const HelicalReports = (props) => {
 
   const { reportName } = useSelector((state) => {
     return (
-      state.hreport.present.reports.find((report) => report.active)?.reportInfo || {}
+      state.hreport.present.reports.find((report) => report.id === visibleActiveReportId)?.reportInfo || {}
     );
   });
   useEffect(() => {
@@ -512,9 +564,12 @@ const HelicalReports = (props) => {
       activeReportId &&
       (["create", "edit"].includes(props.mode) || !props.mode)
     ) {
+      const active = reports.find((report) => report.id === activeReportId);
+      // A Slash preview report must not replace the tab the user is editing.
+      if (active?.isInstantReport) return;
       setReportId(activeReportId);
     }
-  }, [activeReportId]);
+  }, [activeReportId, reports]);
   useEffect(() => {
     if (reportName && shouldUpdateHreportDocumentTitle(props.mode)) {
       document.title = `${reportName} | HI:Helical-Report`;
@@ -525,7 +580,7 @@ const HelicalReports = (props) => {
   });
   const { metadata, preview, fullscreen, isCube, metadataLoading } = useSelector((state) => {
     return (
-      state.hreport.present.reports.find((report) => report.id === activeReportId) || {}
+      state.hreport.present.reports.find((report) => report.id === visibleActiveReportId) || {}
     );
   });
   const activeReport = reports.find((report) => report.id === reportId) || {};
@@ -743,6 +798,7 @@ const HelicalReports = (props) => {
           type: "Save",
         },
       });
+      setReportFileBrowserOpen(true);
       dispatch(fileBrowserActions.setShowFileBrowser(true));
     } else {
       saveReportFile({ ...activeReport }, dispatch);
@@ -760,6 +816,7 @@ const HelicalReports = (props) => {
         type: "Save",
       },
     });
+    setReportFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
   const saveCallback = (dir, fileName) => {
@@ -862,6 +919,7 @@ const HelicalReports = (props) => {
       },
       extensionOptions: ["hr"],
     });
+    setReportFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
   const openForEdit = () => {
@@ -897,6 +955,7 @@ const HelicalReports = (props) => {
       },
       extensionOptions: ["hr"],
     });
+    setReportFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
   const checkIsMetadataPresent = () => metadata !== null && metadata !== undefined
@@ -1139,6 +1198,7 @@ const HelicalReports = (props) => {
       },
       extensionOptions: ["metadata", "cube"],
     });
+    setReportFileBrowserOpen(true);
     dispatch(fileBrowserActions.setShowFileBrowser(true));
   };
   const addReport = () => {
@@ -1215,6 +1275,19 @@ const HelicalReports = (props) => {
     activeReport.filters.map((fltr) => {
       parameters[getFieldDisplayName(fltr)] = fltr.values;
     });
+    if (props.mode === "open" && history?.replace) {
+      const hash = window.location.hash || "";
+      const queryIndex = hash.indexOf("?");
+      const searchParams = new URLSearchParams(
+        queryIndex >= 0 ? hash.slice(queryIndex + 1) : ""
+      );
+      if (searchParams.get("dir") && searchParams.get("file")) {
+        const nextHash = updateHashFilterParameter(hash, label, data);
+        if (hash !== nextHash) {
+          history.replace(nextHash.slice(1));
+        }
+      }
+    }
     setParametersReview(activeReport, { [label]: data });
   };
   const getApi = apiIntance => {
@@ -1267,8 +1340,7 @@ const HelicalReports = (props) => {
   };
   let filebrowserConfig = filebrowserOptions;
   if (filebrowserConfig && filebrowserConfig.footerForm) {
-    const inputValue =
-      reportInfo?.uuid && reportInfo?.location ? reportInfo?.reportName : "Report_1";
+    const inputValue = getHreportSaveInputName(reportInfo);
     filebrowserConfig.footerForm.form = (
       <SaveItems
         formHeading="Report file name"
@@ -1280,7 +1352,8 @@ const HelicalReports = (props) => {
       />
     );
   }
-  let reportsList = reports.map((report) => {
+  // Slash preview reports are not shown as tabs.
+  let reportsList = reports.filter((report) => !report.isInstantReport).map((report) => {
     return { key: report?.id, title: report?.reportInfo?.reportName };
   });
   if (invalidFile) {
@@ -1291,8 +1364,16 @@ const HelicalReports = (props) => {
     }
   }
   if (!isOpenMode && !isDashboardMode && !isFilterMode) {
-    id = activeReportId;
-    reportId = activeReportId;
+    // The chat preview renders its own report. The designer keeps the open tab while that preview report is active.
+    if (props.reportId && (isInstantBICreateMode || isInstantBIOpenMode)) {
+      id = props.reportId;
+      reportId = props.reportId;
+    } else if (!(activeIsInstantReport && reportId)) {
+      id = activeReportId;
+      reportId = activeReportId;
+    } else {
+      id = reportId;
+    }
   }
   if (!id && props.reportId && ["instant-bi-open", "instant-bi-create"].includes(props.mode)) {
     id = props.reportId;
@@ -1414,6 +1495,19 @@ const HelicalReports = (props) => {
         fullscreen,
         getDropdownOptions,
         onExportFormat: (format) => handleExport(activeReportId, format),
+        slashOpen: showSlash,
+        onToggleSlash: () => {
+          // Mount Slash on the first open and leave it mounted when the icon is clicked again.
+          setSlashMounted(true);
+          setShowSlash((open) => {
+            const next = !open;
+            // The editing column is hidden when the tools shelf is closed, so open it with Slash.
+            if (next && !toolsAreaShelf) {
+              toggleToolsAreaShelf(dispatch, () => handleToggle("toolsAreaShelf", true));
+            }
+            return next;
+          });
+        },
       })}
     >
       <HITabs
@@ -1421,7 +1515,7 @@ const HelicalReports = (props) => {
         add={addReport}
         addTabRef={addTabRef}
         remove={deleteReport}
-        tabData={{ panes: reportsList, activeKey: activeReportId }}
+        tabData={{ panes: reportsList, activeKey: visibleActiveReportId }}
         setTabData={changeTab}
       />
     </HINavbar>
@@ -1475,7 +1569,7 @@ const HelicalReports = (props) => {
                     hideSideBar={false}
                     parentContainerId={parentContainerId}
                   />
-                  {filebrowserConfig && <HIFileBrowser {...filebrowserConfig} />}
+                  {reportFileBrowserOpen && filebrowserConfig && <HIFileBrowser {...filebrowserConfig} />}
                   <div
                     className="hr-resize-pin"
                     onClick={() => handlePin("sidebar-area")}
@@ -1496,6 +1590,15 @@ const HelicalReports = (props) => {
             >
               {!(preview || !toolsAreaShelf) && (
                 <>
+                  {slashMounted && (
+                    <div
+                      className="hr-editing-area hr-editing-area--slash"
+                      style={{ display: showSlash ? "block" : "none" }}
+                    >
+                      <Slash environment={SLASH_ENVIRONMENT} exploreOnActiveTab={true} />
+                    </div>
+                  )}
+                  {!showSlash && (
                   <EditingArea
                     getApi={getApi}
                     reportId={reportId}
@@ -1505,6 +1608,7 @@ const HelicalReports = (props) => {
                     openFileBrowser={openFileBrowser}
                     vizRef={vizRef}
                   />
+                  )}
                   <div
                     className="hr-resize-pin"
                     onClick={() => handlePin("editing-area")}

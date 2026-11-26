@@ -1,7 +1,14 @@
-import createHReportBridge from "../hreport/hreport-bridge";
-import { getReportModelInteractions } from "../../hi-instant-bi/utils/report-model-interactions";
-import { getReportById } from "../hreport/utils";
 import { isEmpty } from "lodash";
+import {
+  setFilterCounter,
+  setPreviewMode,
+  storeDashboardConfig,
+  storeFiltersList,
+  updateDashboardInstantSubject,
+} from "../../../redux/actions/dashboard-designer.actions";
+import { getReportModelInteractions } from "../../hi-instant-bi/utils/report-model-interactions";
+import createHReportBridge from "../hreport/hreport-bridge";
+import { getReportById } from "../hreport/utils";
 
 export const DASHBOARD_CREATE_TILE = "dashboard-create-component";
 
@@ -116,5 +123,51 @@ function createIBDashboardBridge({
     },
   };
 }
+
+// Instant BI builds the dashboard. This is the only place that writes it onto the designer.
+export const applyDashboardOnDesigner = ({
+  dispatch,
+  dashboardConfig = {},
+  reports = [],
+  subject = {},
+  preview = false,
+} = {}) => {
+  if (typeof dispatch !== "function") return null;
+  const gridItemsData = Array.isArray(dashboardConfig.gridItemsData) ? dashboardConfig.gridItemsData : [];
+  // An empty config must not clear the canvas the user is already editing.
+  if (!gridItemsData.length) return null;
+
+  // Replace the open designer canvas with this dashboard.
+  dispatch(storeDashboardConfig(dashboardConfig));
+  // The designer page stays editable. Preview is only for an embedded viewer.
+  dispatch(setPreviewMode(Boolean(preview)));
+  gridItemsData.forEach((gridItem) => {
+    if (gridItem.compType === DASHBOARD_CREATE_TILE) {
+      const hreportId = gridItem?.reportInfo?.hreportId || "";
+      const report = reports.find((item) => item.id === hreportId);
+      if (report?.filters?.length) {
+        // Tile filters belong to the report. Copy them onto the designer item.
+        dispatch(storeFiltersList({
+          filtersList: report.filters,
+          designerItemId: gridItem.id,
+          reportId: hreportId,
+        }));
+      }
+    }
+    if (gridItem.compType === "filter-component") {
+      // A filter tile needs the designer filter shelf.
+      dispatch(setFilterCounter(true));
+    }
+  });
+  if (subject && Object.keys(subject).length) {
+    // Canvas charts query through the same semantic model as the chat.
+    dispatch(updateDashboardInstantSubject(subject));
+  }
+
+  // Build tile reports that are not already in state. Reports that exist are left alone.
+  const bridge = createIBDashboardBridge({ dispatch, gridItemsData });
+  bridge.init();
+  return bridge;
+};
 
 export default createIBDashboardBridge;

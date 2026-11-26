@@ -7,6 +7,7 @@ import Filters from "../../../components/hi-reports/hi-editing-area/components/f
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { openMetadata } from "../../../components/hi-reports/utils/base";
+import { defaultAnchor } from "../../../utils/filter-utils";
 import "regenerator-runtime/runtime";
 import { hiMockAxios } from "../../../app/mock-axios";
 const crypto = require("crypto");
@@ -156,5 +157,104 @@ describe("Hreport filters", () => {
     expect(screen.queryByTestId(/filters-advance-btn-test_123/i)).toBeTruthy();
     await waitFor(()=>openMetadata({location:"naresh",metadataFileName:"Metadata_1.metadata"},dispatch))
     expect(screen.queryByTestId(/filters-search-input-test_123-booking_platform/i)).toBeFalsy();
+  });
+
+  test("Hide search icon and input for Date filter when Date Picker is selected", () => {
+    const dateFilterState = {
+      ...intialFiltersState,
+      reports: [
+        {
+          ...intialFiltersState.reports[0],
+          filters: [
+            {
+              ...intialFiltersState.reports[0].filters[0],
+              uid: "date_filter_1",
+              column: "travel_details.travel_date",
+              label: "travel_date",
+              dataType: "date",
+              datePart: "individual",
+              dateValuesType: "datePicker",
+              condition: "EQUALS",
+              active: true,
+              showSearch: true,
+              values: [],
+              anchor: defaultAnchor(),
+            },
+          ],
+        },
+      ],
+    };
+    render(<App intial_hreport_state={dateFilterState} reportId={"test_123"} />);
+    expect(screen.queryByTestId("date-filter-travel_details.travel_date")).toBeTruthy();
+    expect(screen.queryByTestId("filters-search-icon-test_123-date_filter_1")).toBeFalsy();
+    expect(screen.queryByTestId("filters-search-input-test_123-date_filter_1")).toBeFalsy();
+  });
+
+  test("Hide search icon and input for DateTime filter when Date Picker is selected", () => {
+    const dateTimeFilterState = {
+      ...intialFiltersState,
+      reports: [
+        {
+          ...intialFiltersState.reports[0],
+          filters: [
+            {
+              ...intialFiltersState.reports[0].filters[0],
+              uid: "datetime_filter_1",
+              column: "dimdate.modified_date",
+              label: "modified_date",
+              dataType: "dateTime",
+              datePart: "individual",
+              dateValuesType: "datePicker",
+              condition: "EQUALS",
+              active: true,
+              showSearch: true,
+              values: [],
+              anchor: defaultAnchor(),
+            },
+          ],
+        },
+      ],
+    };
+    render(<App intial_hreport_state={dateTimeFilterState} reportId={"test_123"} />);
+    expect(screen.queryByTestId("date-filter-dimdate.modified_date")).toBeTruthy();
+    expect(screen.queryByTestId("filters-search-icon-test_123-datetime_filter_1")).toBeFalsy();
+    expect(screen.queryByTestId("filters-search-input-test_123-datetime_filter_1")).toBeFalsy();
+  });
+
+  test("Show search icon and input for Date filter only when Select is selected", () => {
+    const dateSelectFilterState = {
+      ...intialFiltersState,
+      reports: [
+        {
+          ...intialFiltersState.reports[0],
+          filters: [
+            {
+              ...intialFiltersState.reports[0].filters[0],
+              uid: "date_filter_select",
+              column: "travel_details.travel_date",
+              label: "travel_date",
+              dataType: "date",
+              datePart: "individual",
+              dateValuesType: "select",
+              condition: "EQUALS",
+              active: true,
+              showSearch: false,
+              values: [],
+              anchor: defaultAnchor(),
+            },
+          ],
+        },
+      ],
+    };
+    render(<App intial_hreport_state={dateSelectFilterState} reportId={"test_123"} />);
+    expect(screen.queryByTestId("date-filter-travel_details.travel_date")).toBeTruthy();
+    const searchIcon = screen.queryByTestId("filters-search-icon-test_123-date_filter_select");
+    expect(searchIcon).toBeTruthy();
+    fireEvent.click(searchIcon);
+    expect(screen.queryByTestId("filters-search-input-test_123-date_filter_select")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Date Picker"));
+    expect(screen.queryByTestId("filters-search-icon-test_123-date_filter_select")).toBeFalsy();
+    expect(screen.queryByTestId("filters-search-input-test_123-date_filter_select")).toBeFalsy();
   });
 });

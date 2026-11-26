@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.helicalinsight.adhoc.MultiConnectionMergeAdhocTable;
-import com.helicalinsight.adhoc.genericsql.PreConstructedFilters;
 import com.helicalinsight.adhoc.metadata.genericdb.MetadataDBUtility;
 import com.helicalinsight.adhoc.metadata.jaxb.*;
 import com.helicalinsight.adhoc.security.SqlQueryMetadataValidator;
@@ -23,11 +22,8 @@ import com.helicalinsight.efw.exceptions.EfwServiceException;
 import com.helicalinsight.efw.exceptions.RequiredParameterIsNullException;
 import com.helicalinsight.efw.framework.utils.ApplicationContextAccessor;
 import com.helicalinsight.efw.serviceframework.IComponent;
-import com.helicalinsight.efw.utility.DialectHelper;
 import com.helicalinsight.efw.utility.EfwdDatasourceUtils;
 import com.helicalinsight.efw.utility.ResultSetToJson;
-import org.hibernate.cfg.Environment;
-import org.hibernate.dialect.Dialect;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -131,7 +127,6 @@ public class DatabaseQueryExecutor implements IComponent {
                  SqlQueryMetadataValidator.validateSelectAgainstRestrictedMetadata(
                          query, metadataFileJson, metadataServiceData);
              }
-             query = handleSecurityConstraint(metadata, query);
              if (GsonUtility.optBoolean(formJson, "replaceView")) {
                  query = DerivedTableViewReplacer.replaceViewsInQuery(
                          query, metadata, metadataServiceData, location, metadataFileName,
@@ -210,118 +205,6 @@ public class DatabaseQueryExecutor implements IComponent {
         String metadataResult = metadataProvider.doService("adhoc", "metadata", "get", serviceFormData.toString());
         JsonObject serviceJson = JsonParser.parseString(metadataResult).getAsJsonObject();
         return ControllerUtils.getDataFromResponse(serviceJson);
-    }
-
-    private static String handleSecurityConstraint(Metadata metadata, String query) {
-
-        ConnectionDetails connectionDetails = metadata.getConnectionDetails();
-
-        String dialect = connectionDetails.getDialect();
-
-        Properties properties = new Properties();
-        properties.put(Environment.DIALECT, dialect);
-
-        Dialect hibernateDialect = DialectHelper.getDialect(properties);
-
-        char openQuote = hibernateDialect.openQuote();
-
-
-        char closeQuote = hibernateDialect.closeQuote();
-
-
-        PreConstructedFilters pf = new PreConstructedFilters(metadata, String.valueOf(openQuote), String.valueOf(closeQuote));
-
-        List<String> requestedTables = new ArrayList<>();
-        Database database = metadata.getDatabase();
-        String databaseName = "";
-
-
-        if (database != null) {
-            String name = database.getName();
-            if (name != null && !name.isEmpty()) {
-                databaseName = name + ".";
-            } else {
-                databaseName = "";
-            }
-
-            Tables tables = database.getTables();
-            if (tables != null) {
-                List<Table> tableList = tables.getTableList();
-                if (tableList != null) {
-                    for (Table t : tableList) {
-                        String tName = t.getName();
-                        String tableName = openQuote + tName + closeQuote;
-                        if (query.contains(tableName)) {
-                            requestedTables.add(databaseName + tName);
-                        }
-                    }
-                }
-            }
-        }
-        if (!requestedTables.isEmpty()) {
-            String restrictedWhere = pf.preConstructedWhereClause(requestedTables);
-            if (!query.contains(restrictedWhere)) {
-                query = addOrAppendWhereClause(query, restrictedWhere);
-            }
-        }
-        return query;
-    }
-
-    public static String addOrAppendWhereClause(String sql, String condition) {
-        if (condition == null || condition.trim().isEmpty()) {
-            return sql;
-        }
-
-        String normalizedSql = sql.trim();
-        String lowerSql = normalizedSql.toLowerCase();
-
-        int whereIndex = indexOfOuterClause(lowerSql, "where");
-        int groupByIndex = indexOfOuterClause(lowerSql, "group by");
-        int havingIndex = indexOfOuterClause(lowerSql, "having");
-        int orderByIndex = indexOfOuterClause(lowerSql, "order by");
-        int limitIndex = indexOfOuterClause(lowerSql, "limit");
-        int offsetIndex = indexOfOuterClause(lowerSql, "offset");
-        int fetchIndex = indexOfOuterClause(lowerSql, "fetch first");
-        int rownumIndex = indexOfOuterClause(lowerSql, "rownum");
-
-        // Determine earliest clause after WHERE to insert before
-        int insertPos = normalizedSql.length();
-        for (int idx : new int[]{groupByIndex, havingIndex, orderByIndex, limitIndex, offsetIndex, fetchIndex, rownumIndex}) {
-            if (idx != -1 && idx < insertPos) {
-                insertPos = idx;
-            }
-        }
-
-        if (whereIndex == -1 || whereIndex > insertPos) {
-            // No WHERE clause before next clause → add new WHERE before that clause
-            String beforeInsert = normalizedSql.substring(0, insertPos).trim();
-            String afterInsert = normalizedSql.substring(insertPos);
-            return beforeInsert + " WHERE " + condition + " " + afterInsert;
-        } else {
-            // There is a WHERE clause in the outer query, append condition using AND
-            // Find the end of the WHERE clause before other clauses
-            String beforeInsert = normalizedSql.substring(0, insertPos).trim();
-            String afterInsert = normalizedSql.substring(insertPos);
-            return beforeInsert + " AND " + condition + " " + afterInsert;
-        }
-    }
-    // Looks for a keyword only at outer query level
-    private static int indexOfOuterClause(String lowerSql, String keyword) {
-        int depth = 0;
-        for (int i = 0; i <= lowerSql.length() - keyword.length(); i++) {
-            char ch = lowerSql.charAt(i);
-            if (ch == '(') depth++;
-            else if (ch == ')') depth--;
-            else if (depth == 0 && lowerSql.startsWith(keyword, i)) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    // For WHERE specifically (optional: merge with indexOfOuterClause)
-    private static int indexOfOuterWhere(String lowerSql) {
-        return indexOfOuterClause(lowerSql, "where");
     }
 
 }

@@ -8,12 +8,15 @@ import {
     changeFilterCondition,
     changeFilterValue,
     changeOptions,
+    changeReport,
     createFilter,
     loadIntialReport,
     loadMetadata,
     loadReportFilters,
     removeFieldFromCanvas,
+    resetReportCanvas,
     setHReportLoading,
+    setReportSemantic,
     toggleFloating,
     updateAggregations,
     updateCanvasField,
@@ -24,6 +27,7 @@ import {
     updateFilter,
     updateFilterAlias,
     updateOrderBy,
+    updateReportProperty,
     updateSelectedType,
     updateSubVizType,
     toggleCombineCharts
@@ -35,7 +39,7 @@ import {
     openMetadata
 } from '../../hi-reports/utils/base';
 import { getTableTree } from '../../hi-reports/utils/utilities';
-import { checkReportsAvailable, getReportById, getUserState } from './utils';
+import { checkReportsAvailable, exploredSemanticPayload, getReportById, getUserState } from './utils';
 import { resolveHreportSelectedType } from './viz-type-map';
 import {
     compareObjects,
@@ -203,6 +207,13 @@ function getHreportInfo(reportModel = {}) {
         })
     }
 
+    // Fallback title when the chat did not send vf_title. The Visualization panel stores its own title object later.
+    const chartTitle = String(
+        (typeof props.title === "string" ? props.title : "")
+        || viz?.vf_title
+        || ""
+    ).trim();
+
     return {
         metadataInfo: {
             location,
@@ -217,9 +228,39 @@ function getHreportInfo(reportModel = {}) {
         dualAxisMeasures: Array.isArray(dualAxisMeasures) ? dualAxisMeasures : [],
         vfTemplate: atob(vf_template),
         limitBy,
-        filterExpression
+        filterExpression,
+        chartTitle,
     }
 }
+
+// Match the Instant BI fast-answer title: left, 14px, weight 600.
+// Other title fields (color, padding, position) stay as they are on the report.
+const exploredChartTitle = (currentTitle = {}, exploredTitle = "") => {
+    const value = String(exploredTitle || "").trim();
+    if (!value) return null;
+    return {
+        ...currentTitle,
+        show: true,
+        value,
+        alignment: "left",
+        fontSize: 14,
+        fontWeight: 600,
+    };
+};
+
+// updateReportProperty copies this onto report.properties and report.reportData.properties.
+// The chart and the Visualization panel both read report.reportData.properties.title.
+// Call without a dispatch to build the title object only.
+export const dispatchExploredChartTitle = (dispatch, currentTitle, exploredTitle) => {
+    const title = exploredChartTitle(currentTitle, exploredTitle);
+    if (!title) return null;
+    if (typeof dispatch === "function") {
+        dispatch(updateReportProperty({
+            properties: { title },
+        }));
+    }
+    return title;
+};
 
 function createHReportBridge(props = {}) {
     const {
@@ -230,7 +271,14 @@ function createHReportBridge(props = {}) {
         onComplete = () => { },
         onError = () => { },
         eventUpdater = () => { },
-        interactions = {}
+        interactions = {},
+        reuseActiveReport = false,
+        visibleReportTab = false,
+        reportName = "",
+        // Used for the chart title and to keep the report model. SQL, viz, and token fields are not stored.
+        semanticDetails = null,
+        // Passed by Slash when a chart is drawn onto a report. The Instant BI chat chart does not pass it.
+        setChartTitle = false,
     } = props;
 
     let reportId = hReportId ? hReportId : uuidv4(),
@@ -245,7 +293,8 @@ function createHReportBridge(props = {}) {
         vfTemplate = "",
         canvasFieldIds = {},
         limitBy = null,
-        filterExpression = [];
+        filterExpression = [],
+        chartTitle = "";
 
     function setupReportData(reportModel) {
         const reportData = getHreportInfo(reportModel);
@@ -261,9 +310,17 @@ function createHReportBridge(props = {}) {
         canvasFieldIds = {};
         limitBy = reportData.limitBy;
         filterExpression = reportData.filterExpression;
+        // Kept so the chart can still be titled when Explore has no chat title.
+        chartTitle = reportData.chartTitle || "";
     }
 
     function registerReport() {
+        // Explore replaces the open report tab. Clear the previous chart before drawing the new one.
+        if (reuseActiveReport) {
+            dispatch(changeReport({ id: reportId }));
+            dispatch(resetReportCanvas({ reportId }));
+            return;
+        }
         const available = checkReportsAvailable(dispatch);
         if (!available) {
             addInitialReport();
@@ -272,12 +329,21 @@ function createHReportBridge(props = {}) {
         }
     }
 
+    function reportRegistration() {
+        return {
+            reportId,
+            isInstantReport: !visibleReportTab,
+            undoRedoAction: true,
+            ...(visibleReportTab && reportName ? { reportName } : {}),
+        };
+    }
+
     function addReport() {
-        dispatch(addNewReport({ reportId, isInstantReport: true, undoRedoAction: true }));
+        dispatch(addNewReport(reportRegistration()));
     }
 
     function addInitialReport() {
-        dispatch(loadIntialReport({ reportId, isInstantReport: true, undoRedoAction: true }));
+        dispatch(loadIntialReport(reportRegistration()));
     }
 
     function isObject(obj) {
@@ -595,6 +661,14 @@ function createHReportBridge(props = {}) {
     function addProperties() { } // to do
 
     function onReportGenSuccess() {
+        // The canvas draws the insight from this payload and uses the chat ids to explain again.
+        const storedSemantic = exploredSemanticPayload(semanticDetails);
+        if (!isEmpty(storedSemantic)) {
+            dispatch(setReportSemantic({
+                reportId,
+                semanticDetails: storedSemantic,
+            }));
+        }
         onComplete(true, getCurrentReport());
         lookForLoadingReports()
     }
@@ -617,10 +691,44 @@ function createHReportBridge(props = {}) {
 
     }
 
+    function reportWithExploredTitle(report) {
+        // The chat preview keeps the title the chart already draws. Slash opts in when it places the chart on a report.
+        if (!setChartTitle || !report) return report;
+        // The chat title wins. The model title is only used when the chat has none.
+        const title = exploredChartTitle(
+            report.properties?.title || {},
+            semanticDetails?.vizDetails?.vf_title || chartTitle
+        );
+        if (!title) return report;
+        // generateReport snapshots properties. The drawn chart reads reportData.properties.
+        const properties = { ...(report.properties || {}), title };
+        return {
+            ...report,
+            properties,
+            reportData: report.reportData
+                ? {
+                    ...report.reportData,
+                    properties: { ...(report.reportData.properties || {}), title },
+                }
+                : report.reportData,
+        };
+    }
+
     function displayReport() {
-        const activeReport = getCurrentReport();
+        const currentReport = getCurrentReport();
+        const titledReport = reportWithExploredTitle(currentReport);
+        const title = titledReport?.properties?.title;
+        // The fetch replaces reportData with a copy taken at request time, which drops a later write.
+        // Dispatch before the request, and again after the data lands, so the panel keeps this title.
+        if (titledReport !== currentReport && title) {
+            dispatchExploredChartTitle(dispatch, title, title.value);
+        }
         const user = getUserState(dispatch);
-        generateReport({ ...activeReport, user }, dispatch, onReportGenSuccess);
+        generateReport({ ...titledReport, user }, dispatch, onReportGenSuccess, () => {
+            if (titledReport !== currentReport && title) {
+                dispatchExploredChartTitle(dispatch, title, title.value);
+            }
+        });
     }
 
     function getCurrentReport() {

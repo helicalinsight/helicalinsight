@@ -43,10 +43,16 @@ export const METADATA_MISMATCH_MESSAGE =
 const getEditableReportState = (reportState = {}) =>
   cloneDeep(omit(reportState, REPORT_JSON_PROTECTED_KEYS));
 
-export const buildReportJsonDocument = getEditableReportState;
+export const buildReportJsonDocument = (reportState = {}) => {
+  const reportJson = getEditableReportState(reportState);
+  if (typeof reportState?.reportInfo?.reportName === "string") {
+    reportJson.reportName = reportState.reportInfo.reportName;
+  }
+  return reportJson;
+};
 
 export const serializeReportJson = (activeReport) =>
-  JSON.stringify(getEditableReportState(activeReport), null, 2);
+  JSON.stringify(buildReportJsonDocument(activeReport), null, 2);
 
 export const parseReportJsonText = (rawJsonText) => {
   if (!rawJsonText?.trim()) {
@@ -66,12 +72,29 @@ export const parseReportJsonText = (rawJsonText) => {
 export const mergeReportJsonIntoReport = (
   activeReport,
   parsedReportState = {},
-) => ({
-  ...activeReport,
-  ...getEditableReportState(parsedReportState),
-  reportData: {},
-  cellMenuData: null,
-});
+) => {
+  const { reportName, ...editableReportState } =
+    getEditableReportState(parsedReportState);
+  const mergedReport = {
+    ...activeReport,
+    ...editableReportState,
+    reportData: {},
+    cellMenuData: null,
+  };
+
+  if (
+    Object.prototype.hasOwnProperty.call(parsedReportState, "reportName") &&
+    typeof reportName === "string" &&
+    !activeReport?.reportInfo?.uuid
+  ) {
+    mergedReport.reportInfo = {
+      ...(activeReport?.reportInfo || {}),
+      reportName,
+    };
+  }
+
+  return mergedReport;
+};
 
 const DEFAULT_REPORT_OPTIONS = {
   sample: "sample",

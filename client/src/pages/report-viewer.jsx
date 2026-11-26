@@ -53,6 +53,7 @@ const ViewModeHOC = ({
   params,
   reportViewerMode,
   jwtView,
+  parametersReview,
   setParametersReview,
 }) => {
   const dispatch = useDispatch();
@@ -100,9 +101,19 @@ const ViewModeHOC = ({
   };
 
   const onOpenClick = (mode) => {
+    const queryString = qs.stringify(
+      {
+        ...parameters,
+        ...(parametersReview?.parameters || {}),
+        dir: newPath.join("/"),
+        file: viewModeInfo.file.name,
+        mode,
+      },
+      { arrayFormat: "repeat" }
+    );
     window.open(
       window.baseURL +
-      `#/report-viewer?dir=${newPath.join("/")}&file=${viewModeInfo.file.name}&mode=${mode}`
+      `#/report-viewer?${queryString}`
     );
   };
 
@@ -368,6 +379,7 @@ const ReportViewer = ({ report, urlObj }) => {
       params={params}
       jwtView={report}
       reportViewerMode={reportViewerMode}
+      parametersReview={parametersReview}
       setParametersReview={setParametersReview}
     />
   ) : (

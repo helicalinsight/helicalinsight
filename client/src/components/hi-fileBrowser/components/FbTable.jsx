@@ -624,7 +624,7 @@ const FbTable = (props) => {
             type: "Network Call",
             message: "Request cancelled successfully",
           });
-        } else {
+        } else if (e instanceof Error) {
           Notify.error({
             type: "Upload Failed",
             message: e.message || "An error occurred during upload.",

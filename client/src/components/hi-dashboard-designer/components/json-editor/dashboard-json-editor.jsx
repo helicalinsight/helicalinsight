@@ -17,6 +17,7 @@ const DashboardJsonEditor = (props = {}) => {
     const {
         visible,
         onCloseDrawer = () => { },
+        setFileInfo,
     } = props || {}
 
     const [jsonText, setJsonText] = useState(EMPTY_JSON);
@@ -39,6 +40,12 @@ const DashboardJsonEditor = (props = {}) => {
                 designerState,
                 parsedReportState,
             );
+            if (typeof parsedReportState.dashboardTitle === "string" && parsedReportState.dashboardTitle) {
+                const currentTitle = document.title;
+                const titleSuffix = currentTitle.split(" | ").pop() || currentTitle;
+                document.title = `${parsedReportState.dashboardTitle} | ${titleSuffix}`;
+                setFileInfo?.({ fileTitle: parsedReportState.dashboardTitle });
+            }
             const serializedJson = getDashboardForViewer(mergedDashboard);
             lastSerializedJsonRef.current = serializedJson;
             setJsonText(serializedJson);

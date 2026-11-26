@@ -1,13 +1,18 @@
 package com.helicalinsight.adhocNew;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import  org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,6 +34,7 @@ import com.helicalinsight.adhoc.RenameOperationHandler;
 import com.helicalinsight.admin.model.Principal;
 import com.helicalinsight.admin.utils.AuthenticationUtils;
 import com.helicalinsight.efw.controllerutils.ControllerUtils;
+import com.helicalinsight.efw.exceptions.OperationFailedException;
 import com.helicalinsight.efw.exceptions.UnSupportedRuleImplementationException;
 import com.helicalinsight.efw.io.ExportOperationHandler;
 import com.helicalinsight.efw.io.FileArchive;
@@ -550,6 +556,74 @@ public class FileSystemOperationsControllerTest {
 			}
 			
 			
+		}
+	}
+
+	@Test
+	public void imageImportRejectsZipBeforeCreatingResource() throws IOException {
+		FileSystemOperationsController controller = new FileSystemOperationsController();
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+		IUpload importOperationHandler = mock(IUpload.class);
+		MultipartFile fileItem = mock(MultipartFile.class);
+		when(fileItem.getName()).thenReturn("file");
+		when(fileItem.getContentType()).thenReturn("application/zip");
+		when(fileItem.isEmpty()).thenReturn(true);
+		when(fileItem.getOriginalFilename()).thenReturn("zip-slip-marker-from-temp.zip");
+		when(fileItem.getSize()).thenReturn(0L);
+		when(fileItem.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+		when(request.getParameter("type")).thenReturn("image");
+		try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class)) {
+			try (MockedStatic<UploadClassFactory> uploadClassFactory = mockStatic(UploadClassFactory.class)) {
+				controllerUtils.when(() -> ControllerUtils.isAjax(request)).thenReturn(true);
+				uploadClassFactory.when(() -> UploadClassFactory.getIUploadClass("image"))
+						.thenReturn(importOperationHandler);
+				controller.executeImportOperation(fileItem, "destination", request, response);
+				controllerUtils.verify(() -> ControllerUtils.handleFailure(eq(response), eq(true), argThat(ex ->
+						ex instanceof OperationFailedException && ex.getMessage() != null
+								&& ex.getMessage().contains("png"))));
+				controllerUtils.verify(() -> ControllerUtils.handleSuccess(any(), anyBoolean(), anyString()), never());
+			}
+		}
+	}
+
+	@Test
+	public void importFailureUsesResponseAttributeWhenPresent() throws IOException {
+		String reason = "The archive was rejected because an entry resolves outside the destination directory: "
+				+ "entry '../zipslip-marker.txt' contains a parent path segment.";
+		assertImportFailureMessage(reason, reason);
+	}
+
+	@Test
+	public void importFailureWithoutResponseAttributeUsesSavedReportMessage() throws IOException {
+		assertImportFailureMessage(null,
+				"Error. The file couldn't be imported properly. Only Saved reports are importable.");
+	}
+
+	private void assertImportFailureMessage(String responseAttribute, String expectedMessage) throws IOException {
+		FileSystemOperationsController controller = new FileSystemOperationsController();
+		HttpServletRequest request = mock(HttpServletRequest.class);
+		HttpServletResponse response = mock(HttpServletResponse.class);
+		IUpload importOperationHandler = mock(IUpload.class);
+		MultipartFile fileItem = mock(MultipartFile.class);
+		when(fileItem.getName()).thenReturn("file");
+		when(fileItem.getContentType()).thenReturn("application/zip");
+		when(fileItem.isEmpty()).thenReturn(true);
+		when(fileItem.getOriginalFilename()).thenReturn("marker.zip");
+		when(fileItem.getSize()).thenReturn(0L);
+		when(fileItem.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
+		when(request.getParameter("type")).thenReturn("datasource");
+		when(request.getAttribute("response")).thenReturn(responseAttribute);
+		when(importOperationHandler.processMultipartItem(any(HttpServletRequest.class), any(FileItem.class), anyString(),
+				anyString())).thenReturn(false);
+		try (MockedStatic<ControllerUtils> controllerUtils = mockStatic(ControllerUtils.class)) {
+			try (MockedStatic<UploadClassFactory> uploadClassFactory = mockStatic(UploadClassFactory.class)) {
+				controllerUtils.when(() -> ControllerUtils.statusZeroJson(anyString())).thenReturn(new JsonObject());
+				uploadClassFactory.when(() -> UploadClassFactory.getIUploadClass(anyString()))
+						.thenReturn(importOperationHandler);
+				controller.executeImportOperation(fileItem, "destination", request, response);
+				controllerUtils.verify(() -> ControllerUtils.statusZeroJson(expectedMessage));
+			}
 		}
 	}
 }

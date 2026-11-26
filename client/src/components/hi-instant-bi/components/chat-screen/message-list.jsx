@@ -2,6 +2,7 @@ import { ArrowDownOutlined, LoadingOutlined } from '@ant-design/icons';
 import { Row, Spin } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import { useSlashMode } from '../../slash/slash-mode';
 import { useSequentialChatLoad } from '../../utils/use-sequential-chat-load';
 import MessageLayout from './message-layout';
 import MetadataNotConnected from './metadata-not-connected';
@@ -18,7 +19,10 @@ const MessageList = (props = {}) => {
         dispatch,
         reportId,
         onShowThinkQuestion,
+        environment,
     } = props
+    // Slash can open before a semantic model is connected.
+    const slashMode = useSlashMode();
 
     const {
         requestLoad,
@@ -99,7 +103,8 @@ const MessageList = (props = {}) => {
         return () => clearTimeout(t);
     }, [loadingSequenceId]);
 
-    if (!isMetadataPresent) return <MetadataNotConnected />
+    // Normal Instant BI asks to connect metadata. Slash shows its own welcome instead.
+    if (!isMetadataPresent && !slashMode) return <MetadataNotConnected />
 
     if (!messages.length) return null;
 
@@ -157,6 +162,7 @@ const MessageList = (props = {}) => {
                                     skippedSequenceIds,
                                     abortedSequenceIds,
                                     onShowThinkQuestion,
+                                    environment,
                                 }}
                                 handleScroll={resetScrollShow}
                             />
